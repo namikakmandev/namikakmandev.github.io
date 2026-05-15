@@ -164,6 +164,9 @@ function process(text, fname) {
     });
   });
   OPPS.sort((a, b) => b.score - a.score);
+  window.__CUST = customers.map((c) => ({
+    name: c.name, am: c.am, segment: c.segment, total: c.total,
+  }));
 
   // Populate AM filter
   const sel = document.getElementById("am-filter");
@@ -182,16 +185,86 @@ function process(text, fname) {
   render();
 }
 
+function _med(a) {
+  if (!a.length) return 0;
+  const s = [...a].sort((p, q) => p - q);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+function drawMatrix(opps, f) {
+  const el = document.getElementById("cp-matrix-svg");
+  const cust = (window.__CUST || []).filter((c) => !f || c.am === f);
+  if (!cust.length) { el.innerHTML = ""; return; }
+  const ws = {};
+  opps.forEach((o) => (ws[o.customer] = (ws[o.customer] || 0) + o.opp));
+  const pts = cust.map((c) => ({ name: c.name, x: c.total, y: ws[c.name] || 0 }));
+  const W = 640, H = 470, mL = 70, mR = 20, mT = 18, mB = 46;
+  const pw = W - mL - mR, ph = H - mT - mB;
+  const xMax = Math.max(...pts.map((p) => p.x)) * 1.05 || 1;
+  const yMax = Math.max(...pts.map((p) => p.y)) * 1.05 || 1;
+  const mx = _med(pts.map((p) => p.x)), my = _med(pts.map((p) => p.y));
+  const X = (v) => mL + (v / xMax) * pw;
+  const Y = (v) => mT + ph - (v / yMax) * ph;
+  let s = "";
+  s += `<rect x="${mL}" y="${mT}" width="${pw}" height="${ph}" fill="none" stroke="var(--border)"/>`;
+  s += `<line x1="${X(mx).toFixed(1)}" y1="${mT}" x2="${X(mx).toFixed(1)}" y2="${mT + ph}" stroke="var(--border)" stroke-dasharray="4 4"/>`;
+  s += `<line x1="${mL}" y1="${Y(my).toFixed(1)}" x2="${mL + pw}" y2="${Y(my).toFixed(1)}" stroke="var(--border)" stroke-dasharray="4 4"/>`;
+  s += `<text x="${mL + pw - 8}" y="${mT + 16}" text-anchor="end" class="cp-q">GROW</text>`;
+  s += `<text x="${mL + 8}" y="${mT + 16}" class="cp-q">DEVELOP</text>`;
+  s += `<text x="${mL + pw - 8}" y="${mT + ph - 8}" text-anchor="end" class="cp-q">DEFEND</text>`;
+  s += `<text x="${mL + 8}" y="${mT + ph - 8}" class="cp-q">MAINTAIN</text>`;
+  s += `<text x="${mL + pw / 2}" y="${H - 10}" text-anchor="middle" class="cp-ax">Current value (revenue) →</text>`;
+  s += `<text x="16" y="${mT + ph / 2}" text-anchor="middle" class="cp-ax" transform="rotate(-90 16 ${mT + ph / 2})">Untapped whitespace →</text>`;
+  pts.forEach((p) => {
+    const hy = p.y >= my, hx = p.x >= mx;
+    const color = hy && hx ? "var(--accent-2)" : hy || hx ? "var(--accent)" : "var(--text-dim)";
+    s += `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="5" style="fill:${color};opacity:0.78"><title>${p.name} — current €${fmt(p.x)}, whitespace €${fmt(p.y)}</title></circle>`;
+  });
+  el.innerHTML = s;
+}
+
+function drawBars(id, map) {
+  const el = document.getElementById(id);
+  const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  const W = 420, rowH = 30, mL = 120, mR = 64, mT = 6;
+  const H = Math.max(70, mT * 2 + entries.length * rowH);
+  const max = Math.max(...entries.map((e) => e[1]), 1);
+  const pw = W - mL - mR;
+  let s = "";
+  entries.forEach(([k, v], i) => {
+    const y = mT + i * rowH;
+    const bw = (v / max) * pw;
+    s += `<text x="${mL - 8}" y="${y + rowH / 2}" text-anchor="end" dominant-baseline="middle" class="se-lbl">${k}</text>`;
+    s += `<rect x="${mL}" y="${y + 5}" width="${bw.toFixed(1)}" height="${rowH - 12}" rx="3" style="fill:var(--accent)"/>`;
+    s += `<text x="${mL + bw + 6}" y="${y + rowH / 2}" dominant-baseline="middle" class="se-val">€${fmt(v)}</text>`;
+  });
+  el.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  el.innerHTML = s;
+}
+
 function render() {
   const f = document.getElementById("am-filter").value;
   const rows = f ? OPPS.filter((o) => o.am === f) : OPPS;
-  document.getElementById("k-total").textContent =
-    "€" + fmt(rows.reduce((s, o) => s + o.opp, 0));
+  const total = rows.reduce((s, o) => s + o.opp, 0);
+  document.getElementById("k-total").textContent = "€" + fmt(total);
   document.getElementById("k-count").textContent = rows.length;
-  document.getElementById("k-ams").textContent =
-    new Set(OPPS.map((o) => o.am)).size;
+  document.getElementById("k-custs").textContent =
+    new Set(rows.map((o) => o.customer)).size;
+  document.getElementById("k-max").textContent =
+    "€" + fmt(rows.length ? Math.max(...rows.map((o) => o.opp)) : 0);
   document.getElementById("res-sub").textContent =
     f ? "(" + f + ")" : "(all account managers)";
+
+  drawMatrix(rows, f);
+  const byAM = {}, byG = {};
+  rows.forEach((o) => {
+    byAM[o.am] = (byAM[o.am] || 0) + o.opp;
+    byG[o.group] = (byG[o.group] || 0) + o.opp;
+  });
+  drawBars("cp-am-svg", byAM);
+  drawBars("cp-grp-svg", byG);
+
   document.getElementById("res-tbody").innerHTML = rows
     .slice(0, 250)
     .map(
