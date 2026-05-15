@@ -345,31 +345,77 @@ const xe = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/
 
 function cfExport() {
   const p = window._cfP || project(scenario);
-  const H1 = ["Month", "Opening", "Inflow", "Outflow", "Net", "Closing"];
+  const inL = [...document.querySelectorAll("#cf-inflows .cf-line")].map((r) => ({
+    name: r.querySelector(".ln-name").value || "Inflow",
+    amt: parseFloat(r.querySelector(".ln-amt").value) || 0,
+    g: parseFloat(r.querySelector(".ln-g").value) || 0,
+  }));
+  const outL = [...document.querySelectorAll("#cf-outflows .cf-line")].map((r) => ({
+    name: r.querySelector(".ln-name").value || "Cost",
+    type: r.querySelector(".ln-type").value === "pct" ? "%" : "Fixed",
+    val: parseFloat(r.querySelector(".ln-val").value) || 0,
+  }));
+  const sc = SCEN[scenario], sl = sliders();
+  const salesMult = sc.sales * (1 + sl.sales / 100);
+  const costMult = sc.cost * (1 + sl.cost / 100);
+  const kf = Math.min(1, sl.delay / 30);
+  const grossOf = (i) =>
+    inL.reduce((t, ln) => t + ln.amt * Math.pow(1 + ln.g / 100, i), 0) * salesMult;
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const F = (f, v) => `<f>${xe(f)}</f><v>${v}</v>`;
+
+  const IN_S = 10, IN_E = 9 + inL.length;
+  const OH = IN_E + 2, OS = OH + 1, OE = OH + outL.length;
+  const PH = OE + 2, PS = PH + 1, PE = PS + 11, RUN = PE + 2;
+  const IN = `$B$${IN_S}:$B$${IN_E}`, GR = `$C$${IN_S}:$C$${IN_E}`;
+  const OT = `$B$${OS}:$B$${OE}`, OV = `$C$${OS}:$C$${OE}`;
+
   let sd =
-    `<row r="1"><c r="A1" t="inlineStr" s="1"><is><t>Cash Flow &amp; Runway — ${xe(SCEN[scenario].label)} scenario</t></is></c></row><row r="2"/>` +
-    `<row r="3">` + H1.map((h, i) =>
-      `<c r="${String.fromCharCode(65 + i)}3" t="inlineStr" s="2"><is><t>${xe(h)}</t></is></c>`).join("") + `</row>`;
-  p.rows.forEach((r, i) => {
-    const rn = i + 4;
-    sd += `<row r="${rn}">` +
-      `<c r="A${rn}" t="inlineStr" s="3"><is><t>M${r.m}</t></is></c>` +
-      `<c r="B${rn}" s="4"><v>${Math.round(r.opening)}</v></c>` +
-      `<c r="C${rn}" s="4"><v>${Math.round(r.inflow)}</v></c>` +
-      `<c r="D${rn}" s="4"><v>${Math.round(r.outflow)}</v></c>` +
-      `<c r="E${rn}" s="4"><v>${Math.round(r.net)}</v></c>` +
-      `<c r="F${rn}" s="4"><v>${Math.round(r.closing)}</v></c></row>`;
+    `<row r="1"><c r="A1" t="inlineStr" s="1"><is><t>Cash Flow &amp; Runway — ${xe(SCEN[scenario].label)} (editable model)</t></is></c></row><row r="2"/>` +
+    `<row r="3"><c r="A3" t="inlineStr" s="2"><is><t>Assumptions — edit these</t></is></c></row>` +
+    `<row r="4"><c r="A4" t="inlineStr" s="3"><is><t>Starting cash</t></is></c><c r="B4" s="4"><v>${Math.round(p.rows[0].opening)}</v></c></row>` +
+    `<row r="5"><c r="A5" t="inlineStr" s="3"><is><t>Sales multiplier</t></is></c><c r="B5" s="5"><v>${r2(salesMult)}</v></c></row>` +
+    `<row r="6"><c r="A6" t="inlineStr" s="3"><is><t>Cost multiplier</t></is></c><c r="B6" s="5"><v>${r2(costMult)}</v></c></row>` +
+    `<row r="7"><c r="A7" t="inlineStr" s="3"><is><t>Collection factor (0-1)</t></is></c><c r="B7" s="5"><v>${r2(kf)}</v></c></row>` +
+    `<row r="8"/>` +
+    `<row r="9"><c r="A9" t="inlineStr" s="2"><is><t>Inflow lines</t></is></c><c r="B9" t="inlineStr" s="2"><is><t>Base €/mo</t></is></c><c r="C9" t="inlineStr" s="2"><is><t>Growth %/mo</t></is></c></row>`;
+  inL.forEach((ln, i) => {
+    const rr = IN_S + i;
+    sd += `<row r="${rr}"><c r="A${rr}" t="inlineStr" s="3"><is><t>${xe(ln.name)}</t></is></c>` +
+      `<c r="B${rr}" s="4"><v>${ln.amt}</v></c><c r="C${rr}" s="3"><v>${ln.g}</v></c></row>`;
   });
-  const rn = p.rows.length + 5;
-  sd += `<row r="${rn}"><c r="A${rn}" t="inlineStr" s="2"><is><t>Runway</t></is></c>` +
-    `<c r="B${rn}" t="inlineStr" s="3"><is><t>${p.runway >= H ? "12+ months" : p.runway + " months"}</t></is></c></row>`;
-  const lastRow = p.rows.length + 3; // data rows 4..15
+  sd += `<row r="${OH}"><c r="A${OH}" t="inlineStr" s="2"><is><t>Outflow lines</t></is></c><c r="B${OH}" t="inlineStr" s="2"><is><t>Type (Fixed or %)</t></is></c><c r="C${OH}" t="inlineStr" s="2"><is><t>Value</t></is></c></row>`;
+  outL.forEach((ln, i) => {
+    const rr = OS + i;
+    sd += `<row r="${rr}"><c r="A${rr}" t="inlineStr" s="3"><is><t>${xe(ln.name)}</t></is></c>` +
+      `<c r="B${rr}" t="inlineStr" s="3"><is><t>${ln.type}</t></is></c><c r="C${rr}" s="4"><v>${ln.val}</v></c></row>`;
+  });
+  sd += `<row r="${PH}">` +
+    ["Month", "Opening", "Inflow", "Outflow", "Net", "Closing", "Gross"].map((h, i) =>
+      `<c r="${String.fromCharCode(65 + i)}${PH}" t="inlineStr" s="2"><is><t>${h}</t></is></c>`).join("") + `</row>`;
+  for (let i = 0; i < 12; i++) {
+    const rr = PS + i, pr = rr - 1, ro = p.rows[i];
+    const gF = `SUMPRODUCT(${IN}*(1+${GR}/100)^${i})*$B$5`;
+    const cF = i === 0 ? `(1-$B$7)*G${rr}` : `(1-$B$7)*G${rr}+$B$7*G${pr}`;
+    const dF = `(SUMIF(${OT},"Fixed",${OV})+SUMIF(${OT},"%",${OV})/100*G${rr})*$B$6`;
+    sd += `<row r="${rr}">` +
+      `<c r="A${rr}" t="inlineStr" s="3"><is><t>M${i + 1}</t></is></c>` +
+      `<c r="B${rr}" s="4">${F(i === 0 ? "$B$4" : "F" + pr, Math.round(ro.opening))}</c>` +
+      `<c r="C${rr}" s="4">${F(cF, Math.round(ro.inflow))}</c>` +
+      `<c r="D${rr}" s="4">${F(dF, Math.round(ro.outflow))}</c>` +
+      `<c r="E${rr}" s="4">${F(`C${rr}-D${rr}`, Math.round(ro.net))}</c>` +
+      `<c r="F${rr}" s="4">${F(`B${rr}+E${rr}`, Math.round(ro.closing))}</c>` +
+      `<c r="G${rr}" s="4">${F(gF, Math.round(grossOf(i)))}</c></row>`;
+  }
+  sd += `<row r="${RUN}"><c r="A${RUN}" t="inlineStr" s="2"><is><t>Runway (months)</t></is></c>` +
+    `<c r="B${RUN}" s="3">${F(`IFERROR(MATCH(TRUE,INDEX($F$${PS}:$F$${PE}<0,0),0)-1,12)`, p.runway >= H ? 12 : p.runway)}</c></row>`;
+
   const sheet =
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
     `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
-    `<cols><col min="1" max="1" width="10"/><col min="2" max="6" width="15"/></cols>` +
+    `<cols><col min="1" max="1" width="24"/><col min="2" max="7" width="13"/></cols>` +
     `<sheetData>${sd}</sheetData>` +
-    `<mergeCells count="1"><mergeCell ref="A1:F1"/></mergeCells>` +
+    `<mergeCells count="1"><mergeCell ref="A1:G1"/></mergeCells>` +
     `<drawing r:id="rId1"/></worksheet>`;
 
   const SN = "'Cash Flow'";
@@ -378,7 +424,7 @@ function cfExport() {
     `<c:tx><c:strRef><c:f>${SN}!${nameCell}</c:f></c:strRef></c:tx>` +
     `<c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill></a:ln></c:spPr>` +
     `<c:marker><c:symbol val="none"/></c:marker>` +
-    `<c:cat><c:strRef><c:f>${SN}!$A$4:$A$${lastRow}</c:f></c:strRef></c:cat>` +
+    `<c:cat><c:strRef><c:f>${SN}!$A$${PS}:$A$${PE}</c:f></c:strRef></c:cat>` +
     `<c:val><c:numRef><c:f>${SN}!${valRange}</c:f></c:numRef></c:val></c:ser>`;
   const chartXml =
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
@@ -386,8 +432,8 @@ function cfExport() {
     `<c:chart><c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>Projected cash — ${xe(SCEN[scenario].label)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title>` +
     `<c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>` +
     `<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>` +
-    lser(0, "$F$3", "$F$4:$F$" + lastRow, "2F9BFF") +
-    lser(1, "$E$3", "$E$4:$E$" + lastRow, "19C37D") +
+    lser(0, `$F$${PH}`, `$F$${PS}:$F$${PE}`, "2F9BFF") +
+    lser(1, `$E$${PH}`, `$E$${PS}:$E$${PE}`, "19C37D") +
     `<c:marker val="1"/><c:axId val="111111111"/><c:axId val="222222222"/></c:lineChart>` +
     `<c:catAx><c:axId val="111111111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:crossAx val="222222222"/></c:catAx>` +
     `<c:valAx><c:axId val="222222222"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111111111"/></c:valAx>` +
@@ -406,7 +452,7 @@ function cfExport() {
   const styles =
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
     `<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
-    `<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0;(#,##0)"/></numFmts>` +
+    `<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0;(#,##0)"/><numFmt numFmtId="165" formatCode="0.00"/></numFmts>` +
     `<fonts count="3"><font><sz val="11"/><name val="Calibri"/><color rgb="FF1F2937"/></font>` +
     `<font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font>` +
     `<font><b/><sz val="13"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font></fonts>` +
@@ -415,12 +461,13 @@ function cfExport() {
     `<fill><patternFill patternType="solid"><fgColor rgb="FF2F9BFF"/></patternFill></fill></fills>` +
     `<borders count="1"><border/></borders>` +
     `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>` +
-    `<cellXfs count="5">` +
+    `<cellXfs count="6">` +
     `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
     `<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>` +
     `<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>` +
     `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
     `<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>` +
+    `<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>` +
     `</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   const files = [
     { name: "[Content_Types].xml", data: u8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/><Override PartName="/xl/charts/chart1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/></Types>`) },
