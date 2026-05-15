@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cash Flow &amp; Runway Simulator · Namık Akman</title>
+  <meta name="description" content="Project cash forward, see months of runway, flip Base/Best/Worst scenarios and stress-test with sensitivity sliders. Branded Excel export, runs in your browser." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=1" />
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Cash Flow &amp; Runway Simulator</h2>
+        </div>
+        <p class="data-note">
+          Project 12 months of cash, see how many months of <strong>runway</strong>
+          you have, flip <strong>Base / Best / Worst</strong> scenarios and
+          stress-test with the sliders. Everything recalculates live and runs in
+          your browser — nothing is uploaded.
+        </p>
+
+        <div class="cf-wrap">
+          <div class="card-light cf-inputs">
+            <h3>Assumptions</h3>
+            <div class="form-row"><label for="i-cash">Starting cash</label>
+              <input type="number" id="i-cash" step="1000" value="120000" /></div>
+            <div class="form-row"><label for="i-inflow">Month-1 cash inflow</label>
+              <input type="number" id="i-inflow" step="1000" value="60000" /></div>
+            <div class="form-row"><label for="i-growth">Monthly inflow growth %</label>
+              <input type="number" id="i-growth" step="0.5" value="3" /></div>
+            <div class="form-row"><label for="i-fixed">Monthly fixed costs</label>
+              <input type="number" id="i-fixed" step="1000" value="55000" /></div>
+            <div class="form-row"><label for="i-var">Variable cost (% of inflow)</label>
+              <input type="number" id="i-var" step="1" value="35" /></div>
+
+            <h3 style="margin-top:18px">Scenario</h3>
+            <div class="seg" id="cf-scenario">
+              <button data-s="best" type="button">Best</button>
+              <button data-s="base" type="button" class="on">Base</button>
+              <button data-s="worst" type="button">Worst</button>
+            </div>
+
+            <h3 style="margin-top:18px">Stress test</h3>
+            <div class="se-slider" data-k="sales">
+              <label>Sales change <b>0%</b></label>
+              <input type="range" min="-50" max="50" value="0" />
+            </div>
+            <div class="se-slider" data-k="cost">
+              <label>Cost change <b>0%</b></label>
+              <input type="range" min="-30" max="40" value="0" />
+            </div>
+            <div class="se-slider" data-k="delay">
+              <label>Collection delay <b>0 days</b></label>
+              <input type="range" min="0" max="90" step="5" value="0" />
+            </div>
+          </div>
+
+          <div class="cf-main">
+            <div class="kpi-bar">
+              <div class="kpi-box"><span>Runway</span><strong id="k-runway">—</strong></div>
+              <div class="kpi-box"><span>Lowest cash point</span><strong id="k-low">—</strong></div>
+              <div class="kpi-box"><span>Ending cash (M12)</span><strong id="k-end">—</strong></div>
+              <div class="kpi-box"><span>Cumulative net cash</span><strong id="k-net">—</strong></div>
+            </div>
+
+            <div class="card-light cf-chartcard">
+              <h3>Projected closing cash <span id="cf-scen-lbl">(Base)</span></h3>
+              <svg id="cf-chart" viewBox="0 0 900 360" preserveAspectRatio="none"
+                   role="img" aria-label="Projected cash balance"></svg>
+            </div>
+
+            <div class="card-light cf-cmp">
+              <h3>Scenario comparison <span>with current stress settings</span></h3>
+              <div id="cf-cmp"></div>
+            </div>
+
+            <div class="card-light se-tablewrap">
+              <div class="res-head">
+                <h3>Monthly projection <span id="cf-tbl-lbl"></span></h3>
+                <button class="btn btn-primary" id="cf-export" type="button">Export Excel</button>
+              </div>
+              <div class="se-tablescroll">
+                <table class="se-table">
+                  <thead><tr>
+                    <th>Month</th><th class="num">Opening</th><th class="num">Inflow</th>
+                    <th class="num">Outflow</th><th class="num">Net</th><th class="num">Closing</th>
+                  </tr></thead>
+                  <tbody id="cf-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Processed locally in your browser — no data uploaded</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=1"></script>
+  <script src="js/cashflow.js?v=1"></script>
+</body>
+</html>
