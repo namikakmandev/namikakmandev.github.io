@@ -231,8 +231,9 @@ function drawMatrix(opps, f) {
   el.innerHTML = s;
 }
 
-function drawBars(id, map) {
+function drawBars(id, map, clickable) {
   const el = document.getElementById(id);
+  const sel = clickable ? document.getElementById("am-filter").value : "";
   const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
   const W = 420, rowH = 30, mL = 120, mR = 64, mT = 6;
   const H = Math.max(70, mT * 2 + entries.length * rowH);
@@ -242,9 +243,14 @@ function drawBars(id, map) {
   entries.forEach(([k, v], i) => {
     const y = mT + i * rowH;
     const bw = (v / max) * pw;
-    s += `<text x="${mL - 8}" y="${y + rowH / 2}" text-anchor="end" dominant-baseline="middle" class="se-lbl">${k}</text>`;
-    s += `<rect x="${mL}" y="${y + 5}" width="${bw.toFixed(1)}" height="${rowH - 12}" rx="3" style="fill:var(--accent)"/>`;
-    s += `<text x="${mL + bw + 6}" y="${y + rowH / 2}" dominant-baseline="middle" class="se-val">€${fmt(v)}</text>`;
+    const on = clickable && sel === k;
+    const inner =
+      `<text x="${mL - 8}" y="${y + rowH / 2}" text-anchor="end" dominant-baseline="middle" class="se-lbl"${on ? ' style="fill:var(--accent);font-weight:700"' : ""}>${k}</text>` +
+      `<rect x="${mL}" y="${y + 5}" width="${bw.toFixed(1)}" height="${rowH - 12}" rx="3" style="fill:var(--accent);opacity:${on ? 1 : 0.85}"/>` +
+      `<text x="${mL + bw + 6}" y="${y + rowH / 2}" dominant-baseline="middle" class="se-val">€${fmt(v)}</text>`;
+    s += clickable
+      ? `<g class="cp-clk" data-k="${k}" style="cursor:pointer"><rect x="0" y="${y}" width="${W}" height="${rowH}" fill="transparent"/>${inner}</g>`
+      : inner;
   });
   el.setAttribute("viewBox", `0 0 ${W} ${H}`);
   el.innerHTML = s;
@@ -405,7 +411,7 @@ function render() {
     byAM[o.am] = (byAM[o.am] || 0) + o.opp;
     byG[o.group] = (byG[o.group] || 0) + o.opp;
   });
-  drawBars("cp-am-svg", byAM);
+  drawBars("cp-am-svg", byAM, true);
   drawBars("cp-grp-svg", byG);
   buildInsights(rows, f);
 
@@ -435,6 +441,14 @@ document.getElementById("sample-btn").addEventListener("click", () => {
   else status("Sample data not available.", false);
 });
 document.getElementById("am-filter").addEventListener("change", render);
+document.getElementById("cp-am-svg").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-k]");
+  if (!g) return;
+  const sel = document.getElementById("am-filter");
+  const k = g.getAttribute("data-k");
+  sel.value = sel.value === k ? "" : k; // click again to clear
+  render();
+});
 
 // ---- Compact in-browser XLSX export ----
 const _ct = (() => {
