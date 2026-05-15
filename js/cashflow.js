@@ -24,16 +24,97 @@ const fmt = (n) =>
   Math.round(Math.abs(n)).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 // ---- Editable line items ----
-const DEF_IN = [
-  { name: "Product sales", amt: 50000, g: 3 },
-  { name: "Services", amt: 12000, g: 2 },
-];
-const DEF_OUT = [
-  { name: "Salaries", type: "fixed", val: 35000 },
-  { name: "Rent & office", type: "fixed", val: 12000 },
-  { name: "Marketing", type: "fixed", val: 8000 },
-  { name: "COGS", type: "pct", val: 35 },
-];
+const INDUSTRIES = {
+  generic: {
+    in: [
+      { name: "Product sales", amt: 50000, g: 3 },
+      { name: "Services", amt: 12000, g: 2 },
+    ],
+    out: [
+      { name: "Salaries", type: "fixed", val: 35000 },
+      { name: "Rent & office", type: "fixed", val: 12000 },
+      { name: "Marketing", type: "fixed", val: 8000 },
+      { name: "COGS", type: "pct", val: 35 },
+    ],
+  },
+  saas: {
+    in: [
+      { name: "Subscription (recurring)", amt: 60000, g: 6 },
+      { name: "Expansion / upsell", amt: 9000, g: 8 },
+      { name: "Professional services", amt: 8000, g: 2 },
+    ],
+    out: [
+      { name: "Engineering & product", type: "fixed", val: 42000 },
+      { name: "Sales & marketing", type: "fixed", val: 30000 },
+      { name: "G&A", type: "fixed", val: 14000 },
+      { name: "Cloud / infrastructure", type: "pct", val: 12 },
+    ],
+  },
+  retail: {
+    in: [
+      { name: "In-store sales", amt: 70000, g: 1.5 },
+      { name: "Online sales", amt: 45000, g: 5 },
+    ],
+    out: [
+      { name: "COGS", type: "pct", val: 55 },
+      { name: "Store rent & utilities", type: "fixed", val: 22000 },
+      { name: "Staff wages", type: "fixed", val: 30000 },
+      { name: "Marketing", type: "fixed", val: 10000 },
+      { name: "Fulfilment / logistics", type: "pct", val: 8 },
+    ],
+  },
+  manufacturing: {
+    in: [
+      { name: "Product sales", amt: 110000, g: 2 },
+      { name: "Spare parts & service", amt: 18000, g: 3 },
+    ],
+    out: [
+      { name: "Raw materials (COGS)", type: "pct", val: 45 },
+      { name: "Direct labour", type: "fixed", val: 38000 },
+      { name: "Factory overhead", type: "fixed", val: 24000 },
+      { name: "SG&A", type: "fixed", val: 20000 },
+      { name: "Logistics", type: "pct", val: 7 },
+    ],
+  },
+  services: {
+    in: [
+      { name: "Project fees", amt: 70000, g: 3 },
+      { name: "Retainers", amt: 25000, g: 1 },
+    ],
+    out: [
+      { name: "Consultant salaries", type: "fixed", val: 55000 },
+      { name: "Subcontractors", type: "pct", val: 18 },
+      { name: "Office & tools", type: "fixed", val: 12000 },
+      { name: "Travel & expenses", type: "pct", val: 6 },
+      { name: "G&A", type: "fixed", val: 9000 },
+    ],
+  },
+  pharma: {
+    in: [
+      { name: "Product sales", amt: 130000, g: 2.5 },
+      { name: "Tenders & contracts", amt: 30000, g: 1 },
+    ],
+    out: [
+      { name: "COGS", type: "pct", val: 30 },
+      { name: "Field force & medical", type: "fixed", val: 60000 },
+      { name: "Marketing & education", type: "fixed", val: 22000 },
+      { name: "Distribution", type: "pct", val: 8 },
+      { name: "Regulatory & compliance", type: "fixed", val: 14000 },
+    ],
+  },
+  hospitality: {
+    in: [
+      { name: "Rooms / F&B revenue", amt: 85000, g: 2 },
+      { name: "Events & catering", amt: 20000, g: 3 },
+    ],
+    out: [
+      { name: "Food & beverage cost", type: "pct", val: 32 },
+      { name: "Staff wages", type: "fixed", val: 34000 },
+      { name: "Rent & utilities", type: "fixed", val: 20000 },
+      { name: "Marketing & OTA fees", type: "pct", val: 9 },
+    ],
+  },
+};
 const esc = (s) => String(s).replace(/"/g, "&quot;");
 function inRow(d) {
   return `<div class="cf-line"><input class="ln-name" value="${esc(d.name)}" />` +
@@ -49,8 +130,10 @@ function outRow(d) {
     `<button class="ln-x" type="button" title="remove">×</button></div>`;
 }
 function renderLines() {
-  document.getElementById("cf-inflows").innerHTML = DEF_IN.map(inRow).join("");
-  document.getElementById("cf-outflows").innerHTML = DEF_OUT.map(outRow).join("");
+  const key = document.getElementById("cf-industry").value || "generic";
+  const t = INDUSTRIES[key] || INDUSTRIES.generic;
+  document.getElementById("cf-inflows").innerHTML = t.in.map(inRow).join("");
+  document.getElementById("cf-outflows").innerHTML = t.out.map(outRow).join("");
 }
 function gatherIn() {
   return [...document.querySelectorAll("#cf-inflows .cf-line")].map((r) => ({
@@ -194,6 +277,10 @@ function render() {
 }
 
 // listeners
+document.getElementById("cf-industry").addEventListener("change", () => {
+  renderLines();
+  render();
+});
 document.getElementById("i-cash").addEventListener("input", render);
 ["cf-inflows", "cf-outflows"].forEach((id) => {
   const c = document.getElementById(id);
