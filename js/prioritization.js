@@ -209,7 +209,7 @@ function drawMatrix(opps, f, g) {
   let pts = cust.map((c) => ({ name: c.name, x: c.total, y: ws[c.name] || 0 }));
   if (g) pts = pts.filter((p) => p.y > 0); // group selected → only accounts with whitespace there
   if (!pts.length) { el.innerHTML = ""; return; }
-  const W = 640, H = 470, mL = 70, mR = 20, mT = 18, mB = 46;
+  const W = 640, H = 470, mL = 40, mR = 12, mT = 12, mB = 36;
   const pw = W - mL - mR, ph = H - mT - mB;
   const xMax = Math.max(...pts.map((p) => p.x)) * 1.05 || 1;
   const yMax = Math.max(...pts.map((p) => p.y)) * 1.05 || 1;
