@@ -196,47 +196,63 @@ function svg(id, content, vb) {
   el.innerHTML = content;
 }
 
-function drawChart(p) {
+function drawChart(P, sel) {
+  const order = ["best", "base", "worst"];
+  const col = { best: "var(--accent-2)", base: "var(--accent)", worst: "var(--loss)" };
   const W = 900, He = 360, mL = 70, mR = 16, mT = 18, mB = 34;
   const pw = W - mL - mR, ph = He - mT - mB;
-  const vals = p.rows.map((r) => r.closing).concat([0, num("i-cash")]);
-  const max = Math.max(...vals), min = Math.min(...vals);
+  // shared scale across ALL scenarios so differences are visible
+  let allV = [0, num("i-cash")];
+  order.forEach((k) => P[k].rows.forEach((r) => allV.push(r.closing)));
+  const max = Math.max(...allV), min = Math.min(...allV);
   const span = max - min || 1;
   const X = (i) => mL + (i / (H - 1)) * pw;
   const Y = (v) => mT + ph - ((v - min) / span) * ph;
   const y0 = Y(0);
   let s = "";
-  // zero line
-  s += `<line x1="${mL}" y1="${y0.toFixed(1)}" x2="${mL + pw}" y2="${y0.toFixed(1)}" stroke="var(--loss)" stroke-dasharray="4 4" opacity="0.7"/>`;
+  s += `<line x1="${mL}" y1="${y0.toFixed(1)}" x2="${mL + pw}" y2="${y0.toFixed(1)}" stroke="var(--loss)" stroke-dasharray="4 4" opacity="0.6"/>`;
   s += `<text x="${mL - 8}" y="${y0.toFixed(1)}" text-anchor="end" dominant-baseline="middle" class="cp-ax">0</text>`;
-  // area + line
-  let area = `M ${X(0).toFixed(1)} ${y0.toFixed(1)} `;
-  let line = "";
+  // month axis labels
+  P[sel].rows.forEach((r, i) =>
+    (s += `<text x="${X(i).toFixed(1)}" y="${He - 12}" text-anchor="middle" class="cp-ax">${r.m}</text>`));
+  // draw non-selected first (faint), then selected on top
+  order.forEach((k) => {
+    if (k === sel) return;
+    let ln = "";
+    P[k].rows.forEach((r, i) => (ln += (i ? "L" : "M") + ` ${X(i).toFixed(1)} ${Y(r.closing).toFixed(1)} `));
+    s += `<path d="${ln}" fill="none" stroke="${col[k]}" stroke-width="1.5" opacity="0.4"/>`;
+  });
+  const p = P[sel];
+  let area = `M ${X(0).toFixed(1)} ${y0.toFixed(1)} `, line = "";
   p.rows.forEach((r, i) => {
-    const x = X(i), y = Y(r.closing);
-    area += `L ${x.toFixed(1)} ${y.toFixed(1)} `;
-    line += (i ? "L" : "M") + ` ${x.toFixed(1)} ${y.toFixed(1)} `;
+    area += `L ${X(i).toFixed(1)} ${Y(r.closing).toFixed(1)} `;
+    line += (i ? "L" : "M") + ` ${X(i).toFixed(1)} ${Y(r.closing).toFixed(1)} `;
   });
   area += `L ${X(H - 1).toFixed(1)} ${y0.toFixed(1)} Z`;
-  s += `<path d="${area}" fill="var(--accent)" opacity="0.10"/>`;
-  s += `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`;
-  // points
+  s += `<path d="${area}" fill="${col[sel]}" opacity="0.10"/>`;
+  s += `<path d="${line}" fill="none" stroke="${col[sel]}" stroke-width="3"/>`;
   p.rows.forEach((r, i) => {
-    const neg = r.closing < 0;
-    s += `<circle cx="${X(i).toFixed(1)}" cy="${Y(r.closing).toFixed(1)}" r="4" style="fill:${neg ? "var(--loss)" : "var(--accent)"}"><title>Month ${r.m}: ${fmt(r.closing)}</title></circle>`;
-    s += `<text x="${X(i).toFixed(1)}" y="${He - 12}" text-anchor="middle" class="cp-ax">${r.m}</text>`;
+    s += `<circle cx="${X(i).toFixed(1)}" cy="${Y(r.closing).toFixed(1)}" r="4" style="fill:${r.closing < 0 ? "var(--loss)" : col[sel]}"><title>Month ${r.m}: ${fmt(r.closing)}</title></circle>`;
   });
-  // runway marker
   if (p.runway < H) {
     const rx = X(p.runway);
     s += `<line x1="${rx.toFixed(1)}" y1="${mT}" x2="${rx.toFixed(1)}" y2="${mT + ph}" stroke="var(--loss)" stroke-width="1.5"/>`;
     s += `<text x="${(rx + 6).toFixed(1)}" y="${mT + 12}" class="cp-ax" style="fill:var(--loss)">cash runs out</text>`;
   }
+  // legend
+  let lx = mL;
+  order.forEach((k) => {
+    const onSel = k === sel;
+    s += `<rect x="${lx}" y="2" width="14" height="4" rx="2" fill="${col[k]}" opacity="${onSel ? 1 : 0.4}"/>`;
+    s += `<text x="${lx + 20}" y="7" class="cp-ax" style="${onSel ? "font-weight:700" : ""}">${SCEN[k].label}</text>`;
+    lx += 90;
+  });
   svg("cf-chart", s);
 }
 
 function render() {
-  const p = project(scenario);
+  const P = { best: project("best"), base: project("base"), worst: project("worst") };
+  const p = P[scenario];
   document.getElementById("cf-scen-lbl").textContent = "(" + SCEN[scenario].label + ")";
   document.getElementById("cf-tbl-lbl").textContent = "(" + SCEN[scenario].label + ")";
 
@@ -251,11 +267,11 @@ function render() {
   document.getElementById("k-end").style.color = p.end < 0 ? "var(--loss)" : "var(--text)";
   document.getElementById("k-net").textContent = fmt(p.cumNet);
 
-  drawChart(p);
+  drawChart(P, scenario);
 
   // scenario comparison
   const cmp = ["best", "base", "worst"].map((sk) => {
-    const q = project(sk);
+    const q = P[sk];
     return { sk, label: SCEN[sk].label,
       run: q.runway >= H ? "12+" : q.runway + "m", end: q.end };
   });
