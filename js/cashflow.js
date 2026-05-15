@@ -23,6 +23,48 @@ const fmt = (n) =>
   (n < 0 ? "-" : "") + "€" +
   Math.round(Math.abs(n)).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
+// ---- Editable line items ----
+const DEF_IN = [
+  { name: "Product sales", amt: 50000, g: 3 },
+  { name: "Services", amt: 12000, g: 2 },
+];
+const DEF_OUT = [
+  { name: "Salaries", type: "fixed", val: 35000 },
+  { name: "Rent & office", type: "fixed", val: 12000 },
+  { name: "Marketing", type: "fixed", val: 8000 },
+  { name: "COGS", type: "pct", val: 35 },
+];
+const esc = (s) => String(s).replace(/"/g, "&quot;");
+function inRow(d) {
+  return `<div class="cf-line"><input class="ln-name" value="${esc(d.name)}" />` +
+    `<input class="ln-amt" type="number" step="500" value="${d.amt}" title="€ / month" />` +
+    `<input class="ln-g" type="number" step="0.5" value="${d.g}" title="monthly growth %" />` +
+    `<button class="ln-x" type="button" title="remove">×</button></div>`;
+}
+function outRow(d) {
+  return `<div class="cf-line"><input class="ln-name" value="${esc(d.name)}" />` +
+    `<select class="ln-type"><option value="fixed"${d.type === "fixed" ? " selected" : ""}>Fixed €</option>` +
+    `<option value="pct"${d.type === "pct" ? " selected" : ""}>% inflow</option></select>` +
+    `<input class="ln-val" type="number" step="${d.type === "pct" ? 1 : 500}" value="${d.val}" />` +
+    `<button class="ln-x" type="button" title="remove">×</button></div>`;
+}
+function renderLines() {
+  document.getElementById("cf-inflows").innerHTML = DEF_IN.map(inRow).join("");
+  document.getElementById("cf-outflows").innerHTML = DEF_OUT.map(outRow).join("");
+}
+function gatherIn() {
+  return [...document.querySelectorAll("#cf-inflows .cf-line")].map((r) => ({
+    amt: parseFloat(r.querySelector(".ln-amt").value) || 0,
+    g: (parseFloat(r.querySelector(".ln-g").value) || 0) / 100,
+  }));
+}
+function gatherOut() {
+  return [...document.querySelectorAll("#cf-outflows .cf-line")].map((r) => ({
+    type: r.querySelector(".ln-type").value,
+    val: parseFloat(r.querySelector(".ln-val").value) || 0,
+  }));
+}
+
 // Build the 12-month projection for a given scenario key
 function project(sKey) {
   const s = SCEN[sKey];
@@ -32,17 +74,18 @@ function project(sKey) {
   const k = Math.min(1, sl.delay / 30); // fraction of a month's inflow that slips
 
   const cash0 = num("i-cash");
-  const inflow0 = num("i-inflow");
-  const g = num("i-growth") / 100;
-  const fixed = num("i-fixed");
-  const varPct = num("i-var") / 100;
+  const ins = gatherIn();
+  const outs = gatherOut();
+  const fixedSum = outs.filter((o) => o.type === "fixed").reduce((t, o) => t + o.val, 0);
+  const pctSum = outs.filter((o) => o.type === "pct").reduce((t, o) => t + o.val, 0) / 100;
 
   const rows = [];
   let prevClose = cash0, prevGross = 0;
   for (let m = 0; m < H; m++) {
-    const gross = inflow0 * Math.pow(1 + g, m) * salesMult;
+    const gross =
+      ins.reduce((t, ln) => t + ln.amt * Math.pow(1 + ln.g, m), 0) * salesMult;
     const received = (1 - k) * gross + k * prevGross;
-    const outflow = (fixed + varPct * gross) * costMult;
+    const outflow = (fixedSum + pctSum * gross) * costMult;
     const opening = m === 0 ? cash0 : prevClose;
     const net = received - outflow;
     const closing = opening + net;
@@ -151,8 +194,28 @@ function render() {
 }
 
 // listeners
-["i-cash", "i-inflow", "i-growth", "i-fixed", "i-var"].forEach((id) =>
-  document.getElementById(id).addEventListener("input", render));
+document.getElementById("i-cash").addEventListener("input", render);
+["cf-inflows", "cf-outflows"].forEach((id) => {
+  const c = document.getElementById(id);
+  c.addEventListener("input", render);
+  c.addEventListener("change", render);
+  c.addEventListener("click", (e) => {
+    if (e.target.classList.contains("ln-x")) {
+      e.target.closest(".cf-line").remove();
+      render();
+    }
+  });
+});
+document.querySelectorAll(".cf-add").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    if (btn.dataset.list === "in")
+      document.getElementById("cf-inflows").insertAdjacentHTML(
+        "beforeend", inRow({ name: "New inflow", amt: 0, g: 0 }));
+    else
+      document.getElementById("cf-outflows").insertAdjacentHTML(
+        "beforeend", outRow({ name: "New cost", type: "fixed", val: 0 }));
+    render();
+  }));
 document.querySelectorAll(".cf-inputs .se-slider input").forEach((inp) =>
   inp.addEventListener("input", (e) => {
     const sl = e.target.closest(".se-slider");
@@ -239,4 +302,5 @@ function cfExport() {
 }
 document.getElementById("cf-export").addEventListener("click", cfExport);
 
+renderLines();
 render();
