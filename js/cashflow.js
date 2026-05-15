@@ -376,8 +376,8 @@ function cfExport() {
   const lser = (idx, nameCell, valRange, color) =>
     `<c:ser><c:idx val="${idx}"/><c:order val="${idx}"/>` +
     `<c:tx><c:strRef><c:f>${SN}!${nameCell}</c:f></c:strRef></c:tx>` +
-    `<c:spPr><a:ln w="22000"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill></a:ln></c:spPr>` +
-    `<c:marker><c:symbol val="circle"/><c:size val="5"/><c:spPr><a:solidFill><a:srgbClr val="${color}"/></a:solidFill></c:spPr></c:marker>` +
+    `<c:spPr><a:ln w="28575"><a:solidFill><a:srgbClr val="${color}"/></a:solidFill></a:ln></c:spPr>` +
+    `<c:marker><c:symbol val="none"/></c:marker>` +
     `<c:cat><c:strRef><c:f>${SN}!$A$4:$A$${lastRow}</c:f></c:strRef></c:cat>` +
     `<c:val><c:numRef><c:f>${SN}!${valRange}</c:f></c:numRef></c:val></c:ser>`;
   const chartXml =
@@ -391,7 +391,7 @@ function cfExport() {
     `<c:marker val="1"/><c:axId val="111111111"/><c:axId val="222222222"/></c:lineChart>` +
     `<c:catAx><c:axId val="111111111"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:crossAx val="222222222"/></c:catAx>` +
     `<c:valAx><c:axId val="222222222"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:crossAx val="111111111"/></c:valAx>` +
-    `</c:plotArea><c:legend><c:legendPos val="b"/><c:overlay val="0"/></c:legend><c:plotVisOnly val="1"/></c:chart></c:chartSpace>`;
+    `</c:plotArea><c:plotVisOnly val="1"/></c:chart></c:chartSpace>`;
   const drawingXml =
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
     `<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
