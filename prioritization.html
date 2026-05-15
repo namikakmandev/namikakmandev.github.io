@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Account &amp; Portfolio Prioritization · Namık Akman</title>
   <meta name="description" content="Upload a sales export and get each account manager a ranked, explained list of customer-product whitespace opportunities. Runs entirely in your browser." />
-  <link rel="stylesheet" href="css/style.css?v=11" />
+  <link rel="stylesheet" href="css/style.css?v=12" />
 </head>
 <body class="tool-light">
   <header class="site-header">
@@ -52,6 +52,33 @@
           </p>
           <p id="up-status" class="up-status"></p>
         </div>
+
+        <details class="howto">
+          <summary>How the whitespace engine works</summary>
+          <div class="howto-body">
+            <ol>
+              <li><strong>Peer groups.</strong> Each customer is grouped with comparable
+                peers — same <code>Segment</code> if provided, plus a similar revenue
+                band — so you compare like with like.</li>
+              <li><strong>Adoption.</strong> For every product, the engine measures how
+                many of a customer's peers buy it. It only counts as an opportunity
+                when a clear majority of peers (≥40%) buy it but this customer buys
+                little or none.</li>
+              <li><strong>Benchmark &amp; opportunity.</strong> Expected spend is the
+                peer median for that product, scaled to the customer's size. The
+                estimated opportunity is that benchmark minus what they buy today;
+                small/noise gaps are filtered out.</li>
+              <li><strong>Margin weighting.</strong> If a <code>Margin%</code> column is
+                present, opportunities are ranked by margin value, not just revenue.</li>
+              <li><strong>Every recommendation is explained</strong> in plain language
+                (the "Why" column) — auditable, not a black box.</li>
+            </ol>
+            <p class="howto-note">
+              Estimates are a prioritisation aid, not a forecast. All processing runs
+              in your browser — your data is never uploaded or stored.
+            </p>
+          </div>
+        </details>
 
         <div id="results" hidden>
           <div class="cockpit-toolbar">
@@ -135,8 +162,8 @@
     </div>
   </footer>
 
-  <script src="js/main.js?v=11"></script>
-  <script src="assets/sample-data.js?v=11"></script>
-  <script src="js/prioritization.js?v=11"></script>
+  <script src="js/main.js?v=12"></script>
+  <script src="assets/sample-data.js?v=12"></script>
+  <script src="js/prioritization.js?v=12"></script>
 </body>
 </html>

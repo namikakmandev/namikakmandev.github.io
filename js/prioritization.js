@@ -4,9 +4,14 @@ const ADOPT_MIN = 0.4; // a product counts as "peers buy it" at >=40% adoption
 let OPPS = []; // last computed opportunity rows
 
 function parseCSV(text) {
+  text = text.replace(/^﻿/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const nl = text.indexOf("\n");
+  const first = nl === -1 ? text : text.slice(0, nl);
+  const cnt = (ch) => (first.split(ch).length - 1);
+  const c1 = cnt(","), c2 = cnt(";"), c3 = cnt("\t");
+  const delim = c2 > c1 && c2 >= c3 ? ";" : c3 > c1 && c3 >= c2 ? "\t" : ",";
   const rows = [];
   let row = [], val = "", q = false;
-  text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (q) {
@@ -15,7 +20,7 @@ function parseCSV(text) {
         else q = false;
       } else val += c;
     } else if (c === '"') q = true;
-    else if (c === ",") { row.push(val); val = ""; }
+    else if (c === delim) { row.push(val); val = ""; }
     else if (c === "\n") { row.push(val); rows.push(row); row = []; val = ""; }
     else val += c;
   }
@@ -23,13 +28,56 @@ function parseCSV(text) {
   return rows.filter((r) => r.length && !(r.length === 1 && r[0].trim() === ""));
 }
 
+// flexible header → canonical column resolver
+const COL_ALIASES = {
+  AccountManager: ["accountmanager", "accountmgr", "am", "salesrep", "rep", "salesperson", "owner", "kam"],
+  Customer: ["customer", "account", "client", "customername", "accountname", "buyer"],
+  Product: ["product", "sku", "item", "productname", "article"],
+  Sales: ["sales", "revenue", "amount", "netsales", "netrevenue", "turnover", "value", "salesvalue"],
+  Segment: ["segment", "customersegment", "tier", "class"],
+  Region: ["region", "area", "territory", "geo", "country"],
+  ProductGroup: ["productgroup", "group", "category", "productcategory", "family", "productline"],
+  "Margin%": ["margin", "marginpct", "gm", "gmpct", "grossmargin", "grossmarginpct"],
+};
+const _norm = (h) =>
+  String(h).replace(/^﻿/, "").trim().toLowerCase().replace(/[\s_%.\-/()]+/g, "");
+function resolveCols(rawHead) {
+  const map = {}; // colIndex -> canonical
+  rawHead.forEach((h, i) => {
+    const n = _norm(h);
+    for (const canon in COL_ALIASES) {
+      if (COL_ALIASES[canon].includes(n)) { map[i] = canon; return; }
+    }
+  });
+  return map;
+}
+
+function parseNum(s) {
+  if (typeof s === "number") return s;
+  s = String(s).trim().replace(/[^\d.,\-]/g, "");
+  if (!s) return NaN;
+  const hasDot = s.includes("."), hasComma = s.includes(",");
+  if (hasDot && hasComma) {
+    s = s.lastIndexOf(",") > s.lastIndexOf(".")
+      ? s.replace(/\./g, "").replace(",", ".")
+      : s.replace(/,/g, "");
+  } else if (hasComma) {
+    const p = s.split(",");
+    s = p.length === 2 && p[1].length <= 2 ? p[0] + "." + p[1] : s.replace(/,/g, "");
+  }
+  return parseFloat(s);
+}
+
 function toObjects(rows) {
-  const head = rows[0].map((h) => h.trim());
+  const cmap = resolveCols(rows[0]);
+  const head = [...new Set(Object.values(cmap))];
   return {
     head,
     data: rows.slice(1).map((r) => {
       const o = {};
-      head.forEach((h, i) => (o[h] = (r[i] !== undefined ? r[i] : "").trim()));
+      Object.keys(cmap).forEach((i) => {
+        o[cmap[i]] = (r[i] !== undefined ? r[i] : "").trim();
+      });
       return o;
     }),
   };
@@ -72,7 +120,7 @@ function process(text, fname) {
   const cust = {};
   let bad = 0;
   data.forEach((r) => {
-    const sales = parseFloat(String(r.Sales).replace(/[, ]/g, ""));
+    const sales = parseNum(r.Sales);
     if (!r.Customer || !r.Product || isNaN(sales)) { bad++; return; }
     const c = (cust[r.Customer] = cust[r.Customer] || {
       name: r.Customer, segment: hasSeg ? r.Segment || "—" : "—",
@@ -98,7 +146,7 @@ function process(text, fname) {
     const m = pMeta[r.Product] = pMeta[r.Product] || { group: "—", margins: [] };
     if (hasGroup && r.ProductGroup) m.group = r.ProductGroup;
     if (hasMargin) {
-      const mg = parseFloat(String(r["Margin%"]).replace(/[, ]/g, ""));
+      const mg = parseNum(r["Margin%"]);
       if (!isNaN(mg)) m.margins.push(mg);
     }
   });
