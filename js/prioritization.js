@@ -167,6 +167,13 @@ function process(text, fname) {
   window.__CUST = customers.map((c) => ({
     name: c.name, am: c.am, segment: c.segment, total: c.total,
   }));
+  window.__DATA = {
+    customers: customers.map((c) => ({
+      name: c.name, am: c.am, segment: c.segment, total: c.total,
+      products: c.products,
+    })),
+    pMeta, productList, hasMargin, hasGroup,
+  };
 
   // Populate AM filter
   const sel = document.getElementById("am-filter");
@@ -243,6 +250,142 @@ function drawBars(id, map) {
   el.innerHTML = s;
 }
 
+function setHTML(id, h) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = h;
+}
+const pctf = (n) => Math.round(n) + "%";
+
+function buildInsights(opps, f) {
+  const D = window.__DATA;
+  if (!D) return;
+  const custs = D.customers.filter((c) => !f || c.am === f);
+  if (!custs.length) return;
+  const nC = custs.length;
+  const wsC = {};
+  opps.forEach((o) => (wsC[o.customer] = (wsC[o.customer] || 0) + o.opp));
+
+  // 1 — Dormant / under-served
+  const dorm = custs
+    .map((c) => ({ n: c.name, cur: c.total, ws: wsC[c.name] || 0 }))
+    .filter((d) => d.cur > 0 && d.ws >= d.cur)
+    .sort((a, b) => b.ws - a.ws);
+  setHTML(
+    "ins-dormant",
+    `<p class="ins-big">${dorm.length}<span> accounts with more upside than they capture</span></p>` +
+      `<ul class="ins-list">` +
+      dorm.slice(0, 5).map((d) =>
+        `<li>${xe(d.n)} <em>cur €${fmt(d.cur)} · whitespace €${fmt(d.ws)}</em></li>`).join("") +
+      `</ul>`
+  );
+
+  // 2 — Forgotten products
+  const fp = D.productList.map((p) => {
+    const buyers = custs.filter((c) => (c.products[p] || 0) > 0).length;
+    const wsP = opps.filter((o) => o.product === p).reduce((s, o) => s + o.opp, 0);
+    return { p, pen: nC ? buyers / nC : 0, ws: wsP };
+  }).filter((x) => x.ws > 0).sort((a, b) => b.ws - a.ws);
+  setHTML(
+    "ins-forgotten",
+    `<ul class="ins-list">` +
+      fp.slice(0, 6).map((x) =>
+        `<li>${xe(x.p)} <em>${pctf(x.pen * 100)} penetration · €${fmt(x.ws)} whitespace</em></li>`).join("") +
+      `</ul>`
+  );
+
+  // 3 — Strategic product-group performance
+  const groups = {};
+  D.productList.forEach((p) => {
+    const g = D.pMeta[p].group || "—";
+    (groups[g] = groups[g] || { prods: [] }).prods.push(p);
+  });
+  let gRows = Object.entries(groups).map(([g, o]) => {
+    let rev = 0, anyBuy = 0;
+    custs.forEach((c) => {
+      let cg = 0;
+      o.prods.forEach((p) => (cg += c.products[p] || 0));
+      rev += cg;
+      if (cg > 0) anyBuy++;
+    });
+    const ws = opps.filter((x) => x.group === g).reduce((s, x) => s + x.opp, 0);
+    const mgs = o.prods.map((p) => D.pMeta[p].margin).filter((m) => m != null);
+    const mg = mgs.length ? mgs.reduce((a, b) => a + b, 0) / mgs.length : null;
+    return { g, rev, ws, pen: nC ? anyBuy / nC : 0, mg };
+  }).sort((a, b) => b.rev - a.rev);
+  setHTML(
+    "ins-group",
+    `<table class="ins-tbl"><tr><th>Group</th><th>Revenue</th><th>Whitespace</th><th>Pen.</th>` +
+      (D.hasMargin ? `<th>Margin</th>` : ``) + `</tr>` +
+      gRows.map((r) =>
+        `<tr><td>${xe(r.g)}</td><td>€${fmt(r.rev)}</td><td>€${fmt(r.ws)}</td><td>${pctf(r.pen * 100)}</td>` +
+        (D.hasMargin ? `<td>${r.mg != null ? r.mg.toFixed(0) + "%" : "—"}</td>` : ``) + `</tr>`).join("") +
+      `</table>`
+  );
+
+  // 4 — Account-manager scorecard
+  const amList = f ? [f] : [...new Set(D.customers.map((c) => c.am))].sort();
+  const amRows = amList.map((am) => {
+    const cs = D.customers.filter((c) => c.am === am);
+    const rev = cs.reduce((s, c) => s + c.total, 0);
+    const ws = OPPS.filter((o) => o.am === am).reduce((s, o) => s + o.opp, 0);
+    return { am, n: cs.length, rev, ws, cap: rev + ws > 0 ? (rev / (rev + ws)) * 100 : 0 };
+  }).sort((a, b) => b.ws - a.ws);
+  setHTML(
+    "ins-amscore",
+    `<table class="ins-tbl"><tr><th>AM</th><th>Acc.</th><th>Revenue</th><th>Whitespace</th><th>Capture</th></tr>` +
+      amRows.map((r) =>
+        `<tr><td>${xe(r.am)}</td><td>${r.n}</td><td>€${fmt(r.rev)}</td><td>€${fmt(r.ws)}</td><td>${pctf(r.cap)}</td></tr>`).join("") +
+      `</table>`
+  );
+
+  // 5 — Quick wins (high peer adoption)
+  const qw = opps.filter((o) => o.adoption >= 0.8).sort((a, b) => b.opp - a.opp);
+  setHTML(
+    "ins-quick",
+    `<p class="ins-big">${qw.length}<span> easy, well-evidenced asks</span></p>` +
+      `<ul class="ins-list">` +
+      qw.slice(0, 5).map((o) =>
+        `<li>${xe(o.customer)} · ${xe(o.product)} <em>${pctf(o.adoption * 100)} adoption · €${fmt(o.opp)}</em></li>`).join("") +
+      `</ul>`
+  );
+
+  // 6 — Big bets
+  const bb = [...opps].sort((a, b) => b.opp - a.opp);
+  setHTML(
+    "ins-big",
+    `<p class="ins-big">€${fmt(bb.slice(0, 5).reduce((s, o) => s + o.opp, 0))}<span> in the top 5 moves</span></p>` +
+      `<ul class="ins-list">` +
+      bb.slice(0, 5).map((o) =>
+        `<li>${xe(o.customer)} · ${xe(o.product)} <em>€${fmt(o.opp)}</em></li>`).join("") +
+      `</ul>`
+  );
+
+  // 7 — Margin-priority opportunities
+  const mv = (o) => (o.margin != null ? o.opp * (o.margin / 100) : o.opp);
+  const mp = [...opps].sort((a, b) => mv(b) - mv(a));
+  setHTML(
+    "ins-margin",
+    (D.hasMargin ? `` : `<p class="ins-note">Margin% not in data — ranked by revenue.</p>`) +
+      `<ul class="ins-list">` +
+      mp.slice(0, 5).map((o) =>
+        `<li>${xe(o.customer)} · ${xe(o.product)} <em>€${fmt(mv(o))} margin${o.margin != null ? " · " + o.margin.toFixed(0) + "%" : ""}</em></li>`).join("") +
+      `</ul>`
+  );
+
+  // 8 — Revenue concentration
+  const sorted = [...custs].sort((a, b) => b.total - a.total);
+  const tot = sorted.reduce((s, c) => s + c.total, 0) || 1;
+  const top10 = sorted.slice(0, 10).reduce((s, c) => s + c.total, 0);
+  setHTML(
+    "ins-conc",
+    `<p class="ins-big">${pctf((top10 / tot) * 100)}<span> of revenue from the top 10 customers</span></p>` +
+      `<ul class="ins-list">` +
+      sorted.slice(0, 3).map((c) =>
+        `<li>${xe(c.name)} <em>€${fmt(c.total)}</em></li>`).join("") +
+      `</ul>`
+  );
+}
+
 function render() {
   const f = document.getElementById("am-filter").value;
   const rows = f ? OPPS.filter((o) => o.am === f) : OPPS;
@@ -264,6 +407,7 @@ function render() {
   });
   drawBars("cp-am-svg", byAM);
   drawBars("cp-grp-svg", byG);
+  buildInsights(rows, f);
 
   document.getElementById("res-tbody").innerHTML = rows
     .slice(0, 250)
