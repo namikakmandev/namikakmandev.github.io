@@ -267,6 +267,21 @@ function render() {
   document.getElementById("k-end").style.color = p.end < 0 ? "var(--loss)" : "var(--text)";
   document.getElementById("k-net").textContent = fmt(p.cumNet);
 
+  // effective settings readout (base plan stays untouched; this shows the overlay)
+  const slz = sliders(), scz = SCEN[scenario];
+  const sM = scz.sales * (1 + slz.sales / 100);
+  const cM = scz.cost * (1 + slz.cost / 100);
+  const insz = gatherIn(), outsz = gatherOut();
+  const baseIn1 = insz.reduce((t, l) => t + l.amt, 0);
+  const effIn1 = baseIn1 * sM;
+  const fx = outsz.filter((o) => o.type === "fixed").reduce((t, o) => t + o.val, 0);
+  const pc = outsz.filter((o) => o.type === "pct").reduce((t, o) => t + o.val, 0) / 100;
+  const baseOut1 = fx + pc * baseIn1;
+  const effOut1 = (fx + pc * effIn1) * cM;
+  document.getElementById("cf-eff").innerHTML =
+    `<strong>Effective — ${scz.label}:</strong> sales ×${sM.toFixed(2)} · cost ×${cM.toFixed(2)} · collections +${slz.delay}d` +
+    `<span>Month-1 inflow ${fmt(effIn1)} <em>(base ${fmt(baseIn1)})</em> · outflow ${fmt(effOut1)} <em>(base ${fmt(baseOut1)})</em></span>`;
+
   drawChart(P, scenario);
 
   // scenario comparison
