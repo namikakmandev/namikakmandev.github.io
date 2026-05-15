@@ -188,6 +188,7 @@ function process(text, fname) {
       (bad ? " (" + bad + " rows skipped)" : "") + ".",
     true
   );
+  window.__GRP = "";
   document.getElementById("results").hidden = false;
   render();
 }
@@ -199,13 +200,15 @@ function _med(a) {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-function drawMatrix(opps, f) {
+function drawMatrix(opps, f, g) {
   const el = document.getElementById("cp-matrix-svg");
   const cust = (window.__CUST || []).filter((c) => !f || c.am === f);
   if (!cust.length) { el.innerHTML = ""; return; }
   const ws = {};
   opps.forEach((o) => (ws[o.customer] = (ws[o.customer] || 0) + o.opp));
-  const pts = cust.map((c) => ({ name: c.name, x: c.total, y: ws[c.name] || 0 }));
+  let pts = cust.map((c) => ({ name: c.name, x: c.total, y: ws[c.name] || 0 }));
+  if (g) pts = pts.filter((p) => p.y > 0); // group selected → only accounts with whitespace there
+  if (!pts.length) { el.innerHTML = ""; return; }
   const W = 640, H = 470, mL = 70, mR = 20, mT = 18, mB = 46;
   const pw = W - mL - mR, ph = H - mT - mB;
   const xMax = Math.max(...pts.map((p) => p.x)) * 1.05 || 1;
@@ -231,9 +234,9 @@ function drawMatrix(opps, f) {
   el.innerHTML = s;
 }
 
-function drawBars(id, map, clickable) {
+function drawBars(id, map, clickable, selKey) {
   const el = document.getElementById(id);
-  const sel = clickable ? document.getElementById("am-filter").value : "";
+  const sel = clickable ? selKey || "" : "";
   const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
   const W = 420, rowH = 30, mL = 120, mR = 64, mT = 6;
   const H = Math.max(70, mT * 2 + entries.length * rowH);
@@ -394,7 +397,13 @@ function buildInsights(opps, f) {
 
 function render() {
   const f = document.getElementById("am-filter").value;
-  const rows = f ? OPPS.filter((o) => o.am === f) : OPPS;
+  const g = window.__GRP || "";
+  const mAm = (o) => !f || o.am === f;
+  const mGrp = (o) => !g || o.group === g;
+  const rows = OPPS.filter((o) => mAm(o) && mGrp(o));
+  const fullGrp = OPPS.filter(mGrp); // AM chart: all AMs, respects group filter
+  const fullAm = OPPS.filter(mAm);   // group chart: all groups, respects AM filter
+
   const total = rows.reduce((s, o) => s + o.opp, 0);
   document.getElementById("k-total").textContent = "€" + fmt(total);
   document.getElementById("k-count").textContent = rows.length;
@@ -403,16 +412,14 @@ function render() {
   document.getElementById("k-max").textContent =
     "€" + fmt(rows.length ? Math.max(...rows.map((o) => o.opp)) : 0);
   document.getElementById("res-sub").textContent =
-    f ? "(" + f + ")" : "(all account managers)";
+    "(" + (f || "all account managers") + (g ? " · " + g : "") + ")";
 
-  drawMatrix(rows, f);
+  drawMatrix(rows, f, g);
   const byAM = {}, byG = {};
-  rows.forEach((o) => {
-    byAM[o.am] = (byAM[o.am] || 0) + o.opp;
-    byG[o.group] = (byG[o.group] || 0) + o.opp;
-  });
-  drawBars("cp-am-svg", byAM, true);
-  drawBars("cp-grp-svg", byG);
+  fullGrp.forEach((o) => (byAM[o.am] = (byAM[o.am] || 0) + o.opp));
+  fullAm.forEach((o) => (byG[o.group] = (byG[o.group] || 0) + o.opp));
+  drawBars("cp-am-svg", byAM, true, f);
+  drawBars("cp-grp-svg", byG, true, g);
   buildInsights(rows, f);
 
   document.getElementById("res-tbody").innerHTML = rows
@@ -447,6 +454,13 @@ document.getElementById("cp-am-svg").addEventListener("click", (e) => {
   const sel = document.getElementById("am-filter");
   const k = g.getAttribute("data-k");
   sel.value = sel.value === k ? "" : k; // click again to clear
+  render();
+});
+document.getElementById("cp-grp-svg").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-k]");
+  if (!g) return;
+  const k = g.getAttribute("data-k");
+  window.__GRP = window.__GRP === k ? "" : k; // click again to clear
   render();
 });
 
