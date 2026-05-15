@@ -252,7 +252,7 @@ function drawBars(id, map, clickable, selKey) {
       `<rect x="${mL}" y="${y + 5}" width="${bw.toFixed(1)}" height="${rowH - 12}" rx="3" style="fill:var(--accent);opacity:${on ? 1 : 0.85}"/>` +
       `<text x="${mL + bw + 6}" y="${y + rowH / 2}" dominant-baseline="middle" class="se-val">€${fmt(v)}</text>`;
     s += clickable
-      ? `<g class="cp-clk" data-k="${k}" style="cursor:pointer"><rect x="0" y="${y}" width="${W}" height="${rowH}" fill="transparent"/>${inner}</g>`
+      ? `<g class="cp-clk" data-k="${k}" style="cursor:pointer" pointer-events="all"><rect x="0" y="${y}" width="${W}" height="${rowH}" fill="#000" fill-opacity="0" pointer-events="all"/>${inner}</g>`
       : inner;
   });
   el.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -448,18 +448,25 @@ document.getElementById("sample-btn").addEventListener("click", () => {
   else status("Sample data not available.", false);
 });
 document.getElementById("am-filter").addEventListener("change", render);
+function barKey(e) {
+  let t = e.target;
+  while (t && t.nodeType === 1) {
+    if (t.getAttribute && t.getAttribute("data-k") != null)
+      return t.getAttribute("data-k");
+    t = t.parentNode;
+  }
+  return null;
+}
 document.getElementById("cp-am-svg").addEventListener("click", (e) => {
-  const g = e.target.closest("[data-k]");
-  if (!g) return;
+  const k = barKey(e);
+  if (k == null) return;
   const sel = document.getElementById("am-filter");
-  const k = g.getAttribute("data-k");
   sel.value = sel.value === k ? "" : k; // click again to clear
   render();
 });
 document.getElementById("cp-grp-svg").addEventListener("click", (e) => {
-  const g = e.target.closest("[data-k]");
-  if (!g) return;
-  const k = g.getAttribute("data-k");
+  const k = barKey(e);
+  if (k == null) return;
   window.__GRP = window.__GRP === k ? "" : k; // click again to clear
   render();
 });
