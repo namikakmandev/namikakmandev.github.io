@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product Margin Simulator — Namık Akman</title>
+  <meta name="description" content="A product pricing & margin waterfall simulator built with HTML, JavaScript and Python." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Product Margin Simulator</h2>
+        </div>
+
+        <div class="sim2">
+          <div class="sim2-chart">
+            <h3>Margin Waterfall</h3>
+            <div class="wf-chart">
+              <svg id="wf-svg" viewBox="0 0 960 480" preserveAspectRatio="xMidYMid meet"
+                   role="img" aria-label="Product margin waterfall chart"></svg>
+            </div>
+            <p class="wf-legend">
+              <span class="lg lg-blue"></span> Price / structure
+              <span class="lg lg-green"></span> Margin result
+              <span class="lg lg-grey"></span> Deduction
+              <span class="lg lg-orange"></span> Loss
+            </p>
+          </div>
+
+          <div class="sim2-side">
+            <div class="card-light">
+              <div class="grid2">
+                <div class="form-row">
+                  <label for="gross">Gross / List Price</label>
+                  <input type="number" id="gross" min="0" step="5" value="1000" />
+                </div>
+                <div class="form-row">
+                  <label for="rebates">Rebates (−)</label>
+                  <input type="number" id="rebates" min="0" step="5" value="50" />
+                </div>
+                <div class="form-row">
+                  <label for="discounts">Discounts (−)</label>
+                  <input type="number" id="discounts" min="0" step="5" value="100" />
+                </div>
+                <div class="form-row">
+                  <label for="markups">Markups (+)</label>
+                  <input type="number" id="markups" min="0" step="5" value="0" />
+                </div>
+                <div class="form-row">
+                  <label for="cogs">COGS (−)</label>
+                  <input type="number" id="cogs" min="0" step="5" value="450" />
+                </div>
+                <div class="form-row">
+                  <label for="opex">OpEx (−)</label>
+                  <input type="number" id="opex" min="0" step="5" value="150" />
+                </div>
+                <div class="form-row">
+                  <label for="other">Other costs (−)</label>
+                  <input type="number" id="other" min="0" step="5" value="30" />
+                </div>
+              </div>
+            </div>
+
+            <div class="kpi" id="result" aria-live="polite">
+              <div class="kpi-row"><span>Net Price</span><strong id="k-net">—</strong></div>
+              <div class="kpi-row green"><span>Gross Margin <em id="k-gm-pct"></em></span><strong id="k-gm">—</strong></div>
+              <div class="kpi-row total" id="k-op-row"><span>Operating Profit <em id="k-op-pct"></em></span><strong id="k-op">—</strong></div>
+              <p class="form-note" id="w-extra"></p>
+            </div>
+
+            <button class="btn btn-primary" id="export-btn" type="button">Download as Excel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Built with HTML, JavaScript &amp; Python</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/gross-to-net.js"></script>
+</body>
+</html>
