@@ -265,6 +265,91 @@ function setHTML(id, h) {
 }
 const pctf = (n) => Math.round(n) + "%";
 
+// horizontal bar chart for a card
+function icBars(items) {
+  const W = 360, rowH = 30, mL = 92, mR = 8, mT = 4, valW = 86;
+  const H = mT * 2 + items.length * rowH;
+  const max = Math.max(...items.map((i) => i.value), 1);
+  const pw = W - mL - mR - valW;
+  let s = "";
+  items.forEach((it, i) => {
+    const y = mT + i * rowH;
+    const bw = Math.max(2, (it.value / max) * pw);
+    s += `<text x="${mL - 6}" y="${y + rowH / 2}" text-anchor="end" dominant-baseline="middle" class="ic-lbl">${xe(it.label)}</text>`;
+    s += `<rect x="${mL}" y="${y + 6}" width="${bw.toFixed(1)}" height="${rowH - 14}" rx="3" style="fill:var(--accent)"/>`;
+    s += `<text x="${mL + bw + 6}" y="${y + rowH / 2}" dominant-baseline="middle" class="ic-val">${it.note}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" class="ins-svg">${s}</svg>`;
+}
+
+// grouped bars: revenue (blue) vs whitespace (green) per group
+function icGroup(rows) {
+  const W = 360, gH = 56, mL = 84, mR = 8, mT = 6, valW = 92;
+  const H = mT * 2 + rows.length * gH;
+  const max = Math.max(...rows.map((r) => Math.max(r.rev, r.ws)), 1);
+  const pw = W - mL - mR - valW;
+  let s = "";
+  rows.forEach((r, i) => {
+    const y = mT + i * gH;
+    const rw = Math.max(2, (r.rev / max) * pw);
+    const ww = Math.max(2, (r.ws / max) * pw);
+    s += `<text x="${mL - 6}" y="${y + gH / 2}" text-anchor="end" dominant-baseline="middle" class="ic-lbl">${xe(r.g)}</text>`;
+    s += `<rect x="${mL}" y="${y + 6}" width="${rw.toFixed(1)}" height="14" rx="3" style="fill:var(--accent)"/>`;
+    s += `<text x="${mL + rw + 6}" y="${y + 13}" dominant-baseline="middle" class="ic-val">€${fmt(r.rev)}</text>`;
+    s += `<rect x="${mL}" y="${y + 26}" width="${ww.toFixed(1)}" height="14" rx="3" style="fill:var(--accent-2)"/>`;
+    s += `<text x="${mL + ww + 6}" y="${y + 33}" dominant-baseline="middle" class="ic-val">€${fmt(r.ws)}${r.mg != null ? " · " + r.mg.toFixed(0) + "% mg" : ""}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" class="ins-svg">${s}</svg>` +
+    `<p class="ins-legend2"><span class="lg lg-blue"></span>Revenue <span class="lg lg-green"></span>Whitespace</p>`;
+}
+
+// capture-rate gauges per AM
+function icGauges(rows) {
+  const W = 360, rowH = 32, mL = 64, mR = 8, mT = 4, valW = 40;
+  const H = mT * 2 + rows.length * rowH;
+  const pw = W - mL - mR - valW;
+  let s = "";
+  rows.forEach((r, i) => {
+    const y = mT + i * rowH;
+    s += `<text x="${mL - 6}" y="${y + rowH / 2}" text-anchor="end" dominant-baseline="middle" class="ic-lbl">${xe(r.am)}</text>`;
+    s += `<rect x="${mL}" y="${y + 9}" width="${pw}" height="12" rx="6" fill="var(--surface-2)"/>`;
+    s += `<rect x="${mL}" y="${y + 9}" width="${((r.cap / 100) * pw).toFixed(1)}" height="12" rx="6" style="fill:var(--accent)"/>`;
+    s += `<text x="${mL + pw + 6}" y="${y + rowH / 2}" dominant-baseline="middle" class="ic-val">${Math.round(r.cap)}%</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" class="ins-svg">${s}</svg>` +
+    `<p class="ins-note">Capture = revenue ÷ (revenue + whitespace). Lower = more upside.</p>`;
+}
+
+// donut: top-10 share vs rest
+function icDonut(pctTop, top3) {
+  const r = 40, c = 2 * Math.PI * r, frac = Math.max(0, Math.min(1, pctTop / 100));
+  const dash = `${(frac * c).toFixed(1)} ${(c - frac * c).toFixed(1)}`;
+  return (
+    `<svg viewBox="0 0 230 120" class="ins-svg">` +
+    `<g transform="translate(58,60)">` +
+    `<circle r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="14"/>` +
+    `<circle r="${r}" fill="none" stroke="var(--accent)" stroke-width="14" stroke-dasharray="${dash}" transform="rotate(-90)"/>` +
+    `<text text-anchor="middle" dominant-baseline="middle" class="ic-donut">${Math.round(pctTop)}%</text>` +
+    `</g>` +
+    `<text x="118" y="48" class="ic-lbl"><tspan style="fill:var(--accent)">■</tspan> Top 10</text>` +
+    `<text x="118" y="72" class="ic-lbl"><tspan style="fill:var(--text-dim)">■</tspan> Rest</text>` +
+    `</svg>` +
+    `<ul class="ins-list">` +
+    top3.map((x) => `<li>${xe(x.name)} <em>€${fmt(x.total)}</em></li>`).join("") +
+    `</ul>`
+  );
+}
+
+// list with inline mini-bars
+function icList(items) {
+  const max = Math.max(...items.map((i) => i.val), 1);
+  return `<ul class="ins-list mini">` +
+    items.map((i) =>
+      `<li><div class="il-row"><span>${xe(i.title)}</span><em>${i.note}</em></div>` +
+      `<span class="ins-mini" style="width:${Math.max(4, (i.val / max) * 100).toFixed(0)}%"></span></li>`
+    ).join("") + `</ul>`;
+}
+
 function buildInsights(opps, f) {
   const D = window.__DATA;
   if (!D) return;
@@ -282,10 +367,9 @@ function buildInsights(opps, f) {
   setHTML(
     "ins-dormant",
     `<p class="ins-big">${dorm.length}<span> accounts with more upside than they capture</span></p>` +
-      `<ul class="ins-list">` +
-      dorm.slice(0, 5).map((d) =>
-        `<li>${xe(d.n)} <em>cur €${fmt(d.cur)} · whitespace €${fmt(d.ws)}</em></li>`).join("") +
-      `</ul>`
+      icList(dorm.slice(0, 5).map((d) => ({
+        title: d.n, note: "cur €" + fmt(d.cur) + " · ws €" + fmt(d.ws), val: d.ws,
+      })))
   );
 
   // 2 — Forgotten products
@@ -296,10 +380,9 @@ function buildInsights(opps, f) {
   }).filter((x) => x.ws > 0).sort((a, b) => b.ws - a.ws);
   setHTML(
     "ins-forgotten",
-    `<ul class="ins-list">` +
-      fp.slice(0, 6).map((x) =>
-        `<li>${xe(x.p)} <em>${pctf(x.pen * 100)} penetration · €${fmt(x.ws)} whitespace</em></li>`).join("") +
-      `</ul>`
+    icBars(fp.slice(0, 6).map((x) => ({
+      label: x.p, value: x.ws, note: "€" + fmt(x.ws) + " · " + pctf(x.pen * 100),
+    })))
   );
 
   // 3 — Strategic product-group performance
@@ -321,15 +404,7 @@ function buildInsights(opps, f) {
     const mg = mgs.length ? mgs.reduce((a, b) => a + b, 0) / mgs.length : null;
     return { g, rev, ws, pen: nC ? anyBuy / nC : 0, mg };
   }).sort((a, b) => b.rev - a.rev);
-  setHTML(
-    "ins-group",
-    `<table class="ins-tbl"><tr><th>Group</th><th>Revenue</th><th>Whitespace</th><th>Pen.</th>` +
-      (D.hasMargin ? `<th>Margin</th>` : ``) + `</tr>` +
-      gRows.map((r) =>
-        `<tr><td>${xe(r.g)}</td><td>€${fmt(r.rev)}</td><td>€${fmt(r.ws)}</td><td>${pctf(r.pen * 100)}</td>` +
-        (D.hasMargin ? `<td>${r.mg != null ? r.mg.toFixed(0) + "%" : "—"}</td>` : ``) + `</tr>`).join("") +
-      `</table>`
-  );
+  setHTML("ins-group", icGroup(gRows));
 
   // 4 — Account-manager scorecard
   const amList = f ? [f] : [...new Set(D.customers.map((c) => c.am))].sort();
@@ -338,24 +413,18 @@ function buildInsights(opps, f) {
     const rev = cs.reduce((s, c) => s + c.total, 0);
     const ws = OPPS.filter((o) => o.am === am).reduce((s, o) => s + o.opp, 0);
     return { am, n: cs.length, rev, ws, cap: rev + ws > 0 ? (rev / (rev + ws)) * 100 : 0 };
-  }).sort((a, b) => b.ws - a.ws);
-  setHTML(
-    "ins-amscore",
-    `<table class="ins-tbl"><tr><th>AM</th><th>Acc.</th><th>Revenue</th><th>Whitespace</th><th>Capture</th></tr>` +
-      amRows.map((r) =>
-        `<tr><td>${xe(r.am)}</td><td>${r.n}</td><td>€${fmt(r.rev)}</td><td>€${fmt(r.ws)}</td><td>${pctf(r.cap)}</td></tr>`).join("") +
-      `</table>`
-  );
+  }).sort((a, b) => a.cap - b.cap); // lowest capture (most upside) first
+  setHTML("ins-amscore", icGauges(amRows));
 
   // 5 — Quick wins (high peer adoption)
   const qw = opps.filter((o) => o.adoption >= 0.8).sort((a, b) => b.opp - a.opp);
   setHTML(
     "ins-quick",
     `<p class="ins-big">${qw.length}<span> easy, well-evidenced asks</span></p>` +
-      `<ul class="ins-list">` +
-      qw.slice(0, 5).map((o) =>
-        `<li>${xe(o.customer)} · ${xe(o.product)} <em>${pctf(o.adoption * 100)} adoption · €${fmt(o.opp)}</em></li>`).join("") +
-      `</ul>`
+      icList(qw.slice(0, 5).map((o) => ({
+        title: o.customer + " · " + o.product,
+        note: pctf(o.adoption * 100) + " · €" + fmt(o.opp), val: o.opp,
+      })))
   );
 
   // 6 — Big bets
@@ -363,10 +432,9 @@ function buildInsights(opps, f) {
   setHTML(
     "ins-big",
     `<p class="ins-big">€${fmt(bb.slice(0, 5).reduce((s, o) => s + o.opp, 0))}<span> in the top 5 moves</span></p>` +
-      `<ul class="ins-list">` +
-      bb.slice(0, 5).map((o) =>
-        `<li>${xe(o.customer)} · ${xe(o.product)} <em>€${fmt(o.opp)}</em></li>`).join("") +
-      `</ul>`
+      icList(bb.slice(0, 5).map((o) => ({
+        title: o.customer + " · " + o.product, note: "€" + fmt(o.opp), val: o.opp,
+      })))
   );
 
   // 7 — Margin-priority opportunities
@@ -375,24 +443,18 @@ function buildInsights(opps, f) {
   setHTML(
     "ins-margin",
     (D.hasMargin ? `` : `<p class="ins-note">Margin% not in data — ranked by revenue.</p>`) +
-      `<ul class="ins-list">` +
-      mp.slice(0, 5).map((o) =>
-        `<li>${xe(o.customer)} · ${xe(o.product)} <em>€${fmt(mv(o))} margin${o.margin != null ? " · " + o.margin.toFixed(0) + "%" : ""}</em></li>`).join("") +
-      `</ul>`
+      icList(mp.slice(0, 5).map((o) => ({
+        title: o.customer + " · " + o.product,
+        note: "€" + fmt(mv(o)) + " mg" + (o.margin != null ? " · " + o.margin.toFixed(0) + "%" : ""),
+        val: mv(o),
+      })))
   );
 
   // 8 — Revenue concentration
   const sorted = [...custs].sort((a, b) => b.total - a.total);
   const tot = sorted.reduce((s, c) => s + c.total, 0) || 1;
   const top10 = sorted.slice(0, 10).reduce((s, c) => s + c.total, 0);
-  setHTML(
-    "ins-conc",
-    `<p class="ins-big">${pctf((top10 / tot) * 100)}<span> of revenue from the top 10 customers</span></p>` +
-      `<ul class="ins-list">` +
-      sorted.slice(0, 3).map((c) =>
-        `<li>${xe(c.name)} <em>€${fmt(c.total)}</em></li>`).join("") +
-      `</ul>`
-  );
+  setHTML("ins-conc", icDonut((top10 / tot) * 100, sorted.slice(0, 3)));
 }
 
 function render() {
