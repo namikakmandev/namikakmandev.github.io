@@ -232,7 +232,6 @@ document.getElementById("cf-scenario").addEventListener("click", (e) => {
     x.classList.toggle("on", x === b));
   render();
 });
-document.getElementById("cf-reset").addEventListener("click", () => location.reload());
 
 // ---- Excel export (compact in-browser writer) ----
 const _ct = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
