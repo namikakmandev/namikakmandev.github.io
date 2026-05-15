@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account &amp; Portfolio Prioritization · Namık Akman</title>
+  <meta name="description" content="Upload a sales export and get each account manager a ranked, explained list of customer-product whitespace opportunities. Runs entirely in your browser." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Account &amp; Portfolio Prioritization</h2>
+        </div>
+        <p class="data-note">
+          Upload a sales export and the engine finds <strong>whitespace</strong> —
+          products a customer's peers buy but they don't — and gives each account
+          manager a ranked, <em>explained</em> action list.
+          <strong>Your data never leaves your browser</strong> — all processing is
+          local; nothing is uploaded anywhere.
+        </p>
+
+        <div class="card-light up-card">
+          <div class="up-row">
+            <label class="btn btn-primary" for="csv-file">Upload CSV</label>
+            <input type="file" id="csv-file" accept=".csv,text/csv" hidden />
+            <button class="btn btn-ghost" id="sample-btn" type="button">Try with sample data</button>
+            <a class="up-link" href="assets/sample_prioritization.csv" download>Download sample CSV</a>
+          </div>
+          <p class="up-schema">
+            Required columns: <code>AccountManager</code>, <code>Customer</code>,
+            <code>Product</code>, <code>Sales</code>.
+            Optional (sharpen results): <code>Segment</code>, <code>Region</code>,
+            <code>ProductGroup</code>, <code>Margin%</code>. One row per
+            Customer&nbsp;×&nbsp;Product&nbsp;×&nbsp;Account&nbsp;Manager.
+          </p>
+          <p id="up-status" class="up-status"></p>
+        </div>
+
+        <div id="results" hidden>
+          <div class="kpi-bar">
+            <div class="kpi-box"><span>Total whitespace opportunity</span><strong id="k-total">—</strong></div>
+            <div class="kpi-box"><span>Opportunities found</span><strong id="k-count">—</strong></div>
+            <div class="kpi-box"><span>Account managers</span><strong id="k-ams">—</strong></div>
+          </div>
+
+          <div class="card-light se-tablewrap">
+            <div class="res-head">
+              <h3>Prioritized actions <span id="res-sub"></span></h3>
+              <div class="res-controls">
+                <label>Account manager
+                  <select id="am-filter"><option value="">All</option></select>
+                </label>
+                <button class="btn btn-primary" id="export-btn" type="button">Export Excel</button>
+              </div>
+            </div>
+            <div class="se-tablescroll">
+              <table class="se-table">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Account Mgr</th><th>Customer</th><th>Product</th>
+                    <th class="num">Current</th><th class="num">Peer adoption</th>
+                    <th class="num">Est. opportunity</th><th>Why</th>
+                  </tr>
+                </thead>
+                <tbody id="res-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Processed locally in your browser — no data uploaded</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="assets/sample-data.js"></script>
+  <script src="js/prioritization.js"></script>
+</body>
+</html>

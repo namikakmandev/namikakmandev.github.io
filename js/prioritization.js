@@ -1,0 +1,340 @@
+// ---- Account & Portfolio Prioritization (whitespace engine) ----
+const REQUIRED = ["AccountManager", "Customer", "Product", "Sales"];
+const ADOPT_MIN = 0.4; // a product counts as "peers buy it" at >=40% adoption
+let OPPS = []; // last computed opportunity rows
+
+function parseCSV(text) {
+  const rows = [];
+  let row = [], val = "", q = false;
+  text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { val += '"'; i++; }
+        else q = false;
+      } else val += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(val); val = ""; }
+    else if (c === "\n") { row.push(val); rows.push(row); row = []; val = ""; }
+    else val += c;
+  }
+  if (val !== "" || row.length) { row.push(val); rows.push(row); }
+  return rows.filter((r) => r.length && !(r.length === 1 && r[0].trim() === ""));
+}
+
+function toObjects(rows) {
+  const head = rows[0].map((h) => h.trim());
+  return {
+    head,
+    data: rows.slice(1).map((r) => {
+      const o = {};
+      head.forEach((h, i) => (o[h] = (r[i] !== undefined ? r[i] : "").trim()));
+      return o;
+    }),
+  };
+}
+
+const median = (arr) => {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const fmt = (n) =>
+  Math.round(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+function status(msg, ok) {
+  const el = document.getElementById("up-status");
+  el.textContent = msg;
+  el.style.color = ok ? "var(--accent-2)" : "var(--loss)";
+}
+
+function process(text, fname) {
+  let rows;
+  try {
+    rows = parseCSV(text);
+  } catch (e) {
+    return status("Could not read the CSV file.", false);
+  }
+  if (!rows.length) return status("The file looks empty.", false);
+  const { head, data } = toObjects(rows);
+  const missing = REQUIRED.filter((c) => !head.includes(c));
+  if (missing.length)
+    return status("Missing required column(s): " + missing.join(", "), false);
+
+  const hasSeg = head.includes("Segment");
+  const hasMargin = head.includes("Margin%");
+  const hasGroup = head.includes("ProductGroup");
+
+  // Build customers
+  const cust = {};
+  let bad = 0;
+  data.forEach((r) => {
+    const sales = parseFloat(String(r.Sales).replace(/[, ]/g, ""));
+    if (!r.Customer || !r.Product || isNaN(sales)) { bad++; return; }
+    const c = (cust[r.Customer] = cust[r.Customer] || {
+      name: r.Customer, segment: hasSeg ? r.Segment || "—" : "—",
+      products: {}, amTotals: {}, total: 0,
+    });
+    c.products[r.Product] = (c.products[r.Product] || 0) + sales;
+    c.total += sales;
+    if (r.AccountManager)
+      c.amTotals[r.AccountManager] = (c.amTotals[r.AccountManager] || 0) + sales;
+  });
+  const customers = Object.values(cust);
+  if (customers.length < 4)
+    return status("Need at least a few customers to compare. Only " + customers.length + " found.", false);
+
+  customers.forEach((c) => {
+    c.am = Object.keys(c.amTotals).sort((a, b) => c.amTotals[b] - c.amTotals[a])[0] || "—";
+  });
+
+  // Product meta (group + margin)
+  const pMeta = {};
+  data.forEach((r) => {
+    if (!r.Product) return;
+    const m = pMeta[r.Product] = pMeta[r.Product] || { group: "—", margins: [] };
+    if (hasGroup && r.ProductGroup) m.group = r.ProductGroup;
+    if (hasMargin) {
+      const mg = parseFloat(String(r["Margin%"]).replace(/[, ]/g, ""));
+      if (!isNaN(mg)) m.margins.push(mg);
+    }
+  });
+  const productList = Object.keys(pMeta);
+  productList.forEach((p) => {
+    const ms = pMeta[p].margins;
+    pMeta[p].margin = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : null;
+  });
+
+  // Size bands (terciles) within segment (or global)
+  function bandMap(list) {
+    const sorted = [...list].sort((a, b) => a.total - b.total);
+    const n = sorted.length;
+    sorted.forEach((c, i) => {
+      c._band = i < n / 3 ? "S" : i < (2 * n) / 3 ? "M" : "L";
+    });
+  }
+  if (hasSeg) {
+    const bySeg = {};
+    customers.forEach((c) => (bySeg[c.segment] = bySeg[c.segment] || []).push(c));
+    Object.values(bySeg).forEach(bandMap);
+  } else bandMap(customers);
+
+  const peerKey = (c) => (hasSeg ? c.segment + "|" : "") + c._band;
+  const keyGroups = {};
+  customers.forEach((c) => (keyGroups[peerKey(c)] = keyGroups[peerKey(c)] || []).push(c));
+
+  function peersOf(c) {
+    let p = keyGroups[peerKey(c)].filter((x) => x !== c);
+    if (p.length < 5 && hasSeg)
+      p = customers.filter((x) => x !== c && x.segment === c.segment);
+    if (p.length < 5) p = customers.filter((x) => x !== c);
+    return p;
+  }
+
+  // Whitespace scoring
+  OPPS = [];
+  customers.forEach((c) => {
+    const peers = peersOf(c);
+    productList.forEach((p) => {
+      const actual = c.products[p] || 0;
+      const buyers = peers.filter((x) => (x.products[p] || 0) > 0);
+      const adoption = buyers.length / peers.length;
+      if (adoption < ADOPT_MIN) return;
+      const spends = buyers.map((b) => b.products[p]);
+      const medSpend = median(spends);
+      const medPeerTotal = median(buyers.map((b) => b.total)) || c.total || 1;
+      const scale = clamp(c.total / medPeerTotal, 0.5, 2.5);
+      const benchmark = medSpend * scale;
+      const opp = benchmark - actual;
+      const floor = Math.max(500, 0.02 * c.total);
+      if (opp <= floor) return;
+      const mg = pMeta[p].margin;
+      const score = opp * (mg != null ? mg / 100 : 1);
+      OPPS.push({
+        am: c.am, customer: c.name, segment: c.segment, product: p,
+        group: pMeta[p].group, actual, adoption, opp, margin: mg, score,
+        reason:
+          buyers.length + " of " + peers.length + " similar customers buy " + p +
+          " (median " + fmt(medSpend) + "); this customer buys " + fmt(actual) +
+          " → est. opportunity ≈ " + fmt(opp),
+      });
+    });
+  });
+  OPPS.sort((a, b) => b.score - a.score);
+
+  // Populate AM filter
+  const sel = document.getElementById("am-filter");
+  const ams = [...new Set(OPPS.map((o) => o.am))].sort();
+  sel.innerHTML =
+    '<option value="">All</option>' +
+    ams.map((a) => `<option>${a}</option>`).join("");
+
+  status(
+    "Loaded " + (fname || "data") + ": " + data.length + " rows, " +
+      customers.length + " customers, " + productList.length + " products" +
+      (bad ? " (" + bad + " rows skipped)" : "") + ".",
+    true
+  );
+  document.getElementById("results").hidden = false;
+  render();
+}
+
+function render() {
+  const f = document.getElementById("am-filter").value;
+  const rows = f ? OPPS.filter((o) => o.am === f) : OPPS;
+  document.getElementById("k-total").textContent =
+    "€" + fmt(rows.reduce((s, o) => s + o.opp, 0));
+  document.getElementById("k-count").textContent = rows.length;
+  document.getElementById("k-ams").textContent =
+    new Set(OPPS.map((o) => o.am)).size;
+  document.getElementById("res-sub").textContent =
+    f ? "(" + f + ")" : "(all account managers)";
+  document.getElementById("res-tbody").innerHTML = rows
+    .slice(0, 250)
+    .map(
+      (o, i) =>
+        `<tr><td>${i + 1}</td><td>${o.am}</td><td>${o.customer}</td>` +
+        `<td>${o.product}</td><td class="num">${fmt(o.actual)}</td>` +
+        `<td class="num">${Math.round(o.adoption * 100)}%</td>` +
+        `<td class="num"><b>€${fmt(o.opp)}</b></td>` +
+        `<td class="why">${o.reason}</td></tr>`
+    )
+    .join("");
+}
+
+document.getElementById("csv-file").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onload = () => process(rd.result, file.name);
+  rd.onerror = () => status("Could not read that file.", false);
+  rd.readAsText(file);
+});
+document.getElementById("sample-btn").addEventListener("click", () => {
+  if (window.SAMPLE_CSV) process(window.SAMPLE_CSV, "sample data");
+  else status("Sample data not available.", false);
+});
+document.getElementById("am-filter").addEventListener("change", render);
+
+// ---- Compact in-browser XLSX export ----
+const _ct = (() => {
+  const t = [];
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(b) {
+  let c = 0xffffffff;
+  for (let i = 0; i < b.length; i++) c = _ct[(c ^ b[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+const u8 = (s) => new TextEncoder().encode(s);
+function zip(files) {
+  const parts = [], cen = [];
+  let off = 0;
+  files.forEach((f) => {
+    const nm = u8(f.name), d = f.data, crc = crc32(d);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, d.length, true);
+    lh.setUint32(22, d.length, true); lh.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(lh.buffer), nm, d);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true);
+    ch.setUint16(6, 20, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, d.length, true); ch.setUint32(24, d.length, true);
+    ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+    cen.push(new Uint8Array(ch.buffer), nm);
+    off += 30 + nm.length + d.length;
+  });
+  let cs = 0; cen.forEach((c) => (cs += c.length));
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true);
+  e.setUint16(10, files.length, true); e.setUint32(12, cs, true);
+  e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+}
+const xe = (s) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function exportXLSX() {
+  const f = document.getElementById("am-filter").value;
+  const rows = f ? OPPS.filter((o) => o.am === f) : OPPS;
+  const H = ["Rank", "Account Manager", "Customer", "Segment", "Product",
+    "Product Group", "Current", "Peer adoption %", "Est. opportunity", "Margin %", "Why"];
+  let sd =
+    `<row r="1"><c r="A1" t="inlineStr" s="1"><is><t>Account &amp; Portfolio Prioritization — whitespace opportunities</t></is></c></row><row r="2"/>` +
+    `<row r="3">` +
+    H.map((h, i) => `<c r="${String.fromCharCode(65 + i)}3" t="inlineStr" s="2"><is><t xml:space="preserve">${xe(h)}</t></is></c>`).join("") +
+    `</row>`;
+  rows.forEach((o, i) => {
+    const rn = i + 4;
+    sd +=
+      `<row r="${rn}">` +
+      `<c r="A${rn}" s="3"><v>${i + 1}</v></c>` +
+      `<c r="B${rn}" t="inlineStr" s="4"><is><t>${xe(o.am)}</t></is></c>` +
+      `<c r="C${rn}" t="inlineStr" s="4"><is><t>${xe(o.customer)}</t></is></c>` +
+      `<c r="D${rn}" t="inlineStr" s="4"><is><t>${xe(o.segment)}</t></is></c>` +
+      `<c r="E${rn}" t="inlineStr" s="4"><is><t>${xe(o.product)}</t></is></c>` +
+      `<c r="F${rn}" t="inlineStr" s="4"><is><t>${xe(o.group)}</t></is></c>` +
+      `<c r="G${rn}" s="5"><v>${Math.round(o.actual)}</v></c>` +
+      `<c r="H${rn}" s="3"><v>${Math.round(o.adoption * 100)}</v></c>` +
+      `<c r="I${rn}" s="5"><v>${Math.round(o.opp)}</v></c>` +
+      `<c r="J${rn}" s="3"><v>${o.margin != null ? o.margin.toFixed(1) : ""}</v></c>` +
+      `<c r="K${rn}" t="inlineStr" s="4"><is><t xml:space="preserve">${xe(o.reason)}</t></is></c>` +
+      `</row>`;
+  });
+  const sheet =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+    `<cols><col min="1" max="1" width="6"/><col min="2" max="6" width="16"/>` +
+    `<col min="7" max="10" width="14"/><col min="11" max="11" width="70"/></cols>` +
+    `<sheetData>${sd}</sheetData>` +
+    `<mergeCells count="1"><mergeCell ref="A1:K1"/></mergeCells></worksheet>`;
+  const styles =
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+    `<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0"/></numFmts>` +
+    `<fonts count="3">` +
+    `<font><sz val="11"/><name val="Calibri"/><color rgb="FF1F2937"/></font>` +
+    `<font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font>` +
+    `<font><b/><sz val="13"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font></fonts>` +
+    `<fills count="3"><fill><patternFill patternType="none"/></fill>` +
+    `<fill><patternFill patternType="gray125"/></fill>` +
+    `<fill><patternFill patternType="solid"><fgColor rgb="FF2F9BFF"/></patternFill></fill></fills>` +
+    `<borders count="1"><border/></borders>` +
+    `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>` +
+    `<cellXfs count="6">` +
+    `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
+    `<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>` +
+    `<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>` +
+    `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
+    `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
+    `<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>` +
+    `</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const files = [
+    { name: "[Content_Types].xml", data: u8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`) },
+    { name: "_rels/.rels", data: u8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`) },
+    { name: "xl/workbook.xml", data: u8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Prioritized Actions" sheetId="1" r:id="rId1"/></sheets></workbook>`) },
+    { name: "xl/_rels/workbook.xml.rels", data: u8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`) },
+    { name: "xl/styles.xml", data: u8(styles) },
+    { name: "xl/worksheets/sheet1.xml", data: u8(sheet) },
+  ];
+  const url = URL.createObjectURL(zip(files));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "prioritized-actions.xlsx";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById("export-btn").addEventListener("click", exportXLSX);
