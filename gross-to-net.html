@@ -7,7 +7,7 @@
   <meta name="description" content="A product pricing & margin waterfall simulator built with HTML, JavaScript and Python." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=13" />
 </head>
 <body class="tool-light">
   <header class="site-header">
@@ -29,6 +29,44 @@
         <div class="tool-head">
           <a href="projects.html" class="tool-back">&larr; Back to projects</a>
           <h2 class="section-title">Product Margin Simulator</h2>
+        </div>
+        <p class="data-note">
+          A live <strong>gross-to-net waterfall</strong>: start from list price and
+          walk down through rebates, discounts, COGS, OpEx and other costs to the
+          real <strong>operating profit</strong>. Pick an industry preset or type
+          your own numbers — the chart, the KPIs and the branded Excel export all
+          update instantly. This mirrors the net-revenue logic I work with in
+          commercial operations.
+        </p>
+
+        <details class="howto">
+          <summary>How the margin waterfall works</summary>
+          <div class="howto-body">
+            <ol>
+              <li><strong>Net price.</strong> Gross / list price minus
+                <code>Rebates</code> and <code>Discounts</code>, plus any
+                <code>Markups</code> or surcharges — what the customer effectively pays.</li>
+              <li><strong>Gross margin.</strong> Net price minus <code>COGS</code>
+                (cost of goods sold) — the money left to run the business.</li>
+              <li><strong>Operating profit.</strong> Gross margin minus
+                <code>OpEx</code> and <code>Other costs</code> — the true bottom
+                line on the deal.</li>
+              <li><strong>Every percentage</strong> (gross margin %, operating
+                margin %, markup on COGS) is expressed against net price, the way
+                commercial teams actually read it.</li>
+            </ol>
+            <p class="howto-note">
+              The exported Excel is fully formula-driven — change any input cell and
+              the workbook recalculates exactly like this page.
+            </p>
+          </div>
+        </details>
+
+        <div class="sim2-presets seg" id="mg-presets" role="group" aria-label="Industry presets">
+          <button type="button" data-p="pharma" class="on">Pharma Rx</button>
+          <button type="button" data-p="distributor">Distributor</button>
+          <button type="button" data-p="medtech">Medtech</button>
+          <button type="button" data-p="retail">Retail</button>
         </div>
 
         <div class="sim2">
@@ -55,11 +93,11 @@
                 </div>
                 <div class="form-row">
                   <label for="rebates">Rebates (−)</label>
-                  <input type="number" id="rebates" min="0" step="5" value="50" />
+                  <input type="number" id="rebates" min="0" step="5" value="180" />
                 </div>
                 <div class="form-row">
                   <label for="discounts">Discounts (−)</label>
-                  <input type="number" id="discounts" min="0" step="5" value="100" />
+                  <input type="number" id="discounts" min="0" step="5" value="120" />
                 </div>
                 <div class="form-row">
                   <label for="markups">Markups (+)</label>
@@ -67,15 +105,15 @@
                 </div>
                 <div class="form-row">
                   <label for="cogs">COGS (−)</label>
-                  <input type="number" id="cogs" min="0" step="5" value="450" />
+                  <input type="number" id="cogs" min="0" step="5" value="220" />
                 </div>
                 <div class="form-row">
                   <label for="opex">OpEx (−)</label>
-                  <input type="number" id="opex" min="0" step="5" value="150" />
+                  <input type="number" id="opex" min="0" step="5" value="160" />
                 </div>
                 <div class="form-row">
                   <label for="other">Other costs (−)</label>
-                  <input type="number" id="other" min="0" step="5" value="30" />
+                  <input type="number" id="other" min="0" step="5" value="40" />
                 </div>
               </div>
             </div>
@@ -101,7 +139,7 @@
     </div>
   </footer>
 
-  <script src="js/main.js"></script>
-  <script src="js/gross-to-net.js"></script>
+  <script src="js/main.js?v=13"></script>
+  <script src="js/gross-to-net.js?v=13"></script>
 </body>
 </html>

@@ -533,9 +533,33 @@ function exportXLSX() {
 
 document.getElementById("export-btn").addEventListener("click", exportXLSX);
 
-// Live update as the user types
-["gross", "rebates", "discounts", "markups", "cogs", "opex", "other"].forEach(
-  (id) => document.getElementById(id).addEventListener("input", render)
+// Industry presets — typical gross-to-net shapes (per 1,000 of list price)
+const PRESETS = {
+  pharma:      { gross: 1000, rebates: 180, discounts: 120, markups: 0, cogs: 220, opex: 160, other: 40 },
+  distributor: { gross: 1000, rebates: 20,  discounts: 60,  markups: 0, cogs: 780, opex: 90,  other: 20 },
+  medtech:     { gross: 1000, rebates: 40,  discounts: 90,  markups: 0, cogs: 380, opex: 240, other: 50 },
+  retail:      { gross: 1000, rebates: 30,  discounts: 150, markups: 0, cogs: 520, opex: 180, other: 50 },
+};
+const FIELDS = ["gross", "rebates", "discounts", "markups", "cogs", "opex", "other"];
+const presetBtns = document.querySelectorAll("#mg-presets button");
+
+function applyPreset(key) {
+  const p = PRESETS[key];
+  if (!p) return;
+  FIELDS.forEach((id) => (document.getElementById(id).value = p[id]));
+  presetBtns.forEach((b) => b.classList.toggle("on", b.dataset.p === key));
+  render();
+}
+presetBtns.forEach((b) =>
+  b.addEventListener("click", () => applyPreset(b.dataset.p))
+);
+
+// Live update as the user types; a manual edit means "custom" — drop preset highlight
+FIELDS.forEach((id) =>
+  document.getElementById(id).addEventListener("input", () => {
+    presetBtns.forEach((b) => b.classList.remove("on"));
+    render();
+  })
 );
 
 render();
