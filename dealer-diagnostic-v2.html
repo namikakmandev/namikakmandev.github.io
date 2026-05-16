@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Dealership Profit &amp; Variance Diagnostic — Namık Akman</title>
-  <meta name="description" content="Trial-balance-driven profit, price-realization and variance diagnostic for a car dealership." />
+  <title>Dealership Divisional P&amp;L — Namık Akman</title>
+  <meta name="description" content="Turn a dealer's trial balance into a clean profit-and-loss for every division." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
   <link rel="stylesheet" href="css/style.css?v=17" />
@@ -29,16 +29,16 @@
       <div class="container">
         <div class="tool-head">
           <a href="index.html" class="tool-back">&larr; Back</a>
-          <h2 class="section-title">Dealership Profit &amp; Variance Diagnostic</h2>
+          <h2 class="section-title">Dealership Divisional P&amp;L</h2>
         </div>
         <p class="data-note">
-          One real dataset — the dealer's <strong>trial balance</strong> plus the
-          units and list prices they already track — turned into the commercial
-          story their accounts hide: <strong>where money is really made → how much
-          price is left on the table vs list → why the result missed plan.</strong>
-          Sample is an illustrative Turkish full-service dealer (Uniform Chart of
-          Accounts). Everything is editable and recalculates live; nothing leaves
-          your browser.
+          One input — the dealer's <strong>trial balance</strong> — turned into a
+          clean profit-and-loss for <strong>every division</strong>: where the
+          business actually makes money, and where it loses it. A manager can't
+          read this from a trial balance; an accountant won't frame it
+          commercially. This does. Sample is an illustrative Turkish full-service
+          dealer (Uniform Chart of Accounts); edit any balance — it recalculates
+          live, nothing leaves your browser.
         </p>
 
         <h3 class="band-title">The trial balance (their actual numbers)</h3>
@@ -48,98 +48,32 @@
         </p>
         <div class="card-light"><div id="tb-grid" class="dd2-tb"></div></div>
 
-        <h3 class="band-title">Part 1 — Where the profit actually comes from</h3>
+        <h3 class="band-title">Divisional P&amp;L</h3>
         <div class="kpi-bar">
           <div class="kpi-box"><span>Total revenue</span><strong id="k-rev">—</strong></div>
           <div class="kpi-box"><span>Total gross profit</span><strong id="k-gross">—</strong></div>
-          <div class="kpi-box"><span>Operating overhead</span><strong id="k-oh">—</strong></div>
+          <div class="kpi-box"><span>Operating overhead <em>(shared pool)</em></span><strong id="k-oh">—</strong></div>
           <div class="kpi-box"><span>Net profit <em id="k-net-pct"></em></span><strong id="k-net">—</strong></div>
         </div>
         <div class="card-light se-tablewrap">
           <div class="se-tablescroll">
             <table class="se-table">
               <thead><tr>
-                <th>Division</th><th class="num">Revenue</th><th class="num">Cost</th>
+                <th>Division</th><th class="num">Revenue</th><th class="num">Cost of sales</th>
                 <th class="num">Gross</th><th class="num">Gross %</th><th class="num">% of total gross</th>
               </tr></thead>
               <tbody id="pl-tbody"></tbody>
             </table>
           </div>
         </div>
-        <p class="data-note" id="pl-insight" style="margin-top:10px"></p>
+        <p class="data-note" id="pl-insight" style="margin-top:12px"></p>
 
-        <p class="data-note dd-bridge">
-          ↳ Net is <strong id="bridge-net">—</strong>. The totals don't say why.
-          The first answer: what price are they actually getting vs the list price?
+        <p class="data-note dd-close">
+          <strong>Method:</strong> overhead is shown as one shared pool and netted
+          at the total — no arbitrary split per division (honest, uncontroversial).
+          <strong>Next layers (not built yet):</strong> owner/manager-set cost
+          allocation keys, then a P&amp;L per account manager.
         </p>
-
-        <h3 class="band-title">Part 2 — Price realization vs list (car sales)</h3>
-        <p class="data-note" style="margin-top:2px">
-          Realized average price = revenue ÷ units. Against the list price, the
-          gap is real money — without needing a single deal record.
-        </p>
-        <div class="cf-wrap">
-          <div class="card-light cf-inputs">
-            <h3 style="margin-bottom:12px">Units &amp; list price</h3>
-            <div class="grid2">
-              <div class="form-row"><label for="u-new">New cars — units</label>
-                <input type="number" id="u-new" min="1" step="10" value="600" /></div>
-              <div class="form-row"><label for="l-new">New cars — list price</label>
-                <input type="number" id="l-new" min="0" step="250" value="31500" /></div>
-              <div class="form-row"><label for="u-used">Used cars — units</label>
-                <input type="number" id="u-used" min="1" step="10" value="450" /></div>
-              <div class="form-row"><label for="l-used">Used cars — list price</label>
-                <input type="number" id="l-used" min="0" step="250" value="21500" /></div>
-            </div>
-          </div>
-          <div class="cf-main">
-            <div class="kpi-bar">
-              <div class="kpi-box"><span>New — realization</span><strong id="r-new">—</strong></div>
-              <div class="kpi-box"><span>Used — realization</span><strong id="r-used">—</strong></div>
-              <div class="kpi-box"><span>Price left on the table</span><strong id="r-leak">—</strong></div>
-            </div>
-            <p class="data-note" id="r-insight" style="margin:0"></p>
-          </div>
-        </div>
-
-        <p class="data-note dd-bridge">
-          ↳ That is price vs list. The second answer: how does the whole result
-          compare to <strong>plan</strong> — and is the miss volume or margin?
-        </p>
-
-        <h3 class="band-title">Part 3 — Why the result missed plan</h3>
-        <p class="data-note" style="margin-top:2px">
-          Each division's gross gap vs budget, split into a <strong>volume</strong>
-          effect (more/less revenue) and a <strong>margin-rate</strong> effect
-          (better/worse gross %). Full Price/Volume/Mix is the next refinement.
-        </p>
-        <div class="cf-wrap">
-          <div class="card-light cf-inputs">
-            <h3 style="margin-bottom:12px">Budget by division</h3>
-            <div id="bud-grid" class="grid2"></div>
-          </div>
-          <div class="cf-main">
-            <div class="kpi-bar">
-              <div class="kpi-box"><span>Actual gross</span><strong id="v-act">—</strong></div>
-              <div class="kpi-box"><span>Budget gross</span><strong id="v-bud">—</strong></div>
-              <div class="kpi-box"><span>Variance</span><strong id="v-var">—</strong></div>
-            </div>
-            <div class="card-light se-tablewrap">
-              <div class="se-tablescroll">
-                <table class="se-table">
-                  <thead><tr>
-                    <th>Division</th><th class="num">Volume effect</th>
-                    <th class="num">Margin effect</th><th class="num">Total</th>
-                  </tr></thead>
-                  <tbody id="v-tbody"></tbody>
-                </table>
-              </div>
-            </div>
-            <p class="data-note" id="v-insight" style="margin:12px 0 0"></p>
-          </div>
-        </div>
-
-        <p class="data-note dd-close" id="dd-close"></p>
       </div>
     </section>
   </main>
@@ -152,6 +86,6 @@
   </footer>
 
   <script src="js/main.js?v=15"></script>
-  <script src="js/dealer-diagnostic-v2.js?v=1"></script>
+  <script src="js/dealer-diagnostic-v2.js?v=2"></script>
 </body>
 </html>
