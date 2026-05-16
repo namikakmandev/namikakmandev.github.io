@@ -257,3 +257,102 @@ function renderDeal() {
 if (discSlider) discSlider.addEventListener("input", renderDeal);
 
 renderDeal();
+
+// ---- Stage 3: ranked leakage map ----
+function renderLeaks() {
+  if (!document.getElementById("lk-tbody")) return;
+
+  const salesRev = num("rev-new") + num("rev-used");
+  const partsRev = num("rev-parts");
+  const fiPerDeal = num("deal-fi");
+  const net = model().net;
+
+  const discDrift =
+    (Math.max(0, num("l-disc-act") - num("l-disc-tgt")) / 100) * salesRev;
+  const labourGap =
+    Math.max(0, num("l-rate-post") - num("l-rate-eff")) * num("l-hours");
+  const fiGap =
+    (Math.max(0, num("l-fi-tgt") - num("l-fi-act")) / 100) *
+    num("l-deals") *
+    fiPerDeal;
+  const partsDrift = (Math.max(0, num("l-parts-drift")) / 100) * partsRev;
+  const defleet = num("l-def-days") * num("l-fleet") * num("l-hold");
+
+  const leaks = [
+    {
+      name: "Sales discount drift",
+      value: discDrift,
+      lever: "Hold the line to target discount %",
+    },
+    {
+      name: "Workshop effective labour rate",
+      value: labourGap,
+      lever: "Recover posted rate — discounts & unbilled time",
+    },
+    {
+      name: "F&I attach gap",
+      value: fiGap,
+      lever: "Lift attach rate toward what peers achieve",
+    },
+    {
+      name: "Parts pricing drift",
+      value: partsDrift,
+      lever: "Apply the parts price matrix consistently",
+    },
+    {
+      name: "Rental defleet timing",
+      value: defleet,
+      lever: "Defleet ex-rentals sooner into used stock",
+    },
+  ].sort((a, b) => b.value - a.value);
+
+  const total = leaks.reduce((s, l) => s + l.value, 0);
+
+  let rows = "";
+  leaks.forEach((l, i) => {
+    rows +=
+      "<tr><td>" +
+      (i + 1) +
+      "</td><td>" +
+      l.name +
+      '</td><td class="num">' +
+      eur(l.value) +
+      "</td><td>" +
+      l.lever +
+      "</td></tr>";
+  });
+  document.getElementById("lk-tbody").innerHTML = rows;
+
+  setTxt("lk-total", eur(total));
+  setTxt("lk-net", eur(net));
+  const ratio = net > 0 ? total / net : 0;
+  setTxt("lk-ratio", net > 0 ? ratio.toFixed(1) + "×" : "n/a");
+
+  const top2 = leaks[0].value + (leaks[1] ? leaks[1].value : 0);
+  let msg =
+    "Total addressable leakage is " +
+    eur(total) +
+    " a year";
+  if (net > 0) {
+    msg +=
+      " — about " +
+      ratio.toFixed(1) +
+      "× this dealer's entire net profit of " +
+      eur(net) +
+      ". The money leaking is bigger than the business they think they run.";
+  } else {
+    msg += ".";
+  }
+  msg +=
+    " Fixing just the top two lines recovers " +
+    eur(top2) +
+    " — that is the conversation, and it is hiding in plain sight in their own DMS.";
+  setTxt("lk-insight", msg);
+}
+
+// Any input anywhere keeps the whole diagnostic in sync
+document.querySelectorAll("input").forEach((el) =>
+  el.addEventListener("input", renderLeaks)
+);
+
+renderLeaks();

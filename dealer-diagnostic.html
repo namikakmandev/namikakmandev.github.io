@@ -182,6 +182,89 @@
             </div>
           </div>
         </div>
+
+        <h3 class="band-title">Where the money is leaking</h3>
+        <p class="data-note" style="margin-top:2px">
+          The DMS reports what happened, by silo. It never adds the leakage up,
+          ranks it, or tells you what to fix first. This does — every line in euros.
+        </p>
+        <div class="cf-wrap">
+          <div class="card-light cf-inputs">
+            <h3 style="margin-bottom:12px">Leakage assumptions</h3>
+            <div class="grid2">
+              <div class="form-row">
+                <label for="l-disc-act">Avg sales discount %</label>
+                <input type="number" id="l-disc-act" min="0" step="0.5" value="6" />
+              </div>
+              <div class="form-row">
+                <label for="l-disc-tgt">Target discount %</label>
+                <input type="number" id="l-disc-tgt" min="0" step="0.5" value="4" />
+              </div>
+              <div class="form-row">
+                <label for="l-rate-post">Posted labour rate</label>
+                <input type="number" id="l-rate-post" min="0" step="1" value="120" />
+              </div>
+              <div class="form-row">
+                <label for="l-rate-eff">Effective labour rate</label>
+                <input type="number" id="l-rate-eff" min="0" step="1" value="101" />
+              </div>
+              <div class="form-row">
+                <label for="l-hours">Billable hours / yr</label>
+                <input type="number" id="l-hours" min="0" step="500" value="18000" />
+              </div>
+              <div class="form-row">
+                <label for="l-deals">Car deals / yr</label>
+                <input type="number" id="l-deals" min="0" step="50" value="1050" />
+              </div>
+              <div class="form-row">
+                <label for="l-fi-act">F&amp;I attach % now</label>
+                <input type="number" id="l-fi-act" min="0" max="100" step="1" value="45" />
+              </div>
+              <div class="form-row">
+                <label for="l-fi-tgt">F&amp;I attach % achievable</label>
+                <input type="number" id="l-fi-tgt" min="0" max="100" step="1" value="65" />
+              </div>
+              <div class="form-row">
+                <label for="l-parts-drift">Parts pricing drift %</label>
+                <input type="number" id="l-parts-drift" min="0" step="0.5" value="3" />
+              </div>
+              <div class="form-row">
+                <label for="l-def-days">Extra defleet days</label>
+                <input type="number" id="l-def-days" min="0" step="5" value="40" />
+              </div>
+              <div class="form-row">
+                <label for="l-fleet">Rental fleet units</label>
+                <input type="number" id="l-fleet" min="0" step="1" value="25" />
+              </div>
+              <div class="form-row">
+                <label for="l-hold">Holding €/car/day</label>
+                <input type="number" id="l-hold" min="0" step="1" value="30" />
+              </div>
+            </div>
+          </div>
+
+          <div class="cf-main">
+            <div class="kpi-bar">
+              <div class="kpi-box"><span>Total addressable leakage</span><strong id="lk-total">—</strong></div>
+              <div class="kpi-box"><span>Dealer net profit</span><strong id="lk-net">—</strong></div>
+              <div class="kpi-box"><span>Leakage vs net profit</span><strong id="lk-ratio">—</strong></div>
+            </div>
+            <div class="card-light se-tablewrap">
+              <div class="res-head">
+                <h3>Ranked leakage map <span>biggest euros first</span></h3>
+              </div>
+              <div class="se-tablescroll">
+                <table class="se-table">
+                  <thead><tr>
+                    <th>#</th><th>Where it leaks</th><th class="num">€ / year</th><th>The lever</th>
+                  </tr></thead>
+                  <tbody id="lk-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            <p class="data-note" id="lk-insight" style="margin:14px 0 0"></p>
+          </div>
+        </div>
       </div>
     </section>
   </main>
@@ -194,6 +277,6 @@
   </footer>
 
   <script src="js/main.js?v=15"></script>
-  <script src="js/dealer-diagnostic.js?v=2"></script>
+  <script src="js/dealer-diagnostic.js?v=3"></script>
 </body>
 </html>
