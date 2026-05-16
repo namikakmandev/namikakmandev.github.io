@@ -179,6 +179,22 @@ function render() {
     totRow.hidden = true;
   }
 
+  // Break-even in ABSOLUTE units — this is what changes with "units sold".
+  const beRow = $("dm-be-row");
+  const canBreakEven = r.mAfter > 0 && r.extraPct !== null && r.disc > 0;
+  if (hasUnits && canBreakEven) {
+    const extraUnits = Math.ceil(r.units * (r.extraPct / 100));
+    const target = r.units + extraUnits;
+    beRow.hidden = false;
+    $("dm-be").textContent = "+" + extraUnits.toLocaleString() + " units";
+    $("dm-be").style.color = "var(--accent-3)";
+    $("dm-be-note").textContent =
+      "(sell ≈ " + target.toLocaleString() + " vs " +
+      r.units.toLocaleString() + ")";
+  } else {
+    beRow.hidden = true;
+  }
+
   drawChart(r, sym, factor);
 }
 
