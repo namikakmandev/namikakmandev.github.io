@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Dealership Divisional P&amp;L — Namık Akman</title>
-  <meta name="description" content="Turn a dealer's trial balance into a clean profit-and-loss for every division." />
+  <title>Divisional &amp; Monthly P&amp;L — Namık Akman</title>
+  <meta name="description" content="Turn a trial balance into a consolidated, monthly and divisional P&L — for any industry." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
   <link rel="stylesheet" href="css/style.css?v=17" />
@@ -29,17 +29,24 @@
       <div class="container">
         <div class="tool-head">
           <a href="index.html" class="tool-back">&larr; Back</a>
-          <h2 class="section-title">Dealership Divisional P&amp;L</h2>
+          <h2 class="section-title">Divisional &amp; Monthly P&amp;L</h2>
         </div>
         <p class="data-note">
-          One input — the dealer's <strong>trial balance</strong> — turned into a
-          clean profit-and-loss for <strong>every division</strong>: where the
-          business actually makes money, and where it loses it. A manager can't
-          read this from a trial balance; an accountant won't frame it
-          commercially. This does. Sample is an illustrative Turkish full-service
-          dealer (Uniform Chart of Accounts); edit any balance — it recalculates
-          live, nothing leaves your browser.
+          One input — a <strong>trial balance</strong> — turned into the commercial
+          story the accounts hide: a <strong>consolidated</strong> P&amp;L, a
+          <strong>12-month</strong> view that exposes loss-making months, and a
+          <strong>divisional</strong> breakdown. Pick an industry, edit any number;
+          everything recalculates live and nothing leaves your browser.
         </p>
+
+        <span class="sim2-presets-lbl">Industry</span>
+        <div class="sim2-presets" id="ind-presets" role="group" aria-label="Industry presets">
+          <button type="button" data-ind="auto" class="on">Auto dealer</button>
+          <button type="button" data-ind="manufacturing">Manufacturing</button>
+          <button type="button" data-ind="distribution">Distribution</button>
+          <button type="button" data-ind="services">Services</button>
+        </div>
+        <p class="sim2-presets-note" id="ind-note"></p>
 
         <h3 class="band-title">The trial balance (their actual numbers)</h3>
         <p class="data-note" style="margin-top:2px">
@@ -61,10 +68,27 @@
           </div>
         </div>
 
+        <h3 class="band-title">12-month P&amp;L</h3>
+        <p class="data-note" style="margin-top:2px">
+          Revenue &amp; cost flex with an industry seasonality; overhead is fixed
+          (spread evenly). That's why some months run at a loss even when the year
+          is profitable — the months cash gets tight. <em>Illustrative split; the
+          real version uses 12 actual monthly trial balances.</em>
+        </p>
+        <div class="card-light se-tablewrap">
+          <div class="se-tablescroll">
+            <table class="se-table" id="m-table">
+              <thead id="m-thead"></thead>
+              <tbody id="m-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="data-note" id="m-insight" style="margin-top:12px"></p>
+
         <h3 class="band-title">Divisional P&amp;L</h3>
         <p class="data-note" style="margin-top:2px">
-          The same result, split by division — where the consolidated number
-          actually comes from.
+          The same year, split by division — where the consolidated number actually
+          comes from.
         </p>
         <div class="card-light se-tablewrap">
           <div class="se-tablescroll">
@@ -77,10 +101,10 @@
         <p class="data-note" id="pl-insight" style="margin-top:12px"></p>
 
         <p class="data-note dd-close">
-          <strong>Method:</strong> overhead is shown as one shared pool and netted
-          at the total — no arbitrary split per division (honest, uncontroversial).
-          <strong>Next layers (not built yet):</strong> owner/manager-set cost
-          allocation keys, then a P&amp;L per account manager.
+          <strong>Method:</strong> overhead is one shared pool, netted at the total
+          — no arbitrary split per division. <strong>Next layers (not built yet):</strong>
+          owner-set allocation keys, then a P&amp;L per account manager, then 12
+          real monthly trial balances in place of the seasonality.
         </p>
       </div>
     </section>
@@ -94,6 +118,6 @@
   </footer>
 
   <script src="js/main.js?v=15"></script>
-  <script src="js/dealer-diagnostic-v2.js?v=4"></script>
+  <script src="js/dealer-diagnostic-v2.js?v=5"></script>
 </body>
 </html>
