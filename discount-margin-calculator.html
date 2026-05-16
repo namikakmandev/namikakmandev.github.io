@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Free Discount &amp; Margin Calculator — what a discount really costs you | Namık Akman</title>
+  <meta name="description" content="Free discount and margin calculator. Enter your price, cost and discount to instantly see your net price, gross margin, and how many extra sales you need just to break even on the discount. Works on mobile, no sign-up." />
+  <meta name="keywords" content="discount calculator, margin calculator, discount margin calculator, profit margin calculator, break-even discount, pricing calculator" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="Free Discount &amp; Margin Calculator" />
+  <meta property="og:description" content="See exactly how much profit a discount costs — and how many extra units you must sell just to break even." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="css/style.css?v=16" />
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Discount &amp; Margin Calculator</h2>
+        </div>
+        <p class="data-note">
+          A discount looks small on the price tag — but it comes straight out of
+          your <strong>profit</strong>. Enter your price, cost and the discount
+          you want to give. You'll instantly see the margin you keep, and the
+          one number most people miss: <strong>how many extra units you must
+          sell just to break even on that discount</strong>. Free, no sign-up,
+          works on your phone.
+        </p>
+
+        <details class="howto">
+          <summary>How this calculator works</summary>
+          <div class="howto-body">
+            <ol>
+              <li><strong>Net price.</strong> List price minus the discount —
+                what the customer actually pays.</li>
+              <li><strong>Gross margin.</strong> Net price minus unit cost
+                (COGS), shown in money and as a percentage of the selling
+                price.</li>
+              <li><strong>The break-even volume.</strong> A discount shrinks the
+                profit on every unit. To earn the same <em>total</em> profit you
+                now have to sell more units — this tool shows exactly how many
+                percent more.</li>
+              <li><strong>Loss warning.</strong> If the discount pushes the
+                price below your cost, the result turns red — you'd lose money
+                on every sale.</li>
+            </ol>
+          </div>
+        </details>
+
+        <div class="sim2">
+          <div class="sim2-chart">
+            <h3>Profit per unit — before vs. after the discount</h3>
+            <div class="wf-chart">
+              <svg id="dm-svg" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet"
+                   role="img" aria-label="Profit per unit before and after the discount"></svg>
+            </div>
+            <p class="wf-legend">
+              <span class="lg lg-blue"></span> Profit before discount
+              <span class="lg lg-green"></span> Profit after discount
+              <span class="lg lg-orange"></span> Loss
+            </p>
+          </div>
+
+          <div class="sim2-side">
+            <div class="card-light">
+              <div class="grid2">
+                <div class="form-row">
+                  <label for="dm-cur">Currency</label>
+                  <select id="dm-cur">
+                    <option value="$">$ — Dollar</option>
+                    <option value="€">€ — Euro</option>
+                    <option value="£">£ — Pound</option>
+                    <option value="₺">₺ — Turkish lira</option>
+                    <option value="₹">₹ — Rupee</option>
+                    <option value="¥">¥ — Yen / Yuan</option>
+                    <option value="">No symbol</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <label for="dm-disc">Discount given (%)</label>
+                  <input type="number" id="dm-disc" min="0" max="100" step="1" value="15" />
+                </div>
+                <div class="form-row">
+                  <label for="dm-price">List / sticker price</label>
+                  <input type="number" id="dm-price" min="0" step="1" value="100" />
+                </div>
+                <div class="form-row">
+                  <label for="dm-cost">Unit cost / COGS</label>
+                  <input type="number" id="dm-cost" min="0" step="1" value="60" />
+                </div>
+                <div class="form-row">
+                  <label for="dm-units">Units sold (optional)</label>
+                  <input type="number" id="dm-units" min="0" step="1" value="100" />
+                </div>
+              </div>
+            </div>
+
+            <div class="kpi" id="dm-result" aria-live="polite">
+              <div class="kpi-row"><span>Net price after discount</span><strong id="dm-net">—</strong></div>
+              <div class="kpi-row"><span>Margin before discount <em id="dm-gmb-pct"></em></span><strong id="dm-gmb">—</strong></div>
+              <div class="kpi-row green"><span>Margin after discount <em id="dm-gma-pct"></em></span><strong id="dm-gma">—</strong></div>
+              <div class="kpi-row total" id="dm-extra-row"><span>Extra sales needed just to break even</span><strong id="dm-extra">—</strong></div>
+              <p class="form-note" id="dm-msg"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="howto" style="margin-top:24px">
+          <div class="howto-body" style="padding:18px 0">
+            <h3 style="font-size:1.05rem;margin-bottom:10px">Why a small discount hurts more than it looks</h3>
+            <p style="color:var(--text-dim);font-size:0.95rem;margin-bottom:10px">
+              Sell a product for 100 (in any currency) at a cost of 60, and your
+              profit is 40 a unit. Give a "small" 15% discount and the price
+              drops to 85 — but your profit drops to 25, a
+              <strong>37% cut in profit</strong> from a 15% discount. To make the
+              same total money you'd have to sell about
+              <strong>60% more units</strong>. That is the hidden cost of
+              discounting, and it's exactly what this calculator makes visible.
+            </p>
+            <p style="color:var(--text-dim);font-size:0.95rem">
+              Need to model this across a full price list, rebates and net
+              revenue? Try the
+              <a href="gross-to-net.html">Product Margin Simulator</a> or the
+              <a href="cashflow.html">Cash Flow &amp; Runway Simulator</a>. For
+              hands-on help with pricing or commercial strategy,
+              <a href="contact.html">get in touch</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Free tool — runs entirely in your browser</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=16"></script>
+  <script src="js/discount-margin-calculator.js?v=16"></script>
+</body>
+</html>
