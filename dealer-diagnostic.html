@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Dealership Profit &amp; Leakage Diagnostic — Namık Akman</title>
+  <meta name="description" content="Cross-division profit and leakage diagnostic for a full-service car dealership." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=15" />
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container">
+        <div class="tool-head">
+          <a href="index.html" class="tool-back">&larr; Back</a>
+          <h2 class="section-title">Dealership Profit &amp; Leakage Diagnostic</h2>
+        </div>
+        <p class="data-note">
+          A full-service dealer's divisions are run in silos — nobody sees the
+          business end-to-end. This shows, on one screen, <strong>where the money
+          truly comes from</strong> across new cars, used cars, service, parts,
+          F&amp;I and rental. Numbers below are an illustrative ~50-person dealer;
+          edit any of them and everything recalculates live.
+        </p>
+
+        <div class="kpi-bar">
+          <div class="kpi-box"><span>Total revenue</span><strong id="k-rev">—</strong></div>
+          <div class="kpi-box"><span>Total gross profit</span><strong id="k-gross">—</strong></div>
+          <div class="kpi-box"><span>Operating overhead</span><strong id="k-oh">—</strong></div>
+          <div class="kpi-box"><span>Net profit <em id="k-net-pct"></em></span><strong id="k-net">—</strong></div>
+        </div>
+
+        <p class="data-note" id="dd-insight" style="margin-top:2px"></p>
+
+        <div class="sim2">
+          <div class="sim2-chart">
+            <h3>Where the profit really comes from</h3>
+            <div class="wf-chart">
+              <svg id="dd-svg" viewBox="0 0 960 480" preserveAspectRatio="xMidYMid meet"
+                   role="img" aria-label="Cross-division profit waterfall"></svg>
+            </div>
+            <p class="wf-legend">
+              <span class="lg lg-green"></span> Division gross profit
+              <span class="lg lg-blue"></span> Subtotal
+              <span class="lg lg-grey"></span> Overhead
+              <span class="lg lg-orange"></span> Loss
+            </p>
+          </div>
+
+          <div class="sim2-side">
+            <div class="card-light">
+              <h3 style="margin-bottom:12px">Divisions <span class="cf-hdr">revenue &amp; gross margin %</span></h3>
+              <div class="grid2">
+                <div class="form-row">
+                  <label for="rev-new">New cars — revenue</label>
+                  <input type="number" id="rev-new" min="0" step="50000" value="18000000" />
+                </div>
+                <div class="form-row">
+                  <label for="gm-new">New cars — gross %</label>
+                  <input type="number" id="gm-new" min="0" step="0.5" value="5" />
+                </div>
+                <div class="form-row">
+                  <label for="rev-used">Used cars — revenue</label>
+                  <input type="number" id="rev-used" min="0" step="50000" value="9000000" />
+                </div>
+                <div class="form-row">
+                  <label for="gm-used">Used cars — gross %</label>
+                  <input type="number" id="gm-used" min="0" step="0.5" value="10" />
+                </div>
+                <div class="form-row">
+                  <label for="rev-svc">Service &amp; repair — revenue</label>
+                  <input type="number" id="rev-svc" min="0" step="50000" value="2400000" />
+                </div>
+                <div class="form-row">
+                  <label for="gm-svc">Service &amp; repair — gross %</label>
+                  <input type="number" id="gm-svc" min="0" step="0.5" value="65" />
+                </div>
+                <div class="form-row">
+                  <label for="rev-parts">Parts — revenue</label>
+                  <input type="number" id="rev-parts" min="0" step="50000" value="1800000" />
+                </div>
+                <div class="form-row">
+                  <label for="gm-parts">Parts — gross %</label>
+                  <input type="number" id="gm-parts" min="0" step="0.5" value="25" />
+                </div>
+                <div class="form-row">
+                  <label for="rev-fi">F&amp;I — revenue</label>
+                  <input type="number" id="rev-fi" min="0" step="10000" value="600000" />
+                </div>
+                <div class="form-row">
+                  <label for="gm-fi">F&amp;I — gross %</label>
+                  <input type="number" id="gm-fi" min="0" step="0.5" value="90" />
+                </div>
+                <div class="form-row">
+                  <label for="rev-rent">Rent-a-car — revenue</label>
+                  <input type="number" id="rev-rent" min="0" step="10000" value="700000" />
+                </div>
+                <div class="form-row">
+                  <label for="gm-rent">Rent-a-car — gross %</label>
+                  <input type="number" id="gm-rent" min="0" step="0.5" value="30" />
+                </div>
+                <div class="form-row">
+                  <label for="overhead">Operating overhead (€/yr)</label>
+                  <input type="number" id="overhead" min="0" step="50000" value="3900000" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="band-title">One typical deal — what the customer is really worth</h3>
+        <p class="data-note" style="margin-top:2px">
+          A car deal looks profitable on the showroom floor. Add the F&amp;I and
+          the years of service that customer brings — then subtract the discount
+          the salesperson gave away — and the real picture appears.
+        </p>
+        <div class="cf-wrap">
+          <div class="card-light cf-inputs">
+            <h3 style="margin-bottom:12px">Typical new-car deal</h3>
+            <div class="grid2">
+              <div class="form-row">
+                <label for="deal-sticker">Sticker price</label>
+                <input type="number" id="deal-sticker" min="0" step="250" value="30000" />
+              </div>
+              <div class="form-row">
+                <label for="deal-cost">Vehicle cost</label>
+                <input type="number" id="deal-cost" min="0" step="250" value="27000" />
+              </div>
+              <div class="form-row">
+                <label for="deal-prep">Prep &amp; commission</label>
+                <input type="number" id="deal-prep" min="0" step="50" value="500" />
+              </div>
+              <div class="form-row">
+                <label for="deal-fi">F&amp;I income</label>
+                <input type="number" id="deal-fi" min="0" step="50" value="900" />
+              </div>
+              <div class="form-row">
+                <label for="deal-svc">Service+parts gross / yr</label>
+                <input type="number" id="deal-svc" min="0" step="50" value="1400" />
+              </div>
+              <div class="form-row">
+                <label for="deal-years">Years retained</label>
+                <input type="number" id="deal-years" min="0" step="1" value="3" />
+              </div>
+              <div class="form-row">
+                <label for="deal-ret">Retention %</label>
+                <input type="number" id="deal-ret" min="0" max="100" step="5" value="60" />
+              </div>
+            </div>
+            <div class="se-slider" id="deal-disc-slider" style="margin-top:14px">
+              <label>Discount given <b>€1,800</b></label>
+              <input type="range" min="0" max="5000" step="50" value="1800" />
+            </div>
+          </div>
+
+          <div class="cf-main">
+            <div class="kpi-bar">
+              <div class="kpi-box"><span>Front-end profit <em>car only</em></span><strong id="d-front">—</strong></div>
+              <div class="kpi-box"><span>F&amp;I income</span><strong id="d-fi">—</strong></div>
+              <div class="kpi-box"><span>Service annuity <em>retained</em></span><strong id="d-svc">—</strong></div>
+              <div class="kpi-box"><span>True customer value</span><strong id="d-ltv">—</strong></div>
+            </div>
+            <div class="card-light cf-cmp">
+              <h3>What this means</h3>
+              <p class="data-note" id="d-insight" style="margin:0"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Illustrative model — runs locally in your browser</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=15"></script>
+  <script src="js/dealer-diagnostic.js?v=2"></script>
+</body>
+</html>
