@@ -174,6 +174,8 @@ function render() {
       "% of gross — this is a service business with a showroom attached."
   );
 
+  setTxt("bridge-net", eur(m.net));
+
   buildChart(m);
 }
 
@@ -348,6 +350,23 @@ function renderLeaks() {
     eur(top2) +
     " — that is the conversation, and it is hiding in plain sight in their own DMS.";
   setTxt("lk-insight", msg);
+
+  let close =
+    "The three steps are one story. Part 1: this dealer's net profit is " +
+    eur(net) +
+    ". Part 2: every deal quietly gives margin away on the showroom floor. Part 3: across a year that bleed totals " +
+    eur(total);
+  if (net > 0) {
+    close +=
+      " — " +
+      (total / net).toFixed(1) +
+      "× the entire net profit from Part 1.";
+  } else {
+    close += ".";
+  }
+  close +=
+    " Nothing here is new data — it was hiding across their own numbers the whole time. That gap, ranked and prioritised, is the engagement.";
+  setTxt("dd-close", close);
 }
 
 // Any input anywhere keeps the whole diagnostic in sync
