@@ -45,38 +45,69 @@ function compute() {
 }
 
 function drawChart(r, sym, factor) {
-  const W = 720, H = 360, mT = 30, mB = 54, mL = 60, mR = 20;
+  const W = 720, H = 360, mT = 38, mB = 54, mL = 56, mR = 24;
   const pw = W - mL - mR, ph = H - mT - mB;
-  const before = r.mBefore * factor, after = r.mAfter * factor;
-  const vals = [before, after];
-  const maxV = Math.max(...vals, 1);
-  const minV = Math.min(...vals, 0);
-  const span = maxV - minV || 1;
-  const Y = (v) => mT + ph - ((v - minV) / span) * ph;
+
+  const cost = r.cost * factor;
+  const priceB = r.price * factor;     // selling price before discount
+  const priceA = r.net * factor;       // selling price after discount
+  const profB = r.mBefore * factor;
+  const profA = r.mAfter * factor;
+
+  const maxV = Math.max(priceB, priceA, cost, 1);
+  const Y = (v) => mT + ph - (v / maxV) * ph;   // 0 at the bottom
   const y0 = Y(0);
 
   const bw = 150;
-  const x1 = mL + pw * 0.22 - bw / 2;
-  const x2 = mL + pw * 0.7 - bw / 2;
+  const x1 = mL + pw * 0.24 - bw / 2;
+  const x2 = mL + pw * 0.72 - bw / 2;
+  const cx1 = x1 + bw / 2, cx2 = x2 + bw / 2;
 
-  const bar = (x, v, color, label) => {
-    const top = Math.min(Y(v), y0);
-    const h = Math.abs(Y(v) - y0);
-    return (
-      `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${bw}" ` +
-      `height="${Math.max(1, h).toFixed(1)}" rx="6" style="fill:${color}"/>` +
-      `<text x="${(x + bw / 2).toFixed(1)}" y="${(v >= 0 ? top - 10 : top + h + 22).toFixed(1)}" ` +
-      `text-anchor="middle" class="cp-ax" style="font-weight:700;font-size:18px">` +
-      `${money(v, sym)}</text>` +
-      `<text x="${(x + bw / 2).toFixed(1)}" y="${(H - 24).toFixed(1)}" ` +
-      `text-anchor="middle" class="cp-ax" style="font-size:15px">${label}</text>`
-    );
+  const seg = (x, vTop, vBot, color) =>
+    `<rect x="${x.toFixed(1)}" y="${Y(vTop).toFixed(1)}" width="${bw}" ` +
+    `height="${Math.max(1, Y(vBot) - Y(vTop)).toFixed(1)}" style="fill:${color}"/>`;
+
+  const stack = (x, price, profit, profColor, label) => {
+    let g = "";
+    // grey block = the price you BUY it for (cost)
+    g += seg(x, Math.min(cost, Math.max(price, 0)), 0, "var(--text-dim)");
+    if (price >= cost) {
+      g += seg(x, price, cost, profColor);                 // profit on top
+    } else {
+      g += seg(x, cost, Math.max(price, 0), "var(--accent-3)"); // red = loss zone
+    }
+    const topV = Math.max(price, cost);
+    g += `<text x="${(x + bw / 2).toFixed(1)}" y="${(Y(topV) - 12).toFixed(1)}" ` +
+      `text-anchor="middle" class="cp-ax" style="font-weight:700;font-size:17px">` +
+      `sell ${money(price, sym)}</text>`;
+    const mid = (Math.max(price, cost) + Math.min(price, cost)) / 2;
+    g += `<text x="${(x + bw / 2).toFixed(1)}" y="${(Y(mid) + 5).toFixed(1)}" ` +
+      `text-anchor="middle" class="cp-ax" style="font-size:13px;fill:#fff;font-weight:600">` +
+      `${profit >= 0 ? "profit " : "loss "}${money(profit, sym)}</text>`;
+    g += `<text x="${(x + bw / 2).toFixed(1)}" y="${(H - 24).toFixed(1)}" ` +
+      `text-anchor="middle" class="cp-ax" style="font-size:15px">${label}</text>`;
+    return g;
   };
 
   let s = "";
   s += `<line x1="${mL}" y1="${y0.toFixed(1)}" x2="${(W - mR).toFixed(1)}" y2="${y0.toFixed(1)}" stroke="var(--border)"/>`;
-  s += bar(x1, before, "var(--accent)", "Before discount");
-  s += bar(x2, after, after < 0 ? "var(--accent-3)" : "var(--accent-2)", "After discount");
+  s += stack(x1, priceB, profB, "var(--accent)", "Before discount");
+  s += stack(x2, priceA, profA, profA < 0 ? "var(--accent-3)" : "var(--accent-2)", "After discount");
+
+  // dotted horizontal line = the price you buy it for
+  const yc = Y(cost);
+  s += `<line x1="${mL}" y1="${yc.toFixed(1)}" x2="${(W - mR).toFixed(1)}" y2="${yc.toFixed(1)}" ` +
+    `stroke="var(--text)" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.7"/>`;
+  s += `<text x="${(W - mR).toFixed(1)}" y="${(yc - 8).toFixed(1)}" text-anchor="end" ` +
+    `class="cp-ax" style="font-size:13px">You buy it for ${money(cost, sym)}</text>`;
+
+  // dotted connector between the two bar tops = the price drop
+  s += `<line x1="${cx1.toFixed(1)}" y1="${Y(priceB).toFixed(1)}" ` +
+    `x2="${cx2.toFixed(1)}" y2="${Y(priceA).toFixed(1)}" stroke="var(--accent-3)" ` +
+    `stroke-width="2" stroke-dasharray="6 4"/>`;
+  s += `<circle cx="${cx1.toFixed(1)}" cy="${Y(priceB).toFixed(1)}" r="4" fill="var(--accent-3)"/>`;
+  s += `<circle cx="${cx2.toFixed(1)}" cy="${Y(priceA).toFixed(1)}" r="4" fill="var(--accent-3)"/>`;
+
   $("dm-svg").innerHTML = s;
 }
 
