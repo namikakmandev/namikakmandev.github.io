@@ -44,10 +44,11 @@ function compute() {
   };
 }
 
-function drawChart(r, sym) {
+function drawChart(r, sym, factor) {
   const W = 720, H = 360, mT = 30, mB = 54, mL = 60, mR = 20;
   const pw = W - mL - mR, ph = H - mT - mB;
-  const vals = [r.mBefore, r.mAfter];
+  const before = r.mBefore * factor, after = r.mAfter * factor;
+  const vals = [before, after];
   const maxV = Math.max(...vals, 1);
   const minV = Math.min(...vals, 0);
   const span = maxV - minV || 1;
@@ -74,8 +75,8 @@ function drawChart(r, sym) {
 
   let s = "";
   s += `<line x1="${mL}" y1="${y0.toFixed(1)}" x2="${(W - mR).toFixed(1)}" y2="${y0.toFixed(1)}" stroke="var(--border)"/>`;
-  s += bar(x1, r.mBefore, "var(--accent)", "Before discount");
-  s += bar(x2, r.mAfter, r.mAfter < 0 ? "var(--accent-3)" : "var(--accent-2)", "After discount");
+  s += bar(x1, before, "var(--accent)", "Before discount");
+  s += bar(x2, after, after < 0 ? "var(--accent-3)" : "var(--accent-2)", "After discount");
   $("dm-svg").innerHTML = s;
 }
 
@@ -124,7 +125,30 @@ function render() {
   }
   row.style.borderColor = "";
 
-  drawChart(r, sym);
+  // Units → show TOTAL profit (margin × units) so the input visibly matters.
+  const hasUnits = r.units > 0;
+  const factor = hasUnits ? r.units : 1;
+
+  $("dm-chart-title").textContent = hasUnits
+    ? "Total profit on " + r.units.toLocaleString() +
+      " units — before vs. after the discount"
+    : "Profit per unit — before vs. after the discount";
+
+  const totRow = $("dm-tot-row");
+  if (hasUnits && r.mBefore > r.mAfter) {
+    const totalBefore = r.mBefore * r.units;
+    const totalAfter = r.mAfter * r.units;
+    const lost = totalBefore - totalAfter;
+    totRow.hidden = false;
+    $("dm-tot").textContent = money(lost, sym);
+    $("dm-tot").style.color = "var(--accent-3)";
+    $("dm-tot-note").textContent =
+      "(" + money(totalBefore, sym) + " → " + money(totalAfter, sym) + ")";
+  } else {
+    totRow.hidden = true;
+  }
+
+  drawChart(r, sym, factor);
 }
 
 IDS.forEach((id) => {
