@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rental Portfolio Manager — track rent, cleaning &amp; contracts for short-term lets | Namık Akman</title>
+  <meta name="description" content="A free, browser-based CRM for a short-term / summer rental business: track properties, bookings and contracts, rent revenue, cleaning turnovers and occupancy across your whole portfolio. Runs entirely in your browser — no data uploaded." />
+  <meta name="keywords" content="rental property manager, vacation rental tracker, short-term let CRM, airbnb spreadsheet alternative, cleaning turnover tracker, rental revenue tracker" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="Rental Portfolio Manager — a free CRM for short-term lets" />
+  <meta property="og:description" content="Track rent revenue, cleaning turnovers, contracts and occupancy across your rental portfolio — all in the browser." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="css/style.css?v=16" />
+  <style>
+    /* page-local styles — keeps the shared stylesheet untouched */
+    .rm-add { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px 12px; }
+    .rm-add .form-row { margin-bottom: 0; min-width: 0; }
+    .rm-add .full { grid-column: 1 / -1; }
+    .rm-add input { width: 100%; }
+    .rm-filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+    .rm-filters .form-row { margin-bottom: 0; min-width: 0; flex: 1 1 150px; }
+    @media (max-width: 560px) { .rm-add { grid-template-columns: 1fr; } }
+    .rm-table input, .rm-table select {
+      width: 100%; min-width: 84px; background: var(--surface);
+      border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: 6px 7px; font-family: inherit;
+      font-size: 0.8rem;
+    }
+    .rm-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .rm-table th { padding: 8px; white-space: nowrap; }
+    .rm-table td.calc { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .rm-flag {
+      display: inline-block; font-size: 0.68rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+    }
+    .rm-flag.due { background: rgba(255,101,0,0.16); color: var(--accent-3); }
+    .rm-flag.ok { background: rgba(25,195,125,0.16); color: var(--accent-2); }
+    .rm-x { background: transparent; border: 0; color: var(--text-dim);
+      cursor: pointer; font-size: 1.05rem; line-height: 1; padding: 0; }
+    .rm-x:hover { color: var(--loss); }
+    .rm-bars text { fill: var(--text-dim); font-size: 13px; }
+  </style>
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Rental Portfolio Manager</h2>
+        </div>
+        <p class="data-note">
+          A lightweight <strong>CRM for a short-term / summer rental business</strong>.
+          Track every property, booking and contract, see <strong>rent revenue</strong>,
+          <strong>cleaning turnovers</strong> still owed, and <strong>occupancy</strong>
+          across the whole portfolio. Start from a sample portfolio and edit
+          freely — everything runs in your browser, nothing is uploaded.
+        </p>
+
+        <details class="howto">
+          <summary>How it works &amp; how the numbers are defined</summary>
+          <div class="howto-body">
+            <ol>
+              <li><strong>Bookings = contracts.</strong> Each row is one stay:
+                property, guest, check-in/out, the nightly rate and the cleaning
+                fee for that turnover.</li>
+              <li><strong>Nights &amp; revenue</strong> are calculated from the
+                dates: nights × nightly rate. <em>Cancelled</em> bookings are
+                excluded from all totals.</li>
+              <li><strong>Net</strong> = rent − cleaning fee for that booking.</li>
+              <li><strong>Cleaning due</strong> = an active booking whose
+                turnover isn't done yet — i.e. it's checked out (or past its
+                check-out date) and still marked "not cleaned".</li>
+              <li><strong>Occupancy</strong> = booked nights ÷ (number of
+                properties × the length of the season in your data).</li>
+            </ol>
+          </div>
+        </details>
+
+        <div class="cf-wrap">
+          <div class="card-light cf-inputs">
+            <h3>Sample portfolio
+              <span class="cf-hdr">pick one to start — then edit anything</span></h3>
+            <div class="form-row">
+              <select id="rm-preset">
+                <option value="coast">Coastal villas (20 homes)</option>
+                <option value="city">City apartments (12 units)</option>
+                <option value="mountain">Mountain chalets (8 homes)</option>
+              </select>
+            </div>
+
+            <div class="form-row" style="margin-top:14px">
+              <label for="rm-cur">Currency</label>
+              <select id="rm-cur">
+                <option value="$">$ — Dollar</option>
+                <option value="€">€ — Euro</option>
+                <option value="£">£ — Pound</option>
+                <option value="₺">₺ — Turkish lira</option>
+                <option value="₹">₹ — Rupee</option>
+                <option value="">No symbol</option>
+              </select>
+            </div>
+
+            <h3 style="margin-top:20px">Add a booking / contract</h3>
+            <div class="rm-add">
+              <div class="form-row full"><label for="a-prop">Property</label>
+                <input id="a-prop" type="text" placeholder="Villa 01" /></div>
+              <div class="form-row full"><label for="a-guest">Guest</label>
+                <input id="a-guest" type="text" placeholder="Guest name" /></div>
+              <div class="form-row"><label for="a-in">Check-in</label>
+                <input id="a-in" type="date" /></div>
+              <div class="form-row"><label for="a-out">Check-out</label>
+                <input id="a-out" type="date" /></div>
+              <div class="form-row"><label for="a-rate">Rate / night</label>
+                <input id="a-rate" type="number" min="0" step="5" value="120" /></div>
+              <div class="form-row"><label for="a-clean">Cleaning fee</label>
+                <input id="a-clean" type="number" min="0" step="5" value="60" /></div>
+            </div>
+            <button class="cf-add" id="rm-addbtn" type="button" style="margin-top:12px">+ Add booking</button>
+          </div>
+
+          <div class="cf-main">
+            <div class="kpi-bar">
+              <div class="kpi-box"><span>Rent revenue</span><strong id="k-rev">—</strong></div>
+              <div class="kpi-box"><span>Cleaning cost</span><strong id="k-clean">—</strong></div>
+              <div class="kpi-box"><span>Net revenue</span><strong id="k-net">—</strong></div>
+              <div class="kpi-box"><span>Occupancy</span><strong id="k-occ">—</strong></div>
+            </div>
+            <div class="kpi-bar">
+              <div class="kpi-box"><span>Properties</span><strong id="k-props">—</strong></div>
+              <div class="kpi-box"><span>Active bookings</span><strong id="k-book">—</strong></div>
+              <div class="kpi-box"><span>Cleaning turnovers due</span><strong id="k-due">—</strong></div>
+              <div class="kpi-box"><span>Check-ins next 14 days</span><strong id="k-soon">—</strong></div>
+            </div>
+
+            <div class="card-light cf-chartcard">
+              <h3>Net revenue by property <span id="rm-chart-sub"></span></h3>
+              <svg id="rm-bars" class="rm-bars" viewBox="0 0 720 360"
+                   preserveAspectRatio="xMinYMin meet" role="img"
+                   aria-label="Net revenue by property"></svg>
+            </div>
+
+            <div class="card-light se-tablewrap">
+              <div class="res-head">
+                <h3>Bookings &amp; contracts <span id="rm-count"></span></h3>
+                <button class="btn btn-primary" id="rm-export" type="button">Export Excel</button>
+              </div>
+              <div class="rm-filters">
+                <div class="form-row"><label for="f-prop">Filter property</label>
+                  <select id="f-prop"><option value="">All</option></select></div>
+                <div class="form-row"><label for="f-status">Filter status</label>
+                  <select id="f-status">
+                    <option value="">All</option>
+                    <option>Confirmed</option>
+                    <option>Checked-out</option>
+                    <option>Cancelled</option>
+                  </select></div>
+              </div>
+              <div class="se-tablescroll">
+                <table class="se-table rm-table">
+                  <thead><tr>
+                    <th>Property</th><th>Guest</th><th>Check-in</th><th>Check-out</th>
+                    <th class="num">Nights</th><th class="num">Rate</th>
+                    <th class="num">Cleaning</th><th>Status</th><th>Cleaned</th>
+                    <th class="num">Rent</th><th class="num">Net</th>
+                    <th>Turnover</th><th></th>
+                  </tr></thead>
+                  <tbody id="rm-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="howto" style="margin-top:20px">
+              <div class="howto-body" style="padding:18px 0">
+                <h3 style="font-size:1.05rem;margin-bottom:10px">Run a real lodging business?</h3>
+                <p style="color:var(--text-dim);font-size:0.95rem">
+                  This is a working demo of the kind of operational tool I build —
+                  revenue, cleaning and contracts in one view, no spreadsheets,
+                  no data leaving your machine. Want a version tailored to your
+                  portfolio (channel fees, owner payouts, multi-season)?
+                  <a href="contact.html">Get in touch</a>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Processed locally in your browser — no data uploaded</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=16"></script>
+  <script src="js/rental-manager.js?v=1"></script>
+</body>
+</html>
