@@ -50,9 +50,23 @@
 
         <h3 class="band-title">The trial balance (their actual numbers)</h3>
         <p class="data-note" style="margin-top:2px">
-          Each account is mapped to a division. Edit any balance to model their
-          real figures.
+          Use a sample above, or upload the real trial balance. Each account is
+          mapped to a division; edit any balance to model their figures.
         </p>
+        <div class="card-light up-card">
+          <div class="up-row">
+            <label class="btn btn-primary" for="tb-file">Upload trial balance (CSV)</label>
+            <input type="file" id="tb-file" accept=".csv,text/csv" hidden />
+            <a class="up-link" id="tb-template" href="#">Download CSV template</a>
+          </div>
+          <p class="up-schema">
+            Columns: <code>code</code>, <code>name</code>, <code>division</code>,
+            <code>kind</code> (<code>rev</code> / <code>cogs</code> / <code>opex</code>),
+            <code>amount</code>. From Excel: <em>Save As → CSV</em>. Processed in
+            your browser — nothing is uploaded.
+          </p>
+          <p id="tb-status" class="up-status"></p>
+        </div>
         <div class="card-light"><div id="tb-grid" class="dd2-tb"></div></div>
 
         <h3 class="band-title">Consolidated P&amp;L</h3>
@@ -118,6 +132,6 @@
   </footer>
 
   <script src="js/main.js?v=15"></script>
-  <script src="js/dealer-diagnostic-v2.js?v=5"></script>
+  <script src="js/dealer-diagnostic-v2.js?v=7"></script>
 </body>
 </html>

@@ -114,6 +114,7 @@ function setIndustry(key) {
   document.querySelectorAll("#ind-presets button").forEach(function (b) {
     b.classList.toggle("on", b.dataset.ind === key);
   });
+  setTxt("tb-status", "");
   buildInputs();
   recompute();
 }
@@ -246,6 +247,146 @@ function recompute() {
 document.querySelectorAll("#ind-presets button").forEach(function (b) {
   b.addEventListener("click", function () { setIndustry(b.dataset.ind); });
 });
+
+// ---- CSV upload (client-side, no libraries) ----
+function parseCSV(text) {
+  var rows = [], row = [], cur = "", q = false, i, c;
+  text = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  for (i = 0; i < text.length; i++) {
+    c = text[i];
+    if (q) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { cur += '"'; i++; }
+        else q = false;
+      } else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cur); cur = ""; }
+    else if (c === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; }
+    else cur += c;
+  }
+  if (cur !== "" || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(function (r) { return r.some(function (x) { return String(x).trim() !== ""; }); });
+}
+
+function normKind(s) {
+  s = String(s).toLowerCase();
+  if (/opex|overhead|admin|operating|sg&a|expense/.test(s)) return "opex";
+  if (/cogs|cost/.test(s)) return "cogs";
+  if (/rev|sale|income|turnover/.test(s)) return "rev";
+  return "";
+}
+function parseAmount(s) {
+  s = String(s).trim();
+  var neg = /^\(.*\)$/.test(s);
+  var num = parseFloat(s.replace(/[^0-9.\-]/g, ""));
+  if (isNaN(num)) return NaN;
+  return Math.abs(num);
+}
+function colIndex(head, names) {
+  for (var i = 0; i < head.length; i++) {
+    var h = String(head[i]).toLowerCase().trim();
+    if (names.indexOf(h) !== -1) return i;
+  }
+  return -1;
+}
+
+function loadCustom(rows) {
+  var head = rows[0];
+  var ci = colIndex(head, ["code", "account code", "acct", "account no"]);
+  var ni = colIndex(head, ["name", "account", "account name", "description"]);
+  var di = colIndex(head, ["division", "dept", "department", "segment", "business unit"]);
+  var ki = colIndex(head, ["kind", "type", "category"]);
+  var ai = colIndex(head, ["amount", "balance", "value", "net"]);
+  if (di === -1 || ki === -1 || ai === -1) {
+    throw new Error("Need columns: division, kind, amount (see the template).");
+  }
+  var tb = [], n = 0;
+  for (var r = 1; r < rows.length; r++) {
+    var row = rows[r];
+    var kind = normKind(row[ki]);
+    var amt = parseAmount(row[ai]);
+    var div = String(row[di] || "").trim();
+    if (!kind || isNaN(amt) || !div) continue;
+    tb.push({
+      code: ci !== -1 ? String(row[ci] || "").trim() : String(r),
+      name: ni !== -1 ? String(row[ni] || "").trim() : div,
+      div: kind === "opex" ? "Overhead" : div,
+      kind: kind,
+      amount: amt,
+    });
+    n++;
+  }
+  if (!n) throw new Error("No usable rows found.");
+  var divs = [];
+  tb.forEach(function (a) {
+    if (a.kind !== "opex" && divs.indexOf(a.div) === -1) divs.push(a.div);
+  });
+  if (!divs.length) throw new Error("No revenue/cost divisions found.");
+  INDUSTRIES.__custom = {
+    label: "Your data",
+    note: "Uploaded trial balance — processed locally in your browser.",
+    divisions: divs,
+    seasonality: INDUSTRIES.auto.seasonality.slice(),
+    tb: tb,
+  };
+  CUR = "__custom";
+  document.querySelectorAll("#ind-presets button").forEach(function (b) {
+    b.classList.remove("on");
+  });
+  buildInputs();
+  recompute();
+  setTxt("tb-status", "Loaded " + n + " accounts across " + divs.length + " divisions.");
+}
+
+var fileEl = document.getElementById("tb-file");
+if (fileEl) {
+  fileEl.addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var rows = parseCSV(String(rd.result));
+        if (rows.length < 2) throw new Error("File looks empty.");
+        loadCustom(rows);
+      } catch (err) {
+        setTxt("tb-status", "Could not read file: " + err.message);
+      }
+    };
+    rd.readAsText(f);
+    e.target.value = "";
+  });
+}
+
+var tplEl = document.getElementById("tb-template");
+if (tplEl) {
+  tplEl.addEventListener("click", function (e) {
+    e.preventDefault();
+    var rows = [["code", "name", "division", "kind", "amount"]];
+    INDUSTRIES[CUR].tb.forEach(function (a) {
+      rows.push([a.code, a.name, a.div, a.kind, a.amount]);
+    });
+    var csv = rows
+      .map(function (r) {
+        return r
+          .map(function (x) {
+            x = String(x);
+            return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x;
+          })
+          .join(",");
+      })
+      .join("\n");
+    var blob = new Blob([csv], { type: "text/csv" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "trial-balance-template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
 
 buildInputs();
 recompute();
