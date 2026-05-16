@@ -540,26 +540,86 @@ const PRESETS = {
   medtech:     { gross: 1000, rebates: 40,  discounts: 90,  markups: 0, cogs: 380, opex: 240, other: 50 },
   retail:      { gross: 1000, rebates: 30,  discounts: 150, markups: 0, cogs: 520, opex: 180, other: 50 },
 };
+
+// Each industry relabels the fields in its own language + a one-line context note
+const DEFAULT_LABELS = {
+  gross: "Gross / List Price", rebates: "Rebates (−)", discounts: "Discounts (−)",
+  markups: "Markups (+)", cogs: "COGS (−)", opex: "OpEx (−)", other: "Other costs (−)",
+};
+const LABELS = {
+  pharma: {
+    gross: "List / WAC price", rebates: "Payer & GPO rebates (−)",
+    discounts: "Channel discounts (−)", markups: "Surcharges (+)",
+    cogs: "Manufacturing cost (−)", opex: "Sales & medical cost (−)",
+    other: "Distribution & other (−)",
+    _note: "Branded prescription drug — heavy payer & GPO rebates plus channel discounts erode the list price before any cost: the classic pharma gross-to-net.",
+  },
+  distributor: {
+    gross: "Resale price", rebates: "Volume rebates (−)",
+    discounts: "Customer discounts (−)", markups: "Service surcharge (+)",
+    cogs: "Purchase cost (−)", opex: "Warehouse & logistics (−)",
+    other: "Other costs (−)",
+    _note: "Wholesale distribution — thin margin sitting on a high purchase cost; small pricing or discount leakage moves the whole result.",
+  },
+  medtech: {
+    gross: "List price", rebates: "Tender / GPO rebates (−)",
+    discounts: "Deal discounts (−)", markups: "Install & training (+)",
+    cogs: "Device COGS (−)", opex: "Sales & field service (−)",
+    other: "Regulatory & other (−)",
+    _note: "Medical device — lower rebates, but heavy sales, field-service and regulatory cost make operating cost the swing factor.",
+  },
+  retail: {
+    gross: "Shelf price", rebates: "Supplier rebates (−)",
+    discounts: "Promotions & markdowns (−)", markups: "Surcharges (+)",
+    cogs: "Cost of goods (−)", opex: "Store & staff cost (−)",
+    other: "Shrinkage & other (−)",
+    _note: "Retail — promotions and markdowns are the biggest lever on a moderate product-cost base.",
+  },
+};
+const SCEN_NAME = { pharma: "Pharma Rx", distributor: "Distributor", medtech: "Medtech", retail: "Retail" };
+
 const FIELDS = ["gross", "rebates", "discounts", "markups", "cogs", "opex", "other"];
 const presetBtns = document.querySelectorAll("#mg-presets button");
+const mgNote = document.getElementById("mg-note");
+const chartTitle = document.querySelector(".sim2-chart h3");
+
+function setLabels(map) {
+  FIELDS.forEach((id) => {
+    const lab = document.querySelector('label[for="' + id + '"]');
+    if (lab) lab.textContent = map[id];
+  });
+}
 
 function applyPreset(key) {
   const p = PRESETS[key];
   if (!p) return;
   FIELDS.forEach((id) => (document.getElementById(id).value = p[id]));
   presetBtns.forEach((b) => b.classList.toggle("on", b.dataset.p === key));
+  setLabels(LABELS[key]);
+  if (mgNote) mgNote.textContent = LABELS[key]._note;
+  if (chartTitle) chartTitle.textContent = "Margin Waterfall — " + SCEN_NAME[key];
   render();
 }
 presetBtns.forEach((b) =>
   b.addEventListener("click", () => applyPreset(b.dataset.p))
 );
 
-// Live update as the user types; a manual edit means "custom" — drop preset highlight
+// Live update as the user types; a manual edit means "custom" — reset to generic labels
 FIELDS.forEach((id) =>
   document.getElementById(id).addEventListener("input", () => {
-    presetBtns.forEach((b) => b.classList.remove("on"));
+    if (document.querySelector("#mg-presets button.on")) {
+      presetBtns.forEach((b) => b.classList.remove("on"));
+      setLabels(DEFAULT_LABELS);
+      if (mgNote) mgNote.textContent = "Custom inputs — edit any field, or pick an industry above to load a typical shape.";
+      if (chartTitle) chartTitle.textContent = "Margin Waterfall — Custom";
+    }
     render();
   })
 );
+
+// Start on the default active preset (Pharma Rx) so labels & note match on load
+if (mgNote) mgNote.textContent = LABELS.pharma._note;
+if (chartTitle) chartTitle.textContent = "Margin Waterfall — Pharma Rx";
+setLabels(LABELS.pharma);
 
 render();
