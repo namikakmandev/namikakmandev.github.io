@@ -539,6 +539,7 @@ const PRESETS = {
   distributor: { gross: 1000, rebates: 20,  discounts: 60,  markups: 0, cogs: 780, opex: 90,  other: 20 },
   medtech:     { gross: 1000, rebates: 40,  discounts: 90,  markups: 0, cogs: 380, opex: 240, other: 50 },
   retail:      { gross: 1000, rebates: 30,  discounts: 150, markups: 0, cogs: 520, opex: 180, other: 50 },
+  usedcar:     { gross: 18000, rebates: 600, discounts: 500, markups: 900, cogs: 14500, opex: 700, other: 400 },
 };
 
 // Each industry relabels the fields in its own language + a one-line context note
@@ -575,8 +576,15 @@ const LABELS = {
     other: "Shrinkage & other (−)",
     _note: "Retail — promotions and markdowns are the biggest lever on a moderate product-cost base.",
   },
+  usedcar: {
+    gross: "Sale price", rebates: "Trade-in over-allowance (−)",
+    discounts: "Customer discount (−)", markups: "F&I income (+)",
+    cogs: "Vehicle buy cost (−)", opex: "Reconditioning (−)",
+    other: "Holding & finance (−)",
+    _note: "One used-car deal — sale price, minus what you 'gave away' on the trade-in (Inzahlungnahme) and the negotiated discount, plus finance & warranty income (F&I), against the buy cost, reconditioning (Aufbereitung) and days-on-lot holding cost (Standkosten).",
+  },
 };
-const SCEN_NAME = { pharma: "Pharma Rx", distributor: "Distributor", medtech: "Medtech", retail: "Retail" };
+const SCEN_NAME = { pharma: "Pharma Rx", distributor: "Distributor", medtech: "Medtech", retail: "Retail", usedcar: "Used-car deal" };
 
 const FIELDS = ["gross", "rebates", "discounts", "markups", "cogs", "opex", "other"];
 const presetBtns = document.querySelectorAll("#mg-presets button");
