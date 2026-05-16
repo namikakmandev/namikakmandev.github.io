@@ -70,6 +70,18 @@ function recompute() {
   var paren = function (v) { return "(" + lira(Math.abs(v)) + ")"; };
   var ncols = DIVS.length + 2;
 
+  // Consolidated P&L — the whole dealership as one statement
+  var nls0 = net < 0 ? ' style="color:var(--loss)"' : "";
+  var cons =
+    '<tr><td>Revenue</td><td class="num">' + lira(totRev) + "</td></tr>" +
+    '<tr><td>Cost of sales</td><td class="num">' + paren(totRev - totGross) + "</td></tr>" +
+    '<tr style="font-weight:700"><td>Gross profit</td><td class="num">' + lira(totGross) + "</td></tr>" +
+    '<tr><td>Gross margin %</td><td class="num">' + pc(totGross, totRev).toFixed(1) + "%</td></tr>" +
+    '<tr><td>Operating overhead</td><td class="num">' + paren(overhead) + "</td></tr>" +
+    '<tr style="font-weight:700"><td>Net profit</td><td class="num"' + nls0 + ">" + lira(net) + "</td></tr>" +
+    '<tr><td>Net margin %</td><td class="num"' + nls0 + ">" + pc(net, totRev).toFixed(1) + "%</td></tr>";
+  document.getElementById("cons-tbody").innerHTML = cons;
+
   var thead = '<tr><th>P&amp;L</th>';
   DIVS.forEach(function (d) { thead += '<th class="num">' + d + "</th>"; });
   thead += '<th class="num">Total</th></tr>';
