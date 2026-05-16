@@ -66,23 +66,50 @@ function recompute() {
   });
   var net = totGross - overhead;
 
-  var rows = "";
+  // Vertical P&L: line items down the rows, divisions (+ Total) across the columns
+  var paren = function (v) { return "(" + lira(Math.abs(v)) + ")"; };
+  var ncols = DIVS.length + 2;
+
+  var thead = '<tr><th>P&amp;L</th>';
+  DIVS.forEach(function (d) { thead += '<th class="num">' + d + "</th>"; });
+  thead += '<th class="num">Total</th></tr>';
+  document.getElementById("pl-thead").innerHTML = thead;
+
+  var body = "";
+  // Revenue
+  body += "<tr><td>Revenue</td>";
+  DIVS.forEach(function (d) { body += '<td class="num">' + lira(per[d].rev) + "</td>"; });
+  body += '<td class="num">' + lira(totRev) + "</td></tr>";
+  // Cost of sales
+  body += "<tr><td>Cost of sales</td>";
+  DIVS.forEach(function (d) { body += '<td class="num">' + paren(per[d].cogs) + "</td>"; });
+  body += '<td class="num">' + paren(totRev - totGross) + "</td></tr>";
+  // Gross profit (bold, red where negative)
+  body += '<tr style="font-weight:700"><td>Gross profit</td>';
   DIVS.forEach(function (d) {
-    var p = per[d];
-    var lossStyle = p.gross < 0 ? ' style="color:var(--loss)"' : "";
-    rows +=
-      "<tr><td>" + d + '</td><td class="num">' + lira(p.rev) +
-      '</td><td class="num">' + lira(p.cogs) +
-      '</td><td class="num"' + lossStyle + ">" + lira(p.gross) +
-      '</td><td class="num"' + lossStyle + ">" + pc(p.gross, p.rev).toFixed(1) +
-      '%</td><td class="num">' + pc(p.gross, totGross).toFixed(0) + "%</td></tr>";
+    var ls = per[d].gross < 0 ? ' style="color:var(--loss)"' : "";
+    body += '<td class="num"' + ls + ">" + lira(per[d].gross) + "</td>";
   });
-  rows +=
-    '<tr style="font-weight:700"><td>Total</td><td class="num">' + lira(totRev) +
-    '</td><td class="num">' + lira(totRev - totGross) + '</td><td class="num">' +
-    lira(totGross) + '</td><td class="num">' + pc(totGross, totRev).toFixed(1) +
-    '%</td><td class="num">100%</td></tr>';
-  document.getElementById("pl-tbody").innerHTML = rows;
+  body += '<td class="num">' + lira(totGross) + "</td></tr>";
+  // Gross margin %
+  body += "<tr><td>Gross margin %</td>";
+  DIVS.forEach(function (d) {
+    body += '<td class="num">' + pc(per[d].gross, per[d].rev).toFixed(1) + "%</td>";
+  });
+  body += '<td class="num">' + pc(totGross, totRev).toFixed(1) + "%</td></tr>";
+  // spacer
+  body += '<tr><td colspan="' + ncols + '" style="border:0;padding:6px 0"></td></tr>';
+  // Operating overhead (shared pool, total only)
+  body += "<tr><td>Operating overhead <em>(shared)</em></td>";
+  DIVS.forEach(function () { body += '<td class="num">—</td>'; });
+  body += '<td class="num">' + paren(overhead) + "</td></tr>";
+  // Net profit (bold, total only)
+  body += '<tr style="font-weight:700"><td>Net profit</td>';
+  DIVS.forEach(function () { body += '<td class="num">—</td>'; });
+  var nls = net < 0 ? ' style="color:var(--loss)"' : "";
+  body += '<td class="num"' + nls + ">" + lira(net) + "</td></tr>";
+
+  document.getElementById("pl-tbody").innerHTML = body;
 
   setTxt("k-rev", lira(totRev));
   setTxt("k-gross", lira(totGross));
