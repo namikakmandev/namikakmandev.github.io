@@ -6,8 +6,9 @@
 <title>One-Page Business Review — builder</title>
 <!--
   ONE-PAGE BUSINESS REVIEW BUILDER
-  Fill the form on the left, the executive page on the right updates live.
-  Click "Print / Save as PDF" to export a clean one-pager.
+  Collapsible editor on the left; the live page stays pinned on the right.
+  You type bullet facts (What / Why / So what); the tool composes the
+  executive sentence for you using the WHAT->WHY->SO-WHAT method.
   One file, no dependencies, nothing leaves the browser.
 -->
 <style>
@@ -15,57 +16,62 @@
     --ink:#1b2230; --dim:#5e6675; --line:#e6e9ef; --soft:#f6f8fb; }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-    background:#eef1f5;color:var(--ink);line-height:1.5}
-  .wrap{display:grid;grid-template-columns:340px 1fr;gap:24px;
-    max-width:1320px;margin:0 auto;padding:24px}
+    background:#eef1f5;color:var(--ink);line-height:1.45}
+  .wrap{display:grid;grid-template-columns:360px 1fr;gap:22px;
+    max-width:1340px;margin:0 auto;padding:20px}
   /* editor */
-  .editor{background:#fff;border:1px solid var(--line);border-radius:12px;
-    padding:20px;height:fit-content;position:sticky;top:24px}
-  .editor h2{font-size:.95rem;margin:16px 0 8px;color:var(--blue)}
-  .editor h2:first-child{margin-top:0}
-  .editor label{display:block;font-size:.74rem;color:var(--dim);margin:8px 0 3px}
-  .editor input,.editor textarea,.editor select{width:100%;padding:7px 9px;
-    font:inherit;font-size:.85rem;border:1px solid var(--line);border-radius:7px;color:var(--ink)}
-  .editor textarea{resize:vertical;min-height:46px}
-  .kpiblock,.decblock{border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .btnbar{display:flex;gap:8px;margin-top:18px}
-  .btn{flex:1;padding:11px;border:0;border-radius:8px;font:inherit;font-weight:600;
-    cursor:pointer;font-size:.9rem}
-  .btn.primary{background:var(--blue);color:#fff}
-  .btn.ghost{background:var(--soft);color:var(--ink);border:1px solid var(--line)}
-  /* page */
-  .page{max-width:900px;background:#fff;border:1px solid var(--line);
-    border-radius:14px;padding:34px 38px;box-shadow:0 10px 30px rgba(20,30,50,.06)}
+  .editor{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+  details{border:1px solid var(--line);border-radius:9px;margin-bottom:8px}
+  summary{cursor:pointer;list-style:none;padding:10px 12px;font-weight:600;
+    font-size:.88rem;color:var(--ink);display:flex;justify-content:space-between}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";color:var(--dim)}
+  details[open] summary::after{content:"–"}
+  .body{padding:4px 12px 12px}
+  label{display:block;font-size:.72rem;color:var(--dim);margin:7px 0 2px}
+  input,textarea,select{width:100%;padding:6px 8px;font:inherit;font-size:.82rem;
+    border:1px solid var(--line);border-radius:6px;color:var(--ink)}
+  textarea{resize:vertical;min-height:38px}
+  .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .r2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .item{border:1px solid var(--line);border-radius:7px;padding:7px;margin-top:7px}
+  .made{font-size:.74rem;color:var(--blue);background:var(--soft);
+    border-radius:5px;padding:5px 7px;margin-top:6px;font-style:italic}
+  .pbtn{width:100%;margin-top:10px;padding:11px;border:0;border-radius:8px;
+    background:var(--blue);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+  .hint{font-size:.72rem;color:var(--dim);margin:2px 0 6px}
+  /* page (sticky) */
+  .pagewrap{position:sticky;top:20px;align-self:start}
+  .page{background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:32px 36px;box-shadow:0 10px 30px rgba(20,30,50,.06)}
   .top{display:flex;justify-content:space-between;align-items:flex-end;
-    border-bottom:3px solid var(--brand,#2F9BFF);padding-bottom:14px;margin-bottom:22px}
-  .top h1{font-size:1.5rem;letter-spacing:-.02em}
-  .top .co{color:var(--dim);font-size:.9rem;margin-bottom:4px}
-  .top .per{text-align:right;color:var(--dim);font-size:.85rem}
-  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
-  .kpi{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
-  .kpi .l{font-size:.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
-  .kpi .v{font-size:1.45rem;font-weight:700;margin-top:6px}
-  .kpi .d{font-size:.8rem;margin-top:3px;font-weight:600}
+    border-bottom:3px solid var(--brand,#2F9BFF);padding-bottom:13px;margin-bottom:20px}
+  .top h1{font-size:1.45rem;letter-spacing:-.02em}
+  .top .co{color:var(--dim);font-size:.88rem;margin-bottom:4px}
+  .top .per{text-align:right;color:var(--dim);font-size:.82rem}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:22px}
+  .kpi{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .kpi .l{font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .kpi .v{font-size:1.4rem;font-weight:700;margin-top:5px}
+  .kpi .d{font-size:.78rem;margin-top:3px;font-weight:600}
   .good{color:var(--green)} .bad{color:var(--orange)} .neutral{color:var(--dim)}
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:26px}
-  h3.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;
-    color:var(--brand,#2F9BFF);margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:6px}
-  .story p{margin:0 0 11px 0;font-size:.92rem;padding-left:14px;
-    border-left:2px solid var(--line)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  h3.sec{font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--brand,#2F9BFF);margin-bottom:9px;border-bottom:1px solid var(--line);padding-bottom:5px}
+  .story p{margin:0 0 10px;font-size:.9rem;padding-left:13px;border-left:2px solid var(--line)}
   .acts{list-style:none}
-  .acts li{font-size:.9rem;margin-bottom:11px;background:var(--soft);
-    border-left:3px solid var(--brand,#2F9BFF);padding:9px 12px;border-radius:0 8px 8px 0}
-  .acts .who{color:var(--dim);font-size:.77rem;display:block;margin-top:3px}
-  .outlook{font-size:.9rem;color:var(--dim)}
-  .foot{margin-top:26px;border-top:1px solid var(--line);padding-top:12px;
-    display:flex;justify-content:space-between;color:var(--dim);font-size:.78rem}
-  @media(max-width:980px){.wrap{grid-template-columns:1fr}.editor{position:static}}
+  .acts li{font-size:.88rem;margin-bottom:10px;background:var(--soft);
+    border-left:3px solid var(--brand,#2F9BFF);padding:8px 11px;border-radius:0 8px 8px 0}
+  .acts .who{color:var(--dim);font-size:.75rem;display:block;margin-top:3px}
+  .outlook{font-size:.88rem;color:var(--dim)}
+  .foot{margin-top:24px;border-top:1px solid var(--line);padding-top:11px;
+    display:flex;justify-content:space-between;color:var(--dim);font-size:.76rem}
+  @media(max-width:980px){.wrap{grid-template-columns:1fr}.pagewrap{position:static}}
   @media print{
-    body{background:#fff}
-    .wrap{display:block;padding:0;max-width:none}
+    body{background:#fff}.wrap{display:block;padding:0;max-width:none}
     .editor,.noprint{display:none!important}
-    .page{box-shadow:none;border:0;border-radius:0;max-width:none;padding:0}
+    .pagewrap{position:static}
+    .page{box-shadow:none;border:0;border-radius:0;padding:0}
     @page{margin:14mm}
   }
 </style>
@@ -75,38 +81,40 @@
 
   <!-- ================= EDITOR ================= -->
   <div class="editor noprint">
-    <h2>Header</h2>
-    <label>Company</label><input id="i-co" value="Northwind Ltd" />
-    <label>Title</label><input id="i-title" value="Monthly Business Review" />
-    <div class="row2">
-      <div><label>Period</label><input id="i-per" value="March 2026" /></div>
-      <div><label>Prepared by</label><input id="i-by" value="Commercial Office" /></div>
-    </div>
-    <label>Brand colour</label><input id="i-brand" type="color" value="#2F9BFF" />
+    <details open><summary>Header &amp; brand</summary><div class="body">
+      <label>Company</label><input id="i-co" value="Northwind Ltd" />
+      <label>Title</label><input id="i-title" value="Monthly Business Review" />
+      <div class="r2">
+        <div><label>Period</label><input id="i-per" value="March 2026" /></div>
+        <div><label>Prepared by</label><input id="i-by" value="Commercial Office" /></div>
+      </div>
+      <label>Brand colour</label><input id="i-brand" type="color" value="#2F9BFF" />
+    </div></details>
 
-    <h2>KPI tiles</h2>
-    <div id="kpi-edit"></div>
+    <details><summary>KPI tiles (6)</summary><div class="body" id="kpi-edit"></div></details>
 
-    <h2>The story — what happened (3 lines)</h2>
-    <textarea id="i-s1">Revenue grew 6% on the new enterprise segment, but landed 3% under plan as two deals slipped into Q2 — timing, not loss.</textarea>
-    <textarea id="i-s2">Margin fell 3 points to 38%: discounting to hold the slipped deals plus a one-off freight spike. Expected to recover by May.</textarea>
-    <textarea id="i-s3">Cash is healthy (9 months). The watch item is the margin slip, not liquidity — act on price discipline, not panic.</textarea>
+    <details open><summary>The story — write the bullets, it builds the sentence</summary>
+    <div class="body">
+      <p class="hint">For each line type short bullets. The tool composes:
+        <b>What happened — Why; So what.</b></p>
+      <div id="story-edit"></div>
+    </div></details>
 
-    <h2>Decisions needed (3)</h2>
-    <div id="dec-edit"></div>
+    <details><summary>Decisions needed (3)</summary>
+    <div class="body" id="dec-edit"></div></details>
 
-    <h2>Outlook</h2>
-    <textarea id="i-out">Full-year guidance unchanged. Q2 recovers the slipped revenue; margin normalises once freight is locked and discounting is contained.</textarea>
+    <details><summary>Outlook &amp; footer</summary><div class="body">
+      <label>Outlook (one honest sentence)</label>
+      <textarea id="i-out">Full-year guidance unchanged; Q2 recovers the slipped revenue once freight is locked and discounting is contained.</textarea>
+      <label>Footer note</label>
+      <input id="i-foot" value="Confidential — for internal use" />
+    </div></details>
 
-    <label style="margin-top:10px">Footer note</label>
-    <input id="i-foot" value="Confidential — for internal use" />
-
-    <div class="btnbar">
-      <button class="btn primary" onclick="window.print()">Print / Save as PDF</button>
-    </div>
+    <button class="pbtn" onclick="window.print()">Print / Save as PDF</button>
   </div>
 
   <!-- ================= PAGE ================= -->
+  <div class="pagewrap">
   <div class="page" id="page">
     <div class="top">
       <div><div class="co" id="o-co"></div><h1 id="o-title"></h1></div>
@@ -121,92 +129,130 @@
       <div>
         <h3 class="sec">Decisions needed this month</h3>
         <ul class="acts" id="o-acts"></ul>
-        <h3 class="sec" style="margin-top:18px">Outlook</h3>
+        <h3 class="sec" style="margin-top:16px">Outlook</h3>
         <p class="outlook" id="o-out"></p>
       </div>
     </div>
     <div class="foot"><span id="o-foot"></span><span id="o-by"></span></div>
   </div>
+  </div>
 </div>
 
 <script>
 var KPIS = [
-  { l:"Revenue",      v:"€2.41M", d:"▲ 6% MoM",        t:"good" },
-  { l:"vs Budget",    v:"−3.0%",  d:"€74k under plan",  t:"bad" },
-  { l:"Gross margin", v:"38.0%",  d:"▼ 3.0 pts vs plan",t:"bad" },
-  { l:"EBITDA",       v:"€310k",  d:"12.9% of revenue", t:"neutral" },
-  { l:"Net cash",     v:"€1.10M", d:"▲ €40k MoM",       t:"good" },
-  { l:"Runway",       v:"9 mo",   d:"at current burn",  t:"neutral" }
+  { l:"Revenue", v:"€2.41M", d:"▲ 6% MoM", t:"good" },
+  { l:"vs Budget", v:"−3.0%", d:"€74k under plan", t:"bad" },
+  { l:"Gross margin", v:"38.0%", d:"▼ 3.0 pts vs plan", t:"bad" },
+  { l:"EBITDA", v:"€310k", d:"12.9% of revenue", t:"neutral" },
+  { l:"Net cash", v:"€1.10M", d:"▲ €40k MoM", t:"good" },
+  { l:"Runway", v:"9 mo", d:"at current burn", t:"neutral" }
+];
+// story = bullets: what / why / sowhat  -> composed sentence
+var STORY = [
+  { w:"Revenue grew 6%, but landed 3% under plan", y:"two deals slipped into Q2", s:"timing, not lost demand" },
+  { w:"Gross margin fell 3 points to 38%", y:"discounting on the slipped deals plus a one-off freight spike", s:"expected to recover by May" },
+  { w:"Cash is healthy at 9 months of runway", y:"", s:"the watch item is margin, not liquidity — act on price discipline, not panic" }
 ];
 var DECS = [
-  { x:"Approve the revised Q2 plan reflecting the two slipped deals.", w:"Sales · by 15 Apr" },
-  { x:"Lock the 12-month freight contract to stop the cost leak.",     w:"Operations · by 10 Apr" },
-  { x:"Hold the pricing floor — no discount approvals without CFO sign-off.", w:"CFO · effective now" }
+  { x:"Approve the revised Q2 plan reflecting the two slipped deals.", o:"Sales · by 15 Apr" },
+  { x:"Lock the 12-month freight contract to stop the cost leak.", o:"Operations · by 10 Apr" },
+  { x:"Hold the pricing floor — no discount approvals without CFO sign-off.", o:"CFO · effective now" }
 ];
 
 function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function clean(s){ return String(s||"").trim().replace(/[.;,\s]+$/,"").trim(); }
+function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
 
-// build editor controls for KPIs
-var ke = el("kpi-edit");
+// compose "What — Why; So what."
+function compose(it){
+  var w=clean(it.w), y=clean(it.y), s=clean(it.s);
+  if(!w && !y && !s) return "";
+  var out;
+  if(w && y && s) out = w+" — "+y+"; "+s;
+  else if(w && y)  out = w+" — "+y;
+  else if(w && s)  out = w+" — "+s;
+  else if(w)       out = w;
+  else             out = [y,s].filter(Boolean).join("; ");
+  return cap(out)+".";
+}
+
+// build KPI editor (compact)
+var ke=el("kpi-edit");
 KPIS.forEach(function(k,i){
-  var b=document.createElement("div"); b.className="kpiblock";
+  var b=document.createElement("div"); b.className="item";
   b.innerHTML=
-    '<div class="row2"><div><label>Label</label><input data-k="'+i+'" data-f="l" value="'+esc(k.l)+'"></div>'+
+    '<div class="r2"><div><label>Label</label><input data-k="'+i+'" data-f="l" value="'+esc(k.l)+'"></div>'+
     '<div><label>Value</label><input data-k="'+i+'" data-f="v" value="'+esc(k.v)+'"></div></div>'+
-    '<label>Note</label><input data-k="'+i+'" data-f="d" value="'+esc(k.d)+'">'+
-    '<label>Tone</label><select data-k="'+i+'" data-f="t">'+
+    '<div class="r2"><div><label>Note</label><input data-k="'+i+'" data-f="d" value="'+esc(k.d)+'"></div>'+
+    '<div><label>Tone</label><select data-k="'+i+'" data-f="t">'+
       '<option value="good">good</option><option value="bad">bad</option>'+
-      '<option value="neutral">neutral</option></select>';
-  ke.appendChild(b);
-  b.querySelector('select').value=k.t;
+      '<option value="neutral">neutral</option></select></div></div>';
+  ke.appendChild(b); b.querySelector("select").value=k.t;
 });
-// build editor controls for decisions
-var de = el("dec-edit");
+
+// build story editor (bullets -> sentence)
+var se=el("story-edit");
+STORY.forEach(function(it,i){
+  var b=document.createElement("div"); b.className="item";
+  b.innerHTML=
+    '<label>Line '+(i+1)+' — What happened</label>'+
+    '<input data-s="'+i+'" data-f="w" value="'+esc(it.w)+'">'+
+    '<div class="r2"><div><label>Why</label><input data-s="'+i+'" data-f="y" value="'+esc(it.y)+'"></div>'+
+    '<div><label>So what</label><input data-s="'+i+'" data-f="s" value="'+esc(it.s)+'"></div></div>'+
+    '<div class="made" data-made="'+i+'"></div>';
+  se.appendChild(b);
+});
+
+// build decisions editor
+var de=el("dec-edit");
 DECS.forEach(function(d,i){
-  var b=document.createElement("div"); b.className="decblock";
+  var b=document.createElement("div"); b.className="item";
   b.innerHTML=
     '<label>Decision '+(i+1)+'</label><textarea data-d="'+i+'" data-f="x">'+esc(d.x)+'</textarea>'+
-    '<label>Owner · due</label><input data-d="'+i+'" data-f="w" value="'+esc(d.w)+'">';
+    '<label>Owner · due</label><input data-d="'+i+'" data-f="o" value="'+esc(d.o)+'">';
   de.appendChild(b);
 });
 
 function render(){
-  el("o-co").textContent   = el("i-co").value;
-  el("o-title").textContent= el("i-title").value;
-  el("o-per").innerHTML    = esc(el("i-per").value)+"<br>Prepared by "+esc(el("i-by").value);
-  el("o-by").textContent   = el("i-by").value;
-  el("o-foot").textContent = el("i-foot").value;
-  el("o-out").textContent  = el("i-out").value;
-  document.documentElement.style.setProperty("--brand", el("i-brand").value);
+  el("o-co").textContent=el("i-co").value;
+  el("o-title").textContent=el("i-title").value;
+  el("o-per").innerHTML=esc(el("i-per").value)+"<br>Prepared by "+esc(el("i-by").value);
+  el("o-by").textContent=el("i-by").value;
+  el("o-foot").textContent=el("i-foot").value;
+  el("o-out").textContent=el("i-out").value;
+  document.documentElement.style.setProperty("--brand",el("i-brand").value);
 
-  el("o-kpis").innerHTML = KPIS.map(function(k){
-    return '<div class="kpi"><div class="l">'+esc(k.l)+'</div>'+
-      '<div class="v">'+esc(k.v)+'</div>'+
-      '<div class="d '+k.t+'">'+esc(k.d)+'</div></div>';
+  el("o-kpis").innerHTML=KPIS.map(function(k){
+    return '<div class="kpi"><div class="l">'+esc(k.l)+'</div><div class="v">'+
+      esc(k.v)+'</div><div class="d '+k.t+'">'+esc(k.d)+'</div></div>';
   }).join("");
 
-  var s=[el("i-s1").value,el("i-s2").value,el("i-s3").value].filter(Boolean);
-  el("o-story").innerHTML = s.map(function(x){return "<p>"+esc(x)+"</p>";}).join("");
+  var lines=STORY.map(function(it,i){
+    var sent=compose(it);
+    var m=document.querySelector('[data-made="'+i+'"]');
+    if(m) m.textContent = sent ? "→ "+sent : "→ (add a bullet above)";
+    return sent;
+  }).filter(Boolean);
+  el("o-story").innerHTML=lines.map(function(x){return "<p>"+esc(x)+"</p>";}).join("");
 
-  el("o-acts").innerHTML = DECS.map(function(d){
-    if(!d.x) return "";
-    return '<li>'+esc(d.x)+'<span class="who">Owner: '+esc(d.w)+'</span></li>';
+  el("o-acts").innerHTML=DECS.map(function(d){
+    if(!clean(d.x)) return "";
+    return '<li>'+esc(d.x)+'<span class="who">Owner: '+esc(d.o)+'</span></li>';
   }).join("");
 }
 
-// wire inputs
-["i-co","i-title","i-per","i-by","i-brand","i-s1","i-s2","i-s3","i-out","i-foot"]
-  .forEach(function(id){ el(id).addEventListener("input",render); });
-document.querySelectorAll("#kpi-edit [data-k]").forEach(function(inp){
-  inp.addEventListener("input",function(){
-    KPIS[+inp.dataset.k][inp.dataset.f]=inp.value; render();
-  });
+["i-co","i-title","i-per","i-by","i-brand","i-out","i-foot"].forEach(function(id){
+  el(id).addEventListener("input",render);
 });
-document.querySelectorAll("#dec-edit [data-d]").forEach(function(inp){
-  inp.addEventListener("input",function(){
-    DECS[+inp.dataset.d][inp.dataset.f]=inp.value; render();
-  });
+document.querySelectorAll('#kpi-edit [data-k]').forEach(function(x){
+  x.addEventListener("input",function(){ KPIS[+x.dataset.k][x.dataset.f]=x.value; render(); });
+});
+document.querySelectorAll('#story-edit [data-s]').forEach(function(x){
+  x.addEventListener("input",function(){ STORY[+x.dataset.s][x.dataset.f]=x.value; render(); });
+});
+document.querySelectorAll('#dec-edit [data-d]').forEach(function(x){
+  x.addEventListener("input",function(){ DECS[+x.dataset.d][x.dataset.f]=x.value; render(); });
 });
 render();
 </script>
