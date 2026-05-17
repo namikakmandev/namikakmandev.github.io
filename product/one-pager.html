@@ -6,73 +6,81 @@
 <title>One-Page Business Review — builder</title>
 <!--
   ONE-PAGE BUSINESS REVIEW BUILDER
-  Collapsible editor on the left; the live page stays pinned on the right.
-  You type bullet facts (What / Why / So what); the tool composes the
-  executive sentence for you using the WHAT->WHY->SO-WHAT method.
-  One file, no dependencies, nothing leaves the browser.
+  The page on the right is a real A4 sheet — what you see is what prints.
+  Collapsible editor on the left; type bullets (What/Why/So what) and
+  the tool composes the executive sentence. One file, no dependencies,
+  nothing leaves the browser.
 -->
 <style>
   :root{ --blue:#2F9BFF; --green:#19C37D; --orange:#FF6500;
-    --ink:#1b2230; --dim:#5e6675; --line:#e6e9ef; --soft:#f6f8fb; }
+    --ink:#1b2230; --dim:#5e6675; --line:#e6e9ef; --soft:#f6f8fb;
+    --A4w:794px; --A4h:1123px; }   /* A4 at ~96dpi */
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-    background:#eef1f5;color:var(--ink);line-height:1.45}
-  .wrap{display:grid;grid-template-columns:360px 1fr;gap:22px;
-    max-width:1340px;margin:0 auto;padding:20px}
+    background:#eef1f5;color:var(--ink);line-height:1.4}
+  .wrap{display:grid;grid-template-columns:340px 1fr;gap:20px;
+    max-width:1280px;margin:0 auto;padding:18px}
   /* editor */
-  .editor{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
-  details{border:1px solid var(--line);border-radius:9px;margin-bottom:8px}
-  summary{cursor:pointer;list-style:none;padding:10px 12px;font-weight:600;
-    font-size:.88rem;color:var(--ink);display:flex;justify-content:space-between}
+  .editor{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px}
+  details{border:1px solid var(--line);border-radius:9px;margin-bottom:7px}
+  summary{cursor:pointer;list-style:none;padding:9px 11px;font-weight:600;
+    font-size:.86rem;display:flex;justify-content:space-between}
   summary::-webkit-details-marker{display:none}
   summary::after{content:"+";color:var(--dim)}
   details[open] summary::after{content:"–"}
-  .body{padding:4px 12px 12px}
-  label{display:block;font-size:.72rem;color:var(--dim);margin:7px 0 2px}
-  input,textarea,select{width:100%;padding:6px 8px;font:inherit;font-size:.82rem;
+  .body{padding:3px 11px 11px}
+  label{display:block;font-size:.71rem;color:var(--dim);margin:6px 0 2px}
+  input,textarea,select{width:100%;padding:6px 8px;font:inherit;font-size:.81rem;
     border:1px solid var(--line);border-radius:6px;color:var(--ink)}
-  textarea{resize:vertical;min-height:38px}
-  .r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  textarea{resize:vertical;min-height:36px}
   .r2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .item{border:1px solid var(--line);border-radius:7px;padding:7px;margin-top:7px}
-  .made{font-size:.74rem;color:var(--blue);background:var(--soft);
+  .made{font-size:.73rem;color:var(--blue);background:var(--soft);
     border-radius:5px;padding:5px 7px;margin-top:6px;font-style:italic}
-  .pbtn{width:100%;margin-top:10px;padding:11px;border:0;border-radius:8px;
-    background:var(--blue);color:#fff;font:inherit;font-weight:600;cursor:pointer}
-  .hint{font-size:.72rem;color:var(--dim);margin:2px 0 6px}
-  /* page (sticky) */
-  .pagewrap{position:sticky;top:20px;align-self:start}
-  .page{background:#fff;border:1px solid var(--line);border-radius:14px;
-    padding:32px 36px;box-shadow:0 10px 30px rgba(20,30,50,.06)}
+  .hint{font-size:.71rem;color:var(--dim);margin:2px 0 6px}
+  /* actions under the page */
+  .actions{display:flex;gap:10px;margin:14px auto 0;max-width:var(--A4w)}
+  .abtn{flex:1;padding:12px;border:0;border-radius:9px;font:inherit;
+    font-weight:600;cursor:pointer;font-size:.92rem}
+  .abtn.primary{background:var(--blue);color:#fff}
+  .abtn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .cap{max-width:var(--A4w);margin:8px auto 0;font-size:.74rem;color:var(--dim);text-align:center}
+  /* page = a real A4 sheet */
+  .pagewrap{position:sticky;top:18px;align-self:start}
+  .page{width:var(--A4w);height:var(--A4h);overflow:hidden;background:#fff;
+    border:1px solid var(--line);box-shadow:0 10px 30px rgba(20,30,50,.07);
+    padding:40px 44px;display:flex;flex-direction:column}
   .top{display:flex;justify-content:space-between;align-items:flex-end;
-    border-bottom:3px solid var(--brand,#2F9BFF);padding-bottom:13px;margin-bottom:20px}
-  .top h1{font-size:1.45rem;letter-spacing:-.02em}
-  .top .co{color:var(--dim);font-size:.88rem;margin-bottom:4px}
-  .top .per{text-align:right;color:var(--dim);font-size:.82rem}
-  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin-bottom:22px}
-  .kpi{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
-  .kpi .l{font-size:.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
-  .kpi .v{font-size:1.4rem;font-weight:700;margin-top:5px}
-  .kpi .d{font-size:.78rem;margin-top:3px;font-weight:600}
+    border-bottom:3px solid var(--brand,#2F9BFF);padding-bottom:14px;margin-bottom:22px}
+  .top h1{font-size:1.6rem;letter-spacing:-.02em}
+  .top .co{color:var(--dim);font-size:.92rem;margin-bottom:4px}
+  .top .per{text-align:right;color:var(--dim);font-size:.85rem}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px}
+  .kpi{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+  .kpi .l{font-size:.74rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .kpi .v{font-size:1.6rem;font-weight:700;margin-top:6px}
+  .kpi .d{font-size:.82rem;margin-top:4px;font-weight:600}
   .good{color:var(--green)} .bad{color:var(--orange)} .neutral{color:var(--dim)}
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-  h3.sec{font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;
-    color:var(--brand,#2F9BFF);margin-bottom:9px;border-bottom:1px solid var(--line);padding-bottom:5px}
-  .story p{margin:0 0 10px;font-size:.9rem;padding-left:13px;border-left:2px solid var(--line)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:30px;flex:1}
+  h3.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--brand,#2F9BFF);margin-bottom:11px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .story p{margin:0 0 13px;font-size:.95rem;padding-left:14px;border-left:2px solid var(--line)}
   .acts{list-style:none}
-  .acts li{font-size:.88rem;margin-bottom:10px;background:var(--soft);
-    border-left:3px solid var(--brand,#2F9BFF);padding:8px 11px;border-radius:0 8px 8px 0}
-  .acts .who{color:var(--dim);font-size:.75rem;display:block;margin-top:3px}
-  .outlook{font-size:.88rem;color:var(--dim)}
-  .foot{margin-top:24px;border-top:1px solid var(--line);padding-top:11px;
-    display:flex;justify-content:space-between;color:var(--dim);font-size:.76rem}
-  @media(max-width:980px){.wrap{grid-template-columns:1fr}.pagewrap{position:static}}
+  .acts li{font-size:.92rem;margin-bottom:12px;background:var(--soft);
+    border-left:3px solid var(--brand,#2F9BFF);padding:9px 12px;border-radius:0 8px 8px 0}
+  .acts .who{color:var(--dim);font-size:.78rem;display:block;margin-top:3px}
+  .outlook{font-size:.92rem;color:var(--dim)}
+  .foot{margin-top:auto;border-top:1px solid var(--line);padding-top:13px;
+    display:flex;justify-content:space-between;color:var(--dim);font-size:.78rem}
+  @media(max-width:1180px){
+    .wrap{grid-template-columns:1fr}.pagewrap{position:static}
+    .page{width:100%;height:auto;min-height:0;aspect-ratio:auto}
+  }
   @media print{
     body{background:#fff}.wrap{display:block;padding:0;max-width:none}
-    .editor,.noprint{display:none!important}
-    .pagewrap{position:static}
-    .page{box-shadow:none;border:0;border-radius:0;padding:0}
-    @page{margin:14mm}
+    .editor,.noprint{display:none!important}.pagewrap{position:static}
+    .page{width:auto;height:auto;overflow:visible;border:0;box-shadow:none;padding:0}
+    @page{size:A4;margin:14mm}
   }
 </style>
 </head>
@@ -93,9 +101,9 @@
 
     <details><summary>KPI tiles (6)</summary><div class="body" id="kpi-edit"></div></details>
 
-    <details open><summary>The story — write the bullets, it builds the sentence</summary>
+    <details open><summary>The story — bullets become the sentence</summary>
     <div class="body">
-      <p class="hint">For each line type short bullets. The tool composes:
+      <p class="hint">Short bullets only. Composed as
         <b>What happened — Why; So what.</b></p>
       <div id="story-edit"></div>
     </div></details>
@@ -109,32 +117,37 @@
       <label>Footer note</label>
       <input id="i-foot" value="Confidential — for internal use" />
     </div></details>
-
-    <button class="pbtn" onclick="window.print()">Print / Save as PDF</button>
   </div>
 
-  <!-- ================= PAGE ================= -->
+  <!-- ================= PAGE (A4) ================= -->
   <div class="pagewrap">
-  <div class="page" id="page">
-    <div class="top">
-      <div><div class="co" id="o-co"></div><h1 id="o-title"></h1></div>
-      <div class="per" id="o-per"></div>
-    </div>
-    <div class="kpis" id="o-kpis"></div>
-    <div class="cols">
-      <div>
-        <h3 class="sec">The story — what actually happened</h3>
-        <div class="story" id="o-story"></div>
+    <div class="page" id="page">
+      <div class="top">
+        <div><div class="co" id="o-co"></div><h1 id="o-title"></h1></div>
+        <div class="per" id="o-per"></div>
       </div>
-      <div>
-        <h3 class="sec">Decisions needed this month</h3>
-        <ul class="acts" id="o-acts"></ul>
-        <h3 class="sec" style="margin-top:16px">Outlook</h3>
-        <p class="outlook" id="o-out"></p>
+      <div class="kpis" id="o-kpis"></div>
+      <div class="cols">
+        <div>
+          <h3 class="sec">The story — what actually happened</h3>
+          <div class="story" id="o-story"></div>
+        </div>
+        <div>
+          <h3 class="sec">Decisions needed this month</h3>
+          <ul class="acts" id="o-acts"></ul>
+          <h3 class="sec" style="margin-top:18px">Outlook</h3>
+          <p class="outlook" id="o-out"></p>
+        </div>
       </div>
+      <div class="foot"><span id="o-foot"></span><span id="o-by"></span></div>
     </div>
-    <div class="foot"><span id="o-foot"></span><span id="o-by"></span></div>
-  </div>
+
+    <div class="actions noprint">
+      <button class="abtn primary" onclick="window.print()">Print / Save as PDF</button>
+      <button class="abtn ghost" onclick="location.reload()">Reset to example</button>
+    </div>
+    <p class="cap noprint">This is one A4 page — exactly what prints. If text spills
+      past the sheet, shorten the bullets (that's the method working).</p>
   </div>
 </div>
 
@@ -147,7 +160,6 @@ var KPIS = [
   { l:"Net cash", v:"€1.10M", d:"▲ €40k MoM", t:"good" },
   { l:"Runway", v:"9 mo", d:"at current burn", t:"neutral" }
 ];
-// story = bullets: what / why / sowhat  -> composed sentence
 var STORY = [
   { w:"Revenue grew 6%, but landed 3% under plan", y:"two deals slipped into Q2", s:"timing, not lost demand" },
   { w:"Gross margin fell 3 points to 38%", y:"discounting on the slipped deals plus a one-off freight spike", s:"expected to recover by May" },
@@ -163,21 +175,18 @@ function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function clean(s){ return String(s||"").trim().replace(/[.;,\s]+$/,"").trim(); }
 function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
-
-// compose "What — Why; So what."
 function compose(it){
   var w=clean(it.w), y=clean(it.y), s=clean(it.s);
   if(!w && !y && !s) return "";
   var out;
-  if(w && y && s) out = w+" — "+y+"; "+s;
-  else if(w && y)  out = w+" — "+y;
-  else if(w && s)  out = w+" — "+s;
-  else if(w)       out = w;
-  else             out = [y,s].filter(Boolean).join("; ");
+  if(w && y && s) out=w+" — "+y+"; "+s;
+  else if(w && y) out=w+" — "+y;
+  else if(w && s) out=w+" — "+s;
+  else if(w) out=w;
+  else out=[y,s].filter(Boolean).join("; ");
   return cap(out)+".";
 }
 
-// build KPI editor (compact)
 var ke=el("kpi-edit");
 KPIS.forEach(function(k,i){
   var b=document.createElement("div"); b.className="item";
@@ -190,8 +199,6 @@ KPIS.forEach(function(k,i){
       '<option value="neutral">neutral</option></select></div></div>';
   ke.appendChild(b); b.querySelector("select").value=k.t;
 });
-
-// build story editor (bullets -> sentence)
 var se=el("story-edit");
 STORY.forEach(function(it,i){
   var b=document.createElement("div"); b.className="item";
@@ -203,8 +210,6 @@ STORY.forEach(function(it,i){
     '<div class="made" data-made="'+i+'"></div>';
   se.appendChild(b);
 });
-
-// build decisions editor
 var de=el("dec-edit");
 DECS.forEach(function(d,i){
   var b=document.createElement("div"); b.className="item";
