@@ -72,6 +72,25 @@
   .outlook{font-size:.92rem;color:var(--dim)}
   .foot{margin-top:auto;border-top:1px solid var(--line);padding-top:13px;
     display:flex;justify-content:space-between;color:var(--dim);font-size:.78rem}
+  /* theme selector */
+  .themebar{display:flex;gap:6px;margin-bottom:9px}
+  .themebar button{flex:1;padding:8px;border:1px solid var(--line);background:#fff;
+    border-radius:7px;font:inherit;font-size:.79rem;cursor:pointer;color:var(--ink)}
+  .themebar button.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600}
+  /* THEME: KPI-focused — big metric band, single narrative column */
+  .page.theme-kpi .kpis{grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+  .page.theme-kpi .kpi{padding:18px 20px}
+  .page.theme-kpi .kpi .v{font-size:1.95rem}
+  .page.theme-kpi .kpi .l{font-size:.77rem}
+  .page.theme-kpi .cols{grid-template-columns:1fr;gap:20px}
+  /* THEME: Narrative — story-led, compact KPI strip */
+  .page.theme-narrative .kpis{grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:20px}
+  .page.theme-narrative .kpi{padding:9px 10px}
+  .page.theme-narrative .kpi .l{font-size:.6rem}
+  .page.theme-narrative .kpi .v{font-size:1.05rem;margin-top:3px}
+  .page.theme-narrative .kpi .d{font-size:.62rem}
+  .page.theme-narrative .cols{grid-template-columns:1.6fr 1fr;gap:28px}
+  .page.theme-narrative .story p{font-size:1.03rem;line-height:1.5;margin-bottom:15px}
   @media(max-width:1180px){
     .wrap{grid-template-columns:1fr}.pagewrap{position:static}
     .page{width:100%;height:auto;min-height:0;aspect-ratio:auto}
@@ -89,6 +108,11 @@
 
   <!-- ================= EDITOR ================= -->
   <div class="editor noprint">
+    <div class="themebar" id="themebar">
+      <button data-th="theme-exec" class="on">Executive</button>
+      <button data-th="theme-kpi">KPI-focused</button>
+      <button data-th="theme-narrative">Narrative</button>
+    </div>
     <details open><summary>Header &amp; brand</summary><div class="body">
       <label>Company</label><input id="i-co" value="Northwind Ltd" />
       <label>Title</label><input id="i-title" value="Monthly Business Review" />
@@ -121,7 +145,7 @@
 
   <!-- ================= PAGE (A4) ================= -->
   <div class="pagewrap">
-    <div class="page" id="page">
+    <div class="page theme-exec" id="page">
       <div class="top">
         <div><div class="co" id="o-co"></div><h1 id="o-title"></h1></div>
         <div class="per" id="o-per"></div>
@@ -258,6 +282,14 @@ document.querySelectorAll('#story-edit [data-s]').forEach(function(x){
 });
 document.querySelectorAll('#dec-edit [data-d]').forEach(function(x){
   x.addEventListener("input",function(){ DECS[+x.dataset.d][x.dataset.f]=x.value; render(); });
+});
+document.querySelectorAll('#themebar button').forEach(function(b){
+  b.addEventListener("click",function(){
+    el("page").className="page "+b.dataset.th;
+    document.querySelectorAll('#themebar button').forEach(function(x){
+      x.classList.toggle("on", x===b);
+    });
+  });
 });
 render();
 </script>
