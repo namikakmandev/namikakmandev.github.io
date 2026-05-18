@@ -21,7 +21,7 @@ if (form) {
     const status = document.querySelector("#form-status");
     if (status) {
       status.textContent =
-        "Thanks! This demo form isn't connected yet — email me directly for now.";
+        "Thanks! This form isn't connected yet — please reach me via LinkedIn for now.";
       status.style.color = "var(--accent)";
     }
     form.reset();
