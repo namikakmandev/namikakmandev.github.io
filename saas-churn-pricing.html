@@ -357,6 +357,111 @@
           faster and stay shorter, which cancels most of the advantage.
         </p>
 
+        <!-- ================= STATISTICAL EVIDENCE ================ -->
+        <h2>7. Statistical evidence <span class="accent">— what survives proper controls</span></h2>
+        <p>
+          Bar charts and group averages can mislead. A finding that looks strong in raw
+          comparisons sometimes evaporates once you control for other things — and a finding
+          that looks weak can turn out to be the dominant signal. To stress-test the
+          patterns above, I ran two regression models on the per-customer dataset:
+        </p>
+        <ul class="bullets">
+          <li><strong>A linear model on lifetime revenue (LTV)</strong> with 9 predictors — tenure, seats, plan tier, channel, billing, industry, upgrade count. <em>What independently moves the dollar number?</em></li>
+          <li><strong>A logistic model on churn</strong> (binary outcome) with the same predictor set. <em>What independently moves the odds of leaving?</em></li>
+        </ul>
+
+        <h3>Correlations first — the simple view</h3>
+        <p>
+          Before the models, the pairwise correlation matrix among the numeric features
+          confirms three things at a glance:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/20_correlation_matrix.png" alt="Correlation matrix heatmap of LTV, Tenure, Upgrades, Subs, Tickets, Seats, Churn. LTV correlates strongest with Tenure (0.57) and Seats (0.32). Tickets correlate with essentially nothing (~0). Churn correlates weakly negative with everything.">
+          <div class="chart-cap">Pearson correlations on per-customer numeric features. Red = positive, blue = negative.</div>
+        </div>
+
+        <ul class="bullets">
+          <li><strong>LTV is anchored by tenure (r=0.57) and seats (r=0.32).</strong> Everything else is a sideshow at the bivariate level.</li>
+          <li><strong>Support tickets correlate with nothing</strong> (|r| ≤ 0.04 across the board) — confirming the null finding from the support-vs-churn notebook with another method.</li>
+          <li>Churn correlates only modestly even with tenure (r = −0.11), which means a single number can't predict it — interactions and categorical features do most of the work.</li>
+        </ul>
+
+        <h3>What drives lifetime revenue — the linear model</h3>
+        <p>
+          Forest plot of the regression coefficients with 95% confidence intervals.
+          Stars indicate p-values: *** &lt; 0.001, ** &lt; 0.01, * &lt; 0.05, n.s. = not significant.
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/21_ltv_regression_forest.png" alt="Forest plot of OLS regression coefficients on LTV. Enterprise landing significant at p<0.05 (+$4,405). Per seat significant at p<0.001 (+$421). Organic channel and annual billing marginal (p<0.10). Other variables not significant.">
+          <div class="chart-cap">OLS regression of LTV on 9 predictors. Tenure (β = +$2,275/month, p &lt; 0.001) is included in the model as a control but omitted from the plot — it dominates the x-axis. R² = 0.48 across 500 customers.</div>
+        </div>
+
+        <p>
+          What survives the regression:
+        </p>
+        <ul class="bullets">
+          <li><strong>Tenure: +$2,275 per month</strong> (p &lt; 0.001). The dominant LTV mechanic — revenue accumulates over time. Tenure alone explains a large share of the R² = 0.48.</li>
+          <li><strong>Seats: +$421 per seat</strong> (p &lt; 0.001). Bigger organisations generate proportionally more LTV. The single most reliable non-tenure predictor.</li>
+          <li><strong>Enterprise landing: +$4,405 vs Basic</strong> (p = 0.02). After controlling for tenure and seats, an Enterprise lander still earns a measurable premium — the only landing-plan effect that survives.</li>
+          <li>Organic channel (+$3,523, p = 0.07) and annual billing (+$2,653, p = 0.09) trend positive but don't reach conventional significance with 500 customers.</li>
+          <li>Per-upgrade event (+$1,101, p = 0.13), Pro landing, partner channel, DevTools industry: <strong>not significant</strong> after controlling for the others.</li>
+        </ul>
+
+        <div class="pullquote">
+          <strong>The honest reframing:</strong> the bar-chart "Basic-upgraders earn $24k vs $13k for Basic-only" finding is <em>real</em> — but a meaningful portion of it is a tenure effect (upgraders also stay longer). The marginal effect of upgrading itself, controlling for tenure and seats, is positive but smaller and not statistically significant in this dataset.
+        </div>
+
+        <p>
+          That doesn't invalidate the recommendation to focus on upgrade conversion — the
+          combined effect (more upgrades → more tenure → more LTV) still flows through the
+          same operational lever. But it's a more honest statement of the mechanism than a
+          raw average comparison.
+        </p>
+
+        <h3>What drives churn — the logistic model</h3>
+        <p>
+          For churn (a binary outcome) the logit model is the right tool. Coefficients are
+          reported as odds ratios: values above 1 mean higher churn odds; values below 1
+          mean lower churn odds.
+        </p>
+
+        <table class="tbl">
+          <thead>
+            <tr><th>Predictor</th><th class="num">Odds ratio</th><th class="num">95% CI</th><th class="num">p-value</th><th>Verdict</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Partner channel</strong> (vs event)</td><td class="num">0.51</td><td class="num">0.26 – 0.97</td><td class="num"><strong>0.040</strong></td><td>Partner = half the odds of churning</td></tr>
+            <tr><td><strong>DevTools industry</strong></td><td class="num">1.80</td><td class="num">1.11 – 2.93</td><td class="num"><strong>0.018</strong></td><td>DevTools = 80% higher odds of churning</td></tr>
+            <tr><td>Tenure (per month observed)</td><td class="num">0.96</td><td class="num">0.92 – 0.99</td><td class="num"><strong>0.011</strong></td><td>Survivor bias — long-tenure customers don't churn</td></tr>
+            <tr><td>Organic channel (vs event)</td><td class="num">0.57</td><td class="num">0.33 – 1.01</td><td class="num">0.054</td><td>Marginal — directionally lower churn</td></tr>
+            <tr><td>Enterprise landing (vs Basic)</td><td class="num">1.19</td><td class="num">0.71 – 2.01</td><td class="num">0.514</td><td>n.s.</td></tr>
+            <tr><td>Pro landing (vs Basic)</td><td class="num">0.87</td><td class="num">0.50 – 1.51</td><td class="num">0.627</td><td>n.s.</td></tr>
+            <tr><td>Annual billing (vs monthly)</td><td class="num">1.04</td><td class="num">0.67 – 1.61</td><td class="num">0.861</td><td><strong>n.s. — confirms the lock-in myth</strong></td></tr>
+            <tr><td>Support tickets (per ticket)</td><td class="num">0.97</td><td class="num">0.86 – 1.09</td><td class="num">0.562</td><td><strong>n.s. — confirms the support null</strong></td></tr>
+            <tr><td>Seats (per seat)</td><td class="num">1.00</td><td class="num">0.99 – 1.01</td><td class="num">0.453</td><td>n.s.</td></tr>
+          </tbody>
+        </table>
+
+        <p>
+          What the logit tells us with statistical force:
+        </p>
+        <ul class="bullets">
+          <li><strong>Partner-sourced customers have ~50% lower odds of churning</strong> vs event-sourced (OR = 0.51, p = 0.04). The channel-quality finding is real, not a sample-size artifact.</li>
+          <li><strong>DevTools customers have 80% higher odds of churning</strong> (OR = 1.80, p = 0.02). The industry effect is real and large.</li>
+          <li><strong>Plan tier, annual billing, support-ticket count, and organisation size are not predictive of churn</strong> after controls. Every single one of the "common wisdom" levers fails the statistical test.</li>
+        </ul>
+
+        <div class="pullquote orange">
+          The annual-billing-doesn't-buy-retention claim, the support-doesn't-predict-churn claim, and the plan-tier-doesn't-matter claim are all <strong>confirmed</strong> by the logit at p &gt; 0.4 — these aren't "we didn't find a signal," they are "the data actively says no signal exists at this sample size."
+        </div>
+
+        <p>
+          The findings that <em>do</em> survive — channel quality and industry fit — are the
+          two strategic levers the recommendations below lean on.
+        </p>
+
         <!-- ================= RECOMMENDATIONS ================ -->
         <div class="recs">
           <h3>What I'd actually do, based on this</h3>
@@ -398,6 +503,7 @@
           <li><strong>03 — Playground:</strong> a beginner notebook with chart recipes for re-slicing the data — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/03_playground.ipynb" target="_blank" rel="noopener">notebook</a></li>
           <li><strong>04 — Support vs churn:</strong> stress-test of the "support drives renewal churn" hypothesis — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/04_support_vs_churn.ipynb" target="_blank" rel="noopener">notebook</a> · <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/scripts/04_support_vs_churn.py" target="_blank" rel="noopener">script</a></li>
           <li><strong>05 — Pricing strategy:</strong> the analysis behind the recommendations above — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/05_pricing_strategy.ipynb" target="_blank" rel="noopener">notebook</a> · <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/scripts/05_pricing_strategy.py" target="_blank" rel="noopener">script</a></li>
+          <li><strong>06 — Statistical evidence:</strong> correlation matrix, OLS regression on LTV, logistic regression on churn (statsmodels) — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/06_statistical_evidence.ipynb" target="_blank" rel="noopener">notebook</a> · <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/scripts/07_statistical_analysis.py" target="_blank" rel="noopener">script</a></li>
         </ul>
         <p class="dim">
           Browse the full <a href="https://github.com/namikakmandev/namikakmandev.github.io/tree/main/assets/saas-study" target="_blank" rel="noopener">study folder on GitHub</a> — notebooks, scripts and chart exports.
