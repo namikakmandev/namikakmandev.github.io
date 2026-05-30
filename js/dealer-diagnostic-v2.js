@@ -83,11 +83,11 @@ var CUR = "auto";
 function n(v) { var x = parseFloat(v); return isNaN(x) ? 0 : x; }
 function getN(id) { var el = document.getElementById(id); return el ? n(el.value) : 0; }
 function setTxt(id, t) { var el = document.getElementById(id); if (el) el.textContent = t; }
-function lira(v) {
+function eur(v) {
   var r = Math.round(v);
-  return (r < 0 ? "-₺" : "₺") + Math.abs(r).toLocaleString("en-US");
+  return (r < 0 ? "-€" : "€") + Math.abs(r).toLocaleString("en-US");
 }
-function paren(v) { return "(" + lira(Math.abs(v)) + ")"; }
+function paren(v) { return "(" + eur(Math.abs(v)) + ")"; }
 function pc(part, whole) { return whole ? (part / whole) * 100 : 0; }
 
 function buildInputs() {
@@ -144,18 +144,18 @@ function recompute() {
 
   // ---- Consolidated P&L ----
   document.getElementById("cons-tbody").innerHTML =
-    '<tr><td>Revenue</td><td class="num">' + lira(totRev) + "</td></tr>" +
+    '<tr><td>Revenue</td><td class="num">' + eur(totRev) + "</td></tr>" +
     '<tr><td>Cost of sales</td><td class="num">' + paren(totCost) + "</td></tr>" +
-    '<tr style="font-weight:700"><td>Gross profit</td><td class="num">' + lira(totGross) + "</td></tr>" +
+    '<tr style="font-weight:700"><td>Gross profit</td><td class="num">' + eur(totGross) + "</td></tr>" +
     '<tr><td>Gross margin %</td><td class="num">' + pc(totGross, totRev).toFixed(1) + "%</td></tr>" +
     '<tr><td>Operating overhead</td><td class="num">' + paren(overhead) + "</td></tr>" +
-    '<tr style="font-weight:700"><td>Net profit</td><td class="num"' + nls + ">" + lira(net) + "</td></tr>" +
+    '<tr style="font-weight:700"><td>Net profit</td><td class="num"' + nls + ">" + eur(net) + "</td></tr>" +
     '<tr><td>Net margin %</td><td class="num"' + nls + ">" + pc(net, totRev).toFixed(1) + "%</td></tr>";
 
-  setTxt("k-rev", lira(totRev));
-  setTxt("k-gross", lira(totGross));
-  setTxt("k-oh", lira(overhead));
-  setTxt("k-net", lira(net));
+  setTxt("k-rev", eur(totRev));
+  setTxt("k-gross", eur(totGross));
+  setTxt("k-oh", eur(overhead));
+  setTxt("k-net", eur(net));
   setTxt("k-net-pct", pc(net, totRev).toFixed(1) + "% of rev");
   var ne = document.getElementById("k-net");
   if (ne) ne.style.color = net < 0 ? "var(--loss)" : "";
@@ -177,17 +177,17 @@ function recompute() {
     var mOH = overhead / 12, mNet = mGross - mOH;
     if (mNet < 0) lossMonths.push(m);
     var ls = mNet < 0 ? ' style="color:var(--loss)"' : "";
-    rRev += '<td class="num">' + lira(mRev) + "</td>";
+    rRev += '<td class="num">' + eur(mRev) + "</td>";
     rCost += '<td class="num">' + paren(mCost) + "</td>";
-    rGross += '<td class="num">' + lira(mGross) + "</td>";
+    rGross += '<td class="num">' + eur(mGross) + "</td>";
     rOH += '<td class="num">' + paren(mOH) + "</td>";
-    rNet += '<td class="num"' + ls + ">" + lira(mNet) + "</td>";
+    rNet += '<td class="num"' + ls + ">" + eur(mNet) + "</td>";
   });
-  rRev += '<td class="num">' + lira(totRev) + "</td></tr>";
+  rRev += '<td class="num">' + eur(totRev) + "</td></tr>";
   rCost += '<td class="num">' + paren(totCost) + "</td></tr>";
-  rGross += '<td class="num">' + lira(totGross) + "</td></tr>";
+  rGross += '<td class="num">' + eur(totGross) + "</td></tr>";
   rOH += '<td class="num">' + paren(overhead) + "</td></tr>";
-  rNet += '<td class="num"' + nls + ">" + lira(net) + "</td></tr>";
+  rNet += '<td class="num"' + nls + ">" + eur(net) + "</td></tr>";
   document.getElementById("m-tbody").innerHTML = rRev + rCost + rGross + rOH + rNet;
 
   if (lossMonths.length) {
@@ -195,7 +195,7 @@ function recompute() {
       "m-insight",
       lossMonths.length + " month" + (lossMonths.length > 1 ? "s" : "") +
         " run at a loss (" + lossMonths.join(", ") +
-        ") even though the year nets " + lira(net) +
+        ") even though the year nets " + eur(net) +
         " — that is exactly when a low-margin business runs short of cash."
     );
   } else {
@@ -209,17 +209,17 @@ function recompute() {
   document.getElementById("pl-thead").innerHTML = th;
 
   var b = "<tr><td>Revenue</td>";
-  DIVS.forEach(function (d) { b += '<td class="num">' + lira(per[d].rev) + "</td>"; });
-  b += '<td class="num">' + lira(totRev) + "</td></tr>";
+  DIVS.forEach(function (d) { b += '<td class="num">' + eur(per[d].rev) + "</td>"; });
+  b += '<td class="num">' + eur(totRev) + "</td></tr>";
   b += "<tr><td>Cost of sales</td>";
   DIVS.forEach(function (d) { b += '<td class="num">' + paren(per[d].cogs) + "</td>"; });
   b += '<td class="num">' + paren(totCost) + "</td></tr>";
   b += '<tr style="font-weight:700"><td>Gross profit</td>';
   DIVS.forEach(function (d) {
     var ls = per[d].gross < 0 ? ' style="color:var(--loss)"' : "";
-    b += '<td class="num"' + ls + ">" + lira(per[d].gross) + "</td>";
+    b += '<td class="num"' + ls + ">" + eur(per[d].gross) + "</td>";
   });
-  b += '<td class="num">' + lira(totGross) + "</td></tr>";
+  b += '<td class="num">' + eur(totGross) + "</td></tr>";
   b += "<tr><td>Gross margin %</td>";
   DIVS.forEach(function (d) { b += '<td class="num">' + pc(per[d].gross, per[d].rev).toFixed(1) + "%</td>"; });
   b += '<td class="num">' + pc(totGross, totRev).toFixed(1) + "%</td></tr>";
@@ -229,7 +229,7 @@ function recompute() {
   b += '<td class="num">' + paren(overhead) + "</td></tr>";
   b += '<tr style="font-weight:700"><td>Net profit</td>';
   DIVS.forEach(function () { b += '<td class="num">—</td>'; });
-  b += '<td class="num"' + nls + ">" + lira(net) + "</td></tr>";
+  b += '<td class="num"' + nls + ">" + eur(net) + "</td></tr>";
   document.getElementById("pl-tbody").innerHTML = b;
 
   // ranking read-out
@@ -237,7 +237,7 @@ function recompute() {
   var best = ranked[0], worst = ranked[ranked.length - 1];
   var losers = DIVS.filter(function (d) { return per[d].gross < 0; });
   var msg =
-    "Biggest profit engine: " + best + " (" + lira(per[best].gross) + ", " +
+    "Biggest profit engine: " + best + " (" + eur(per[best].gross) + ", " +
     pc(per[best].gross, totGross).toFixed(0) + "% of all gross). Weakest: " +
     worst + " (" + pc(per[worst].gross, per[worst].rev).toFixed(1) + "% margin).";
   if (losers.length) msg += " Loss-making at gross level: " + losers.join(", ") + ".";

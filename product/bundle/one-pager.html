@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>One-Page Business Review — builder</title>
+<!--
+  ONE-PAGE BUSINESS REVIEW BUILDER
+  The page on the right is a real A4 sheet — what you see is what prints.
+  Collapsible editor on the left; type bullets (What/Why/So what) and
+  the tool composes the executive sentence. One file, no dependencies,
+  nothing leaves the browser.
+-->
+<style>
+  :root{ --blue:#2F9BFF; --green:#19C37D; --orange:#FF6500;
+    --ink:#1b2230; --dim:#5e6675; --line:#e6e9ef; --soft:#f6f8fb;
+    --A4w:794px; --A4h:1123px; }   /* A4 at ~96dpi */
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:#eef1f5;color:var(--ink);line-height:1.4}
+  .wrap{display:grid;grid-template-columns:340px 1fr;gap:20px;
+    max-width:1280px;margin:0 auto;padding:18px}
+  /* editor */
+  .editor{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px}
+  details{border:1px solid var(--line);border-radius:9px;margin-bottom:7px}
+  summary{cursor:pointer;list-style:none;padding:9px 11px;font-weight:600;
+    font-size:.86rem;display:flex;justify-content:space-between}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";color:var(--dim)}
+  details[open] summary::after{content:"–"}
+  .body{padding:3px 11px 11px}
+  label{display:block;font-size:.71rem;color:var(--dim);margin:6px 0 2px}
+  input,textarea,select{width:100%;padding:6px 8px;font:inherit;font-size:.81rem;
+    border:1px solid var(--line);border-radius:6px;color:var(--ink)}
+  textarea{resize:vertical;min-height:36px}
+  .r2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .item{border:1px solid var(--line);border-radius:7px;padding:7px;margin-top:7px}
+  .made{font-size:.73rem;color:var(--blue);background:var(--soft);
+    border-radius:5px;padding:5px 7px;margin-top:6px;font-style:italic}
+  .hint{font-size:.71rem;color:var(--dim);margin:2px 0 6px}
+  /* actions under the page */
+  .actions{display:flex;gap:10px;margin:14px auto 0;max-width:var(--A4w)}
+  .abtn{flex:1;padding:12px;border:0;border-radius:9px;font:inherit;
+    font-weight:600;cursor:pointer;font-size:.92rem}
+  .abtn.primary{background:var(--blue);color:#fff}
+  .abtn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .cap{max-width:var(--A4w);margin:8px auto 0;font-size:.74rem;color:var(--dim);text-align:center}
+  /* page = a real A4 sheet */
+  .pagewrap{position:sticky;top:18px;align-self:start}
+  .page{width:var(--A4w);height:var(--A4h);overflow:hidden;background:#fff;
+    border:1px solid var(--line);box-shadow:0 10px 30px rgba(20,30,50,.07);
+    padding:40px 44px;display:flex;flex-direction:column}
+  .top{display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:3px solid var(--brand,#2F9BFF);padding-bottom:14px;margin-bottom:22px}
+  .top h1{font-size:1.6rem;letter-spacing:-.02em}
+  .top .co{color:var(--dim);font-size:.92rem;margin-bottom:4px}
+  .top .per{text-align:right;color:var(--dim);font-size:.85rem}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px}
+  .kpi{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:15px 17px}
+  .kpi .l{font-size:.74rem;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .kpi .v{font-size:1.6rem;font-weight:700;margin-top:6px}
+  .kpi .d{font-size:.82rem;margin-top:4px;font-weight:600}
+  .good{color:var(--green)} .bad{color:var(--orange)} .neutral{color:var(--dim)}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:30px;flex:1}
+  h3.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--brand,#2F9BFF);margin-bottom:11px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .story p{margin:0 0 13px;font-size:.95rem;padding-left:14px;border-left:2px solid var(--line)}
+  .acts{list-style:none}
+  .acts li{font-size:.92rem;margin-bottom:12px;background:var(--soft);
+    border-left:3px solid var(--brand,#2F9BFF);padding:9px 12px;border-radius:0 8px 8px 0}
+  .acts .who{color:var(--dim);font-size:.78rem;display:block;margin-top:3px}
+  .outlook{font-size:.92rem;color:var(--dim)}
+  .foot{margin-top:auto;border-top:1px solid var(--line);padding-top:13px;
+    display:flex;justify-content:space-between;color:var(--dim);font-size:.78rem}
+  /* theme selector */
+  .themebar{display:flex;gap:6px;margin-bottom:9px}
+  .themebar button{flex:1;padding:8px;border:1px solid var(--line);background:#fff;
+    border-radius:7px;font:inherit;font-size:.79rem;cursor:pointer;color:var(--ink)}
+  .themebar button.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600}
+  /* THEME: KPI-focused — big metric band, single narrative column */
+  .page.theme-kpi .kpis{grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+  .page.theme-kpi .kpi{padding:18px 20px}
+  .page.theme-kpi .kpi .v{font-size:1.95rem}
+  .page.theme-kpi .kpi .l{font-size:.77rem}
+  .page.theme-kpi .cols{grid-template-columns:1fr;gap:20px}
+  /* THEME: Narrative — story-led, compact KPI strip */
+  .page.theme-narrative .kpis{grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:20px}
+  .page.theme-narrative .kpi{padding:9px 10px}
+  .page.theme-narrative .kpi .l{font-size:.6rem}
+  .page.theme-narrative .kpi .v{font-size:1.05rem;margin-top:3px}
+  .page.theme-narrative .kpi .d{font-size:.62rem}
+  .page.theme-narrative .cols{grid-template-columns:1.6fr 1fr;gap:28px}
+  .page.theme-narrative .story p{font-size:1.03rem;line-height:1.5;margin-bottom:15px}
+  @media(max-width:1180px){
+    .wrap{grid-template-columns:1fr}.pagewrap{position:static}
+    .page{width:100%;height:auto;min-height:0;aspect-ratio:auto}
+  }
+  @media print{
+    body{background:#fff}.wrap{display:block;padding:0;max-width:none}
+    .editor,.noprint{display:none!important}.pagewrap{position:static}
+    .page{width:auto;height:auto;overflow:visible;border:0;box-shadow:none;padding:0}
+    @page{size:A4;margin:14mm}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ================= EDITOR ================= -->
+  <div class="editor noprint">
+    <div class="themebar" id="themebar">
+      <button data-th="theme-exec" class="on">Executive</button>
+      <button data-th="theme-kpi">KPI-focused</button>
+      <button data-th="theme-narrative">Narrative</button>
+    </div>
+    <details open><summary>Header &amp; brand</summary><div class="body">
+      <label>Company</label><input id="i-co" value="Northwind Ltd" />
+      <label>Title</label><input id="i-title" value="Monthly Business Review" />
+      <div class="r2">
+        <div><label>Period</label><input id="i-per" value="March 2026" /></div>
+        <div><label>Prepared by</label><input id="i-by" value="Commercial Office" /></div>
+      </div>
+      <label>Brand colour</label><input id="i-brand" type="color" value="#2F9BFF" />
+    </div></details>
+
+    <details><summary>KPI tiles (6)</summary><div class="body" id="kpi-edit"></div></details>
+
+    <details open><summary>The story — bullets become the sentence</summary>
+    <div class="body">
+      <p class="hint">Short bullets only. Composed as
+        <b>What happened — Why; So what.</b></p>
+      <div id="story-edit"></div>
+    </div></details>
+
+    <details><summary>Decisions needed (3)</summary>
+    <div class="body" id="dec-edit"></div></details>
+
+    <details><summary>Outlook &amp; footer</summary><div class="body">
+      <label>Outlook (one honest sentence)</label>
+      <textarea id="i-out">Full-year guidance unchanged; Q2 recovers the slipped revenue once freight is locked and discounting is contained.</textarea>
+      <label>Footer note</label>
+      <input id="i-foot" value="Confidential — for internal use" />
+    </div></details>
+  </div>
+
+  <!-- ================= PAGE (A4) ================= -->
+  <div class="pagewrap">
+    <div class="page theme-exec" id="page">
+      <div class="top">
+        <div><div class="co" id="o-co"></div><h1 id="o-title"></h1></div>
+        <div class="per" id="o-per"></div>
+      </div>
+      <div class="kpis" id="o-kpis"></div>
+      <div class="cols">
+        <div>
+          <h3 class="sec">The story — what actually happened</h3>
+          <div class="story" id="o-story"></div>
+        </div>
+        <div>
+          <h3 class="sec">Decisions needed this month</h3>
+          <ul class="acts" id="o-acts"></ul>
+          <h3 class="sec" style="margin-top:18px">Outlook</h3>
+          <p class="outlook" id="o-out"></p>
+        </div>
+      </div>
+      <div class="foot"><span id="o-foot"></span><span id="o-by"></span></div>
+    </div>
+
+    <div class="actions noprint">
+      <button class="abtn primary" onclick="window.print()">Print / Save as PDF</button>
+      <button class="abtn ghost" onclick="location.reload()">Reset to example</button>
+    </div>
+    <p class="cap noprint">This is one A4 page — exactly what prints. If text spills
+      past the sheet, shorten the bullets (that's the method working).</p>
+  </div>
+</div>
+
+<script>
+var KPIS = [
+  { l:"Revenue", v:"€2.41M", d:"▲ 6% MoM", t:"good" },
+  { l:"vs Budget", v:"−3.0%", d:"€74k under plan", t:"bad" },
+  { l:"Gross margin", v:"38.0%", d:"▼ 3.0 pts vs plan", t:"bad" },
+  { l:"EBITDA", v:"€310k", d:"12.9% of revenue", t:"neutral" },
+  { l:"Net cash", v:"€1.10M", d:"▲ €40k MoM", t:"good" },
+  { l:"Runway", v:"9 mo", d:"at current burn", t:"neutral" }
+];
+var STORY = [
+  { w:"Revenue grew 6%, but landed 3% under plan", y:"two deals slipped into Q2", s:"timing, not lost demand" },
+  { w:"Gross margin fell 3 points to 38%", y:"discounting on the slipped deals plus a one-off freight spike", s:"expected to recover by May" },
+  { w:"Cash is healthy at 9 months of runway", y:"", s:"the watch item is margin, not liquidity — act on price discipline, not panic" }
+];
+var DECS = [
+  { x:"Approve the revised Q2 plan reflecting the two slipped deals.", o:"Sales · by 15 Apr" },
+  { x:"Lock the 12-month freight contract to stop the cost leak.", o:"Operations · by 10 Apr" },
+  { x:"Hold the pricing floor — no discount approvals without CFO sign-off.", o:"CFO · effective now" }
+];
+
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function clean(s){ return String(s||"").trim().replace(/[.;,\s]+$/,"").trim(); }
+function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+function compose(it){
+  var w=clean(it.w), y=clean(it.y), s=clean(it.s);
+  if(!w && !y && !s) return "";
+  var out;
+  if(w && y && s) out=w+" — "+y+"; "+s;
+  else if(w && y) out=w+" — "+y;
+  else if(w && s) out=w+" — "+s;
+  else if(w) out=w;
+  else out=[y,s].filter(Boolean).join("; ");
+  return cap(out)+".";
+}
+
+var ke=el("kpi-edit");
+KPIS.forEach(function(k,i){
+  var b=document.createElement("div"); b.className="item";
+  b.innerHTML=
+    '<div class="r2"><div><label>Label</label><input data-k="'+i+'" data-f="l" value="'+esc(k.l)+'"></div>'+
+    '<div><label>Value</label><input data-k="'+i+'" data-f="v" value="'+esc(k.v)+'"></div></div>'+
+    '<div class="r2"><div><label>Note</label><input data-k="'+i+'" data-f="d" value="'+esc(k.d)+'"></div>'+
+    '<div><label>Tone</label><select data-k="'+i+'" data-f="t">'+
+      '<option value="good">good</option><option value="bad">bad</option>'+
+      '<option value="neutral">neutral</option></select></div></div>';
+  ke.appendChild(b); b.querySelector("select").value=k.t;
+});
+var se=el("story-edit");
+STORY.forEach(function(it,i){
+  var b=document.createElement("div"); b.className="item";
+  b.innerHTML=
+    '<label>Line '+(i+1)+' — What happened</label>'+
+    '<input data-s="'+i+'" data-f="w" value="'+esc(it.w)+'">'+
+    '<div class="r2"><div><label>Why</label><input data-s="'+i+'" data-f="y" value="'+esc(it.y)+'"></div>'+
+    '<div><label>So what</label><input data-s="'+i+'" data-f="s" value="'+esc(it.s)+'"></div></div>'+
+    '<div class="made" data-made="'+i+'"></div>';
+  se.appendChild(b);
+});
+var de=el("dec-edit");
+DECS.forEach(function(d,i){
+  var b=document.createElement("div"); b.className="item";
+  b.innerHTML=
+    '<label>Decision '+(i+1)+'</label><textarea data-d="'+i+'" data-f="x">'+esc(d.x)+'</textarea>'+
+    '<label>Owner · due</label><input data-d="'+i+'" data-f="o" value="'+esc(d.o)+'">';
+  de.appendChild(b);
+});
+
+function render(){
+  el("o-co").textContent=el("i-co").value;
+  el("o-title").textContent=el("i-title").value;
+  el("o-per").innerHTML=esc(el("i-per").value)+"<br>Prepared by "+esc(el("i-by").value);
+  el("o-by").textContent=el("i-by").value;
+  el("o-foot").textContent=el("i-foot").value;
+  el("o-out").textContent=el("i-out").value;
+  document.documentElement.style.setProperty("--brand",el("i-brand").value);
+
+  el("o-kpis").innerHTML=KPIS.map(function(k){
+    return '<div class="kpi"><div class="l">'+esc(k.l)+'</div><div class="v">'+
+      esc(k.v)+'</div><div class="d '+k.t+'">'+esc(k.d)+'</div></div>';
+  }).join("");
+
+  var lines=STORY.map(function(it,i){
+    var sent=compose(it);
+    var m=document.querySelector('[data-made="'+i+'"]');
+    if(m) m.textContent = sent ? "→ "+sent : "→ (add a bullet above)";
+    return sent;
+  }).filter(Boolean);
+  el("o-story").innerHTML=lines.map(function(x){return "<p>"+esc(x)+"</p>";}).join("");
+
+  el("o-acts").innerHTML=DECS.map(function(d){
+    if(!clean(d.x)) return "";
+    return '<li>'+esc(d.x)+'<span class="who">Owner: '+esc(d.o)+'</span></li>';
+  }).join("");
+}
+
+["i-co","i-title","i-per","i-by","i-brand","i-out","i-foot"].forEach(function(id){
+  el(id).addEventListener("input",render);
+});
+document.querySelectorAll('#kpi-edit [data-k]').forEach(function(x){
+  x.addEventListener("input",function(){ KPIS[+x.dataset.k][x.dataset.f]=x.value; render(); });
+});
+document.querySelectorAll('#story-edit [data-s]').forEach(function(x){
+  x.addEventListener("input",function(){ STORY[+x.dataset.s][x.dataset.f]=x.value; render(); });
+});
+document.querySelectorAll('#dec-edit [data-d]').forEach(function(x){
+  x.addEventListener("input",function(){ DECS[+x.dataset.d][x.dataset.f]=x.value; render(); });
+});
+document.querySelectorAll('#themebar button').forEach(function(b){
+  b.addEventListener("click",function(){
+    el("page").className="page "+b.dataset.th;
+    document.querySelectorAll('#themebar button').forEach(function(x){
+      x.classList.toggle("on", x===b);
+    });
+  });
+});
+render();
+</script>
+</body>
+</html>
