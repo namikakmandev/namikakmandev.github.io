@@ -284,6 +284,14 @@
           <div id="riVerdict" style="font-size:13.5px;padding:12px 14px;border-radius:9px;line-height:1.55"></div>
         </div>
 
+        <div class="card" id="aiCard" style="margin-bottom:16px">
+          <div class="row-between" style="align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+            <h3 style="margin:0;font-size:15px">✨ AI Portföy Danışmanı</h3>
+            <button type="button" class="btn" id="aiBtn">AI Yorumu Al</button>
+          </div>
+          <div id="aiOut" style="white-space:pre-wrap;line-height:1.6;font-size:14px;color:var(--txt)">Yapay zekâ, portföyünüzü canlı piyasa verisiyle değerlendirip kısa bir yorum ve öneri üretir. Başlamak için “AI Yorumu Al”a basın.</div>
+        </div>
+
         <div class="grid2">
           <div class="card">
             <h3>Satış & Tahsilat Performansı</h3>
@@ -1028,6 +1036,42 @@ document.querySelectorAll('.demo-cred').forEach(d=>d.addEventListener('click',()
   document.getElementById('lerr').textContent='';
 }));
 document.getElementById('logoutBtn').addEventListener('click',logout);
+
+// ===================== AI PORTFÖY DANIŞMANI =====================
+const AI_PROXY_URL = "https://assetix-ai.akmannamik83.workers.dev";
+async function askAI(prompt, system){
+  try{
+    const r = await fetch(AI_PROXY_URL, {method:"POST", headers:{"content-type":"application/json"},
+      body: JSON.stringify({prompt, system})});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok) return {error: j.error || ("AI hatası ("+r.status+")")};
+    return {text: j.text || ""};
+  }catch(e){ return {error:"Bağlantı hatası — AI servisine ulaşılamadı."}; }
+}
+function buildAIPrompt(){
+  const m = fxState.market||{};
+  const port = computePortfolioYoY();
+  let totVal=0, totCost=0;
+  assets.forEach(a=>{ totVal+=parseTRNum(a.val); totCost+=parseTRNum(a.pprice); });
+  const lines = assets.map(a=>`- ${a.no} (${a.type}, ${a.loc}): alış ₺${a.pprice||'—'} → güncel ₺${a.val}, edinim ${a.pdate||'—'}, statü ${a.status}`).join('\n');
+  const g = v => v==null?'—':v;
+  return `Bir kurumsal gayrimenkul/varlık portföyünü değerlendir.\n`+
+    `ÖZET: ${assets.length} varlık · toplam güncel değer ₺${fmt(totVal)} · toplam alış bedeli ₺${fmt(totCost)} · yıllıklandırılmış getiri ${port!=null?port.toFixed(1)+'%':'—'}.\n`+
+    `CANLI PİYASA (yıllık): TÜFE enflasyon ${g(m.tufe&&m.tufe.yoy)}% · TL mevduat ${g(m.deposit&&m.deposit.value)}% · Konut Fiyat Endeksi ${g(m.kfe_tr&&m.kfe_tr.yoy)}%.\n`+
+    `VARLIKLAR:\n${lines}\n\n`+
+    `Şunları yap: (1) Portföy enflasyon, mevduat ve konut endeksine göre iyi mi kötü mü, tek cümleyle hüküm ver. (2) En zayıf 1-2 varlığı belirt. (3) Somut 2-3 öneri ver (elde tut / sat / yeniden değerle). Türkçe, kısa, madde madde.`;
+}
+const aiBtn = document.getElementById('aiBtn');
+if(aiBtn){
+  aiBtn.addEventListener('click', async ()=>{
+    const out = document.getElementById('aiOut');
+    aiBtn.disabled = true; const old = aiBtn.textContent; aiBtn.textContent = 'Düşünüyor…';
+    out.textContent = 'Yapay zekâ portföyünüzü inceliyor…';
+    const res = await askAI(buildAIPrompt(), "Sen deneyimli bir gayrimenkul yatırım danışmanısın. Kısa, net, uygulanabilir öneriler ver. Yatırım tavsiyesi değil, analiz amaçlıdır.");
+    out.textContent = res.error ? '⚠ '+res.error : res.text;
+    aiBtn.textContent = old; aiBtn.disabled = false;
+  });
+}
 
 // ===================== LIVE FX (Frankfurter canlı + TCMB resmî) =====================
 // Frankfurter (ECB verisi) CORS destekler — proxy gerekmez, geçmiş tarih de verir.
