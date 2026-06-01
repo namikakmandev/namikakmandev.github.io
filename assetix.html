@@ -229,7 +229,11 @@
           <span class="fxupd" id="tbUpd">güncelleniyor…</span>
         </div>
         <span class="pill">🏦 Demo Bank A.Ş.</span>
-        <div class="av">NA</div>
+        <div class="userbox" id="userBox">
+          <div class="uinfo"><div class="uname" id="uName">—</div><div class="urole" id="uRole">—</div></div>
+          <div class="av" id="uAvatar">NA</div>
+          <button class="btn ghost" id="logoutBtn" style="padding:6px 10px">Çıkış</button>
+        </div>
       </div>
     </div>
 
@@ -293,7 +297,7 @@
             <span class="chip" data-f="Lojman">Lojman</span>
             <span class="chip" data-f="Araç">Araç</span>
           </div>
-          <button class="btn">+ Yeni Varlık</button>
+          <button class="btn req-edit">+ Yeni Varlık</button>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
           <table id="atable">
@@ -550,7 +554,7 @@
             </div>
             <div class="form-actions">
               <button type="button" class="btn ghost" id="txReset">Temizle</button>
-              <button type="submit" class="btn">İşlemi Kaydet</button>
+              <button type="submit" class="btn req-edit">İşlemi Kaydet</button>
             </div>
           </form>
         </div>
@@ -634,12 +638,46 @@
     <div class="row-between" style="margin:20px 0 10px;align-items:center;flex-wrap:wrap;gap:8px">
       <h4 style="margin:0;font-size:15px">Belgeler</h4>
       <div style="display:flex;gap:8px;align-items:center">
-        <select id="docCat" style="padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"><option>Tapu</option><option>Sözleşme</option><option>Değerleme</option><option>Sigorta</option><option>Diğer</option></select>
-        <button type="button" class="btn" id="docAddBtn">＋ Belge Ekle</button>
+        <select id="docCat" class="req-edit" style="padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"><option>Tapu</option><option>Sözleşme</option><option>Değerleme</option><option>Sigorta</option><option>Diğer</option></select>
+        <button type="button" class="btn req-edit" id="docAddBtn">＋ Belge Ekle</button>
         <input type="file" id="docFile" style="display:none">
       </div>
     </div>
     <div id="dDocs" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+<style>
+  body.viewer-mode .req-edit{display:none !important;}
+  .userbox{display:flex;align-items:center;gap:10px}
+  .uinfo{line-height:1.15;text-align:right}
+  .uname{font-weight:700;font-size:13px}
+  .urole{font-size:11px;color:var(--muted)}
+  @media(max-width:760px){.uinfo{display:none}}
+  .demo-cred:hover{text-decoration:underline}
+</style>
+<!-- Demo Login -->
+<div id="loginScreen" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f172a,#1e293b);padding:20px">
+  <div style="width:min(400px,100%);background:#fff;border-radius:16px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.45)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800">A</div>
+      <div><div style="font-weight:800;font-size:18px;color:#0f172a">ASSETIX</div><div style="font-size:11px;color:#64748b;letter-spacing:1px">VARLIK YÖNETİMİ</div></div>
+    </div>
+    <p style="color:#64748b;font-size:13px;margin:6px 0 18px">Devam etmek için giriş yapın.</p>
+    <form id="loginForm" autocomplete="off">
+      <label style="font-size:12px;color:#475569;font-weight:600">Kullanıcı Adı</label>
+      <input id="luser" style="width:100%;padding:11px;margin:4px 0 12px;border:1px solid #cbd5e1;border-radius:9px;font-size:14px;box-sizing:border-box">
+      <label style="font-size:12px;color:#475569;font-weight:600">Parola</label>
+      <input id="lpass" type="password" style="width:100%;padding:11px;margin:4px 0 6px;border:1px solid #cbd5e1;border-radius:9px;font-size:14px;box-sizing:border-box">
+      <div id="lerr" style="color:#dc2626;font-size:12.5px;min-height:18px;margin:2px 0 6px"></div>
+      <button type="submit" style="width:100%;padding:12px;border:0;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-weight:700;font-size:15px;cursor:pointer">Giriş Yap</button>
+    </form>
+    <div style="margin-top:18px;padding:12px 14px;background:#f1f5f9;border-radius:10px;font-size:12px;color:#475569">
+      <b style="color:#0f172a">Demo hesapları</b> — tıklayıp deneyin:
+      <div class="demo-cred" data-u="admin" data-p="admin123" style="cursor:pointer;margin-top:7px">👑 <b>admin</b> / admin123 — Yönetici (tam yetki)</div>
+      <div class="demo-cred" data-u="mudur" data-p="mudur123" style="cursor:pointer;margin-top:4px">✏️ <b>mudur</b> / mudur123 — Portföy Yöneticisi (düzenleme)</div>
+      <div class="demo-cred" data-u="bakis" data-p="bakis123" style="cursor:pointer;margin-top:4px">👁️ <b>bakis</b> / bakis123 — Görüntüleyici (salt-okunur)</div>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:#94a3b8;line-height:1.45">⚠️ Bu bir <b>demo</b> giriş ekranıdır; gerçek güvenlik sağlamaz. Gerçek çok-kullanıcılı sürüm için sunucu + veritabanı gerekir.</div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -871,7 +909,7 @@ function renderDocs(){
          <div style="color:var(--muted);font-size:12px"><span class="tag">${d.cat}</span> ${d.date?trDate(d.date):''}${d.size?' · '+Math.round(d.size/1024)+' KB':''}${d.sample?' · örnek kayıt':''}</div>
        </div>
        <button type="button" class="btn ghost" data-open="${i}" style="padding:6px 10px">Aç</button>
-       <button type="button" class="btn ghost" data-del="${i}" style="padding:6px 10px">Sil</button>
+       <button type="button" class="btn ghost req-edit" data-del="${i}" style="padding:6px 10px">Sil</button>
      </div>`).join('');
 }
 function openDoc(d){
@@ -903,6 +941,46 @@ document.getElementById('docFile').addEventListener('change',e=>{
   rd.onerror=()=>showToast('Dosya okunamadı');
   rd.readAsDataURL(f); e.target.value='';
 });
+
+// ===================== DEMO LOGIN + ROLES =====================
+// NOTE: browser-only demo auth — illustrative, NOT real security.
+const DEMO_USERS={
+  admin:{pass:'admin123',name:'Namık Akman',role:'admin',  roleLabel:'Yönetici'},
+  mudur:{pass:'mudur123',name:'Ayşe Demir', role:'manager',roleLabel:'Portföy Yöneticisi'},
+  bakis:{pass:'bakis123',name:'Mert Kaya',  role:'viewer', roleLabel:'Görüntüleyici'},
+};
+const initials=n=>n.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+function applyRole(u){
+  document.body.classList.toggle('viewer-mode', u.role==='viewer');
+  document.getElementById('uAvatar').textContent=initials(u.name);
+  document.getElementById('uName').textContent=u.name;
+  document.getElementById('uRole').textContent=u.roleLabel;
+}
+function doLogin(u){
+  try{sessionStorage.setItem('assetix_user',JSON.stringify(u));}catch(e){}
+  applyRole(u);
+  document.getElementById('loginScreen').style.display='none';
+}
+function logout(){
+  try{sessionStorage.removeItem('assetix_user');}catch(e){}
+  const ls=document.getElementById('loginScreen'); ls.style.display='flex';
+  document.getElementById('loginForm').reset(); document.getElementById('lerr').textContent='';
+}
+(function(){ try{const s=sessionStorage.getItem('assetix_user'); if(s){ applyRole(JSON.parse(s)); document.getElementById('loginScreen').style.display='none'; } }catch(e){} })();
+document.getElementById('loginForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const u=document.getElementById('luser').value.trim().toLowerCase();
+  const p=document.getElementById('lpass').value;
+  const rec=DEMO_USERS[u];
+  if(rec && rec.pass===p){ doLogin({user:u,name:rec.name,role:rec.role,roleLabel:rec.roleLabel}); }
+  else document.getElementById('lerr').textContent='Hatalı kullanıcı adı veya parola.';
+});
+document.querySelectorAll('.demo-cred').forEach(d=>d.addEventListener('click',()=>{
+  document.getElementById('luser').value=d.dataset.u;
+  document.getElementById('lpass').value=d.dataset.p;
+  document.getElementById('lerr').textContent='';
+}));
+document.getElementById('logoutBtn').addEventListener('click',logout);
 
 // ===================== LIVE FX (Frankfurter canlı + TCMB resmî) =====================
 // Frankfurter (ECB verisi) CORS destekler — proxy gerekmez, geçmiş tarih de verir.
