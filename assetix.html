@@ -275,6 +275,15 @@
           <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--violet)"></span> Bekleyen Devir</div><div class="val">23</div><div class="delta down">▼ 4 tamamlandı</div></div>
         </div>
 
+        <div class="card" id="returnInsight" style="margin-bottom:16px;display:none">
+          <div class="row-between" style="align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <h3 style="margin:0;font-size:15px">📊 Getiri Analizi — Portföy, alternatifleri yeniyor mu?</h3>
+            <span class="tag" style="background:#eef5ff;color:var(--brand)">● Canlı TCMB / piyasa verisi</span>
+          </div>
+          <div id="riGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px"></div>
+          <div id="riVerdict" style="font-size:13.5px;padding:12px 14px;border-radius:9px;line-height:1.55"></div>
+        </div>
+
         <div class="grid2">
           <div class="card">
             <h3>Satış & Tahsilat Performansı</h3>
@@ -1075,6 +1084,35 @@ function renderBenchChart(labels,data,colors){
   if(benchChart){ benchChart.data=d; benchChart.update(); return; }
   benchChart=new Chart(el,{type:'bar',data:d,options:opt});
 }
+// Portföyün yıllık değer artışını canlı TCMB göstergeleriyle kıyaslayıp yorum üretir.
+const PORT_YOY = 26.1; // demo: portföyün yıllık değer artışı (alış→güncel; ileride varlık verisinden hesaplanabilir)
+function renderReturnInsight(){
+  const box=document.getElementById('returnInsight'); if(!box) return;
+  const m=fxState.market||{};
+  const dep=m.deposit?Number(m.deposit.value):null;
+  const infl=(m.tufe&&m.tufe.yoy!=null)?Number(m.tufe.yoy):null;
+  const kfe=(m.kfe_tr&&m.kfe_tr.yoy!=null)?Number(m.kfe_tr.yoy):null;
+  if(dep==null&&infl==null&&kfe==null){ box.style.display='none'; return; }
+  const pc=v=>v==null?'—':(v>=0?'+':'')+Number(v).toLocaleString('tr-TR',{maximumFractionDigits:1})+'%';
+  const stat=(label,val,color,sub)=>`<div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px">
+    <div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">${label}</div>
+    <div style="font-size:19px;font-weight:800;margin-top:3px;color:${color}">${val}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">${sub||''}</div></div>`;
+  const dstr=dep!=null?('%'+Number(dep).toLocaleString('tr-TR',{maximumFractionDigits:1})):'—';
+  document.getElementById('riGrid').innerHTML=
+    stat('Portföy', pc(PORT_YOY)+'/yıl', (infl!=null&&PORT_YOY<infl)?'var(--red)':'var(--green)', 'yıllık değer artışı')+
+    stat('Konut Endeksi', kfe==null?'—':pc(kfe)+'/yıl', 'var(--txt)', 'TCMB · ülke geneli')+
+    stat('Enflasyon (TÜFE)', infl==null?'—':pc(infl)+'/yıl', 'var(--amber)', 'yıllık')+
+    stat('TL Mevduat', dep==null?'—':dstr+'/yıl', 'var(--brand)', 'risksiz / fırsat maliyeti');
+  let tone,v;
+  if(dep!=null&&PORT_YOY>=dep){ tone='ok'; v=`<b>Reel pozitif.</b> Portföy yıllık <b>${pc(PORT_YOY)}</b> getiriyle hem enflasyonun hem de risksiz TL mevduatın (${dstr}) üzerinde — sermaye verimli çalışıyor.`; }
+  else if(infl!=null&&PORT_YOY>=infl){ tone='warn'; v=`Portföy yıllık <b>${pc(PORT_YOY)}</b> ile enflasyonu (${pc(infl)}) geçiyor; ancak risksiz TL mevduatın (${dstr}) altında — <b>fırsat maliyeti var.</b> Aynı sermaye mevduatta daha fazla getirebilirdi.`; }
+  else { tone='bad'; v=`⚠ <b>Reel değer kaybı.</b> Portföyün yıllık değer artışı <b>${pc(PORT_YOY)}</b>; enflasyonun (${pc(infl)}) ve risksiz TL mevduatın (${dstr}) <b>altında.</b> Konut endeksiyle (${pc(kfe)}) uyumlu olsa da nominal kazanç enflasyona yenik — düşük performanslı varlıkların elden çıkarılması/yeniden değerlemesi değerlendirilmeli.`; }
+  const tones={ok:['#ecfdf5','#065f46'],warn:['#fffbeb','#92400e'],bad:['#fef2f2','#991b1b']};
+  const c=tones[tone];
+  const rv=document.getElementById('riVerdict'); rv.style.background=c[0]; rv.style.color=c[1]; rv.innerHTML=v;
+  box.style.display='';
+}
 function renderFX(){
   const setT=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   if(fxState.err||!fxState.usdtry){
@@ -1100,6 +1138,7 @@ function renderFX(){
   const bench=(fxState.market&&fxState.market.deposit)?fxState.market.deposit.value:fxState.rate;
   if(bench!=null){ const ai=document.querySelector('#anForm [name=rate]'); if(ai&&rateAuto) ai.value=bench; }
   renderMarket();
+  renderReturnInsight();
   const t=document.getElementById('fxTime');
   if(t){
     let s='Canlı: '+fxState.src+(fxState.liveDate?' · '+fxState.liveDate:'');
