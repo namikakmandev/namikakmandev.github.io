@@ -2,7 +2,7 @@
    Load this BEFORE any tool script that exports. Provides globals:
    crc32(bytes), u8(str), zip(files) -> Blob, xe(str), xesc (alias of xe).
    Previously duplicated verbatim in cashflow / gross-to-net / portfolio-optimizer
-   / prioritization / rental-manager. Single source of truth now lives here. */
+   / prioritization. Single source of truth now lives here. */
 const _ct = (() => {
   const t = [];
   for (let n = 0; n < 256; n++) {
