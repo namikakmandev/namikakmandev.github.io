@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASSETIX — Varlık Yönetim Sistemi (Prototip)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#eef2f8; --bg2:#ffffff; --panel:#ffffff; --panel2:#f1f5fb;
+    --line:#dce3ee; --txt:#1a2438; --muted:#5d6b85; --brand:#2563eb;
+    --brand2:#0891b2; --green:#16a34a; --amber:#d97706; --red:#dc2626; --violet:#7c3aed;
+    --shadow:0 6px 20px rgba(30,50,90,.09);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%,#e6eefb 0%,var(--bg) 55%);
+    color:var(--txt);min-height:100vh}
+  a{color:inherit;text-decoration:none}
+  .app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+
+  /* Sidebar */
+  .side{background:linear-gradient(180deg,#ffffff,#f6f9fe);border-right:1px solid var(--line);
+    padding:18px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+    display:grid;place-items:center;font-weight:800;color:#06121f}
+  .brand b{font-size:18px;letter-spacing:.5px}
+  .brand span{display:block;font-size:10.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+  .nav{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+  .nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;cursor:pointer;
+    background:transparent;color:var(--muted);padding:10px 11px;border-radius:9px;font-size:14px;font-weight:600;transition:.15s}
+  .nav button .ic{width:20px;text-align:center;font-size:15px}
+  .nav button:hover{background:var(--panel2);color:var(--txt)}
+  .nav button.active{background:linear-gradient(90deg,rgba(37,99,235,.12),rgba(8,145,178,.05));
+    color:var(--brand);box-shadow:inset 0 0 0 1px rgba(37,99,235,.28)}
+  .side .foot{margin-top:auto;font-size:11px;color:var(--muted);padding:10px 8px;border-top:1px solid var(--line)}
+
+  /* Main */
+  .main{padding:0 0 40px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 28px;
+    border-bottom:1px solid var(--line);background:rgba(255,255,255,.78);backdrop-filter:blur(6px);position:sticky;top:0;z-index:5}
+  .search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--muted)}
+  .search input{flex:1;background:transparent;border:0;outline:0;color:var(--txt);font-size:13.5px}
+  .tb-right{display:flex;align-items:center;gap:14px}
+  .pill{font-size:12px;background:var(--panel);border:1px solid var(--line);padding:7px 12px;border-radius:999px;color:var(--muted)}
+  .tb-fx{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .fxchip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:6px 11px;font-size:13.5px;font-weight:800;color:var(--txt);white-space:nowrap}
+  .fxchip b{color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.5px}
+  .fxchip i{font-style:normal;font-variant-numeric:tabular-nums}
+  .fxchip .live{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.18)}
+  .fxchip.rate{background:#eef5ff;border-color:rgba(37,99,235,.28);color:var(--brand)}
+  .fxchip.rate b{color:var(--brand)}
+  .fxupd{font-size:10.5px;color:var(--muted);white-space:nowrap}
+  .av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#a78bfa,#3b82f6);
+    display:grid;place-items:center;font-weight:700;font-size:13px}
+  .content{padding:26px 28px}
+  .page{display:none;animation:fade .35s ease}
+  .page.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  h1.pt{font-size:23px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+    border-radius:15px;padding:18px;box-shadow:var(--shadow)}
+  .kpi .lab{color:var(--muted);font-size:12.5px;display:flex;align-items:center;gap:8px}
+  .kpi .val{font-size:27px;font-weight:800;margin-top:8px}
+  .kpi .delta{font-size:12px;margin-top:6px;font-weight:600}
+  .up{color:var(--green)} .down{color:var(--red)}
+  .dot{width:9px;height:9px;border-radius:50%}
+
+  .grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;margin-bottom:16px}
+  .grid2b{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card h3{margin:0 0 2px;font-size:15px}
+  .card .ch-sub{color:var(--muted);font-size:12px;margin:0 0 14px}
+  canvas{max-width:100%}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{ text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;letter-spacing:.4px;
+    text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--line)}
+  td{padding:12px;border-bottom:1px solid var(--line)}
+  tr:hover td{background:var(--panel2)}
+  .badge{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;display:inline-block}
+  .b-green{background:rgba(22,163,74,.12);color:#15803d}
+  .b-amber{background:rgba(217,119,6,.14);color:#b45309}
+  .b-blue{background:rgba(37,99,235,.12);color:#1d4ed8}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c}
+  .b-violet{background:rgba(124,58,237,.12);color:#6d28d9}
+  .b-gray{background:rgba(93,107,133,.13);color:#475569}
+  .tag{font-size:11px;color:var(--muted);background:var(--panel2);padding:3px 8px;border-radius:6px}
+  .filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .chip{font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--muted);
+    padding:7px 13px;border-radius:999px;cursor:pointer;font-weight:600}
+  .chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn{background:linear-gradient(135deg,var(--brand),#2563eb);border:0;color:#fff;font-weight:700;
+    padding:9px 16px;border-radius:10px;cursor:pointer;font-size:13px}
+  .btn.ghost{background:var(--panel);border:1px solid var(--line);color:var(--txt)}
+  .row-between{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+
+  /* Modules grid */
+  .mods{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .mod{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+    border-radius:15px;padding:18px;cursor:pointer;transition:.18s}
+  .mod:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:rgba(59,130,246,.5)}
+  .mod .mic{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:20px;margin-bottom:12px}
+  .mod .mic svg{width:22px;height:22px}
+  .mod h4{margin:0 0 6px;font-size:15px}
+  .mod p{margin:0;color:var(--muted);font-size:12.8px;line-height:1.55}
+
+  /* Workflow */
+  .flow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:6px 2px 16px}
+  .step{min-width:172px;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+    border-radius:14px;padding:16px;position:relative}
+  .step .n{width:26px;height:26px;border-radius:8px;background:var(--brand);color:#fff;display:grid;
+    place-items:center;font-weight:800;font-size:13px;margin-bottom:10px}
+  .step h4{margin:0 0 6px;font-size:14px}
+  .step p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+  .arrow{display:grid;place-items:center;min-width:34px;color:var(--brand2);font-size:22px}
+  .lane{margin-bottom:8px}
+  .lane-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:18px 0 10px;font-weight:700}
+  .swim{display:grid;grid-template-columns:160px 1fr;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+  .swim .actor{background:var(--panel2);padding:16px;font-weight:700;font-size:13px;display:flex;align-items:center;border-right:1px solid var(--line)}
+  .swim .acts{padding:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .node{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:600}
+  .node.brand{border-color:rgba(59,130,246,.5);background:rgba(59,130,246,.12)}
+  .mini-arrow{color:var(--muted)}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .note{background:rgba(8,145,178,.08);border:1px solid rgba(8,145,178,.28);border-radius:12px;
+    padding:14px 16px;color:#0e7490;font-size:13px;margin-top:18px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:1100px){.kpis,.mods{grid-template-columns:repeat(2,1fr)}.grid2,.grid2b,.two{grid-template-columns:1fr}}
+  @media(max-width:780px){.app{grid-template-columns:1fr}.side{display:none}}
+  .progress{height:7px;background:var(--panel2);border-radius:6px;overflow:hidden;margin-top:8px}
+  .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2))}
+  .nav .ic svg{width:18px;height:18px;display:block}
+
+  /* Forms */
+  .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field.full{grid-column:1/-1}
+  .field label{font-size:12px;color:var(--muted);font-weight:600}
+  .field input,.field select,.field textarea{background:var(--bg2);border:1px solid var(--line);
+    color:var(--txt);border-radius:9px;padding:10px 12px;font-size:13.5px;outline:0;font-family:inherit}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand)}
+  .field textarea{resize:vertical;min-height:44px}
+  .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .ss{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:13px;padding:14px 16px}
+  .ss .l{font-size:11.5px;color:var(--muted)} .ss .v{font-size:20px;font-weight:800;margin-top:4px}
+  .toast{position:fixed;bottom:24px;right:24px;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;
+    padding:13px 18px;border-radius:11px;font-weight:600;font-size:13.5px;box-shadow:var(--shadow);
+    transform:translateY(80px);opacity:0;transition:.3s;z-index:50}
+  .toast.show{transform:none;opacity:1}
+  /* Modal */
+  .overlay{position:fixed;inset:0;background:rgba(4,9,18,.66);backdrop-filter:blur(3px);display:none;
+    place-items:center;z-index:40;padding:20px}
+  .overlay.show{display:grid}
+  .modal{width:min(560px,100%);background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+  .modal h3{margin:0 0 16px;font-size:17px}
+  .modal .x{float:right;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;border:0;background:0}
+  td.amt{font-variant-numeric:tabular-nums;font-weight:600}
+  .del{cursor:pointer;color:var(--muted);border:0;background:0;font-size:15px}
+  .del:hover{color:var(--red)}
+  .audit{font-size:11px;color:var(--muted)}
+  /* FX panes */
+  .fxgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:10px}
+  .fxcard{background:linear-gradient(180deg,#ffffff,#f7faff);border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .fxcard .pair{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+  .fxcard .fxval{font-size:26px;font-weight:800;margin-top:8px;font-variant-numeric:tabular-nums;color:var(--txt)}
+  .fxcard.rate{background:linear-gradient(180deg,#eef5ff,#e6f0ff);border-color:rgba(37,99,235,.22)}
+  .fxcard .live{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.18)}
+  .fxmeta{display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:11.5px;color:var(--muted)}
+  .fxmeta .rfx{margin-left:auto}
+  .rfx{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--txt);
+    border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600}
+  .rfx:hover{background:var(--panel2)}
+  /* Analyzer */
+  .res{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  .rc{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:13px 14px}
+  .rc .l{font-size:11px;color:var(--muted)} .rc .v{font-size:18px;font-weight:800;margin-top:5px;color:var(--txt)}
+  .verdict{margin-top:14px;border-radius:12px;padding:14px 16px;font-size:14px;font-weight:600;display:flex;gap:10px;align-items:flex-start}
+  .v-good{background:rgba(22,163,74,.10);border:1px solid rgba(22,163,74,.35);color:#15803d}
+  .v-bad{background:rgba(220,38,38,.09);border:1px solid rgba(220,38,38,.35);color:#b91c1c}
+  .v-mid{background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.35);color:#b45309}
+  .pos{color:#15803d}.neg{color:#b91c1c}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">A</div>
+      <div><b>ASSETIX</b><span>Varlık Yönetimi</span></div>
+    </div>
+    <nav class="nav" id="nav">
+      <button data-p="dash" class="active"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span> Gösterge Paneli</button>
+      <button data-p="assets"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg></span> Varlık Portföyü</button>
+      <button data-p="ledger"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span> İşlemler</button>
+      <button data-p="sales"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M7 7l-3 6h6z"/><path d="M17 7l-3 6h6z"/></svg></span> Satış & e-İhale</button>
+      <button data-p="lease"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg></span> Kiralama</button>
+      <button data-p="flow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-3-3"/><path d="M17 17H4l3 3"/></svg></span> İş Akışı</button>
+      <button data-p="mods"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span> Modüller</button>
+      <button data-p="reports"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg></span> Raporlama</button>
+    </nav>
+    <div class="foot">Prototip · v0.1<br>Demo verileriyle hazırlanmıştır</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="search"><span>🔎</span><input placeholder="Varlık, tapu no, ilan veya süreç ara..."></div>
+      <div class="tb-right">
+        <div class="tb-fx">
+          <span class="fxchip"><span class="live"></span><b>USD/TRY</b> <i id="tbUsd">…</i></span>
+          <span class="fxchip"><b>EUR/TRY</b> <i id="tbEur">…</i></span>
+          <span class="fxchip"><b>GBP/TRY</b> <i id="tbGbp">…</i></span>
+          <span class="fxchip rate"><b>FAİZ</b> <i id="tbRate">%37,0</i></span>
+          <span class="fxupd" id="tbUpd">güncelleniyor…</span>
+        </div>
+        <span class="pill">🏦 Demo Bank A.Ş.</span>
+        <div class="av">NA</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <section class="page active" id="dash">
+        <h1 class="pt">Gösterge Paneli</h1>
+        <p class="sub">Varlık portföyünüzün anlık görünümü — 31 Mayıs 2026 itibarıyla.</p>
+        <div class="kpis">
+          <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--brand)"></span> Toplam Varlık</div><div class="val">1.284</div><div class="delta up">▲ %4,2 bu çeyrek</div></div>
+          <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--green)"></span> Portföy Değeri</div><div class="val">₺8,7 Mr</div><div class="delta up">▲ %6,1 değerleme</div></div>
+          <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--amber)"></span> Aktif İhale</div><div class="val">37</div><div class="delta up">▲ 9 bu ay</div></div>
+          <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--violet)"></span> Bekleyen Devir</div><div class="val">23</div><div class="delta down">▼ 4 tamamlandı</div></div>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <h3>Satış & Tahsilat Performansı</h3>
+            <p class="ch-sub">Aylık gerçekleşen satış tutarı (₺ Milyon)</p>
+            <canvas id="cSales" height="150"></canvas>
+          </div>
+          <div class="card">
+            <h3>Portföy Dağılımı</h3>
+            <p class="ch-sub">Varlık türüne göre</p>
+            <canvas id="cPie" height="150"></canvas>
+          </div>
+        </div>
+
+        <div class="grid2b">
+          <div class="card">
+            <div class="row-between"><h3 style="margin:0">Süreç Hattı</h3><span class="tag">Canlı</span></div>
+            <table>
+              <tr><td>Değerleme bekleyen</td><td style="text-align:right"><b>48</b></td><td style="width:42%"><div class="progress"><i style="width:30%"></i></div></td></tr>
+              <tr><td>İlana hazır</td><td style="text-align:right"><b>61</b></td><td><div class="progress"><i style="width:48%"></i></div></td></tr>
+              <tr><td>İhalede</td><td style="text-align:right"><b>37</b></td><td><div class="progress"><i style="width:28%"></i></div></td></tr>
+              <tr><td>Devir sürecinde</td><td style="text-align:right"><b>23</b></td><td><div class="progress"><i style="width:18%"></i></div></td></tr>
+            </table>
+          </div>
+          <div class="card">
+            <div class="row-between"><h3 style="margin:0">Yaklaşan Hatırlatmalar</h3><span class="tag">7 gün</span></div>
+            <table>
+              <tr><td>Sigorta yenileme — Lojman B7</td><td><span class="badge b-amber">2 gün</span></td></tr>
+              <tr><td>İhale kapanış — Arsa #5521</td><td><span class="badge b-red">Bugün</span></td></tr>
+              <tr><td>Kira sözleşme bitişi — Ofis K2</td><td><span class="badge b-blue">5 gün</span></td></tr>
+              <tr><td>Vergi ödemesi — Bina M-12</td><td><span class="badge b-amber">3 gün</span></td></tr>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ASSETS -->
+      <section class="page" id="assets">
+        <h1 class="pt">Varlık Portföyü</h1>
+        <p class="sub">Gayrimenkul ve menkul varlık kayıtları, tapu bilgileri, statü ve sorumlu yönetimi.</p>
+        <div class="row-between">
+          <div class="filters" id="afilters">
+            <span class="chip on" data-f="all">Tümü</span>
+            <span class="chip" data-f="Arsa">Arsa</span>
+            <span class="chip" data-f="Bina">Bina</span>
+            <span class="chip" data-f="Lojman">Lojman</span>
+            <span class="chip" data-f="Araç">Araç</span>
+          </div>
+          <button class="btn">+ Yeni Varlık</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table id="atable">
+            <thead><tr><th>Varlık No</th><th>Tür</th><th>Konum</th><th>Değer (₺)</th><th>Statü</th><th>Sorumlu</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SALES -->
+      <section class="page" id="sales">
+        <h1 class="pt">Satış & e-İhale</h1>
+        <p class="sub">İlan oluşturma, e-ihale / e-müzayede yönetimi, teklif takibi ve tapu devir koordinasyonu.</p>
+        <div class="two">
+          <div class="card">
+            <div class="row-between"><h3 style="margin:0">Aktif İhaleler</h3><span class="tag">37 ilan</span></div>
+            <table>
+              <thead><tr><th>İlan</th><th>Mevcut Teklif</th><th>Teklif Sayısı</th><th>Durum</th></tr></thead>
+              <tbody>
+                <tr><td>Arsa #5521 — Çankaya</td><td>₺4.250.000</td><td>14</td><td><span class="badge b-red">Bugün kapanıyor</span></td></tr>
+                <tr><td>Bina M-12 — Kadıköy</td><td>₺12.800.000</td><td>9</td><td><span class="badge b-green">Açık</span></td></tr>
+                <tr><td>Lojman B7 — Ankara</td><td>₺2.100.000</td><td>6</td><td><span class="badge b-green">Açık</span></td></tr>
+                <tr><td>Araç filosu (5) — İzmir</td><td>₺3.400.000</td><td>11</td><td><span class="badge b-amber">2 gün</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            <h3>İhale Sonuç Oranları</h3>
+            <p class="ch-sub">Son 6 ay — satılan / iptal / yeniden ilan</p>
+            <canvas id="cBar" height="170"></canvas>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="row-between"><h3 style="margin:0">Teklif Akışı — Arsa #5521</h3><span class="badge b-red">Canlı · 14 teklif</span></div>
+          <table>
+            <thead><tr><th>Katılımcı</th><th>Teklif</th><th>Zaman</th><th>Durum</th></tr></thead>
+            <tbody>
+              <tr><td>Katılımcı #K-1042</td><td>₺4.250.000</td><td>14:32</td><td><span class="badge b-green">En yüksek</span></td></tr>
+              <tr><td>Katılımcı #K-0991</td><td>₺4.180.000</td><td>14:28</td><td><span class="badge b-gray">Geçildi</span></td></tr>
+              <tr><td>Katılımcı #K-1130</td><td>₺4.050.000</td><td>14:11</td><td><span class="badge b-gray">Geçildi</span></td></tr>
+              <tr><td>Katılımcı #K-0875</td><td>₺3.900.000</td><td>13:55</td><td><span class="badge b-gray">Geçildi</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- LEASE -->
+      <section class="page" id="lease">
+        <h1 class="pt">Kiralama & Kullanım Yönetimi</h1>
+        <p class="sub">Kiracı yönetimi, kira sözleşmeleri, gelir-gider takibi ve vadeli satış izleme.</p>
+        <div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+          <div class="card kpi"><div class="lab">Aktif Sözleşme</div><div class="val">312</div><div class="delta up">▲ 12 bu ay</div></div>
+          <div class="card kpi"><div class="lab">Aylık Kira Geliri</div><div class="val">₺18,4 M</div><div class="delta up">▲ %3,5</div></div>
+          <div class="card kpi"><div class="lab">Tahsilat Oranı</div><div class="val">%94,2</div><div class="delta down">▼ %1,1</div></div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr><th>Sözleşme</th><th>Kiracı</th><th>Varlık</th><th>Aylık (₺)</th><th>Bitiş</th><th>Durum</th></tr></thead>
+            <tbody>
+              <tr><td>SZ-2041</td><td>Yıldız Tic. Ltd.</td><td>Ofis K2 — Levent</td><td>185.000</td><td>05.06.2026</td><td><span class="badge b-amber">Yenileme yakın</span></td></tr>
+              <tr><td>SZ-1988</td><td>Mavi Lojistik</td><td>Depo D-7 — Gebze</td><td>240.000</td><td>14.11.2026</td><td><span class="badge b-green">Aktif</span></td></tr>
+              <tr><td>SZ-2103</td><td>Demir İnşaat</td><td>Bina M-12 — Kadıköy</td><td>320.000</td><td>30.09.2026</td><td><span class="badge b-green">Aktif</span></td></tr>
+              <tr><td>SZ-1755</td><td>Kar Gıda A.Ş.</td><td>Lojman B3 — Ankara</td><td>62.000</td><td>20.06.2026</td><td><span class="badge b-red">Gecikmiş tahsilat</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- WORKFLOW -->
+      <section class="page" id="flow">
+        <h1 class="pt">İş Akışı — Varlık Yaşam Döngüsü</h1>
+        <p class="sub">Bir varlığın sisteme kaydından satışın tamamlanmasına kadar uçtan uca süreç akışı.</p>
+
+        <div class="card">
+          <div class="lane-title">Ana Süreç Hattı</div>
+          <div class="flow">
+            <div class="step"><div class="n">1</div><h4>Varlık Kaydı</h4><p>Tapu bilgileri, dosya arşivi, konum ve sorumlu atama.</p></div>
+            <div class="arrow">→</div>
+            <div class="step"><div class="n">2</div><h4>Değerleme</h4><p>INVEX entegrasyonu ile ekspertiz raporu ve güncel değer.</p></div>
+            <div class="arrow">→</div>
+            <div class="step"><div class="n">3</div><h4>Satış Kararı</h4><p>Yönetim onayı, hukuk görüşü ve süreç türü seçimi.</p></div>
+            <div class="arrow">→</div>
+            <div class="step"><div class="n">4</div><h4>İlan & e-İhale</h4><p>İlan sitesine yayın, teminat ve teklif yönetimi.</p></div>
+            <div class="arrow">→</div>
+            <div class="step"><div class="n">5</div><h4>Devir & Tapu</h4><p>Vekaletname üretimi, noter ve tapu koordinasyonu.</p></div>
+            <div class="arrow">→</div>
+            <div class="step"><div class="n">6</div><h4>Arşiv & Denetim</h4><p>Belge arşivi, muhasebe kaydı ve denetim izi.</p></div>
+          </div>
+
+          <div class="lane-title">Paydaş Bazlı Akış (Swimlane)</div>
+          <div class="swim"><div class="actor">🏦 Banka / Şube</div><div class="acts">
+            <span class="node brand">Varlık kaydı</span><span class="mini-arrow">→</span>
+            <span class="node">Satış talebi</span><span class="mini-arrow">→</span>
+            <span class="node">Onay</span><span class="mini-arrow">→</span>
+            <span class="node">Devir teyidi</span>
+          </div></div>
+          <div class="swim"><div class="actor">⚖ Hukuk Birimi</div><div class="acts">
+            <span class="node">Hukuki uygunluk</span><span class="mini-arrow">→</span>
+            <span class="node">Vekaletname</span><span class="mini-arrow">→</span>
+            <span class="node">Sözleşme onayı</span>
+          </div></div>
+          <div class="swim"><div class="actor">📐 Ekspertiz (INVEX)</div><div class="acts">
+            <span class="node brand">Değerleme raporu</span><span class="mini-arrow">→</span>
+            <span class="node">Fotoğraf & tapu</span><span class="mini-arrow">→</span>
+            <span class="node">Yenileme tetikleme</span>
+          </div></div>
+          <div class="swim"><div class="actor">🌐 İlan & Katılımcı</div><div class="acts">
+            <span class="node">İlan yayını</span><span class="mini-arrow">→</span>
+            <span class="node">Teminat yatırma</span><span class="mini-arrow">→</span>
+            <span class="node brand">Teklif verme</span><span class="mini-arrow">→</span>
+            <span class="node">Kazanan</span>
+          </div></div>
+          <div class="swim"><div class="actor">🏛 Noter / Tapu</div><div class="acts">
+            <span class="node">Randevu</span><span class="mini-arrow">→</span>
+            <span class="node brand">Tapu devri</span><span class="mini-arrow">→</span>
+            <span class="node">Tescil teyidi</span>
+          </div></div>
+
+          <div class="note">⚡ Otomasyon: Her aşama geçişinde sistem otomatik belge üretir (yönerge, vekaletname, ihale sonuç raporu), ilgili paydaşa e-posta/SMS bildirimi gönderir ve değişmez denetim izine (audit trail) kayıt düşer.</div>
+          <div class="legend">
+            <span><span class="node brand" style="padding:3px 9px">█</span> Otomasyon / entegrasyon noktası</span>
+            <span><span class="node" style="padding:3px 9px">█</span> Manuel / onay adımı</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODULES -->
+      <section class="page" id="mods">
+        <h1 class="pt">Modüller ve Yetenek Alanları</h1>
+        <p class="sub">Portföyünüzün her katmanını dijitalleştiren ana modüller ve destekleyici araçlar.</p>
+        <div class="mods">
+          <div class="mod"><div class="mic" style="background:rgba(59,130,246,.18);color:#7fb0ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div><h4>Varlık Yönetimi</h4><p>Kayıtlar, tapu bilgileri, harita konumu, statü ve dinamik belge üretimi.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(34,197,94,.16);color:#5ee08a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M7 7l-3 6h6z"/><path d="M17 7l-3 6h6z"/><path d="M8 21h8"/></svg></div><h4>Satış Süreci</h4><p>İlan, e-ihale/e-müzayede, teklif takibi ve tapu devir koordinasyonu.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(167,139,250,.18);color:#c4b2ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 2.5 15.4 0 18"/><path d="M12 3c-2.5 2.6-2.5 15.4 0 18"/></svg></div><h4>İlan Yayın Sitesi</h4><p>SEO uyumlu ilanlar, üye/katılımcı yönetimi, sanal POS ve teminat.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(245,158,11,.18);color:#f7c365"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4"/><path d="M4 20h16"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg></div><h4>Raporlama & Analitik</h4><p>Portföy, satış ve ihale raporları; dashboard ve grafik araçları.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(34,211,238,.16);color:#7fe6f5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></div><h4>Kiralama & Kullanım</h4><p>Kiracı yönetimi, sözleşmeler, gelir-gider ve vadeli satış izleme.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(239,68,68,.16);color:#ff8f8f"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13l-3-3"/><path d="M20 7l-3 3"/><path d="M17 17H4l3 3"/><path d="M4 17l3-3"/></svg></div><h4>Mülkiyet & Devir</h4><p>Alış, satış, ipotek, birleşme-bölünme; noter ve tapu koordinasyonu.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(59,130,246,.18);color:#7fb0ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div><h4>Sigorta & Masraf</h4><p>Poliçeler, yenileme hatırlatmaları, vergi-aidat ve muhasebe entegrasyonu.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(147,164,196,.15);color:#b6c3da"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div><h4>Bildirim & Denetim</h4><p>E-posta/SMS altyapısı, toplu duyuru ve silinemez denetim izi.</p></div>
+        </div>
+
+        <div class="lane-title">Entegrasyon Noktaları</div>
+        <div class="mods">
+          <div class="mod"><div class="mic" style="background:rgba(34,211,238,.16);color:#7fe6f5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 12l9 4 9-4"/><path d="M3 17l9 4 9-4"/></svg></div><h4>INVEX Değerleme</h4><p>Değerleme raporları ve ekspertiz verisi otomatik aktarımı.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(59,130,246,.18);color:#7fb0ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div><h4>Active Directory</h4><p>Kurum içi kimlik doğrulama ve yetki bazlı erişim.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(167,139,250,.18);color:#c4b2ff"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h7M9 17h7"/></svg></div><h4>Doküman Yönetimi</h4><p>Belgelerin merkezi DYS'ye otomatik arşivlenmesi.</p></div>
+          <div class="mod"><div class="mic" style="background:rgba(245,158,11,.18);color:#f7c365"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></div><h4>SMS & E-Posta</h4><p>Toplu bildirim ve süreç hatırlatma altyapısı.</p></div>
+        </div>
+      </section>
+
+      <!-- LEDGER / TRANSACTIONS -->
+      <section class="page" id="ledger">
+        <h1 class="pt">İşlemler — İşlem Kaydı</h1>
+        <p class="sub">Varlık bazlı işlemleri kaydedin: alış, satış, kiralama, ipotek, değerleme, ihale, devir, sigorta ve masraf. Her kayıt değişmez denetim izine işlenir.</p>
+
+        <div class="fxgrid">
+          <div class="fxcard"><div class="pair"><span class="live"></span> USD / TRY</div><div class="fxval" id="fxUsd">…</div></div>
+          <div class="fxcard"><div class="pair"><span class="live"></span> EUR / TRY</div><div class="fxval" id="fxEur">…</div></div>
+          <div class="fxcard"><div class="pair"><span class="live"></span> GBP / TRY</div><div class="fxval" id="fxGbp">…</div></div>
+          <div class="fxcard rate"><div class="pair">Politika Faizi · TCMB</div><div class="fxval" id="fxRate">%37,0</div></div>
+        </div>
+        <div class="fxmeta"><span id="fxTime">Canlı kur alınıyor…</span><button class="rfx" id="fxRefresh">↻ Yenile</button></div>
+
+        <div class="card" id="marketCard" style="margin-bottom:16px;display:none">
+          <div class="row-between"><h3 style="margin:0">Piyasa Göstergeleri</h3><span class="tag">TCMB EVDS</span></div>
+          <p class="ch-sub" style="margin:0 0 4px">Konut fiyat endeksi (yıllık değişim), enflasyon ve banka faiz oranları — analiz için piyasa bağlamı.</p>
+          <div class="res" id="marketGrid" style="grid-template-columns:repeat(4,1fr)"></div>
+          <p class="ch-sub" id="kfeCap" style="margin:18px 0 6px;display:none">Konut Fiyat Endeksi — son 24 ay (başlangıç = 100, karşılaştırmalı)</p>
+          <canvas id="cKfe" height="150"></canvas>
+        </div>
+
+        <div class="summary-strip">
+          <div class="ss"><div class="l">Toplam İşlem</div><div class="v" id="sCount">0</div></div>
+          <div class="ss"><div class="l">Toplam Hacim (₺)</div><div class="v" id="sVol">0</div></div>
+          <div class="ss"><div class="l">Gelir İşlemleri</div><div class="v" id="sIn">0</div></div>
+          <div class="ss"><div class="l">Gider İşlemleri</div><div class="v" id="sOut">0</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="row-between"><h3 style="margin:0">Kârlılık / Getiri Analizi</h3><span class="tag">Canlı kur + TL faiziyle</span></div>
+          <p class="ch-sub" style="margin:0 0 4px">Bir varlık işleminin gerçekten kârlı olup olmadığını; TL mevduat faizine ve dolar bazına göre kıyaslayarak görün.</p>
+          <form id="anForm">
+            <div class="form-grid">
+              <div class="field"><label>Alış / Maliyet Değeri (₺) *</label><input name="buy" type="number" min="1" step="any" placeholder="örn. 4.000.000" required></div>
+              <div class="field"><label>Satış / Güncel Değer (₺) *</label><input name="sell" type="number" min="1" step="any" placeholder="örn. 6.500.000" required></div>
+              <div class="field"><label>TL Mevduat Faizi (% yıllık)</label><input name="rate" type="number" min="0" step="any" value="37"><div class="hint">Bankada tutma alternatifi (3 ay TL mevduat) — düzenlenebilir</div></div>
+              <div class="field"><label>Alış Tarihi *</label><input name="bdate" type="date" required></div>
+              <div class="field"><label>Satış / Bugün *</label><input name="sdate" type="date" required></div>
+              <div class="field"><label>Alış Tarihindeki USD/TRY</label><input name="bfx" type="number" min="0" step="any" placeholder="otomatik"><div class="hint">Alış tarihinden Frankfurter geçmişiyle otomatik dolar — elle değiştirebilirsiniz</div></div>
+              <div class="field"><label>Konut Piyasası (Şehir)</label>
+                <select name="city"><option value="tr">Türkiye geneli</option><option value="ist">İstanbul</option><option value="ank">Ankara</option><option value="izm">İzmir</option></select>
+                <div class="hint">KFE kıyası bu bölgeye göre yapılır</div></div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn">Analiz Et</button>
+            </div>
+          </form>
+          <div id="anOut" style="display:none">
+            <div class="res">
+              <div class="rc"><div class="l">Elde Tutma Süresi</div><div class="v" id="rHold">—</div></div>
+              <div class="rc"><div class="l">Nominal Kâr (₺)</div><div class="v" id="rProfit">—</div></div>
+              <div class="rc"><div class="l">Toplam Getiri</div><div class="v" id="rTotal">—</div></div>
+              <div class="rc"><div class="l">Yıllık Bileşik Getiri</div><div class="v" id="rAnnual">—</div></div>
+              <div class="rc"><div class="l">TL Mevduatta Olsaydı</div><div class="v" id="rDep">—</div></div>
+              <div class="rc"><div class="l">Mevduat Getirisi</div><div class="v" id="rDepRet">—</div></div>
+              <div class="rc"><div class="l">USD Bazında Getiri</div><div class="v" id="rUsd">—</div></div>
+              <div class="rc"><div class="l">Dolar Bazında Kâr</div><div class="v" id="rUsdAbs">—</div></div>
+              <div class="rc"><div class="l" id="rKfeLbl">Konut Piyasası (KFE)</div><div class="v" id="rKfe">—</div></div>
+              <div class="rc"><div class="l">Piyasaya Göre Fark</div><div class="v" id="rKfeDiff">—</div></div>
+            </div>
+            <div class="verdict" id="rVerdict"></div>
+            <p class="ch-sub" style="margin:18px 0 6px">Getiri Karşılaştırması — bu işlem vs. TCMB göstergeleri (dönem toplam %)</p>
+            <canvas id="cBench" height="120"></canvas>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="row-between"><h3 style="margin:0">Yeni İşlem Kaydet</h3><span class="tag">İşlem No otomatik üretilir</span></div>
+          <form id="txForm">
+            <div class="form-grid">
+              <div class="field">
+                <label>İşlem Türü *</label>
+                <select name="type" required>
+                  <option value="">Seçiniz...</option>
+                  <option>Alış</option><option>Satış</option><option>Kiralama</option>
+                  <option>İpotek</option><option>Değerleme</option><option>İhale Teklifi</option>
+                  <option>Devir / Tapu</option><option>Sigorta</option><option>Masraf / Vergi</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Varlık *</label>
+                <select name="asset" id="txAsset" required><option value="">Seçiniz...</option></select>
+              </div>
+              <div class="field">
+                <label>Tutar (₺) *</label>
+                <input name="amount" type="number" min="0" step="any" placeholder="0" required>
+              </div>
+              <div class="field">
+                <label>Karşı Taraf</label>
+                <input name="party" placeholder="Alıcı / kiracı / noter / firma">
+              </div>
+              <div class="field">
+                <label>Tarih *</label>
+                <input name="date" type="date" required>
+              </div>
+              <div class="field">
+                <label>Durum</label>
+                <select name="status"><option>Tamamlandı</option><option>Beklemede</option><option>İptal</option></select>
+              </div>
+              <div class="field full">
+                <label>Açıklama / Not</label>
+                <textarea name="note" placeholder="İşleme dair açıklama, referans belge no, vb."></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn ghost" id="txReset">Temizle</button>
+              <button type="submit" class="btn">İşlemi Kaydet</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="row-between" style="padding:16px 16px 0">
+            <h3 style="margin:0">İşlem Defteri</h3>
+            <div class="filters" id="txFilters" style="margin:0">
+              <span class="chip on" data-f="all">Tümü</span>
+              <span class="chip" data-f="Satış">Satış</span>
+              <span class="chip" data-f="Kiralama">Kiralama</span>
+              <span class="chip" data-f="İhale Teklifi">İhale</span>
+              <span class="chip" data-f="Devir / Tapu">Devir</span>
+              <span class="chip" data-f="Masraf / Vergi">Masraf</span>
+            </div>
+          </div>
+          <table id="txTable">
+            <thead><tr><th>İşlem No</th><th>Tür</th><th>Varlık</th><th>Tutar (₺)</th><th>Karşı Taraf</th><th>Tarih</th><th>Durum</th><th>Denetim İzi</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="note">🔒 Denetim izi: Her işlem; kullanıcı, zaman damgası ve otomatik işlem numarasıyla kaydedilir ve tarayıcınızda saklanır. Bu prototipte kayıtlar yerel olarak (localStorage) tutulur — sayfayı kapatıp açsanız da kalır.</div>
+      </section>
+
+      <!-- REPORTS -->
+      <section class="page" id="reports">
+        <h1 class="pt">Raporlama & Analitik</h1>
+        <p class="sub">Portföy ve süreç bazlı raporlar, anlık görünürlük.</p>
+        <div class="grid2">
+          <div class="card"><h3>Portföy Değer Trendi</h3><p class="ch-sub">Son 12 ay (₺ Milyar)</p><canvas id="cTrend" height="160"></canvas></div>
+          <div class="card"><h3>Bölgesel Dağılım</h3><p class="ch-sub">Varlık sayısı</p><canvas id="cRegion" height="160"></canvas></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="row-between"><h3 style="margin:0">Hazır Raporlar</h3><button class="btn ghost">⤓ Dışa Aktar</button></div>
+          <table>
+            <thead><tr><th>Rapor</th><th>Tür</th><th>Son Çalışma</th><th>Durum</th></tr></thead>
+            <tbody>
+              <tr><td>Aylık Satış Performansı</td><td><span class="tag">PDF</span></td><td>30.05.2026</td><td><span class="badge b-green">Hazır</span></td></tr>
+              <tr><td>Portföy Envanter Raporu</td><td><span class="tag">XLSX</span></td><td>28.05.2026</td><td><span class="badge b-green">Hazır</span></td></tr>
+              <tr><td>İhale Sonuç Özeti</td><td><span class="tag">PDF</span></td><td>29.05.2026</td><td><span class="badge b-green">Hazır</span></td></tr>
+              <tr><td>Sigorta & Masraf Takibi</td><td><span class="tag">XLSX</span></td><td>—</td><td><span class="badge b-amber">Zamanlandı</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Yeni Varlık -->
+<div class="overlay" id="assetOverlay">
+  <div class="modal">
+    <button class="x" id="assetClose">&times;</button>
+    <h3>Yeni Varlık Ekle</h3>
+    <form id="assetForm">
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="field"><label>Tür *</label>
+          <select name="type" required><option value="">Seçiniz...</option><option>Arsa</option><option>Bina</option><option>Lojman</option><option>Araç</option><option>Makine</option></select></div>
+        <div class="field"><label>Konum *</label><input name="loc" placeholder="İlçe / İl" required></div>
+        <div class="field"><label>Değer (₺) *</label><input name="val" type="number" min="0" step="any" required></div>
+        <div class="field"><label>Sorumlu</label><input name="owner" placeholder="Ad Soyad"></div>
+        <div class="field full"><label>Statü</label>
+          <select name="status"><option data-b="b-green">Aktif</option><option data-b="b-blue">İlana hazır</option><option data-b="b-gray">Değerleme</option><option data-b="b-amber">İhalede</option></select></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn ghost" id="assetCancel">Vazgeç</button>
+        <button type="submit" class="btn">Varlığı Ekle</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---- Navigation ----
+const nav = document.getElementById('nav');
+nav.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(b.dataset.p).classList.add('active');
+  drawCharts();
+  if(typeof renderKfeChart==='function') renderKfeChart();
+});
+
+// ---- Assets data + filter ----
+let assets = [
+  ['GM-1042','Arsa','Çankaya / Ankara','4.250.000','İhalede','b-amber','M. Yılmaz'],
+  ['GM-1088','Bina','Kadıköy / İstanbul','12.800.000','İlana hazır','b-blue','A. Demir'],
+  ['GM-2210','Lojman','Çankaya / Ankara','2.100.000','Aktif','b-green','S. Kaya'],
+  ['MV-0451','Araç','İzmir Filo','3.400.000','İhalede','b-amber','E. Şahin'],
+  ['GM-1190','Bina','Levent / İstanbul','21.500.000','Kirada','b-violet','A. Demir'],
+  ['GM-3301','Arsa','Gebze / Kocaeli','6.900.000','Değerleme','b-gray','M. Yılmaz'],
+  ['GM-2255','Lojman','Keçiören / Ankara','1.750.000','Aktif','b-green','S. Kaya'],
+  ['MV-0478','Araç','Ankara Filo','890.000','Devir','b-red','E. Şahin'],
+];
+function renderAssets(f='all'){
+  const tb = document.querySelector('#atable tbody'); tb.innerHTML='';
+  assets.filter(a=>f==='all'||a[1]===f).forEach(a=>{
+    tb.insertAdjacentHTML('beforeend',
+      `<tr><td><b>${a[0]}</b></td><td><span class="tag">${a[1]}</span></td><td>${a[2]}</td>
+      <td>₺${a[3]}</td><td><span class="badge ${a[5]}">${a[4]}</span></td><td>${a[6]}</td></tr>`);
+  });
+}
+renderAssets();
+document.getElementById('afilters').addEventListener('click',e=>{
+  const c=e.target.closest('.chip'); if(!c)return;
+  document.querySelectorAll('#afilters .chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on'); renderAssets(c.dataset.f);
+});
+
+// ---- Charts ----
+let drawn={};
+const gridC='#e6ebf3', tickC='#5d6b85';
+Chart.defaults.color=tickC; Chart.defaults.font.family="'Segoe UI',sans-serif";
+function once(id,fn){ if(drawn[id])return; const el=document.getElementById(id); if(!el)return;
+  if(el.offsetParent===null) return; drawn[id]=true; fn(el); }
+
+function drawCharts(){
+  once('cSales',el=>new Chart(el,{type:'bar',data:{labels:['Ara','Oca','Şub','Mar','Nis','May'],
+    datasets:[{label:'Satış (₺M)',data:[210,265,240,320,298,355],borderRadius:6,
+      backgroundColor:'rgba(59,130,246,.7)'}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:gridC}},x:{grid:{display:false}}}}}));
+
+  once('cPie',el=>new Chart(el,{type:'doughnut',data:{labels:['Arsa','Bina','Lojman','Araç','Makine'],
+    datasets:[{data:[38,27,18,11,6],borderWidth:0,
+      backgroundColor:['#3b82f6','#22d3ee','#a78bfa','#f59e0b','#22c55e']}]},
+    options:{cutout:'62%',plugins:{legend:{position:'right',labels:{boxWidth:12,padding:12}}}}}));
+
+  once('cBar',el=>new Chart(el,{type:'bar',data:{labels:['Ara','Oca','Şub','Mar','Nis','May'],
+    datasets:[
+      {label:'Satıldı',data:[18,22,19,28,25,31],backgroundColor:'#22c55e',stack:'s',borderRadius:4},
+      {label:'İptal',data:[3,2,4,2,3,2],backgroundColor:'#ef4444',stack:'s'},
+      {label:'Yeniden ilan',data:[5,6,4,5,4,3],backgroundColor:'#f59e0b',stack:'s'}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:12}}},
+      scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:gridC}}}}}));
+
+  once('cTrend',el=>new Chart(el,{type:'line',data:{labels:['Haz','Tem','Ağu','Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May'],
+    datasets:[{label:'Değer (₺Mr)',data:[7.1,7.3,7.4,7.6,7.9,8.0,8.1,8.2,8.3,8.5,8.6,8.7],
+      fill:true,tension:.35,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,.12)',pointRadius:0}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{grid:{color:gridC}},x:{grid:{display:false}}}}}));
+
+  once('cRegion',el=>new Chart(el,{type:'bar',data:{labels:['Ankara','İstanbul','İzmir','Kocaeli','Bursa','Diğer'],
+    datasets:[{data:[420,510,180,90,55,29],backgroundColor:'rgba(167,139,250,.75)',borderRadius:6}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:gridC}},y:{grid:{display:false}}}}}));
+}
+drawCharts();
+window.addEventListener('resize',()=>{}); // charts responsive by default
+
+// ===================== TRANSACTION LEDGER =====================
+const USER='N. Akman';
+const fmt=n=>Number(n).toLocaleString('tr-TR');
+const typeBadge={'Satış':'b-green','Alış':'b-blue','Kiralama':'b-violet','İpotek':'b-amber',
+  'Değerleme':'b-gray','İhale Teklifi':'b-amber','Devir / Tapu':'b-blue','Sigorta':'b-blue','Masraf / Vergi':'b-red'};
+const incomeTypes=['Satış','Kiralama','İhale Teklifi'];
+const expenseTypes=['Alış','İpotek','Sigorta','Masraf / Vergi'];
+
+function loadTx(){ try{return JSON.parse(localStorage.getItem('assetix_tx')||'[]')}catch(e){return[]} }
+function saveTx(){ try{localStorage.setItem('assetix_tx',JSON.stringify(txs));}catch(e){/* file:// may block storage; keep in memory */} }
+let txs=loadTx();
+if(txs.length===0){ // seed a couple of demo rows on first run
+  txs=[
+    {id:'TX-100001',type:'Satış',asset:'GM-1042 — Arsa, Çankaya',amount:4250000,party:'Katılımcı #K-1042',date:'2026-05-28',status:'Tamamlandı',note:'e-İhale kazananı tapu devri yapıldı',user:USER,ts:'2026-05-28 14:35'},
+    {id:'TX-100002',type:'Kiralama',asset:'GM-1190 — Bina, Levent',amount:185000,party:'Yıldız Tic. Ltd.',date:'2026-05-25',status:'Tamamlandı',note:'Aylık kira tahsilatı',user:USER,ts:'2026-05-25 09:12'},
+    {id:'TX-100003',type:'Masraf / Vergi',asset:'GM-1088 — Bina, Kadıköy',amount:42000,party:'Belediye',date:'2026-05-20',status:'Tamamlandı',note:'Emlak vergisi 2. taksit',user:USER,ts:'2026-05-20 16:48'}
+  ];
+  saveTx();
+}
+let nextId=()=> 'TX-'+(100000+txs.length+1);
+
+function fillAssetDropdown(){
+  const sel=document.getElementById('txAsset'); if(!sel)return;
+  sel.innerHTML='<option value="">Seçiniz...</option>'+
+    assets.map(a=>`<option>${a[0]} — ${a[1]}, ${a[2].split(' / ')[0]}</option>`).join('');
+}
+function txMetrics(){
+  let vol=0,inc=0,out=0;
+  txs.forEach(t=>{vol+=t.amount; if(incomeTypes.includes(t.type))inc++; if(expenseTypes.includes(t.type))out++;});
+  document.getElementById('sCount').textContent=txs.length;
+  document.getElementById('sVol').textContent='₺'+fmt(vol);
+  document.getElementById('sIn').textContent=inc;
+  document.getElementById('sOut').textContent=out;
+}
+function renderTx(f='all'){
+  const tb=document.querySelector('#txTable tbody'); if(!tb)return; tb.innerHTML='';
+  const rows=txs.filter(t=>f==='all'||t.type===f).slice().reverse();
+  if(rows.length===0){ tb.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Kayıt yok.</td></tr>'; }
+  rows.forEach(t=>{
+    const sb=t.status==='Tamamlandı'?'b-green':t.status==='Beklemede'?'b-amber':'b-red';
+    tb.insertAdjacentHTML('beforeend',
+     `<tr><td><b>${t.id}</b></td><td><span class="badge ${typeBadge[t.type]||'b-gray'}">${t.type}</span></td>
+      <td>${t.asset}</td><td class="amt">₺${fmt(t.amount)}</td><td>${t.party||'—'}</td>
+      <td>${t.date.split('-').reverse().join('.')}</td><td><span class="badge ${sb}">${t.status}</span></td>
+      <td class="audit">${t.user}<br>${t.ts}</td>
+      <td><button class="del" data-id="${t.id}" title="Sil">🗑</button></td></tr>`);
+  });
+  txMetrics();
+}
+let txFilter='all';
+const txForm=document.getElementById('txForm');
+if(txForm){
+  // default date = today
+  txForm.date.value=new Date().toISOString().slice(0,10);
+  txForm.addEventListener('submit',e=>{
+    e.preventDefault();
+    const d=new Date();
+    const rec={
+      id:nextId(), type:txForm.type.value, asset:txForm.asset.value,
+      amount:Number(txForm.amount.value), party:txForm.party.value.trim(),
+      date:txForm.date.value, status:txForm.status.value, note:txForm.note.value.trim(),
+      user:USER, ts:d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5)
+    };
+    txs.push(rec); saveTx(); renderTx(txFilter);
+    txForm.reset(); txForm.date.value=new Date().toISOString().slice(0,10);
+    showToast('✓ İşlem kaydedildi — '+rec.id);
+  });
+  document.getElementById('txReset').addEventListener('click',()=>{txForm.reset();txForm.date.value=new Date().toISOString().slice(0,10);});
+  document.getElementById('txFilters').addEventListener('click',e=>{
+    const c=e.target.closest('.chip'); if(!c)return;
+    document.querySelectorAll('#txFilters .chip').forEach(x=>x.classList.remove('on'));
+    c.classList.add('on'); txFilter=c.dataset.f; renderTx(txFilter);
+  });
+  document.querySelector('#txTable').addEventListener('click',e=>{
+    const b=e.target.closest('.del'); if(!b)return;
+    if(confirm('Bu işlem kaydını silmek istiyor musunuz?')){
+      txs=txs.filter(t=>t.id!==b.dataset.id); saveTx(); renderTx(txFilter);
+      showToast('İşlem silindi');
+    }
+  });
+}
+fillAssetDropdown(); renderTx();
+
+// ===================== ADD ASSET =====================
+const badgeMap={'Aktif':'b-green','İlana hazır':'b-blue','Değerleme':'b-gray','İhalede':'b-amber'};
+const ov=document.getElementById('assetOverlay');
+function openAsset(){ov.classList.add('show');}
+function closeAsset(){ov.classList.remove('show');}
+document.querySelectorAll('.btn').forEach(b=>{ if(b.textContent.trim()==='+ Yeni Varlık') b.addEventListener('click',openAsset); });
+document.getElementById('assetClose').addEventListener('click',closeAsset);
+document.getElementById('assetCancel').addEventListener('click',closeAsset);
+ov.addEventListener('click',e=>{if(e.target===ov)closeAsset();});
+const assetForm=document.getElementById('assetForm');
+assetForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  const t=assetForm.type.value, prefix=(t==='Araç'||t==='Makine')?'MV-':'GM-';
+  const code=prefix+String(1000+Math.floor(Math.random()*9000));
+  assets.push([code,t,assetForm.loc.value.trim(),fmt(assetForm.val.value),
+    assetForm.status.value,badgeMap[assetForm.status.value]||'b-gray',assetForm.owner.value.trim()||'—']);
+  renderAssets(); fillAssetDropdown(); closeAsset(); assetForm.reset();
+  showToast('✓ Varlık eklendi — '+code);
+});
+
+// ===================== LIVE FX (Frankfurter canlı + TCMB resmî) =====================
+// Frankfurter (ECB verisi) CORS destekler — proxy gerekmez, geçmiş tarih de verir.
+// TCMB resmî kuru ikincil gösterim olarak (CORS olmadığından proxy ile, erişilebilirse) çekilir.
+// Veriler GitHub Action'ın günlük ürettiği statik rates.json dosyasından (FX + TCMB EVDS) gelir;
+// dosya erişilemezse doğrudan Frankfurter'a düşer.
+const BACKEND_URL='rates.json';
+const fxState={usdtry:null,eurtry:null,gbptry:null,liveDate:'',src:'',fromBackend:false,
+  rate:null,rateSource:'',rateAsof:'',market:{},
+  usdBuy:null,usdSell:null,tcmbDate:'',err:false};
+let rateAuto=true; // kullanıcı faiz alanını elle değiştirene kadar backend değeriyle doldur
+const nf2=n=>Number(n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
+function renderMarket(){
+  const m=fxState.market||{}; const card=document.getElementById('marketCard'); const grid=document.getElementById('marketGrid');
+  if(!card||!grid) return;
+  if(Object.keys(m).length===0){ card.style.display='none'; return; }
+  const pct=v=>(v>=0?'+':'')+Number(v).toLocaleString('tr-TR',{maximumFractionDigits:1})+'%';
+  const cell=(label,val,sub,cls)=>'<div class="rc"><div class="l">'+label+'</div><div class="v'+(cls?' '+cls:'')+'">'+val+'</div>'+(sub?'<div class="l" style="margin-top:3px">'+sub+'</div>':'')+'</div>';
+  let h='';
+  const kfe=(o,name)=>{ if(o) h+=cell('KFE '+name, o.yoy!=null?pct(o.yoy)+'/yıl':'—', 'Endeks '+o.value+(o.asof?' · '+o.asof:''), o.yoy>=0?'pos':'neg'); };
+  kfe(m.kfe_tr,'Türkiye'); kfe(m.kfe_ist,'İstanbul'); kfe(m.kfe_ank,'Ankara'); kfe(m.kfe_izm,'İzmir');
+  if(m.tufe&&m.tufe.yoy!=null) h+=cell('Enflasyon (TÜFE yıllık)', pct(m.tufe.yoy), m.tufe.asof||'', 'neg');
+  if(m.deposit) h+=cell('TL Mevduat (3 ay)', '%'+nf2(m.deposit.value), 'bankada tutma alt.');
+  if(m.loan_home) h+=cell('Konut Kredisi', '%'+nf2(m.loan_home.value), 'mortgage faizi');
+  if(m.loan_comm) h+=cell('Ticari Kredi', '%'+nf2(m.loan_comm.value), 'sermaye maliyeti');
+  grid.innerHTML=h; card.style.display='';
+  renderKfeChart();
+}
+let kfeChart=null;
+function renderKfeChart(){
+  const h=fxState.market&&fxState.market.kfe_hist; const el=document.getElementById('cKfe');
+  const cap=document.getElementById('kfeCap');
+  if(!el||!h||!h.dates||!h.dates.length){ if(cap)cap.style.display='none'; return; }
+  if(el.offsetParent===null) return; // sekme görünür değilse atla (sekmeye geçince çizilir)
+  if(cap)cap.style.display='';
+  const rebase=a=>{const b=(a||[]).find(x=>x!=null)||1; return (a||[]).map(x=>x==null?null:Math.round(x/b*1000)/10);};
+  const ds=(label,arr,color)=>({label,data:rebase(arr),borderColor:color,backgroundColor:color,tension:.3,pointRadius:0,borderWidth:2});
+  const data={labels:h.dates,datasets:[
+    ds('Türkiye',h.tr,'#2563eb'), ds('İstanbul',h.ist,'#0891b2'),
+    ds('Ankara',h.ank,'#7c3aed'), ds('İzmir',h.izm,'#16a34a')]};
+  if(kfeChart){ kfeChart.data=data; kfeChart.update(); return; }
+  kfeChart=new Chart(el,{type:'line',data,options:{plugins:{legend:{position:'bottom',labels:{boxWidth:12}}},
+    scales:{y:{grid:{color:gridC}},x:{grid:{display:false},ticks:{maxTicksLimit:8}}}}});
+}
+// Verilen tarihe en yakın aydaki ulusal Konut Fiyat Endeksi değeri (analiz için).
+function kfeAt(date,key){
+  key=key||'tr';
+  const h=fxState.market&&fxState.market.kfe_hist;
+  if(!h||!h.dates||!h[key]) return null;
+  const target=date.getFullYear()*12+date.getMonth();
+  let best=null, bestDiff=1e9;
+  h.dates.forEach((d,i)=>{
+    const p=d.split('-').map(Number); const v=h[key][i];
+    if(v==null) return;
+    const mi=p[0]*12+(p[1]-1); const diff=Math.abs(mi-target);
+    if(diff<bestDiff){ bestDiff=diff; best=v; }
+  });
+  return best;
+}
+// İşlem getirisini TCMB göstergeleriyle karşılaştıran bar grafiği
+let benchChart=null;
+function renderBenchChart(labels,data,colors){
+  const el=document.getElementById('cBench'); if(!el) return;
+  const d={labels,datasets:[{data:data.map(x=>Math.round(x*10)/10),backgroundColor:colors,borderRadius:6}]};
+  const opt={plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'%'+c.parsed.y}}},
+    scales:{y:{grid:{color:gridC},ticks:{callback:v=>'%'+v}},x:{grid:{display:false}}}};
+  if(benchChart){ benchChart.data=d; benchChart.update(); return; }
+  benchChart=new Chart(el,{type:'bar',data:d,options:opt});
+}
+function renderFX(){
+  const setT=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  if(fxState.err||!fxState.usdtry){
+    setT('tbUsd','—'); setT('tbEur','—'); setT('tbGbp','—'); setT('tbUpd','kur alınamadı');
+    const u=document.getElementById('fxUsd'),e=document.getElementById('fxEur'),g=document.getElementById('fxGbp'),t=document.getElementById('fxTime');
+    if(u)u.textContent='—'; if(e)e.textContent='—'; if(g)g.textContent='—';
+    if(t)t.textContent='Canlı kur alınamadı — analizde kuru elle girebilirsiniz.';
+    return;
+  }
+  setT('tbUsd',nf2(fxState.usdtry));
+  setT('tbEur',fxState.eurtry?nf2(fxState.eurtry):'—');
+  setT('tbGbp',fxState.gbptry?nf2(fxState.gbptry):'—');
+  setT('tbUpd','Güncel: '+(fxState.liveDate||'—')+' · '+fxState.src);
+  const u=document.getElementById('fxUsd'); if(u)u.textContent='₺'+nf2(fxState.usdtry);
+  const e=document.getElementById('fxEur'); if(e)e.textContent=fxState.eurtry?'₺'+nf2(fxState.eurtry):'—';
+  const g=document.getElementById('fxGbp'); if(g)g.textContent=fxState.gbptry?'₺'+nf2(fxState.gbptry):'—';
+  // Faiz oranı (backend'den geldiyse canlı; yoksa statik %37 kalır)
+  if(fxState.rate!=null){
+    const rt='%'+Number(fxState.rate).toLocaleString('tr-TR',{maximumFractionDigits:2});
+    setT('tbRate',rt); const fr=document.getElementById('fxRate'); if(fr)fr.textContent=rt;
+  }
+  // Analiz kıyas oranı: gerçek mevduat faizi varsa onu, yoksa politika faizini kullan
+  const bench=(fxState.market&&fxState.market.deposit)?fxState.market.deposit.value:fxState.rate;
+  if(bench!=null){ const ai=document.querySelector('#anForm [name=rate]'); if(ai&&rateAuto) ai.value=bench; }
+  renderMarket();
+  const t=document.getElementById('fxTime');
+  if(t){
+    let s='Canlı: '+fxState.src+(fxState.liveDate?' · '+fxState.liveDate:'');
+    if(fxState.rate!=null&&fxState.rateSource) s+='  |  Faiz: '+fxState.rateSource+(fxState.rateAsof?' ('+fxState.rateAsof+')':'');
+    if(fxState.usdSell) s+='  |  TCMB resmî USD: Alış '+nf2(fxState.usdBuy)+' / Satış '+nf2(fxState.usdSell)+(fxState.tcmbDate?' ('+fxState.tcmbDate+')':'');
+    t.textContent=s;
+  }
+}
+// Birincil canlı kaynak — Frankfurter (ECB). CORS açık.
+async function fetchFrankfurter(){
+  try{
+    const r=await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=TRY,EUR,GBP',{cache:'no-store'});
+    const j=await r.json();
+    if(j&&j.rates&&j.rates.TRY){
+      fxState.usdtry=j.rates.TRY;
+      fxState.eurtry=j.rates.EUR?j.rates.TRY/j.rates.EUR:null;
+      fxState.gbptry=j.rates.GBP?j.rates.TRY/j.rates.GBP:null;
+      fxState.liveDate=j.date||''; fxState.src='Frankfurter (ECB)';
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+// Belirli tarih için USD/TRY (analizde alış kuru otomatik doldurmak için).
+async function histUSDTRY(date){
+  try{
+    const r=await fetch('https://api.frankfurter.dev/v1/'+date+'?base=USD&symbols=TRY',{cache:'no-store'});
+    const j=await r.json();
+    return (j&&j.rates&&j.rates.TRY)?j.rates.TRY:null;
+  }catch(e){ return null; }
+}
+// Son çare canlı kaynak.
+async function fetchERAPI(){
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD',{cache:'no-store'});
+    const j=await r.json();
+    if(j&&j.rates&&j.rates.TRY){
+      fxState.usdtry=j.rates.TRY; fxState.eurtry=j.rates.TRY/j.rates.EUR;
+      fxState.gbptry=j.rates.GBP?j.rates.TRY/j.rates.GBP:null;
+      fxState.liveDate=(j.time_last_update_utc||'').slice(0,16); fxState.src='exchangerate-api (yedek)';
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+// TCMB resmî günlük kur — ikincil. CORS olmadığından proxy zinciriyle, en iyi çaba.
+async function fetchTCMB(){
+  const url='https://www.tcmb.gov.tr/kurlar/today.xml';
+  const routes=[url,
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
+    'https://corsproxy.io/?url='+encodeURIComponent(url)];
+  for(const route of routes){
+    try{
+      const r=await fetch(route,{cache:'no-store'}); if(!r.ok) continue;
+      const txt=await r.text(); if(!txt||txt.indexOf('Currency')<0) continue;
+      const xml=new DOMParser().parseFromString(txt,'application/xml');
+      const usd=[...xml.getElementsByTagName('Currency')].find(c=>c.getAttribute('Kod')==='USD'); if(!usd) continue;
+      const val=tag=>{const n=usd.getElementsByTagName(tag)[0]; return n?parseFloat(n.textContent.replace(',','.')):null;};
+      fxState.usdBuy=val('ForexBuying'); fxState.usdSell=val('ForexSelling');
+      const dn=xml.getElementsByTagName('Tarih_Date')[0]; fxState.tcmbDate=dn?dn.getAttribute('Tarih'):'';
+      renderFX(); return true;
+    }catch(e){}
+  }
+  return false;
+}
+// Yerel backend (rates_server.py) — gerçek zamanlı FX + TCMB EVDS faizi tek noktadan.
+async function fetchBackend(){
+  try{
+    const r=await fetch(BACKEND_URL,{cache:'no-store'});
+    if(!r.ok) return false;
+    const j=await r.json();
+    if(!j||!j.fx||!j.fx.USDTRY) return false;
+    fxState.usdtry=j.fx.USDTRY; fxState.eurtry=j.fx.EURTRY||null; fxState.gbptry=j.fx.GBPTRY||null;
+    fxState.src=(j.fxSource||'backend')+(j.fxRealtime?' · canlı':''); fxState.liveDate=j.fxAsof||'';
+    fxState.fromBackend=true;
+    if(j.rate&&typeof j.rate.value==='number'){
+      fxState.rate=j.rate.value; fxState.rateSource=j.rate.source||''; fxState.rateAsof=j.rate.asof||'';
+    }
+    fxState.market=j.market||{};
+    return true;
+  }catch(e){ return false; }
+}
+async function loadFX(){
+  fxState.err=false; fxState.fromBackend=false;
+  let ok=await fetchBackend();
+  if(!ok){ ok=await fetchFrankfurter(); if(!ok){ const er=await fetchERAPI(); if(!er) fxState.err=true; } }
+  renderFX();
+  if(!fxState.fromBackend) fetchTCMB().catch(()=>{}); // backend yoksa TCMB resmî kuru dene
+}
+const fxBtn=document.getElementById('fxRefresh');
+if(fxBtn) fxBtn.addEventListener('click',()=>{loadFX();showToast('Kurlar yenileniyor…');});
+
+// ---- GÜNDE BİR KEZ otomatik güncelleme ----
+// Kurlar ve TL faizi takvim günü değiştiğinde kendiliğinden yeniden çekilir.
+// (Saatte bir kontrol edilir; gün döndüğünde bir kez tetiklenir — sayfa açık kalsa bile.)
+let lastFetchDay=null;
+function dailyTick(){
+  const today=new Date().toDateString();
+  if(today!==lastFetchDay){ lastFetchDay=today; loadFX(); }
+}
+dailyTick();                              // ilk yükleme
+setInterval(dailyTick, 60*60*1000);       // her saat: gün değiştiyse güncelle
+// Sekmeye geri dönüldüğünde de gün değiştiyse tazele
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) dailyTick(); });
+
+// ===================== PROFITABILITY ANALYZER =====================
+const anForm=document.getElementById('anForm');
+if(anForm){
+  const today=new Date().toISOString().slice(0,10);
+  anForm.sdate.value=today;
+  const past=new Date(); past.setFullYear(past.getFullYear()-2);
+  anForm.bdate.value=past.toISOString().slice(0,10);
+  // Faiz alanını kullanıcı elle değiştirirse backend artık üzerine yazmaz.
+  anForm.rate.addEventListener('input',()=>{rateAuto=false;});
+  if(fxState.rate!=null&&rateAuto) anForm.rate.value=fxState.rate;
+  // Alış tarihi değişince o günün USD/TRY kurunu Frankfurter geçmişinden otomatik doldur.
+  let bfxAuto=true;
+  anForm.bfx.addEventListener('input',()=>{bfxAuto=false;});
+  async function fillHist(){
+    if(!bfxAuto||!anForm.bdate.value)return;
+    const h=await histUSDTRY(anForm.bdate.value);
+    if(h&&bfxAuto){ anForm.bfx.value=h.toFixed(2); anForm.bfx.placeholder=h.toFixed(2); }
+  }
+  anForm.bdate.addEventListener('change',fillHist);
+  fillHist();
+  anForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const buy=+anForm.buy.value, sell=+anForm.sell.value, rate=+anForm.rate.value||0;
+    const bd=new Date(anForm.bdate.value), sd=new Date(anForm.sdate.value);
+    let years=(sd-bd)/(365.25*864e5); if(!(years>0))years=0;
+    const curFx=fxState.usdtry||null;
+    let bfx=+anForm.bfx.value;
+    if(!bfx){ bfx=await histUSDTRY(anForm.bdate.value)||curFx; if(bfx)anForm.bfx.value=bfx.toFixed(2); }
+
+    const profit=sell-buy;
+    const totalRet=(sell/buy-1)*100;
+    const annualRet=years>0?(Math.pow(sell/buy,1/years)-1)*100:totalRet;
+    const depFactor=Math.pow(1+rate/100,years>0?years:1);
+    const depValue=buy*depFactor;
+    const depRet=(depFactor-1)*100;
+
+    const set=(id,txt,cls)=>{const el=document.getElementById(id);el.textContent=txt;el.className='v'+(cls?' '+cls:'');};
+    set('rHold', years>0?years.toFixed(2).replace('.',',')+' yıl':'< 1 gün');
+    set('rProfit','₺'+fmt(Math.round(profit)), profit>=0?'pos':'neg');
+    set('rTotal','%'+totalRet.toFixed(1).replace('.',','), totalRet>=0?'pos':'neg');
+    set('rAnnual','%'+annualRet.toFixed(1).replace('.',',')+'/yıl', annualRet>=0?'pos':'neg');
+    set('rDep','₺'+fmt(Math.round(depValue)));
+    set('rDepRet','%'+depRet.toFixed(1).replace('.',','));
+
+    let usdTxt='—',usdAbs='—',usdRet=null;
+    if(curFx&&bfx){
+      const buyUsd=buy/bfx, sellUsd=sell/curFx;
+      usdRet=(sellUsd/buyUsd-1)*100;
+      usdTxt='%'+usdRet.toFixed(1).replace('.',',');
+      usdAbs='$'+fmt(Math.round(sellUsd-buyUsd));
+    }
+    set('rUsd',usdTxt, usdRet===null?'':(usdRet>=0?'pos':'neg'));
+    set('rUsdAbs',usdAbs, usdRet===null?'':(usdRet>=0?'pos':'neg'));
+
+    // Konut piyasası (KFE) kıyası: işlem getirisi vs. konut fiyat artışı (aynı dönem)
+    const city=(anForm.city&&anForm.city.value)||'tr';
+    const cityNm={tr:'Türkiye',ist:'İstanbul',ank:'Ankara',izm:'İzmir'}[city]||'Türkiye';
+    const kLbl=document.getElementById('rKfeLbl'); if(kLbl)kLbl.textContent='Konut Piyasası — '+cityNm;
+    let marketRet=null, kfeTxt='—', kfeDiffTxt='—';
+    const kBuy=kfeAt(bd,city), kSell=kfeAt(sd,city);
+    if(kBuy&&kSell&&kBuy>0){
+      marketRet=(kSell/kBuy-1)*100;
+      kfeTxt='%'+marketRet.toFixed(1).replace('.',',');
+      const diff=totalRet-marketRet;
+      kfeDiffTxt=(diff>=0?'+':'')+diff.toFixed(1).replace('.',',')+' puan';
+    }
+    set('rKfe',kfeTxt, marketRet===null?'':(marketRet>=0?'pos':'neg'));
+    set('rKfeDiff',kfeDiffTxt, marketRet===null?'':((totalRet-marketRet)>=0?'pos':'neg'));
+
+    // Verdict — compare annualized deal return vs TL rate
+    const v=document.getElementById('rVerdict');
+    const edge=annualRet-rate;
+    let cls,txt;
+    if(edge>2){cls='v-good';txt='✓ Bu işlem TL mevduata göre KÂRLI. Yıllık getirisi mevduat faizinin '+edge.toFixed(1).replace('.',',')+' puan üzerinde.';}
+    else if(edge<-2){cls='v-bad';txt='✕ Bu işlem TL mevduatın ALTINDA. Parayı %'+rate.toFixed(0)+' faizle tutmak '+Math.abs(edge).toFixed(1).replace('.',',')+' puan daha iyiydi.';}
+    else{cls='v-mid';txt='≈ Bu işlem TL mevduatla yaklaşık BAŞABAŞ (fark '+edge.toFixed(1).replace('.',',')+' puan).';}
+    if(usdRet!==null){ txt+=' '+(usdRet>=0?'Dolar bazında da %'+usdRet.toFixed(1).replace('.',',')+' kazandırmış.':'Ancak dolar bazında %'+Math.abs(usdRet).toFixed(1).replace('.',',')+' KAYIP var — TL kârı kur etkisini yenememiş.'); if(usdRet<0&&cls==='v-good')cls='v-mid'; }
+    if(marketRet!==null){ const d=totalRet-marketRet;
+      txt+=' '+cityNm+' konut piyasasını (KFE %'+marketRet.toFixed(1).replace('.',',')+') '+(d>=0?d.toFixed(1).replace('.',',')+' puan GEÇTİ.':Math.abs(d).toFixed(1).replace('.',',')+' puan ALTINDA kaldı.');
+    }
+    v.className='verdict '+cls; v.textContent=txt;
+
+    // Bar grafiği: bu işlem vs. TCMB göstergeleri (dönem toplam getiri %)
+    const bl=['Bu İşlem','TL Mevduat'], bd2=[totalRet, depRet], bc=['#2563eb','#94a3b8'];
+    if(marketRet!=null){ bl.push('Konut '+cityNm); bd2.push(marketRet); bc.push('#7c3aed'); }
+    const ty=fxState.market&&fxState.market.tufe&&fxState.market.tufe.yoy;
+    if(ty!=null&&years>0){ bl.push('Enflasyon'); bd2.push((Math.pow(1+ty/100,years)-1)*100); bc.push('#d97706'); }
+    renderBenchChart(bl,bd2,bc);
+
+    document.getElementById('anOut').style.display='block';
+  });
+}
+
+// ===================== TOAST =====================
+let toastT;
+function showToast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),2600);
+}
+</script>
+</body>
+</html>
