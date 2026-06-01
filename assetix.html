@@ -270,7 +270,7 @@
         <div class="kpis" style="grid-template-columns:repeat(5,1fr)">
           <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--brand)"></span> Toplam Varlık</div><div class="val">1.284</div><div class="delta up">▲ %4,2 bu çeyrek</div></div>
           <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--brand2)"></span> Toplam Alış Bedeli</div><div class="val">₺6,9 Mr</div><div class="delta">Edinim maliyeti</div></div>
-          <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--green)"></span> Portföy Değeri</div><div class="val">₺8,7 Mr</div><div class="delta up">▲ %26 alışa göre değer kazancı</div></div>
+          <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--green)"></span> Portföy Değeri</div><div class="val">₺8,7 Mr</div><div class="delta up">▲ %26 kümülatif (alışa göre)</div></div>
           <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--amber)"></span> Aktif İhale</div><div class="val">37</div><div class="delta up">▲ 9 bu ay</div></div>
           <div class="card kpi"><div class="lab"><span class="dot" style="background:var(--violet)"></span> Bekleyen Devir</div><div class="val">23</div><div class="delta down">▼ 4 tamamlandı</div></div>
         </div>
@@ -731,17 +731,30 @@ nav.addEventListener('click', e=>{
 
 // ---- Assets data + filter ----
 const SEED_ASSETS = [
-  {no:'GM-1042',type:'Arsa',loc:'Çankaya / Ankara',val:'4.250.000',status:'İhalede',badge:'b-amber',owner:'M. Yılmaz',pdate:'2019-06-14',pprice:'2.900.000',docs:[{name:'Tapu Senedi',cat:'Tapu',date:'2019-06-14',sample:true},{name:'Değerleme Raporu 2026',cat:'Değerleme',date:'2026-02-10',sample:true}]},
-  {no:'GM-1088',type:'Bina',loc:'Kadıköy / İstanbul',val:'12.800.000',status:'İlana hazır',badge:'b-blue',owner:'A. Demir',pdate:'2017-03-02',pprice:'7.400.000',docs:[{name:'Tapu Senedi',cat:'Tapu',date:'2017-03-02',sample:true}]},
-  {no:'GM-2210',type:'Lojman',loc:'Çankaya / Ankara',val:'2.100.000',status:'Aktif',badge:'b-green',owner:'S. Kaya',pdate:'2020-11-20',pprice:'1.500.000',docs:[]},
-  {no:'MV-0451',type:'Araç',loc:'İzmir Filo',val:'3.400.000',status:'İhalede',badge:'b-amber',owner:'E. Şahin',pdate:'2022-01-15',pprice:'3.100.000',docs:[{name:'Ruhsat',cat:'Diğer',date:'2022-01-15',sample:true}]},
-  {no:'GM-1190',type:'Bina',loc:'Levent / İstanbul',val:'21.500.000',status:'Kirada',badge:'b-violet',owner:'A. Demir',pdate:'2015-09-08',pprice:'9.800.000',docs:[{name:'Kira Sözleşmesi',cat:'Sözleşme',date:'2024-04-01',sample:true}]},
-  {no:'GM-3301',type:'Arsa',loc:'Gebze / Kocaeli',val:'6.900.000',status:'Değerleme',badge:'b-gray',owner:'M. Yılmaz',pdate:'2021-07-30',pprice:'5.200.000',docs:[]},
-  {no:'GM-2255',type:'Lojman',loc:'Keçiören / Ankara',val:'1.750.000',status:'Aktif',badge:'b-green',owner:'S. Kaya',pdate:'2018-05-11',pprice:'1.100.000',docs:[]},
-  {no:'MV-0478',type:'Araç',loc:'Ankara Filo',val:'890.000',status:'Devir',badge:'b-red',owner:'E. Şahin',pdate:'2023-02-22',pprice:'820.000',docs:[]},
+  {no:'GM-1042',type:'Arsa',loc:'Çankaya / Ankara',val:'4.250.000',status:'İhalede',badge:'b-amber',owner:'M. Yılmaz',pdate:'2019-06-14',pprice:'480.000',docs:[{name:'Tapu Senedi',cat:'Tapu',date:'2019-06-14',sample:true},{name:'Değerleme Raporu 2026',cat:'Değerleme',date:'2026-02-10',sample:true}]},
+  {no:'GM-1088',type:'Bina',loc:'Kadıköy / İstanbul',val:'12.800.000',status:'İlana hazır',badge:'b-blue',owner:'A. Demir',pdate:'2017-03-02',pprice:'750.000',docs:[{name:'Tapu Senedi',cat:'Tapu',date:'2017-03-02',sample:true}]},
+  {no:'GM-2210',type:'Lojman',loc:'Çankaya / Ankara',val:'2.100.000',status:'Aktif',badge:'b-green',owner:'S. Kaya',pdate:'2020-11-20',pprice:'370.000',docs:[]},
+  {no:'MV-0451',type:'Araç',loc:'İzmir Filo',val:'3.400.000',status:'İhalede',badge:'b-amber',owner:'E. Şahin',pdate:'2022-01-15',pprice:'5.500.000',docs:[{name:'Ruhsat',cat:'Diğer',date:'2022-01-15',sample:true}]},
+  {no:'GM-1190',type:'Bina',loc:'Levent / İstanbul',val:'21.500.000',status:'Kirada',badge:'b-violet',owner:'A. Demir',pdate:'2015-09-08',pprice:'750.000',docs:[{name:'Kira Sözleşmesi',cat:'Sözleşme',date:'2024-04-01',sample:true}]},
+  {no:'GM-3301',type:'Arsa',loc:'Gebze / Kocaeli',val:'6.900.000',status:'Değerleme',badge:'b-gray',owner:'M. Yılmaz',pdate:'2021-07-30',pprice:'1.450.000',docs:[]},
+  {no:'GM-2255',type:'Lojman',loc:'Keçiören / Ankara',val:'1.750.000',status:'Aktif',badge:'b-green',owner:'S. Kaya',pdate:'2018-05-11',pprice:'140.000',docs:[]},
+  {no:'MV-0478',type:'Araç',loc:'Ankara Filo',val:'890.000',status:'Devir',badge:'b-red',owner:'E. Şahin',pdate:'2023-02-22',pprice:'1.300.000',docs:[]},
 ];
-function loadAssets(){ try{const s=localStorage.getItem('assetix_assets'); if(s) return JSON.parse(s);}catch(e){} return JSON.parse(JSON.stringify(SEED_ASSETS)); }
-function saveAssets(){ try{localStorage.setItem('assetix_assets',JSON.stringify(assets));}catch(e){ showToast('⚠ Kaydedilemedi — depolama dolu olabilir'); } }
+const ASSETS_VERSION = 2;
+function loadAssets(){ try{ if(localStorage.getItem('assetix_assets_v')===String(ASSETS_VERSION)){ const s=localStorage.getItem('assetix_assets'); if(s) return JSON.parse(s); } }catch(e){} return JSON.parse(JSON.stringify(SEED_ASSETS)); }
+function saveAssets(){ try{ localStorage.setItem('assetix_assets',JSON.stringify(assets)); localStorage.setItem('assetix_assets_v',String(ASSETS_VERSION)); }catch(e){ showToast('⚠ Kaydedilemedi — depolama dolu olabilir'); } }
+function parseTRNum(s){ return Number(String(s||'').replace(/[^\d.,-]/g,'').replace(/\./g,'').replace(',','.'))||0; }
+function computePortfolioYoY(){
+  const now=new Date(); let wsum=0, wacc=0;
+  assets.forEach(a=>{
+    const val=parseTRNum(a.val), cost=parseTRNum(a.pprice);
+    if(!val||!cost||!a.pdate) return;
+    const d=new Date(a.pdate); if(isNaN(d.getTime())) return;
+    let yrs=(now-d)/(365.25*86400000); if(yrs<0.4) yrs=0.4;
+    wsum+=val; wacc+=((Math.pow(val/cost,1/yrs)-1)*100)*val;
+  });
+  return wsum? wacc/wsum : null;
+}
 function trDate(s){ if(!s) return ''; const p=String(s).split('-'); return p.length===3 ? p[2]+'.'+p[1]+'.'+p[0] : s; }
 let assets = loadAssets();
 let curFilter = 'all';
@@ -908,7 +921,7 @@ assetForm.addEventListener('submit',e=>{
     status:assetForm.status.value,badge:badgeMap[assetForm.status.value]||'b-gray',
     owner:assetForm.owner.value.trim()||'—',
     pdate:assetForm.pdate.value||'', pprice:assetForm.pprice.value?fmt(assetForm.pprice.value):'', docs:[]});
-  saveAssets(); renderAssets(); fillAssetDropdown(); closeAsset(); assetForm.reset();
+  saveAssets(); renderAssets(); fillAssetDropdown(); renderReturnInsight(); closeAsset(); assetForm.reset();
   showToast('✓ Varlık eklendi — '+code);
 });
 
@@ -1084,8 +1097,7 @@ function renderBenchChart(labels,data,colors){
   if(benchChart){ benchChart.data=d; benchChart.update(); return; }
   benchChart=new Chart(el,{type:'bar',data:d,options:opt});
 }
-// Portföyün yıllık değer artışını canlı TCMB göstergeleriyle kıyaslayıp yorum üretir.
-const PORT_YOY = 26.1; // demo: portföyün yıllık değer artışı (alış→güncel; ileride varlık verisinden hesaplanabilir)
+// Portföyün varlık verisinden yıllıklandırılmış getirisini hesaplayıp canlı TCMB göstergeleriyle kıyaslar.
 function renderReturnInsight(){
   const box=document.getElementById('returnInsight'); if(!box) return;
   const m=fxState.market||{};
@@ -1093,6 +1105,7 @@ function renderReturnInsight(){
   const infl=(m.tufe&&m.tufe.yoy!=null)?Number(m.tufe.yoy):null;
   const kfe=(m.kfe_tr&&m.kfe_tr.yoy!=null)?Number(m.kfe_tr.yoy):null;
   if(dep==null&&infl==null&&kfe==null){ box.style.display='none'; return; }
+  const port=computePortfolioYoY();
   const pc=v=>v==null?'—':(v>=0?'+':'')+Number(v).toLocaleString('tr-TR',{maximumFractionDigits:1})+'%';
   const stat=(label,val,color,sub)=>`<div style="background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px">
     <div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">${label}</div>
@@ -1100,14 +1113,15 @@ function renderReturnInsight(){
     <div style="font-size:11px;color:var(--muted);margin-top:2px">${sub||''}</div></div>`;
   const dstr=dep!=null?('%'+Number(dep).toLocaleString('tr-TR',{maximumFractionDigits:1})):'—';
   document.getElementById('riGrid').innerHTML=
-    stat('Portföy', pc(PORT_YOY)+'/yıl', (infl!=null&&PORT_YOY<infl)?'var(--red)':'var(--green)', 'yıllık değer artışı')+
+    stat('Portföy', port==null?'—':pc(port)+'/yıl', (port!=null&&infl!=null&&port<infl)?'var(--red)':'var(--green)', port==null?'alış verisi gerekli':'yıllıklandırılmış (alış→güncel)')+
     stat('Konut Endeksi', kfe==null?'—':pc(kfe)+'/yıl', 'var(--txt)', 'TCMB · ülke geneli')+
     stat('Enflasyon (TÜFE)', infl==null?'—':pc(infl)+'/yıl', 'var(--amber)', 'yıllık')+
     stat('TL Mevduat', dep==null?'—':dstr+'/yıl', 'var(--brand)', 'risksiz / fırsat maliyeti');
   let tone,v;
-  if(dep!=null&&PORT_YOY>=dep){ tone='ok'; v=`<b>Reel pozitif.</b> Portföy yıllık <b>${pc(PORT_YOY)}</b> getiriyle hem enflasyonun hem de risksiz TL mevduatın (${dstr}) üzerinde — sermaye verimli çalışıyor.`; }
-  else if(infl!=null&&PORT_YOY>=infl){ tone='warn'; v=`Portföy yıllık <b>${pc(PORT_YOY)}</b> ile enflasyonu (${pc(infl)}) geçiyor; ancak risksiz TL mevduatın (${dstr}) altında — <b>fırsat maliyeti var.</b> Aynı sermaye mevduatta daha fazla getirebilirdi.`; }
-  else { tone='bad'; v=`⚠ <b>Reel değer kaybı.</b> Portföyün yıllık değer artışı <b>${pc(PORT_YOY)}</b>; enflasyonun (${pc(infl)}) ve risksiz TL mevduatın (${dstr}) <b>altında.</b> Konut endeksiyle (${pc(kfe)}) uyumlu olsa da nominal kazanç enflasyona yenik — düşük performanslı varlıkların elden çıkarılması/yeniden değerlemesi değerlendirilmeli.`; }
+  if(port==null){ tone='warn'; v='Getiri analizi için varlıklara <b>alış tarihi ve alış bedeli</b> girin. Her varlığın getirisi alış→güncel değerden yıllıklandırılarak hesaplanır.'; }
+  else if(dep!=null&&port>=dep){ tone='ok'; v=`<b>Reel pozitif.</b> Portföy yıllıklandırılmış <b>${pc(port)}</b> getiriyle hem enflasyonun hem de risksiz TL mevduatın (${dstr}) üzerinde — sermaye verimli çalışıyor.`; }
+  else if(infl!=null&&port>=infl){ tone='warn'; v=`Portföy yıllıklandırılmış <b>${pc(port)}</b> ile enflasyonu (${pc(infl)}) ve konut endeksini (${pc(kfe)}) geçiyor; ancak risksiz TL mevduatın (${dstr}) altında — <b>fırsat maliyeti var.</b> Aynı sermaye mevduatta daha fazla getirebilirdi.`; }
+  else { tone='bad'; v=`⚠ <b>Reel değer kaybı.</b> Portföyün yıllıklandırılmış getirisi <b>${pc(port)}</b>; enflasyonun (${pc(infl)}) ve risksiz TL mevduatın (${dstr}) <b>altında.</b> Nominal kazanç enflasyona yenik — düşük performanslı varlıkların elden çıkarılması/yeniden değerlemesi değerlendirilmeli.`; }
   const tones={ok:['#ecfdf5','#065f46'],warn:['#fffbeb','#92400e'],bad:['#fef2f2','#991b1b']};
   const c=tones[tone];
   const rv=document.getElementById('riVerdict'); rv.style.background=c[0]; rv.style.color=c[1]; rv.innerHTML=v;
