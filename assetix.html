@@ -297,7 +297,7 @@
         </div>
         <div class="card" style="padding:0;overflow:hidden">
           <table id="atable">
-            <thead><tr><th>Varlık No</th><th>Tür</th><th>Konum</th><th>Değer (₺)</th><th>Statü</th><th>Sorumlu</th></tr></thead>
+            <thead><tr><th>Varlık No</th><th>Tür</th><th>Konum</th><th>Değer (₺)</th><th>Edinim</th><th>Statü</th><th>Sorumlu</th><th>Belge</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -612,6 +612,8 @@
           <select name="type" required><option value="">Seçiniz...</option><option>Arsa</option><option>Bina</option><option>Lojman</option><option>Araç</option><option>Makine</option></select></div>
         <div class="field"><label>Konum *</label><input name="loc" placeholder="İlçe / İl" required></div>
         <div class="field"><label>Değer (₺) *</label><input name="val" type="number" min="0" step="any" required></div>
+        <div class="field"><label>Edinim Tarihi</label><input name="pdate" type="date"></div>
+        <div class="field"><label>Alış Bedeli (₺)</label><input name="pprice" type="number" min="0" step="any"></div>
         <div class="field"><label>Sorumlu</label><input name="owner" placeholder="Ad Soyad"></div>
         <div class="field full"><label>Statü</label>
           <select name="status"><option data-b="b-green">Aktif</option><option data-b="b-blue">İlana hazır</option><option data-b="b-gray">Değerleme</option><option data-b="b-amber">İhalede</option></select></div>
@@ -621,6 +623,23 @@
         <button type="submit" class="btn">Varlığı Ekle</button>
       </div>
     </form>
+  </div>
+</div>
+<!-- Modal: Varlık Detayı + Belgeler -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal" style="width:min(640px,100%)">
+    <button class="x" id="detailClose">&times;</button>
+    <h3 id="dTitle" style="margin:0 0 14px">Varlık</h3>
+    <div id="dInfo" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;font-size:14px"></div>
+    <div class="row-between" style="margin:20px 0 10px;align-items:center;flex-wrap:wrap;gap:8px">
+      <h4 style="margin:0;font-size:15px">Belgeler</h4>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="docCat" style="padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--txt)"><option>Tapu</option><option>Sözleşme</option><option>Değerleme</option><option>Sigorta</option><option>Diğer</option></select>
+        <button type="button" class="btn" id="docAddBtn">＋ Belge Ekle</button>
+        <input type="file" id="docFile" style="display:none">
+      </div>
+    </div>
+    <div id="dDocs" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -639,22 +658,33 @@ nav.addEventListener('click', e=>{
 });
 
 // ---- Assets data + filter ----
-let assets = [
-  ['GM-1042','Arsa','Çankaya / Ankara','4.250.000','İhalede','b-amber','M. Yılmaz'],
-  ['GM-1088','Bina','Kadıköy / İstanbul','12.800.000','İlana hazır','b-blue','A. Demir'],
-  ['GM-2210','Lojman','Çankaya / Ankara','2.100.000','Aktif','b-green','S. Kaya'],
-  ['MV-0451','Araç','İzmir Filo','3.400.000','İhalede','b-amber','E. Şahin'],
-  ['GM-1190','Bina','Levent / İstanbul','21.500.000','Kirada','b-violet','A. Demir'],
-  ['GM-3301','Arsa','Gebze / Kocaeli','6.900.000','Değerleme','b-gray','M. Yılmaz'],
-  ['GM-2255','Lojman','Keçiören / Ankara','1.750.000','Aktif','b-green','S. Kaya'],
-  ['MV-0478','Araç','Ankara Filo','890.000','Devir','b-red','E. Şahin'],
+const SEED_ASSETS = [
+  {no:'GM-1042',type:'Arsa',loc:'Çankaya / Ankara',val:'4.250.000',status:'İhalede',badge:'b-amber',owner:'M. Yılmaz',pdate:'2019-06-14',pprice:'2.900.000',docs:[{name:'Tapu Senedi',cat:'Tapu',date:'2019-06-14',sample:true},{name:'Değerleme Raporu 2026',cat:'Değerleme',date:'2026-02-10',sample:true}]},
+  {no:'GM-1088',type:'Bina',loc:'Kadıköy / İstanbul',val:'12.800.000',status:'İlana hazır',badge:'b-blue',owner:'A. Demir',pdate:'2017-03-02',pprice:'7.400.000',docs:[{name:'Tapu Senedi',cat:'Tapu',date:'2017-03-02',sample:true}]},
+  {no:'GM-2210',type:'Lojman',loc:'Çankaya / Ankara',val:'2.100.000',status:'Aktif',badge:'b-green',owner:'S. Kaya',pdate:'2020-11-20',pprice:'1.500.000',docs:[]},
+  {no:'MV-0451',type:'Araç',loc:'İzmir Filo',val:'3.400.000',status:'İhalede',badge:'b-amber',owner:'E. Şahin',pdate:'2022-01-15',pprice:'3.100.000',docs:[{name:'Ruhsat',cat:'Diğer',date:'2022-01-15',sample:true}]},
+  {no:'GM-1190',type:'Bina',loc:'Levent / İstanbul',val:'21.500.000',status:'Kirada',badge:'b-violet',owner:'A. Demir',pdate:'2015-09-08',pprice:'9.800.000',docs:[{name:'Kira Sözleşmesi',cat:'Sözleşme',date:'2024-04-01',sample:true}]},
+  {no:'GM-3301',type:'Arsa',loc:'Gebze / Kocaeli',val:'6.900.000',status:'Değerleme',badge:'b-gray',owner:'M. Yılmaz',pdate:'2021-07-30',pprice:'5.200.000',docs:[]},
+  {no:'GM-2255',type:'Lojman',loc:'Keçiören / Ankara',val:'1.750.000',status:'Aktif',badge:'b-green',owner:'S. Kaya',pdate:'2018-05-11',pprice:'1.100.000',docs:[]},
+  {no:'MV-0478',type:'Araç',loc:'Ankara Filo',val:'890.000',status:'Devir',badge:'b-red',owner:'E. Şahin',pdate:'2023-02-22',pprice:'820.000',docs:[]},
 ];
-function renderAssets(f='all'){
+function loadAssets(){ try{const s=localStorage.getItem('assetix_assets'); if(s) return JSON.parse(s);}catch(e){} return JSON.parse(JSON.stringify(SEED_ASSETS)); }
+function saveAssets(){ try{localStorage.setItem('assetix_assets',JSON.stringify(assets));}catch(e){ showToast('⚠ Kaydedilemedi — depolama dolu olabilir'); } }
+function trDate(s){ if(!s) return ''; const p=String(s).split('-'); return p.length===3 ? p[2]+'.'+p[1]+'.'+p[0] : s; }
+let assets = loadAssets();
+let curFilter = 'all';
+function renderAssets(f=curFilter){
+  curFilter=f;
   const tb = document.querySelector('#atable tbody'); tb.innerHTML='';
-  assets.filter(a=>f==='all'||a[1]===f).forEach(a=>{
+  assets.filter(a=>f==='all'||a.type===f).forEach(a=>{
+    const dc=(a.docs&&a.docs.length)||0;
+    const docCell = dc ? `<span class="tag">📎 ${dc}</span>` : '<span style="color:var(--muted)">—</span>';
     tb.insertAdjacentHTML('beforeend',
-      `<tr><td><b>${a[0]}</b></td><td><span class="tag">${a[1]}</span></td><td>${a[2]}</td>
-      <td>₺${a[3]}</td><td><span class="badge ${a[5]}">${a[4]}</span></td><td>${a[6]}</td></tr>`);
+      `<tr data-no="${a.no}" style="cursor:pointer">
+        <td><b>${a.no}</b></td><td><span class="tag">${a.type}</span></td><td>${a.loc}</td>
+        <td>₺${a.val}</td><td>${a.pdate?trDate(a.pdate):'—'}</td>
+        <td><span class="badge ${a.badge}">${a.status}</span></td><td>${a.owner}</td>
+        <td>${docCell}</td></tr>`);
   });
 }
 renderAssets();
@@ -662,6 +692,9 @@ document.getElementById('afilters').addEventListener('click',e=>{
   const c=e.target.closest('.chip'); if(!c)return;
   document.querySelectorAll('#afilters .chip').forEach(x=>x.classList.remove('on'));
   c.classList.add('on'); renderAssets(c.dataset.f);
+});
+document.querySelector('#atable tbody').addEventListener('click',e=>{
+  const tr=e.target.closest('tr[data-no]'); if(tr) openDetail(tr.dataset.no);
 });
 
 // ---- Charts ----
@@ -726,7 +759,7 @@ let nextId=()=> 'TX-'+(100000+txs.length+1);
 function fillAssetDropdown(){
   const sel=document.getElementById('txAsset'); if(!sel)return;
   sel.innerHTML='<option value="">Seçiniz...</option>'+
-    assets.map(a=>`<option>${a[0]} — ${a[1]}, ${a[2].split(' / ')[0]}</option>`).join('');
+    assets.map(a=>`<option>${a.no} — ${a.type}, ${a.loc.split(' / ')[0]}</option>`).join('');
 }
 function txMetrics(){
   let vol=0,inc=0,out=0;
@@ -799,10 +832,76 @@ assetForm.addEventListener('submit',e=>{
   e.preventDefault();
   const t=assetForm.type.value, prefix=(t==='Araç'||t==='Makine')?'MV-':'GM-';
   const code=prefix+String(1000+Math.floor(Math.random()*9000));
-  assets.push([code,t,assetForm.loc.value.trim(),fmt(assetForm.val.value),
-    assetForm.status.value,badgeMap[assetForm.status.value]||'b-gray',assetForm.owner.value.trim()||'—']);
-  renderAssets(); fillAssetDropdown(); closeAsset(); assetForm.reset();
+  assets.push({no:code,type:t,loc:assetForm.loc.value.trim(),val:fmt(assetForm.val.value),
+    status:assetForm.status.value,badge:badgeMap[assetForm.status.value]||'b-gray',
+    owner:assetForm.owner.value.trim()||'—',
+    pdate:assetForm.pdate.value||'', pprice:assetForm.pprice.value?fmt(assetForm.pprice.value):'', docs:[]});
+  saveAssets(); renderAssets(); fillAssetDropdown(); closeAsset(); assetForm.reset();
   showToast('✓ Varlık eklendi — '+code);
+});
+
+// ===================== ASSET DETAIL + DOCUMENTS =====================
+let curAsset=null;
+const dov=document.getElementById('detailOverlay');
+const todayISO=()=>new Date().toISOString().slice(0,10);
+function openDetail(no){
+  curAsset=assets.find(a=>a.no===no); if(!curAsset)return;
+  document.getElementById('dTitle').innerHTML=`${curAsset.no} <span class="tag">${curAsset.type}</span>`;
+  const row=(l,v)=>`<div><div style="color:var(--muted);font-size:12px">${l}</div><div style="font-weight:600">${v||'—'}</div></div>`;
+  document.getElementById('dInfo').innerHTML=
+    row('Konum',curAsset.loc)+
+    row('Güncel Değer','₺'+curAsset.val)+
+    row('Edinim Tarihi',curAsset.pdate?trDate(curAsset.pdate):'—')+
+    row('Alış Bedeli',curAsset.pprice?'₺'+curAsset.pprice:'—')+
+    row('Statü',`<span class="badge ${curAsset.badge}">${curAsset.status}</span>`)+
+    row('Sorumlu',curAsset.owner);
+  renderDocs();
+  dov.classList.add('show');
+}
+function closeDetail(){ dov.classList.remove('show'); curAsset=null; }
+function renderDocs(){
+  const box=document.getElementById('dDocs'); if(!box||!curAsset)return;
+  const docs=curAsset.docs||[];
+  if(!docs.length){ box.innerHTML='<div style="color:var(--muted);padding:10px 0">Henüz belge yok. Üstten tür seçip “Belge Ekle” ile dosya yükleyin — tarayıcınızda saklanır.</div>'; return; }
+  box.innerHTML=docs.map((d,i)=>
+    `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px">
+       <span style="font-size:18px">📄</span>
+       <div style="flex:1;min-width:0">
+         <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</div>
+         <div style="color:var(--muted);font-size:12px"><span class="tag">${d.cat}</span> ${d.date?trDate(d.date):''}${d.size?' · '+Math.round(d.size/1024)+' KB':''}${d.sample?' · örnek kayıt':''}</div>
+       </div>
+       <button type="button" class="btn ghost" data-open="${i}" style="padding:6px 10px">Aç</button>
+       <button type="button" class="btn ghost" data-del="${i}" style="padding:6px 10px">Sil</button>
+     </div>`).join('');
+}
+function openDoc(d){
+  if(!d.data){ showToast('Bu örnek bir kayıt — gerçek dosya eklenmemiş.'); return; }
+  try{
+    const arr=d.data.split(','), mime=(arr[0].match(/:(.*?);/)||[])[1]||'application/octet-stream';
+    const bin=atob(arr[1]); const u8=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([u8],{type:mime})); window.open(url,'_blank');
+  }catch(e){ showToast('Dosya açılamadı'); }
+}
+document.getElementById('detailClose').addEventListener('click',closeDetail);
+dov.addEventListener('click',e=>{ if(e.target===dov) closeDetail(); });
+document.getElementById('dDocs').addEventListener('click',e=>{
+  const o=e.target.closest('[data-open]'), x=e.target.closest('[data-del]'); if(!curAsset)return;
+  if(o){ openDoc(curAsset.docs[+o.dataset.open]); }
+  if(x){ curAsset.docs.splice(+x.dataset.del,1); saveAssets(); renderDocs(); renderAssets(); }
+});
+document.getElementById('docAddBtn').addEventListener('click',()=>document.getElementById('docFile').click());
+document.getElementById('docFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f||!curAsset)return;
+  if(f.size>4*1024*1024){ showToast('⚠ Dosya çok büyük (maks ~4 MB)'); e.target.value=''; return; }
+  const rd=new FileReader();
+  rd.onload=()=>{
+    curAsset.docs=curAsset.docs||[];
+    curAsset.docs.push({name:f.name,cat:document.getElementById('docCat').value,date:todayISO(),data:rd.result,mime:f.type,size:f.size});
+    saveAssets(); renderDocs(); renderAssets(); showToast('✓ Belge eklendi — '+f.name);
+  };
+  rd.onerror=()=>showToast('Dosya okunamadı');
+  rd.readAsDataURL(f); e.target.value='';
 });
 
 // ===================== LIVE FX (Frankfurter canlı + TCMB resmî) =====================
