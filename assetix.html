@@ -136,7 +136,31 @@
     padding:14px 16px;color:#0e7490;font-size:13px;margin-top:18px}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media(max-width:1100px){.kpis,.mods{grid-template-columns:repeat(2,1fr)}.grid2,.grid2b,.two{grid-template-columns:1fr}}
-  @media(max-width:780px){.app{grid-template-columns:1fr}.side{display:none}}
+  @media(max-width:780px){
+    html,body{overflow-x:hidden}
+    .app{grid-template-columns:1fr}
+    /* Sidebar becomes a scrollable horizontal top nav */
+    .side{position:sticky;top:0;z-index:6;height:auto;flex-direction:row;align-items:center;gap:4px;
+      padding:8px 10px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto}
+    .side .brand,.side .foot{display:none}
+    .nav{flex-direction:row;margin-top:0;gap:4px;flex-wrap:nowrap}
+    .nav button{width:auto;white-space:nowrap;padding:8px 11px;font-size:13px}
+    /* Top bar wraps; search hidden; FX chips scroll */
+    .topbar{flex-wrap:wrap;gap:10px;padding:12px 14px}
+    .search{display:none}
+    .tb-right{gap:8px;flex-wrap:wrap}
+    .tb-fx{max-width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}
+    /* Content + tables */
+    .content{padding:16px 14px}
+    table{display:block;width:100%;overflow-x:auto;white-space:nowrap}
+    .kpis{grid-template-columns:repeat(2,1fr) !important}
+    .mods{grid-template-columns:1fr !important}
+    .form-grid{grid-template-columns:1fr !important}
+    .res,.fxgrid,.summary-strip{grid-template-columns:repeat(2,1fr) !important}
+    /* Modals + login scroll on small screens */
+    .overlay{overflow:auto;align-items:flex-start;padding:16px}
+    #loginScreen{overflow:auto;align-items:flex-start;padding:16px}
+  }
   .progress{height:7px;background:var(--panel2);border-radius:6px;overflow:hidden;margin-top:8px}
   .progress i{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand2))}
   .nav .ic svg{width:18px;height:18px;display:block}
@@ -228,7 +252,7 @@
           <span class="fxchip rate"><b>FAİZ</b> <i id="tbRate">%37,0</i></span>
           <span class="fxupd" id="tbUpd">güncelleniyor…</span>
         </div>
-        <span class="pill">🏦 Demo Bank A.Ş.</span>
+        <span class="pill">🏢 Demo Portföy A.Ş.</span>
         <div class="userbox" id="userBox">
           <div class="uinfo"><div class="uname" id="uName">—</div><div class="urole" id="uRole">—</div></div>
           <div class="av" id="uAvatar">NA</div>
