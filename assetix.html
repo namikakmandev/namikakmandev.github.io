@@ -1137,6 +1137,16 @@ if(aiQ) aiQ.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefau
   input.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); } });
 })();
 
+// ---- "Önizleme" banner on the not-yet-built modules (honest + sells the roadmap) ----
+['sales','lease','flow','mods','reports'].forEach(function(id){
+  var sec=document.getElementById(id); if(!sec) return;
+  var b=document.createElement('div');
+  b.style.cssText='display:flex;gap:8px;align-items:flex-start;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:11px 14px;font-size:13px;line-height:1.55;margin-bottom:16px';
+  b.innerHTML='🔧 <span><b>Önizleme.</b> Bu modül örnek verilerle gösterilmektedir. Talebinize ve gerçek verinize göre tam işlevsel hâle getirilebilir.</span>';
+  var sub=sec.querySelector('.sub');
+  if(sub) sub.insertAdjacentElement('afterend', b); else sec.insertBefore(b, sec.firstChild);
+});
+
 // ===================== LIVE FX (Frankfurter canlı + TCMB resmî) =====================
 // Frankfurter (ECB verisi) CORS destekler — proxy gerekmez, geçmiş tarih de verir.
 // TCMB resmî kuru ikincil gösterim olarak (CORS olmadığından proxy ile, erişilebilirse) çekilir.
