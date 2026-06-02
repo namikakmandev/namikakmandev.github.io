@@ -1270,8 +1270,7 @@ function renderFX(){
     setT('tbRate',rt); const fr=document.getElementById('fxRate'); if(fr)fr.textContent=rt;
   }
   // Analiz kıyas oranı: gerçek mevduat faizi varsa onu, yoksa politika faizini kullan
-  const bench=(fxState.market&&fxState.market.deposit)?fxState.market.deposit.value:fxState.rate;
-  if(bench!=null){ const ai=document.querySelector('#anForm [name=rate]'); if(ai&&rateAuto) ai.value=bench; }
+  if(typeof updatePeriodRate==='function') updatePeriodRate();
   // Analiz tarih alt sınırı: verinin başladığı ay (öncesinde kıyaslar güvenilir değil)
   const _dh=fxState.market&&fxState.market.dep_hist; const _bd=document.querySelector('#anForm [name=bdate]');
   if(_bd&&_dh&&_dh.dates&&_dh.dates.length){ const p=_dh.dates[0].split('-'); _bd.min=p[0]+'-'+String(p[1]).padStart(2,'0')+'-01'; }
@@ -1405,6 +1404,16 @@ function depGrowthFactor(bd, sd){
   const years=(sd-bd)/(365.25*864e5);
   return {factor, avg: years>0?(Math.pow(factor,1/years)-1)*100:0};
 }
+// Faiz alanını seçilen döneme göre tazeler (dönem ortalaması). Tutar alanları boş olsa da çalışır.
+function updatePeriodRate(){
+  if(!rateAuto) return;
+  const form=document.getElementById('anForm'); if(!form) return;
+  const ai=form.querySelector('[name=rate]'); if(!ai) return;
+  let r=null; const b=form.bdate.value, s=form.sdate.value;
+  if(b&&s){ const hf=depGrowthFactor(new Date(b), new Date(s)); if(hf) r=hf.avg; }
+  if(r==null) r=(fxState.market&&fxState.market.deposit)?fxState.market.deposit.value:fxState.rate;
+  if(r!=null) ai.value=Number(r).toFixed(2);
+}
 const anForm=document.getElementById('anForm');
 if(anForm){
   const today=new Date().toISOString().slice(0,10);
@@ -1423,6 +1432,8 @@ if(anForm){
     if(h&&bfxAuto){ anForm.bfx.value=h.toFixed(2); anForm.bfx.placeholder=h.toFixed(2); }
   }
   anForm.bdate.addEventListener('change',fillHist);
+  anForm.bdate.addEventListener('change',updatePeriodRate);
+  anForm.sdate.addEventListener('change',updatePeriodRate);
   fillHist();
   anForm.addEventListener('submit',async e=>{
     e.preventDefault();
