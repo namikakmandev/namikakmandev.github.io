@@ -1055,7 +1055,7 @@ document.getElementById('logoutBtn').addEventListener('click',logout);
 
 // ===================== AI PORTFÖY DANIŞMANI =====================
 const AI_PROXY_URL = "https://assetix-ai.akmannamik83.workers.dev";
-const AI_SYSTEM = "Sen deneyimli, dengeli ve temkinli bir gayrimenkul yatırım danışmanısın. KESİN EMİR VERME ('mutlaka sat', 'kesinlikle tut' deme); bunun yerine seçenekleri tart ve 'değerlendirilebilir', 'gözden geçirilebilir' gibi yumuşak dil kullan. Elindeki sayılarda GÖRÜNMEYEN faktörlerin (kira getirisi, konumun stratejik değeri, vergi, likidite ihtiyacı, sahibin uzun vadeli planı) kararı değiştirebileceğini uygun yerde kısaca hatırlat. Kısa, net, Türkçe. Bu bir analizdir, kesin yatırım tavsiyesi değildir.";
+const AI_SYSTEM = "Sen deneyimli, dengeli ve temkinli bir gayrimenkul yatırım danışmanısın. KESİN EMİR VERME ('mutlaka sat', 'kesinlikle tut' deme); bunun yerine seçenekleri tart ve 'değerlendirilebilir', 'gözden geçirilebilir' gibi yumuşak dil kullan. Elindeki sayılarda GÖRÜNMEYEN faktörlerin (kira getirisi, konumun stratejik değeri, vergi, likidite ihtiyacı, sahibin uzun vadeli planı) kararı değiştirebileceğini uygun yerde kısaca hatırlat. Aracın bir değeri NASIL hesapladığı veya verinin KAYNAĞI sorulursa, sağlanan 'YÖNTEM & KAYNAKLAR' bilgisini kullanarak doğru yanıtla. Sana verilmeyen bir detayı UYDURMA; emin değilsen 'bu bilgi elimde yok' de. Kısa, net, Türkçe. Bu bir analizdir, kesin yatırım tavsiyesi değildir.";
 async function askAI(prompt, system){
   try{
     const r = await fetch(AI_PROXY_URL, {method:"POST", headers:{"content-type":"application/json"},
@@ -1074,7 +1074,15 @@ function aiContext(){
   const g = v => v==null?'—':v;
   return `ÖZET: ${assets.length} varlık · güncel değer ₺${fmt(totVal)} · alış ₺${fmt(totCost)} · yıllıklandırılmış getiri ${port!=null?port.toFixed(1)+'%':'—'}.\n`+
     `CANLI PİYASA (yıllık): enflasyon ${g(m.tufe&&m.tufe.yoy)}% · TL mevduat ${g(m.deposit&&m.deposit.value)}% · konut endeksi ${g(m.kfe_tr&&m.kfe_tr.yoy)}%.\n`+
-    `VARLIKLAR:\n${lines}`;
+    `VARLIKLAR:\n${lines}\n`+
+    `\nYÖNTEM & KAYNAKLAR (kullanıcı yöntem/kaynak sorarsa bu bilgiyi kullan):\n`+
+    `- Döviz kurları (USD/EUR/GBP→TL): Frankfurter / Avrupa Merkez Bankası (ECB).\n`+
+    `- Politika faizi, TL mevduat ve kredi faizleri, Konut Fiyat Endeksi (KFE), enflasyon (TÜFE): TCMB EVDS (resmî veri).\n`+
+    `- Veriler günlük otomatik güncellenir (GitHub Actions → rates.json dosyası).\n`+
+    `- Portföy yıllıklandırılmış getiri = her varlık için (güncel değer / alış bedeli)^(1/elde tutma yılı) − 1 (yıllık bileşik getiri, CAGR); varlıklar güncel değere göre ağırlıklandırılır.\n`+
+    `- 'Kümülatif' = alışa göre toplam değer artışı; 'yıllıklandırılmış' = yıllık bileşik oran.\n`+
+    `- Hüküm: portföyün yıllık getirisi enflasyon, TL mevduat ve konut endeksiyle kıyaslanır.\n`+
+    `- Not: KFE aylık ve ~6 hafta gecikmelidir; bazı pano (gösterge paneli) değerleri demo amaçlıdır.`;
 }
 async function runAI(prompt, btn){
   const out = document.getElementById('aiOut');
