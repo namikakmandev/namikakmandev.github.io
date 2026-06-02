@@ -111,6 +111,22 @@ def get_market():
                         out[k] = {"value": round(float(s.iloc[-1][col]), 2), "asof": str(s.iloc[-1].get("Tarih", ""))}
         except Exception as e:
             print("[market rates]", repr(e))
+        # Deposit-rate history (monthly) — for period-accurate deposit comparison in the analyzer
+        try:
+            ds = (end - timedelta(days=2557)).strftime("%d-%m-%Y")
+            dfd = api.get_data(["TP.TRY.MT02"], startdate=ds, enddate=end.strftime("%d-%m-%Y"))
+            if "TP_TRY_MT02" in dfd.columns and "Tarih" in dfd.columns:
+                s = dfd[dfd["TP_TRY_MT02"].notna()]
+                monthly = {}
+                for _, row in s.iterrows():
+                    p = str(row["Tarih"]).split("-")  # DD-MM-YYYY
+                    if len(p) == 3:
+                        monthly[p[2] + "-" + p[1]] = round(float(row["TP_TRY_MT02"]), 2)  # YYYY-MM -> value
+                keys = sorted(monthly.keys())
+                if keys:
+                    out["dep_hist"] = {"dates": keys, "vals": [monthly[k] for k in keys]}
+        except Exception as e:
+            print("[dep hist]", repr(e))
         try:
             is_ = (end - timedelta(days=800)).strftime("%d-%m-%Y")
             df = api.get_data(list(INDEX_SERIES.values()), startdate=is_, enddate=end.strftime("%d-%m-%Y"))

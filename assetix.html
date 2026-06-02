@@ -528,7 +528,7 @@
             <div class="form-grid">
               <div class="field"><label>Alış / Maliyet Değeri (₺) *</label><input name="buy" type="number" min="1" step="any" placeholder="örn. 4.000.000" required></div>
               <div class="field"><label>Satış / Güncel Değer (₺) *</label><input name="sell" type="number" min="1" step="any" placeholder="örn. 6.500.000" required></div>
-              <div class="field"><label>TL Mevduat Faizi (% yıllık)</label><input name="rate" type="number" min="0" step="any" value="37"><div class="hint">Bankada tutma alternatifi (3 ay TL mevduat) — düzenlenebilir</div></div>
+              <div class="field"><label>TL Mevduat Faizi (% yıllık)</label><input name="rate" type="number" min="0" step="any" value="37"><div class="hint">Bankada tutma alternatifi (3 ay TL mevduat). Otomatik bırakırsanız dönemin <b>gerçek faiz seyrine</b> göre hesaplanır; elle girerseniz sabit oran kullanılır.</div></div>
               <div class="field"><label>Alış Tarihi *</label><input name="bdate" type="date" required></div>
               <div class="field"><label>Satış / Bugün *</label><input name="sdate" type="date" required></div>
               <div class="field"><label>Alış Tarihindeki USD/TRY</label><input name="bfx" type="number" min="0" step="any" placeholder="otomatik"><div class="hint">Alış tarihinden Frankfurter geçmişiyle otomatik dolar — elle değiştirebilirsiniz</div></div>
@@ -1379,6 +1379,28 @@ setInterval(dailyTick, 60*60*1000);       // her saat: gün değiştiyse güncel
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) dailyTick(); });
 
 // ===================== PROFITABILITY ANALYZER =====================
+// Mevduat faizinin dönem içindeki gerçek seyrine göre büyüme (analiz için)
+function depRateAt(d){
+  const h=fxState.market&&fxState.market.dep_hist; if(!h||!h.dates||!h.dates.length) return null;
+  const target=d.getFullYear()*12+d.getMonth();
+  let best=null,bdiff=1e9;
+  h.dates.forEach((s,i)=>{ const p=s.split('-'); const mi=(+p[0])*12+((+p[1])-1); const diff=Math.abs(mi-target); if(diff<bdiff){bdiff=diff;best=h.vals[i];} });
+  return best;
+}
+function depGrowthFactor(bd, sd){
+  const h=fxState.market&&fxState.market.dep_hist; if(!h||!h.dates||!h.dates.length||!(sd>bd)) return null;
+  let factor=1, t=new Date(bd.getTime());
+  while(t<sd){
+    const next=new Date(t.getFullYear(), t.getMonth()+1, 1);
+    const segEnd = next<sd ? next : sd;
+    const frac=(segEnd-t)/(365.25*864e5);
+    let r=depRateAt(t); if(r==null) r=(fxState.market.deposit?fxState.market.deposit.value:37);
+    factor*=Math.pow(1+r/100, frac);
+    t=segEnd;
+  }
+  const years=(sd-bd)/(365.25*864e5);
+  return {factor, avg: years>0?(Math.pow(factor,1/years)-1)*100:0};
+}
 const anForm=document.getElementById('anForm');
 if(anForm){
   const today=new Date().toISOString().slice(0,10);
@@ -1410,7 +1432,11 @@ if(anForm){
     const profit=sell-buy;
     const totalRet=(sell/buy-1)*100;
     const annualRet=years>0?(Math.pow(sell/buy,1/years)-1)*100:totalRet;
-    const depFactor=Math.pow(1+rate/100,years>0?years:1);
+    let depFactor, depAvg=null;
+    const hf = rateAuto ? depGrowthFactor(bd, sd) : null;
+    if(hf && hf.factor>0 && years>0){ depFactor=hf.factor; depAvg=hf.avg; }
+    else { depFactor=Math.pow(1+rate/100, years>0?years:1); }
+    const effRate = (depAvg!=null) ? depAvg : rate;
     const depValue=buy*depFactor;
     const depRet=(depFactor-1)*100;
 
@@ -1449,15 +1475,16 @@ if(anForm){
 
     // Verdict — compare annualized deal return vs TL rate
     const v=document.getElementById('rVerdict');
-    const edge=annualRet-rate;
+    const edge=annualRet-effRate;
     let cls,txt;
     if(edge>2){cls='v-good';txt='✓ Bu işlem TL mevduata göre KÂRLI. Yıllık getirisi mevduat faizinin '+edge.toFixed(1).replace('.',',')+' puan üzerinde.';}
-    else if(edge<-2){cls='v-bad';txt='✕ Bu işlem TL mevduatın ALTINDA. Parayı %'+rate.toFixed(0)+' faizle tutmak '+Math.abs(edge).toFixed(1).replace('.',',')+' puan daha iyiydi.';}
+    else if(edge<-2){cls='v-bad';txt='✕ Bu işlem TL mevduatın ALTINDA. Parayı %'+effRate.toFixed(0)+' faizle tutmak '+Math.abs(edge).toFixed(1).replace('.',',')+' puan daha iyiydi.';}
     else{cls='v-mid';txt='≈ Bu işlem TL mevduatla yaklaşık BAŞABAŞ (fark '+edge.toFixed(1).replace('.',',')+' puan).';}
     if(usdRet!==null){ txt+=' '+(usdRet>=0?'Dolar bazında da %'+usdRet.toFixed(1).replace('.',',')+' kazandırmış.':'Ancak dolar bazında %'+Math.abs(usdRet).toFixed(1).replace('.',',')+' KAYIP var — TL kârı kur etkisini yenememiş.'); if(usdRet<0&&cls==='v-good')cls='v-mid'; }
     if(marketRet!==null){ const d=totalRet-marketRet;
       txt+=' '+cityNm+' konut piyasasını (KFE %'+marketRet.toFixed(1).replace('.',',')+') '+(d>=0?d.toFixed(1).replace('.',',')+' puan GEÇTİ.':Math.abs(d).toFixed(1).replace('.',',')+' puan ALTINDA kaldı.');
     }
+    if(depAvg!=null){ txt+=' (Mevduat kıyası dönemin gerçek faiz seyrine göre; ort. ~%'+depAvg.toFixed(0)+'/yıl.)'; }
     v.className='verdict '+cls; v.textContent=txt;
 
     // Bar grafiği: bu işlem vs. TCMB göstergeleri (dönem toplam getiri %)
