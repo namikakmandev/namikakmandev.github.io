@@ -1056,7 +1056,7 @@ document.getElementById('logoutBtn').addEventListener('click',logout);
 
 // ===================== AI PORTFÖY DANIŞMANI =====================
 const AI_PROXY_URL = "https://assetix-ai.akmannamik83.workers.dev";
-const AI_SYSTEM = "Sen deneyimli bir gayrimenkul yatırım danışmanısın. Kısa, net, uygulanabilir yanıt ver. Analiz amaçlıdır, yatırım tavsiyesi değildir.";
+const AI_SYSTEM = "Sen deneyimli, dengeli ve temkinli bir gayrimenkul yatırım danışmanısın. KESİN EMİR VERME ('mutlaka sat', 'kesinlikle tut' deme); bunun yerine seçenekleri tart ve 'değerlendirilebilir', 'gözden geçirilebilir' gibi yumuşak dil kullan. Elindeki sayılarda GÖRÜNMEYEN faktörlerin (kira getirisi, konumun stratejik değeri, vergi, likidite ihtiyacı, sahibin uzun vadeli planı) kararı değiştirebileceğini uygun yerde kısaca hatırlat. Kısa, net, Türkçe. Bu bir analizdir, kesin yatırım tavsiyesi değildir.";
 async function askAI(prompt, system){
   try{
     const r = await fetch(AI_PROXY_URL, {method:"POST", headers:{"content-type":"application/json"},
@@ -1087,7 +1087,7 @@ async function runAI(prompt, btn){
 }
 const aiBtn = document.getElementById('aiBtn');
 if(aiBtn) aiBtn.addEventListener('click', ()=> runAI(
-  aiContext()+`\n\nGÖREV: (1) Portföy enflasyon/mevduat/konut endeksine göre iyi mi? tek cümle hüküm. (2) En zayıf 1-2 varlık. (3) 2-3 somut öneri (elde tut/sat/yeniden değerle). Türkçe, madde madde.`, aiBtn));
+  aiContext()+`\n\nGÖREV: (1) Portföyü enflasyon/mevduat/konut endeksine göre tek cümleyle dengeli değerlendir. (2) Yakından izlenmesi gereken 1-2 varlığı belirt. (3) 2-3 temkinli öneri sun; kesin emir verme, dikkate alınması gereken bilinmeyen faktörleri (kira, konum, vergi) de hatırlat. Türkçe, madde madde, kısa.`, aiBtn));
 const aiAskBtn = document.getElementById('aiAskBtn');
 const aiQ = document.getElementById('aiQ');
 function doAsk(){ const q=(aiQ.value||'').trim(); if(!q){ aiQ.focus(); return; }
