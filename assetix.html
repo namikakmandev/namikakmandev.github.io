@@ -1055,7 +1055,7 @@ document.getElementById('logoutBtn').addEventListener('click',logout);
 
 // ===================== AI PORTFÖY DANIŞMANI =====================
 const AI_PROXY_URL = "https://assetix-ai.akmannamik83.workers.dev";
-const AI_SYSTEM = "Sen deneyimli, dengeli ve temkinli bir gayrimenkul yatırım danışmanısın. KESİN EMİR VERME ('mutlaka sat', 'kesinlikle tut' deme); bunun yerine seçenekleri tart ve 'değerlendirilebilir', 'gözden geçirilebilir' gibi yumuşak dil kullan. Elindeki sayılarda GÖRÜNMEYEN faktörlerin (kira getirisi, konumun stratejik değeri, vergi, likidite ihtiyacı, sahibin uzun vadeli planı) kararı değiştirebileceğini uygun yerde kısaca hatırlat. Aracın bir değeri NASIL hesapladığı veya verinin KAYNAĞI sorulursa, sağlanan 'YÖNTEM & KAYNAKLAR' bilgisini kullanarak doğru yanıtla. Sana verilmeyen bir detayı UYDURMA; emin değilsen 'bu bilgi elimde yok' de. Kısa, net, Türkçe. Bu bir analizdir, kesin yatırım tavsiyesi değildir.";
+const AI_SYSTEM = "Sen deneyimli, dengeli ve temkinli bir gayrimenkul yatırım danışmanısın. KESİN EMİR VERME ('mutlaka sat', 'kesinlikle tut' deme); bunun yerine seçenekleri tart ve 'değerlendirilebilir', 'gözden geçirilebilir' gibi yumuşak dil kullan. Elindeki sayılarda GÖRÜNMEYEN faktörlerin (kira getirisi, konumun stratejik değeri, vergi, likidite ihtiyacı, sahibin uzun vadeli planı) kararı değiştirebileceğini uygun yerde kısaca hatırlat. Aracın bir değeri NASIL hesapladığı veya verinin KAYNAĞI sorulursa, sağlanan 'YÖNTEM & KAYNAKLAR' bilgisini kullanarak doğru yanıtla. Sana verilmeyen bir detayı UYDURMA; emin değilsen 'bu bilgi elimde yok' de. Kullanıcının o an açık olduğu sayfa sana bildirilir; soru o sayfayla ilgiliyse yanıtını o bağlama göre odakla. Kısa, net, Türkçe. Bu bir analizdir, kesin yatırım tavsiyesi değildir.";
 async function askAI(prompt, system){
   try{
     const r = await fetch(AI_PROXY_URL, {method:"POST", headers:{"content-type":"application/json"},
@@ -1072,7 +1072,9 @@ function aiContext(){
   assets.forEach(a=>{ totVal+=parseTRNum(a.val); totCost+=parseTRNum(a.pprice); });
   const lines = assets.map(a=>`- ${a.no} (${a.type}, ${a.loc}): alış ₺${a.pprice||'—'} → güncel ₺${a.val}, edinim ${a.pdate||'—'}, statü ${a.status}`).join('\n');
   const g = v => v==null?'—':v;
-  return `ÖZET: ${assets.length} varlık · güncel değer ₺${fmt(totVal)} · alış ₺${fmt(totCost)} · yıllıklandırılmış getiri ${port!=null?port.toFixed(1)+'%':'—'}.\n`+
+  const ap=document.querySelector('.page.active'); const pg=ap?((ap.querySelector('.pt')||{}).textContent||'').trim():'';
+  return `KULLANICININ O AN AÇIK OLDUĞU SAYFA: ${pg||'—'}.\n`+
+    `ÖZET: ${assets.length} varlık · güncel değer ₺${fmt(totVal)} · alış ₺${fmt(totCost)} · yıllıklandırılmış getiri ${port!=null?port.toFixed(1)+'%':'—'}.\n`+
     `CANLI PİYASA (yıllık): enflasyon ${g(m.tufe&&m.tufe.yoy)}% · TL mevduat ${g(m.deposit&&m.deposit.value)}% · konut endeksi ${g(m.kfe_tr&&m.kfe_tr.yoy)}%.\n`+
     `VARLIKLAR:\n${lines}\n`+
     `\nYÖNTEM & KAYNAKLAR (kullanıcı yöntem/kaynak sorarsa bu bilgiyi kullan):\n`+
