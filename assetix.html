@@ -574,7 +574,8 @@
               </div>
               <div class="field">
                 <label>Varlık *</label>
-                <select name="asset" id="txAsset" required><option value="">Seçiniz...</option></select>
+                <input name="asset" id="txAsset" list="txAssetList" required placeholder="Varlık seçin ya da yeni girin" autocomplete="off">
+                <datalist id="txAssetList"></datalist>
               </div>
               <div class="field">
                 <label>Tutar (₺) *</label>
@@ -866,9 +867,8 @@ if(txs.length===0){ // seed a couple of demo rows on first run
 let nextId=()=> 'TX-'+(100000+txs.length+1);
 
 function fillAssetDropdown(){
-  const sel=document.getElementById('txAsset'); if(!sel)return;
-  sel.innerHTML='<option value="">Seçiniz...</option>'+
-    assets.map(a=>`<option>${a.no} — ${a.type}, ${a.loc.split(' / ')[0]}</option>`).join('');
+  const dl=document.getElementById('txAssetList'); if(!dl)return;
+  dl.innerHTML=assets.map(a=>`<option value="${a.no} — ${a.type}, ${a.loc.split(' / ')[0]}"></option>`).join('');
 }
 function txMetrics(){
   let vol=0,inc=0,out=0;
