@@ -1178,9 +1178,10 @@ function renderMarket(){
 }
 let kfeChart=null;
 function renderKfeChart(){
-  const h=fxState.market&&fxState.market.kfe_hist; const el=document.getElementById('cKfe');
+  const H=fxState.market&&fxState.market.kfe_hist; const el=document.getElementById('cKfe');
   const cap=document.getElementById('kfeCap');
-  if(!el||!h||!h.dates||!h.dates.length){ if(cap)cap.style.display='none'; return; }
+  if(!el||!H||!H.dates||!H.dates.length){ if(cap)cap.style.display='none'; return; }
+  const _s=a=>(a||[]).slice(-24); const h={dates:_s(H.dates),tr:_s(H.tr),ist:_s(H.ist),ank:_s(H.ank),izm:_s(H.izm)}; // grafik son 24 ayı gösterir
   if(el.offsetParent===null) return; // sekme görünür değilse atla (sekmeye geçince çizilir)
   if(cap)cap.style.display='';
   const rebase=a=>{const b=(a||[]).find(x=>x!=null)||1; return (a||[]).map(x=>x==null?null:Math.round(x/b*1000)/10);};
@@ -1271,6 +1272,9 @@ function renderFX(){
   // Analiz kıyas oranı: gerçek mevduat faizi varsa onu, yoksa politika faizini kullan
   const bench=(fxState.market&&fxState.market.deposit)?fxState.market.deposit.value:fxState.rate;
   if(bench!=null){ const ai=document.querySelector('#anForm [name=rate]'); if(ai&&rateAuto) ai.value=bench; }
+  // Analiz tarih alt sınırı: verinin başladığı ay (öncesinde kıyaslar güvenilir değil)
+  const _dh=fxState.market&&fxState.market.dep_hist; const _bd=document.querySelector('#anForm [name=bdate]');
+  if(_bd&&_dh&&_dh.dates&&_dh.dates.length){ const p=_dh.dates[0].split('-'); _bd.min=p[0]+'-'+String(p[1]).padStart(2,'0')+'-01'; }
   renderMarket();
   renderReturnInsight();
   const t=document.getElementById('fxTime');

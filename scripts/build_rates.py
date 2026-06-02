@@ -128,7 +128,7 @@ def get_market():
         except Exception as e:
             print("[dep hist]", repr(e))
         try:
-            is_ = (end - timedelta(days=800)).strftime("%d-%m-%Y")
+            is_ = (end - timedelta(days=2557)).strftime("%d-%m-%Y")
             df = api.get_data(list(INDEX_SERIES.values()), startdate=is_, enddate=end.strftime("%d-%m-%Y"))
             for k, code in INDEX_SERIES.items():
                 col = code.replace(".", "_")
@@ -149,8 +149,8 @@ def get_market():
                     c = code.replace(".", "_")
                     if c not in dfh.columns:
                         return []
-                    return [(round(float(v), 1) if v == v else None) for v in dfh[c].tolist()][-24:]
-                dates = [str(x) for x in dfh["Tarih"].tolist()][-24:] if "Tarih" in dfh.columns else []
+                    return [(round(float(v), 1) if v == v else None) for v in dfh[c].tolist()][-84:]
+                dates = [str(x) for x in dfh["Tarih"].tolist()][-84:] if "Tarih" in dfh.columns else []
                 out["kfe_hist"] = {"dates": dates, "tr": _arr("TP.KFE.TR"),
                                    "ist": _arr("TP.KFE.TR10"), "ank": _arr("TP.KFE.TR51"),
                                    "izm": _arr("TP.KFE.TR31")}
