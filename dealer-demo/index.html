@@ -95,6 +95,19 @@
   </div>
   <div class="synth" id="synth" style="margin-top:14px"></div>
 
+  <div class="card" id="macroCard" style="margin-top:18px;display:none">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700;margin-bottom:10px">Live Türkiye market backdrop · TCMB</div>
+    <div class="grid" style="margin-top:0">
+      <div class="kpi"><span>Inflation (TÜFE, yıllık)</span><strong id="mInf">—</strong></div>
+      <div class="kpi"><span>Policy rate</span><strong id="mPol">—</strong></div>
+      <div class="kpi"><span>Commercial loan rate</span><strong id="mLoan">—</strong></div>
+      <div class="kpi"><span>USD / TRY</span><strong id="mUsd">—</strong></div>
+      <div class="kpi"><span>EUR / TRY</span><strong id="mEur">—</strong></div>
+    </div>
+    <p class="note" id="macroNote" style="margin-top:12px"></p>
+    <p class="note" id="macroAsof" style="margin-top:2px;font-size:11px"></p>
+  </div>
+
   <h2 class="band" style="margin-top:26px">How this dealership compares — industry context</h2>
   <p class="note">The dealership's own ratios set against general automotive-retail reference ranges.</p>
   <div class="card"><table id="bmTable">
@@ -565,6 +578,36 @@ document.getElementById("tpl").addEventListener("click",function(){
 buildTB(); buildOps(); buildBonus();
 var _ohb=document.getElementById("ohBasis"); if(_ohb) _ohb.addEventListener("change",calc);
 calc();
+
+/* ---------- live Türkiye macro backdrop (TCMB, via bundled rates.json) ---------- */
+var MACRO=null;
+function renderMacro(){
+  var c=document.getElementById("macroCard"); if(!c) return;
+  if(!MACRO){ c.style.display="none"; return; }
+  var inf = MACRO.market && MACRO.market.tufe && MACRO.market.tufe.yoy,
+      pol = MACRO.rate && MACRO.rate.value,
+      loan= MACRO.market && MACRO.market.loan_comm && MACRO.market.loan_comm.value,
+      usd = MACRO.fx && MACRO.fx.USDTRY,
+      eur = MACRO.fx && MACRO.fx.EURTRY;
+  set("mInf",  inf!=null ? inf.toFixed(1)+"%" : "—");
+  set("mPol",  pol!=null ? pol.toFixed(1)+"%" : "—");
+  set("mLoan", loan!=null ? loan.toFixed(1)+"%" : "—");
+  set("mUsd",  usd!=null ? usd.toFixed(2) : "—");
+  set("mEur",  eur!=null ? eur.toFixed(2) : "—");
+  var lines=[];
+  if(loan!=null) lines.push("At ~"+loan.toFixed(1)+"% commercial borrowing, financing unsold stock is expensive — every month a car sits unsold carries real interest, so floorplan discipline matters.");
+  if(inf!=null) lines.push("Inflation ~"+inf.toFixed(1)+"% means cost-based COGS understates the true replacement cost of what you sold — your reported margin flatters the real, replacement-cost margin.");
+  document.getElementById("macroNote").innerHTML=lines.join(" ");
+  document.getElementById("macroAsof").textContent="Source: TCMB EVDS · "+(MACRO.fxSource||"FX")+" · inflation as of "+((MACRO.market&&MACRO.market.tufe&&MACRO.market.tufe.asof)||"—")+", rate as of "+((MACRO.rate&&MACRO.rate.asof)||"—")+", FX "+((MACRO.fxAsof)||"—")+".";
+  c.style.display="";
+}
+function loadMacro(){
+  fetch("rates.json?v="+(new Date().getTime()),{cache:"no-store"})
+    .then(function(r){ if(!r.ok) throw new Error("no rates"); return r.json(); })
+    .then(function(j){ MACRO=j; window.MACRO=j; renderMacro(); })
+    .catch(function(){ MACRO=null; renderMacro(); });
+}
+loadMacro();
 
 /* ---------- tabbed panes ---------- */
 (function(){

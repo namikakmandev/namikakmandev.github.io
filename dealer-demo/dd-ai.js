@@ -56,6 +56,17 @@
     var activeTabEl = document.querySelector("#tabs .tab.on");
     var activeTab = activeTabEl ? activeTabEl.textContent.trim() : "Overview";
 
+    var m = window.MACRO;
+    var macroLine = "";
+    if (m) {
+      macroLine = "LIVE TÜRKİYE MACRO BACKDROP (TCMB EVDS, monthly): inflation (TÜFE yıllık) " +
+        (m.market && m.market.tufe && m.market.tufe.yoy != null ? m.market.tufe.yoy + "%" : "—") + ", policy rate " +
+        (m.rate && m.rate.value != null ? m.rate.value + "%" : "—") + ", commercial loan rate " +
+        (m.market && m.market.loan_comm ? m.market.loan_comm.value + "%" : "—") + ", USD/TRY " +
+        (m.fx ? m.fx.USDTRY : "—") + ", EUR/TRY " + (m.fx ? m.fx.EURTRY : "—") +
+        ". Use this for two dealer-specific angles: (a) FLOORPLAN financing cost — at these loan rates, unsold stock is expensive to hold; (b) REPLACEMENT-COST margin — at this inflation, cost-based COGS understates the true cost of what was sold, so reported margin overstates real margin.\n";
+    }
+
     var bmLine = "";
     if (d.benchmarks && d.benchmarks.length) {
       bmLine = "INDUSTRY BENCHMARK CONTEXT (general automotive-retail reference ranges — orientation only, confirm per brand):\n" +
@@ -69,6 +80,7 @@
       "CONSOLIDATED: revenue " + L(d.rev) + " · gross profit " + L(d.gross) + " (" + p1(d.grossPct) + ") · operating overhead " + L(d.overhead) + (d.ohBasis && d.ohBasis !== "none" ? " (allocated to divisions)" : " (one shared pool)") + " · net profit " + L(d.net) + " (" + p1(d.netPct) + " of revenue).\n" +
       "DIVISIONS (gross profit):\n" + divLines + "\n" +
       allocLine +
+      macroLine +
       "PROFIT ENGINE: biggest = " + d.best + " (" + L(d.bestGross) + ", " + d.bestSharePct.toFixed(0) + "% of all gross). Thinnest margin = " + d.thin + " (" + p1(d.thinPct) + "). Service absorption = " + d.absorption.toFixed(0) + "% (fixed-ops gross ÷ total overhead; 100% = parts & service alone cover all overhead).\n" +
       "PRICE LEAKAGE vs list: total left on the table " + L(d.totLeak) + (d.worstLeak ? "; biggest in " + d.worstLeak + " (" + L(d.worstLeakAmt) + ")" : "") + ". This is gross handed away below list before any cost — but campaign support / trade-in over-allowances can sit inside it, so don't read it all as lost discipline.\n" +
       "VARIANCE vs PLAN: gross " + (d.tVar < 0 ? "missed plan by " : "beat plan by ") + L(Math.abs(d.tVar)) + ", driven mainly by " + d.driver + ". Volume effect " + L(d.tVol) + " + Rate effect " + L(d.tRate) + " reconcile exactly to the " + L(d.tVar) + " total. Worst vs plan: " + d.worstVar + " (" + L(d.worstVarAmt) + ").\n" +
