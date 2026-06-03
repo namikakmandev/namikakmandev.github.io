@@ -602,10 +602,16 @@ function renderMacro(){
   c.style.display="";
 }
 function loadMacro(){
-  fetch("rates.json?v="+(new Date().getTime()),{cache:"no-store"})
-    .then(function(r){ if(!r.ok) throw new Error("no rates"); return r.json(); })
-    .then(function(j){ MACRO=j; window.MACRO=j; renderMacro(); })
-    .catch(function(){ MACRO=null; renderMacro(); });
+  // 1) site-root /rates.json — refreshed DAILY by the GitHub Action (live on the deployed site)
+  // 2) bundled ./rates.json — offline/local fallback snapshot
+  var urls=["/rates.json","rates.json"], v="?v="+(new Date().getTime());
+  (function tryNext(i){
+    if(i>=urls.length){ MACRO=null; renderMacro(); return; }
+    fetch(urls[i]+v,{cache:"no-store"})
+      .then(function(r){ if(!r.ok) throw new Error("bad"); return r.json(); })
+      .then(function(j){ MACRO=j; window.MACRO=j; renderMacro(); })
+      .catch(function(){ tryNext(i+1); });
+  })(0);
 }
 loadMacro();
 
