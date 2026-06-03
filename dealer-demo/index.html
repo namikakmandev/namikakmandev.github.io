@@ -87,8 +87,17 @@
   <div class="synth" id="synth" style="margin-top:14px"></div>
 
   <h2 class="band">A · Division &amp; consolidated P&amp;L <span class="pill">from the accounts</span></h2>
-  <p class="note">The real result, straight from the trial balance — no assumptions. Overhead is one shared pool, netted at the total (no arbitrary per-division split).</p>
+  <p class="note">The real result, straight from the trial balance — no assumptions. By default overhead stays one shared pool, netted at the total. You can also <b>allocate</b> it across divisions to see a net profit per division.</p>
+  <p class="note" style="margin-bottom:6px">Allocate operating overhead:
+    <select id="ohBasis" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px">
+      <option value="none">Shared pool — no split (default)</option>
+      <option value="rev">By revenue share</option>
+      <option value="gross">By gross-profit share</option>
+      <option value="equal">Equal per division</option>
+    </select>
+  </p>
   <div class="card"><table id="plTable"><thead id="plHead"></thead><tbody id="plBody"></tbody></table></div>
+  <p class="note" id="plAllocNote" style="margin-top:8px;display:none"></p>
   <div class="card"><svg id="cGross" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gross profit by division"></svg></div>
   <p class="note" id="plRead"></p>
 
@@ -298,9 +307,37 @@ function calc(){
   b+=rowt("Cost of sales",function(d){return P(per[d].cogs);},P(tC));
   b+=rowt("Gross profit",function(d){return L(per[d].gross);},L(tG),1);
   b+=rowt("Gross margin %",function(d){return pc(per[d].gross,per[d].rev).toFixed(1)+"%";},pc(tG,tR).toFixed(1)+"%");
-  b+='<tr><td>Operating overhead (shared)</td>'; D.forEach(function(){ b+='<td class="num">—</td>'; }); b+='<td class="num">'+P(oh)+'</td></tr>';
-  b+='<tr class="tot"><td>Net profit</td>'; D.forEach(function(){ b+='<td class="num">—</td>'; }); b+='<td class="num '+(net<0?'lo':'hi')+'">'+L(net)+'</td></tr>';
+  /* optional overhead allocation across divisions */
+  var ohBasis=(document.getElementById("ohBasis")||{}).value||"none";
+  var alloc={}, netBy={};
+  D.forEach(function(d){ alloc[d]=0; });
+  if(ohBasis!=="none"){
+    if(ohBasis==="equal"){ D.forEach(function(d){ alloc[d]=oh/D.length; }); }
+    else {
+      var keyTot=0, key={};
+      D.forEach(function(d){ var w=ohBasis==="rev"?per[d].rev:Math.max(0,per[d].gross); key[d]=w; keyTot+=w; });
+      D.forEach(function(d){ alloc[d]=keyTot?oh*(key[d]/keyTot):oh/D.length; });
+    }
+  }
+  D.forEach(function(d){ netBy[d]=per[d].gross-alloc[d]; });
+  if(ohBasis==="none"){
+    b+='<tr><td>Operating overhead (shared)</td>'; D.forEach(function(){ b+='<td class="num">—</td>'; }); b+='<td class="num">'+P(oh)+'</td></tr>';
+    b+='<tr class="tot"><td>Net profit</td>'; D.forEach(function(){ b+='<td class="num">—</td>'; }); b+='<td class="num '+(net<0?'lo':'hi')+'">'+L(net)+'</td></tr>';
+  } else {
+    b+='<tr><td>Operating overhead (allocated)</td>'; D.forEach(function(d){ b+='<td class="num">'+P(alloc[d])+'</td>'; }); b+='<td class="num">'+P(oh)+'</td></tr>';
+    b+='<tr class="tot"><td>Net profit</td>'; D.forEach(function(d){ b+='<td class="num '+(netBy[d]<0?'lo':'hi')+'">'+L(netBy[d])+'</td>'; }); b+='<td class="num '+(net<0?'lo':'hi')+'">'+L(net)+'</td></tr>';
+  }
   document.getElementById("plBody").innerHTML=b;
+  var allocNote=document.getElementById("plAllocNote");
+  if(allocNote){
+    if(ohBasis==="none"){ allocNote.style.display="none"; allocNote.innerHTML=""; }
+    else {
+      var basisLbl={rev:"each division's share of revenue",gross:"each division's share of gross profit",equal:"an equal share per division"}[ohBasis];
+      var losers2=D.filter(function(d){ return netBy[d]<0; });
+      allocNote.style.display="";
+      allocNote.innerHTML="<b>Allocation is a modelling choice, not a hard cost.</b> Overhead is spread by "+basisLbl+". A division showing a loss after allocation may simply be carrying shared cost it doesn't truly cause"+(losers2.length?" (here: "+losers2.join(", ")+")":"")+" — a prompt for the conversation, not a reason on its own to close anything.";
+    }
+  }
   var rk=D.slice().sort(function(a,c){return per[c].gross-per[a].gross;});
   var fixedG=0; D.forEach(function(d){ if(/service|parts|fixed/i.test(d)) fixedG+=per[d].gross; });
   var absorp = oh? fixedG/oh*100 : 0;
@@ -413,7 +450,8 @@ function calc(){
     ncDiv:ncDiv, ncGross:ncGross, ncGrossOEM:ncGrossOEM, ncRev:ncRev,
     oem:oem, holdback:holdback, volBonus:volBonus, csiAmt:csiAmt, csiOn:csiOn,
     ach:ach, tierLbl:tierLbl, perUnit:perUnit, ncUnits:ncUnits, bnTgt:bnTgt,
-    unitsNeeded:unitsNeeded, nextB:nextB, riskLoss:riskLoss
+    unitsNeeded:unitsNeeded, nextB:nextB, riskLoss:riskLoss,
+    ohBasis:ohBasis, alloc:alloc, netBy:netBy
   };
 }
 
@@ -467,7 +505,9 @@ document.getElementById("tpl").addEventListener("click",function(){
   a.href=u; a.download="trial-balance-template.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
 });
 
-buildTB(); buildOps(); buildBonus(); calc();
+buildTB(); buildOps(); buildBonus();
+var _ohb=document.getElementById("ohBasis"); if(_ohb) _ohb.addEventListener("change",calc);
+calc();
 </script>
 
 <!-- Floating AI advisor — runs on the SAMPLE only (uploaded data is never sent) -->

@@ -43,9 +43,18 @@
         " (" + (pr.rev ? (pr.gross / pr.rev * 100).toFixed(1) : "0.0") + "% margin)";
     }).join("\n");
 
+    var allocLine = "";
+    if (d.ohBasis && d.ohBasis !== "none") {
+      var basisName = { rev: "revenue share", gross: "gross-profit share", equal: "equal per division" }[d.ohBasis] || d.ohBasis;
+      allocLine = "OVERHEAD ALLOCATION is ON (basis: " + basisName + ") — net profit per division after its allocated overhead:\n" +
+        d.divisions.map(function (x) { return "- " + x + ": net " + L(d.netBy[x]) + " (overhead " + L(d.alloc[x]) + ")"; }).join("\n") +
+        "\n(Allocation is a modelling choice, not a hard cost — a division can look loss-making purely from carrying shared overhead it doesn't truly cause; flag this when relevant.)\n";
+    }
+
     return "OPEN TOOL: Dealership Profit & Variance Diagnostic (Phase 1 — built from one trial balance). SAMPLE auto dealer, Turkish ₺ / Tek Düzen accounts.\n" +
-      "CONSOLIDATED: revenue " + L(d.rev) + " · gross profit " + L(d.gross) + " (" + p1(d.grossPct) + ") · operating overhead " + L(d.overhead) + " (one shared pool) · net profit " + L(d.net) + " (" + p1(d.netPct) + " of revenue).\n" +
+      "CONSOLIDATED: revenue " + L(d.rev) + " · gross profit " + L(d.gross) + " (" + p1(d.grossPct) + ") · operating overhead " + L(d.overhead) + (d.ohBasis && d.ohBasis !== "none" ? " (allocated to divisions)" : " (one shared pool)") + " · net profit " + L(d.net) + " (" + p1(d.netPct) + " of revenue).\n" +
       "DIVISIONS (gross profit):\n" + divLines + "\n" +
+      allocLine +
       "PROFIT ENGINE: biggest = " + d.best + " (" + L(d.bestGross) + ", " + d.bestSharePct.toFixed(0) + "% of all gross). Thinnest margin = " + d.thin + " (" + p1(d.thinPct) + "). Service absorption = " + d.absorption.toFixed(0) + "% (fixed-ops gross ÷ total overhead; 100% = parts & service alone cover all overhead).\n" +
       "PRICE LEAKAGE vs list: total left on the table " + L(d.totLeak) + (d.worstLeak ? "; biggest in " + d.worstLeak + " (" + L(d.worstLeakAmt) + ")" : "") + ". This is gross handed away below list before any cost — but campaign support / trade-in over-allowances can sit inside it, so don't read it all as lost discipline.\n" +
       "VARIANCE vs PLAN: gross " + (d.tVar < 0 ? "missed plan by " : "beat plan by ") + L(Math.abs(d.tVar)) + ", driven mainly by " + d.driver + ". Volume effect " + L(d.tVol) + " + Rate effect " + L(d.tRate) + " reconcile exactly to the " + L(d.tVar) + " total. Worst vs plan: " + d.worstVar + " (" + L(d.worstVarAmt) + ").\n" +
