@@ -1,0 +1,112 @@
+// AI advisor for the Dealership Profit & Variance Diagnostic.
+// Reuses the shared Anthropic proxy. Runs on the SAMPLE dataset only —
+// an uploaded real trial balance is never sent anywhere, preserving the
+// tool's "nothing is uploaded" promise.
+
+(function () {
+  var AI_PROXY_URL = "https://assetix-ai.akmannamik83.workers.dev";
+  var AI_SYSTEM =
+    "You are an experienced automotive-retail financial advisor talking to a car-dealer principal or GM. " +
+    "You are reading a diagnostic built from the dealership's own trial balance (Turkish ₺, Tek Düzen accounts), plus units, list prices, budget and the OEM bonus programme. " +
+    "Explain in plain language where the profit REALLY comes from (usually fixed operations — parts & service — and OEM bonus money, not the metal margin on new cars), where price is leaking below list, why plan was missed (volume vs rate), and how close the dealer is to the next OEM stair-step tier. " +
+    "Be balanced and cautious: do NOT give hard orders ('cut this', 'fire that') — weigh options with measured language ('worth reviewing', 'you may want to look at'). " +
+    "Remind the user, where relevant, of things NOT in these numbers (campaign support and trade-in over-allowances sitting inside 'leakage', cash timing, why a division looks weak, one-offs). Do not over-claim leakage as lost discipline. " +
+    "If asked HOW a number is computed, use the 'METHOD & NOTES' block. Do NOT invent figures you were not given; if unsure say 'I don't have that here'. " +
+    "Keep answers short, clear, English. This is analysis from an illustrative Phase-1 model, not formal financial or tax advice.";
+
+  function askAI(prompt, system) {
+    return fetch(AI_PROXY_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt: prompt, system: system })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) return { error: (j.error || ("AI error (" + r.status + ")")) + (j.detail ? " — " + j.detail : "") };
+        return { text: j.text || "" };
+      });
+    }).catch(function () { return { error: "Connection error — could not reach the AI service." }; });
+  }
+
+  // ₺ formatter (mirror of the page's L()); fall back to the global if present.
+  function L(v) {
+    if (typeof window.L === "function") return window.L(v);
+    var r = Math.round(v); return (r < 0 ? "-₺" : "₺") + Math.abs(r).toLocaleString("en-US");
+  }
+  function p1(v) { return (v == null ? "—" : v.toFixed(1) + "%"); }
+
+  function ddContext() {
+    var d = window.__DD;
+    if (!d) return "No data computed yet.";
+    var divLines = d.divisions.map(function (x) {
+      var pr = d.per[x];
+      return "- " + x + ": revenue " + L(pr.rev) + ", gross " + L(pr.gross) +
+        " (" + (pr.rev ? (pr.gross / pr.rev * 100).toFixed(1) : "0.0") + "% margin)";
+    }).join("\n");
+
+    return "OPEN TOOL: Dealership Profit & Variance Diagnostic (Phase 1 — built from one trial balance). SAMPLE auto dealer, Turkish ₺ / Tek Düzen accounts.\n" +
+      "CONSOLIDATED: revenue " + L(d.rev) + " · gross profit " + L(d.gross) + " (" + p1(d.grossPct) + ") · operating overhead " + L(d.overhead) + " (one shared pool) · net profit " + L(d.net) + " (" + p1(d.netPct) + " of revenue).\n" +
+      "DIVISIONS (gross profit):\n" + divLines + "\n" +
+      "PROFIT ENGINE: biggest = " + d.best + " (" + L(d.bestGross) + ", " + d.bestSharePct.toFixed(0) + "% of all gross). Thinnest margin = " + d.thin + " (" + p1(d.thinPct) + "). Service absorption = " + d.absorption.toFixed(0) + "% (fixed-ops gross ÷ total overhead; 100% = parts & service alone cover all overhead).\n" +
+      "PRICE LEAKAGE vs list: total left on the table " + L(d.totLeak) + (d.worstLeak ? "; biggest in " + d.worstLeak + " (" + L(d.worstLeakAmt) + ")" : "") + ". This is gross handed away below list before any cost — but campaign support / trade-in over-allowances can sit inside it, so don't read it all as lost discipline.\n" +
+      "VARIANCE vs PLAN: gross " + (d.tVar < 0 ? "missed plan by " : "beat plan by ") + L(Math.abs(d.tVar)) + ", driven mainly by " + d.driver + ". Volume effect " + L(d.tVol) + " + Rate effect " + L(d.tRate) + " reconcile exactly to the " + L(d.tVar) + " total. Worst vs plan: " + d.worstVar + " (" + L(d.worstVarAmt) + ").\n" +
+      "OEM BONUS (" + d.ncDiv + "): registration achievement " + (d.ach * 100).toFixed(0) + "% of target (tier " + d.tierLbl + "). Holdback " + L(d.holdback) + " + volume stair-step " + L(d.volBonus) + " (" + L(d.perUnit) + "/unit, retroactive on all units) + CSI " + (d.csiOn ? L(d.csiAmt) : "withheld (target not met)") + " = total OEM income " + L(d.oem) + ". New-car margin from accounts " + p1(d.ncRev ? d.ncGross / d.ncRev * 100 : 0) + " → " + p1(d.ncRev ? d.ncGrossOEM / d.ncRev * 100 : 0) + " WITH OEM money. " + (d.nextB && d.unitsNeeded > 0 ? d.unitsNeeded + " more new car(s) reaches the next tier (the stair-step is retroactive, so a few units near a threshold can be worth far more than their own margin)." : "Top tier reached.") + "\n" +
+      "\nMETHOD & NOTES (use if asked how a number is computed):\n" +
+      "- Everything starts from ONE trial balance. Accounts are tagged revenue / cost of sales / operating expense and mapped to a division.\n" +
+      "- Gross profit = revenue − cost of sales (per division and total). Overhead is ONE shared pool, subtracted only at the total — divisions are NOT charged an arbitrary overhead split (so divisions show gross, not net).\n" +
+      "- Service absorption % = (Service + Parts gross) ÷ total overhead. A dealer benchmark of ~100% means fixed ops alone pay all the bills.\n" +
+      "- Price leakage = (list price − realized price) × units, per division; realized price = division revenue ÷ units.\n" +
+      "- Variance: Volume effect = (actual revenue − budget revenue) × budget gross%; Rate effect = actual revenue × (actual gross% − budget gross%). They sum exactly to total gross variance.\n" +
+      "- OEM income = holdback (% of new-car revenue) + volume stair-step (₺/unit by tier of the annual registration target, retroactive on every unit) + CSI/margin support (released only if the survey target is met). Real new-car profit = accounts gross + OEM income.\n" +
+      "- Phase 2 (not built yet): replacement-cost / inflation-adjusted margin — under high Turkish inflation, cost-based COGS understates the true cost of what was sold.\n" +
+      "- Everything runs locally in the browser. This advisor is answering about the built-in SAMPLE dealership only.";
+  }
+
+  var fab = document.getElementById("aiFab"),
+      panel = document.getElementById("aiChat"),
+      msgs = document.getElementById("aiChatMsgs"),
+      input = document.getElementById("aiChatInput"),
+      sendBtn = document.getElementById("aiChatSend"),
+      closeBtn = document.getElementById("aiChatClose");
+  if (!fab || !panel) return;
+
+  var history = [], greeted = false;
+  function bubble(role, text) {
+    var me = role === "user", w = document.createElement("div");
+    w.style.cssText = "max-width:86%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;" +
+      (me ? "align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px"
+          : "align-self:flex-start;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:4px");
+    w.textContent = text; msgs.appendChild(w); msgs.scrollTop = msgs.scrollHeight; return w;
+  }
+  function openPanel() {
+    panel.style.display = "flex";
+    if (!greeted) {
+      greeted = true;
+      bubble("ai", "Hi — ask me about this dealership. e.g. “Where does the profit really come from?”, “How much am I leaking below list?”, or “How close am I to the next OEM bonus tier?”");
+    }
+    setTimeout(function () { input.focus(); }, 50);
+  }
+  function closePanel() { panel.style.display = "none"; }
+  fab.addEventListener("click", function () { panel.style.display === "flex" ? closePanel() : openPanel(); });
+  closeBtn.addEventListener("click", closePanel);
+
+  function send() {
+    var q = (input.value || "").trim(); if (!q) return;
+    input.value = ""; bubble("user", q); history.push("User: " + q);
+    // Privacy guard: never send an uploaded real trial balance.
+    if (!window.__DD || !window.__DD.isSample) {
+      bubble("ai", "To protect confidentiality, the assistant only works on the built-in sample dealership — your uploaded trial balance stays in your browser and is never sent anywhere. Reload the page to return to the sample and I'll answer in full.");
+      return;
+    }
+    var typing = bubble("ai", "…"); sendBtn.disabled = true;
+    var convo = history.slice(-6).join("\n");
+    var prompt = ddContext() + "\n\nCONVERSATION:\n" + convo +
+      "\n\nAnswer the last question in the context of this dealership — short, clear, English.";
+    askAI(prompt, AI_SYSTEM).then(function (res) {
+      typing.textContent = res.error ? "⚠ " + res.error : res.text;
+      if (!res.error) history.push("Advisor: " + res.text);
+      sendBtn.disabled = false; setTimeout(function () { input.focus(); }, 50);
+    });
+  }
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); send(); } });
+})();
