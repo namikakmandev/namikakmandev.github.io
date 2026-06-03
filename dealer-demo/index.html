@@ -63,6 +63,10 @@
   .nav{flex-wrap:wrap;position:sticky;top:0;z-index:50;background:var(--bg);padding:8px 0}
   .pane{display:none}
   .pane.active{display:block}
+  @keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(25,195,125,.5)}50%{box-shadow:0 0 0 6px rgba(25,195,125,0)}}
+  .livedot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--good);animation:livePulse 2s infinite;margin-right:8px;vertical-align:middle}
+  .livedot.stale{background:var(--warn);animation:none}
+  .livedot.off{background:var(--muted);animation:none}
 </style>
 </head>
 <body class="tool-light">
@@ -96,7 +100,11 @@
   <div class="synth" id="synth" style="margin-top:14px"></div>
 
   <div class="card" id="macroCard" style="margin-top:18px;display:none">
-    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700;margin-bottom:10px">Live Türkiye market backdrop · TCMB</div>
+    <div style="display:flex;align-items:center;margin-bottom:10px">
+      <span class="livedot off" id="macroDot"></span>
+      <span style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700">Live Türkiye market backdrop · TCMB</span>
+      <span id="macroLive" style="margin-left:auto;font-size:11px;color:var(--muted)">connecting…</span>
+    </div>
     <div class="grid" style="margin-top:0">
       <div class="kpi"><span>Inflation (TÜFE, yıllık)</span><strong id="mInf">—</strong></div>
       <div class="kpi"><span>Policy rate</span><strong id="mPol">—</strong></div>
@@ -599,12 +607,21 @@ function renderMacro(){
   if(inf!=null) lines.push("Inflation ~"+inf.toFixed(1)+"% means cost-based COGS understates the true replacement cost of what you sold — your reported margin flatters the real, replacement-cost margin.");
   document.getElementById("macroNote").innerHTML=lines.join(" ");
   document.getElementById("macroAsof").textContent="Source: TCMB EVDS · "+(MACRO.fxSource||"FX")+" · inflation as of "+((MACRO.market&&MACRO.market.tufe&&MACRO.market.tufe.asof)||"—")+", rate as of "+((MACRO.rate&&MACRO.rate.asof)||"—")+", FX "+((MACRO.fxAsof)||"—")+".";
+  // live/alive indicator — green when the daily feed is fresh, amber when it's an older snapshot
+  var dot=document.getElementById("macroDot"), live=document.getElementById("macroLive");
+  if(dot&&live){
+    var fa = MACRO.fetchedAt ? new Date(MACRO.fetchedAt) : null;
+    var ageDays = fa ? (new Date().getTime()-fa.getTime())/86400000 : 999;
+    if(ageDays<=3){ dot.className="livedot"; live.textContent="● Connected · live data"; live.style.color="var(--good)"; }
+    else { dot.className="livedot stale"; live.textContent="Snapshot · "+(MACRO.fxAsof||"older"); live.style.color="var(--muted)"; }
+  }
   c.style.display="";
 }
 function loadMacro(){
-  // 1) site-root /rates.json — refreshed DAILY by the GitHub Action (live on the deployed site)
-  // 2) bundled ./rates.json — offline/local fallback snapshot
-  var urls=["/rates.json","rates.json"], v="?v="+(new Date().getTime());
+  // 1) ./rates.json — the demo's OWN file, refreshed daily by its own Action
+  //    (dealer-demo-macro.yml). Independent of ASSETIX. Also serves as the
+  //    bundled offline snapshot when run locally.
+  var urls=["rates.json"], v="?v="+(new Date().getTime());
   (function tryNext(i){
     if(i>=urls.length){ MACRO=null; renderMacro(); return; }
     fetch(urls[i]+v,{cache:"no-store"})
