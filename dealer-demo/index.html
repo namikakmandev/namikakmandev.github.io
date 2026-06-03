@@ -60,6 +60,9 @@
   .btn{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radius:7px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
   .btnlink{color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer}
   .status{font-size:13px;color:var(--good);margin-top:8px;min-height:18px}
+  .nav{flex-wrap:wrap;position:sticky;top:0;z-index:50;background:var(--bg);padding:8px 0}
+  .pane{display:none}
+  .pane.active{display:block}
 </style>
 </head>
 <body class="tool-light">
@@ -70,13 +73,19 @@
     <p class="sub">Give it the dealership's own <b>trial balance</b> and a few figures they already track (units sold, list price, plan). It rebuilds the commercial story the accountant's report hides: where money is really made, how much price is left on the table vs list, and exactly why plan was missed. Nothing is uploaded — everything is computed in this browser.</p>
   </header>
 
-  <nav class="nav">
-    <a href="index.html" class="on">Profit &amp; Variance</a>
-    <a href="cash.html">Cash &amp; Budget</a>
+  <nav class="nav" id="tabs">
+    <a href="#" class="tab on" data-pane="pane-overview">Overview</a>
+    <a href="#" class="tab" data-pane="pane-divisional">Divisional P&amp;L</a>
+    <a href="#" class="tab" data-pane="pane-leakage">Price leakage</a>
+    <a href="#" class="tab" data-pane="pane-oem">OEM bonus</a>
+    <a href="#" class="tab" data-pane="pane-variance">Variance</a>
+    <a href="#" class="tab" data-pane="pane-data">Data</a>
+    <a href="cash.html">Cash &amp; Budget →</a>
   </nav>
 
+  <section class="pane active" id="pane-overview">
   <h2 class="band">The bottom line — what the accounts are really telling you</h2>
-  <p class="note">Built live from the dealership's own trial balance (the sample is loaded — edit it, or upload a real CSV, at the foot of the page). Ask the <b>AI advisor</b> (bottom-right) anything about these numbers.</p>
+  <p class="note">Built live from the dealership's own trial balance (the sample is loaded — edit it, or upload a real CSV, in the <b>Data</b> tab). Ask the <b>AI advisor</b> (bottom-right) anything about these numbers.</p>
   <div class="grid">
     <div class="kpi"><span>Total revenue</span><strong id="kRev">—</strong></div>
     <div class="kpi"><span>Gross profit</span><strong id="kGross">—</strong></div>
@@ -85,8 +94,10 @@
     <div class="kpi"><span>Service absorption <em style="text-transform:none;font-style:normal">(target 100%)</em></span><strong id="kAbs">—</strong></div>
   </div>
   <div class="synth" id="synth" style="margin-top:14px"></div>
+  </section>
 
-  <h2 class="band">A · Division &amp; consolidated P&amp;L <span class="pill">from the accounts</span></h2>
+  <section class="pane" id="pane-divisional">
+  <h2 class="band">Division &amp; consolidated P&amp;L <span class="pill">from the accounts</span></h2>
   <p class="note">The real result, straight from the trial balance — no assumptions. By default overhead stays one shared pool, netted at the total. You can also <b>allocate</b> it across divisions to see a net profit per division.</p>
   <p class="note" style="margin-bottom:6px">Allocate operating overhead:
     <select id="ohBasis" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px">
@@ -100,30 +111,38 @@
   <p class="note" id="plAllocNote" style="margin-top:8px;display:none"></p>
   <div class="card"><svg id="cGross" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gross profit by division"></svg></div>
   <p class="note" id="plRead"></p>
+  </section>
 
-  <h2 class="band">B · Price realization — money left on the table</h2>
-  <p class="note">Enter units sold and the list / reference price per division (from the DMS and the price list — figures they already have). Realized price = revenue ÷ units. Leakage = (list − realized) × units. Leave list at 0 for divisions where a list price doesn't apply. Read this as <em>vs the dealership's own reference price</em>: for new/used cars, manufacturer campaign support and trade-in over-allowances sit inside these figures, so raw leakage overstates discipline lost — the OEM money that offsets it is quantified in section B2.</p>
+  <section class="pane" id="pane-leakage">
+  <h2 class="band">Price realization — money left on the table</h2>
+  <p class="note">Enter units sold and the list / reference price per division (from the DMS and the price list — figures they already have). Realized price = revenue ÷ units. Leakage = (list − realized) × units. Leave list at 0 for divisions where a list price doesn't apply. Read this as <em>vs the dealership's own reference price</em>: for new/used cars, manufacturer campaign support and trade-in over-allowances sit inside these figures, so raw leakage overstates discipline lost — the OEM money that offsets it is quantified in the OEM bonus tab.</p>
   <div class="card">
     <div id="opGrid"></div>
   </div>
   <div class="card" style="margin-top:12px"><table id="prTable"><thead id="prHead"></thead><tbody id="prBody"></tbody></table></div>
   <div class="card"><svg id="cLeak" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Price leakage by division"></svg></div>
   <p class="note" id="prRead"></p>
+  </section>
 
-  <h2 class="band">B2 · OEM bonus &amp; incentive income — the money the metal margin hides</h2>
-  <p class="note">A franchised dealer's real new-car profit is the manufacturer money paid <em>after</em> the sale: holdback, the volume / registration stair-step bonus (paid retroactively on <em>every</em> unit once a tier is reached), and CSI / margin support. These are brand- and dealer-specific — enter the dealership's own programme. New-car units and revenue are taken live from the trial balance / section B.</p>
+  <section class="pane" id="pane-oem">
+  <h2 class="band">OEM bonus &amp; incentive income — the money the metal margin hides</h2>
+  <p class="note">A franchised dealer's real new-car profit is the manufacturer money paid <em>after</em> the sale: holdback, the volume / registration stair-step bonus (paid retroactively on <em>every</em> unit once a tier is reached), and CSI / margin support. These are brand- and dealer-specific — enter the dealership's own programme. New-car units and revenue are taken live from the trial balance / price-leakage tab.</p>
   <div class="card"><div id="bnIn"></div></div>
   <div class="card" style="margin-top:12px"><table id="bnTable" style="min-width:420px"><tbody id="bnBody"></tbody></table></div>
   <p class="note" id="bnRead"></p>
+  </section>
 
-  <h2 class="band">C · Variance vs plan — why the gap happened</h2>
+  <section class="pane" id="pane-variance">
+  <h2 class="band">Variance vs plan — why the gap happened</h2>
   <p class="note">Enter the budget revenue and budget gross profit per division. The gross gap is split into <b>Volume effect</b> (sold more/less at plan margin) and <b>Rate effect</b> (margin better/worse than plan — usually discounting). Volume + Rate reconciles exactly to the total gross variance.</p>
   <div class="card"><table id="vaTable"><thead id="vaHead"></thead><tbody id="vaBody"></tbody></table></div>
   <div class="card"><svg id="cBridge" class="chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Budget to actual gross bridge"></svg></div>
   <p class="note" id="vaRead"></p>
+  </section>
 
+  <section class="pane" id="pane-data">
   <h2 class="band">The numbers behind this — edit any figure</h2>
-  <p class="note">The sample dealership's trial balance (Turkish uniform-chart / Tek Düzen). Change any amount and everything above updates instantly — or upload the dealer's real CSV export (columns: <code>code, name, division, kind, amount</code> — kind = rev / cogs / opex).</p>
+  <p class="note">The sample dealership's trial balance (Turkish uniform-chart / Tek Düzen). Change any amount and everything updates instantly — or upload the dealer's real CSV export (columns: <code>code, name, division, kind, amount</code> — kind = rev / cogs / opex).</p>
   <div class="card">
     <div class="upbar">
       <label class="btn" for="tbfile">Upload trial balance (CSV)</label>
@@ -133,6 +152,7 @@
     <div class="status" id="tbstatus"></div>
     <div id="tbgrid" style="margin-top:12px"></div>
   </div>
+  </section>
 
   <footer>
     Dealership Profit &amp; Variance Diagnostic · Phase 1 (trial-balance driven) · Confidential working tool — files are processed locally in your browser and never uploaded.
@@ -508,6 +528,22 @@ document.getElementById("tpl").addEventListener("click",function(){
 buildTB(); buildOps(); buildBonus();
 var _ohb=document.getElementById("ohBasis"); if(_ohb) _ohb.addEventListener("change",calc);
 calc();
+
+/* ---------- tabbed panes ---------- */
+(function(){
+  var tabs=document.querySelectorAll("#tabs .tab");
+  tabs.forEach(function(t){
+    t.addEventListener("click",function(e){
+      e.preventDefault();
+      tabs.forEach(function(x){ x.classList.remove("on"); });
+      t.classList.add("on");
+      document.querySelectorAll(".pane").forEach(function(p){ p.classList.remove("active"); });
+      var pane=document.getElementById(t.dataset.pane);
+      if(pane) pane.classList.add("active");
+      window.scrollTo(0,0);
+    });
+  });
+})();
 </script>
 
 <!-- Floating AI advisor — runs on the SAMPLE only (uploaded data is never sent) -->
