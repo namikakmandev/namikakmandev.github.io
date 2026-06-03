@@ -67,6 +67,13 @@
   .livedot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--good);animation:livePulse 2s infinite;margin-right:8px;vertical-align:middle}
   .livedot.stale{background:var(--warn);animation:none}
   .livedot.off{background:var(--muted);animation:none}
+  @media print{
+    header,nav.nav,#aiFab,#aiChat,#printBtn,footer{display:none!important}
+    .pane{display:none!important}
+    #printSheet{display:block!important}
+    .wrap{max-width:100%;padding:8px}
+    body{background:#fff;color:#111}
+  }
 </style>
 </head>
 <body class="tool-light">
@@ -122,7 +129,20 @@
     <thead><tr><th>Metric</th><th class="num">This dealership</th><th class="num">Industry reference</th><th>Read</th></tr></thead>
     <tbody id="bmBody"></tbody>
   </table></div>
-  <p class="note">Reference ranges are <b>general automotive-retail benchmarks for orientation only</b> — the right yardstick is the dealership's own franchise/brand norms and local market. Treat a flag as a question to ask, not a verdict.</p>
+  <p class="note">Reference ranges are <b>general automotive-retail benchmarks for orientation only</b> (incl. NADA Data 2025, US franchised dealers — e.g. service &amp; parts ≈ 13% of sales) — the right yardstick is the dealership's own franchise/brand norms and local market. Treat a flag as a question to ask, not a verdict.</p>
+
+  <div class="card" style="margin-top:18px;border-left:3px solid var(--warn)">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--warn);font-weight:700;margin-bottom:6px">⚡ Strategic watch · the EV shift</div>
+    <p class="note" id="evNote" style="margin-top:0"></p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700;margin-bottom:6px">Used-car market · BETAM sahibindex</div>
+    <p class="note" id="usedcarNote" style="margin-top:0"></p>
+    <p class="note" id="usedcarSrc" style="margin-top:2px;font-size:11px"></p>
+  </div>
+
+  <div style="margin-top:18px"><button class="btn" type="button" id="printBtn">🖨 Print one-page summary (leave-behind)</button></div>
   </section>
 
   <section class="pane" id="pane-divisional">
@@ -182,6 +202,8 @@
     <div id="tbgrid" style="margin-top:12px"></div>
   </div>
   </section>
+
+  <div id="printSheet" style="display:none"></div>
 
   <footer>
     Dealership Profit &amp; Variance Diagnostic · Phase 1 (trial-balance driven) · Confidential working tool — files are processed locally in your browser and never uploaded.
@@ -405,6 +427,8 @@ function calc(){
   ];
   if(ncD) BM.push({ lab:"New-car gross margin", val:pc(per[ncD].gross,per[ncD].rev), lo:4, hi:7, kind:"range" });
   if(ucD) BM.push({ lab:"Used-car gross margin", val:pc(per[ucD].gross,per[ucD].rev), lo:8, hi:12, kind:"range" });
+  var fixedRev=0; D.forEach(function(d){ if(/service|parts/i.test(d)) fixedRev+=per[d].rev; });
+  BM.push({ lab:"Service & parts share of revenue", val:tR?fixedRev/tR*100:0, lo:10, hi:18, kind:"range" }); /* NADA US ~13.3% */
   BM.forEach(function(r){
     if(r.kind==="target"){
       r.status = r.val>=r.hi ? "At / above best practice" : (r.val>=r.lo ? "Acceptable" : "Below — opportunity");
@@ -420,6 +444,9 @@ function calc(){
       return '<tr><td>'+r.lab+'</td><td class="num">'+r.val.toFixed(1)+'%</td><td class="num">'+r.lo+'–'+r.hi+'%</td><td class="'+r.cls+'">'+r.status+'</td></tr>';
     }).join("");
   }
+  var evEl=document.getElementById("evNote");
+  if(evEl) evEl.innerHTML="Electric-vehicle sales in Türkiye roughly <b>doubled in 2025</b>. EVs need far less routine maintenance — and Service &amp; Parts is this dealership's main profit engine (absorption "+absorp.toFixed(0)+"%). As the fleet electrifies, that engine faces structural pressure: worth planning the service/parts mix and EV-readiness now, not later.";
+  buildPrintSheet();
   set("plRead","Biggest profit engine: "+rk[0]+" ("+L(per[rk[0]].gross)+", "+pc(per[rk[0]].gross,tG).toFixed(0)+"% of all gross). Thinnest margin: "+rk[rk.length-1]+" ("+pc(per[rk[rk.length-1]].gross,per[rk[rk.length-1]].rev).toFixed(1)+"%). Service absorption "+absorp.toFixed(0)+"% — fixed-ops gross covers "+absorp.toFixed(0)+"% of total overhead"+(absorp>=100?" (the whole store stands on parts & service).":"; the rest must come from selling metal."));
 
   /* B — price realization */
@@ -615,8 +642,42 @@ function renderMacro(){
     if(ageDays<=3){ dot.className="livedot"; live.textContent="● Connected · live data"; live.style.color="var(--good)"; }
     else { dot.className="livedot stale"; live.textContent="Snapshot · "+(MACRO.fxAsof||"older"); live.style.color="var(--muted)"; }
   }
+  buildPrintSheet();
   c.style.display="";
 }
+/* Used-car market index (BETAM sahibindex) — periodic MANUAL reference.
+   UPDATE monthly from betam.bahcesehir.edu.tr; confirm republishing ToS before commercial use. */
+var USEDCAR_IDX = { avg:1168000, yoyNom:23.3, yoyReal:-6.8, asof:"May 2026", src:"BETAM sahibindex (Bahçeşehir Üniversitesi)" };
+
+/* Build the printable one-page leave-behind from the live snapshot. */
+function buildPrintSheet(){
+  var el=document.getElementById("printSheet"); if(!el) return;
+  var d=window.__DD; if(!d) return;
+  var m=window.MACRO;
+  function row(k,v){ return '<tr><td style="padding:3px 8px;color:#444">'+k+'</td><td style="padding:3px 8px;text-align:right;font-weight:700">'+v+'</td></tr>'; }
+  var macroLine = m ? ("Inflation "+((m.market&&m.market.tufe&&m.market.tufe.yoy)||"—")+"% · policy "+((m.rate&&m.rate.value)||"—")+"% · commercial loan "+((m.market&&m.market.loan_comm&&m.market.loan_comm.value)||"—")+"% · USD/TRY "+((m.fx&&m.fx.USDTRY)||"—")) : "";
+  el.innerHTML =
+    '<div style="color:#111">'+
+    '<h1 style="font-size:20px;margin:0 0 2px">Dealership Profit &amp; Variance — Diagnostic Summary</h1>'+
+    '<div style="font-size:11px;color:#666;margin-bottom:14px">Built from the dealership’s own trial balance · illustrative model · confidential</div>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">'+
+      row("Total revenue", L(d.rev))+
+      row("Gross profit", L(d.gross)+" ("+d.grossPct.toFixed(1)+"%)")+
+      row("Operating overhead", L(d.overhead))+
+      row("Net profit", L(d.net)+" ("+d.netPct.toFixed(1)+"% of revenue)")+
+      row("Service absorption", d.absorption.toFixed(0)+"%")+
+    '</table>'+
+    '<div style="font-size:13px;line-height:1.6">'+
+      '<p><b>Where the profit really is:</b> '+d.best+' is the biggest engine ('+L(d.bestGross)+', '+d.bestSharePct.toFixed(0)+'% of all gross). The metal barely pays.</p>'+
+      '<p><b>Money left on the table vs list:</b> '+L(d.totLeak)+(d.worstLeak?' (mostly '+d.worstLeak+')':'')+'.</p>'+
+      '<p><b>Variance vs plan:</b> '+(d.tVar<0?'missed by ':'beat by ')+L(Math.abs(d.tVar))+', driven mainly by '+d.driver+'.</p>'+
+      '<p><b>OEM bonus money:</b> '+L(d.oem)+' — the real '+d.ncDiv+' profit'+((d.nextB&&d.unitsNeeded>0)?(', and '+d.unitsNeeded+' car(s) from the next bonus tier'):'')+'.</p>'+
+      (macroLine?'<p style="color:#444"><b>Market backdrop (TCMB):</b> '+macroLine+'.</p>':'')+
+    '</div>'+
+    '<div style="font-size:10px;color:#888;margin-top:16px;border-top:1px solid #ccc;padding-top:6px">Indicative analysis from a trial-balance model — not audited accounts or financial advice.</div>'+
+    '</div>';
+}
+
 function loadMacro(){
   // 1) ./rates.json — the demo's OWN file, refreshed daily by its own Action
   //    (dealer-demo-macro.yml). Independent of ASSETIX. Also serves as the
@@ -631,6 +692,16 @@ function loadMacro(){
   })(0);
 }
 loadMacro();
+
+/* ---------- used-car index text + print button ---------- */
+(function(){
+  var u=document.getElementById("usedcarNote");
+  if(u) u.innerHTML="Average used-car listing ≈ ₺"+(USEDCAR_IDX.avg/1e6).toFixed(2)+"M ("+USEDCAR_IDX.asof+"): <b>+"+USEDCAR_IDX.yoyNom+"%</b> year-on-year in lira, but <b>"+USEDCAR_IDX.yoyReal+"%</b> in <b>real</b> terms after inflation — nominal prices rising while real values erode, so used-car margins are under quiet pressure.";
+  var s=document.getElementById("usedcarSrc");
+  if(s) s.textContent="Source: "+USEDCAR_IDX.src+" — periodic reference, updated manually.";
+  var pb=document.getElementById("printBtn");
+  if(pb) pb.addEventListener("click",function(){ buildPrintSheet(); window.print(); });
+})();
 
 /* ---------- tabbed panes ---------- */
 (function(){
