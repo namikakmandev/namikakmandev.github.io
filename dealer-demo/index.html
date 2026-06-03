@@ -61,8 +61,11 @@
   .btnlink{color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer}
   .status{font-size:13px;color:var(--good);margin-top:8px;min-height:18px}
   .nav{flex-wrap:wrap;position:sticky;top:0;z-index:50;background:var(--bg);padding:8px 0}
-  .pane{display:none}
+  .pane{display:none;position:relative}
   .pane.active{display:block}
+  .pane-badge{position:absolute;top:0;right:0;font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;max-width:60%;justify-content:flex-end;text-align:right;line-height:1.3}
+  .bdot{width:8px;height:8px;border-radius:50%;background:var(--good);display:inline-block;flex:0 0 auto}
+  @media(max-width:560px){.pane-badge{position:static;justify-content:flex-start;text-align:left;max-width:100%;margin-bottom:8px}}
   @keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(25,195,125,.5)}50%{box-shadow:0 0 0 6px rgba(25,195,125,0)}}
   .livedot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--good);animation:livePulse 2s infinite;margin-right:8px;vertical-align:middle}
   .livedot.stale{background:var(--warn);animation:none}
@@ -95,6 +98,7 @@
   </nav>
 
   <section class="pane active" id="pane-overview">
+  <span class="pane-badge"><span class="livedot off" id="mkBadgeDot" style="margin-right:0"></span><span id="mkBadgeTxt">market data…</span></span>
   <h2 class="band">The bottom line — what the accounts are really telling you</h2>
   <p class="note">Built live from the dealership's own trial balance (the sample is loaded — edit it, or upload a real CSV, in the <b>Data</b> tab). Ask the <b>AI advisor</b> (bottom-right) anything about these numbers.</p>
   <div class="grid">
@@ -146,6 +150,7 @@
   </section>
 
   <section class="pane" id="pane-divisional">
+  <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
   <h2 class="band">Division &amp; consolidated P&amp;L <span class="pill">from the accounts</span></h2>
   <p class="note">The real result, straight from the trial balance — no assumptions. By default overhead stays one shared pool, netted at the total. You can also <b>allocate</b> it across divisions to see a net profit per division.</p>
   <p class="note" style="margin-bottom:6px">Allocate operating overhead:
@@ -163,6 +168,7 @@
   </section>
 
   <section class="pane" id="pane-leakage">
+  <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
   <h2 class="band">Price realization — money left on the table</h2>
   <p class="note">Enter units sold and the list / reference price per division (from the DMS and the price list — figures they already have). Realized price = revenue ÷ units. Leakage = (list − realized) × units. Leave list at 0 for divisions where a list price doesn't apply. Read this as <em>vs the dealership's own reference price</em>: for new/used cars, manufacturer campaign support and trade-in over-allowances sit inside these figures, so raw leakage overstates discipline lost — the OEM money that offsets it is quantified in the OEM bonus tab.</p>
   <div class="card">
@@ -174,6 +180,7 @@
   </section>
 
   <section class="pane" id="pane-oem">
+  <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
   <h2 class="band">OEM bonus &amp; incentive income — the money the metal margin hides</h2>
   <p class="note">A franchised dealer's real new-car profit is the manufacturer money paid <em>after</em> the sale: holdback, the volume / registration stair-step bonus (paid retroactively on <em>every</em> unit once a tier is reached), and CSI / margin support. These are brand- and dealer-specific — enter the dealership's own programme. New-car units and revenue are taken live from the trial balance / price-leakage tab.</p>
   <div class="card"><div id="bnIn"></div></div>
@@ -182,6 +189,7 @@
   </section>
 
   <section class="pane" id="pane-variance">
+  <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
   <h2 class="band">Variance vs plan — why the gap happened</h2>
   <p class="note">Enter the budget revenue and budget gross profit per division. The gross gap is split into <b>Volume effect</b> (sold more/less at plan margin) and <b>Rate effect</b> (margin better/worse than plan — usually discounting). Volume + Rate reconciles exactly to the total gross variance.</p>
   <div class="card"><table id="vaTable"><thead id="vaHead"></thead><tbody id="vaBody"></tbody></table></div>
@@ -190,6 +198,7 @@
   </section>
 
   <section class="pane" id="pane-data">
+  <span class="pane-badge"><span class="bdot"></span>Your trial balance · edits apply instantly</span>
   <h2 class="band">The numbers behind this — edit any figure</h2>
   <p class="note">The sample dealership's trial balance (Turkish uniform-chart / Tek Düzen). Change any amount and everything updates instantly — or upload the dealer's real CSV export (columns: <code>code, name, division, kind, amount</code> — kind = rev / cogs / opex).</p>
   <div class="card">
@@ -618,7 +627,7 @@ calc();
 var MACRO=null;
 function renderMacro(){
   var c=document.getElementById("macroCard"); if(!c) return;
-  if(!MACRO){ c.style.display="none"; return; }
+  if(!MACRO){ c.style.display="none"; var bt0=document.getElementById("mkBadgeTxt"); if(bt0) bt0.textContent="Market data unavailable"; return; }
   var inf = MACRO.market && MACRO.market.tufe && MACRO.market.tufe.yoy,
       pol = MACRO.rate && MACRO.rate.value,
       loan= MACRO.market && MACRO.market.loan_comm && MACRO.market.loan_comm.value,
@@ -641,6 +650,11 @@ function renderMacro(){
     var ageDays = fa ? (new Date().getTime()-fa.getTime())/86400000 : 999;
     if(ageDays<=3){ dot.className="livedot"; live.textContent="● Connected · live data"; live.style.color="var(--good)"; }
     else { dot.className="livedot stale"; live.textContent="Snapshot · "+(MACRO.fxAsof||"older"); live.style.color="var(--muted)"; }
+    var bd=document.getElementById("mkBadgeDot"), bt=document.getElementById("mkBadgeTxt");
+    if(bd&&bt){
+      bd.className = ageDays<=3 ? "livedot" : "livedot stale";
+      bt.textContent = (ageDays<=3 ? "Market data: live" : "Market data: snapshot") + (MACRO.fxAsof ? " · "+MACRO.fxAsof : "");
+    }
   }
   buildPrintSheet();
   c.style.display="";
