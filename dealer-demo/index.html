@@ -74,7 +74,8 @@
     header,nav.nav,#aiFab,#aiChat,#printBtn,footer{display:none!important}
     .pane{display:none!important}
     #printSheet{display:block!important}
-    .wrap{max-width:100%;padding:8px}
+    #printSheet,#printSheet *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    .wrap{max-width:100%;padding:0}
     body{background:#fff;color:#111}
   }
 </style>
@@ -668,28 +669,50 @@ function buildPrintSheet(){
   var el=document.getElementById("printSheet"); if(!el) return;
   var d=window.__DD; if(!d) return;
   var m=window.MACRO;
-  function row(k,v){ return '<tr><td style="padding:3px 8px;color:#444">'+k+'</td><td style="padding:3px 8px;text-align:right;font-weight:700">'+v+'</td></tr>'; }
-  var macroLine = m ? ("Inflation "+((m.market&&m.market.tufe&&m.market.tufe.yoy)||"—")+"% · policy "+((m.rate&&m.rate.value)||"—")+"% · commercial loan "+((m.market&&m.market.loan_comm&&m.market.loan_comm.value)||"—")+"% · USD/TRY "+((m.fx&&m.fx.USDTRY)||"—")) : "";
+  var EX="-webkit-print-color-adjust:exact;print-color-adjust:exact;";
+  var netCol = d.net>=0 ? "#0e8f5b" : "#d23b3b";
+  function tile(label,val,col){
+    return '<td style="width:25%;border:1px solid #dfe5ee;border-radius:8px;padding:9px 11px;vertical-align:top">'+
+      '<div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:#7a828f">'+label+'</div>'+
+      '<div style="font-size:16px;font-weight:800;margin-top:3px;color:'+(col||"#1f2430")+'">'+val+'</div></td>';
+  }
+  function find(lead,leadCol,rest){
+    return '<div style="margin:0 0 7px;font-size:12.5px;line-height:1.5"><b style="color:'+leadCol+'">'+lead+'</b> '+rest+'</div>';
+  }
+  var macroLine = m ? ("Inflation <b>"+((m.market&&m.market.tufe&&m.market.tufe.yoy)||"—")+"%</b> · policy <b>"+((m.rate&&m.rate.value)||"—")+"%</b> · commercial loan <b>"+((m.market&&m.market.loan_comm&&m.market.loan_comm.value)||"—")+"%</b> · USD/TRY <b>"+((m.fx&&m.fx.USDTRY)||"—")+"</b>") : "";
+
   el.innerHTML =
-    '<div style="color:#111">'+
-    '<h1 style="font-size:20px;margin:0 0 2px">Dealership Profit &amp; Variance — Diagnostic Summary</h1>'+
-    '<div style="font-size:11px;color:#666;margin-bottom:14px">Built from the dealership’s own trial balance · illustrative model · confidential</div>'+
-    '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px">'+
-      row("Total revenue", L(d.rev))+
-      row("Gross profit", L(d.gross)+" ("+d.grossPct.toFixed(1)+"%)")+
-      row("Operating overhead", L(d.overhead))+
-      row("Net profit", L(d.net)+" ("+d.netPct.toFixed(1)+"% of revenue)")+
-      row("Service absorption", d.absorption.toFixed(0)+"%")+
-    '</table>'+
-    '<div style="font-size:13px;line-height:1.6">'+
-      '<p><b>Where the profit really is:</b> '+d.best+' is the biggest engine ('+L(d.bestGross)+', '+d.bestSharePct.toFixed(0)+'% of all gross). The metal barely pays.</p>'+
-      '<p><b>Money left on the table vs list:</b> '+L(d.totLeak)+(d.worstLeak?' (mostly '+d.worstLeak+')':'')+'.</p>'+
-      '<p><b>Variance vs plan:</b> '+(d.tVar<0?'missed by ':'beat by ')+L(Math.abs(d.tVar))+', driven mainly by '+d.driver+'.</p>'+
-      '<p><b>OEM bonus money:</b> '+L(d.oem)+' — the real '+d.ncDiv+' profit'+((d.nextB&&d.unitsNeeded>0)?(', and '+d.unitsNeeded+' car(s) from the next bonus tier'):'')+'.</p>'+
-      (macroLine?'<p style="color:#444"><b>Market backdrop (TCMB):</b> '+macroLine+'.</p>':'')+
+  '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2430;max-width:760px;margin:0 auto">'+
+    // header band
+    '<div style="background:linear-gradient(135deg,#0f2233,#1d3a52);color:#fff;padding:18px 22px;border-radius:10px;'+EX+'">'+
+      '<div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.65">Dealership Diagnostic · Phase 1 · Confidential</div>'+
+      '<div style="font-size:22px;font-weight:800;letter-spacing:-.3px;margin-top:5px">Profit &amp; Variance — Executive Summary</div>'+
+      '<div style="font-size:12px;opacity:.8;margin-top:4px">Rebuilt from the dealership’s own trial balance — where the money is really made, and why.</div>'+
     '</div>'+
-    '<div style="font-size:10px;color:#888;margin-top:16px;border-top:1px solid #ccc;padding-top:6px">Indicative analysis from a trial-balance model — not audited accounts or financial advice.</div>'+
-    '</div>';
+    // KPI tiles
+    '<table style="width:100%;border-collapse:separate;border-spacing:8px 0;margin:14px 0 4px;table-layout:fixed"><tr>'+
+      tile("Total revenue", L(d.rev))+
+      tile("Gross profit", L(d.gross)+" · "+d.grossPct.toFixed(1)+"%")+
+      tile("Net profit", L(d.net)+" · "+d.netPct.toFixed(1)+"%", netCol)+
+      tile("Service absorption", d.absorption.toFixed(0)+"%", d.absorption>=70?"#0e8f5b":"#c87f00")+
+    '</tr></table>'+
+    // headline insight
+    '<div style="background:#eef5ff;border-left:4px solid #2f9bff;padding:11px 15px;border-radius:6px;margin:12px 0 16px;font-size:13px;'+EX+'">'+
+      '<b>The metal barely pays — the profit really lives in '+d.best+'</b> ('+L(d.bestGross)+', '+d.bestSharePct.toFixed(0)+'% of all gross profit).</div>'+
+    // findings
+    '<div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#2f9bff;font-weight:700;margin-bottom:8px">What the numbers say</div>'+
+    find("Price leakage:", "#d23b3b", L(d.totLeak)+" left on the table vs list"+(d.worstLeak?", mostly in <b>"+d.worstLeak+"</b>":"")+" — gross handed away before any cost.")+
+    find("Variance vs plan:", "#1f2430", (d.tVar<0?"missed plan by ":"beat plan by ")+"<b>"+L(Math.abs(d.tVar))+"</b>, driven mainly by "+d.driver+".")+
+    find("OEM bonus money:", "#0e8f5b", "<b>"+L(d.oem)+"</b> — the real "+d.ncDiv+" profit"+((d.nextB&&d.unitsNeeded>0)?(", and only <b>"+d.unitsNeeded+"</b> car(s) from the next bonus tier"):"")+".")+
+    find("Watch — the EV shift:", "#c87f00", "EVs need far less service; as the fleet electrifies, the service-absorption profit engine is under structural pressure.")+
+    // market backdrop strip
+    (macroLine ? '<div style="background:#f4f6f9;border-radius:6px;padding:10px 14px;margin-top:14px;font-size:11.5px;color:#445;'+EX+'"><b style="color:#1f2430">Market backdrop (TCMB):</b> '+macroLine+'.</div>' : '')+
+    // footer
+    '<div style="display:flex;justify-content:space-between;font-size:9.5px;color:#9aa0ab;margin-top:14px;border-top:1px solid #e3e7ee;padding-top:7px">'+
+      '<span>Indicative analysis from a trial-balance model — not audited accounts or financial advice.</span>'+
+      '<span>Runs locally · nothing uploaded</span>'+
+    '</div>'+
+  '</div>';
 }
 
 function loadMacro(){
