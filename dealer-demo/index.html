@@ -75,20 +75,8 @@
     <a href="cash.html">Cash &amp; Budget</a>
   </nav>
 
-  <h2 class="band">1 · The trial balance</h2>
-  <p class="note">A Turkish uniform-chart (Tek Düzen) sample is loaded. Edit any number, or upload the dealer's real CSV export (columns: <code>code, name, division, kind, amount</code> — kind = rev / cogs / opex).</p>
-  <div class="card">
-    <div class="upbar">
-      <label class="btn" for="tbfile">Upload trial balance (CSV)</label>
-      <input type="file" id="tbfile" accept=".csv,text/csv" hidden />
-      <span class="btnlink" id="tpl">Download CSV template</span>
-    </div>
-    <div class="status" id="tbstatus"></div>
-    <div id="tbgrid" style="margin-top:12px"></div>
-  </div>
-
-  <h2 class="band">A · Division &amp; consolidated P&amp;L <span class="pill">from the accounts</span></h2>
-  <p class="note">The real result, straight from the trial balance — no assumptions. Overhead is one shared pool, netted at the total (no arbitrary per-division split).</p>
+  <h2 class="band">The bottom line — what the accounts are really telling you</h2>
+  <p class="note">Built live from the dealership's own trial balance (the sample is loaded — edit it, or upload a real CSV, at the foot of the page). Ask the <b>AI advisor</b> (bottom-right) anything about these numbers.</p>
   <div class="grid">
     <div class="kpi"><span>Total revenue</span><strong id="kRev">—</strong></div>
     <div class="kpi"><span>Gross profit</span><strong id="kGross">—</strong></div>
@@ -96,6 +84,10 @@
     <div class="kpi"><span>Net profit</span><strong id="kNet">—</strong></div>
     <div class="kpi"><span>Service absorption <em style="text-transform:none;font-style:normal">(target 100%)</em></span><strong id="kAbs">—</strong></div>
   </div>
+  <div class="synth" id="synth" style="margin-top:14px"></div>
+
+  <h2 class="band">A · Division &amp; consolidated P&amp;L <span class="pill">from the accounts</span></h2>
+  <p class="note">The real result, straight from the trial balance — no assumptions. Overhead is one shared pool, netted at the total (no arbitrary per-division split).</p>
   <div class="card"><table id="plTable"><thead id="plHead"></thead><tbody id="plBody"></tbody></table></div>
   <div class="card"><svg id="cGross" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gross profit by division"></svg></div>
   <p class="note" id="plRead"></p>
@@ -121,8 +113,17 @@
   <div class="card"><svg id="cBridge" class="chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Budget to actual gross bridge"></svg></div>
   <p class="note" id="vaRead"></p>
 
-  <h2 class="band">D · The one-line story</h2>
-  <div class="synth" id="synth"></div>
+  <h2 class="band">The numbers behind this — edit any figure</h2>
+  <p class="note">The sample dealership's trial balance (Turkish uniform-chart / Tek Düzen). Change any amount and everything above updates instantly — or upload the dealer's real CSV export (columns: <code>code, name, division, kind, amount</code> — kind = rev / cogs / opex).</p>
+  <div class="card">
+    <div class="upbar">
+      <label class="btn" for="tbfile">Upload trial balance (CSV)</label>
+      <input type="file" id="tbfile" accept=".csv,text/csv" hidden />
+      <span class="btnlink" id="tpl">Download CSV template</span>
+    </div>
+    <div class="status" id="tbstatus"></div>
+    <div id="tbgrid" style="margin-top:12px"></div>
+  </div>
 
   <footer>
     Dealership Profit &amp; Variance Diagnostic · Phase 1 (trial-balance driven) · Confidential working tool — files are processed locally in your browser and never uploaded.
