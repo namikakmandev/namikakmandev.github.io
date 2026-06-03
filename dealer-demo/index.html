@@ -94,6 +94,14 @@
     <div class="kpi"><span>Service absorption <em style="text-transform:none;font-style:normal">(target 100%)</em></span><strong id="kAbs">—</strong></div>
   </div>
   <div class="synth" id="synth" style="margin-top:14px"></div>
+
+  <h2 class="band" style="margin-top:26px">How this dealership compares — industry context</h2>
+  <p class="note">The dealership's own ratios set against general automotive-retail reference ranges.</p>
+  <div class="card"><table id="bmTable">
+    <thead><tr><th>Metric</th><th class="num">This dealership</th><th class="num">Industry reference</th><th>Read</th></tr></thead>
+    <tbody id="bmBody"></tbody>
+  </table></div>
+  <p class="note">Reference ranges are <b>general automotive-retail benchmarks for orientation only</b> — the right yardstick is the dealership's own franchise/brand norms and local market. Treat a flag as a question to ask, not a verdict.</p>
   </section>
 
   <section class="pane" id="pane-divisional">
@@ -363,6 +371,34 @@ function calc(){
   var absorp = oh? fixedG/oh*100 : 0;
   var ka=document.getElementById("kAbs");
   if(ka){ ka.textContent=absorp.toFixed(0)+"%"; ka.className=absorp>=100?"hi":(absorp>=70?"wn":"lo"); }
+
+  /* ---------- industry benchmark context (Overview) ---------- */
+  var fixedShare = tG ? fixedG/tG*100 : 0;
+  var ncD=null, ucD=null;
+  D.forEach(function(d){ if(/new/i.test(d)&&!ncD) ncD=d; if(/used/i.test(d)&&!ucD) ucD=d; });
+  var BM = [
+    { lab:"Net profit margin (return on sales)", val:pc(net,tR), lo:1.5, hi:3.0, kind:"range" },
+    { lab:"Overall gross margin",                val:pc(tG,tR),  lo:12,  hi:16,  kind:"range" },
+    { lab:"Service absorption",                  val:absorp,     lo:70,  hi:100, kind:"target" },
+    { lab:"Fixed-ops share of gross (service + parts)", val:fixedShare, lo:45, hi:55, kind:"range" }
+  ];
+  if(ncD) BM.push({ lab:"New-car gross margin", val:pc(per[ncD].gross,per[ncD].rev), lo:4, hi:7, kind:"range" });
+  if(ucD) BM.push({ lab:"Used-car gross margin", val:pc(per[ucD].gross,per[ucD].rev), lo:8, hi:12, kind:"range" });
+  BM.forEach(function(r){
+    if(r.kind==="target"){
+      r.status = r.val>=r.hi ? "At / above best practice" : (r.val>=r.lo ? "Acceptable" : "Below — opportunity");
+      r.cls    = r.val>=r.hi ? "hi" : (r.val>=r.lo ? "wn" : "lo");
+    } else {
+      r.status = r.val<r.lo ? "Below range" : (r.val>r.hi ? "Above range" : "In range");
+      r.cls    = r.val<r.lo ? "wn" : "hi";
+    }
+  });
+  var bmBody=document.getElementById("bmBody");
+  if(bmBody){
+    bmBody.innerHTML = BM.map(function(r){
+      return '<tr><td>'+r.lab+'</td><td class="num">'+r.val.toFixed(1)+'%</td><td class="num">'+r.lo+'–'+r.hi+'%</td><td class="'+r.cls+'">'+r.status+'</td></tr>';
+    }).join("");
+  }
   set("plRead","Biggest profit engine: "+rk[0]+" ("+L(per[rk[0]].gross)+", "+pc(per[rk[0]].gross,tG).toFixed(0)+"% of all gross). Thinnest margin: "+rk[rk.length-1]+" ("+pc(per[rk[rk.length-1]].gross,per[rk[rk.length-1]].rev).toFixed(1)+"%). Service absorption "+absorp.toFixed(0)+"% — fixed-ops gross covers "+absorp.toFixed(0)+"% of total overhead"+(absorp>=100?" (the whole store stands on parts & service).":"; the rest must come from selling metal."));
 
   /* B — price realization */
@@ -471,7 +507,8 @@ function calc(){
     oem:oem, holdback:holdback, volBonus:volBonus, csiAmt:csiAmt, csiOn:csiOn,
     ach:ach, tierLbl:tierLbl, perUnit:perUnit, ncUnits:ncUnits, bnTgt:bnTgt,
     unitsNeeded:unitsNeeded, nextB:nextB, riskLoss:riskLoss,
-    ohBasis:ohBasis, alloc:alloc, netBy:netBy
+    ohBasis:ohBasis, alloc:alloc, netBy:netBy,
+    benchmarks:BM
   };
 }
 

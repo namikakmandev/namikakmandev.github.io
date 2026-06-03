@@ -11,6 +11,8 @@
     "Explain in plain language where the profit REALLY comes from (usually fixed operations — parts & service — and OEM bonus money, not the metal margin on new cars), where price is leaking below list, why plan was missed (volume vs rate), and how close the dealer is to the next OEM stair-step tier. " +
     "Be balanced and cautious: do NOT give hard orders ('cut this', 'fire that') — weigh options with measured language ('worth reviewing', 'you may want to look at'). " +
     "Remind the user, where relevant, of things NOT in these numbers (campaign support and trade-in over-allowances sitting inside 'leakage', cash timing, why a division looks weak, one-offs). Do not over-claim leakage as lost discipline. " +
+    "You are told which TAB the user is currently viewing — if their question relates to it, focus your answer there. " +
+    "Industry benchmark ranges are general orientation only, NOT brand-specific truth: present a flag as a question worth asking, never as a verdict. " +
     "If asked HOW a number is computed, use the 'METHOD & NOTES' block. Do NOT invent figures you were not given; if unsure say 'I don't have that here'. " +
     "Keep answers short, clear, English. This is analysis from an illustrative Phase-1 model, not formal financial or tax advice.";
 
@@ -51,7 +53,19 @@
         "\n(Allocation is a modelling choice, not a hard cost — a division can look loss-making purely from carrying shared overhead it doesn't truly cause; flag this when relevant.)\n";
     }
 
+    var activeTabEl = document.querySelector("#tabs .tab.on");
+    var activeTab = activeTabEl ? activeTabEl.textContent.trim() : "Overview";
+
+    var bmLine = "";
+    if (d.benchmarks && d.benchmarks.length) {
+      bmLine = "INDUSTRY BENCHMARK CONTEXT (general automotive-retail reference ranges — orientation only, confirm per brand):\n" +
+        d.benchmarks.map(function (b) {
+          return "- " + b.lab + ": this dealer " + b.val.toFixed(1) + "% vs reference " + b.lo + "–" + b.hi + "% → " + b.status;
+        }).join("\n") + "\n";
+    }
+
     return "OPEN TOOL: Dealership Profit & Variance Diagnostic (Phase 1 — built from one trial balance). SAMPLE auto dealer, Turkish ₺ / Tek Düzen accounts.\n" +
+      "USER IS CURRENTLY VIEWING THE '" + activeTab + "' TAB — focus there if the question relates to it.\n" +
       "CONSOLIDATED: revenue " + L(d.rev) + " · gross profit " + L(d.gross) + " (" + p1(d.grossPct) + ") · operating overhead " + L(d.overhead) + (d.ohBasis && d.ohBasis !== "none" ? " (allocated to divisions)" : " (one shared pool)") + " · net profit " + L(d.net) + " (" + p1(d.netPct) + " of revenue).\n" +
       "DIVISIONS (gross profit):\n" + divLines + "\n" +
       allocLine +
@@ -59,6 +73,7 @@
       "PRICE LEAKAGE vs list: total left on the table " + L(d.totLeak) + (d.worstLeak ? "; biggest in " + d.worstLeak + " (" + L(d.worstLeakAmt) + ")" : "") + ". This is gross handed away below list before any cost — but campaign support / trade-in over-allowances can sit inside it, so don't read it all as lost discipline.\n" +
       "VARIANCE vs PLAN: gross " + (d.tVar < 0 ? "missed plan by " : "beat plan by ") + L(Math.abs(d.tVar)) + ", driven mainly by " + d.driver + ". Volume effect " + L(d.tVol) + " + Rate effect " + L(d.tRate) + " reconcile exactly to the " + L(d.tVar) + " total. Worst vs plan: " + d.worstVar + " (" + L(d.worstVarAmt) + ").\n" +
       "OEM BONUS (" + d.ncDiv + "): registration achievement " + (d.ach * 100).toFixed(0) + "% of target (tier " + d.tierLbl + "). Holdback " + L(d.holdback) + " + volume stair-step " + L(d.volBonus) + " (" + L(d.perUnit) + "/unit, retroactive on all units) + CSI " + (d.csiOn ? L(d.csiAmt) : "withheld (target not met)") + " = total OEM income " + L(d.oem) + ". New-car margin from accounts " + p1(d.ncRev ? d.ncGross / d.ncRev * 100 : 0) + " → " + p1(d.ncRev ? d.ncGrossOEM / d.ncRev * 100 : 0) + " WITH OEM money. " + (d.nextB && d.unitsNeeded > 0 ? d.unitsNeeded + " more new car(s) reaches the next tier (the stair-step is retroactive, so a few units near a threshold can be worth far more than their own margin)." : "Top tier reached.") + "\n" +
+      bmLine +
       "\nMETHOD & NOTES (use if asked how a number is computed):\n" +
       "- Everything starts from ONE trial balance. Accounts are tagged revenue / cost of sales / operating expense and mapped to a division.\n" +
       "- Gross profit = revenue − cost of sales (per division and total). Overhead is ONE shared pool, subtracted only at the total — divisions are NOT charged an arbitrary overhead split (so divisions show gross, not net).\n" +
