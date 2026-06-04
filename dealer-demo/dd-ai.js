@@ -74,6 +74,14 @@
         ". Point: the metal front-end is thin/negative; the multi-year service annuity is the real prize, so a discount that secures a retained service customer can pay off.\n";
     }
 
+    var ol = window.OUTLOOK;
+    var outlookLine = "";
+    if (ol && ol.rows) {
+      outlookLine = "YEAR-END 2026 OUTLOOK (official sources, shown as published — not this tool's forecast): " +
+        ol.rows.map(function (r) { return r.src.split(" — ")[0] + " (" + r.date + ") inflation " + r.inf + ", USD/TRY " + r.fx + ", GDP " + r.gdp; }).join("; ") +
+        ". Note the divergence: the government target (~16%) is far below the market/IMF expectation (~29%); for planning, lean to the higher end.\n";
+    }
+
     var bmLine = "";
     if (d.benchmarks && d.benchmarks.length) {
       bmLine = "INDUSTRY BENCHMARK CONTEXT (general automotive-retail reference ranges — orientation only, confirm per brand):\n" +
@@ -89,6 +97,7 @@
       allocLine +
       ltvLine +
       macroLine +
+      outlookLine +
       "PROFIT ENGINE: biggest = " + d.best + " (" + L(d.bestGross) + ", " + d.bestSharePct.toFixed(0) + "% of all gross). Thinnest margin = " + d.thin + " (" + p1(d.thinPct) + "). Service absorption = " + d.absorption.toFixed(0) + "% (fixed-ops gross ÷ total overhead; 100% = parts & service alone cover all overhead).\n" +
       "ADDRESSABLE LEAKAGE (vs the dealer's own targets, OEM support stripped out): total " + L(d.totLeak) + (d.worstLeak && d.worstLeak !== "—" ? "; biggest = " + d.worstLeak + " (" + L(d.worstLeakAmt) + ")" : "") + (d.leaks && d.leaks.length ? ". Ranked sources: " + d.leaks.map(function(x){return x.name+" "+L(x.amt);}).join("; ") : "") + ". Most leakage is usually in fixed-ops (service labour-rate realization), not vehicle discounts.\n" +
       "VARIANCE vs PLAN: gross " + (d.tVar < 0 ? "missed plan by " : "beat plan by ") + L(Math.abs(d.tVar)) + ", driven mainly by " + d.driver + ". Volume effect " + L(d.tVol) + " + Rate effect " + L(d.tRate) + " reconcile exactly to the " + L(d.tVar) + " total. Worst vs plan: " + d.worstVar + " (" + L(d.worstVarAmt) + ").\n" +

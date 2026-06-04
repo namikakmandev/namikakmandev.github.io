@@ -130,6 +130,11 @@
     <p class="note" id="macroAsof" style="margin-top:2px;font-size:11px"></p>
   </div>
 
+  <h2 class="band" style="margin-top:26px">Outlook — year-end 2026 (official sources)</h2>
+  <p class="note" style="margin:0 0 6px">What official and institutional sources expect for the year — shown as published, with sources. Judge for yourself.</p>
+  <div class="card"><table id="outlookTable"><thead><tr><th>Source</th><th class="num">CPI inflation</th><th class="num">USD/TRY</th><th class="num">GDP growth</th></tr></thead><tbody id="outlookBody"></tbody></table></div>
+  <p class="note" id="outlookNote" style="font-size:11px;margin-top:6px"></p>
+
   <h2 class="band" style="margin-top:26px">How this dealership compares — industry context</h2>
   <p class="note">The dealership's own ratios set against general automotive-retail reference ranges.</p>
   <div class="card"><table id="bmTable">
@@ -880,6 +885,27 @@ function renderMacro(){
   buildPrintSheet();
   c.style.display="";
 }
+/* Outlook — year-end 2026 expectations from official / institutional sources.
+   Shown as published; sources cited; the observer judges. Update on release. */
+var OUTLOOK = {
+  note: "Year-end figures unless marked “avg.” TCMB = market expectation · OVP = government target · IMF = independent forecast. Not a forecast by this tool.",
+  rows: [
+    { src:"TCMB — Survey of Market Participants", date:"May 2026", inf:"28.9%", fx:"51.57", gdp:"—", url:"https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Istatistikler/Egilim+Anketleri/Piyasa+Katilimcilari+Anketi/" },
+    { src:"OVP — Medium-Term Programme (government)", date:"Sep 2025", inf:"16.0% (target)", fx:"46.60 (avg)", gdp:"+3.8%", url:"https://www.sbb.gov.tr/wp-content/uploads/2025/09/Orta-Vadeli-Program-2026-2028.pdf" },
+    { src:"IMF — World Economic Outlook", date:"Apr 2026", inf:"28.6% (avg)", fx:"—", gdp:"+3.4%", url:"https://www.imf.org/en/countries/tur" }
+  ]
+};
+window.OUTLOOK = OUTLOOK;
+function renderOutlook(){
+  var b=document.getElementById("outlookBody"); if(!b) return;
+  b.innerHTML = OUTLOOK.rows.map(function(r){
+    return '<tr><td><a href="'+r.url+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">'+r.src+'</a><div style="font-size:11px;color:var(--muted)">'+r.date+'</div></td>'+
+      '<td class="num">'+r.inf+'</td><td class="num">'+r.fx+'</td><td class="num">'+r.gdp+'</td></tr>';
+  }).join("");
+  var n=document.getElementById("outlookNote"); if(n) n.textContent=OUTLOOK.note;
+}
+renderOutlook();
+
 /* Used-car market index (BETAM sahibindex) — periodic MANUAL reference.
    UPDATE monthly from betam.bahcesehir.edu.tr; confirm republishing ToS before commercial use. */
 var USEDCAR_IDX = { avg:1168000, yoyNom:23.3, yoyReal:-6.8, asof:"May 2026", src:"BETAM sahibindex (Bahçeşehir Üniversitesi)" };
