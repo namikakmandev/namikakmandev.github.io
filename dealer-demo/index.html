@@ -197,8 +197,10 @@
     <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>F&amp;I — attach % now</label><input type="number" id="lk_fi_act" step="1" value="45"/></div>
     <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>F&amp;I — attach % achievable</label><input type="number" id="lk_fi_tgt" step="1" value="65"/></div>
   </div>
-  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Step 3 · The result — ranked leakage (biggest money first)</h3>
-  <div class="card"><table id="lkTable"><thead><tr><th>#</th><th>Where it leaks</th><th class="num">₺ / year</th><th>The lever</th></tr></thead><tbody id="lkBody"></tbody></table></div>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Step 3 · The result — how leakage eats your profit</h3>
+  <p class="note" style="margin:0 0 4px">Start at the profit you could keep; each leak knocks it down to what you actually keep.</p>
+  <div class="card"><svg id="cLeakWf" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Leakage waterfall"></svg></div>
+  <div class="card" style="margin-top:12px"><table id="lkTable"><thead><tr><th>#</th><th>Where it leaks</th><th class="num">₺ / year</th><th>The lever</th></tr></thead><tbody id="lkBody"></tbody></table></div>
   <p class="note" id="lkRead"></p>
   <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Step 4 · Detail — pocket-price waterfall (one new car)</h3>
   <p class="note" style="margin-top:0">How one new car's list price erodes to what you actually pocket — separating reimbursed OEM support from controllable discount.</p>
@@ -373,6 +375,36 @@ function bridge(id,budget,vol,rate,actual){
     prevTopX=cx+bw/2; prevTopY=ty;
   });
   var el=document.getElementById(id); if(el) el.innerHTML=s;
+}
+
+/* general waterfall: items=[{lab,val,kind:'tot'|'down'}] — totals are absolute bars from 0, downs are floating decrements */
+function wfall(id, items){
+  var el=document.getElementById(id); if(!el) return;
+  var W=760,He=300,mL=10,mR=10,mT=26,mB=52, pw=W-mL-mR, ph=He-mT-mB;
+  var run=0, cols=[];
+  items.forEach(function(it){
+    if(it.kind==='tot'){ cols.push({lab:it.lab, base:0, val:it.val, kind:'tot'}); run=it.val; }
+    else { cols.push({lab:it.lab, base:run, val:it.val, kind:'down'}); run=run+it.val; }
+  });
+  var hi=0, lo=0;
+  cols.forEach(function(c){ var a=c.kind==='tot'?0:c.base, b=c.kind==='tot'?c.val:c.base+c.val; hi=Math.max(hi,a,b); lo=Math.min(lo,a,b); });
+  var span=(hi-lo)||1, Y=function(v){ return mT+ph-((v-lo)/span)*ph; };
+  var n=cols.length, slot=pw/n, bw=Math.min(74,slot*0.56);
+  var s='<line x1="'+mL+'" y1="'+Y(0).toFixed(1)+'" x2="'+(mL+pw)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--line)"/>';
+  var pX=null,pY=null;
+  cols.forEach(function(c,i){
+    var cx=mL+slot*i+slot/2;
+    var v0=c.kind==='tot'?0:c.base, v1=c.kind==='tot'?c.val:c.base+c.val;
+    var yA=Y(Math.max(v0,v1)), yB=Y(Math.min(v0,v1)), h=Math.max(1,yB-yA);
+    var col=c.kind==='tot'?'var(--accent)':'var(--loss)';
+    s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yA.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+col+'"><title>'+c.lab+': '+L(c.val)+'</title></rect>';
+    s+='<text class="vlab" x="'+cx.toFixed(1)+'" y="'+(yA-7).toFixed(1)+'" text-anchor="middle">'+(c.kind==='down'?'−'+short(Math.abs(c.val)):short(c.val))+'</text>';
+    s+='<text x="'+cx.toFixed(1)+'" y="'+(He-mB+18)+'" text-anchor="middle">'+c.lab+'</text>';
+    var topV=c.kind==='tot'?c.val:c.base+c.val, ty=Y(topV);
+    if(pX!==null) s+='<line x1="'+pX.toFixed(1)+'" y1="'+pY.toFixed(1)+'" x2="'+(cx-bw/2).toFixed(1)+'" y2="'+ty.toFixed(1)+'" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0.6"/>';
+    pX=cx+bw/2; pY=ty;
+  });
+  el.innerHTML=s;
 }
 
 /* ---------- input grids ---------- */
@@ -553,6 +585,11 @@ function calc(){
   LEAKS.forEach(function(x,i){ lkb+='<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td class="num lo">'+L(x.amt)+'</td><td>'+x.lever+'</td></tr>'; });
   lkb+='<tr class="tot"><td></td><td>Total addressable leakage</td><td class="num lo">'+L(totLeak)+'</td><td>= '+(net>0?pc(totLeak,net).toFixed(0)+'% of net profit':'—')+'</td></tr>';
   document.getElementById("lkBody").innerHTML=lkb;
+  // leakage waterfall: potential profit → minus each leak → actual net
+  var wfItems=[{lab:"Potential", val:net+totLeak, kind:"tot"}];
+  LEAKS.forEach(function(x){ wfItems.push({lab:x.name.split(" — ")[0], val:-x.amt, kind:"down"}); });
+  wfItems.push({lab:"Actual net", val:net, kind:"tot"});
+  wfall("cLeakWf", wfItems);
   set("lkRead", LEAKS.length
     ? ("Biggest leak: "+worstLeakShort+" ("+L(worstLeakAmt)+"). Total addressable leakage "+L(totLeak)+" — "+(net>0?pc(totLeak,net).toFixed(0)+"% of this year's net profit. ":"")+"Most of it sits in fixed-ops, not the showroom, and every figure is measured against the dealership's own targets with OEM support stripped out.")
     : "Set the targets above to map the leakage.");
