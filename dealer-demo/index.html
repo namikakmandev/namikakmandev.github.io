@@ -91,7 +91,7 @@
   <nav class="nav" id="tabs">
     <a href="#" class="tab on" data-pane="pane-overview">Overview</a>
     <a href="#" class="tab" data-pane="pane-divisional">Divisional P&amp;L</a>
-    <a href="#" class="tab" data-pane="pane-leakage">Price leakage</a>
+    <a href="#" class="tab" data-pane="pane-leakage">Leakage map</a>
     <a href="#" class="tab" data-pane="pane-oem">OEM bonus</a>
     <a href="#" class="tab" data-pane="pane-ltv">Deal &amp; LTV</a>
     <a href="#" class="tab" data-pane="pane-variance">Variance</a>
@@ -172,14 +172,31 @@
 
   <section class="pane" id="pane-leakage">
   <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
-  <h2 class="band">Price realization — money left on the table</h2>
-  <p class="note">Enter units sold and the list / reference price per division (from the DMS and the price list — figures they already have). Realized price = revenue ÷ units. Leakage = (list − realized) × units. Leave list at 0 for divisions where a list price doesn't apply. Read this as <em>vs the dealership's own reference price</em>: for new/used cars, manufacturer campaign support and trade-in over-allowances sit inside these figures, so raw leakage overstates discipline lost — the OEM money that offsets it is quantified in the OEM bonus tab.</p>
+  <h2 class="band">Leakage map — where money quietly leaks</h2>
+  <p class="note">Each part of the store leaks differently. We measure each against the dealership's <b>own targets</b> (not sticker price), and strip out manufacturer campaign support — which is reimbursed, not a real loss — so nothing is over-claimed. Units, list prices and budgets are below; the targets sit under them.</p>
   <div class="card">
     <div id="opGrid"></div>
   </div>
-  <div class="card" style="margin-top:12px"><table id="prTable"><thead id="prHead"></thead><tbody id="prBody"></tbody></table></div>
-  <div class="card"><svg id="cLeak" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Price leakage by division"></svg></div>
-  <p class="note" id="prRead"></p>
+  <div class="card" style="margin-top:12px">
+    <div class="inrow head" style="grid-template-columns:1.7fr 1fr"><span>Leakage targets &amp; rates — the dealership's own</span><span style="text-align:right">Value</span></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>New cars — target discount %</label><input type="number" id="lk_new_tgt" step="0.5" value="3"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>New cars — OEM campaign support % (reimbursed)</label><input type="number" id="lk_new_oem" step="0.5" value="1.5"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Used cars — target discount %</label><input type="number" id="lk_used_tgt" step="0.5" value="5"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Used cars — OEM/campaign support %</label><input type="number" id="lk_used_oem" step="0.5" value="0"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Service — posted labour rate ₺/hr</label><input type="number" id="lk_svc_posted" step="50" value="1500"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Service — effective (realized) rate ₺/hr</label><input type="number" id="lk_svc_eff" step="50" value="1200"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Service — billable hours / yr</label><input type="number" id="lk_svc_hrs" step="100" value="1600"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Parts — target gross margin %</label><input type="number" id="lk_parts_tgt" step="1" value="30"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>F&amp;I — attach % now</label><input type="number" id="lk_fi_act" step="1" value="45"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>F&amp;I — attach % achievable</label><input type="number" id="lk_fi_tgt" step="1" value="65"/></div>
+  </div>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Ranked leakage — biggest money first</h3>
+  <div class="card"><table id="lkTable"><thead><tr><th>#</th><th>Where it leaks</th><th class="num">₺ / year</th><th>The lever</th></tr></thead><tbody id="lkBody"></tbody></table></div>
+  <p class="note" id="lkRead"></p>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Pocket-price waterfall — a new-car deal</h3>
+  <p class="note" style="margin-top:0">How one new car's list price erodes to what you actually pocket — separating reimbursed OEM support from controllable discount.</p>
+  <div class="card"><div id="pwf"></div></div>
+  <p class="note" id="pwfRead"></p>
   </section>
 
   <section class="pane" id="pane-oem">
@@ -488,26 +505,57 @@ function calc(){
   buildPrintSheet();
   set("plRead","Biggest profit engine: "+rk[0]+" ("+L(per[rk[0]].gross)+", "+pc(per[rk[0]].gross,tG).toFixed(0)+"% of all gross). Thinnest margin: "+rk[rk.length-1]+" ("+pc(per[rk[rk.length-1]].gross,per[rk[rk.length-1]].rev).toFixed(1)+"%). Service absorption "+absorp.toFixed(0)+"% — fixed-ops gross covers "+absorp.toFixed(0)+"% of total overhead"+(absorp>=100?" (the whole store stands on parts & service).":"; the rest must come from selling metal."));
 
-  /* B — price realization */
-  var ph='<tr><th>Division</th><th class="num">Units</th><th class="num">Realized ₺</th><th class="num">List ₺</th><th class="num">Realization %</th><th class="num">Leakage ₺</th></tr>';
-  document.getElementById("prHead").innerHTML=ph;
-  var pb="",totLeak=0,leakBy={};
-  D.forEach(function(d){
-    var k=d.replace(/[^a-z]/gi,""), u=gN("u_"+k), li=gN("l_"+k), rv=per[d].rev;
-    var real=u?rv/u:0;
-    if(li>0&&u>0){
-      var leak=(li-real)*u; totLeak+=leak; leakBy[d]=leak;
-      var cls=leak>0?"lo":"hi";
-      pb+='<tr><td>'+d+' <span class="pill" style="background:#eef1f4;color:var(--muted)">'+ulab(d)+'</span></td><td class="num">'+u.toLocaleString("en-US")+'</td><td class="num">'+L(real)+
-          '</td><td class="num">'+L(li)+'</td><td class="num">'+pc(real,li).toFixed(1)+'%</td><td class="num '+cls+'">'+L(leak)+'</td></tr>';
-    } else {
-      pb+='<tr><td>'+d+' <span class="pill" style="background:#eef1f4;color:var(--muted)">'+ulab(d)+'</span></td><td class="num">'+(u?u.toLocaleString("en-US"):"—")+'</td><td class="num">'+(u?L(real):"—")+'</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>';
-    }
+  /* B — LEAKAGE MAP (controllable leaks vs the dealer's own targets) + pocket-price waterfall */
+  var partsD=null, svcD=null, fiD=null;
+  D.forEach(function(d){ if(/parts/i.test(d))partsD=d; if(/service/i.test(d))svcD=d; if(/f&i/i.test(d))fiD=d; });
+  var LEAKS=[];
+  // car discount discipline: strip OEM support, then count only over-target
+  [{d:ncD,t:"lk_new"},{d:ucD,t:"lk_used"}].forEach(function(c){
+    if(!c.d) return;
+    var k=c.d.replace(/[^a-z]/gi,""), u=gN("u_"+k), li=gN("l_"+k), rv=per[c.d].rev;
+    if(!(u>0&&li>0)) return;
+    var real=rv/u, gapPct=(li-real)/li*100;
+    var ctrlPct=Math.max(0, gapPct-gN(c.t+"_oem"));
+    var overPct=Math.max(0, ctrlPct-gN(c.t+"_tgt"));
+    var leak=overPct/100*rv;
+    if(leak>0) LEAKS.push({name:c.d+" — discount "+overPct.toFixed(1)+" pts beyond target", amt:leak, lever:"Tighten sign-off on large discounts"});
   });
-  pb+='<tr class="tot"><td>Total left on the table vs list</td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num"></td><td class="num '+(totLeak>0?'lo':'hi')+'">'+L(totLeak)+'</td></tr>';
-  document.getElementById("prBody").innerHTML=pb;
-  var worstLeak=Object.keys(leakBy).sort(function(a,c){return leakBy[c]-leakBy[a];})[0];
-  set("prRead", worstLeak ? ("Biggest price leakage: "+worstLeak+" ("+L(leakBy[worstLeak])+" — "+pc(leakBy[worstLeak],totLeak).toFixed(0)+"% of total). That is gross profit handed away below list, before any cost was even touched.") : "Enter units and list prices to see price leakage.");
+  // service: effective vs posted labour rate
+  var posted=gN("lk_svc_posted"), eff=gN("lk_svc_eff"), hrs=gN("lk_svc_hrs");
+  var svcLeak=Math.max(0,posted-eff)*hrs;
+  if(svcLeak>0) LEAKS.push({name:"Service — effective ₺"+Math.round(eff)+" vs posted ₺"+Math.round(posted)+"/hr", amt:svcLeak, lever:"Cut comeback / goodwill / unbilled hours"});
+  // parts: margin vs target
+  if(partsD){ var pmReal=pc(per[partsD].gross,per[partsD].rev), pmTgt=gN("lk_parts_tgt"); var pLeak=Math.max(0,pmTgt-pmReal)/100*per[partsD].rev; if(pLeak>0) LEAKS.push({name:"Parts — margin "+pmReal.toFixed(0)+"% vs "+pmTgt.toFixed(0)+"% target", amt:pLeak, lever:"Fix the parts pricing matrix"}); }
+  // F&I: attach-rate gap (missed income)
+  if(fiD){ var fact=gN("lk_fi_act"), ftgt=gN("lk_fi_tgt"); var fiMiss=(fact>0)?Math.max(0,per[fiD].rev*(ftgt/fact-1)):0; if(fiMiss>0) LEAKS.push({name:"F&I — attach "+fact+"% vs "+ftgt+"% achievable", amt:fiMiss, lever:"Train / incentivise the F&I desk"}); }
+  LEAKS.sort(function(a,b){ return b.amt-a.amt; });
+  var totLeak=LEAKS.reduce(function(s,x){ return s+x.amt; },0);
+  var worstLeak = LEAKS.length ? LEAKS[0].name : "—";
+  var worstLeakShort = LEAKS.length ? LEAKS[0].name.split(" — ")[0] : "—";
+  var worstLeakAmt = LEAKS.length ? LEAKS[0].amt : 0;
+  var lkb="";
+  LEAKS.forEach(function(x,i){ lkb+='<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td class="num lo">'+L(x.amt)+'</td><td>'+x.lever+'</td></tr>'; });
+  lkb+='<tr class="tot"><td></td><td>Total addressable leakage</td><td class="num lo">'+L(totLeak)+'</td><td>= '+(net>0?pc(totLeak,net).toFixed(0)+'% of net profit':'—')+'</td></tr>';
+  document.getElementById("lkBody").innerHTML=lkb;
+  set("lkRead", LEAKS.length
+    ? ("Biggest leak: "+worstLeakShort+" ("+L(worstLeakAmt)+"). Total addressable leakage "+L(totLeak)+" — "+(net>0?pc(totLeak,net).toFixed(0)+"% of this year's net profit. ":"")+"Most of it sits in fixed-ops, not the showroom, and every figure is measured against the dealership's own targets with OEM support stripped out.")
+    : "Set the targets above to map the leakage.");
+  // pocket-price waterfall (new cars)
+  if(ncD){
+    var nk=ncD.replace(/[^a-z]/gi,""), nu=gN("u_"+nk), nli=gN("l_"+nk), nrv=per[ncD].rev;
+    var pwfEl=document.getElementById("pwf");
+    if(pwfEl && nu>0 && nli>0){
+      var nreal=nrv/nu, gap=nli-nreal, oemv=gN("lk_new_oem")/100*nli, ctrl=Math.max(0,gap-oemv);
+      function wrow(lab,val,w,col){ return '<div style="display:flex;align-items:center;gap:10px;margin:5px 0;font-size:13px"><span style="width:210px;flex:0 0 auto;color:var(--muted)">'+lab+'</span><div style="flex:1;background:#f0f3f7;border-radius:4px;height:20px"><div style="height:100%;border-radius:4px;width:'+Math.max(2,Math.min(100,w))+'%;background:'+col+'"></div></div><span style="width:96px;text-align:right;font-weight:600">'+val+'</span></div>'; }
+      var g=gap||1;
+      pwfEl.innerHTML =
+        wrow("List price", L(nli), 100, "#9fb4c6")+
+        wrow("− OEM campaign support", "−"+L(oemv), oemv/g*45, "#9aa0ab")+
+        wrow("− Controllable discount", "−"+L(ctrl), ctrl/g*45, "var(--loss)")+
+        wrow("Pocket price", L(nreal), 100*nreal/nli, "var(--accent)");
+      set("pwfRead","Per new car, of the "+L(gap)+" off list, "+L(oemv)+" is OEM campaign support (reimbursed — not a loss) and "+L(ctrl)+" is controllable. Across "+nu+" cars that's "+L(ctrl*nu)+" of controllable discount; only the slice beyond your target counts as leakage in the map above.");
+    } else if(pwfEl){ pwfEl.innerHTML='<p class="note" style="margin:0">Enter new-car units and list price (in the grid above) to see the waterfall.</p>'; set("pwfRead",""); }
+  }
 
   /* C — variance vs plan */
   var vh='<tr><th>Division</th><th class="num">Actual gross</th><th class="num">Budget gross</th><th class="num">Variance</th><th class="num">Volume effect</th><th class="num">Rate effect</th></tr>';
@@ -574,13 +622,11 @@ function calc(){
   if(plCap) plCap.textContent = (ohBasis==="none")
     ? "Gross profit by division"
     : "Net profit by division — after overhead allocated by "+({rev:"revenue share",gross:"gross-profit share",equal:"equal share"}[ohBasis]||ohBasis);
-  barChart("cLeak", D.map(function(d){ return {label:d,value:leakBy[d]||0}; }),
-           "var(--loss)","var(--good)");
   bridge("cBridge", tG - tVar, tVol, tRate, tG);
 
   /* D — synthesis */
   var s='<div class="ln">Net profit <b>'+L(net)+'</b> — <b>'+pc(net,tR).toFixed(1)+'%</b> of ₺'+Math.round(tR).toLocaleString("en-US")+' revenue. The metal barely pays; the profit really lives in '+rk[0]+'.</div>';
-  s+='<div class="ln">You left <b class="'+(totLeak>0?'lo':'hi')+'">'+L(totLeak)+'</b> on the table vs list'+(worstLeak?(' — mostly in <b>'+worstLeak+'</b>'):'')+'. Recovering even part of that is pure profit.</div>';
+  s+='<div class="ln">Addressable leakage <b class="'+(totLeak>0?'lo':'hi')+'">'+L(totLeak)+'</b>'+(net>0?' — '+pc(totLeak,net).toFixed(0)+'% of net profit':'')+(worstLeakShort&&worstLeakShort!=="—"?', biggest in <b>'+worstLeakShort+'</b>':'')+'. Measured vs the dealership’s own targets — recovering even part is pure profit.</div>';
   s+='<div class="ln">You '+(tVar<0?'missed plan by ':'beat plan by ')+'<b class="'+(tVar<0?'lo':'hi')+'">'+L(Math.abs(tVar))+'</b>, driven mainly by <b>'+driver+'</b>'+(worstVar?(' in <b>'+worstVar+'</b>'):'')+'.</div>';
   s+='<div class="ln">OEM money adds <b class="hi">'+L(oem)+'</b> — that, not the metal, is the real '+ncDiv+' profit (margin '+pc(ncGross,ncRev).toFixed(1)+'% → <b>'+pc(ncGrossOEM,ncRev).toFixed(1)+'%</b>)'+((nextB!==null&&unitsNeeded>0)?(' — and you are <b>'+unitsNeeded+'</b> car'+(unitsNeeded===1?'':'s')+' from the next bonus tier, often worth more than the price you protect on a deal'):'')+'.</div>';
   s+='<div class="ln" style="margin-top:10px;color:#9fb4c6;font-size:13px">And under high inflation your cost-based numbers understate the real cost of what you sold — replacement-cost margin is Phase 2.</div>';
@@ -594,7 +640,7 @@ function calc(){
     best:rk[0], bestGross:per[rk[0]].gross, bestSharePct:pc(per[rk[0]].gross,tG),
     thin:rk[rk.length-1], thinPct:pc(per[rk[rk.length-1]].gross,per[rk[rk.length-1]].rev),
     absorption:absorp,
-    totLeak:totLeak, worstLeak:worstLeak, worstLeakAmt:(leakBy[worstLeak]||0),
+    totLeak:totLeak, worstLeak:worstLeakShort, worstLeakAmt:worstLeakAmt, leaks:LEAKS,
     tVar:tVar, tVol:tVol, tRate:tRate, driver:driver, worstVar:worstVar, worstVarAmt:varBy[worstVar],
     ncDiv:ncDiv, ncGross:ncGross, ncGrossOEM:ncGrossOEM, ncRev:ncRev,
     oem:oem, holdback:holdback, volBonus:volBonus, csiAmt:csiAmt, csiOn:csiOn,
@@ -736,7 +782,7 @@ function buildPrintSheet(){
       '<b>The metal barely pays — the profit really lives in '+d.best+'</b> ('+L(d.bestGross)+', '+d.bestSharePct.toFixed(0)+'% of all gross profit).</div>'+
     // findings
     '<div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#2f9bff;font-weight:700;margin-bottom:8px">What the numbers say</div>'+
-    find("Price leakage:", "#d23b3b", L(d.totLeak)+" left on the table vs list"+(d.worstLeak?", mostly in <b>"+d.worstLeak+"</b>":"")+" — gross handed away before any cost.")+
+    find("Addressable leakage:", "#d23b3b", L(d.totLeak)+(d.netPct?" ("+(d.net>0?Math.round(d.totLeak/d.net*100):0)+"% of net profit)":"")+(d.worstLeak&&d.worstLeak!=="—"?", biggest in <b>"+d.worstLeak+"</b>":"")+" — measured vs the dealership's own targets, OEM support stripped out.")+
     find("Variance vs plan:", "#1f2430", (d.tVar<0?"missed plan by ":"beat plan by ")+"<b>"+L(Math.abs(d.tVar))+"</b>, driven mainly by "+d.driver+".")+
     find("OEM bonus money:", "#0e8f5b", "<b>"+L(d.oem)+"</b> — the real "+d.ncDiv+" profit"+((d.nextB&&d.unitsNeeded>0)?(", and only <b>"+d.unitsNeeded+"</b> car(s) from the next bonus tier"):"")+".")+
     find("Watch — the EV shift:", "#c87f00", "EVs need far less service; as the fleet electrifies, the service-absorption profit engine is under structural pressure.")+
@@ -801,6 +847,11 @@ function calcLTV(){
   var e=document.getElementById(id); if(e) e.addEventListener("input",calcLTV);
 });
 calcLTV();
+
+/* leakage-target inputs → recalc */
+["lk_new_tgt","lk_new_oem","lk_used_tgt","lk_used_oem","lk_svc_posted","lk_svc_eff","lk_svc_hrs","lk_parts_tgt","lk_fi_act","lk_fi_tgt"].forEach(function(id){
+  var e=document.getElementById(id); if(e) e.addEventListener("input",calc);
+});
 
 /* ---------- tabbed panes ---------- */
 (function(){
