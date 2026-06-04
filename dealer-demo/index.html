@@ -197,11 +197,21 @@
     <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>F&amp;I — attach % now</label><input type="number" id="lk_fi_act" step="1" value="45"/></div>
     <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>F&amp;I — attach % achievable</label><input type="number" id="lk_fi_tgt" step="1" value="65"/></div>
   </div>
-  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Step 3 · The result — how leakage eats your profit</h3>
-  <p class="note" style="margin:0 0 4px">Start at the profit you could keep; each leak knocks it down to what you actually keep.</p>
-  <div class="card"><svg id="cLeakWf" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Leakage waterfall"></svg></div>
-  <div class="card" style="margin-top:12px"><table id="lkTable"><thead><tr><th>#</th><th>Where it leaks</th><th class="num">₺ / year</th><th>The lever</th></tr></thead><tbody id="lkBody"></tbody></table></div>
-  <p class="note" id="lkRead"></p>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Step 3 · The result</h3>
+  <p class="note" style="margin:0 0 6px">View leakage for:
+    <select id="lkView" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"><option value="company">Whole company</option></select>
+  </p>
+  <div id="lkCompany">
+    <p class="note" style="margin:0 0 4px">Start at the profit you could keep; each leak knocks it down to what you actually keep.</p>
+    <div class="card"><svg id="cLeakWf" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Leakage waterfall"></svg></div>
+    <div class="card" style="margin-top:12px"><table id="lkTable"><thead><tr><th>#</th><th>Where it leaks</th><th class="num">₺ / year</th><th>The lever</th></tr></thead><tbody id="lkBody"></tbody></table></div>
+    <p class="note" id="lkRead"></p>
+  </div>
+  <div id="lkDivision" style="display:none">
+    <p class="note" id="lkDivDef" style="margin:0 0 8px"></p>
+    <div class="card"><div id="lkDivBar"></div></div>
+    <p class="note" id="lkDivRead"></p>
+  </div>
   <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Step 4 · Detail — pocket-price waterfall (one new car)</h3>
   <p class="note" style="margin-top:0">How one new car's list price erodes to what you actually pocket — separating reimbursed OEM support from controllable discount.</p>
   <div class="card"><div id="pwf"></div></div>
@@ -407,6 +417,27 @@ function wfall(id, items){
   el.innerHTML=s;
 }
 
+/* per-division leakage: should-have (full bar) vs captured (solid), gap striped */
+function renderDivLeak(d, det){
+  var defEl=document.getElementById("lkDivDef"), bar=document.getElementById("lkDivBar"), readEl=document.getElementById("lkDivRead");
+  if(defEl) defEl.innerHTML="<b>"+d+".</b> "+det.def;
+  if(!bar) return;
+  if(det.leak<=0 || !det.shouldBe){
+    bar.innerHTML='<div style="padding:8px 2px;color:var(--good);font-weight:600">✓ No leakage — '+d+' is within its target.</div>';
+    if(readEl) readEl.textContent="";
+    return;
+  }
+  var actPct=Math.max(0,Math.min(100, det.actual/det.shouldBe*100));
+  bar.innerHTML=
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px"><span>Captured (solid) vs should-have (whole bar)</span><span>'+det.metric+'</span></div>'+
+    '<div style="display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--line)">'+
+      '<div style="width:'+actPct+'%;background:var(--accent);min-width:34px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">'+L(det.actual)+'</div>'+
+      '<div style="width:'+(100-actPct)+'%;background:repeating-linear-gradient(45deg,#f3b0b0,#f3b0b0 7px,#fff 7px,#fff 14px);min-width:34px;display:flex;align-items:center;justify-content:center;color:var(--loss);font-size:12px;font-weight:700">−'+L(det.leak)+'</div>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px"><span>Captured <b>'+L(det.actual)+'</b></span><span>Should have <b>'+L(det.shouldBe)+'</b></span></div>';
+  if(readEl) readEl.innerHTML="The striped slice — <b>"+L(det.leak)+"</b> — is what leaked away versus your own target. Recovering it is pure profit.";
+}
+
 /* ---------- input grids ---------- */
 function buildTB(){
   var h="";
@@ -440,6 +471,8 @@ function buildOps(){
     var k=d.replace(/[^a-z]/gi,"");
     ["u_","l_","br_","bg_"].forEach(function(p){ var e=document.getElementById(p+k); if(e) e.addEventListener("input",calc); });
   });
+  var lv=document.getElementById("lkView");
+  if(lv){ lv.innerHTML='<option value="company">Whole company</option>'+D.map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join(''); }
 }
 
 function buildBonus(){
@@ -556,7 +589,7 @@ function calc(){
   /* B — LEAKAGE MAP (controllable leaks vs the dealer's own targets) + pocket-price waterfall */
   var partsD=null, svcD=null, fiD=null;
   D.forEach(function(d){ if(/parts/i.test(d))partsD=d; if(/service/i.test(d))svcD=d; if(/f&i/i.test(d))fiD=d; });
-  var LEAKS=[];
+  var LEAKS=[], DIVDET={};
   // car discount discipline: strip OEM support, then count only over-target
   [{d:ncD,t:"lk_new"},{d:ucD,t:"lk_used"}].forEach(function(c){
     if(!c.d) return;
@@ -566,16 +599,30 @@ function calc(){
     var ctrlPct=Math.max(0, gapPct-gN(c.t+"_oem"));
     var overPct=Math.max(0, ctrlPct-gN(c.t+"_tgt"));
     var leak=overPct/100*rv;
+    DIVDET[c.d]={leak:leak, shouldBe:per[c.d].gross+leak, actual:per[c.d].gross, metric:"gross profit",
+      def: leak>0 ? ("Discount discipline — at your "+gN(c.t+"_tgt")+"% target (OEM support already excluded), "+c.d+" should hold <b>"+L(per[c.d].gross+leak)+"</b> gross; it held <b>"+L(per[c.d].gross)+"</b>. The gap is discount given "+overPct.toFixed(1)+" pts beyond target.")
+        : (c.d+" is within its discount target — no controllable leakage here. Well disciplined.") };
     if(leak>0) LEAKS.push({name:c.d+" — discount "+overPct.toFixed(1)+" pts beyond target", amt:leak, lever:"Tighten sign-off on large discounts"});
   });
   // service: effective vs posted labour rate
   var posted=gN("lk_svc_posted"), eff=gN("lk_svc_eff"), hrs=gN("lk_svc_hrs");
   var svcLeak=Math.max(0,posted-eff)*hrs;
+  if(svcD) DIVDET[svcD]={leak:svcLeak, shouldBe:posted*hrs, actual:eff*hrs, metric:"labour billings",
+    def: svcLeak>0 ? ("Labour-rate realization — at your posted <b>₺"+Math.round(posted)+"/hr</b> across "+hrs+" hours you'd bill <b>"+L(posted*hrs)+"</b>; at the effective <b>₺"+Math.round(eff)+"/hr</b> you billed <b>"+L(eff*hrs)+"</b>. The gap is rate given away — comebacks, goodwill, unbilled hours.")
+      : "Service is realizing its posted rate — no labour-rate leakage." };
   if(svcLeak>0) LEAKS.push({name:"Service — effective ₺"+Math.round(eff)+" vs posted ₺"+Math.round(posted)+"/hr", amt:svcLeak, lever:"Cut comeback / goodwill / unbilled hours"});
   // parts: margin vs target
-  if(partsD){ var pmReal=pc(per[partsD].gross,per[partsD].rev), pmTgt=gN("lk_parts_tgt"); var pLeak=Math.max(0,pmTgt-pmReal)/100*per[partsD].rev; if(pLeak>0) LEAKS.push({name:"Parts — margin "+pmReal.toFixed(0)+"% vs "+pmTgt.toFixed(0)+"% target", amt:pLeak, lever:"Fix the parts pricing matrix"}); }
+  if(partsD){ var pmReal=pc(per[partsD].gross,per[partsD].rev), pmTgt=gN("lk_parts_tgt"), sbP=pmTgt/100*per[partsD].rev; var pLeak=Math.max(0,pmTgt-pmReal)/100*per[partsD].rev;
+    DIVDET[partsD]={leak:pLeak, shouldBe:sbP, actual:per[partsD].gross, metric:"parts gross",
+      def: pLeak>0 ? ("Margin — at your "+pmTgt.toFixed(0)+"% target, Parts should make <b>"+L(sbP)+"</b> gross; it made <b>"+L(per[partsD].gross)+"</b> at "+pmReal.toFixed(0)+"%.")
+        : "Parts is at or above its target margin — no margin leakage." };
+    if(pLeak>0) LEAKS.push({name:"Parts — margin "+pmReal.toFixed(0)+"% vs "+pmTgt.toFixed(0)+"% target", amt:pLeak, lever:"Fix the parts pricing matrix"}); }
   // F&I: attach-rate gap (missed income)
-  if(fiD){ var fact=gN("lk_fi_act"), ftgt=gN("lk_fi_tgt"); var fiMiss=(fact>0)?Math.max(0,per[fiD].rev*(ftgt/fact-1)):0; if(fiMiss>0) LEAKS.push({name:"F&I — attach "+fact+"% vs "+ftgt+"% achievable", amt:fiMiss, lever:"Train / incentivise the F&I desk"}); }
+  if(fiD){ var fact=gN("lk_fi_act"), ftgt=gN("lk_fi_tgt"), sbF=(fact>0)?per[fiD].rev*(ftgt/fact):per[fiD].rev; var fiMiss=(fact>0)?Math.max(0,sbF-per[fiD].rev):0;
+    DIVDET[fiD]={leak:fiMiss, shouldBe:sbF, actual:per[fiD].rev, metric:"F&I income",
+      def: fiMiss>0 ? ("Attach rate — at "+ftgt+"% attach, F&I should earn <b>"+L(sbF)+"</b>; at "+fact+"% it earned <b>"+L(per[fiD].rev)+"</b>. The gap is missed F&I income.")
+        : "F&I is at its achievable attach rate — no missed income." };
+    if(fiMiss>0) LEAKS.push({name:"F&I — attach "+fact+"% vs "+ftgt+"% achievable", amt:fiMiss, lever:"Train / incentivise the F&I desk"}); }
   LEAKS.sort(function(a,b){ return b.amt-a.amt; });
   var totLeak=LEAKS.reduce(function(s,x){ return s+x.amt; },0);
   var worstLeak = LEAKS.length ? LEAKS[0].name : "—";
@@ -593,6 +640,15 @@ function calc(){
   set("lkRead", LEAKS.length
     ? ("Biggest leak: "+worstLeakShort+" ("+L(worstLeakAmt)+"). Total addressable leakage "+L(totLeak)+" — "+(net>0?pc(totLeak,net).toFixed(0)+"% of this year's net profit. ":"")+"Most of it sits in fixed-ops, not the showroom, and every figure is measured against the dealership's own targets with OEM support stripped out.")
     : "Set the targets above to map the leakage.");
+  // whole-company vs per-division view
+  var lkViewSel=(document.getElementById("lkView")||{}).value||"company";
+  var compEl=document.getElementById("lkCompany"), divEl=document.getElementById("lkDivision");
+  if(lkViewSel==="company" || !DIVDET[lkViewSel]){
+    if(compEl) compEl.style.display=""; if(divEl) divEl.style.display="none";
+  } else {
+    if(compEl) compEl.style.display="none"; if(divEl) divEl.style.display="";
+    renderDivLeak(lkViewSel, DIVDET[lkViewSel]);
+  }
   // pocket-price waterfall (new cars)
   if(ncD){
     var nk=ncD.replace(/[^a-z]/gi,""), nu=gN("u_"+nk), nli=gN("l_"+nk), nrv=per[ncD].rev;
@@ -905,6 +961,7 @@ calcLTV();
 ["lk_new_tgt","lk_new_oem","lk_used_tgt","lk_used_oem","lk_svc_posted","lk_svc_eff","lk_svc_hrs","lk_parts_tgt","lk_fi_act","lk_fi_tgt"].forEach(function(id){
   var e=document.getElementById(id); if(e) e.addEventListener("input",calc);
 });
+var _lv=document.getElementById("lkView"); if(_lv) _lv.addEventListener("change",calc);
 
 /* ---------- tabbed panes ---------- */
 (function(){
