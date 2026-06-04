@@ -388,7 +388,7 @@ function bridge(id,budget,vol,rate,actual){
     s+='<text class="vlab" x="'+cx.toFixed(1)+'" y="'+(yA-7).toFixed(1)+'" text-anchor="middle">'+(c.kind==="d"&&c.val>=0?"+":"")+short(c.val)+'</text>';
     s+='<text x="'+cx.toFixed(1)+'" y="'+(He-mB+20)+'" text-anchor="middle">'+c.lab+'</text>';
     var topV=c.kind==="tot"?c.val:c.base+c.val, ty=Y(topV);
-    if(prevTopX!==null) s+='<line x1="'+prevTopX.toFixed(1)+'" y1="'+prevTopY.toFixed(1)+'" x2="'+(cx-bw/2).toFixed(1)+'" y2="'+ty.toFixed(1)+'" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0.6"/>';
+    if(prevTopX!==null) s+='<line x1="'+prevTopX.toFixed(1)+'" y1="'+prevTopY.toFixed(1)+'" x2="'+(cx-bw/2).toFixed(1)+'" y2="'+prevTopY.toFixed(1)+'" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0.6"/>';
     prevTopX=cx+bw/2; prevTopY=ty;
   });
   var el=document.getElementById(id); if(el) el.innerHTML=s;
@@ -418,7 +418,8 @@ function wfall(id, items){
     s+='<text class="vlab" x="'+cx.toFixed(1)+'" y="'+(yA-7).toFixed(1)+'" text-anchor="middle">'+(c.kind==='down'?'−'+short(Math.abs(c.val)):short(c.val))+'</text>';
     s+='<text x="'+cx.toFixed(1)+'" y="'+(He-mB+18)+'" text-anchor="middle">'+c.lab+'</text>';
     var topV=c.kind==='tot'?c.val:c.base+c.val, ty=Y(topV);
-    if(pX!==null) s+='<line x1="'+pX.toFixed(1)+'" y1="'+pY.toFixed(1)+'" x2="'+(cx-bw/2).toFixed(1)+'" y2="'+ty.toFixed(1)+'" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0.6"/>';
+    // connector is HORIZONTAL at the previous running level (= the top of this bar) so it touches the bar tops
+    if(pX!==null) s+='<line x1="'+pX.toFixed(1)+'" y1="'+pY.toFixed(1)+'" x2="'+(cx-bw/2).toFixed(1)+'" y2="'+pY.toFixed(1)+'" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0.6"/>';
     pX=cx+bw/2; pY=ty;
   });
   el.innerHTML=s;
