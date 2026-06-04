@@ -284,9 +284,17 @@
   <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: actual vs the budget you set, split into volume effect (units) vs rate effect (margin / discounting).</p>
   <p class="note">Enter the <b>budget</b> (planned) revenue and gross profit per division below. The gross gap vs actual is split into <b>Volume effect</b> (sold more/less at plan margin) and <b>Rate effect</b> (margin better/worse than plan — usually discounting). Volume + Rate reconciles exactly to the total gross variance.</p>
   <div class="card"><div id="budGrid"></div></div>
-  <div class="card" style="margin-top:12px"><table id="vaTable"><thead id="vaHead"></thead><tbody id="vaBody"></tbody></table></div>
-  <div class="card"><svg id="cBridge" class="chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Budget to actual gross bridge"></svg></div>
-  <p class="note" id="vaRead"></p>
+  <p class="note" style="margin:10px 0 6px">View: <select id="vaView" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"><option value="company">Whole company</option></select></p>
+  <div id="vaCompany">
+    <div class="card"><table id="vaTable"><thead id="vaHead"></thead><tbody id="vaBody"></tbody></table></div>
+    <div class="card"><svg id="cBridge" class="chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Budget to actual gross bridge"></svg></div>
+    <p class="note" id="vaRead"></p>
+  </div>
+  <div id="vaDivision" style="display:none">
+    <p class="note" id="vaDivDef" style="margin:0 0 8px"></p>
+    <div class="card"><svg id="cVaDiv" class="chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Division budget to actual bridge"></svg></div>
+    <p class="note" id="vaDivRead"></p>
+  </div>
   </section>
 
   <section class="pane" id="pane-data">
@@ -497,6 +505,7 @@ function buildOps(){
   var divOpts='<option value="company">Whole company</option>'+D.map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join('');
   var lv=document.getElementById("lkView"); if(lv) lv.innerHTML=divOpts;
   var pv=document.getElementById("plView"); if(pv) pv.innerHTML=divOpts;
+  var vv=document.getElementById("vaView"); if(vv) vv.innerHTML=divOpts;
 }
 
 function buildBonus(){
@@ -693,13 +702,13 @@ function calc(){
   /* C — variance vs plan */
   var vh='<tr><th>Division</th><th class="num">Actual gross</th><th class="num">Budget gross</th><th class="num">Variance</th><th class="num">Volume effect</th><th class="num">Rate effect</th></tr>';
   document.getElementById("vaHead").innerHTML=vh;
-  var vb="",tVar=0,tVol=0,tRate=0,varBy={};
+  var vb="",tVar=0,tVol=0,tRate=0,varBy={},VADET={};
   D.forEach(function(d){
     var k=d.replace(/[^a-z]/gi,""), bR=gN("br_"+k), bG=gN("bg_"+k);
     var aR=per[d].rev, aG=per[d].gross;
     var gpB=bR?bG/bR:0, gpA=aR?aG/aR:0;
     var vol=(aR-bR)*gpB, rate=aR*(gpA-gpB), v=aG-bG;
-    tVar+=v; tVol+=vol; tRate+=rate; varBy[d]=v;
+    tVar+=v; tVol+=vol; tRate+=rate; varBy[d]=v; VADET[d]={aG:aG,bG:bG,v:v,vol:vol,rate:rate};
     function c(x){ return '<td class="num '+(x<0?'lo':(x>0?'hi':''))+'">'+L(x)+'</td>'; }
     vb+='<tr><td>'+d+'</td><td class="num">'+L(aG)+'</td><td class="num">'+L(bG)+'</td>'+c(v)+c(vol)+c(rate)+'</tr>';
   });
@@ -712,6 +721,21 @@ function calc(){
   var driver=Math.abs(tRate)>=Math.abs(tVol)?"rate (margin / discounting)":"volume (units sold)";
   set("vaRead","Gross "+(tVar<0?"missed plan by ":"beat plan by ")+L(Math.abs(tVar))+", driven mainly by "+driver+
       ". Worst division vs plan: "+worstVar+" ("+L(varBy[worstVar])+"). Volume "+L(tVol)+" + Rate "+L(tRate)+" reconciles to the "+L(tVar)+" total.");
+  // whole-company vs per-division variance
+  var vaView=(document.getElementById("vaView")||{}).value||"company";
+  var vaC=document.getElementById("vaCompany"), vaDv=document.getElementById("vaDivision");
+  if(vaView==="company" || !VADET[vaView]){
+    if(vaC)vaC.style.display=""; if(vaDv)vaDv.style.display="none";
+  } else {
+    if(vaC)vaC.style.display="none"; if(vaDv)vaDv.style.display="";
+    var vd=VADET[vaView];
+    bridge("cVaDiv", vd.bG, vd.vol, vd.rate, vd.aG);
+    var drv=Math.abs(vd.rate)>=Math.abs(vd.vol)?"rate (margin / discounting)":"volume (units sold)";
+    var ddEl=document.getElementById("vaDivDef");
+    if(ddEl) ddEl.innerHTML="<b>"+vaView+".</b> Budget gross "+L(vd.bG)+" → actual "+L(vd.aG)+" = "+(vd.v<0?"a shortfall of ":"a beat of ")+"<b>"+L(Math.abs(vd.v))+"</b>. Split into <b>volume effect</b> "+L(vd.vol)+" (sold more/fewer units at plan margin) + <b>rate effect</b> "+L(vd.rate)+" (margin better/worse than plan) — driven mainly by "+drv+".";
+    var drEl=document.getElementById("vaDivRead");
+    if(drEl) drEl.textContent="Volume "+L(vd.vol)+" + Rate "+L(vd.rate)+" reconciles exactly to the "+L(vd.v)+" variance.";
+  }
 
   /* B2 — OEM bonus & incentive income */
   var ncDiv=null; D.forEach(function(d){ if(/new/i.test(d)) ncDiv=d; }); if(!ncDiv) ncDiv=D[0];
@@ -1052,6 +1076,7 @@ calcLTV();
 });
 var _lv=document.getElementById("lkView"); if(_lv) _lv.addEventListener("change",calc);
 var _pv=document.getElementById("plView"); if(_pv) _pv.addEventListener("change",calc);
+var _vv=document.getElementById("vaView"); if(_vv) _vv.addEventListener("change",calc);
 
 /* ---------- tabbed panes ---------- */
 (function(){
