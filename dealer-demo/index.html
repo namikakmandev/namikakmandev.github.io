@@ -165,7 +165,8 @@
   </p>
   <div class="card"><table id="plTable"><thead id="plHead"></thead><tbody id="plBody"></tbody></table></div>
   <p class="note" id="plAllocNote" style="margin-top:8px;display:none"></p>
-  <div class="card"><svg id="cGross" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gross profit by division"></svg></div>
+  <p class="note" id="plChartCap" style="margin:14px 0 2px;font-weight:600;color:var(--ink)">Gross profit by division</p>
+  <div class="card"><svg id="cGross" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Profit by division"></svg></div>
   <p class="note" id="plRead"></p>
   </section>
 
@@ -564,9 +565,15 @@ function calc(){
   document.getElementById("bnBody").innerHTML=bn;
   set("bnRead", nextInfo + (riskLoss>0? (" At risk: slip below this tier and ~"+L(riskLoss)+" of stair-step is lost across the whole year — every car near a threshold is worth far more than its own margin.") : ""));
 
-  /* charts */
-  barChart("cGross", D.map(function(d){ return {label:d,value:per[d].gross}; }),
+  /* charts — when overhead is allocated, the bar chart shows NET per division
+     (matching the table); otherwise it shows gross profit. */
+  barChart("cGross",
+           D.map(function(d){ return {label:d, value: (ohBasis==="none" ? per[d].gross : netBy[d])}; }),
            "var(--accent)","var(--loss)");
+  var plCap=document.getElementById("plChartCap");
+  if(plCap) plCap.textContent = (ohBasis==="none")
+    ? "Gross profit by division"
+    : "Net profit by division — after overhead allocated by "+({rev:"revenue share",gross:"gross-profit share",equal:"equal share"}[ohBasis]||ohBasis);
   barChart("cLeak", D.map(function(d){ return {label:d,value:leakBy[d]||0}; }),
            "var(--loss)","var(--good)");
   bridge("cBridge", tG - tVar, tVol, tRate, tG);
