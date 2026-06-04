@@ -173,7 +173,8 @@
   <section class="pane" id="pane-leakage">
   <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
   <h2 class="band">Leakage map — where money quietly leaks</h2>
-  <p class="note">Each part of the store leaks differently. We measure each against the dealership's <b>own targets</b> (not sticker price), and strip out manufacturer campaign support — which is reimbursed, not a real loss — so nothing is over-claimed. Units, list prices and budgets are below; the targets sit under them.</p>
+  <p class="note">Each part of the store leaks differently. We measure each against the dealership's <b>own targets</b> (not sticker price), and strip out manufacturer campaign support — which is reimbursed, not a real loss — so nothing is over-claimed. First, the units sold and list price per division; then the targets; then the ranked result.</p>
+  <p class="note" style="margin:4px 0 0;font-weight:600;color:var(--ink)">Units sold &amp; list price per division</p>
   <div class="card">
     <div id="opGrid"></div>
   </div>
@@ -238,8 +239,9 @@
   <section class="pane" id="pane-variance">
   <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
   <h2 class="band">Variance vs plan — why the gap happened</h2>
-  <p class="note">Enter the budget revenue and budget gross profit per division. The gross gap is split into <b>Volume effect</b> (sold more/less at plan margin) and <b>Rate effect</b> (margin better/worse than plan — usually discounting). Volume + Rate reconciles exactly to the total gross variance.</p>
-  <div class="card"><table id="vaTable"><thead id="vaHead"></thead><tbody id="vaBody"></tbody></table></div>
+  <p class="note">Enter the <b>budget</b> (planned) revenue and gross profit per division below. The gross gap vs actual is split into <b>Volume effect</b> (sold more/less at plan margin) and <b>Rate effect</b> (margin better/worse than plan — usually discounting). Volume + Rate reconciles exactly to the total gross variance.</p>
+  <div class="card"><div id="budGrid"></div></div>
+  <div class="card" style="margin-top:12px"><table id="vaTable"><thead id="vaHead"></thead><tbody id="vaBody"></tbody></table></div>
   <div class="card"><svg id="cBridge" class="chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Budget to actual gross bridge"></svg></div>
   <p class="note" id="vaRead"></p>
   </section>
@@ -375,19 +377,23 @@ function buildTB(){
   TB.forEach(function(a,i){ document.getElementById("tb"+i).addEventListener("input",calc); });
 }
 function buildOps(){
-  var D=divisions(), h='<div class="inrow head"><span>Division</span><span style="text-align:right">Units sold</span><span style="text-align:right">List price ₺</span><span style="text-align:right">Budget rev ₺</span><span style="text-align:right">Budget gross ₺</span></div>';
-  h=h.replace('grid-template-columns','x');
-  h='<div class="inrow head" style="grid-template-columns:1.3fr repeat(4,1fr)"><span>Division</span><span style="text-align:right">Units</span><span style="text-align:right">List ₺</span><span style="text-align:right">Budget rev</span><span style="text-align:right">Budget gross</span></div>';
+  var D=divisions();
+  var col='grid-template-columns:1.6fr 1fr 1fr';
+  // sales facts (units + list) → Leakage tab; budget (rev + gross) → Variance tab
+  var sales='<div class="inrow head" style="'+col+'"><span>Division</span><span style="text-align:right">Units sold</span><span style="text-align:right">List price ₺</span></div>';
+  var bud='<div class="inrow head" style="'+col+'"><span>Division</span><span style="text-align:right">Budget revenue ₺</span><span style="text-align:right">Budget gross ₺</span></div>';
   D.forEach(function(d){
     var o=OPS[d]||{units:0,list:0,budRev:0,budGross:0};
     var k=d.replace(/[^a-z]/gi,"");
-    h+='<div class="inrow" style="grid-template-columns:1.3fr repeat(4,1fr)"><label>'+d+'</label>'+
+    sales+='<div class="inrow" style="'+col+'"><label>'+d+'</label>'+
        '<input type="number" id="u_'+k+'" value="'+o.units+'"/>'+
-       '<input type="number" id="l_'+k+'" value="'+o.list+'"/>'+
+       '<input type="number" id="l_'+k+'" value="'+o.list+'"/></div>';
+    bud+='<div class="inrow" style="'+col+'"><label>'+d+'</label>'+
        '<input type="number" id="br_'+k+'" step="100000" value="'+o.budRev+'"/>'+
        '<input type="number" id="bg_'+k+'" step="100000" value="'+o.budGross+'"/></div>';
   });
-  document.getElementById("opGrid").innerHTML=h;
+  var og=document.getElementById("opGrid"); if(og) og.innerHTML=sales;
+  var bgrid=document.getElementById("budGrid"); if(bgrid) bgrid.innerHTML=bud;
   D.forEach(function(d){
     var k=d.replace(/[^a-z]/gi,"");
     ["u_","l_","br_","bg_"].forEach(function(p){ var e=document.getElementById(p+k); if(e) e.addEventListener("input",calc); });
