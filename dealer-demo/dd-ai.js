@@ -67,6 +67,13 @@
         ". Use this for two dealer-specific angles: (a) FLOORPLAN financing cost — at these loan rates, unsold stock is expensive to hold; (b) REPLACEMENT-COST margin — at this inflation, cost-based COGS understates the true cost of what was sold, so reported margin overstates real margin.\n";
     }
 
+    var ltvLine = "";
+    if (d.ltv) {
+      ltvLine = "DEAL & LIFETIME VALUE (a typical new-car deal): front-end (car only, after discount) " + L(d.ltv.front) +
+        ", F&I " + L(d.ltv.fi) + ", service annuity " + L(d.ltv.annuity) + " (" + d.ltv.years + " yrs @ " + d.ltv.ret + "% retention) → true customer lifetime value " + L(d.ltv.ltv) +
+        ". Point: the metal front-end is thin/negative; the multi-year service annuity is the real prize, so a discount that secures a retained service customer can pay off.\n";
+    }
+
     var bmLine = "";
     if (d.benchmarks && d.benchmarks.length) {
       bmLine = "INDUSTRY BENCHMARK CONTEXT (general automotive-retail reference ranges — orientation only, confirm per brand):\n" +
@@ -80,6 +87,7 @@
       "CONSOLIDATED: revenue " + L(d.rev) + " · gross profit " + L(d.gross) + " (" + p1(d.grossPct) + ") · operating overhead " + L(d.overhead) + (d.ohBasis && d.ohBasis !== "none" ? " (allocated to divisions)" : " (one shared pool)") + " · net profit " + L(d.net) + " (" + p1(d.netPct) + " of revenue).\n" +
       "DIVISIONS (gross profit):\n" + divLines + "\n" +
       allocLine +
+      ltvLine +
       macroLine +
       "PROFIT ENGINE: biggest = " + d.best + " (" + L(d.bestGross) + ", " + d.bestSharePct.toFixed(0) + "% of all gross). Thinnest margin = " + d.thin + " (" + p1(d.thinPct) + "). Service absorption = " + d.absorption.toFixed(0) + "% (fixed-ops gross ÷ total overhead; 100% = parts & service alone cover all overhead).\n" +
       "PRICE LEAKAGE vs list: total left on the table " + L(d.totLeak) + (d.worstLeak ? "; biggest in " + d.worstLeak + " (" + L(d.worstLeakAmt) + ")" : "") + ". This is gross handed away below list before any cost — but campaign support / trade-in over-allowances can sit inside it, so don't read it all as lost discipline.\n" +
