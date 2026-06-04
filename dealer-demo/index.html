@@ -96,6 +96,7 @@
     <a href="#" class="tab" data-pane="pane-ltv">5 · Deal &amp; LTV</a>
     <a href="#" class="tab" data-pane="pane-variance">6 · Variance</a>
     <a href="#" class="tab" data-pane="pane-data">7 · Data</a>
+    <a href="#" class="tab" data-pane="pane-aged">8 · Aged stock</a>
     <a href="cash.html">Cash &amp; Budget →</a>
   </nav>
 
@@ -311,6 +312,22 @@
     <div class="status" id="tbstatus"></div>
     <div id="tbgrid" style="margin-top:12px"></div>
   </div>
+  </section>
+
+  <section class="pane" id="pane-aged">
+  <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
+  <h2 class="band">8 · Aged stock — what holding it costs</h2>
+  <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: each car in stock, how long it's sat, and the floorplan interest it's burning — the dealer version of ASSETIX's "is this asset still earning its keep?"</p>
+  <p class="note">Every financed car costs interest every day it sits — at today's ~50% commercial rates that adds up fast. Enter your stock (date in + cost); we age each unit against today and apply the live loan rate.</p>
+  <div class="card"><div id="agedGrid"></div></div>
+  <div class="grid">
+    <div class="kpi"><span>Stock value</span><strong id="ag_val">—</strong></div>
+    <div class="kpi"><span>Floorplan carried so far</span><strong id="ag_carry">—</strong></div>
+    <div class="kpi"><span>Bleed rate</span><strong id="ag_perday">—</strong></div>
+    <div class="kpi"><span>Units &gt; 90 days</span><strong id="ag_stale">—</strong></div>
+  </div>
+  <div class="card" style="margin-top:12px"><table id="agTable"><thead><tr><th>Unit</th><th class="num">Days in stock</th><th class="num">Cost</th><th class="num">Floorplan so far</th><th class="num">Cost/day</th><th>Status</th></tr></thead><tbody id="agedBody"></tbody></table></div>
+  <p class="note" id="agRead"></p>
   </section>
 
   <div id="printSheet" style="display:none"></div>
@@ -919,6 +936,7 @@ function renderMacro(){
   }
   buildPrintSheet();
   if(typeof renderRealMargin==="function") renderRealMargin();
+  if(typeof calcAged==="function") calcAged();
   c.style.display="";
 }
 /* Outlook — year-end 2026 expectations from official / institutional sources.
@@ -941,6 +959,57 @@ function renderOutlook(){
   var n=document.getElementById("outlookNote"); if(n) n.textContent=OUTLOOK.note;
 }
 renderOutlook();
+
+/* ---------- Aged stock — per-unit floorplan carrying cost (ASSETIX-asset style) ---------- */
+var STOCK_SAMPLE = [
+  { label:"New · Model A", days:25,  cost:920000 },
+  { label:"New · Model B", days:58,  cost:1150000 },
+  { label:"Used · Sedan",  days:95,  cost:640000 },
+  { label:"New · SUV",     days:140, cost:1480000 },
+  { label:"Used · Hatch",  days:215, cost:410000 },
+  { label:"New · Model A", days:34,  cost:900000 }
+];
+function buildAged(){
+  var g=document.getElementById("agedGrid"); if(!g) return;
+  var today=new Date(), col="grid-template-columns:1.6fr 1fr 1fr";
+  var h='<div class="inrow head" style="'+col+'"><span>Unit</span><span style="text-align:right">Stock-in date</span><span style="text-align:right">Cost ₺</span></div>';
+  STOCK_SAMPLE.forEach(function(s,i){
+    var d=new Date(today.getTime()-s.days*86400000), ds=d.toISOString().slice(0,10);
+    h+='<div class="inrow" style="'+col+'"><label>'+s.label+'</label>'+
+       '<input type="date" id="ag_d'+i+'" value="'+ds+'"/>'+
+       '<input type="number" id="ag_c'+i+'" step="10000" value="'+s.cost+'"/></div>';
+  });
+  g.innerHTML=h;
+  STOCK_SAMPLE.forEach(function(s,i){ ["ag_d"+i,"ag_c"+i].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener("input",calcAged); }); });
+}
+function calcAged(){
+  var body=document.getElementById("agedBody"); if(!body) return;
+  var loan=(window.MACRO&&window.MACRO.market&&window.MACRO.market.loan_comm&&window.MACRO.market.loan_comm.value);
+  var infl=(window.MACRO&&window.MACRO.market&&window.MACRO.market.tufe&&window.MACRO.market.tufe.yoy);
+  var rate=(loan!=null?loan:50)/100, today=new Date();
+  var rows=[], totVal=0, totCarry=0, totPerDay=0, stale=0, staleVal=0, staleCarry=0, oldest=0;
+  STOCK_SAMPLE.forEach(function(s,i){
+    var dEl=document.getElementById("ag_d"+i), cEl=document.getElementById("ag_c"+i); if(!dEl||!cEl) return;
+    var din=new Date(dEl.value), cost=parseFloat(cEl.value)||0;
+    var days=Math.max(0, Math.floor((today-din)/86400000));
+    var carry=cost*rate*days/365, perDay=cost*rate/365;
+    totVal+=cost; totCarry+=carry; totPerDay+=perDay; oldest=Math.max(oldest,days);
+    if(days>90){ stale++; staleVal+=cost; staleCarry+=carry; }
+    rows.push({label:s.label, days:days, cost:cost, carry:carry, perDay:perDay, st:(days>90?"stale":(days>60?"aging":"fresh"))});
+  });
+  rows.sort(function(a,b){ return b.days-a.days; });
+  body.innerHTML=rows.map(function(r){
+    var cls=r.st==="stale"?"lo":(r.st==="aging"?"wn":"hi");
+    return '<tr><td>'+r.label+'</td><td class="num">'+r.days+'</td><td class="num">'+L(r.cost)+'</td><td class="num lo">'+L(r.carry)+'</td><td class="num">'+L(r.perDay)+'/day</td><td class="'+cls+'">'+r.st+'</td></tr>';
+  }).join("")+'<tr class="tot"><td>Total ('+rows.length+' units)</td><td class="num">'+oldest+' max</td><td class="num">'+L(totVal)+'</td><td class="num lo">'+L(totCarry)+'</td><td class="num">'+L(totPerDay)+'/day</td><td></td></tr>';
+  set("ag_val",L(totVal)); set("ag_carry",L(totCarry)); set("ag_perday",L(totPerDay)+"/day"); set("ag_stale",stale+" of "+rows.length);
+  var rd=document.getElementById("agRead");
+  if(rd) rd.innerHTML="Your stock is bleeding about <b>"+L(totPerDay)+"/day</b> in floorplan interest at ~"+(rate*100).toFixed(0)+"% borrowing. "+
+    (stale? "<b>"+stale+"</b> unit"+(stale!==1?"s":"")+" over 90 days ("+L(staleVal)+" of capital) "+(stale!==1?"have":"has")+" already burned <b>"+L(staleCarry)+"</b> in interest — prime candidates to move." : "No unit over 90 days — stock is turning well.")+
+    (infl!=null? " And at ~"+infl.toFixed(0)+"% inflation, capital tied in stock loses real value on top of this." : "");
+  if(window.__DD) window.__DD.aged={units:rows.length, value:totVal, carry:totCarry, perDay:totPerDay, stale:stale, staleCarry:staleCarry, oldest:oldest};
+}
+buildAged(); calcAged();
 
 /* Real (inflation-adjusted / replacement-cost) margin — the ASSETIX concept for a dealer */
 function renderRealMargin(){
