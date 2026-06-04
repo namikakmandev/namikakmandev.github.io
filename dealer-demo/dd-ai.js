@@ -82,6 +82,13 @@
         ". Note the divergence: the government target (~16%) is far below the market/IMF expectation (~29%); for planning, lean to the higher end.\n";
     }
 
+    var rmLine = "";
+    if (d.realMargin) {
+      rmLine = "REAL (INFLATION-ADJUSTED) MARGIN: at ~" + d.realMargin.infl + "% inflation and ~" + d.realMargin.holdM +
+        " months' average stock-holding, ~" + L(d.realMargin.drag) + " of reported gross is just the rising replacement cost of inventory, not real profit — so replacement-cost margin is " +
+        d.realMargin.real.toFixed(1) + "% vs reported " + d.realMargin.reported.toFixed(1) + "%. Under high inflation, reported profit overstates real profit; this is diagnosis, not a tax position.\n";
+    }
+
     var bmLine = "";
     if (d.benchmarks && d.benchmarks.length) {
       bmLine = "INDUSTRY BENCHMARK CONTEXT (general automotive-retail reference ranges — orientation only, confirm per brand):\n" +
@@ -97,6 +104,7 @@
       allocLine +
       ltvLine +
       macroLine +
+      rmLine +
       outlookLine +
       "PROFIT ENGINE: biggest = " + d.best + " (" + L(d.bestGross) + ", " + d.bestSharePct.toFixed(0) + "% of all gross). Thinnest margin = " + d.thin + " (" + p1(d.thinPct) + "). Service absorption = " + d.absorption.toFixed(0) + "% (fixed-ops gross ÷ total overhead; 100% = parts & service alone cover all overhead).\n" +
       "ADDRESSABLE LEAKAGE (vs the dealer's own targets, OEM support stripped out): total " + L(d.totLeak) + (d.worstLeak && d.worstLeak !== "—" ? "; biggest = " + d.worstLeak + " (" + L(d.worstLeakAmt) + ")" : "") + (d.leaks && d.leaks.length ? ". Ranked sources: " + d.leaks.map(function(x){return x.name+" "+L(x.amt);}).join("; ") : "") + ". Most leakage is usually in fixed-ops (service labour-rate realization), not vehicle discounts.\n" +

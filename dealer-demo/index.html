@@ -130,6 +130,16 @@
     <p class="note" id="macroAsof" style="margin-top:2px;font-size:11px"></p>
   </div>
 
+  <h2 class="band" style="margin-top:26px">Real margin — your profit, adjusted for inflation</h2>
+  <p class="note" style="margin:0 0 6px">Your accounts cost stock at what you <b>paid</b>; replacing it today costs more — so part of your reported "profit" is just inflation on inventory. We re-price cost of sales to today using <b>live TÜFE inflation</b> and your average stock-holding period.</p>
+  <p class="note" style="margin:0 0 8px">Average stock-holding period: <input type="number" id="rm_hold" value="2" min="0" step="0.5" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"> months · using live inflation <b id="rm_infl">—</b></p>
+  <div class="grid">
+    <div class="kpi"><span>Reported gross margin</span><strong id="rm_rep">—</strong></div>
+    <div class="kpi"><span>Real (replacement-cost) margin</span><strong id="rm_real">—</strong></div>
+    <div class="kpi"><span>Inflation drag on gross</span><strong id="rm_drag">—</strong></div>
+  </div>
+  <p class="note" id="rmRead" style="margin-top:10px"></p>
+
   <h2 class="band" style="margin-top:26px">Outlook — year-end 2026 (official sources)</h2>
   <p class="note" style="margin:0 0 6px">What official and institutional sources expect for the year — shown as published, with sources. Judge for yourself.</p>
   <div class="card"><table id="outlookTable"><thead><tr><th>Source</th><th class="num">CPI inflation</th><th class="num">USD/TRY</th><th class="num">GDP growth</th></tr></thead><tbody id="outlookBody"></tbody></table></div>
@@ -773,7 +783,7 @@ function calc(){
   s+='<div class="ln">Addressable leakage <b class="'+(totLeak>0?'lo':'hi')+'">'+L(totLeak)+'</b>'+(net>0?' — '+pc(totLeak,net).toFixed(0)+'% of net profit':'')+(worstLeakShort&&worstLeakShort!=="—"?', biggest in <b>'+worstLeakShort+'</b>':'')+'. Measured vs the dealership’s own targets — recovering even part is pure profit.</div>';
   s+='<div class="ln">You '+(tVar<0?'missed plan by ':'beat plan by ')+'<b class="'+(tVar<0?'lo':'hi')+'">'+L(Math.abs(tVar))+'</b>, driven mainly by <b>'+driver+'</b>'+(worstVar?(' in <b>'+worstVar+'</b>'):'')+'.</div>';
   s+='<div class="ln">OEM money adds <b class="hi">'+L(oem)+'</b> — that, not the metal, is the real '+ncDiv+' profit (margin '+pc(ncGross,ncRev).toFixed(1)+'% → <b>'+pc(ncGrossOEM,ncRev).toFixed(1)+'%</b>)'+((nextB!==null&&unitsNeeded>0)?(' — and you are <b>'+unitsNeeded+'</b> car'+(unitsNeeded===1?'':'s')+' from the next bonus tier, often worth more than the price you protect on a deal'):'')+'.</div>';
-  s+='<div class="ln" style="margin-top:10px;color:#9fb4c6;font-size:13px">And under high inflation your cost-based numbers understate the real cost of what you sold — replacement-cost margin is Phase 2.</div>';
+  s+='<div class="ln" style="margin-top:10px;color:#9fb4c6;font-size:13px">And under high inflation your cost-based numbers understate the real cost of what you sold — see the inflation-adjusted real margin below.</div>';
   document.getElementById("synth").innerHTML=s;
 
   /* snapshot for the AI advisor (read-only; mirrors what's on screen) */
@@ -793,6 +803,7 @@ function calc(){
     ohBasis:ohBasis, alloc:alloc, netBy:netBy,
     benchmarks:BM
   };
+  if(typeof renderRealMargin==="function") renderRealMargin();
 }
 
 /* ---------- CSV upload (TB only) ---------- */
@@ -883,6 +894,7 @@ function renderMacro(){
     }
   }
   buildPrintSheet();
+  if(typeof renderRealMargin==="function") renderRealMargin();
   c.style.display="";
 }
 /* Outlook — year-end 2026 expectations from official / institutional sources.
@@ -905,6 +917,27 @@ function renderOutlook(){
   var n=document.getElementById("outlookNote"); if(n) n.textContent=OUTLOOK.note;
 }
 renderOutlook();
+
+/* Real (inflation-adjusted / replacement-cost) margin — the ASSETIX concept for a dealer */
+function renderRealMargin(){
+  var d=window.__DD; if(!d) return;
+  var inflEl=document.getElementById("rm_infl");
+  var infl = (window.MACRO && window.MACRO.market && window.MACRO.market.tufe && window.MACRO.market.tufe.yoy);
+  var holdM = parseFloat((document.getElementById("rm_hold")||{}).value); if(isNaN(holdM)) holdM=2;
+  if(infl==null){ if(inflEl) inflEl.textContent="(loading…)"; set("rmRead","Live inflation not available yet — open online to compute the inflation-adjusted margin."); return; }
+  if(inflEl) inflEl.textContent=infl.toFixed(1)+"% (TÜFE, yıllık)";
+  var cost=d.rev-d.gross;
+  var inflHold=Math.pow(1+infl/100, holdM/12)-1;     // inflation accrued over the holding period
+  var drag=cost*inflHold;                             // illusory inventory holding gain
+  var realGross=d.gross-drag;
+  var repM=d.rev?d.gross/d.rev*100:0, realM=d.rev?realGross/d.rev*100:0;
+  set("rm_rep", repM.toFixed(1)+"%");
+  set("rm_real", realM.toFixed(1)+"%"); var rr=document.getElementById("rm_real"); if(rr) rr.style.color=realM<0?"var(--loss)":"";
+  set("rm_drag", L(drag));
+  var rd=document.getElementById("rmRead"); if(rd) rd.innerHTML="At ~"+infl.toFixed(0)+"% inflation and ~"+holdM+" months' average stock-holding, about <b>"+L(drag)+"</b> of your reported gross is just the rising replacement cost of inventory — not real profit. On a replacement-cost basis your margin is <b>"+realM.toFixed(1)+"%</b>, not "+repM.toFixed(1)+"%. (Diagnosis, not a tax position.)";
+  d.realMargin={reported:repM, real:realM, drag:drag, holdM:holdM, infl:infl};
+}
+var _rmh=document.getElementById("rm_hold"); if(_rmh) _rmh.addEventListener("input",renderRealMargin);
 
 /* Used-car market index (BETAM sahibindex) — periodic MANUAL reference.
    UPDATE monthly from betam.bahcesehir.edu.tr; confirm republishing ToS before commercial use. */
