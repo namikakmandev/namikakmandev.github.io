@@ -156,6 +156,8 @@
   <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
   <h2 class="band">2 · Divisional P&amp;L <span class="pill">from the accounts</span></h2>
   <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: where the profit really comes from, division by division — built straight from the trial balance.</p>
+  <p class="note" style="margin:0 0 6px">View: <select id="plView" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"><option value="company">Whole company</option></select></p>
+  <div id="plCompany">
   <p class="note">The real result, straight from the trial balance — no assumptions. By default overhead stays one shared pool, netted at the total. You can also <b>allocate</b> it across divisions to see a net profit per division.</p>
   <p class="note" style="margin-bottom:6px">Allocate operating overhead:
     <select id="ohBasis" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px">
@@ -170,6 +172,11 @@
   <p class="note" id="plChartCap" style="margin:14px 0 2px;font-weight:600;color:var(--ink)">Gross profit by division</p>
   <div class="card"><svg id="cGross" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Profit by division"></svg></div>
   <p class="note" id="plRead"></p>
+  </div>
+  <div id="plDivision" style="display:none">
+    <div class="card" id="plDivBody"></div>
+    <p class="note" id="plDivRead"></p>
+  </div>
   </section>
 
   <section class="pane" id="pane-leakage">
@@ -471,8 +478,9 @@ function buildOps(){
     var k=d.replace(/[^a-z]/gi,"");
     ["u_","l_","br_","bg_"].forEach(function(p){ var e=document.getElementById(p+k); if(e) e.addEventListener("input",calc); });
   });
-  var lv=document.getElementById("lkView");
-  if(lv){ lv.innerHTML='<option value="company">Whole company</option>'+D.map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join(''); }
+  var divOpts='<option value="company">Whole company</option>'+D.map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join('');
+  var lv=document.getElementById("lkView"); if(lv) lv.innerHTML=divOpts;
+  var pv=document.getElementById("plView"); if(pv) pv.innerHTML=divOpts;
 }
 
 function buildBonus(){
@@ -731,6 +739,27 @@ function calc(){
   if(plCap) plCap.textContent = (ohBasis==="none")
     ? "Gross profit by division"
     : "Net profit by division — after overhead allocated by "+({rev:"revenue share",gross:"gross-profit share",equal:"equal share"}[ohBasis]||ohBasis);
+  // whole-company vs single-division P&L
+  var plView=(document.getElementById("plView")||{}).value||"company";
+  var plC=document.getElementById("plCompany"), plDv=document.getElementById("plDivision");
+  if(plView==="company" || !per[plView]){
+    if(plC)plC.style.display=""; if(plDv)plDv.style.display="none";
+  } else {
+    if(plC)plC.style.display="none"; if(plDv)plDv.style.display="";
+    var dd=plView, rws="";
+    TB.forEach(function(a,i){ if(a.div===dd){ var amt=gN("tb"+i); rws+='<tr><td>'+a.code+' '+a.name+'</td><td class="num">'+(a.kind==="rev"?L(amt):P(amt))+'</td></tr>'; } });
+    var dgm=pc(per[dd].gross,per[dd].rev), share=pc(per[dd].gross,tG);
+    var html='<table><tbody>'+rws+
+      '<tr class="tot"><td>Revenue</td><td class="num">'+L(per[dd].rev)+'</td></tr>'+
+      '<tr><td>Cost of sales</td><td class="num">'+P(per[dd].cogs)+'</td></tr>'+
+      '<tr class="tot"><td>Gross profit</td><td class="num">'+L(per[dd].gross)+'</td></tr>'+
+      '<tr><td>Gross margin %</td><td class="num">'+dgm.toFixed(1)+'%</td></tr>'+
+      '<tr><td>Share of company gross</td><td class="num">'+share.toFixed(0)+'%</td></tr>';
+    if(ohBasis!=="none") html+='<tr><td>Allocated overhead</td><td class="num">'+P(alloc[dd])+'</td></tr><tr class="tot"><td>Net profit</td><td class="num '+(netBy[dd]<0?"lo":"hi")+'">'+L(netBy[dd])+'</td></tr>';
+    html+='</tbody></table>';
+    document.getElementById("plDivBody").innerHTML=html;
+    set("plDivRead", dd+" makes "+L(per[dd].gross)+" gross at "+dgm.toFixed(1)+"% margin — "+share.toFixed(0)+"% of the company's total gross profit"+(ohBasis!=="none"?", and "+L(netBy[dd])+" net after its allocated overhead":"")+".");
+  }
   bridge("cBridge", tG - tVar, tVol, tRate, tG);
 
   /* D — synthesis */
@@ -962,6 +991,7 @@ calcLTV();
   var e=document.getElementById(id); if(e) e.addEventListener("input",calc);
 });
 var _lv=document.getElementById("lkView"); if(_lv) _lv.addEventListener("change",calc);
+var _pv=document.getElementById("plView"); if(_pv) _pv.addEventListener("change",calc);
 
 /* ---------- tabbed panes ---------- */
 (function(){
