@@ -69,6 +69,11 @@
   .srckey em{font-style:normal;opacity:.75}
   .srckey i{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
   .dot-acc{background:var(--accent)} .dot-trk{background:var(--good)} .dot-in{background:var(--warn)}
+  /* inline source chips used on panel rows/headers */
+  .srctag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:1px 6px;border-radius:10px;vertical-align:middle;white-space:nowrap}
+  .tag-acc{background:rgba(47,155,255,.15);color:#2F9BFF}
+  .tag-trk{background:rgba(25,195,125,.15);color:#0e8f5b}
+  .tag-in{background:rgba(255,101,0,.15);color:#FF6500}
   .chart{width:100%;height:auto;display:block}
   .chart text{font-size:11px;fill:var(--muted)}
   .chart .vlab{fill:var(--ink);font-weight:600}
@@ -230,12 +235,12 @@
   <h2 class="band">3 · Leakage map — where money quietly leaks</h2>
   <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: controllable money lost vs the dealership's own targets, ranked, each with the lever to fix it.</p>
   <p class="note">Each part of the store leaks differently. We measure each against the dealership's <b>own targets</b> (not sticker price), and strip out manufacturer campaign support — which is reimbursed, not a real loss — so nothing is over-claimed. First, the units sold and list price per division; then the targets; then the ranked result.</p>
-  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:18px 0 2px">Step 1 · Your inputs — units &amp; list price</h3>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:18px 0 2px">Step 1 · Your inputs — units &amp; list price <span class="srctag tag-trk">dealer tracks</span></h3>
   <p class="note" style="margin:0 0 4px">Figures the dealer already tracks (from the DMS and the price list).</p>
   <div class="card">
     <div id="opGrid"></div>
   </div>
-  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:18px 0 2px">Step 2 · Your targets — what "good" looks like here</h3>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:18px 0 2px">Step 2 · Your targets — what "good" looks like here <span class="srctag tag-in">your input</span></h3>
   <p class="note" style="margin:0 0 4px">The dealership's own benchmarks. Every leak below is measured against these.</p>
   <div class="card">
     <div class="inrow head" style="grid-template-columns:1.7fr 1fr"><span>Leakage targets &amp; rates — the dealership's own</span><span style="text-align:right">Value</span></div>
@@ -533,7 +538,7 @@ function buildOps(){
   var col='grid-template-columns:1.6fr 1fr 1fr';
   // sales facts (units + list) → Leakage tab; budget (rev + gross) → Variance tab
   var sales='<div class="inrow head" style="'+col+'"><span>Division</span><span style="text-align:right">Units sold</span><span style="text-align:right">List price ₺</span></div>';
-  var bud='<div class="inrow head" style="'+col+'"><span>Division</span><span style="text-align:right">Budget revenue ₺</span><span style="text-align:right">Budget gross ₺</span></div>';
+  var bud='<div class="inrow head" style="'+col+'"><span>Division <span class="srctag tag-in">your input</span></span><span style="text-align:right">Budget revenue ₺</span><span style="text-align:right">Budget gross ₺</span></div>';
   D.forEach(function(d){
     var o=OPS[d]||{units:0,list:0,budRev:0,budGross:0};
     var k=d.replace(/[^a-z]/gi,"");
@@ -558,7 +563,7 @@ function buildOps(){
 
 function buildBonus(){
   function row(lbl,id,val,step){ return '<div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>'+lbl+'</label><input type="number" id="'+id+'" step="'+(step||1)+'" value="'+val+'"/></div>'; }
-  var h='<div class="inrow head" style="grid-template-columns:1.7fr 1fr"><span>OEM programme — enter the dealership’s own</span><span style="text-align:right">Value</span></div>';
+  var h='<div class="inrow head" style="grid-template-columns:1.7fr 1fr"><span>OEM programme — enter the dealership’s own <span class="srctag tag-in">your input</span></span><span style="text-align:right">Value</span></div>';
   h+=row("Annual registration target (units)","bn_tgt",210,1);
   h+=row("Holdback — % of new-car revenue","bn_hb",2,0.1);
   h+=row("Stair-step ₺/unit — below 90% of target","bn_b0",0,500);
@@ -749,7 +754,7 @@ function calc(){
   }
 
   /* C — variance vs plan */
-  var vh='<tr><th>Division</th><th class="num">Actual gross</th><th class="num">Budget gross</th><th class="num">Variance</th><th class="num">Volume effect</th><th class="num">Rate effect</th></tr>';
+  var vh='<tr><th>Division</th><th class="num">Actual gross <span class="srctag tag-acc">accounts</span></th><th class="num">Budget gross <span class="srctag tag-in">your input</span></th><th class="num">Variance</th><th class="num">Volume effect</th><th class="num">Rate effect</th></tr>';
   document.getElementById("vaHead").innerHTML=vh;
   var vb="",tVar=0,tVol=0,tRate=0,varBy={},VADET={};
   D.forEach(function(d){
@@ -819,8 +824,8 @@ function calc(){
   bn += bnr(ncDiv+" gross — with OEM money", L(ncGrossOEM)+"  ("+pc(ncGrossOEM,ncRev).toFixed(1)+"%)", 1);
   var oemGap = oem - bookedOEM;
   bn += '<tr><td colspan="2" style="padding-top:14px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700;border-bottom:2px solid var(--line)">Reconciliation — programme vs your accounts</td></tr>';
-  bn += bnr("Programme should pay (reconstructed above)", L(oem));
-  bn += bnr("Actually booked in the trial balance (incentive income)", L(bookedOEM));
+  bn += bnr("Programme should pay (reconstructed above) <span class=\"srctag tag-in\">your terms</span>", L(oem));
+  bn += bnr("Actually booked in the trial balance (incentive income) <span class=\"srctag tag-acc\">accounts</span>", L(bookedOEM));
   bn += '<tr class="tot"><td>Gap — uncollected / unbooked</td><td class="num '+(oemGap>0?"lo":"hi")+'">'+L(oemGap)+'</td></tr>';
   document.getElementById("bnBody").innerHTML=bn;
   var reconRead = oemGap>0
@@ -1109,7 +1114,7 @@ var STOCK_SAMPLE = [
 function buildAged(){
   var g=document.getElementById("agedGrid"); if(!g) return;
   var today=new Date(), col="grid-template-columns:1.6fr 1fr 1fr";
-  var h='<div class="inrow head" style="'+col+'"><span>Unit</span><span style="text-align:right">Stock-in date</span><span style="text-align:right">Cost ₺</span></div>';
+  var h='<div class="inrow head" style="'+col+'"><span>Unit <span class="srctag tag-trk">you enter</span></span><span style="text-align:right">Stock-in date</span><span style="text-align:right">Cost ₺</span></div>';
   STOCK_SAMPLE.forEach(function(s,i){
     var d=new Date(today.getTime()-s.days*86400000), ds=d.toISOString().slice(0,10);
     h+='<div class="inrow" style="'+col+'"><label>'+s.label+'</label>'+
