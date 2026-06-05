@@ -261,7 +261,7 @@
   <span class="pane-badge"><span class="bdot"></span>From your inputs · recalculated live</span>
   <h2 class="band">4 · OEM bonus &amp; incentive income</h2>
   <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: the manufacturer money (holdback, volume stair-step, CSI) that is the real new-car profit the metal margin hides.</p>
-  <p class="note">A franchised dealer's real new-car profit is the manufacturer money paid <em>after</em> the sale: holdback, the volume / registration stair-step bonus (paid retroactively on <em>every</em> unit once a tier is reached), and CSI / margin support. These are brand- and dealer-specific — enter the dealership's own programme. New-car units and revenue are taken live from the trial balance / price-leakage tab.</p>
+  <p class="note">A franchised dealer's real new-car profit is the manufacturer money paid <em>after</em> the sale: holdback, the volume / registration stair-step bonus (paid retroactively on <em>every</em> unit once a tier is reached), and CSI / margin support. These are brand- and dealer-specific — enter the dealership's own programme. New-car units and revenue are taken live from the trial balance / price-leakage tab. The tool then <b>reconciles</b> what the programme should pay against the incentive income actually booked in the trial balance — exposing any bonus money left uncollected.</p>
   <div class="card"><div id="bnIn"></div></div>
   <div class="card" style="margin-top:12px"><table id="bnTable" style="min-width:420px"><tbody id="bnBody"></tbody></table></div>
   <p class="note" id="bnRead"></p>
@@ -318,7 +318,7 @@
   <span class="pane-badge"><span class="bdot"></span>Your trial balance · edits apply instantly</span>
   <h2 class="band">7 · Data — the numbers behind this</h2>
   <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: the trial balance everything is built from. Edit any figure, or upload the dealer's real CSV — every tab updates.</p>
-  <p class="note">The sample dealership's trial balance (Turkish uniform-chart / Tek Düzen). Change any amount and everything updates instantly — or upload the dealer's real CSV export (columns: <code>code, name, division, kind, amount</code> — kind = rev / cogs / opex).</p>
+  <p class="note">The sample dealership's trial balance (Turkish uniform-chart / Tek Düzen). Change any amount and everything updates instantly — or upload the dealer's real CSV export (columns: <code>code, name, division, kind, amount</code> — kind = rev / cogs / opex / oem).</p>
   <div class="card">
     <div class="upbar">
       <label class="btn" for="tbfile">Upload trial balance (CSV)</label>
@@ -362,6 +362,7 @@ var TB = [
   { code:"600.04", name:"Parts sales",              div:"Parts",     kind:"rev",  amount:1800000 },
   { code:"600.05", name:"F&I / commission income",  div:"F&I",       kind:"rev",  amount:600000 },
   { code:"600.06", name:"Rental income",            div:"Rental",    kind:"rev",  amount:700000 },
+  { code:"649.01", name:"Manufacturer incentive / bonus income (prim)", div:"New cars", kind:"oem", amount:950000 },
   { code:"620.01", name:"New car cost of sales",    div:"New cars",  kind:"cogs", amount:17100000 },
   { code:"620.02", name:"Used car cost of sales",   div:"Used cars", kind:"cogs", amount:8100000 },
   { code:"620.03", name:"Service direct cost",      div:"Service",   kind:"cogs", amount:840000 },
@@ -392,7 +393,7 @@ function set(id,t){ var e=document.getElementById(id); if(e) e.textContent=t; }
 function L(v){ var r=Math.round(v); return (r<0?"-₺":"₺")+Math.abs(r).toLocaleString("en-US"); }
 function P(v){ return "("+L(Math.abs(v))+")"; }
 function pc(a,b){ return b?(a/b)*100:0; }
-function divisions(){ var d=[]; TB.forEach(function(a){ if(a.kind!=="opex"&&d.indexOf(a.div)===-1) d.push(a.div); }); return d; }
+function divisions(){ var d=[]; TB.forEach(function(a){ if(a.kind!=="opex"&&a.kind!=="oem"&&d.indexOf(a.div)===-1) d.push(a.div); }); return d; }
 function short(v){ var a=Math.abs(v),s=v<0?"-₺":"₺";
   if(a>=1e6) return s+(a/1e6).toFixed(a>=1e7?0:1)+"M";
   if(a>=1e3) return s+Math.round(a/1e3)+"k"; return s+Math.round(a); }
@@ -559,11 +560,12 @@ function buildBonus(){
 
 /* ---------- core ---------- */
 function calc(){
-  var D=divisions(), per={}, oh=0;
+  var D=divisions(), per={}, oh=0, bookedOEM=0;
   D.forEach(function(d){ per[d]={rev:0,cogs:0}; });
   TB.forEach(function(a,i){
     var amt=gN("tb"+i);
     if(a.kind==="opex"){ oh+=amt; return; }
+    if(a.kind==="oem"){ bookedOEM+=amt; return; }
     if(!per[a.div]) per[a.div]={rev:0,cogs:0};
     per[a.div][a.kind==="rev"?"rev":"cogs"]+=amt;
   });
@@ -801,8 +803,18 @@ function calc(){
   bn += bnr("Total OEM income", L(oem), 1);
   bn += bnr(ncDiv+" gross — from the accounts", L(ncGross)+"  ("+pc(ncGross,ncRev).toFixed(1)+"%)");
   bn += bnr(ncDiv+" gross — with OEM money", L(ncGrossOEM)+"  ("+pc(ncGrossOEM,ncRev).toFixed(1)+"%)", 1);
+  var oemGap = oem - bookedOEM;
+  bn += '<tr><td colspan="2" style="padding-top:14px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700;border-bottom:2px solid var(--line)">Reconciliation — programme vs your accounts</td></tr>';
+  bn += bnr("Programme should pay (reconstructed above)", L(oem));
+  bn += bnr("Actually booked in the trial balance (incentive income)", L(bookedOEM));
+  bn += '<tr class="tot"><td>Gap — uncollected / unbooked</td><td class="num '+(oemGap>0?"lo":"hi")+'">'+L(oemGap)+'</td></tr>';
   document.getElementById("bnBody").innerHTML=bn;
-  set("bnRead", nextInfo + (riskLoss>0? (" At risk: slip below this tier and ~"+L(riskLoss)+" of stair-step is lost across the whole year — every car near a threshold is worth far more than its own margin.") : ""));
+  var reconRead = oemGap>0
+    ? (" Reconciliation: your books show "+L(bookedOEM)+" of incentive income, but your programme should pay about "+L(oem)+" — a "+L(oemGap)+" gap worth chasing (missed claims, timing, or accruals not yet booked).")
+    : (oemGap<0
+        ? (" Reconciliation: your books show "+L(bookedOEM)+" of incentive income — more than this reconstruction ("+L(oem)+"); you likely have other incentive streams not modelled here.")
+        : (" Reconciliation: booked incentive income matches the reconstructed programme — nothing obviously uncollected."));
+  set("bnRead", nextInfo + (riskLoss>0? (" At risk: slip below this tier and ~"+L(riskLoss)+" of stair-step is lost across the whole year — every car near a threshold is worth far more than its own margin.") : "") + reconRead);
 
   /* charts — when overhead is allocated, the bar chart shows NET per division
      (matching the table); otherwise it shows gross profit. */
@@ -821,7 +833,7 @@ function calc(){
   } else {
     if(plC)plC.style.display="none"; if(plDv)plDv.style.display="";
     var dd=plView, rws="";
-    TB.forEach(function(a,i){ if(a.div===dd){ var amt=gN("tb"+i); rws+='<tr><td>'+a.code+' '+a.name+'</td><td class="num">'+(a.kind==="rev"?L(amt):P(amt))+'</td></tr>'; } });
+    TB.forEach(function(a,i){ if(a.div===dd && a.kind!=="oem"){ var amt=gN("tb"+i); rws+='<tr><td>'+a.code+' '+a.name+'</td><td class="num">'+(a.kind==="rev"?L(amt):P(amt))+'</td></tr>'; } });
     var dgm=pc(per[dd].gross,per[dd].rev), share=pc(per[dd].gross,tG);
     var html='<table><tbody>'+rws+
       '<tr class="tot"><td>Revenue</td><td class="num">'+L(per[dd].rev)+'</td></tr>'+
@@ -856,6 +868,7 @@ function calc(){
     tVar:tVar, tVol:tVol, tRate:tRate, driver:driver, worstVar:worstVar, worstVarAmt:varBy[worstVar],
     ncDiv:ncDiv, ncGross:ncGross, ncGrossOEM:ncGrossOEM, ncRev:ncRev,
     oem:oem, holdback:holdback, volBonus:volBonus, csiAmt:csiAmt, csiOn:csiOn,
+    bookedOEM:bookedOEM, oemGap:oemGap,
     ach:ach, tierLbl:tierLbl, perUnit:perUnit, ncUnits:ncUnits, bnTgt:bnTgt,
     unitsNeeded:unitsNeeded, nextB:nextB, nextJump:nextJump, riskLoss:riskLoss,
     ohBasis:ohBasis, alloc:alloc, netBy:netBy,
@@ -929,6 +942,12 @@ function renderVerdict(){
       sub:"The stair-step jumps retroactively on every unit once the next tier is reached — often worth more than a whole deal's margin.",
       go:"Open OEM bonus →"});
   }
+  if(d.oemGap>0){
+    opps.push({amt:d.oemGap, pane:"pane-oem",
+      main:"<b>"+L(d.oemGap)+"</b> of manufacturer bonus looks uncollected vs your programme.",
+      sub:"Your programme should pay ~"+L(d.oem)+" but only "+L(d.bookedOEM)+" is booked — chase the gap: missed claims, timing, or unbooked accruals.",
+      go:"Open OEM bonus →"});
+  }
 
   threats.sort(function(a,b){ return b.amt-a.amt; });
   opps.sort(function(a,b){ return b.amt-a.amt; });
@@ -965,7 +984,7 @@ function parseCSV(t){
   return rows.filter(function(r){ return r.some(function(x){ return String(x).trim()!==""; }); });
 }
 function ci(h,names){ for(var i=0;i<h.length;i++){ if(names.indexOf(String(h[i]).toLowerCase().trim())!==-1) return i; } return -1; }
-function kKind(s){ s=String(s).toLowerCase(); if(/opex|overhead|admin|operating|expense/.test(s))return"opex"; if(/cogs|cost/.test(s))return"cogs"; if(/rev|sale|income|turnover/.test(s))return"rev"; return""; }
+function kKind(s){ s=String(s).toLowerCase(); if(/opex|overhead|admin|operating|expense/.test(s))return"opex"; if(/cogs|cost/.test(s))return"cogs"; if(/oem|incentive|prim|bonus|holdback|tesvik|teşvik/.test(s))return"oem"; if(/rev|sale|income|turnover/.test(s))return"rev"; return""; }
 function kAmt(s){ s=String(s).trim(); var num=parseFloat(s.replace(/[^0-9.\-]/g,"")); return isNaN(num)?NaN:Math.abs(num); }
 
 document.getElementById("tbfile").addEventListener("change",function(e){
