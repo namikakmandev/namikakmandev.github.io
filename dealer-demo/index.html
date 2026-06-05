@@ -49,6 +49,19 @@
   .synth b{color:#7fc6f5}
   .synth .ln{margin:3px 0}
   .lo{color:var(--loss)} .hi{color:var(--good)} .wn{color:var(--warn)}
+  /* Threat & Opportunity verdict — the "so what", lead of the Overview */
+  .verdict{background:#0c1722;border:1px solid #1c2c3c;border-radius:13px;margin:14px 0 18px;overflow:hidden}
+  .verdict .vhead{font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:#9fb4c6;font-weight:700;padding:14px 18px 10px}
+  .vrow{display:block;padding:13px 18px;border-top:1px solid #15273a;cursor:pointer;text-decoration:none;color:#eef3f8}
+  .vrow:hover{background:#11202f}
+  .vrow .vtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:2px 9px;border-radius:20px;margin-bottom:8px}
+  .vthreat{border-left:4px solid #d23b3b} .vopp{border-left:4px solid #19c37d}
+  .vthreat .vtag{background:rgba(210,59,59,.16);color:#ff8b8b} .vopp .vtag{background:rgba(25,195,125,.16);color:#7fe0b4}
+  .vrow .vmain{font-size:16px;font-weight:700;line-height:1.42} .vrow .vmain b{color:#fff}
+  .vrow .vsub{font-size:13px;color:#9fb4c6;margin-top:5px;line-height:1.5}
+  .vrow .vgo{font-size:12px;color:#7fc6f5;margin-top:7px;display:inline-block;font-weight:600}
+  .vbottom{font-size:13.5px;color:#cdd9e5;padding:13px 18px;border-top:1px solid #15273a;line-height:1.6;background:#0a131d}
+  .vbottom b{color:#7fe0b4}
   .chart{width:100%;height:auto;display:block}
   .chart text{font-size:11px;fill:var(--muted)}
   .chart .vlab{fill:var(--ink);font-weight:600}
@@ -105,6 +118,9 @@
   <h2 class="band">1 · Overview — the bottom line</h2>
   <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: the headline result, how the dealership compares to industry, and live market context — your starting point.</p>
   <p class="note">Built live from the dealership's own trial balance (the sample is loaded — edit it, or upload a real CSV, in the <b>Data</b> tab). Ask the <b>AI advisor</b> (bottom-right) anything about these numbers.</p>
+
+  <div class="verdict" id="verdict"></div>
+
   <div class="grid">
     <div class="kpi"><span>Total revenue</span><strong id="kRev">—</strong></div>
     <div class="kpi"><span>Gross profit</span><strong id="kGross">—</strong></div>
@@ -769,10 +785,11 @@ function calc(){
   var oem=holdback+volBonus+csiAmt, ncGrossOEM=ncGross+oem;
   var bounds=[0.90,1.00,1.10], nextB=null, nextIx=null;
   for(var bi=0;bi<bounds.length;bi++){ if(ach<bounds[bi]){ nextB=bounds[bi]; nextIx=bi+1; break; } }
-  var nextInfo, unitsNeeded=0;
+  var nextInfo, unitsNeeded=0, nextJump=0;
   if(nextB!==null){
     unitsNeeded=Math.max(0,Math.ceil(nextB*bnTgt)-ncUnits);
     var bonusAtNext=bb[nextIx]*Math.ceil(nextB*bnTgt), jump=bonusAtNext-volBonus;
+    nextJump=jump;
     nextInfo=unitsNeeded+" more car"+(unitsNeeded===1?"":"s")+" reaches the "+(nextB*100).toFixed(0)+"% tier — the stair-step jumps to "+L(bonusAtNext)+" (retroactive on every unit): a "+L(jump)+" gain for "+unitsNeeded+" incremental car"+(unitsNeeded===1?"":"s")+".";
   } else { nextInfo="Top tier already reached — the full "+L(volBonus)+" stair-step is being earned."; }
   var lowerPer = tierIx>0? bb[tierIx-1] : bb[0];
@@ -840,12 +857,99 @@ function calc(){
     ncDiv:ncDiv, ncGross:ncGross, ncGrossOEM:ncGrossOEM, ncRev:ncRev,
     oem:oem, holdback:holdback, volBonus:volBonus, csiAmt:csiAmt, csiOn:csiOn,
     ach:ach, tierLbl:tierLbl, perUnit:perUnit, ncUnits:ncUnits, bnTgt:bnTgt,
-    unitsNeeded:unitsNeeded, nextB:nextB, riskLoss:riskLoss,
+    unitsNeeded:unitsNeeded, nextB:nextB, nextJump:nextJump, riskLoss:riskLoss,
     ohBasis:ohBasis, alloc:alloc, netBy:netBy,
     benchmarks:BM
   };
   if(typeof renderRealMargin==="function") renderRealMargin();
+  if(typeof renderVerdict==="function") renderVerdict();
 }
+
+/* ---------- Threat & Opportunity verdict — the "so what" lead ----------
+   Reuses the live snapshot (window.__DD). Ranks every quantified threat and
+   opportunity by ₺ impact and surfaces the single biggest of each, with a
+   one-click jump to the tab that explains it. Pure local math — safe on
+   uploaded real data too (nothing is sent anywhere). */
+function gotoPane(id){
+  var tabs=document.querySelectorAll("#tabs .tab");
+  tabs.forEach(function(x){ x.classList.toggle("on", x.dataset.pane===id); });
+  document.querySelectorAll(".pane").forEach(function(p){ p.classList.remove("active"); });
+  var pane=document.getElementById(id); if(pane) pane.classList.add("active");
+  window.scrollTo(0,0);
+}
+window.gotoPane=gotoPane;
+
+function renderVerdict(){
+  var d=window.__DD, el=document.getElementById("verdict"); if(!d||!el) return;
+  var threats=[], opps=[];
+
+  /* ---- threats (things distorting the picture or bleeding money) ---- */
+  if(d.net<0){
+    threats.push({amt:Infinity, pane:"pane-divisional",
+      main:"The dealership is running at a net loss of <b>"+L(-d.net)+"</b>.",
+      sub:"Total overhead is larger than all the gross profit combined — the structural priority before anything else.",
+      go:"Open Divisional P&L →"});
+  }
+  if(d.realMargin && d.realMargin.drag>0){
+    threats.push({amt:d.realMargin.drag, pane:"pane-overview",
+      main:"About <b>"+L(d.realMargin.drag)+"</b> of your reported profit is inflation on stock — not real earnings.",
+      sub:"On a replacement-cost basis the true margin is <b>"+d.realMargin.real.toFixed(1)+"%</b>, not "+d.realMargin.reported.toFixed(1)+"%. The accounts flatter the reality.",
+      go:"See the real-margin breakdown ↓"});
+  }
+  if(d.tVar<0){
+    var ctrl = d.driver.indexOf("rate")===0;
+    threats.push({amt:Math.abs(d.tVar), pane:"pane-variance",
+      main:"You missed plan by <b>"+L(Math.abs(d.tVar))+"</b>"+(d.worstVar?", worst in "+d.worstVar:"")+".",
+      sub:"Driven mainly by "+d.driver+" — "+(ctrl?"that's discounting eating margin, which is controllable.":"a volume shortfall, i.e. a traffic / demand issue."),
+      go:"Open Variance →"});
+  }
+  if(d.aged && d.aged.carry>0){
+    threats.push({amt:d.aged.carry, pane:"pane-aged",
+      main:"Stock has already burned <b>"+L(d.aged.carry)+"</b> in floorplan interest.",
+      sub:(d.aged.stale? d.aged.stale+" unit"+(d.aged.stale!==1?"s":"")+" over 90 days are the prime bleeders — about "+L(d.aged.perDay)+"/day across the lot." : "About "+L(d.aged.perDay)+"/day across the lot at today's commercial rate."),
+      go:"Open Aged stock →"});
+  }
+  if(d.riskLoss>0){
+    threats.push({amt:d.riskLoss, pane:"pane-oem",
+      main:"Slipping a bonus tier would cost <b>"+L(d.riskLoss)+"</b> over the full year.",
+      sub:"Stair-step bonuses pay retroactively on every unit — cars near a threshold are worth far more than their own margin.",
+      go:"Open OEM bonus →"});
+  }
+
+  /* ---- opportunities (controllable upside) ---- */
+  if(d.totLeak>0){
+    opps.push({amt:d.totLeak, pane:"pane-leakage",
+      main:"You're leaking <b>"+L(d.totLeak)+"</b> against your own targets"+(d.worstLeak&&d.worstLeak!=="—"?", biggest in "+d.worstLeak:"")+".",
+      sub:(d.net>0?"That's "+Math.round(d.totLeak/d.net*100)+"% of this year's net profit — ":"")+"each leak has a named lever, and recovering even part is pure profit.",
+      go:"Open Leakage map →"});
+  }
+  if(d.nextB && d.unitsNeeded>0 && d.nextJump>0){
+    opps.push({amt:d.nextJump, pane:"pane-oem",
+      main:"<b>"+d.unitsNeeded+"</b> more new car"+(d.unitsNeeded!==1?"s":"")+" unlocks <b>"+L(d.nextJump)+"</b> in OEM bonus.",
+      sub:"The stair-step jumps retroactively on every unit once the next tier is reached — often worth more than a whole deal's margin.",
+      go:"Open OEM bonus →"});
+  }
+
+  threats.sort(function(a,b){ return b.amt-a.amt; });
+  opps.sort(function(a,b){ return b.amt-a.amt; });
+  var t=threats[0], o=opps[0];
+
+  function row(c,cls,tag){ return '<a class="vrow '+cls+'" href="#" onclick="gotoPane(\''+c.pane+'\');return false;">'+
+    '<span class="vtag">'+tag+'</span><div class="vmain">'+c.main+'</div><div class="vsub">'+c.sub+'</div><span class="vgo">'+c.go+'</span></a>'; }
+
+  var html='<div class="vhead">⚡ The bottom line — what to act on first</div>';
+  if(t) html+=row(t,"vthreat","▲ Biggest threat");
+  if(o) html+=row(o,"vopp","▼ Biggest opportunity");
+  if(!t && !o){ html+='<a class="vrow vopp" href="#" onclick="return false"><span class="vtag">✓ Clean</span><div class="vmain">No quantified threat or leakage detected against the current targets.</div><div class="vsub">Adjust the targets and budget to stress-test the picture.</div></a>'; }
+  if(o && d.totLeak>0 && d.net>0){
+    var halfRecover=d.net+Math.round(d.totLeak*0.5);
+    html+='<div class="vbottom"><b>In one line:</b> the headline profit is softer than it looks — but the biggest win is controllable. Recover half the leakage and net profit goes from '+L(d.net)+' to about <b>'+L(halfRecover)+'</b>.</div>';
+  } else if(t){
+    html+='<div class="vbottom"><b>In one line:</b> deal with the threat above first — it\'s the number quietly distorting every other decision.</div>';
+  }
+  el.innerHTML=html;
+}
+window.renderVerdict=renderVerdict;
 
 /* ---------- CSV upload (TB only) ---------- */
 function parseCSV(t){
@@ -1008,6 +1112,7 @@ function calcAged(){
     (stale? "<b>"+stale+"</b> unit"+(stale!==1?"s":"")+" over 90 days ("+L(staleVal)+" of capital) "+(stale!==1?"have":"has")+" already burned <b>"+L(staleCarry)+"</b> in interest — prime candidates to move." : "No unit over 90 days — stock is turning well.")+
     (infl!=null? " And at ~"+infl.toFixed(0)+"% inflation, capital tied in stock loses real value on top of this." : "");
   if(window.__DD) window.__DD.aged={units:rows.length, value:totVal, carry:totCarry, perDay:totPerDay, stale:stale, staleCarry:staleCarry, oldest:oldest};
+  if(typeof renderVerdict==="function") renderVerdict();
 }
 buildAged(); calcAged();
 
@@ -1029,6 +1134,7 @@ function renderRealMargin(){
   set("rm_drag", L(drag));
   var rd=document.getElementById("rmRead"); if(rd) rd.innerHTML="At ~"+infl.toFixed(0)+"% inflation and ~"+holdM+" months' average stock-holding, about <b>"+L(drag)+"</b> of your reported gross is just the rising replacement cost of inventory — not real profit. On a replacement-cost basis your margin is <b>"+realM.toFixed(1)+"%</b>, not "+repM.toFixed(1)+"%. (Diagnosis, not a tax position.)";
   d.realMargin={reported:repM, real:realM, drag:drag, holdM:holdM, infl:infl};
+  if(typeof renderVerdict==="function") renderVerdict();
 }
 var _rmh=document.getElementById("rm_hold"); if(_rmh) _rmh.addEventListener("input",renderRealMargin);
 
