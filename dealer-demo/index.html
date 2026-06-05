@@ -294,7 +294,7 @@
   <span class="pane-badge"><span class="bdot dot-acc"></span>Actuals from the accounts vs your budget</span>
   <h2 class="band">5 · Variance vs plan — why the gap happened</h2>
   <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: actual vs the budget you set, split into volume effect (units) vs rate effect (margin / discounting).</p>
-  <p class="note">Enter the <b>budget</b> (planned) revenue and gross profit per division below. The gross gap vs actual is split into <b>Volume effect</b> (sold more/less at plan margin) and <b>Rate effect</b> (margin better/worse than plan — usually discounting). Volume + Rate reconciles exactly to the total gross variance.</p>
+  <p class="note">Enter the <b>budget</b> (planned) revenue and gross profit per division below. The gross gap vs actual is split into <b>Volume effect (units)</b> — sold more/fewer at plan margin — and <b>Rate effect (pricing)</b> — margin better/worse than plan, mainly discounting (a cost spike can also move it). Volume + Rate reconciles exactly to the total gross variance.</p>
   <div class="card"><div id="budGrid"></div></div>
   <p class="note" style="margin:10px 0 6px">View: <select id="vaView" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"><option value="company">Whole company</option></select></p>
   <div id="vaCompany">
@@ -424,8 +424,8 @@ function bridge(id,budget,vol,rate,actual){
   var span=(top-bot)||1, Y=function(v){ return mT+ph-((v-bot)/span)*ph; };
   var cols=[
     {lab:"Budget gross",base:0,val:budget,kind:"tot"},
-    {lab:"Volume",base:budget,val:vol,kind:"d"},
-    {lab:"Rate",base:budget+vol,val:rate,kind:"d"},
+    {lab:"Volume (units)",base:budget,val:vol,kind:"d"},
+    {lab:"Rate (pricing)",base:budget+vol,val:rate,kind:"d"},
     {lab:"Actual gross",base:0,val:actual,kind:"tot"}
   ];
   var n=cols.length, slot=pw/n, bw=Math.min(86,slot*0.5);
@@ -739,7 +739,7 @@ function calc(){
   }
 
   /* C — variance vs plan */
-  var vh='<tr><th>Division</th><th class="num">Actual gross <span class="srctag tag-acc">accounts</span></th><th class="num">Budget gross <span class="srctag tag-in">your input</span></th><th class="num">Variance</th><th class="num">Volume effect</th><th class="num">Rate effect</th></tr>';
+  var vh='<tr><th>Division</th><th class="num">Actual gross <span class="srctag tag-acc">accounts</span></th><th class="num">Budget gross <span class="srctag tag-in">your input</span></th><th class="num">Variance</th><th class="num">Volume effect <span style="font-weight:400;text-transform:none;opacity:.7">(units)</span></th><th class="num">Rate effect <span style="font-weight:400;text-transform:none;opacity:.7">(pricing)</span></th></tr>';
   document.getElementById("vaHead").innerHTML=vh;
   var vb="",tVar=0,tVol=0,tRate=0,varBy={},VADET={};
   D.forEach(function(d){
