@@ -74,6 +74,10 @@
   .tag-acc{background:rgba(47,155,255,.15);color:#2F9BFF}
   .tag-trk{background:rgba(25,195,125,.15);color:#0e8f5b}
   .tag-in{background:rgba(255,101,0,.15);color:#FF6500}
+  /* source-coded input fields — coloured left edge = where the figure belongs */
+  input[type=number].src-acc,input[type=date].src-acc{border-left:3px solid var(--accent)}
+  input[type=number].src-trk,input[type=date].src-trk{border-left:3px solid var(--good)}
+  input[type=number].src-in,input[type=date].src-in{border-left:3px solid var(--warn)}
   .chart{width:100%;height:auto;display:block}
   .chart text{font-size:11px;fill:var(--muted)}
   .chart .vlab{fill:var(--ink);font-weight:600}
@@ -138,6 +142,7 @@
     <span><i class="dot-acc"></i> From the trial balance <em>(the accounts)</em></span>
     <span><i class="dot-trk"></i> Figures the dealer tracks <em>(units, list price, stock dates)</em></span>
     <span><i class="dot-in"></i> Your inputs &amp; targets <em>(assumptions you can change)</em></span>
+    <span style="width:100%;font-size:11px;opacity:.7">Each input box is edged in its source colour; plain figures with no box are read or calculated.</span>
   </div>
 
   <div class="grid">
@@ -523,6 +528,15 @@ function renderDivLeak(d, det){
 }
 
 /* ---------- input grids ---------- */
+/* colour-code every input box by where its figure belongs (matches the
+   Overview source key). Re-run after any grid rebuild. Read/derived values
+   are plain text, so a coloured-edged box always means "you provide this". */
+function tagSources(){
+  function tag(sel,cls){ document.querySelectorAll(sel).forEach(function(e){ e.classList.add(cls); }); }
+  tag('#tbgrid input','src-acc');                                                      /* trial balance = the accounts */
+  tag('[id^="u_"],[id^="l_"],#agedGrid input','src-trk');                              /* units, list, stock = dealer tracks */
+  tag('[id^="lk_"],[id^="bn_"],[id^="br_"],[id^="bg_"],[id^="lt_"],#rm_hold','src-in'); /* targets & assumptions */
+}
 function buildTB(){
   var h="";
   TB.forEach(function(a,i){
@@ -1025,7 +1039,7 @@ document.getElementById("tbfile").addEventListener("change",function(e){
       if(!cnt) throw new Error("No usable rows.");
       TB=t; DATA_IS_SAMPLE=false;
       divisions().forEach(function(d){ if(!OPS[d]) OPS[d]={units:0,list:0,budRev:0,budGross:0}; });
-      buildTB(); buildOps(); calc();
+      buildTB(); buildOps(); calc(); tagSources();
       set("tbstatus","Loaded "+cnt+" accounts. Now fill in units, list price and budget below.");
     }catch(err){ set("tbstatus","Could not read file: "+err.message); document.getElementById("tbstatus").style.color="var(--loss)"; }
   };
@@ -1123,6 +1137,7 @@ function buildAged(){
   });
   g.innerHTML=h;
   STOCK_SAMPLE.forEach(function(s,i){ ["ag_d"+i,"ag_c"+i].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener("input",calcAged); }); });
+  tagSources();
 }
 function calcAged(){
   var body=document.getElementById("agedBody"); if(!body) return;
