@@ -1,0 +1,1060 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASSETIX · Değerleme — İş Akışı (Demo)</title>
+<!--
+  ASSETIX · Değerleme — valuation case-management workflow module of the ASSETIX platform.
+  Sibling of the ASSETIX portfolio analyzer (assetix.html); together they form one platform.
+  Brand/data are our own (ASSETIX brand, fully fictional sample cases). Higher-fidelity v2:
+  flat dense rows, left rail, özel-row tints, richer tag chips, 7 sort keys, active filters.
+  Single file, no external dependencies. Tweak SAMPLE[] to change the data.
+-->
+<style>
+  :root{
+    --bg:#eef1f6; --panel:#ffffff; --panel2:#f6f8fc; --rail:#ffffff;
+    --line:#e2e7f0; --line2:#edf1f7; --ink:#1d2740; --muted:#6b7689; --faint:#9aa6ba;
+    --blue:#2F9BFF; --blue-d:#1f7fe0; --teal:#13b6c4; --green:#19C37D; --green-d:#13a268;
+    --orange:#FF6500; --red:#e5484d; --amber:#e08a00; --violet:#7c5cfc;
+    --pink:#fdeef1; --pink-bd:#f6d4db;
+    --shadow:0 1px 2px rgba(28,46,82,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:13px;min-height:100vh}
+  .app{display:grid;grid-template-columns:218px 1fr;min-height:100vh;padding-right:46px}
+
+  /* ---------- Sidebar ---------- */
+  .rail{background:var(--rail);border-right:1px solid var(--line);display:flex;flex-direction:column;
+    position:sticky;top:0;height:100vh;overflow-y:auto}
+  .brand{display:flex;align-items:center;gap:9px;padding:13px 15px;border-bottom:1px solid var(--line)}
+  .blogo{width:31px;height:31px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--teal));
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:16px}
+  .brand b{font-size:16px;letter-spacing:1.4px}
+  .brand span{display:block;font-size:8.5px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .qsearch{padding:11px 12px}
+  .qsearch input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:12.5px;
+    background:var(--panel2);color:var(--ink);outline:none}
+  .qsearch input:focus{border-color:var(--blue);background:#fff}
+  .counters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:0 12px 12px}
+  .ctile{border:1px solid var(--line);border-radius:9px;padding:8px 4px 7px;text-align:center;cursor:pointer;
+    background:var(--panel2);transition:.13s;user-select:none}
+  .ctile:hover{border-color:var(--blue);background:#fff}
+  .ctile.on{border-color:var(--blue);background:#eaf4ff;box-shadow:inset 0 0 0 1px var(--blue)}
+  .ctile .ico{font-size:10px;opacity:.5;line-height:1}
+  .ctile .cn{font-size:17px;font-weight:800;line-height:1.05}
+  .ctile .cl{font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:.1px}
+  .ctile.q1 .cn{color:var(--blue)} .ctile.q2 .cn{color:var(--violet)} .ctile.q3 .cn{color:var(--faint)}
+  .ctile.q4 .cn{color:var(--ink)} .ctile.q5 .cn{color:var(--amber)} .ctile.q6 .cn{color:var(--green)}
+  .nav{padding:4px 8px}
+  .navhd{font-size:9px;color:var(--faint);letter-spacing:1px;font-weight:700;padding:11px 8px 4px}
+  .nav a{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;color:var(--muted);
+    font-weight:600;cursor:pointer;font-size:12.5px}
+  .nav a:hover{background:var(--panel2);color:var(--ink)}
+  .nav a.active{background:#eaf4ff;color:var(--blue-d)}
+  .nav a .dot{width:6px;height:6px;border-radius:50%;background:var(--red)}
+  .nav a:not(.active) .dot{background:var(--faint);opacity:.5}
+  .navgrp{margin-bottom:1px}
+  .grphd{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;
+    font-size:11px;font-weight:800;letter-spacing:.4px;color:#34406b;text-transform:uppercase}
+  .grphd:hover{background:var(--panel2)}
+  .grphd .gi{width:18px;height:18px;display:grid;place-items:center;color:var(--blue-d)}
+  .grphd .gi svg{width:16px;height:16px}
+  .grphd .chev{margin-left:auto;font-size:12px;color:var(--faint);transition:transform .15s}
+  .grphd.collapsed .chev{transform:rotate(-90deg)}
+  .grpitems.hide{display:none}
+  .grpitems a{padding-left:30px}
+
+  /* ---------- Right vertical tool rail (like ARVES) ---------- */
+  .rtools{position:fixed;top:0;right:0;width:46px;height:100vh;background:#26335c;z-index:9;
+    display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:14px;box-shadow:-2px 0 10px rgba(20,30,60,.12)}
+  .rtools .rt{position:relative;width:34px;height:34px;border:0;background:transparent;border-radius:9px;
+    color:#c2cdec;display:grid;place-items:center;cursor:pointer}
+  .rtools .rt:hover{background:rgba(255,255,255,.13);color:#fff}
+  .rtools .rt svg{width:19px;height:19px}
+  .rtools .rdot{position:absolute;top:4px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--red);border:1.5px solid #26335c}
+  .rtsep{width:22px;height:1px;background:rgba(255,255,255,.12);margin:4px 0}
+  .railfoot{margin-top:auto;padding:11px 15px;border-top:1px solid var(--line);font-size:10px;color:var(--faint)}
+
+  /* ---------- Topbar ---------- */
+  .main{display:flex;flex-direction:column;min-width:0}
+  .top{display:flex;align-items:center;gap:13px;padding:8px 18px;background:var(--panel);
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:8}
+  .burger{font-size:17px;color:var(--muted);cursor:pointer}
+  .when{display:flex;flex-direction:column;line-height:1.1;font-size:12px}
+  .when b{font-weight:700}.when span{font-size:10px;color:var(--muted)}
+  .clk{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:8px;padding:5px 10px;font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+  .quota{background:#eaf4ff;border:1px solid #cfe6ff;color:var(--blue-d);border-radius:8px;padding:5px 9px;
+    font-size:11px;font-weight:700}
+  .spacer{flex:1}
+  .ticon{width:29px;height:29px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);
+    display:grid;place-items:center;color:var(--muted);cursor:pointer;font-size:13px}
+  .uchip{display:flex;align-items:center;gap:9px;padding-left:4px;cursor:pointer}
+  .uchip .un{font-size:12.5px;font-weight:700;text-align:right;line-height:1.15}
+  .uchip .ur{font-size:10px;color:var(--muted);text-align:right}
+  .uav{width:31px;height:31px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--blue));
+    display:grid;place-items:center;color:#fff;font-weight:700;font-size:11px}
+  .uchip .cv{color:var(--faint);font-size:10px}
+
+  /* ---------- Content ---------- */
+  .content{padding:13px 18px 40px;min-width:0}
+  .pagehd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px;flex-wrap:wrap}
+  .pagehd h1{font-size:17px;margin:0;font-weight:800}
+  .btn{border:0;border-radius:8px;padding:8px 13px;font-size:12.5px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px}
+  .btn.green{background:var(--green);color:#fff} .btn.green:hover{background:var(--green-d)}
+  .btn.blue{background:var(--blue);color:#fff} .btn.blue:hover{background:var(--blue-d)}
+  .btn.ghost{background:var(--panel);border:1px solid var(--line);color:var(--muted)}
+  .btn.ghost:hover{border-color:var(--blue);color:var(--blue-d)}
+  .split{display:inline-flex;align-items:center}
+  .split .cv{margin-left:7px;padding-left:8px;border-left:1px solid rgba(255,255,255,.4)}
+
+  .sortbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);
+    background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:7px 11px;margin-bottom:9px}
+  .sortbar b{color:var(--ink);margin-right:2px}
+  .sortbar .sk{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line);border-radius:7px;
+    padding:4px 8px;cursor:pointer;background:var(--panel2);font-weight:600}
+  .sortbar .sk:hover{border-color:var(--blue);color:var(--blue-d)}
+  .sortbar .sk.act{border-color:var(--blue);background:#eaf4ff;color:var(--blue-d)}
+  .sortbar .sk i{font-style:normal;opacity:.6;font-size:10px}
+
+  .layout{display:grid;grid-template-columns:1fr 258px;gap:13px;align-items:start}
+
+  .listmeta{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:12px;color:var(--muted)}
+  .listmeta b{color:var(--ink)}
+  .pager{display:flex;gap:4px;align-items:center}
+  .pager button{border:1px solid var(--line);background:var(--panel);border-radius:7px;min-width:27px;height:27px;
+    padding:0 7px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer}
+  .pager button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .pager button:disabled{opacity:.4;cursor:default}
+
+  /* ---------- Job list (flat, dense) ---------- */
+  .jobs{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden;box-shadow:var(--shadow)}
+  .job{display:grid;grid-template-columns:34px 2.05fr 1.4fr 1.75fr;gap:13px;padding:11px 13px 11px 0;
+    border-bottom:1px solid var(--line2);position:relative;border-left:3px solid var(--blue)}
+  .job:last-child{border-bottom:0}
+  .job:hover{background:#fafcff}
+  .job.ozel{background:var(--pink)} .job.ozel:hover{background:#fbe6ea}
+  .job.flag{border-left-color:var(--red)} .job.warn{border-left-color:var(--amber)} .job.ok{border-left-color:var(--green)}
+  .jl{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:3px;color:var(--faint)}
+  .jl span{cursor:pointer;font-size:13px;width:22px;height:22px;display:grid;place-items:center;border-radius:6px}
+  .jl span:hover{background:var(--panel2);color:var(--blue-d)}
+  .jno{font-weight:800;font-size:13px;letter-spacing:.2px}
+  .jlink{font-size:10.5px;color:var(--blue-d);display:inline-flex;align-items:center;gap:3px;font-weight:600}
+  .jrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+  .badge{font-size:9.5px;font-weight:800;border-radius:5px;padding:2px 6px;letter-spacing:.3px}
+  .b-rev{background:#fff3e6;color:var(--orange)} .b-ilk{background:#eef1f6;color:var(--muted)}
+  .b-blue{background:#eaf4ff;color:var(--blue-d)} .b-green{background:#e6f8f0;color:var(--green-d)}
+  .jdate{font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;margin-bottom:4px}
+  .jcust{font-size:12.5px;font-weight:700;line-height:1.25;margin:2px 0}
+  .jaddr{font-size:11px;color:var(--muted);line-height:1.3}
+  .jtapu{display:inline-flex;align-items:center;gap:5px;background:var(--panel2);border:1px solid var(--line);
+    border-radius:6px;padding:3px 8px;font-size:10.5px;font-weight:600;color:var(--ink);margin-top:6px}
+  .jtapu .pin{color:var(--green)}
+  .kv{font-size:11.5px;line-height:1.45}
+  .kv .bank{font-weight:800;font-size:12px}
+  .kv .br{color:var(--muted);font-size:10.5px;margin-bottom:5px}
+  .who{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:11px}
+  .who .role{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:8.5px;font-weight:800;color:#fff}
+  .who .ru{background:var(--blue)} .who .rd{background:var(--violet)}
+  .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+  .tg{font-size:9.5px;font-weight:800;border-radius:6px;padding:3px 7px;display:inline-flex;align-items:center;gap:4px;letter-spacing:.2px}
+  .tg .cnt{background:rgba(0,0,0,.12);border-radius:20px;padding:0 5px;font-size:9px;font-weight:800}
+  .tg.takbis{color:#fff;background:var(--green-d)}
+  .tg.haciz{color:#fff;background:var(--red)}
+  .tg.proje{color:#fff;background:var(--blue-d)}
+  .tg.ihakk{color:#fff;background:var(--amber)}
+
+  /* ---------- Pipeline ---------- */
+  .pipewrap{display:flex;flex-direction:column;justify-content:center;padding-left:4px}
+  .pipe{display:flex;align-items:flex-start;justify-content:space-between;position:relative;padding-top:17px}
+  .stp{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;z-index:2}
+  .stp .cir{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:800;
+    background:#fff;border:2px solid var(--line);color:var(--faint)}
+  .stp.done .cir{background:var(--green);border-color:var(--green);color:#fff}
+  .stp.cur .cir{background:#fff;border-color:var(--blue);color:var(--blue-d);box-shadow:0 0 0 4px rgba(47,155,255,.16)}
+  .stp .lbl{font-size:8px;color:var(--muted);margin-top:4px;font-weight:700;white-space:nowrap}
+  .stp.done .lbl{color:var(--green-d)} .stp.cur .lbl{color:var(--blue-d)}
+  .pipe::before{content:"";position:absolute;left:5%;right:9%;top:28px;height:2px;background:var(--line);z-index:1}
+  .sla{position:absolute;top:-3px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;
+    font-size:9.5px;font-weight:800;border-radius:5px;padding:2px 6px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .sla.ok{background:var(--green)} .sla.late{background:var(--red)}
+  .docs{display:flex;gap:3px;align-self:center;margin-left:4px}
+  .docs i{width:11px;height:14px;border:1px solid var(--line);border-radius:2px;background:var(--panel2);display:inline-block}
+  .piperow{display:flex;align-items:flex-start}
+  .pipefoot{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+  .phase-tag{font-size:9.5px;color:var(--muted)} .phase-tag b{color:var(--ink)}
+  .gridico{color:var(--faint);font-size:12px;cursor:pointer}
+
+  /* ---------- Filter panel ---------- */
+  .filters{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:13px;
+    box-shadow:var(--shadow);position:sticky;top:58px}
+  .ftab{display:flex;gap:5px;margin-bottom:10px}
+  .ftab span{flex:1;text-align:center;font-size:12px;font-weight:700;padding:7px;border-radius:8px;cursor:pointer;color:var(--muted)}
+  .ftab span.on{background:#eaf4ff;color:var(--blue-d)}
+  .fhd{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);
+    font-weight:700;margin-bottom:9px}
+  .fhd a{color:var(--blue-d);cursor:pointer}
+  .fgrp{margin-bottom:9px}
+  .fgrp label{display:block;font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:4px}
+  .fgrp select,.fgrp input{width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:12px;
+    background:var(--panel2);color:var(--ink);outline:none}
+  .fgrp select:focus,.fgrp input:focus{border-color:var(--blue);background:#fff}
+  .fgrp.two{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .fchip{display:inline-flex;align-items:center;gap:6px;background:#eaf4ff;border:1px solid #cfe6ff;color:var(--blue-d);
+    border-radius:7px;padding:6px 9px;font-size:11.5px;font-weight:700;width:100%;justify-content:space-between;margin-bottom:6px}
+  .fchip x{cursor:pointer;font-style:normal;font-weight:800;opacity:.7}
+  .factions{display:flex;gap:6px;margin-top:11px}
+  .factions .btn{flex:1;justify-content:center}
+  .savebar{margin-top:8px;text-align:center}
+  .savebar a{font-size:11.5px;color:var(--blue-d);cursor:pointer;font-weight:700}
+
+  /* ---------- Case detail ---------- */
+  .detail{animation:fade .2s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .dhead{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:12px}
+  .dhead .dtitle{display:flex;align-items:center;gap:7px;font-size:15px}
+  .dhead .dtitle b{font-size:16px}
+  .dhead .dactions{margin-left:auto;display:flex;gap:7px;flex-wrap:wrap}
+  .dcard{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .dcard h3{margin:0 0 10px;font-size:13px;display:flex;align-items:center;gap:7px}
+  .dcard h3 .ic{color:var(--blue)}
+  .dstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-bottom:12px}
+  .dstrip .si{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px;box-shadow:var(--shadow)}
+  .dstrip .si .k{font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .dstrip .si .v{font-size:12.5px;font-weight:700;margin-top:3px}
+  .dcols{display:grid;grid-template-columns:1fr 318px;gap:12px;align-items:start}
+  .dtable{width:100%;border-collapse:collapse;font-size:12px}
+  .dtable td{padding:6px 4px;border-bottom:1px solid var(--line2)}
+  .dtable tr:last-child td{border-bottom:0}
+  .dtable td:first-child{color:var(--muted);width:42%}
+  .dtable td:last-child{font-weight:700;text-align:right}
+  .comp td{text-align:right!important;font-weight:600!important}
+  .comp td:first-child{text-align:left!important;color:var(--ink)!important;width:38%}
+  .valbox{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#eaf4ff,#e6f8f0);
+    border:1px solid #cfe6ff;border-radius:10px;padding:12px 15px;margin-bottom:11px}
+  .valbox .big{font-size:23px;font-weight:800;color:var(--blue-d);font-variant-numeric:tabular-nums}
+  .valbox .u{font-size:11px;color:var(--muted)}
+  .timeline{position:relative}
+  .timeline .ev{position:relative;padding:0 0 12px 13px;border-left:2px solid var(--line);margin-left:3px}
+  .timeline .ev:last-child{border-left-color:transparent;padding-bottom:0}
+  .timeline .ev::before{content:"";position:absolute;left:-5px;top:2px;width:9px;height:9px;border-radius:50%;background:var(--blue)}
+  .timeline .ev .t{font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .timeline .ev .x{font-size:11.5px;font-weight:600;margin-top:1px}
+  .timeline .ev .w{font-size:10.5px;color:var(--muted)}
+  .photos{display:flex;gap:6px;flex-wrap:wrap}
+  .photos .ph{width:60px;height:45px;border-radius:7px;background:linear-gradient(135deg,#dde6f2,#eef3f9);
+    border:1px solid var(--line);display:grid;place-items:center;color:var(--faint);font-size:15px}
+  .doclist{display:flex;flex-direction:column;gap:6px}
+  .doclist .dl{display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:7px 9px;
+    border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+  @media(max-width:1080px){.dcols{grid-template-columns:1fr}}
+
+  /* ---------- Dark (navy) left sidebar — matches the right rail ---------- */
+  .rail{background:linear-gradient(180deg,#2a3760,#212d50);border-right:1px solid #1b2645}
+  .brand{border-bottom:1px solid rgba(255,255,255,.10)}
+  .brand b{color:#fff}
+  .brand span{color:#9fb0d6}
+  .qsearch input{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff}
+  .qsearch input::placeholder{color:#a6b3d6}
+  .qsearch input:focus{border-color:var(--blue);background:rgba(255,255,255,.14)}
+  .ctile{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12)}
+  .ctile:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.30)}
+  .ctile.on{background:rgba(47,155,255,.28);border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+  .ctile .cl{color:#aebbd9}
+  .ctile.q3 .cn{color:#cdd7ee}
+  .ctile.q4 .cn{color:#ffffff}
+  .grphd{color:#e7ecf8}
+  .grphd:hover{background:rgba(255,255,255,.08)}
+  .grphd .gi{color:#9db8e6}
+  .grphd .chev{color:#8fa0c8}
+  .nav a{color:#b9c4e0}
+  .nav a:hover{background:rgba(255,255,255,.08);color:#fff}
+  .nav a.active{background:rgba(255,255,255,.14);color:#fff}
+  .nav a:not(.active) .dot{background:#8090b8;opacity:.75}
+  .railfoot{color:#8a98bd;border-top:1px solid rgba(255,255,255,.10)}
+
+  /* ---------- Tapu modal ---------- */
+  .jtapu.tappable{cursor:pointer}
+  .jtapu.tappable:hover{border-color:var(--blue);color:var(--blue-d)}
+  .tlink{color:var(--blue-d);cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-weight:700}
+  .modal{position:fixed;inset:0;background:rgba(20,30,55,.5);display:grid;place-items:center;z-index:50;padding:20px}
+  .modalcard{background:var(--panel);border-radius:13px;max-width:440px;width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;animation:pop .18s ease}
+  @keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+  .modalcard .mh{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;
+    border-bottom:1px solid var(--line);font-weight:800;font-size:14px}
+  .modalcard .mh .cls{cursor:pointer;color:var(--muted);font-size:16px;border:0;background:none;line-height:1}
+  .modalcard .mb{padding:6px 16px 12px}
+  .modalcard .mf{padding:9px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);background:var(--panel2)}
+
+  /* ---------- Quick search list ---------- */
+  .qitem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 11px;
+    border:1px solid var(--line);border-radius:9px;background:var(--panel2);margin-bottom:7px;cursor:pointer;
+    font-size:12px;font-weight:700}
+  .qitem:hover{border-color:var(--blue);background:#eaf4ff;color:var(--blue-d)}
+  .qitem .qd{font-size:10px;color:var(--muted);font-weight:500;margin-top:2px}
+  .qitem .star{color:var(--amber)}
+  .qempty{font-size:12px;color:var(--muted);text-align:center;padding:16px}
+  .modalcard.wide{max-width:520px}
+
+  .toast{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);background:#1d2740;color:#fff;
+    padding:10px 16px;border-radius:9px;font-size:12.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);
+    z-index:60;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:80vw;text-align:center}
+  .toast.show{opacity:.97;transform:translateX(-50%) translateY(-4px)}
+
+  /* ---------- Access gate ---------- */
+  #gate{position:fixed;inset:0;z-index:200;background:linear-gradient(135deg,#26335c,#1a2342);
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  .gatecard{background:#fff;border-radius:14px;padding:28px 26px;width:340px;max-width:100%;text-align:center;
+    box-shadow:0 22px 60px rgba(0,0,0,.4)}
+  .gatecard .glogo{width:46px;height:46px;border-radius:11px;margin:0 auto 12px;
+    background:linear-gradient(135deg,var(--blue),var(--teal));display:grid;place-items:center;color:#fff;font-weight:800;font-size:22px}
+  .gatecard h2{margin:0 0 4px;font-size:17px;letter-spacing:.5px}
+  .gatecard .gsub{margin:0 0 16px;font-size:12px;color:var(--muted)}
+  .gatecard input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;font-size:14px;margin-bottom:10px;outline:none}
+  .gatecard input:focus{border-color:var(--blue)}
+  .gatecard button{width:100%;padding:11px;border:0;border-radius:9px;background:var(--blue);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+  .gatecard button:hover{background:var(--blue-d)}
+  #gateErr{color:var(--red);font-size:12px;margin-top:9px;min-height:14px}
+  .gatehint{font-size:10.5px;color:var(--faint);margin-top:13px}
+
+  .demoflag{position:fixed;bottom:11px;left:50%;transform:translateX(-50%);background:#1d2740;color:#fff;
+    font-size:11px;padding:6px 14px;border-radius:999px;opacity:.92;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+  @media(max-width:1080px){.layout{grid-template-columns:1fr}.filters{position:static}
+    .job{grid-template-columns:30px 1fr}.kv,.pipewrap{grid-column:2}}
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="gatecard">
+    <div class="glogo">A</div>
+    <h2>ASSETIX · Değerleme</h2>
+    <div class="gsub">Devam etmek için erişim parolasını girin.</div>
+    <input id="gatePass" type="password" placeholder="Parola" autocomplete="off">
+    <button id="gateBtn">Giriş</button>
+    <div id="gateErr"></div>
+    <div class="gatehint">🔒 Yetkili erişim — yalnızca davetli kullanıcılar için.</div>
+  </div>
+</div>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="rail">
+    <div class="brand"><div class="blogo">A</div><div><b>ASSETIX</b><span>Değerleme · İş Akışı</span></div></div>
+    <div class="qsearch"><input id="qsearch" placeholder="🔎 Başvuru ara…"></div>
+    <div class="counters" id="counters"></div>
+    <nav class="nav">
+      <div class="navgrp">
+        <div class="grphd" data-lbl="Başvurular"><span class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span> BAŞVURULAR <span class="chev">⌄</span></div>
+        <div class="grpitems">
+          <a class="active"><span class="dot"></span> Bul</a>
+          <a><span class="dot"></span> Notlar</a>
+        </div>
+      </div>
+      <div class="navgrp">
+        <div class="grphd" data-lbl="Personel Masraf"><span class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.5V3z"/><path d="M9 8h6M9 12h5"/></svg></span> PERSONEL MASRAF</div>
+      </div>
+      <div class="navgrp">
+        <div class="grphd" data-lbl="Araçlar"><span class="gi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.7.7V19a2 2 0 1 1-4 0v-.1a1 1 0 0 0-1.7-.7l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0-.7-1.7H5a2 2 0 1 1 0-4h.1a1 1 0 0 0 .7-1.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.7-.7V5a2 2 0 1 1 4 0v.1a1 1 0 0 0 1.7.7l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0 .2 1.1z"/></svg></span> ARAÇLAR <span class="chev">⌄</span></div>
+        <div class="grpitems">
+          <a><span class="dot"></span> Raporlar</a>
+          <a><span class="dot"></span> Ayarlar</a>
+        </div>
+      </div>
+    </nav>
+    <div class="railfoot">ASSETIX · Değerleme<br>Demo — örnek verilerle gösterim</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="top">
+      <span class="burger">☰</span>
+      <span class="when"><b id="tDate">—</b><span id="tDow"></span></span>
+      <span class="clk">🕐 <span id="tClock">--:--</span></span>
+      <span class="quota">Oturum 1779 / 1800</span>
+      <span class="spacer"></span>
+      <span class="ticon" title="Bildirimler">🔔</span>
+      <span class="ticon" title="Ara">🔍</span>
+      <span class="ticon" title="Harita">📍</span>
+      <div class="uchip">
+        <div><div class="un">HÜSEYİN AKMAN</div><div class="ur">Uzman</div></div>
+        <div class="uav">HA</div><span class="cv">▾</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="pagehd">
+        <h1>Başvuru Bul</h1>
+        <div style="display:flex;gap:8px">
+          <button class="btn blue" id="newBtn">＋ Yeni Başvuru</button>
+          <button class="btn green split" id="excelBtn">⬇ Excel İndir<span class="cv">▾</span></button>
+        </div>
+      </div>
+
+      <div class="sortbar" id="sortbar">
+        <b>Sıralama:</b>
+        <span class="sk act" data-s="date">Başvuru Tarihi <i>⬍</i></span>
+        <span class="sk" data-s="no">Şirket Başvuru No <i>⬍</i></span>
+        <span class="sk" data-s="cust">Müşteri Adı <i>⬍</i></span>
+        <span class="sk" data-s="branch">Şube Adı <i>⬍</i></span>
+        <span class="sk" data-s="bank">Banka Ref. No <i>⬍</i></span>
+        <span class="sk" data-s="unvan">Müşteri Unvanı <i>⬍</i></span>
+        <span class="sk" data-s="left">Kalan Gün <i>⬍</i></span>
+      </div>
+
+      <div class="layout" id="listView">
+        <div>
+          <div class="listmeta">
+            <div>Toplam <b id="total">0</b> adet</div>
+            <div class="pager">
+              <button disabled>‹</button>
+              <button class="on">1</button><button>2</button><button>3</button>
+              <button style="border:0;background:none;cursor:default">…</button>
+              <button>50</button><button>›</button>
+            </div>
+          </div>
+          <div class="jobs" id="list"></div>
+        </div>
+
+        <!-- FILTER PANEL -->
+        <aside class="filters">
+          <div class="ftab"><span class="on" id="tabAra">Ara</span><span id="tabHizli">Hızlı Arama</span></div>
+          <div id="araPanel">
+          <div class="fhd"><span>Arama Kriteri Düzenle</span><a>⚙</a></div>
+          <div class="fgrp"><label>Değerleme Türü</label><select id="fType"><option>Seçiniz…</option><option>Konut</option><option>Arsa</option><option>İşyeri</option><option>Akaryakıt Tesisi</option><option>Fabrika</option></select></div>
+          <div class="fgrp"><label>Banka</label><select id="fBank"><option value="">Seçiniz…</option></select></div>
+          <label style="font-size:10.5px;font-weight:700;color:var(--muted)">Aktif Filtreler</label>
+          <div class="fchip">Etkin <x>✕</x></div>
+          <div class="fchip">İşlemde: İşliyor <x>✕</x></div>
+          <div class="fchip">Rapor <x>✕</x></div>
+          <div class="fgrp two" style="margin-top:9px">
+            <div><label>Başvuru Tarihi</label><input type="text" placeholder="Tarih aralığı"></div>
+            <div><label>Rapor Tanzim T.</label><input type="text" placeholder="Tarih aralığı"></div>
+          </div>
+          <div class="fgrp"><label>Denetmen</label><select id="fDen"><option value="">Seçiniz…</option></select></div>
+          <div class="fgrp two">
+            <div><label>İl</label><select id="fCity"><option value="">Seçiniz…</option></select></div>
+            <div><label>İlçe</label><input type="text" id="fDist" placeholder="İlçe"></div>
+          </div>
+          <div class="fgrp two">
+            <div><label>Ada</label><input type="text" placeholder="Ada"></div>
+            <div><label>Parsel</label><input type="text" placeholder="Parsel"></div>
+          </div>
+          <div class="factions">
+            <button class="btn ghost" id="clearBtn">🗑 Temizle</button>
+            <button class="btn blue" id="searchBtn">🔍 ARA</button>
+          </div>
+          <div class="savebar"><a id="saveQuick">＋ Hızlı Aramaya Kaydet</a></div>
+          </div>
+          <div id="hizliPanel" style="display:none">
+            <div class="fhd"><span>Kayıtlı Hızlı Aramalar</span></div>
+            <div id="quickList"></div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- CASE DETAIL (hidden until a row is opened) -->
+      <div id="detail" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div class="rtools">
+  <button class="rt" title="Bildirimler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="rdot"></span></button>
+  <button class="rt" title="Takip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="2.5"/></svg><span class="rdot"></span></button>
+  <div class="rtsep"></div>
+  <button class="rt" title="Favoriler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9.5 17 14 18.5 21 12 17 5.5 21 7 14 2 9.5 9 9"/></svg></button>
+  <button class="rt" title="Geçmiş"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>
+</div>
+<div id="modal" class="modal" style="display:none"></div>
+<div id="toast" class="toast"></div>
+<div class="demoflag">● ASSETIX Değerleme — demo, tüm veriler örnektir (kurgu)</div>
+
+<script>
+const STAGES = ["B.BŞ","B.BG","B.SS","B.SU","B.SD","R.SD","R.SS","R.BG","R.BS"];
+const QUEUES = [
+  {k:"uzmanda",  l:"Uzmanda",     c:"q1"},
+  {k:"denetimde",l:"Denetimde",   c:"q2"},
+  {k:"donmus",   l:"Donmuş",      c:"q3"},
+  {k:"bugun",    l:"Bugün",       c:"q4"},
+  {k:"rapor",    l:"Raporlaşmış", c:"q5"},
+  {k:"imza",     l:"İmzalanacak", c:"q6"},
+];
+
+// ---- Fully fictional sample cases (link = internal ref no., docs = report doc slots filled) ----
+const SAMPLE = [
+  {no:"2026-ZRT-1204-R1", link:"11520070", st:"REVİZE", stc:"b-rev", first:false, date:"05.06.2026 14:12", upd:"06.06.2026 09:40",
+   region:"EGE BÖLGESİ", cust:"DENİZLİ TEKSTİL SANAYİ A.Ş.", addr:"İZMİR · BORNOVA · KAZIMDİRİK MAH.",
+   tapu:"1 Tapu 2241 / 12 KONUT", bank:"T. ZİRAAT BANKASI A.Ş.", branch:"İZMİR TİCARİ ŞUBE",
+   u:"HÜSEYİN AKMAN", d:"ERDİ ARSLAN", tags:[["takbis",0],["proje",2]], stage:7, sla:"17:29", slc:"", q:["uzmanda","bugun"], flag:"warn", docs:1, left:2},
+  {no:"2026-OZL-0066", link:"11519884", st:"İLK BAŞVURU", stc:"b-ilk", first:true, date:"28.05.2026 16:20", upd:"05.06.2026 11:08",
+   region:"MARMARA BÖLGESİ", cust:"AKDORE GIDA TURİZM İNŞ. A.Ş.", addr:"BALIKESİR · SUSURLUK · ORTA MAH.",
+   tapu:"1 Tapu 0550 / 3 AKARYAKIT TESİSİ", bank:"ÖZEL PROJELER", branch:"Şube bulunmuyor",
+   u:"HÜSEYİN AKMAN", d:"ERDİ ARSLAN", tags:[["takbis",0],["haciz",1],["proje",3]], stage:8, sla:"18:26", slc:"", q:["uzmanda"], flag:"flag", ozel:true, docs:2, left:1},
+  {no:"2026-OZL-0049", link:"11518233", st:"İLK BAŞVURU", stc:"b-ilk", first:true, date:"23.05.2026 08:50", upd:"06.06.2026 07:30",
+   region:"İÇ ANADOLU", cust:"ANKARA OSTİM MAKİNE A.Ş.", addr:"ANKARA · YENİMAHALLE · OSTİM MAH.",
+   tapu:"1 Tapu 5512 / İŞYERİ", bank:"ÖZEL PROJELER", branch:"Şube bulunmuyor",
+   u:"HÜSEYİN AKMAN", d:"ERDİ ARSLAN", tags:[["takbis",0],["proje",1]], stage:6, sla:"19:45", slc:"", q:["bugun"], flag:"warn", ozel:true, docs:1, left:2},
+  {no:"2026-OZL-0058", link:"11518910", st:"İLK BAŞVURU", stc:"b-ilk", first:true, date:"28.05.2026 18:15", upd:"04.06.2026 18:28",
+   region:"EGE BÖLGESİ", cust:"AYDIN SÖKE ENERJİ A.Ş.", addr:"AYDIN · SÖKE · ATATÜRK MAH.",
+   tapu:"1 Tapu 0755 / 40 AKARYAKIT TESİSİ", bank:"ÖZEL PROJELER", branch:"Şube bulunmuyor",
+   u:"HÜSEYİN AKMAN", d:"ERDİ ARSLAN", tags:[["takbis",0],["proje",2]], stage:8, sla:"18:14", slc:"", q:["denetimde","bugun"], flag:"", ozel:true, docs:2, left:4},
+  {no:"2026-HLK-0845", link:"11512244", st:"İLK BAŞVURU", stc:"b-ilk", first:true, date:"25.05.2026 17:29", upd:"26.05.2026 16:01",
+   region:"İÇ ANADOLU", cust:"ACARGÜN UN SANAYİ LTD. ŞTİ.", addr:"AKSARAY · MERKEZ · TEPECİK MAH.",
+   tapu:"1 Tapu 4493 / 18 KONUT", bank:"T. HALK BANKASI A.Ş.", branch:"AKSARAY ŞUBESİ",
+   u:"HÜSEYİN AKMAN", d:"GİZEM DİKİCİ", tags:[["takbis",0]], stage:9, sla:"Tamam", slc:"ok", q:["rapor"], flag:"ok", docs:3, left:5},
+  {no:"2026-ZRT-1190", link:"11515562", st:"REVİZE", stc:"b-rev", first:false, date:"30.05.2026 13:40", upd:"05.06.2026 17:22",
+   region:"MARMARA BÖLGESİ", cust:"LEVENT YAPI GAYRİMENKUL A.Ş.", addr:"İSTANBUL · BEŞİKTAŞ · LEVENT MAH.",
+   tapu:"1 Tapu 9920 / İŞYERİ", bank:"T. ZİRAAT BANKASI A.Ş.", branch:"LEVENT ŞUBESİ",
+   u:"HÜSEYİN AKMAN", d:"GİZEM DİKİCİ", tags:[["takbis",0],["proje",1]], stage:6, sla:"22:14", slc:"", q:["denetimde"], flag:"warn", docs:1, left:3},
+  {no:"2026-VKF-0312", link:"11517001", st:"İLK BAŞVURU", stc:"b-ilk", first:true, date:"02.06.2026 10:05", upd:"06.06.2026 08:55",
+   region:"AKDENİZ BÖLGESİ", cust:"SERİK TARIM ÜRÜNLERİ A.Ş.", addr:"ANTALYA · SERİK · ÇANDIR MAH.",
+   tapu:"2 Tapu 1187 / 9 ARSA", bank:"T. VAKIFLAR BANKASI", branch:"ANTALYA KURUMSAL",
+   u:"HÜSEYİN AKMAN", d:"ERDİ ARSLAN", tags:[["takbis",0],["ihakk",1],["proje",1]], stage:5, sla:"31:50", slc:"", q:["uzmanda","bugun"], flag:"", docs:0, left:6},
+  {no:"2026-VKF-0291", link:"11514470", st:"REVİZE", stc:"b-rev", first:false, date:"27.05.2026 11:24", upd:"04.06.2026 10:13",
+   region:"AKDENİZ BÖLGESİ", cust:"MERSİN LİMAN DEPOLAMA A.Ş.", addr:"MERSİN · AKDENİZ · ÇANKAYA MAH.",
+   tapu:"1 Tapu 7781 / DEPO", bank:"T. VAKIFLAR BANKASI", branch:"MERSİN ŞUBESİ",
+   u:"HÜSEYİN AKMAN", d:"ERDİ ARSLAN", tags:[["takbis",0]], stage:9, sla:"Tamam", slc:"ok", q:["imza","rapor"], flag:"ok", docs:3, left:1},
+  {no:"2026-HLK-0560", link:"11513090", st:"İLK BAŞVURU", stc:"b-ilk", first:true, date:"26.05.2026 09:11", upd:"03.06.2026 15:00",
+   region:"İÇ ANADOLU", cust:"KARATAY LOJİSTİK LTD. ŞTİ.", addr:"KONYA · KARATAY · HACIYUSUF MAH.",
+   tapu:"2 Tapu 2036 / 9 ARSA", bank:"T. HALK BANKASI A.Ş.", branch:"KONYA ŞUBESİ",
+   u:"HÜSEYİN AKMAN", d:"GİZEM DİKİCİ", tags:[["takbis",0],["ihakk",1],["proje",2]], stage:4, sla:"40:02", slc:"", q:["uzmanda"], flag:"", docs:0, left:8},
+  {no:"2026-ZRT-1148", link:"11511337", st:"İLK BAŞVURU", stc:"b-ilk", first:true, date:"24.05.2026 15:33", upd:"02.06.2026 12:40",
+   region:"KARADENİZ", cust:"SAMSUN FINDIK İHRACAT A.Ş.", addr:"SAMSUN · İLKADIM · KALE MAH.",
+   tapu:"1 Tapu 3320 / FABRİKA", bank:"T. ZİRAAT BANKASI A.Ş.", branch:"SAMSUN KURUMSAL",
+   u:"HÜSEYİN AKMAN", d:"GİZEM DİKİCİ", tags:[["takbis",0],["proje",1]], stage:3, sla:"48:20", slc:"", q:["donmus"], flag:"", docs:0, left:9},
+];
+
+let activeQ = null, search = "";
+
+// ---- Load any cases the user created earlier (saved in this browser) ----
+const LSKEY='assetix_deg_cases', LSKEY_EDIT='assetix_deg_edits';
+try{ JSON.parse(localStorage.getItem(LSKEY)||'[]').forEach(c=>SAMPLE.unshift(c)); }catch(e){}
+try{ const ed=JSON.parse(localStorage.getItem(LSKEY_EDIT)||'{}'); SAMPLE.forEach(c=>{ if(ed[c.no]) Object.assign(c,ed[c.no]); }); }catch(e){}
+
+// ---- Queue counters (computed from data) ----
+const cont = document.getElementById('counters');
+const QICON = {uzmanda:"👤",denetimde:"👤",donmus:"👤",bugun:"👤",rapor:"⏳",imza:"✍"};
+function renderCounters(){
+  cont.innerHTML = QUEUES.map(q=>{
+    const n = SAMPLE.filter(j=>j.q.includes(q.k)).length;
+    return `<div class="ctile ${q.c}" data-q="${q.k}"><div class="ico">${QICON[q.k]}</div><div class="cn">${n}</div><div class="cl">${q.l}</div></div>`;
+  }).join('');
+  cont.querySelectorAll('.ctile').forEach(t=>t.onclick=()=>{
+    const k=t.dataset.q; activeQ=(activeQ===k)?null:k;
+    cont.querySelectorAll('.ctile').forEach(x=>x.classList.toggle('on', x.dataset.q===activeQ));
+    render();
+  });
+}
+renderCounters();
+
+function fill(sel, vals){const e=document.getElementById(sel);[...new Set(vals)].forEach(v=>{const o=document.createElement('option');o.textContent=v;e.appendChild(o);});}
+fill('fBank', SAMPLE.map(s=>s.bank));
+fill('fDen',  SAMPLE.map(s=>s.d));
+fill('fCity', SAMPLE.map(s=>s.addr.split('·')[0].trim()));
+
+function pipe(job){
+  const steps = STAGES.map((s,i)=>{
+    const n=i+1; let cls='';
+    if(n<job.stage) cls='done'; else if(n===job.stage) cls='cur';
+    const sla = (n===job.stage) ? `<span class="sla ${job.slc}">${job.sla}</span>` : '';
+    return `<div class="stp ${cls}">${sla}<div class="cir">${n}</div><div class="lbl">${s}</div></div>`;
+  }).join('');
+  const docs = `<span class="docs">${[0,1,2].map(d=>`<i style="${d<job.docs?'background:var(--green);border-color:var(--green)':''}"></i>`).join('')}</span>`;
+  const phase = job.stage<=5 ? 'Başvuru' : 'Rapor';
+  return `<div class="pipewrap">
+    <div class="piperow"><div class="pipe" style="flex:1">${steps}</div>${docs}</div>
+    <div class="pipefoot"><span class="phase-tag">Aşama <b>${job.stage}/9</b> · ${phase} · Kalan <b>${job.left} gün</b></span><span class="gridico">⠿</span></div>
+  </div>`;
+}
+
+function card(j){
+  const tagMap={takbis:"TAKBİS",haciz:"HACİZ",proje:"PROJE",ihakk:"İHAKK"};
+  const tags = j.tags.map(([t,c])=>`<span class="tg ${t}" data-tag="${tagMap[t]}">${tagMap[t]}${c?`<span class="cnt">${c}</span>`:''}</span>`).join('');
+  return `<div class="job ${j.flag} ${j.ozel?'ozel':''}">
+    <div class="jl"><span title="Detayı aç" data-open="${j.no}">›</span><span title="İşlemler" data-menu="1">≡</span></div>
+    <div>
+      <div class="jrow"><span class="jno" data-open="${j.no}" style="cursor:pointer">${j.no}</span>
+        <span class="badge ${j.stc}">${j.st}</span>
+        ${j.first?'<span class="badge b-ilk">İLK BAŞVURU</span>':''}
+        <span class="jlink">🔗 ${j.link}</span>
+      </div>
+      <div class="jdate">${j.date} → ${j.upd}</div>
+      <div class="jrow"><span class="badge b-blue">${j.region}</span></div>
+      <div class="jcust">${j.cust}</div>
+      <div class="jaddr">${j.addr}</div>
+      <div class="jtapu tappable" data-tapu="${j.no}" title="Tapu kaydını gör"><span class="pin">📍</span> ${j.tapu}</div>
+    </div>
+    <div class="kv">
+      <div class="bank">${j.bank}</div>
+      <div class="br">${j.branch}</div>
+      <div class="who"><span class="role ru">U</span> ${j.u}</div>
+      <div class="who"><span class="role rd">D</span> ${j.d}</div>
+      <div class="tags">${tags}</div>
+    </div>
+    ${pipe(j)}
+  </div>`;
+}
+
+const TYPEKEY={"Konut":"KONUT","Arsa":"ARSA","İşyeri":"İŞYERİ","Akaryakıt Tesisi":"AKARYAKIT","Fabrika":"FABRİKA"};
+function readFilters(){
+  const sel=id=>{const e=document.getElementById(id);return (e&&e.value&&!e.value.startsWith('Seçiniz'))?e.value:'';};
+  return {bank:sel('fBank'), den:sel('fDen'), city:sel('fCity'), type:sel('fType'),
+          dist:(document.getElementById('fDist')?.value||'').trim().toLowerCase()};
+}
+function filteredRows(){
+  const f=readFilters();
+  return SAMPLE.filter(j=>{
+    const okQ = !activeQ || j.q.includes(activeQ);
+    const okS = !search || (j.cust+j.no+j.addr+j.bank+j.link).toLowerCase().includes(search);
+    const okBank = !f.bank || j.bank===f.bank;
+    const okDen  = !f.den  || j.d===f.den;
+    const okCity = !f.city || j.addr.split('·')[0].trim()===f.city;
+    const okType = !f.type || (TYPEKEY[f.type] && j.tapu.toUpperCase().includes(TYPEKEY[f.type]));
+    const okDist = !f.dist || j.addr.toLowerCase().includes(f.dist);
+    return okQ && okS && okBank && okDen && okCity && okType && okDist;
+  });
+}
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(showToast._t); showToast._t=setTimeout(()=>t.classList.remove('show'),2300);
+}
+function render(){
+  const f=readFilters();
+  const rows = filteredRows();
+  const anyFilter = activeQ||search||f.bank||f.den||f.city||f.type||f.dist;
+  document.getElementById('list').innerHTML = rows.length
+    ? rows.map(card).join('')
+    : '<div class="job" style="grid-template-columns:1fr;text-align:center;color:var(--muted);padding:22px">Bu filtreye uygun başvuru yok.</div>';
+  document.getElementById('total').textContent = anyFilter ? rows.length.toLocaleString('tr-TR') : '1.471';
+}
+
+document.getElementById('qsearch').addEventListener('input', e=>{search=e.target.value.trim().toLowerCase();render();});
+document.getElementById('searchBtn').onclick = ()=>render();
+document.getElementById('clearBtn').onclick = ()=>{
+  search='';activeQ=null;document.getElementById('qsearch').value='';
+  cont.querySelectorAll('.ctile').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.filters select').forEach(s=>s.selectedIndex=0);
+  document.querySelectorAll('.filters input').forEach(i=>i.value='');
+  render();
+};
+document.querySelectorAll('#sortbar .sk').forEach(sk=>sk.onclick=()=>{
+  document.querySelectorAll('#sortbar .sk').forEach(x=>x.classList.remove('act'));
+  sk.classList.add('act');
+  const s=sk.dataset.s;
+  if(s==='cust'||s==='unvan') SAMPLE.sort((a,b)=>a.cust.localeCompare(b.cust,'tr'));
+  else if(s==='no') SAMPLE.sort((a,b)=>a.no.localeCompare(b.no));
+  else if(s==='branch') SAMPLE.sort((a,b)=>a.branch.localeCompare(b.branch,'tr'));
+  else if(s==='left') SAMPLE.sort((a,b)=>a.left-b.left);
+  else if(s==='bank') SAMPLE.sort((a,b)=>a.link.localeCompare(b.link));
+  else SAMPLE.sort((a,b)=>b.date.localeCompare(a.date));
+  render();
+});
+
+// active-filter chips removable
+document.querySelectorAll('.fchip x').forEach(x=>x.onclick=()=>x.parentElement.remove());
+
+// ===================== CASE DETAIL =====================
+function seeded(link){let s=0;for(const c of link)s=(s*31+c.charCodeAt(0))%1000000;return s;}
+function detailData(j){
+  const p=j.addr.split('·').map(s=>s.trim());
+  const il=p[0]||'', ilce=p[1]||'', mah=p[2]||'';
+  const s=seeded(j.link), t=j.tapu.toUpperCase();
+  let type='Gayrimenkul',amin,amax,umin,umax,yontem;
+  if(t.includes('KONUT')){type='Konut';amin=90;amax=220;umin=28000;umax=55000;yontem='Emsal Karşılaştırma';}
+  else if(t.includes('ARSA')){type='Arsa';amin=400;amax=2500;umin=6000;umax=22000;yontem='Emsal Karşılaştırma';}
+  else if(t.includes('AKARYAKIT')){type='Akaryakıt Tesisi';amin=1200;amax=3500;umin=18000;umax=40000;yontem='Gelir İndirgeme';}
+  else if(t.includes('İŞYERİ')){type='İşyeri';amin=70;amax=350;umin=30000;umax=70000;yontem='Gelir İndirgeme';}
+  else if(t.includes('FABRİKA')){type='Fabrika';amin=3000;amax=9000;umin=14000;umax=30000;yontem='Maliyet';}
+  else if(t.includes('DEPO')){type='Depo';amin=800;amax=2500;umin=9000;umax=20000;yontem='Maliyet';}
+  else{amin=100;amax=500;umin=15000;umax=40000;yontem='Emsal Karşılaştırma';}
+  const f1=(s%1000)/1000, f2=((s>>3)%1000)/1000;
+  const area=Math.round(amin+f1*(amax-amin));
+  const unit=Math.round((umin+f2*(umax-umin))/500)*500;
+  const value=Math.round(area*unit/10000)*10000;
+  const ada=200+(s%800), parsel=1+(s%40);
+  return {il,ilce,mah,type,area,unit,value,yontem,ada,parsel};
+}
+function detailHTML(j){
+  const D=detailData(j), tl=n=>n.toLocaleString('tr-TR');
+  const tagMap={takbis:"TAKBİS",haciz:"HACİZ",proje:"PROJE",ihakk:"İHAKK"};
+  const tags=j.tags.map(([t,c])=>`<span class="tg ${t}">${tagMap[t]}${c?`<span class="cnt">${c}</span>`:''}</span>`).join('');
+  const comps=[0,1,2].map(i=>{const du=Math.round(D.unit*(0.9+0.07*i)/500)*500;const da=Math.round(D.area*(0.85+0.13*i));return {l:D.ilce+' Emsal '+(i+1),a:da,u:du,t:da*du};});
+  const docs=[
+    ['Tapu Senedi','Yüklendi','b-green'],
+    ['İmar Durumu Belgesi', j.stage>=3?'Yüklendi':'Bekleniyor', j.stage>=3?'b-green':'b-ilk'],
+    ['Ekspertiz Fotoğrafları',(4+(seeded(j.link)%6))+' adet','b-blue'],
+    ['Değerleme Raporu', j.stage>=9?'Hazır':(j.stage>=6?'Taslak':'—'), j.stage>=9?'b-green':'b-ilk'],
+  ];
+  const nph=4+(seeded(j.link)%4);
+  const photos=Array.from({length:nph},()=>'<div class="ph">🏢</div>').join('');
+  const evs=[
+    [j.date, j.u, 'Başvuru oluşturuldu ve dosya açıldı'],
+    [j.date.split(' ')[0]+' 10:15', j.u, 'TAKBİS / tapu sorgusu tamamlandı'],
+    [j.upd.split(' ')[0]+' 09:00', j.u, 'Saha ekspertizi ve fotoğraflar yüklendi'],
+    [j.upd, (j.stage>=8?j.d:j.u), STAGES[j.stage-1]+' aşamasında işlem sürüyor'],
+  ];
+  const timeline=evs.map(([t,w,x])=>`<div class="ev"><div class="t">${t}</div><div class="x">${x}</div><div class="w">${w}</div></div>`).join('');
+  return `<div class="detail">
+    <div class="dhead">
+      <button class="btn ghost" id="backBtn">← Geri</button>
+      <div class="dtitle"><b>${j.no}</b>
+        <span class="badge ${j.stc}">${j.st}</span>
+        ${j.first?'<span class="badge b-ilk">İLK BAŞVURU</span>':''}
+        <span class="jlink">🔗 ${j.link}</span>
+      </div>
+      <div class="dactions">
+        <button class="btn ghost" data-edit="${j.no}">✏ Düzenle</button>
+        <button class="btn ghost" data-act="takbis">🔎 TAKBİS Sorgula</button>
+        <button class="btn blue" data-act="rapor">📄 Rapor Oluştur</button>
+        <button class="btn green" data-act="onay">✓ Onaya Gönder</button>
+      </div>
+    </div>
+
+    <div class="dstrip">
+      <div class="si"><div class="k">Müşteri</div><div class="v">${j.cust}</div></div>
+      <div class="si"><div class="k">Banka / Şube</div><div class="v">${j.bank}<br><span style="font-weight:400;color:var(--muted);font-size:10.5px">${j.branch}</span></div></div>
+      <div class="si"><div class="k">Değerleme Türü</div><div class="v">${D.type}</div></div>
+      <div class="si"><div class="k">Kalan Süre</div><div class="v">${j.left} gün</div></div>
+      <div class="si"><div class="k">Uzman</div><div class="v">${j.u}</div></div>
+      <div class="si"><div class="k">Denetmen</div><div class="v">${j.d}</div></div>
+    </div>
+
+    <div class="dcard"><h3><span class="ic">🔄</span> Süreç Hattı — Aşama ${j.stage}/9</h3>${pipe(j)}</div>
+
+    <div class="dcols">
+      <div class="dmain">
+        <div class="dcard"><h3><span class="ic">🏠</span> Gayrimenkul Bilgileri</h3>
+          <table class="dtable">
+            <tr><td>İl / İlçe / Mahalle</td><td>${D.il} / ${D.ilce} / ${D.mah}</td></tr>
+            <tr><td>Ada / Parsel</td><td>${D.ada} / ${D.parsel}</td></tr>
+            <tr><td>Tapu Kaydı</td><td><span class="tlink" data-tapu="${j.no}">${j.tapu}</span></td></tr>
+            <tr><td>Nitelik</td><td>${D.type}</td></tr>
+            <tr><td>Yüzölçümü</td><td>${tl(D.area)} m²</td></tr>
+            <tr><td>Bölge</td><td>${j.region}</td></tr>
+          </table>
+        </div>
+        <div class="dcard"><h3><span class="ic">💰</span> Değerleme</h3>
+          <div class="valbox"><div class="big">₺${tl(D.value)}</div><div><div class="u">Takdir edilen değer</div><div class="u">${tl(D.unit)} ₺/m² · ${D.yontem}</div></div></div>
+          <h3 style="font-size:12px;margin:4px 0 6px">Emsal Karşılaştırma</h3>
+          <table class="dtable comp">
+            <tr style="color:var(--muted)"><td>Emsal</td><td>m²</td><td>₺/m²</td><td>Toplam ₺</td></tr>
+            ${comps.map(c=>`<tr><td>${c.l}</td><td>${tl(c.a)}</td><td>${tl(c.u)}</td><td>${tl(c.t)}</td></tr>`).join('')}
+          </table>
+        </div>
+        <div class="dcard"><h3><span class="ic">📎</span> Belgeler & Fotoğraflar</h3>
+          <div class="doclist">${docs.map(([n,s,c])=>`<div class="dl"><span>${n}</span><span class="badge ${c}">${s}</span></div>`).join('')}</div>
+          <div class="photos" style="margin-top:10px">${photos}</div>
+        </div>
+      </div>
+
+      <div class="dside">
+        <div class="dcard"><h3><span class="ic">⏱</span> Süreç / Durum</h3>
+          <table class="dtable">
+            <tr><td>Mevcut Aşama</td><td>${STAGES[j.stage-1]} (${j.stage}/9)</td></tr>
+            <tr><td>Faz</td><td>${j.stage<=5?'Başvuru':'Rapor'}</td></tr>
+            <tr><td>SLA</td><td>${j.sla}</td></tr>
+            <tr><td>Başvuru</td><td>${j.date}</td></tr>
+            <tr><td>Son Güncelleme</td><td>${j.upd}</td></tr>
+          </table>
+          <div class="tags" style="margin-top:8px">${tags}</div>
+        </div>
+        <div class="dcard"><h3><span class="ic">🧾</span> TAKBİS Sorgu Sonucu</h3>
+          <table class="dtable">
+            <tr><td>Tapu Durumu</td><td>Aktif</td></tr>
+            <tr><td>Ada / Parsel</td><td>${D.ada} / ${D.parsel}</td></tr>
+            <tr><td>Haciz / Şerh</td><td>${j.tags.some(t=>t[0]==='haciz')?'Var (1)':'Yok'}</td></tr>
+            <tr><td>Sorgu</td><td>Tamamlandı ✓</td></tr>
+          </table>
+        </div>
+        <div class="dcard"><h3><span class="ic">📜</span> İşlem Geçmişi</h3>
+          <div class="timeline">${timeline}</div>
+        </div>
+        <div class="dcard"><h3><span class="ic">📝</span> Notlar</h3>
+          <textarea placeholder="Dosya ile ilgili not ekleyin…" style="width:100%;min-height:58px;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px;background:var(--panel2);resize:vertical;font-family:inherit"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function openCase(j){
+  document.querySelector('.pagehd').style.display='none';
+  document.querySelector('.sortbar').style.display='none';
+  document.getElementById('listView').style.display='none';
+  const d=document.getElementById('detail');
+  d.innerHTML=detailHTML(j); d.style.display='block';
+  d.querySelector('#backBtn').onclick=closeCase;
+  window.scrollTo(0,0);
+}
+function closeCase(){
+  document.getElementById('detail').style.display='none';
+  document.querySelector('.pagehd').style.display='';
+  document.querySelector('.sortbar').style.display='';
+  document.getElementById('listView').style.display='';
+}
+document.getElementById('list').addEventListener('click', e=>{
+  const tp=e.target.closest('[data-tapu]');
+  if(tp){const j=SAMPLE.find(x=>x.no===tp.dataset.tapu); if(j) openTapu(j); return;}
+  const mn=e.target.closest('[data-menu]');
+  if(mn){showToast('İşlemler menüsü — demo (düzenle · kopyala · yazdır).'); return;}
+  const tg=e.target.closest('[data-tag]');
+  if(tg){showToast(tg.dataset.tag+' kaydı görüntüleniyor — demo.'); return;}
+  const el=e.target.closest('[data-open]'); if(!el) return;
+  const j=SAMPLE.find(x=>x.no===el.dataset.open); if(j) openCase(j);
+});
+
+// ----- Tapu / TAKBİS popup -----
+function tapuHTML(j){
+  const D=detailData(j), tl=n=>n.toLocaleString('tr-TR'), s=seeded(j.link);
+  const yev=1000+(s%9000), yil=2015+(s%9);
+  const haciz=j.tags.some(t=>t[0]==='haciz');
+  return `<div class="modalcard">
+    <div class="mh"><span>🧾 TAKBİS / Tapu Kaydı — ${j.no}</span><button class="cls" id="mClose">✕</button></div>
+    <div class="mb"><table class="dtable">
+      <tr><td>İl / İlçe</td><td>${D.il} / ${D.ilce}</td></tr>
+      <tr><td>Mahalle</td><td>${D.mah}</td></tr>
+      <tr><td>Ada / Parsel</td><td>${D.ada} / ${D.parsel}</td></tr>
+      <tr><td>Nitelik</td><td>${D.type}</td></tr>
+      <tr><td>Yüzölçümü</td><td>${tl(D.area)} m²</td></tr>
+      <tr><td>Malik</td><td>${j.cust}</td></tr>
+      <tr><td>Hisse</td><td>Tam (1/1)</td></tr>
+      <tr><td>Edinme Sebebi</td><td>Satış</td></tr>
+      <tr><td>Tapu Tarihi / Yevmiye</td><td>${yil} / ${yev}</td></tr>
+      <tr><td>Haciz / Şerh</td><td>${haciz?'<b style="color:var(--red)">Var (1 haciz)</b>':'Yok'}</td></tr>
+    </table></div>
+    <div class="mf">⚠ TAKBİS sorgu sonucu — bu demoda örnek (kurgu) veridir.</div>
+  </div>`;
+}
+function openTapu(j){
+  const m=document.getElementById('modal');
+  m.innerHTML=tapuHTML(j); m.style.display='grid';
+  m.querySelector('#mClose').onclick=closeModal;
+}
+function closeModal(){document.getElementById('modal').style.display='none';}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+document.getElementById('detail').addEventListener('click',e=>{
+  const ed=e.target.closest('[data-edit]');
+  if(ed){const j=SAMPLE.find(x=>x.no===ed.dataset.edit); if(j) openCaseForm(j); return;}
+  const el=e.target.closest('[data-tapu]');
+  if(el){const j=SAMPLE.find(x=>x.no===el.dataset.tapu); if(j) openTapu(j); return;}
+  const ac=e.target.closest('[data-act]');
+  if(ac){const M={takbis:'TAKBİS sorgusu tamamlandı — tapu kaydı güncel.',rapor:'Değerleme raporu taslağı oluşturuldu.',onay:'Dosya denetmen onayına gönderildi.'};showToast(M[ac.dataset.act]||'İşlem alındı.');}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ===================== HIZLI ARAMA (saved searches) =====================
+const QLBL={uzmanda:'Uzmanda',denetimde:'Denetimde',donmus:'Donmuş',bugun:'Bugün',rapor:'Raporlaşmış',imza:'İmzalanacak'};
+const QUICKS=[
+  {name:'Bugün işlem görenler',     crit:{queue:'bugun'}},
+  {name:'Raporlaşmış dosyalar',     crit:{queue:'rapor'}},
+  {name:'Açık akaryakıt dosyaları', crit:{type:'Akaryakıt Tesisi'}},
+  {name:'Ziraat Bankası — tümü',    crit:{bank:'T. ZİRAAT BANKASI A.Ş.'}},
+];
+function quickDesc(q){
+  const c=q.crit, p=[];
+  if(c.queue)p.push(QLBL[c.queue]); if(c.bank)p.push(c.bank); if(c.type)p.push(c.type);
+  if(c.city)p.push(c.city); if(c.dist)p.push(c.dist); if(c.search)p.push('"'+c.search+'"');
+  return p.join(' · ')||'Tüm kayıtlar';
+}
+function renderQuick(){
+  const el=document.getElementById('quickList');
+  el.innerHTML = QUICKS.length
+    ? QUICKS.map((q,i)=>`<div class="qitem" data-qi="${i}"><span><span class="star">★</span> ${q.name}<div class="qd">${quickDesc(q)}</div></span><span>›</span></div>`).join('')
+    : '<div class="qempty">Henüz kayıtlı hızlı arama yok.<br>Soldaki “Ara” sekmesinden kriter seçip “Hızlı Aramaya Kaydet” deyin.</div>';
+  el.querySelectorAll('.qitem').forEach(it=>it.onclick=()=>applyQuick(QUICKS[+it.dataset.qi]));
+}
+function showTab(which){
+  document.getElementById('tabAra').classList.toggle('on',which==='ara');
+  document.getElementById('tabHizli').classList.toggle('on',which==='hizli');
+  document.getElementById('araPanel').style.display = which==='ara'?'':'none';
+  document.getElementById('hizliPanel').style.display = which==='hizli'?'':'none';
+  if(which==='hizli') renderQuick();
+}
+function applyQuick(q){
+  // reset everything first
+  search=''; activeQ=null; document.getElementById('qsearch').value='';
+  document.querySelectorAll('.filters select').forEach(s=>s.selectedIndex=0);
+  document.querySelectorAll('.filters input').forEach(i=>i.value='');
+  cont.querySelectorAll('.ctile').forEach(x=>x.classList.remove('on'));
+  const c=q.crit;
+  if(c.queue){activeQ=c.queue; cont.querySelectorAll('.ctile').forEach(x=>x.classList.toggle('on',x.dataset.q===activeQ));}
+  if(c.bank)  document.getElementById('fBank').value=c.bank;
+  if(c.type)  document.getElementById('fType').value=c.type;
+  if(c.city)  document.getElementById('fCity').value=c.city;
+  if(c.den)   document.getElementById('fDen').value=c.den;
+  if(c.dist)  document.getElementById('fDist').value=c.dist;
+  if(c.search){search=c.search; document.getElementById('qsearch').value=c.search;}
+  showTab('ara');
+  render();
+}
+document.getElementById('tabAra').onclick=()=>showTab('ara');
+document.getElementById('tabHizli').onclick=()=>showTab('hizli');
+document.getElementById('saveQuick').onclick=()=>{
+  const f=readFilters();
+  const name=(prompt('Hızlı arama adı:','')||'').trim();
+  if(!name) return;
+  QUICKS.push({name, crit:{queue:activeQ||undefined, bank:f.bank||undefined, type:f.type||undefined,
+    city:f.city||undefined, dist:f.dist||undefined, search:search||undefined}});
+  showTab('hizli');
+};
+
+// ----- Excel (CSV) export of the currently shown cases -----
+function downloadExcel(){
+  const rows=filteredRows();
+  if(!rows.length){showToast('İndirilecek kayıt yok.');return;}
+  const head=['Başvuru No','Müşteri','Banka','Şube','Bölge','Tapu','Uzman','Denetmen','Aşama','SLA','Kalan Gün'];
+  const esc=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const lines=[head.map(esc).join(';')];
+  rows.forEach(j=>lines.push([j.no,j.cust,j.bank,j.branch,j.region,j.tapu,j.u,j.d,STAGES[j.stage-1]+' ('+j.stage+'/9)',j.sla,j.left+' gün'].map(esc).join(';')));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download='assetix-degerleme-basvurular.csv';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  showToast(rows.length+' kayıt Excel (CSV) olarak indirildi.');
+}
+document.getElementById('excelBtn').onclick=downloadExcel;
+// soft feedback for the rest, so nothing feels broken
+document.querySelectorAll('.nav a:not(.active)').forEach(a=>a.onclick=()=>showToast('“'+a.textContent.trim()+'” — bu modül demoda yapım aşamasında.'));
+document.querySelectorAll('.grphd').forEach(h=>h.onclick=()=>{const items=h.parentElement.querySelector('.grpitems');if(items){items.classList.toggle('hide');h.classList.toggle('collapsed');}else{showToast('“'+(h.dataset.lbl||'Menü')+'” — demo.');}});
+document.querySelectorAll('.rtools .rt').forEach(b=>b.onclick=()=>showToast((b.title||'Araç')+' — demo.'));
+document.querySelectorAll('.pager button').forEach(b=>{if(!b.disabled&&b.textContent.trim()!=='…')b.onclick=()=>showToast('Bu demoda örnek olarak yalnızca 1. sayfa doludur.');});
+document.querySelectorAll('.ticon').forEach(i=>i.onclick=()=>showToast((i.title||'Araç')+' — demo.'));
+const _gear=document.querySelector('.fhd a'); if(_gear)_gear.onclick=()=>showToast('Arama kriteri düzenleme — demo.');
+const _burger=document.querySelector('.burger'); if(_burger)_burger.onclick=()=>showToast('Menü — demo.');
+const _uchip=document.querySelector('.uchip'); if(_uchip)_uchip.onclick=()=>showToast('Kullanıcı menüsü — demo (profil · çıkış).');
+
+// ===================== YENİ BAŞVURU (create + save a new case) =====================
+const BANKS=['T. ZİRAAT BANKASI A.Ş.','T. HALK BANKASI A.Ş.','T. VAKIFLAR BANKASI','ÖZEL PROJELER'];
+const BANKCODE={'T. ZİRAAT BANKASI A.Ş.':'ZRT','T. HALK BANKASI A.Ş.':'HLK','T. VAKIFLAR BANKASI':'VKF','ÖZEL PROJELER':'OZL'};
+const ILREGION={'İSTANBUL':'MARMARA BÖLGESİ','İZMİR':'EGE BÖLGESİ','ANKARA':'İÇ ANADOLU','ANTALYA':'AKDENİZ BÖLGESİ','BURSA':'MARMARA BÖLGESİ','KONYA':'İÇ ANADOLU','ADANA':'AKDENİZ BÖLGESİ','SAMSUN':'KARADENİZ','TRABZON':'KARADENİZ','GAZİANTEP':'GÜNEYDOĞU','ERZURUM':'DOĞU ANADOLU'};
+const TYPEUP={'Konut':'KONUT','Arsa':'ARSA','İşyeri':'İŞYERİ','Akaryakıt Tesisi':'AKARYAKIT TESİSİ','Fabrika':'FABRİKA','Depo':'DEPO'};
+function nowStr(){const n=new Date(),p=x=>String(x).padStart(2,'0');return `${p(n.getDate())}.${p(n.getMonth()+1)}.${n.getFullYear()} ${p(n.getHours())}:${p(n.getMinutes())}`;}
+function opt(list){return list.map(v=>`<option>${v}</option>`).join('');}
+function val(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function detectType(tapu){const t=(tapu||'').toUpperCase();
+  if(t.includes('KONUT'))return 'Konut'; if(t.includes('ARSA'))return 'Arsa';
+  if(t.includes('AKARYAKIT'))return 'Akaryakıt Tesisi'; if(t.includes('İŞYERİ'))return 'İşyeri';
+  if(t.includes('FABRİKA'))return 'Fabrika'; if(t.includes('DEPO'))return 'Depo'; return 'Konut';}
+function parseAddr(addr){const p=(addr||'').split('·').map(s=>s.trim()); return {il:p[0]||'',ilce:p[1]||'',mah:p[2]||''};}
+function parseTapuNo(tapu){const m=(tapu||'').match(/Tapu\s+(\d+)/i); return m?m[1]:'';}
+function isCreated(no){try{return JSON.parse(localStorage.getItem(LSKEY)||'[]').some(c=>c.no===no);}catch(e){return false;}}
+function updateCreated(c){try{const a=JSON.parse(localStorage.getItem(LSKEY)||'[]');const i=a.findIndex(x=>x.no===c.no);if(i>=0){a[i]=c;localStorage.setItem(LSKEY,JSON.stringify(a));}}catch(e){}}
+function saveEdit(c){try{const ed=JSON.parse(localStorage.getItem(LSKEY_EDIT)||'{}');
+  ed[c.no]={cust:c.cust,bank:c.bank,branch:c.branch,region:c.region,addr:c.addr,tapu:c.tapu,d:c.d,ozel:c.ozel,upd:c.upd};
+  localStorage.setItem(LSKEY_EDIT,JSON.stringify(ed));}catch(e){}}
+
+function openCaseForm(existing){
+  const m=document.getElementById('modal');
+  const ttl = existing ? ('✏ Başvuruyu Düzenle — '+existing.no) : '➕ Yeni Başvuru';
+  m.innerHTML=`<div class="modalcard wide">
+    <div class="mh"><span>${ttl}</span><button class="cls" id="mClose">✕</button></div>
+    <div class="mb" style="max-height:66vh;overflow:auto">
+      <div class="fgrp"><label>Müşteri Adı *</label><input id="nfCust" placeholder="Örn. Demo Sanayi A.Ş."></div>
+      <div class="fgrp two">
+        <div><label>Banka</label><select id="nfBank">${opt(BANKS)}</select></div>
+        <div><label>Şube</label><input id="nfBranch" placeholder="Şube adı"></div>
+      </div>
+      <div class="fgrp"><label>Değerleme Türü</label><select id="nfType">${opt(['Konut','Arsa','İşyeri','Akaryakıt Tesisi','Fabrika','Depo'])}</select></div>
+      <div class="fgrp two">
+        <div><label>İl</label><input id="nfIl" placeholder="Örn. İzmir"></div>
+        <div><label>İlçe</label><input id="nfIlce" placeholder="İlçe"></div>
+      </div>
+      <div class="fgrp"><label>Mahalle</label><input id="nfMah" placeholder="Mahalle"></div>
+      <div class="fgrp two">
+        <div><label>Tapu / Parsel No</label><input id="nfTapu" placeholder="Örn. 2451"></div>
+        <div><label>Denetmen</label><select id="nfDen">${opt(['ERDİ ARSLAN','GİZEM DİKİCİ'])}</select></div>
+      </div>
+    </div>
+    <div class="mf" style="display:flex;justify-content:flex-end;gap:8px;background:var(--panel)">
+      <button class="btn ghost" id="nfCancel">Vazgeç</button>
+      <button class="btn green" id="nfSave">💾 Kaydet</button>
+    </div>
+  </div>`;
+  m.style.display='grid';
+  if(existing){
+    const a=parseAddr(existing.addr);
+    document.getElementById('nfCust').value=existing.cust;
+    document.getElementById('nfBank').value=existing.bank;
+    document.getElementById('nfBranch').value=(existing.branch&&existing.branch!=='—')?existing.branch:'';
+    document.getElementById('nfType').value=detectType(existing.tapu);
+    document.getElementById('nfIl').value=a.il; document.getElementById('nfIlce').value=a.ilce; document.getElementById('nfMah').value=a.mah;
+    document.getElementById('nfTapu').value=parseTapuNo(existing.tapu);
+    document.getElementById('nfDen').value=existing.d;
+  }
+  m.querySelector('#mClose').onclick=closeModal;
+  m.querySelector('#nfCancel').onclick=closeModal;
+  m.querySelector('#nfSave').onclick=()=>saveCaseForm(existing);
+  m.querySelector('#nfCust').focus();
+}
+function saveCaseForm(existing){
+  const cust=val('nfCust');
+  if(!cust){showToast('Lütfen müşteri adını girin.');document.getElementById('nfCust').focus();return;}
+  const bank=val('nfBank'), type=val('nfType');
+  const il=val('nfIl'), ilce=val('nfIlce'), mah=val('nfMah');
+  const typeUp=TYPEUP[type]||'GAYRİMENKUL';
+  const addr=[il,ilce,mah].filter(Boolean).join(' · ').toUpperCase()||'—';
+  const region=ILREGION[il.toUpperCase()]||(il?il.toUpperCase():'YENİ KAYIT');
+  const tapuNo=val('nfTapu')||String(1000+Math.floor(Math.random()*8000));
+  const fields={cust, bank, branch:val('nfBranch')||'—', region, addr,
+    tapu:'1 Tapu '+tapuNo+' / '+typeUp, d:val('nfDen'), ozel:bank==='ÖZEL PROJELER', upd:nowStr()};
+  if(existing){
+    Object.assign(existing, fields);
+    if(isCreated(existing.no)) updateCreated(existing); else saveEdit(existing);
+    closeModal(); renderCounters(); render(); openCase(existing);
+    showToast('Başvuru güncellendi: '+existing.no);
+  }else{
+    const code=BANKCODE[bank]||'YNI';
+    const c=Object.assign({
+      no:'2026-'+code+'-'+String(1000+Math.floor(Math.random()*9000)),
+      link:String(11500000+Math.floor(Math.random()*99999)),
+      st:'İLK BAŞVURU',stc:'b-ilk',first:true,date:nowStr(),
+      u:'HÜSEYİN AKMAN',tags:[['takbis',0]],stage:1,sla:'48:00',slc:'',
+      q:['uzmanda','bugun'],flag:'',docs:0,left:10
+    }, fields);
+    SAMPLE.unshift(c);
+    try{const arr=JSON.parse(localStorage.getItem(LSKEY)||'[]');arr.unshift(c);localStorage.setItem(LSKEY,JSON.stringify(arr));}catch(e){}
+    closeModal();
+    activeQ=null; search=''; document.getElementById('qsearch').value='';
+    document.querySelectorAll('.filters select').forEach(s=>s.selectedIndex=0);
+    document.querySelectorAll('.filters input').forEach(i=>i.value='');
+    cont.querySelectorAll('.ctile').forEach(x=>x.classList.remove('on'));
+    renderCounters(); render();
+    showToast('Yeni başvuru kaydedildi: '+c.no);
+  }
+}
+document.getElementById('newBtn').onclick=()=>openCaseForm(null);
+
+function tick(){
+  const now=new Date();
+  const days=["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+  const months=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+  document.getElementById('tDate').textContent = now.getDate()+" "+months[now.getMonth()]+" "+now.getFullYear();
+  document.getElementById('tDow').textContent = days[now.getDay()];
+  document.getElementById('tClock').textContent = String(now.getHours()).padStart(2,'0')+":"+String(now.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick,30000);
+render();
+
+// ===================== ACCESS GATE (soft lock) =====================
+(function(){
+  const GP='Z3JvdzE='; // base64 of the access word
+  const gate=document.getElementById('gate');
+  function unlock(){ try{sessionStorage.setItem('assetix_deg_ok','1');}catch(e){} gate.style.display='none'; }
+  function tryGate(){
+    const v=document.getElementById('gatePass').value;
+    if(v===atob(GP)){ unlock(); }
+    else{ document.getElementById('gateErr').textContent='Hatalı parola. Tekrar deneyin.';
+      const p=document.getElementById('gatePass'); p.value=''; p.focus(); }
+  }
+  try{ if(sessionStorage.getItem('assetix_deg_ok')==='1'){ gate.style.display='none'; } }catch(e){}
+  document.getElementById('gateBtn').onclick=tryGate;
+  document.getElementById('gatePass').addEventListener('keydown',e=>{ if(e.key==='Enter') tryGate(); });
+  if(gate.style.display!=='none') document.getElementById('gatePass').focus();
+})();
+</script>
+</body>
+</html>
