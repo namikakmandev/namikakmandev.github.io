@@ -142,6 +142,15 @@ cardMedias.forEach((media) => {
     media.addEventListener("mouseleave", () => { v.pause(); });
   }
 });
+// Floating hero demo cards: play on desktop, click opens the lightbox
+document.querySelectorAll(".hero-float").forEach((f) => {
+  f.addEventListener("click", () => openLightbox(f.dataset.demo));
+  const v = f.querySelector("video");
+  if (v && !previewReduceMotion && window.matchMedia("(min-width: 1400px)").matches) {
+    v.play().catch(() => {});
+  }
+});
+
 if (!previewReduceMotion && cardMedias.length && "IntersectionObserver" in window) {
   const io = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
