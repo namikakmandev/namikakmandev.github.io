@@ -258,7 +258,16 @@ let actuals=[];
 let startYear=2022;
 let customData=false;
 let curProd=null;
+let fitStart=0; // >0 when exclusivity was lost inside history: fit only on post-LOE quarters
 const loeOffsetOf=p=>(p.loe[0]-p.startYear)*4+(p.loe[1]-1)-p.data.length;
+function fitStartOf(p){
+  // if LOE is inside the history, start the fit at the next full year after it
+  const off=loeOffsetOf(p);
+  if(off>=0)return 0;
+  let s=Math.ceil((p.data.length+off)/4)*4;
+  if(p.data.length-s<8)s=Math.max(0,p.data.length-8);
+  return s;
+}
 const fcQ=20; // 5-year forecast horizon
 const H=()=>actuals.length;
 const qLabel=i=>{const y=startYear+Math.floor(i/4);return 'Q'+(i%4+1)+" '"+String(y).slice(2)};
@@ -290,20 +299,22 @@ function fitForecast(data,horizon,slopeMul){
   }
   return {out,seas};
 }
-function baseline(){return fitForecast(actuals,fcQ,SLOPE_MUL[state.method]).out}
+function fitSeries(){return fitStart>0?actuals.slice(fitStart):actuals}
+function baseline(){return fitForecast(fitSeries(),fcQ,SLOPE_MUL[state.method]).out}
 
 function backtestMape(method){
   // fit on history minus the last 4 quarters, predict them, report mean abs % error
-  const n=actuals.length;
+  const series=fitSeries();
+  const n=series.length;
   if(n<12)return null;
-  const train=actuals.slice(0,n-4), test=actuals.slice(n-4);
+  const train=series.slice(0,n-4), test=series.slice(n-4);
   const pred=fitForecast(train,4,SLOPE_MUL[method]).out;
   let s=0;
   for(let i=0;i<4;i++)s+=Math.abs((pred[i]-test[i])/test[i]);
   return s/4*100;
 }
 function peakQuarter(){
-  const seas=fitForecast(actuals,1,SLOPE_MUL[state.method]).seas;
+  const seas=fitForecast(fitSeries(),1,SLOPE_MUL[state.method]).seas;
   let p=0;for(let q=1;q<4;q++)if(seas[q]>seas[p])p=q;
   return p+1;
 }
@@ -449,9 +460,10 @@ function render(){
   drawChart(base,adj);drawWaterfall(base,adj);updateKpis(base,adj);
   const m=backtestMape(state.method);
   const names={reg:'log-linear trend',hw:'damped trend',arima:'conservative trend'};
+  const win=fitStart>0?'post-LOE fit ('+(H()-fitStart)+' qtrs) · ':'';
   document.getElementById('fitStat').textContent=m===null
-    ?'Fit on '+H()+' qtrs · '+names[state.method]+' · history too short to backtest'
-    :'Backtest on last 4 qtrs · MAPE '+m.toFixed(1)+'% · '+names[state.method]+' · peak: Q'+peakQuarter();
+    ?(win||('Fit on '+H()+' qtrs · '))+names[state.method]+' · history too short to backtest'
+    :win+'Backtest on last 4 qtrs · MAPE '+m.toFixed(1)+'% · '+names[state.method]+' · peak: Q'+peakQuarter();
 }
 
 // ---------- LOE quarter options ----------
@@ -470,7 +482,8 @@ function rebuildLoeOptions(){
 // ---------- portfolio ----------
 function productBudget(p){
   // central view: damped baseline + the product's own LOE erosion, no demand adjustments
-  const base=fitForecast(p.data,fcQ,SLOPE_MUL.hw).out;
+  const fs=fitStartOf(p);
+  const base=fitForecast(fs>0?p.data.slice(fs):p.data,fcQ,SLOPE_MUL.hw).out;
   const off=loeOffsetOf(p);
   let adj=base;
   if(off>=0&&off<fcQ){
@@ -512,7 +525,11 @@ function selectProduct(id){
   const p=PRODUCTS.find(x=>x.id===id);if(!p)return;
   curProd=p;customData=false;
   actuals=[...p.data];startYear=p.startYear;
+  fitStart=fitStartOf(p);
   state.ero=p.ero;state.vol=p.vol;
+  state.phase=p.id==='FLDX'?'q4q1':'none';
+  document.getElementById('phaseSel').value=state.phase;
+  document.getElementById('phaseVal').textContent=state.phase==='q4q1'?'Q4 → Q1':state.phase==='q1q4'?'Q1 → Q4':'None';
   const off=loeOffsetOf(p);
   if(off>=2&&off<fcQ){state.loe=true;state.loeOffset=off}
   else{state.loe=false;state.loeOffset=Math.min(13,fcQ-1)}
@@ -544,7 +561,7 @@ function applyData(){
   if(vals.length%4!==0){msg.textContent='Full years only — the count must divide by 4 ('+vals.length+' found).';msg.classList.add('err');return}
   const y=+document.getElementById('yearIn').value;
   if(!(y>=1990&&y<=2030)){msg.textContent='First year must be between 1990 and 2030.';msg.classList.add('err');return}
-  actuals=vals;startYear=y;customData=true;curProd=null;
+  actuals=vals;startYear=y;customData=true;curProd=null;fitStart=0;
   state.loeOffset=Math.min(13,fcQ-1);
   rebuildLoeOptions();
   document.getElementById('envBadge').textContent='YOUR DATA · IN-BROWSER';
