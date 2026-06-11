@@ -127,14 +127,31 @@ function openLightbox(src) {
   v.play().catch(() => {});
 }
 
-// Card previews: hover plays the silent loop, click opens the lightbox
-document.querySelectorAll(".card-media").forEach((media) => {
+// Card previews: float (auto-play) while visible on screen, click opens the lightbox.
+// Visitors who prefer reduced motion get hover-to-play instead.
+const previewReduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cardMedias = document.querySelectorAll(".card-media");
+cardMedias.forEach((media) => {
   const v = media.querySelector("video");
   if (!v) return;
-  media.addEventListener("mouseenter", () => { v.play().catch(() => {}); });
-  media.addEventListener("mouseleave", () => { v.pause(); });
   media.addEventListener("click", () => openLightbox(media.dataset.demo || v.src));
+  v.addEventListener("play", () => media.classList.add("playing"));
+  v.addEventListener("pause", () => media.classList.remove("playing"));
+  if (previewReduceMotion) {
+    media.addEventListener("mouseenter", () => { v.play().catch(() => {}); });
+    media.addEventListener("mouseleave", () => { v.pause(); });
+  }
 });
+if (!previewReduceMotion && cardMedias.length && "IntersectionObserver" in window) {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const v = entry.target.querySelector("video");
+      if (!v) return;
+      if (entry.isIntersecting) { v.play().catch(() => {}); } else { v.pause(); }
+    });
+  }, { threshold: 0.35 });
+  cardMedias.forEach((m) => io.observe(m));
+}
 
 // Carousel videos open the lightbox too
 document.querySelectorAll(".story-video").forEach((v) => {
