@@ -7,7 +7,7 @@
   <meta name="description" content="Namık Akman — senior commercial operations &amp; strategic pricing leader who builds his own analytical and AI tools." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
-  <link rel="stylesheet" href="css/style.css?v=20" />
+  <link rel="stylesheet" href="css/style.css?v=21" />
 </head>
 <body>
   <header class="site-header">
@@ -25,6 +25,8 @@
 
   <main>
     <section class="hero">
+      <div class="hero-glow hero-glow-a" aria-hidden="true"></div>
+      <div class="hero-glow hero-glow-b" aria-hidden="true"></div>
       <div class="container">
         <h1>Commercial operations &amp; <span class="grad">pricing</span><br />leader who builds the tools.</h1>
         <p>
@@ -46,6 +48,13 @@
         </div>
       </div>
     </section>
+
+    <div class="marquee" aria-label="Areas of expertise">
+      <div class="marquee-track">
+        <span>Strategic Pricing</span><span>Net Revenue Management</span><span>Gross-to-Net</span><span>FP&amp;A &amp; Cash Flow</span><span>FX &amp; Treasury</span><span>Real-Estate Analytics</span><span>Automotive Retail</span><span>SaaS &amp; Churn Analytics</span><span>AI-Assisted Tools</span><span>Live Macro Data · TCMB · FRED · ECB</span>
+        <span aria-hidden="true">Strategic Pricing</span><span aria-hidden="true">Net Revenue Management</span><span aria-hidden="true">Gross-to-Net</span><span aria-hidden="true">FP&amp;A &amp; Cash Flow</span><span aria-hidden="true">FX &amp; Treasury</span><span aria-hidden="true">Real-Estate Analytics</span><span aria-hidden="true">Automotive Retail</span><span aria-hidden="true">SaaS &amp; Churn Analytics</span><span aria-hidden="true">AI-Assisted Tools</span><span aria-hidden="true">Live Macro Data · TCMB · FRED · ECB</span>
+      </div>
+    </div>
 
     <section class="section">
       <div class="container">
@@ -87,8 +96,14 @@
       <div class="container">
         <h2 class="section-title">More tools &amp; studies</h2>
         <p class="section-sub">A wider library of pricing, margin and decision-support tools — each mirroring real commercial practice.</p>
-        <div class="grid">
-          <article class="card">
+        <div class="filter-tabs" role="tablist" aria-label="Filter tools by area">
+          <button class="ftab on" data-filter="all" role="tab" aria-selected="true">All</button>
+          <button class="ftab" data-filter="pricing" role="tab" aria-selected="false">Pricing</button>
+          <button class="ftab" data-filter="finance" role="tab" aria-selected="false">Finance &amp; FP&amp;A</button>
+          <button class="ftab" data-filter="analytics" role="tab" aria-selected="false">Analytics &amp; Studies</button>
+        </div>
+        <div class="grid" id="tools-grid">
+          <article class="card" data-cat="pricing">
             <span class="tag">Pricing · Macro data · Live FRED · HTML · JS</span>
             <h3>Pricing Power Index</h3>
             <p>Which industries can raise prices faster than their own costs are rising? Tracks output PPI minus input PPI by industry to show who holds pricing power and who's absorbing margin compression — live from FRED. The steel-mills-vs-pharma contrast tells the story at a glance.</p>
@@ -96,7 +111,7 @@
               <a href="https://namikakmandev.github.io/commercial-finance-tools/pricing-power.html">Live tool</a><a href="https://github.com/namikakmandev/commercial-finance-tools">Source</a>
             </div>
           </article>
-          <article class="card">
+          <article class="card" data-cat="finance">
             <span class="tag">Treasury · FX · Live ECB rates · HTML · JS</span>
             <h3>FX Exposure Simulator</h3>
             <p>Model the P&amp;L impact of currency moves. Define your revenue and cost mix by currency, pull live ECB exchange rates, and see the realized FX impact on margin, your true net exposure per currency, and what-if stress scenarios with a built-in hedge simulator. Runs entirely in the browser.</p>
@@ -104,7 +119,7 @@
               <a href="https://namikakmandev.github.io/commercial-finance-tools/fx-exposure.html">Live tool</a><a href="https://github.com/namikakmandev/commercial-finance-tools">Source</a>
             </div>
           </article>
-          <article class="card">
+          <article class="card" data-cat="analytics">
             <span class="tag">Case study · Pricing · SaaS · Python · Jupyter</span>
             <h3>Cheap-and-Upsell or High-Margin? — A SaaS Pricing Study</h3>
             <p>24 months of multi-tier SaaS subscription data, run through five Jupyter notebooks, to answer the central commercial question: lead with a cheap plan and rely on upgrades, or sell premium from day one? Lifetime value reconstructed from 5,000 subscription records — with three operational recommendations at the end.</p>
@@ -112,7 +127,7 @@
               <a href="saas-churn-pricing.html">Read the study</a><a href="https://github.com/namikakmandev/namikakmandev.github.io/tree/main/assets/saas-study">Notebooks &amp; source</a>
             </div>
           </article>
-          <article class="card">
+          <article class="card" data-cat="pricing">
             <span class="tag">Pricing · HTML · JS · Python</span>
             <h3>Product Margin Simulator</h3>
             <p>An interactive price-to-margin waterfall — gross price through rebates, discounts, COGS and OpEx to net margin, updating live, with a branded Excel export. The same gross-to-net logic I work with in commercial operations, built as a tool.</p>
@@ -120,7 +135,7 @@
               <a href="gross-to-net.html">Live demo</a><a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/gross_to_net.py">Python source</a>
             </div>
           </article>
-          <article class="card">
+          <article class="card" data-cat="analytics">
             <span class="tag">Commercial Analytics · Whitespace · HTML · JS · Python</span>
             <h3>Account &amp; Portfolio Prioritization</h3>
             <p>Upload a sales export → whitespace opportunities (products a customer's peers buy but they don't), ranked per account manager with explanations and an Excel export. All processing in-browser; data never leaves the machine.</p>
@@ -128,7 +143,7 @@
               <a href="prioritization.html">Live demo</a><a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/prioritization.py">Python source</a>
             </div>
           </article>
-          <article class="card">
+          <article class="card" data-cat="finance">
             <span class="tag">FP&amp;A · Forecasting · HTML · JS · Python</span>
             <h3>Cash Flow &amp; Runway Simulator</h3>
             <p>Project 12 months of cash, see months of runway, flip Base/Best/Worst scenarios and stress-test sales, costs and collection delay — live, with a branded Excel export.</p>
@@ -136,7 +151,7 @@
               <a href="cashflow.html">Live demo</a><a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/cashflow.py">Python source</a>
             </div>
           </article>
-          <article class="card">
+          <article class="card" data-cat="pricing">
             <span class="tag">Pricing · Free tool · HTML · JS · Python</span>
             <h3>Discount &amp; Margin Calculator</h3>
             <p>A free, universal calculator — enter price, cost and a discount and instantly see the margin you keep and how many extra units you must sell just to break even on that discount. Any currency, mobile-friendly.</p>
@@ -144,7 +159,7 @@
               <a href="discount-margin-calculator.html">Open the tool</a><a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/discount_margin_calculator.py">Python source</a>
             </div>
           </article>
-          <article class="card">
+          <article class="card" data-cat="pricing">
             <span class="tag">Pricing · Portfolio strategy · HTML · JS · Python</span>
             <h3>Product Portfolio Optimizer</h3>
             <p>Set what each product earns and what it consumes of a scarce resource — capacity, field-force days, marketing budget — and the optimizer finds the unit mix that earns the most contribution for the same resource, with the uplift over your current plan and a branded Excel export.</p>
@@ -156,6 +171,19 @@
         <p class="section-sub" style="margin-top:24px">More commercial &amp; analytical tools are in progress. <a href="contact.html">Get in touch</a> if you'd like to talk.</p>
       </div>
     </section>
+
+    <section class="section cta-band-wrap">
+      <div class="container">
+        <div class="cta-band">
+          <h2>Have a commercial problem worth a tool?</h2>
+          <p>Pricing, margin, cash flow or market data — if it drives a decision, it can be built. Let's talk about yours.</p>
+          <div class="cta-actions">
+            <a class="btn btn-primary" href="contact.html">Get in touch</a>
+            <a class="btn btn-ghost" href="projects.html">Browse all projects</a>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
@@ -165,7 +193,7 @@
     </div>
   </footer>
 
-  <script src="js/main.js?v=18"></script>
+  <script src="js/main.js?v=19"></script>
   <!-- GSAP animation library + ScrollTrigger plugin (homepage demo) -->
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>

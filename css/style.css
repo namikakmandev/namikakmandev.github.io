@@ -73,10 +73,45 @@ img { max-width: 100%; display: block; }
 
 /* ---------- Hero ---------- */
 .hero {
+  position: relative;
+  overflow: hidden;
   padding: 110px 0 90px;
   text-align: center;
   background:
     radial-gradient(55% 55% at 50% 0%, rgba(47, 155, 255, 0.09), transparent 70%);
+}
+.hero .container { position: relative; z-index: 1; }
+
+/* Slow-drifting color glows behind the headline (Zoom-style "living" hero) */
+.hero-glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.55;
+  pointer-events: none;
+  will-change: transform;
+}
+.hero-glow-a {
+  top: -180px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(47, 155, 255, 0.20), transparent 65%);
+  animation: glow-drift-a 16s ease-in-out infinite alternate;
+}
+.hero-glow-b {
+  bottom: -220px;
+  right: -140px;
+  background: radial-gradient(circle, rgba(25, 195, 125, 0.14), transparent 65%);
+  animation: glow-drift-b 19s ease-in-out infinite alternate;
+}
+@keyframes glow-drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(90px, 50px) scale(1.15); }
+}
+@keyframes glow-drift-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to   { transform: translate(-80px, -60px) scale(0.95); }
 }
 .hero h1 {
   font-size: clamp(2.2rem, 5vw, 3.6rem);
@@ -148,6 +183,67 @@ img { max-width: 100%; display: block; }
 }
 .btn-ghost:hover { background: var(--surface-2); }
 
+/* ---------- Expertise marquee (Zoom-style scrolling strip) ---------- */
+.marquee {
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 16px 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 14px;
+  animation: marquee-scroll 36s linear infinite;
+}
+.marquee:hover .marquee-track { animation-play-state: paused; }
+.marquee-track span {
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 16px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.marquee-track span:hover { color: var(--text); border-color: var(--accent); }
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ---------- Filter tabs (Zoom-style category switcher) ---------- */
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -22px 0 30px;
+}
+.ftab {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.12s;
+}
+.ftab:hover { color: var(--text); border-color: var(--accent); transform: translateY(-1px); }
+.ftab.on {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.card.f-hide { display: none; }
+
 /* ---------- Sections ---------- */
 .section { padding: 80px 0; }
 .section-title {
@@ -168,13 +264,37 @@ img { max-width: 100%; display: block; }
   gap: 22px;
 }
 .card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 26px;
-  transition: transform 0.15s, border-color 0.15s;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.2s;
 }
-.card:hover { transform: translateY(-4px); border-color: var(--accent); }
+.card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+}
+
+/* Cursor spotlight — a soft light inside the card that follows the mouse.
+   --mx/--my are set from JS; ::after sits above the background but below text
+   (pointer-events:none keeps links clickable). */
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    340px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(47, 155, 255, 0.10),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+.card:hover::after { opacity: 1; }
 .card .tag {
   display: inline-block;
   font-size: 0.75rem;
@@ -1004,6 +1124,54 @@ label.btn { cursor: pointer; }
 .lg-green { background: var(--accent-2); }
 .lg-grey { background: var(--text-dim); opacity: 0.5; }
 .lg-orange { background: var(--loss); }
+
+/* ---------- CTA band (Zoom-style closing call-to-action) ---------- */
+.cta-band-wrap { padding-top: 0; }
+.cta-band {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  border: 1px solid rgba(47, 155, 255, 0.35);
+  border-radius: calc(var(--radius) + 6px);
+  padding: 64px 28px;
+  background:
+    radial-gradient(60% 90% at 50% 0%, rgba(47, 155, 255, 0.16), transparent 70%),
+    radial-gradient(50% 80% at 85% 100%, rgba(25, 195, 125, 0.10), transparent 70%),
+    var(--surface);
+}
+.cta-band::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+.cta-band h2 {
+  font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+}
+.cta-band p {
+  color: var(--text-dim);
+  font-size: 1.05rem;
+  max-width: 560px;
+  margin: 0 auto 30px;
+}
+.cta-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+.cta-actions .btn-ghost { margin-left: 0; }
+
+/* Header gains depth once the page is scrolled */
+.site-header.scrolled {
+  background: rgba(15, 17, 23, 0.95);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Visitors who prefer reduced motion get a calm, static page */
+@media (prefers-reduced-motion: reduce) {
+  .hero-glow { animation: none; }
+  .marquee-track { animation: none; flex-wrap: wrap; width: auto; }
+  .card::after { display: none; }
+}
 
 /* ---------- Footer ---------- */
 .site-footer {
