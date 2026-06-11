@@ -69,15 +69,23 @@ if (stories) {
     current = (i + slides.length) % slides.length;
     track.style.transform = "translateX(-" + current * 100 + "%)";
     dots.forEach((d, j) => d.classList.toggle("on", j === current));
+    // Play only the visible demo video; pause the rest to save battery/data
+    slides.forEach((s, j) => {
+      const v = s.querySelector("video");
+      if (!v) return;
+      if (j === current) { v.play().catch(() => {}); } else { v.pause(); }
+    });
   }
+  go(0);
 
   stories.querySelectorAll(".story-arrow").forEach((btn) => {
     btn.addEventListener("click", () => go(current + Number(btn.dataset.dir)));
   });
 
-  // Auto-advance every 6.5s; pause while the visitor is reading or tabbing through
+  // Auto-advance every 14s (long enough to watch a demo clip);
+  // pauses while the visitor is reading or tabbing through
   if (!reduceMotion) {
-    const start = () => { timer = setInterval(() => go(current + 1), 6500); };
+    const start = () => { timer = setInterval(() => go(current + 1), 14000); };
     const stop = () => { clearInterval(timer); };
     start();
     stories.addEventListener("mouseenter", stop);
