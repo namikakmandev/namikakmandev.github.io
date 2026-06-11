@@ -107,6 +107,29 @@ def smooth_scroll(page, dy, ms_after=900):
     pause(page, ms_after)
 
 
+def select_opt(page, selector, index, ms_after=900):
+    move_to(page, selector, ms_after=300)
+    page.locator(selector).first.select_option(index=index)
+    pause(page, ms_after)
+
+
+def click_fraction(page, selector, frac, ms_after=800):
+    """Click at a horizontal fraction of an element (sets range-slider values)."""
+    el = page.locator(selector).first
+    el.wait_for(state="visible", timeout=15000)
+    box = el.bounding_box()
+    if not box:
+        return
+    x = box["x"] + box["width"] * frac
+    y = box["y"] + box["height"] / 2
+    page.mouse.move(x, y, steps=30)
+    pause(page, 200)
+    page.mouse.down()
+    pause(page, 90)
+    page.mouse.up()
+    pause(page, ms_after)
+
+
 def tour_assetix(page):
     page.goto(BASE + "/assetix.html", wait_until="domcontentloaded")
     pause(page, 1800)
@@ -178,12 +201,122 @@ def tour_saas(page):
     pause(page, 1000)
 
 
+def tour_prioritization(page):
+    page.goto(BASE + "/prioritization.html", wait_until="domcontentloaded")
+    pause(page, 1600)
+    click_el(page, "#sample-btn", ms_after=2400)           # loads bundled sample CSV
+    smooth_scroll(page, 430, 1400)
+    smooth_scroll(page, 430, 1400)
+    select_opt(page, "#am-filter", 1, ms_after=1600)
+    smooth_scroll(page, 420, 1400)
+    move_to(page, "#export-btn", ms_after=1400)
+
+
+def tour_cashflow(page):
+    page.goto(BASE + "/cashflow.html", wait_until="domcontentloaded")
+    pause(page, 1600)
+    select_opt(page, "#cf-industry", 2, ms_after=1500)
+    click_el(page, 'button[data-s="worst"]', ms_after=1500)
+    click_el(page, 'button[data-s="best"]', ms_after=1300)
+    type_into(page, "#i-cash", "250000", ms_after=1400)
+    smooth_scroll(page, 450, 1500)
+    page.mouse.move(860, 400, steps=30)
+    pause(page, 1300)
+
+
+def tour_discount(page):
+    page.goto(BASE + "/discount-margin-calculator.html", wait_until="domcontentloaded")
+    pause(page, 1500)
+    type_into(page, "#dm-price", "250", ms_after=1300)
+    type_into(page, "#dm-disc", "25", ms_after=1300)
+    type_into(page, "#dm-cost", "140", ms_after=1300)
+    smooth_scroll(page, 380, 1500)
+    page.mouse.move(760, 420, steps=28)
+    pause(page, 1300)
+
+
+def tour_optimizer(page):
+    page.goto(BASE + "/portfolio-optimizer.html", wait_until="domcontentloaded")
+    pause(page, 1600)
+    select_opt(page, "#po-industry", 1, ms_after=1800)
+    type_into(page, "#po-budget", "12000", ms_after=1600)
+    smooth_scroll(page, 450, 1500)
+    smooth_scroll(page, 400, 1400)
+    move_to(page, "#po-export", ms_after=1400)
+
+
+def tour_helixplan(page):
+    page.goto(BASE + "/helixplan.html", wait_until="domcontentloaded")
+    pause(page, 2000)
+    click_el(page, '.scen-btn[data-s="base"]', ms_after=1500)
+    click_el(page, '.scen-btn[data-s="down"]', ms_after=1500)
+    click_fraction(page, "#eroSlider", 0.8, ms_after=1500)
+    smooth_scroll(page, 480, 1500)
+    select_opt(page, "#phaseSel", 1, ms_after=1600)
+    smooth_scroll(page, 450, 1500)
+    page.mouse.move(840, 400, steps=28)
+    pause(page, 1200)
+
+
+def tour_pricingpower(page):
+    page.goto("https://namikakmandev.github.io/commercial-finance-tools/pricing-power.html",
+              wait_until="domcontentloaded")
+    pause(page, 4500)
+    page.mouse.move(640, 380, steps=25)
+    smooth_scroll(page, 360, 1300)
+    click_el(page, "#selectPharma", ms_after=1700)
+    click_el(page, "#selectAuto", ms_after=1700)
+    click_el(page, 'button.preset-btn[data-months="24"]', ms_after=1800)
+    smooth_scroll(page, 480, 1500)
+    page.mouse.move(880, 420, steps=30)
+    pause(page, 1300)
+
+
+def tour_fx(page):
+    page.goto("https://namikakmandev.github.io/commercial-finance-tools/fx-exposure.html",
+              wait_until="domcontentloaded")
+    pause(page, 4500)
+    page.mouse.move(640, 380, steps=25)
+    smooth_scroll(page, 380, 1300)
+    type_into(page, "#grossMargin", "42", ms_after=1500)
+    click_el(page, 'button.preset-btn[data-months="24"]', ms_after=1800)
+    smooth_scroll(page, 480, 1500)
+    smooth_scroll(page, 480, 1500)
+    page.mouse.move(840, 420, steps=30)
+    pause(page, 1300)
+
+
+def tour_romance(page):
+    page.goto("https://namikakmandev.github.io/romance-roots/",
+              wait_until="domcontentloaded")
+    pause(page, 2200)
+    page.mouse.move(640, 360, steps=25)
+    click_el(page, "#nextWord", ms_after=1500)
+    click_el(page, "#nextWord", ms_after=1500)
+    smooth_scroll(page, 420, 1400)
+    smooth_scroll(page, -420, 900)
+    click_el(page, '.mode-tab[data-mode="patterns"]', ms_after=1800)
+    smooth_scroll(page, 420, 1400)
+    click_el(page, '.mode-tab[data-mode="quiz"]', ms_after=1800)
+    smooth_scroll(page, 350, 1400)
+    page.mouse.move(700, 420, steps=26)
+    pause(page, 1200)
+
+
 TOURS = {
     "assetix": tour_assetix,
     "dealer": tour_dealer,
     "gross-to-net": tour_grosstonet,
     "passthrough": tour_passthrough,
     "saas": tour_saas,
+    "prioritization": tour_prioritization,
+    "cashflow": tour_cashflow,
+    "discount-margin": tour_discount,
+    "portfolio-optimizer": tour_optimizer,
+    "helixplan": tour_helixplan,
+    "pricing-power": tour_pricingpower,
+    "fx-exposure": tour_fx,
+    "romance-roots": tour_romance,
 }
 
 

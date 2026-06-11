@@ -95,6 +95,52 @@ if (stories) {
   }
 }
 
+// Video lightbox: click any demo preview to watch it large
+let vlb = null;
+function openLightbox(src) {
+  if (!vlb) {
+    vlb = document.createElement("div");
+    vlb.className = "vlb";
+    vlb.innerHTML =
+      '<button class="vlb-close" aria-label="Close video">&times;</button>' +
+      '<video controls playsinline></video>';
+    document.body.appendChild(vlb);
+    const close = () => {
+      const v = vlb.querySelector("video");
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+      vlb.classList.remove("open");
+      document.body.style.overflow = "";
+    };
+    vlb.addEventListener("click", (e) => {
+      if (e.target === vlb || e.target.classList.contains("vlb-close")) close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && vlb.classList.contains("open")) close();
+    });
+  }
+  const v = vlb.querySelector("video");
+  v.src = src;
+  vlb.classList.add("open");
+  document.body.style.overflow = "hidden";
+  v.play().catch(() => {});
+}
+
+// Card previews: hover plays the silent loop, click opens the lightbox
+document.querySelectorAll(".card-media").forEach((media) => {
+  const v = media.querySelector("video");
+  if (!v) return;
+  media.addEventListener("mouseenter", () => { v.play().catch(() => {}); });
+  media.addEventListener("mouseleave", () => { v.pause(); });
+  media.addEventListener("click", () => openLightbox(media.dataset.demo || v.src));
+});
+
+// Carousel videos open the lightbox too
+document.querySelectorAll(".story-video").forEach((v) => {
+  v.addEventListener("click", () => openLightbox(v.getAttribute("src")));
+});
+
 // Auto-update footer year
 const yearEl = document.querySelector("[data-year]");
 if (yearEl) yearEl.textContent = new Date().getFullYear();

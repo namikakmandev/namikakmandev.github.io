@@ -277,6 +277,83 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
 }
 
+/* Video preview at the top of a tool card — hover to play, click to enlarge */
+.card-media {
+  position: relative;
+  margin: -26px -26px 18px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 1px solid var(--border);
+  background: #000;
+  cursor: pointer;
+}
+.card-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(15, 17, 23, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  padding-left: 3px;
+  transition: transform 0.15s, background 0.15s, opacity 0.2s;
+  pointer-events: none;
+}
+.card-media:hover .card-play {
+  transform: translate(-50%, -50%) scale(1.12);
+  background: rgba(47, 155, 255, 0.9);
+}
+
+/* Lightbox — click any demo video to watch it large */
+.vlb {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 14, 0.88);
+  backdrop-filter: blur(6px);
+  padding: 24px;
+}
+.vlb.open { display: flex; }
+.vlb video {
+  width: min(1100px, 100%);
+  max-height: 82vh;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #000;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.vlb-close {
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  font-size: 2.2rem;
+  line-height: 1;
+  color: #fff;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  opacity: 0.8;
+}
+.vlb-close:hover { opacity: 1; }
+.story-video { cursor: pointer; }
+
 /* Cursor spotlight — a soft light inside the card that follows the mouse.
    --mx/--my are set from JS; ::after sits above the background but below text
    (pointer-events:none keeps links clickable). */
