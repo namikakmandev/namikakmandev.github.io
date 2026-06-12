@@ -180,19 +180,30 @@ document.querySelectorAll(".story-video").forEach((v) => {
     const m = r.market || {};
     if (fx.USDTRY) chips.push({ v: fx.USDTRY.toFixed(2), l: "USD / TRY", s: "ECB · " + (r.fxAsof || ""), h: "assetix.html" });
     if (fx.EURTRY) chips.push({ v: fx.EURTRY.toFixed(2), l: "EUR / TRY", s: "ECB · " + (r.fxAsof || ""), h: "assetix.html" });
+    if (fx.GBPTRY) chips.push({ v: fx.GBPTRY.toFixed(2), l: "GBP / TRY", s: "ECB · " + (r.fxAsof || ""), h: "assetix.html" });
     if (r.rate && r.rate.value != null) chips.push({ v: r.rate.value.toFixed(1) + "%", l: "TCMB policy rate", s: "TCMB · " + (r.rate.asof || ""), h: "assetix.html" });
     if (m.deposit) chips.push({ v: m.deposit.value.toFixed(1) + "%", l: "TL deposit rate", s: "TCMB · " + m.deposit.asof, h: "assetix.html" });
+    if (m.loan_home) chips.push({ v: m.loan_home.value.toFixed(1) + "%", l: "TL housing loan rate", s: "TCMB · " + m.loan_home.asof, h: "assetix.html" });
+    if (m.loan_comm) chips.push({ v: m.loan_comm.value.toFixed(1) + "%", l: "TL commercial loan rate", s: "TCMB · " + m.loan_comm.asof, h: "assetix.html" });
     if (m.tufe) chips.push({ v: "+" + m.tufe.yoy.toFixed(1) + "%", l: "TR inflation · CPI YoY", s: "TÜİK · " + m.tufe.asof, h: "assetix.html" });
     if (m.kfe_tr) chips.push({ v: "+" + m.kfe_tr.yoy.toFixed(1) + "%", l: "TR house prices · YoY", s: "TCMB KFE · " + m.kfe_tr.asof, h: "assetix.html" });
+    if (m.kfe_ist) chips.push({ v: "+" + m.kfe_ist.yoy.toFixed(1) + "%", l: "Istanbul house prices · YoY", s: "TCMB KFE · " + m.kfe_ist.asof, h: "assetix.html" });
     try {
       const us = await (await fetch("https://namikakmandev.github.io/commercial-finance-tools/data/us.json", { cache: "no-store" })).json();
-      const steel = (us.buckets || []).find((b) => b.id === "us_steel");
-      if (steel && steel.series && steel.series.length >= 13) {
-        const n = steel.series.length;
-        const yoy = (steel.series[n - 1] / steel.series[n - 13] - 1) * 100;
-        chips.push({ v: (yoy >= 0 ? "+" : "") + yoy.toFixed(1) + "%", l: "US steel PPI · YoY", s: "FRED · " + (us.last_updated || ""), h: "https://namikakmandev.github.io/commercial-finance-tools/" });
-      }
-    } catch (e) { /* FRED chip is optional */ }
+      const ppiYoy = (id) => {
+        const b = (us.buckets || []).find((x) => x.id === id);
+        if (!b || !b.series || b.series.length < 13) return null;
+        const n = b.series.length;
+        return (b.series[n - 1] / b.series[n - 13] - 1) * 100;
+      };
+      const fredChip = (id, label) => {
+        const yoy = ppiYoy(id);
+        if (yoy == null) return;
+        chips.push({ v: (yoy >= 0 ? "+" : "") + yoy.toFixed(1) + "%", l: label, s: "FRED · " + (us.last_updated || ""), h: "https://namikakmandev.github.io/commercial-finance-tools/" });
+      };
+      fredChip("us_steel", "US steel PPI · YoY");
+      fredChip("us_aluminum", "US aluminum PPI · YoY");
+    } catch (e) { /* FRED chips are optional */ }
     if (!chips.length) return hide();
     el.innerHTML = chips.map((c) =>
       '<a class="pulse-chip" href="' + c.h + '"><strong>' + c.v + "</strong><span>" + c.l + "</span><em>" + c.s + "</em></a>"
