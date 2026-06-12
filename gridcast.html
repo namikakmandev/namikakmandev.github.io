@@ -248,6 +248,18 @@ svg{display:block;width:100%}
       <div class="chart-wrap"><svg id="scatterChart" viewBox="0 0 900 260" preserveAspectRatio="none"></svg></div>
       <div class="legend"><span>Soğukta ısınma, sıcakta klima yükü: U-eğrisi tahminin neden hava verisine ihtiyaç duyduğunu gösterir.</span></div>
 
+      <div class="sec-title"><h3>7 günlük ileri tahmin — gerçek hava tahminiyle</h3></div>
+      <div style="padding:4px 20px 0">
+        <button class="btn primary" id="btnFc" style="max-width:400px">Hava tahminini indir ve ileri tahmin üret</button>
+        <div id="fcStatus" style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;min-height:15px"></div>
+      </div>
+      <div class="chart-wrap" id="fcWrap" style="display:none"><svg id="fcChart" viewBox="0 0 900 300" preserveAspectRatio="none"></svg></div>
+      <div class="legend" id="fcLegend" style="display:none">
+        <span><i class="swatch" style="background:#2F9BFF"></i>Talep tahmini (MWh)</span>
+        <span><i class="swatch" style="background:#FF6500"></i>Sıcaklık tahmini (°C, sağ eksen)</span>
+      </div>
+      <div class="warn" id="fcNote" style="display:none"></div>
+
       <div class="warn"><b>Dürüstlük notu:</b> "Gerçek veri" modu, EPİAŞ'ın halka açık ulusal saatlik tüketimi ile gerçek sıcaklık verisini kullanır — hiçbir şey uydurulmamıştır. Ulusal veride bayram ve tatil günleri, bu temel modelin henüz bilmediği düşüşler yaratır; gerçek denetimde tatil takvimi modele eklenir. Sonuçlar yalnızca modelin hiç görmediği dönem üzerinde raporlanır. Sonuç garanti edilmez; ölçülür.</div>
       <div style="height:16px"></div>
     </div>
@@ -375,6 +387,24 @@ function keyOf(d){
   const p=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:00`;
 }
+async function fetchForecastBlend(cities){
+  // cities: [[lat,lon,ağırlık],...] — önümüzdeki 10 günün saatlik sıcaklık tahmini
+  const maps=await Promise.all(cities.map(async c=>{
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${c[0]}&longitude=${c[1]}&hourly=temperature_2m&forecast_days=10&timezone=Europe%2FIstanbul`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('forecast http '+res.status);
+    const j=await res.json(); const m=new Map();
+    j.hourly.time.forEach((t,i)=>{ if(j.hourly.temperature_2m[i]!=null) m.set(t,j.hourly.temperature_2m[i]); });
+    return m;
+  }));
+  const out=new Map();
+  for(const k of maps[0].keys()){
+    let s=0,ok=true;
+    cities.forEach((c,ci)=>{ const v=maps[ci].get(k); if(v==null) ok=false; else s+=c[2]*v; });
+    if(ok) out.set(k,s);
+  }
+  return out;
+}
 
 /* ================= model ================= */
 function solveNxN(A,b){
@@ -412,24 +442,23 @@ function isHolAdj(d){ // arife/köprü: tatilin bir gün öncesi veya sonrası
   return (isHol(a)||isHol(b))?1:0;
 }
 
-function runModel(data){
-  // data: [{t,y,temp}] saatlik, sıralı.
-  // Saat bazında ayrı OLS: x=[1, cmt, paz, tatil, arife, HDD, CDD, dün aynı saat, geçen hafta aynı saat]
-  const n=data.length;
-  const splitIdx=Math.floor(n*0.8);
-  const K=9;
-  const feats=i=>{
-    const r=data[i], dt=dayType(r.t);
-    const hdd=Math.max(0,15-r.temp), cdd=Math.max(0,r.temp-22);
-    return [1, dt===1?1:0, dt===2?1:0, isHol(r.t), isHolAdj(r.t), hdd, cdd, data[i-24].y, data[i-168].y];
-  };
+function featsAt(data,i,useLags){
+  const r=data[i], dt=dayType(r.t);
+  const hdd=Math.max(0,15-r.temp), cdd=Math.max(0,r.temp-22);
+  const x=[1, dt===1?1:0, dt===2?1:0, isHol(r.t), isHolAdj(r.t), hdd, cdd];
+  if(useLags){ x.push(data[i-24].y, data[i-168].y); }
+  return x;
+}
+function fitPerHour(data,upTo,useLags){
+  // Saat bazında ayrı OLS: x=[1, cmt, paz, tatil, arife, HDD, CDD (, dün, geçen hafta)]
+  const K=useLags?9:7;
   const W=new Array(24).fill(null);
   for(let h=0;h<24;h++){
     const AtA=Array.from({length:K},()=>new Array(K).fill(0)), Atb=new Array(K).fill(0);
     let rows=0;
-    for(let i=168;i<splitIdx;i++){
+    for(let i=168;i<upTo;i++){
       if(data[i].t.getHours()!==h||data[i].temp==null) continue;
-      const x=feats(i), y=data[i].y; rows++;
+      const x=featsAt(data,i,useLags), y=data[i].y; rows++;
       for(let a=0;a<K;a++){ Atb[a]+=x[a]*y; for(let b2=0;b2<K;b2++) AtA[a][b2]+=x[a]*x[b2]; }
     }
     if(rows<K*8) return null; // yetersiz veri
@@ -437,14 +466,21 @@ function runModel(data){
     W[h]=solveNxN(AtA,Atb);
     if(!W[h]) return null;
   }
+  return W;
+}
+function runModel(data){
+  const n=data.length;
+  const splitIdx=Math.floor(n*0.8);
+  const W=fitPerHour(data,splitIdx,true);
+  if(!W) return null;
   // test — yalnız modelin hiç görmediği dönem
   const test=[];
   let seN=0,seM=0,aeM=0,cntT=0;
   for(let i=Math.max(splitIdx,168);i<n;i++){
     if(data[i].temp==null) continue;
     const w=W[data[i].t.getHours()];
-    const x=feats(i);
-    let yhat=0; for(let a=0;a<K;a++) yhat+=w[a]*x[a];
+    const x=featsAt(data,i,true);
+    let yhat=0; for(let a=0;a<x.length;a++) yhat+=w[a]*x[a];
     yhat=Math.max(0,yhat);
     const naive=data[i-168].y, y=data[i].y;
     if(y<=0) continue;
@@ -452,7 +488,9 @@ function runModel(data){
     test.push({t:data[i].t,y:y,yhat:yhat,naive:naive});
   }
   if(!cntT) return null;
-  return {mapeNaive:seN/cntT,mapeModel:seM/cntT,mae:aeM/cntT,test:test};
+  // ileri tahmin için tüm veriyle eğitilmiş modeller
+  return {mapeNaive:seN/cntT,mapeModel:seM/cntT,mae:aeM/cntT,test:test,
+          Wfull:fitPerHour(data,n,true), Wnolag:fitPerHour(data,n,false)};
 }
 
 /* ================= charts (hand-rolled SVG) ================= */
@@ -493,6 +531,29 @@ function scatterChart(svg,daily){
   for(const d of daily){
     const c=d.temp<15?'#2F9BFF':(d.temp>22?'#FF6500':'#19C37D');
     g+=`<circle cx="${X(d.temp).toFixed(1)}" cy="${Y(d.y).toFixed(1)}" r="3" fill="${c}" opacity=".55"/>`; }
+  svg.innerHTML=g;
+}
+
+function forecastChart(svg,rows){
+  const W=900,H=300,P={l:54,r:46,t:12,b:24};
+  const lo=Math.min(...rows.map(r=>r.y))*0.96, hi=Math.max(...rows.map(r=>r.y))*1.04;
+  const tlo=Math.floor(Math.min(...rows.map(r=>r.temp)))-2, thi=Math.ceil(Math.max(...rows.map(r=>r.temp)))+2;
+  const X=i=>P.l+(W-P.l-P.r)*i/(rows.length-1);
+  const Y=v=>P.t+(H-P.t-P.b)*(1-(v-lo)/(hi-lo));
+  const TY=v=>P.t+(H-P.t-P.b)*(1-(v-tlo)/(thi-tlo));
+  let g='';
+  for(let i=0;i<=4;i++){ const v=lo+(hi-lo)*i/4, y=Y(v);
+    g+=`<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="#2A2F3A"/>`;
+    g+=`<text x="${P.l-7}" y="${y+4}" fill="#A3A8B5" font-size="11" text-anchor="end" font-family="IBM Plex Mono,monospace">${Math.round(v)}</text>`;
+    const tv=tlo+(thi-tlo)*i/4;
+    g+=`<text x="${W-P.r+7}" y="${y+4}" fill="#FF6500" font-size="11" text-anchor="start" font-family="IBM Plex Mono,monospace" opacity=".85">${Math.round(tv)}°</text>`; }
+  const DOW=['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'];
+  for(let i=0;i<rows.length;i+=24){ const d=rows[i].t;
+    g+=`<line x1="${X(i)}" y1="${P.t}" x2="${X(i)}" y2="${H-P.b}" stroke="#2A2F3A" stroke-dasharray="2 4"/>`;
+    g+=`<text x="${X(i)+4}" y="${H-6}" fill="#A3A8B5" font-size="10" font-family="IBM Plex Mono,monospace">${DOW[d.getDay()]} ${d.getDate()}.${d.getMonth()+1}</text>`; }
+  const path=(key,YF)=>rows.map((r,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+YF(r[key]).toFixed(1)).join('');
+  g+=`<path d="${path('temp',TY)}" fill="none" stroke="#FF6500" stroke-width="1.2" opacity=".85"/>`;
+  g+=`<path d="${path('y',Y)}" fill="none" stroke="#2F9BFF" stroke-width="1.8"/>`;
   svg.innerHTML=g;
 }
 
@@ -563,6 +624,8 @@ async function runPipeline(data,opts){
     setStep(3,'done'); setStep(4,'done');
     status("Tamamlandı. Test dönemi: verinin son %20'lik bölümü.");
     renderResults(res,data);
+    window.LAST={data:data,res:res,mode:opts.mode||(opts.fetchWeather?'paste':'synthetic'),city:$('citySel').value};
+    $('fcWrap').style.display='none'; $('fcLegend').style.display='none'; $('fcNote').style.display='none'; $('fcStatus').textContent='';
   }catch(err){
     status('Hata: '+err.message);
   }
@@ -574,12 +637,54 @@ $('btnReal').onclick=()=>{
   setTimeout(()=>{
     const t0=new Date(REAL_DATA.start.replace(' ','T'));
     const data=REAL_DATA.load.map((v,i)=>({t:new Date(t0.getTime()+i*3600*1000),y:v,temp:REAL_DATA.temp[i]}));
-    runPipeline(data,{fetchWeather:false,tag:'gerçek veri · '+REAL_DATA.src});
+    runPipeline(data,{fetchWeather:false,mode:'real',tag:'gerçek veri · '+REAL_DATA.src});
   },30);
 };
 $('btnSample').onclick=()=>{
   status('Sentetik veri üretiliyor (2 yıl × 24 saat)…');
   setTimeout(()=>{ const data=genSample(); runPipeline(data,{fetchWeather:false}); },30);
+};
+$('btnFc').onclick=async()=>{
+  const L=window.LAST;
+  if(!L||!L.res||!L.res.Wfull||!L.res.Wnolag){ $('fcStatus').textContent='Önce yukarıdan modeli çalıştırın.'; return; }
+  try{
+    $('fcStatus').textContent='Gerçek hava tahmini indiriliyor (Open-Meteo)…';
+    let cities;
+    if(L.mode==='real'){ cities=[[41.01,28.98,0.5],[39.93,32.86,0.3],[38.42,27.14,0.2]]; }
+    else{ const p=L.city.split(','); cities=[[parseFloat(p[0]),parseFloat(p[1]),1]]; }
+    const wm=await fetchForecastBlend(cities);
+    const data=L.data, lastT=data[data.length-1].t;
+    const start=new Date(); start.setHours(start.getHours()+1,0,0,0);
+    const fresh=(start-lastT)/3600000<=14*24; // veri güncel mi?
+    const hist=new Map();
+    for(const r of data.slice(-200)) hist.set(keyOf(r.t),r.y);
+    const preds=[];
+    for(let k=0;k<7*24;k++){
+      const t=new Date(start.getTime()+k*3600000);
+      const temp=wm.get(keyOf(t));
+      if(temp==null) break;
+      const h=t.getHours(), dt=dayType(t);
+      const hdd=Math.max(0,15-temp), cdd=Math.max(0,temp-22);
+      let x=[1,dt===1?1:0,dt===2?1:0,isHol(t),isHolAdj(t),hdd,cdd], w=L.res.Wnolag[h];
+      if(fresh){
+        const l24=hist.get(keyOf(new Date(t.getTime()-24*3600000)));
+        const l168=hist.get(keyOf(new Date(t.getTime()-168*3600000)));
+        if(l24!=null&&l168!=null){ x=x.concat([l24,l168]); w=L.res.Wfull[h]; }
+      }
+      let y=0; for(let a=0;a<x.length;a++) y+=w[a]*x[a];
+      y=Math.max(0,y);
+      preds.push({t:t,y:y,temp:temp});
+      hist.set(keyOf(t),y);
+    }
+    if(preds.length<24){ $('fcStatus').textContent='Hava tahmini alınamadı — lütfen tekrar deneyin.'; return; }
+    forecastChart($('fcChart'),preds);
+    $('fcWrap').style.display='block'; $('fcLegend').style.display='flex';
+    const note=$('fcNote'); note.style.display='block';
+    note.innerHTML = fresh
+      ? '<b>Canlı tahmin:</b> Model, verinin son haftasını ve önümüzdeki 7 günün gerçek hava tahminini kullanıyor. Tahmin bu tarayıcıda üretildi; hiçbir veri dışarı gönderilmedi.'
+      : '<b>Gösterim modu:</b> Eğitim verisi '+lastT.toLocaleDateString('tr-TR')+' tarihinde bittiği için tahminin seviyesi o döneme göre kalibredir; desen (saat/gün tipi/tatil/hava etkisi) ve hava tahmini gerçektir. Güncel saatlik veriyle çalıştırıldığında tam canlı tahmine döner.';
+    $('fcStatus').textContent='Tamamlandı — '+preds.length+' saatlik tahmin ('+preds[0].t.toLocaleDateString('tr-TR')+' → '+preds[preds.length-1].t.toLocaleDateString('tr-TR')+').';
+  }catch(err){ $('fcStatus').textContent='Hata: '+err.message; }
 };
 $('btnAnon').onclick=()=>{
   const rows=parseCSV($('csvIn').value);
