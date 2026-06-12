@@ -224,6 +224,17 @@ footer a:hover{text-decoration:underline}
         <input type="range" id="volSlider" min="-15" max="30" value="8" aria-label="Volume uplift percentage">
       </div>
       <div class="ctl">
+        <div class="ctl-head"><label>Supply constraint</label><div class="toggle" id="supToggle" role="switch" aria-checked="false" tabindex="0"></div></div>
+        <small>Capacity shortfall · unserved demand, partial catch-up after</small>
+        <select id="supStart" aria-label="Supply constraint start quarter" style="margin-bottom:8px"></select>
+        <div class="ctl-head"><label style="font-weight:500;font-size:12px">Duration</label><span class="ctl-val" id="supDurVal">2 qtrs</span></div>
+        <input type="range" id="supDur" min="1" max="6" value="2" aria-label="Constraint duration in quarters">
+        <div class="ctl-head"><label style="font-weight:500;font-size:12px">Unserved demand</label><span class="ctl-val" id="supSevVal">−25%</span></div>
+        <input type="range" id="supSev" min="5" max="60" value="25" aria-label="Unserved demand percentage">
+        <div class="ctl-head"><label style="font-weight:500;font-size:12px">Catch-up recovery</label><span class="ctl-val" id="supRecVal">50%</span></div>
+        <input type="range" id="supRec" min="0" max="100" value="50" aria-label="Share of lost volume recovered after the constraint">
+      </div>
+      <div class="ctl">
         <div class="ctl-head"><label>Phasing shift</label><span class="ctl-val" id="phaseVal">Q4 → Q1</span></div>
         <small>Move quarter weight without changing FY total</small>
         <select id="phaseSel" aria-label="Phasing scenario">
@@ -231,6 +242,8 @@ footer a:hover{text-decoration:underline}
           <option value="q4q1" selected>Pull Q4 forward to Q1 (tender cycle)</option>
           <option value="q1q4">Push Q1 back to Q4 (price reset)</option>
         </select>
+        <div class="ctl-head" style="margin-top:8px"><label style="font-weight:500;font-size:12px">Weight shifted</label><span class="ctl-val" id="phaseAmtVal">12%</span></div>
+        <input type="range" id="phaseAmt" min="5" max="25" value="12" aria-label="Percent of quarter weight shifted">
       </div>
       <h3>Scenario</h3>
       <div class="scen-row">
@@ -257,7 +270,7 @@ footer a:hover{text-decoration:underline}
     <summary>How it works — in plain words</summary>
     <p><b>1. Baseline.</b> The tool fits a growth trend plus quarterly seasonality to your history (a log-linear regression with multiplicative seasonal factors), then projects 5 years forward. The three method chips apply different trend damping — full growth, damped, or conservative. They are simplified stand-ins for the Holt-Winters / ARIMA family, honest about what they are.</p>
     <p><b>2. Honest fit statistics.</b> The error figure shown is genuinely backtested: the model is fitted on your history <i>excluding the last four quarters</i>, those four quarters are predicted, and the average percentage miss (MAPE) is reported. No invented accuracy numbers.</p>
-    <p><b>3. Adjustments.</b> On top of the statistical baseline you layer what statistics cannot know: a loss-of-exclusivity event with exponential erosion, a demand uplift from a chosen year, and quarter re-phasing that moves weight between Q1 and Q4 without changing the full-year total. Base / Management / Downside scenarios scale these assumptions.</p>
+    <p><b>3. Adjustments.</b> On top of the statistical baseline you layer what statistics cannot know: a loss-of-exclusivity event with exponential erosion, a demand uplift from a chosen year, a supply constraint (a few quarters where part of demand cannot be served, with a partial catch-up once supply recovers), and quarter re-phasing that moves weight between Q1 and Q4 without changing the full-year total. Each lever appears as its own step in the variance bridge. Base / Management / Downside scenarios scale these assumptions.</p>
     <p><b>4. Privacy.</b> Everything runs in your browser. Pasted data is never sent anywhere — there is no server, no analytics on your numbers, nothing to upload. The one optional exception is the <b>AI commentary</b> button: clicking it sends the summary figures shown on screen (annual totals, growth percentages and your settings) to an AI service to draft the text — never your pasted quarterly values, and it asks you to confirm first when you are on your own data.</p>
   </details>
 </div>
@@ -290,7 +303,8 @@ const qLabel=i=>{const y=startYear+Math.floor(i/4);return 'Q'+(i%4+1)+" '"+Strin
 const qFull=i=>'Q'+(i%4+1)+' '+(startYear+Math.floor(i/4));
 const budgetYear=()=>startYear+H()/4+1; // 2nd forecast year = the budget year
 
-let state={method:'hw',loe:true,ero:65,vol:8,phase:'q4q1',scen:'mgmt',loeOffset:13,cur:'€'};
+let state={method:'hw',loe:true,ero:65,vol:8,phase:'q4q1',phaseAmt:12,scen:'mgmt',loeOffset:13,cur:'€',
+  sup:false,supStart:4,supDur:2,supSev:25,supRec:50};
 const loeIndex=()=>H()+state.loeOffset;
 const SLOPE_MUL={reg:1.0,hw:0.92,arima:0.80};
 
@@ -335,34 +349,52 @@ function peakQuarter(){
   return p+1;
 }
 
-function adjusted(base){
-  let adj=[...base];
+// the adjustment layers, applied in order: volume → LOE → supply → phasing.
+// Kept as separate stages so the waterfall can show each step honestly.
+function stageVol(base){
   const scenMul=state.scen==='base'?0:state.scen==='down'?-1:1;
   // volume uplift from the start of the budget year (forecast index 4)
   const vol=state.vol/100*(state.scen==='down'?0.3:1)+(scenMul===-1?-0.06:0);
-  adj=adj.map((v,i)=>i>=4?v*(1+vol):v);
-  // LOE erosion
-  if(state.loe){
-    const eroY1=state.ero/100;
-    const k=-Math.log(1-eroY1)/4; // quarterly decay so 4 qtrs hits Yr-1 erosion
-    adj=adj.map((v,i)=>{
-      const gi=H()+i;
-      if(gi<loeIndex())return v;
-      return v*Math.exp(-k*(gi-loeIndex()+1));
-    });
-  }
-  // phasing: shift 12% of Q4 to Q1 (or reverse) within each forecast FY
-  if(state.phase!=='none'){
-    for(let y=0;y<5;y++){
-      const q1=y*4, q4=y*4+3;
-      if(q4>=adj.length)break;
-      const shift=0.12;
-      if(state.phase==='q4q1'){const m=adj[q4]*shift;adj[q4]-=m;adj[q1]+=m}
-      else{const m=adj[q1]*shift;adj[q1]-=m;adj[q4]+=m}
-    }
+  return base.map((v,i)=>i>=4?v*(1+vol):v);
+}
+function stageLoe(arr){
+  if(!state.loe)return arr;
+  const eroY1=state.ero/100;
+  const k=-Math.log(1-eroY1)/4; // quarterly decay so 4 qtrs hits Yr-1 erosion
+  return arr.map((v,i)=>{
+    const gi=H()+i;
+    if(gi<loeIndex())return v;
+    return v*Math.exp(-k*(gi-loeIndex()+1));
+  });
+}
+function stageSupply(arr){
+  if(!state.sup)return arr;
+  const out=[...arr];
+  const s=state.supStart, d=state.supDur, sev=state.supSev/100;
+  let lost=0;
+  for(let i=s;i<Math.min(s+d,out.length);i++){lost+=out[i]*sev;out[i]*=(1-sev)}
+  // catch-up: a share of the unserved volume comes back in the 2 qtrs after the constraint
+  const rec=lost*state.supRec/100;
+  for(let j=0;j<2;j++){const i=s+d+j;if(i<out.length)out[i]+=rec/2}
+  return out;
+}
+function stagePhase(arr){
+  if(state.phase==='none')return arr;
+  const adj=[...arr];
+  const shift=state.phaseAmt/100;
+  for(let y=0;y<5;y++){
+    const q1=y*4, q4=y*4+3;
+    if(q4>=adj.length)break;
+    if(state.phase==='q4q1'){const m=adj[q4]*shift;adj[q4]-=m;adj[q1]+=m}
+    else{const m=adj[q1]*shift;adj[q1]-=m;adj[q4]+=m}
   }
   return adj;
 }
+function stages(base){
+  const v=stageVol(base), l=stageLoe(v), s=stageSupply(l), a=stagePhase(s);
+  return {v,l,s,a};
+}
+function adjusted(base){return stages(base).a}
 
 // ---------- main chart ----------
 function fmt(v){return state.cur+v.toFixed(0)+'M'}
@@ -386,6 +418,11 @@ function drawChart(base,adj){
     s+=`<line x1="${X(loeIndex())}" y1="${P.t}" x2="${X(loeIndex())}" y2="${H_-P.b}" stroke="#E5484D" stroke-width="1.6" stroke-dasharray="5 4"/>`;
     s+=`<text x="${X(loeIndex())+6}" y="${P.t+12}" font-size="10.5" fill="#E5484D" font-weight="600" font-family="IBM Plex Sans">LOE · generics enter</text>`;
   }
+  if(state.sup){
+    const x0=X(H()+state.supStart), x1=X(Math.min(H()+state.supStart+state.supDur,total-1));
+    s+=`<rect x="${x0}" y="${P.t}" width="${Math.max(2,x1-x0)}" height="${H_-P.t-P.b}" fill="#FF6500" opacity="0.08"/>`;
+    s+=`<text x="${x0+4}" y="${H_-P.b-8}" font-size="10" fill="#FF6500" font-weight="600" font-family="IBM Plex Sans">Supply constraint</text>`;
+  }
   const path=(arr,off)=>arr.map((v,i)=>(i?'L':'M')+X(off+i).toFixed(1)+' '+Y(v).toFixed(1)).join(' ');
   s+=`<path d="${path(actuals,0)}" fill="none" stroke="#E6E8EE" stroke-width="2.2"/>`;
   s+=`<path d="M${X(H()-1)} ${Y(actuals[H()-1])} L${X(H())} ${Y(base[0])}" stroke="#2F9BFF" stroke-width="2" stroke-dasharray="2 3" fill="none"/>`;
@@ -397,24 +434,22 @@ function drawChart(base,adj){
 // ---------- waterfall ----------
 function drawWaterfall(base,adj){
   // budget year = forecast indices 4..7
-  const b27=base.slice(4,8).reduce((a,b)=>a+b);
-  let afterVol=[...base];
-  const scenMul=state.scen==='base'?0:state.scen==='down'?-1:1;
-  const vol=state.vol/100*(state.scen==='down'?0.3:1)+(scenMul===-1?-0.06:0);
-  afterVol=afterVol.map((v,i)=>i>=4?v*(1+vol):v);
-  const v27=afterVol.slice(4,8).reduce((a,b)=>a+b);
-  const a27=adj.slice(4,8).reduce((a,b)=>a+b);
-  const steps=[
-    {label:'Baseline',v:b27,type:'base'},
-    {label:'Volume uplift',v:v27-b27,type:v27-b27>=0?'pos':'neg'},
-    {label:'Phasing & LOE',v:a27-v27,type:a27-v27>=0?'pos':'neg'},
-    {label:'Adjusted',v:a27,type:'total'}
-  ];
+  const fySum=a=>a.slice(4,8).reduce((x,y)=>x+y);
+  const st=stages(base);
+  const b27=fySum(base), v27=fySum(st.v), l27=fySum(st.l), s27=fySum(st.s), a27=fySum(st.a);
+  const steps=[{label:'Baseline',v:b27,type:'base'}];
+  const push=(label,v)=>steps.push({label,v,type:v>=0?'pos':'neg'});
+  push('Volume',v27-b27);
+  if(state.loe)push('LOE erosion',l27-v27);
+  if(state.sup)push('Supply',s27-l27);
+  if(state.phase!=='none')push('Phasing',a27-s27);
+  steps.push({label:'Adjusted',v:a27,type:'total'});
   const svg=document.getElementById('waterfall');
   const W=860,H_=190,P={l:54,r:16,t:14,b:30};
   const maxV=Math.max(b27,a27)*1.12;
   const Y=v=>P.t+(H_-P.t-P.b)*(1-v/maxV);
-  const bw=110, gap=(W-P.l-P.r-bw*steps.length)/(steps.length-1);
+  const bw=Math.min(110,(W-P.l-P.r-14*(steps.length-1))/steps.length),
+        gap=(W-P.l-P.r-bw*steps.length)/(steps.length-1);
   let s='',cum=0;
   for(let g=0;g<=3;g++){const v=maxV*g/3;
     s+=`<line x1="${P.l}" y1="${Y(v)}" x2="${W-P.r}" y2="${Y(v)}" stroke="#232834"/>`;
@@ -480,6 +515,29 @@ function render(){
   document.getElementById('fitStat').textContent=m===null
     ?(win||('Fit on '+H()+' qtrs · '))+names[state.method]+' · history too short to backtest'
     :win+'Backtest on last 4 qtrs · MAPE '+m.toFixed(1)+'% · '+names[state.method]+' · peak: Q'+peakQuarter();
+}
+
+// ---------- supply constraint options & reset ----------
+function rebuildSupplyOptions(){
+  const sel=document.getElementById('supStart');
+  state.supStart=Math.min(state.supStart,fcQ-2);
+  sel.innerHTML='';
+  for(let off=0;off<fcQ-1;off++){
+    const o=document.createElement('option');
+    o.value=off;o.textContent='From '+qFull(H()+off);
+    if(off===state.supStart)o.selected=true;
+    sel.appendChild(o);
+  }
+}
+function resetSupply(){
+  state.sup=false;state.supStart=4;state.supDur=2;state.supSev=25;state.supRec=50;
+  const t=document.getElementById('supToggle');
+  t.classList.remove('on');t.setAttribute('aria-checked','false');
+  document.getElementById('supDur').value=2;document.getElementById('supDurVal').textContent='2 qtrs';
+  document.getElementById('supSev').value=25;document.getElementById('supSevVal').textContent='−25%';
+  document.getElementById('supRec').value=50;document.getElementById('supRecVal').textContent='50%';
+  state.phaseAmt=12;
+  document.getElementById('phaseAmt').value=12;document.getElementById('phaseAmtVal').textContent='12%';
 }
 
 // ---------- LOE quarter options ----------
@@ -562,7 +620,9 @@ function selectProduct(id){
   msg.classList.remove('err');
   msg.textContent='Viewing '+p.name+' — or paste your own data above';
   aiReset();
+  resetSupply();
   rebuildLoeOptions();
+  rebuildSupplyOptions();
   buildPortfolio();
   render();
 }
@@ -580,7 +640,9 @@ function applyData(){
   if(!(y>=1990&&y<=2030)){msg.textContent='First year must be between 1990 and 2030.';msg.classList.add('err');return}
   actuals=vals;startYear=y;customData=true;curProd=null;fitStart=0;
   state.loeOffset=Math.min(13,fcQ-1);
+  resetSupply();
   rebuildLoeOptions();
+  rebuildSupplyOptions();
   document.getElementById('envBadge').textContent='YOUR DATA · IN-BROWSER';
   document.getElementById('prodName').textContent='Your Product';
   document.getElementById('prodSub').textContent='pasted actuals · '+vals.length+' quarters';
@@ -604,7 +666,7 @@ function downloadCsv(){
   }
   rows.push([]);
   rows.push(['# HelixPlan export','product: '+(curProd?curProd.name:'custom data'),'method: '+state.method,'scenario: '+state.scen,'LOE: '+(state.loe?qFull(loeIndex())+' / yr1 erosion '+state.ero+'%':'off')]);
-  rows.push(['# volume uplift: '+state.vol+'%','phasing: '+state.phase,'currency: '+state.cur+' millions','generated in-browser']);
+  rows.push(['# volume uplift: '+state.vol+'%','phasing: '+state.phase+' ('+state.phaseAmt+'%)','supply: '+(state.sup?qFull(H()+state.supStart)+' x'+state.supDur+'q / unserved '+state.supSev+'% / catch-up '+state.supRec+'%':'off'),'currency: '+state.cur+' millions','generated in-browser']);
   const csv=rows.map(r=>r.join(',')).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a');
@@ -631,11 +693,9 @@ async function askAI(prompt,system){
 }
 function aiContext(){
   const base=baseline(), adj=adjusted(base);
-  const b27=base.slice(4,8).reduce((a,b)=>a+b);
-  const scenMul=state.scen==='base'?0:state.scen==='down'?-1:1;
-  const vol=state.vol/100*(state.scen==='down'?0.3:1)+(scenMul===-1?-0.06:0);
-  const v27=base.map((v,i)=>i>=4?v*(1+vol):v).slice(4,8).reduce((a,b)=>a+b);
-  const a27=adj.slice(4,8).reduce((a,b)=>a+b);
+  const fySum=a=>a.slice(4,8).reduce((x,y)=>x+y);
+  const st=stages(base);
+  const b27=fySum(base), v27=fySum(st.v), l27=fySum(st.l), s27=fySum(st.s), a27=fySum(st.a);
   const cum=adj.reduce((a,b)=>a+b), cumb=base.reduce((a,b)=>a+b);
   let peak=0,peakI=0;adj.forEach((v,i)=>{if(v>peak){peak=v;peakI=i}});
   const m=backtestMape(state.method);
@@ -655,11 +715,16 @@ function aiContext(){
     +(customData?' (user data — quarterly values intentionally not shared with you)':' (illustrative sample data)')+'.\n'
     +'BUDGET YEAR: FY'+budgetYear()+'. Baseline '+f(b27)+' → adjusted '+f(a27)
     +' ('+((a27/b27-1)>=0?'+':'')+((a27/b27-1)*100).toFixed(1)+'% vs baseline). Scenario: '+scen+'.\n'
-    +'BRIDGE: volume effect '+(v27-b27>=0?'+':'−')+c+Math.abs(v27-b27).toFixed(1)+'M; LOE & phasing '+(a27-v27>=0?'+':'−')+c+Math.abs(a27-v27).toFixed(1)+'M.\n'
+    +'BRIDGE: volume effect '+(v27-b27>=0?'+':'−')+c+Math.abs(v27-b27).toFixed(1)+'M'
+    +(state.loe?'; LOE erosion '+(l27-v27>=0?'+':'−')+c+Math.abs(l27-v27).toFixed(1)+'M':'')
+    +(state.sup?'; supply constraint '+(s27-l27>=0?'+':'−')+c+Math.abs(s27-l27).toFixed(1)+'M':'')
+    +(state.phase!=='none'?'; phasing '+(a27-s27>=0?'+':'−')+c+Math.abs(a27-s27).toFixed(1)+'M (within-year shift, FY-neutral by design)':'')+'.\n'
     +'5-YR CUMULATIVE: adjusted '+c+(cum/1000).toFixed(2)+'B vs baseline '+c+(cumb/1000).toFixed(2)+'B. Peak quarter: '+f(peak)+' in '+qFull(H()+peakI)+'.\n'
     +'ASSUMPTIONS: forecast method '+names[state.method]
     +(fitStart>0?' (fitted on the '+(H()-fitStart)+' post-LOE quarters only)':'')
-    +'; '+loeLine+'; volume uplift '+(state.vol>=0?'+':'')+state.vol+'% from '+budgetYear()+'; '+phase+'.\n'
+    +'; '+loeLine+'; volume uplift '+(state.vol>=0?'+':'')+state.vol+'% from '+budgetYear()
+    +(state.sup?'; supply constraint from '+qFull(H()+state.supStart)+' for '+state.supDur+' quarters, '+state.supSev+'% of demand unserved, '+state.supRec+'% caught up after':'')
+    +'; '+phase+(state.phase!=='none'?' ('+state.phaseAmt+'% of quarter weight)':'')+'.\n'
     +'FORECAST ERROR: '+(m===null?'history too short to backtest honestly':'backtested MAPE '+m.toFixed(1)+'% on the last 4 quarters')+'.';
   if(!customData){
     let tFy=0,tLy=0;PRODUCTS.forEach(p=>{const r=productBudget(p);tFy+=r.fy;tLy+=r.ly});
@@ -701,6 +766,14 @@ document.getElementById('loeSel').onchange=e=>{state.loeOffset=+e.target.value;r
 document.getElementById('eroSlider').oninput=e=>{state.ero=+e.target.value;document.getElementById('eroVal').textContent='−'+state.ero+'%';render()};
 document.getElementById('volSlider').oninput=e=>{state.vol=+e.target.value;document.getElementById('volVal').textContent=(state.vol>=0?'+':'')+state.vol+'%';render()};
 document.getElementById('phaseSel').onchange=e=>{state.phase=e.target.value;document.getElementById('phaseVal').textContent=e.target.value==='q4q1'?'Q4 → Q1':e.target.value==='q1q4'?'Q1 → Q4':'None';render()};
+document.getElementById('phaseAmt').oninput=e=>{state.phaseAmt=+e.target.value;document.getElementById('phaseAmtVal').textContent=state.phaseAmt+'%';render()};
+const spt=document.getElementById('supToggle');
+function flipSup(){state.sup=!state.sup;spt.classList.toggle('on',state.sup);spt.setAttribute('aria-checked',state.sup);render()}
+spt.onclick=flipSup;spt.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();flipSup()}};
+document.getElementById('supStart').onchange=e=>{state.supStart=+e.target.value;render()};
+document.getElementById('supDur').oninput=e=>{state.supDur=+e.target.value;document.getElementById('supDurVal').textContent=state.supDur+(state.supDur===1?' qtr':' qtrs');render()};
+document.getElementById('supSev').oninput=e=>{state.supSev=+e.target.value;document.getElementById('supSevVal').textContent='−'+state.supSev+'%';render()};
+document.getElementById('supRec').oninput=e=>{state.supRec=+e.target.value;document.getElementById('supRecVal').textContent=state.supRec+'%';render()};
 document.querySelectorAll('.scen-btn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.scen-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.scen=b.dataset.s;render()});
 document.getElementById('curIn').onchange=e=>{state.cur=e.target.value;buildPortfolio();render()};
 document.getElementById('applyData').onclick=applyData;
