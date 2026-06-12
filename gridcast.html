@@ -246,7 +246,7 @@ svg{display:block;width:100%}
 
       <div class="sec-title"><h3>Sıcaklık – tüketim ilişkisi (günlük ortalamalar)</h3></div>
       <div class="chart-wrap"><svg id="scatterChart" viewBox="0 0 900 260" preserveAspectRatio="none"></svg></div>
-      <div class="legend"><span>Soğukta ısınma, sıcakta klima yükü: U-eğrisi tahminin neden hava verisine ihtiyaç duyduğunu gösterir.</span></div>
+      <div class="legend"><span>Her nokta bir gündür — fareyle üzerine gelin: tarih, sıcaklık ve tüketim görünür.</span><span><i class="swatch" style="background:transparent;height:9px;width:9px;border:1.5px solid #E5484D;border-radius:50%"></i>Resmî tatil / bayram</span><span>Soğukta ısınma, sıcakta klima: U-eğrisi.</span></div>
 
       <div class="sec-title"><h3>7 günlük ileri tahmin — gerçek hava tahminiyle</h3></div>
       <div style="padding:4px 20px 0">
@@ -530,7 +530,13 @@ function scatterChart(svg,daily){
     g+=`<text x="${X(tt)}" y="${H-8}" fill="#A3A8B5" font-size="11" text-anchor="middle" font-family="IBM Plex Mono,monospace">${tt}°C</text>`; }
   for(const d of daily){
     const c=d.temp<15?'#2F9BFF':(d.temp>22?'#FF6500':'#19C37D');
-    g+=`<circle cx="${X(d.temp).toFixed(1)}" cy="${Y(d.y).toFixed(1)}" r="3" fill="${c}" opacity=".55"/>`; }
+    const hol=d.k?HOLIDAYS.has(d.k):false;
+    let lbl='';
+    if(d.k){
+      const gun=new Date(d.k+'T12:00').toLocaleDateString('tr-TR',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+      lbl=`<title>${gun} · ${fmtN(d.temp,1)}°C · ${fmtN(d.y,0)} MWh${hol?' · RESMÎ TATİL':''}</title>`;
+    }
+    g+=`<circle cx="${X(d.temp).toFixed(1)}" cy="${Y(d.y).toFixed(1)}" r="${hol?4.5:3}" fill="${c}" opacity="${hol?'.95':'.55'}"${hol?' stroke="#E5484D" stroke-width="1.4"':''} style="cursor:crosshair">${lbl}</circle>`; }
   svg.innerHTML=g;
 }
 
@@ -589,9 +595,9 @@ function renderResults(res,data){
   const byDay=new Map();
   for(const r of data.slice(-365*24)){
     if(r.temp==null) continue;
-    const k=r.t.toISOString().slice(0,10);
+    const k=dkey(r.t);
     const o=byDay.get(k)||{ts:0,ys:0,c:0}; o.ts+=r.temp; o.ys+=r.y; o.c++; byDay.set(k,o); }
-  const daily=[...byDay.values()].filter(o=>o.c>=20).map(o=>({temp:o.ts/o.c,y:o.ys/o.c}));
+  const daily=[...byDay.entries()].filter(e=>e[1].c>=20).map(e=>({k:e[0],temp:e[1].ts/e[1].c,y:e[1].ys/e[1].c}));
   scatterChart($('scatterChart'),daily);
   renderTL();
 }
