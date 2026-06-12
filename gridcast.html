@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GridCast — Tahmin Değer Denetimi (Demo)</title>
+<meta name="description" content="Hava durumuna dayalı elektrik talep tahmini ve dürüst geriye dönük test (backtest). Tahmin hatasının TL maliyetini hesaplar. Tarayıcıda çalışır.">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#2F9BFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  GridCast — "Forecast Value Audit" demo: weather-driven hourly electricity demand
+  forecasting with an honest train/test backtest, benchmarked against the naive
+  same-hour-last-week method, translated into TL imbalance cost.
+  Single file, no external JS dependencies. Sample data is synthetic; real audits
+  run on the client's own hourly actuals + Open-Meteo historical weather.
+-->
+<style>
+:root{
+  --ink:#E6E8EE;
+  --surface:#0F1117;
+  --panel:#171A21;
+  --panel2:#1F232D;
+  --line:#2A2F3A;
+  --primary:#2F9BFF;
+  --primary-soft:rgba(47,155,255,.14);
+  --green:#19C37D;
+  --red:#E5484D;
+  --orange:#FF6500;
+  --muted:#A3A8B5;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',-apple-system,Segoe UI,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--surface);color:var(--ink);font-size:14px;line-height:1.5}
+.topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:16px}
+.logo{font-weight:700;font-size:16px;letter-spacing:.3px}
+.logo span{color:var(--green)}
+.topbar .crumb{color:var(--muted);font-size:13px}
+.topbar .env{margin-left:auto;font-family:var(--mono);font-size:11px;background:var(--panel2);padding:3px 10px;border-radius:3px;color:var(--orange)}
+.layout{display:grid;grid-template-columns:288px 1fr 312px;gap:16px;padding:16px 24px;max-width:1480px;margin:0 auto}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+.panel h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:14px 16px 8px;font-weight:600}
+.pad{padding:0 16px 14px}
+textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--panel2);resize:vertical;line-height:1.6;min-height:110px}
+textarea::placeholder{color:#5B6472}
+select,input[type=number]{padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--panel2)}
+select{width:100%}
+input[type=number]{width:104px;text-align:right}
+.mini-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
+.mini-row label{font-size:12px;color:var(--muted);font-weight:500}
+.btn{width:100%;padding:10px;border:none;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans);margin-top:10px}
+.btn.primary{background:var(--primary);color:#fff}
+.btn.primary:hover{background:#1D86E8}
+.btn.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--primary)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.55}
+.note b{color:var(--ink)}
+.steps{list-style:none;margin-top:4px}
+.steps li{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:12.5px;color:var(--muted)}
+.steps .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex-shrink:0}
+.steps li.done{color:var(--ink)}
+.steps li.done .dot{background:var(--green)}
+.steps li.run .dot{background:var(--orange);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.product-head{display:flex;align-items:baseline;gap:12px;padding:16px 20px 4px;flex-wrap:wrap}
+.product-head h1{font-size:20px;font-weight:700}
+.product-head .molecule{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tag{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:4px;background:var(--panel2);color:var(--muted);margin-left:auto}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:12px}
+@media(max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel);padding:12px 20px}
+.kpi .k-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.kpi .k-val{font-family:var(--mono);font-size:21px;font-weight:600;margin-top:2px}
+.kpi .k-sub{font-family:var(--mono);font-size:11px;margin-top:1px;color:var(--muted)}
+.k-val.good{color:var(--green)} .k-val.bad{color:var(--red)} .k-val.blue{color:var(--primary)}
+.chart-wrap{padding:8px 12px 4px}
+svg{display:block;width:100%}
+.legend{display:flex;gap:18px;padding:4px 20px 14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{width:18px;height:3px;border-radius:2px;display:inline-block}
+.sec-title{display:flex;align-items:baseline;justify-content:space-between;padding:14px 20px 2px}
+.sec-title h3{padding:0}
+.money{font-family:var(--mono)}
+.tl-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px}
+.tl-row:first-of-type{border-top:none}
+.tl-row .lbl{color:var(--muted)}
+.tl-row .val{font-family:var(--mono);font-weight:600}
+.tl-big{background:rgba(25,195,125,.1);border:1px solid rgba(25,195,125,.35);border-radius:8px;padding:12px 14px;margin-top:11px}
+.tl-big .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--green);font-weight:600}
+.tl-big .val{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--green);margin-top:2px}
+.howto{font-size:12px;color:var(--muted);line-height:1.6;padding:0 16px 14px}
+.howto li{margin:6px 0 6px 18px}
+.howto b{color:var(--ink)}
+.empty{padding:60px 24px;text-align:center;color:var(--muted)}
+.empty .big{font-size:38px;margin-bottom:10px}
+.warn{background:rgba(255,101,0,.08);border:1px solid rgba(255,101,0,.35);border-radius:8px;padding:10px 13px;font-size:11.5px;color:var(--muted);margin:12px 16px 0;line-height:1.55}
+.warn b{color:var(--orange)}
+#status{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px;min-height:15px}
+/* ---------- Access gate ---------- */
+#gate{position:fixed;inset:0;z-index:200;background:linear-gradient(135deg,#10131c,#0F1117 60%,#13202e);display:grid;place-items:center}
+.gatecard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:28px 26px;width:340px;max-width:92%;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.5)}
+.gatecard .glogo{width:46px;height:46px;border-radius:11px;margin:0 auto 12px;background:linear-gradient(135deg,var(--primary),var(--green));display:grid;place-items:center;color:#fff;font-weight:800;font-size:19px}
+.gatecard h2{margin:0 0 4px;font-size:17px;letter-spacing:.5px}
+.gatecard .gsub{margin:0 0 16px;font-size:12px;color:var(--muted)}
+.gatecard input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;font-size:14px;margin-bottom:10px;outline:none;background:var(--panel2);color:var(--ink)}
+.gatecard input:focus{border-color:var(--primary)}
+.gatecard button{width:100%;padding:11px;border:0;border-radius:9px;background:var(--primary);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+.gatecard button:hover{background:#1D86E8}
+#gateErr{color:var(--red);font-size:12px;margin-top:9px;min-height:14px}
+.gatehint{font-size:10.5px;color:#5B6472;margin-top:13px}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gatecard">
+    <div class="glogo">G</div>
+    <h2>GridCast</h2>
+    <p class="gsub">Tahmin Değer Denetimi — Demo</p>
+    <input id="gatePass" type="password" placeholder="Parola" autocomplete="off">
+    <button id="gateBtn">Giriş</button>
+    <div id="gateErr"></div>
+    <div class="gatehint">🔒 Yetkili erişim — yalnızca davetli kullanıcılar için.</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="logo">Grid<span>Cast</span></div>
+  <div class="crumb">Hava Durumuna Dayalı Talep Tahmini · Geriye Dönük Test</div>
+  <div class="env">DEMO · ÖRNEK VERİ</div>
+</div>
+
+<div class="layout">
+
+  <!-- ================= LEFT: data ================= -->
+  <div>
+    <div class="panel">
+      <h3>1 · Veri</h3>
+      <div class="pad">
+        <button class="btn primary" id="btnSample">Örnek veri yükle (2 yıl, saatlik)</button>
+        <div class="note">veya kendi saatlik tüketim verinizi yapıştırın<br><span style="font-family:var(--mono);font-size:10.5px">tarih;MWh → 2025-01-01 00:00;512,4</span></div>
+        <textarea id="csvIn" placeholder="2025-01-01 00:00;512,4&#10;2025-01-01 01:00;498,1&#10;..."></textarea>
+        <div class="mini-row">
+          <label>Hava istasyonu (il)</label>
+          <select id="citySel" style="width:150px">
+            <option value="40.77,30.39">Sakarya</option>
+            <option value="40.85,29.88">Kocaeli</option>
+            <option value="40.74,31.61">Bolu</option>
+            <option value="40.84,31.16">Düzce</option>
+            <option value="41.01,28.98">İstanbul</option>
+            <option value="39.93,32.86">Ankara</option>
+            <option value="38.42,27.14">İzmir</option>
+          </select>
+        </div>
+        <button class="btn ghost" id="btnPaste">Yapıştırılan veriyle çalıştır</button>
+        <div id="status"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h3>İşlem adımları</h3>
+      <div class="pad">
+        <ul class="steps">
+          <li id="st1"><span class="dot"></span>Saatlik tüketim verisi</li>
+          <li id="st2"><span class="dot"></span>Saatlik sıcaklık verisi (Open-Meteo)</li>
+          <li id="st3"><span class="dot"></span>Model eğitimi (ilk %80)</li>
+          <li id="st4"><span class="dot"></span>Dürüst test (son %20, görülmemiş veri)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h3>Yöntem</h3>
+      <div class="howto">
+        Model her saat için şu bilgileri kullanır:
+        <li><b>Takvim profili</b> — saat × gün tipi (hafta içi / Cmt / Paz)</li>
+        <li><b>Soğuk etkisi</b> — HDD: 15°C altındaki her derece</li>
+        <li><b>Sıcak etkisi</b> — CDD: 22°C üstündeki her derece (klima)</li>
+        <li><b>Geçen hafta aynı saat</b> — kısa vadeli seviye</li>
+        Kıyas: <b>naif yöntem</b> = "geçen hafta aynı saat" (sektörde yaygın pratik).
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CENTER: results ================= -->
+  <div class="panel" id="centerPanel">
+    <div class="product-head">
+      <h1>Tahmin Değer Denetimi</h1>
+      <div class="molecule" id="dataRange">—</div>
+      <div class="tag" id="dataTag">veri bekleniyor</div>
+    </div>
+
+    <div id="emptyState" class="empty">
+      <div class="big">⚡</div>
+      <p><b>Başlamak için soldan örnek veriyi yükleyin.</b></p>
+      <p style="font-size:12.5px;margin-top:6px">2 yıllık saatlik tüketim + sıcaklık verisiyle model kurulur,<br>son %20'lik dönemde hiç görmediği veriyle test edilir.</p>
+    </div>
+
+    <div id="results" style="display:none">
+      <div class="kpis">
+        <div class="kpi">
+          <div class="k-label">Naif yöntem hatası</div>
+          <div class="k-val bad" id="kpiNaive">—</div>
+          <div class="k-sub">MAPE · geçen hafta aynı saat</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">GridCast model hatası</div>
+          <div class="k-val blue" id="kpiModel">—</div>
+          <div class="k-sub">MAPE · test dönemi</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">İyileşme</div>
+          <div class="k-val good" id="kpiImp">—</div>
+          <div class="k-sub">puan · daha az hata</div>
+        </div>
+        <div class="kpi">
+          <div class="k-label">Ortalama mutlak hata</div>
+          <div class="k-val" id="kpiMae">—</div>
+          <div class="k-sub">MWh / saat</div>
+        </div>
+      </div>
+
+      <div class="sec-title"><h3>Test dönemi — son 14 gün · gerçekleşen vs tahmin</h3></div>
+      <div class="chart-wrap"><svg id="lineChart" viewBox="0 0 900 300" preserveAspectRatio="none"></svg></div>
+      <div class="legend">
+        <span><i class="swatch" style="background:#E6E8EE"></i>Gerçekleşen</span>
+        <span><i class="swatch" style="background:#2F9BFF"></i>GridCast model</span>
+        <span><i class="swatch" style="background:#A3A8B5;height:0;border-top:2px dashed #A3A8B5"></i>Naif (geçen hafta)</span>
+      </div>
+
+      <div class="sec-title"><h3>Sıcaklık – tüketim ilişkisi (günlük ortalamalar)</h3></div>
+      <div class="chart-wrap"><svg id="scatterChart" viewBox="0 0 900 260" preserveAspectRatio="none"></svg></div>
+      <div class="legend"><span>Soğukta ısınma, sıcakta klima yükü: U-eğrisi tahminin neden hava verisine ihtiyaç duyduğunu gösterir.</span></div>
+
+      <div class="warn"><b>Dürüstlük notu:</b> Bu sayfa örnek (sentetik) veriyle çalışan bir demodur. Gerçek denetimde model, kurumun kendi saatlik verisiyle eğitilir ve sonuçlar yalnızca modelin hiç görmediği dönem üzerinde raporlanır. Sonuç garanti edilmez; ölçülür.</div>
+      <div style="height:16px"></div>
+    </div>
+  </div>
+
+  <!-- ================= RIGHT: TL impact ================= -->
+  <div>
+    <div class="panel">
+      <h3>2 · Hatanın TL karşılığı</h3>
+      <div class="pad">
+        <div class="mini-row"><label>Yıllık hacim (GWh)</label><input type="number" id="inVol" value="4000" min="1"></div>
+        <div class="mini-row"><label>Ort. fiyat (TL/MWh)</label><input type="number" id="inPrice" value="2500" min="1"></div>
+        <div class="mini-row"><label>Dengesizlik maliyeti (%)</label><input type="number" id="inPen" value="10" min="0" max="100"></div>
+        <div class="note">Dengesizlik maliyeti: hatalı tahmin edilen her MWh için ödenen ek bedelin enerji fiyatına oranı (gün öncesi vs dengesizlik fiyat makası + %3 ceza marjı için temsilî varsayım).</div>
+        <div style="margin-top:14px" id="tlRows">
+          <div class="tl-row"><span class="lbl">Hatalı tahmin edilen hacim (naif)</span><span class="val" id="tlVolN">—</span></div>
+          <div class="tl-row"><span class="lbl">Mevcut hata maliyeti / yıl</span><span class="val" id="tlCostN">—</span></div>
+          <div class="tl-row"><span class="lbl">Model ile hata maliyeti / yıl</span><span class="val" id="tlCostM">—</span></div>
+        </div>
+        <div class="tl-big">
+          <div class="lbl">Geri kazanılabilir tutar / yıl</div>
+          <div class="val" id="tlSave">—</div>
+        </div>
+        <div class="note" style="margin-top:8px">Formül: hacim × MAPE × fiyat × dengesizlik %. Varsayımları kendi rakamlarınızla değiştirin.</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h3>Gerçek denetim nasıl yapılır?</h3>
+      <div class="howto">
+        <li><b>1. Veri:</b> 2–3 yıllık saatlik gerçekleşen tüketim (CSV/Excel yeterli).</li>
+        <li><b>2. Backtest:</b> Mevcut tahmin yönteminizle yan yana, aynı dönem üzerinde ölçüm.</li>
+        <li><b>3. Rapor:</b> MAPE karşılaştırması + dengesizlik maliyeti analizi, TL cinsinden.</li>
+        <li><b>4. Karar:</b> Rakam küçükse bedava öğrendiniz; büyükse ikinci faz kendini öder.</li>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================= access gate ================= */
+(function(){
+  const gate=document.getElementById('gate');
+  function unlock(){ try{sessionStorage.setItem('gridcast_ok','1');}catch(e){} gate.style.display='none'; }
+  function tryGate(){
+    const v=document.getElementById('gatePass').value;
+    if(v==='grow1') unlock();
+    else{ document.getElementById('gateErr').textContent='Hatalı parola. Tekrar deneyin.';
+      const p=document.getElementById('gatePass'); p.value=''; p.focus(); }
+  }
+  try{ if(sessionStorage.getItem('gridcast_ok')==='1'){ gate.style.display='none'; } }catch(e){}
+  document.getElementById('gateBtn').onclick=tryGate;
+  document.getElementById('gatePass').addEventListener('keydown',e=>{ if(e.key==='Enter') tryGate(); });
+  if(gate.style.display!=='none') document.getElementById('gatePass').focus();
+})();
+
+/* ================= helpers ================= */
+const $=id=>document.getElementById(id);
+const fmtTL=n=>new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0}).format(Math.round(n))+' TL';
+const fmtN=(n,d=1)=>new Intl.NumberFormat('tr-TR',{maximumFractionDigits:d,minimumFractionDigits:d}).format(n);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function setStep(i,state){ const el=$('st'+i); el.className=state; }
+function status(msg){ $('status').textContent=msg; }
+
+/* ================= sample data (synthetic, seeded) ================= */
+const HOUR_PROFILE=[0.78,0.74,0.72,0.71,0.72,0.76,0.84,0.93,1.01,1.06,1.09,1.10,1.08,1.07,1.08,1.09,1.10,1.12,1.15,1.16,1.12,1.04,0.94,0.84];
+function genSample(){
+  const rnd=mulberry32(20260612);
+  const end=new Date(); end.setHours(0,0,0,0); // bugünün başı
+  const start=new Date(end.getTime()-730*24*3600*1000);
+  const data=[];
+  let front=0; // yavaş hava cephesi salınımı
+  for(let t=new Date(start);t<end;t=new Date(t.getTime()+3600*1000)){
+    const doy=Math.floor((t-new Date(t.getFullYear(),0,0))/86400000);
+    const h=t.getHours(), dw=t.getDay();
+    front+=(rnd()-0.5)*1.5; front*=0.990;
+    const temp=13.5-9.5*Math.cos(2*Math.PI*(doy-15)/365)+4*Math.sin(2*Math.PI*(h-9)/24)+front+(rnd()-0.5)*1.6;
+    const hdd=Math.max(0,15-temp), cdd=Math.max(0,temp-22);
+    const dayF=(dw===0)?0.85:(dw===6)?0.93:1.0;
+    const years=(t-start)/(365*24*3600*1000);
+    const base=520*HOUR_PROFILE[h]*dayF*(1+0.04*years);
+    const y=base+7.2*hdd+9.5*cdd+(rnd()-0.5)*2*base*0.025;
+    data.push({t:new Date(t),y:y,temp:temp});
+  }
+  return data;
+}
+
+/* ================= CSV parse ================= */
+function parseCSV(text){
+  const rows=[];
+  for(const raw of text.split(/\r?\n/)){
+    const line=raw.trim(); if(!line) continue;
+    const parts=line.split(/[;\t]|,(?=\s*"?\d{1,2}[\.\:])|,(?=\s*\d{4}-)/); // ; tab, dikkatli virgül
+    let dpart,vpart;
+    if(parts.length>=2){ dpart=parts[0].trim(); vpart=parts.slice(1).join('').trim(); }
+    else continue;
+    // tarih: 2025-01-01 00:00 | 01.01.2025 00:00
+    let d=null,m;
+    if((m=dpart.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2})[:\.](\d{2})/))) d=new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]);
+    else if((m=dpart.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})[ T](\d{1,2})[:\.](\d{2})/))) d=new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5]);
+    if(!d||isNaN(d)) continue;
+    const v=parseFloat(vpart.replace(/\./g,'').replace(',','.'))||parseFloat(vpart);
+    if(!isFinite(v)) continue;
+    rows.push({t:d,y:v,temp:null});
+  }
+  rows.sort((a,b)=>a.t-b.t);
+  return rows;
+}
+
+/* ================= Open-Meteo weather ================= */
+async function fetchWeather(lat,lon,start,end){
+  const f=d=>d.toISOString().slice(0,10);
+  const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${f(start)}&end_date=${f(end)}&hourly=temperature_2m&timezone=Europe%2FIstanbul`;
+  const res=await fetch(url);
+  if(!res.ok) throw new Error('weather http '+res.status);
+  const j=await res.json();
+  const map=new Map();
+  const times=j.hourly.time, temps=j.hourly.temperature_2m;
+  for(let i=0;i<times.length;i++){ if(temps[i]!=null) map.set(times[i],temps[i]); }
+  return map; // key: "YYYY-MM-DDTHH:00"
+}
+function keyOf(d){
+  const p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:00`;
+}
+
+/* ================= model ================= */
+function solveNxN(A,b){
+  const n=b.length;
+  for(let i=0;i<n;i++){
+    let mx=i; for(let r=i+1;r<n;r++) if(Math.abs(A[r][i])>Math.abs(A[mx][i])) mx=r;
+    [A[i],A[mx]]=[A[mx],A[i]]; [b[i],b[mx]]=[b[mx],b[i]];
+    if(Math.abs(A[i][i])<1e-12) return null;
+    for(let r=i+1;r<n;r++){ const f=A[r][i]/A[i][i];
+      for(let c=i;c<n;c++) A[r][c]-=f*A[i][c]; b[r]-=f*b[i]; }
+  }
+  const x=new Array(n).fill(0);
+  for(let i=n-1;i>=0;i--){ let s=b[i]; for(let c=i+1;c<n;c++) s-=A[i][c]*x[c]; x[i]=s/A[i][i]; }
+  return x;
+}
+function dayType(d){ const w=d.getDay(); return w===0?2:(w===6?1:0); }
+
+function runModel(data){
+  // data: [{t,y,temp}] saatlik, sıralı
+  const n=data.length;
+  const splitIdx=Math.floor(n*0.8);
+  // takvim taban profili — yalnız eğitim verisinden
+  const sum=Array.from({length:3},()=>new Array(24).fill(0));
+  const cnt=Array.from({length:3},()=>new Array(24).fill(0));
+  for(let i=0;i<splitIdx;i++){ const r=data[i]; const dt=dayType(r.t),h=r.t.getHours();
+    sum[dt][h]+=r.y; cnt[dt][h]++; }
+  const base=(dt,h)=>cnt[dt][h]?sum[dt][h]/cnt[dt][h]:0;
+  // özellikler: [base, HDD, CDD, lag168]
+  const feats=i=>{
+    const r=data[i];
+    const hdd=Math.max(0,15-r.temp), cdd=Math.max(0,r.temp-22);
+    return [base(dayType(r.t),r.t.getHours()),hdd,cdd,data[i-168].y];
+  };
+  // OLS — normal denklemler
+  const k=4, AtA=Array.from({length:k},()=>new Array(k).fill(0)), Atb=new Array(k).fill(0);
+  for(let i=168;i<splitIdx;i++){
+    if(data[i].temp==null||data[i-168].temp===undefined) continue;
+    const x=feats(i), y=data[i].y;
+    for(let a=0;a<k;a++){ Atb[a]+=x[a]*y; for(let b2=0;b2<k;b2++) AtA[a][b2]+=x[a]*x[b2]; }
+  }
+  const w=solveNxN(AtA.map(r=>r.slice()),Atb.slice());
+  if(!w) return null;
+  // test
+  const test=[];
+  let seN=0,seM=0,aeM=0,cntT=0;
+  for(let i=Math.max(splitIdx,168);i<n;i++){
+    if(data[i].temp==null) continue;
+    const x=feats(i);
+    const yhat=Math.max(0,w[0]*x[0]+w[1]*x[1]+w[2]*x[2]+w[3]*x[3]);
+    const naive=data[i-168].y, y=data[i].y;
+    if(y<=0) continue;
+    seN+=Math.abs(y-naive)/y; seM+=Math.abs(y-yhat)/y; aeM+=Math.abs(y-yhat); cntT++;
+    test.push({t:data[i].t,y:y,yhat:yhat,naive:naive});
+  }
+  if(!cntT) return null;
+  return {mapeNaive:seN/cntT,mapeModel:seM/cntT,mae:aeM/cntT,test:test,w:w};
+}
+
+/* ================= charts (hand-rolled SVG) ================= */
+function lineChart(svg,rows){
+  const W=900,H=300,P={l:54,r:10,t:12,b:24};
+  const xs=rows.map((_,i)=>i);
+  const lo=Math.min(...rows.map(r=>Math.min(r.y,r.yhat,r.naive)))*0.96;
+  const hi=Math.max(...rows.map(r=>Math.max(r.y,r.yhat,r.naive)))*1.04;
+  const X=i=>P.l+(W-P.l-P.r)*i/(xs.length-1);
+  const Y=v=>P.t+(H-P.t-P.b)*(1-(v-lo)/(hi-lo));
+  const path=(key)=>rows.map((r,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(r[key]).toFixed(1)).join('');
+  let g='';
+  // y ekseni
+  for(let i=0;i<=4;i++){ const v=lo+(hi-lo)*i/4, y=Y(v);
+    g+=`<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="#2A2F3A" stroke-width="1"/>`;
+    g+=`<text x="${P.l-7}" y="${y+4}" fill="#A3A8B5" font-size="11" text-anchor="end" font-family="IBM Plex Mono,monospace">${Math.round(v)}</text>`; }
+  // gün etiketleri (her 48 saat)
+  for(let i=0;i<rows.length;i+=48){ const d=rows[i].t;
+    g+=`<text x="${X(i)}" y="${H-6}" fill="#A3A8B5" font-size="10" text-anchor="middle" font-family="IBM Plex Mono,monospace">${d.getDate()}.${d.getMonth()+1}</text>`; }
+  g+=`<path d="${path('naive')}" fill="none" stroke="#A3A8B5" stroke-width="1" stroke-dasharray="4 4" opacity=".8"/>`;
+  g+=`<path d="${path('y')}" fill="none" stroke="#E6E8EE" stroke-width="1.6"/>`;
+  g+=`<path d="${path('yhat')}" fill="none" stroke="#2F9BFF" stroke-width="1.6"/>`;
+  svg.innerHTML=g;
+}
+function scatterChart(svg,daily){
+  const W=900,H=260,P={l:54,r:10,t:12,b:28};
+  const txs=daily.map(d=>d.temp), tys=daily.map(d=>d.y);
+  const xlo=Math.min(...txs)-1, xhi=Math.max(...txs)+1;
+  const ylo=Math.min(...tys)*0.96, yhi=Math.max(...tys)*1.04;
+  const X=v=>P.l+(W-P.l-P.r)*(v-xlo)/(xhi-xlo);
+  const Y=v=>P.t+(H-P.t-P.b)*(1-(v-ylo)/(yhi-ylo));
+  let g='';
+  for(let i=0;i<=4;i++){ const v=ylo+(yhi-ylo)*i/4, y=Y(v);
+    g+=`<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="#2A2F3A"/>`;
+    g+=`<text x="${P.l-7}" y="${y+4}" fill="#A3A8B5" font-size="11" text-anchor="end" font-family="IBM Plex Mono,monospace">${Math.round(v)}</text>`; }
+  for(let tt=Math.ceil(xlo/5)*5;tt<=xhi;tt+=5){
+    g+=`<text x="${X(tt)}" y="${H-8}" fill="#A3A8B5" font-size="11" text-anchor="middle" font-family="IBM Plex Mono,monospace">${tt}°C</text>`; }
+  for(const d of daily){
+    const c=d.temp<15?'#2F9BFF':(d.temp>22?'#FF6500':'#19C37D');
+    g+=`<circle cx="${X(d.temp).toFixed(1)}" cy="${Y(d.y).toFixed(1)}" r="3" fill="${c}" opacity=".55"/>`; }
+  svg.innerHTML=g;
+}
+
+/* ================= TL panel ================= */
+let lastResult=null;
+function renderTL(){
+  if(!lastResult) return;
+  const vol=(+$('inVol').value||0)*1000;           // MWh
+  const price=+$('inPrice').value||0;              // TL/MWh
+  const pen=(+$('inPen').value||0)/100;
+  const costN=vol*lastResult.mapeNaive*price*pen;
+  const costM=vol*lastResult.mapeModel*price*pen;
+  $('tlVolN').textContent=fmtN(vol*lastResult.mapeNaive/1000,0)+' GWh';
+  $('tlCostN').textContent=fmtTL(costN);
+  $('tlCostM').textContent=fmtTL(costM);
+  $('tlSave').textContent=fmtTL(Math.max(0,costN-costM));
+}
+['inVol','inPrice','inPen'].forEach(id=>$(id).addEventListener('input',renderTL));
+
+/* ================= pipeline ================= */
+function renderResults(res,data){
+  lastResult=res;
+  $('emptyState').style.display='none';
+  $('results').style.display='block';
+  $('kpiNaive').textContent='%'+fmtN(res.mapeNaive*100,1);
+  $('kpiModel').textContent='%'+fmtN(res.mapeModel*100,1);
+  $('kpiImp').textContent=fmtN((res.mapeNaive-res.mapeModel)*100,1)+' pp';
+  $('kpiMae').textContent=fmtN(res.mae,1);
+  const first=data[0].t, last=data[data.length-1].t;
+  $('dataRange').textContent=`${first.toLocaleDateString('tr-TR')} – ${last.toLocaleDateString('tr-TR')} · ${data.length.toLocaleString('tr-TR')} saat`;
+  lineChart($('lineChart'),res.test.slice(-336));
+  // günlük ortalamalar (testten + eğitimden son 365 gün)
+  const byDay=new Map();
+  for(const r of data.slice(-365*24)){
+    if(r.temp==null) continue;
+    const k=r.t.toISOString().slice(0,10);
+    const o=byDay.get(k)||{ts:0,ys:0,c:0}; o.ts+=r.temp; o.ys+=r.y; o.c++; byDay.set(k,o); }
+  const daily=[...byDay.values()].filter(o=>o.c>=20).map(o=>({temp:o.ts/o.c,y:o.ys/o.c}));
+  scatterChart($('scatterChart'),daily);
+  renderTL();
+}
+
+async function runPipeline(data,opts){
+  try{
+    setStep(1,'done'); setStep(2,'run'); setStep(3,''); setStep(4,'');
+    if(opts.fetchWeather){
+      status('Sıcaklık verisi indiriliyor (Open-Meteo)…');
+      const [lat,lon]=$('citySel').value.split(',');
+      try{
+        const wm=await fetchWeather(lat,lon,data[0].t,data[data.length-1].t);
+        let hit=0;
+        for(const r of data){ const v=wm.get(keyOf(r.t)); if(v!=null){ r.temp=v; hit++; } }
+        if(hit<data.length*0.7) throw new Error('eksik hava verisi');
+        $('dataTag').textContent='gerçek veri + Open-Meteo';
+      }catch(e){
+        status('Hava verisi alınamadı — sıcaklık olmadan devam edilemiyor.');
+        setStep(2,''); return;
+      }
+    }else{
+      $('dataTag').textContent='örnek veri (sentetik)';
+    }
+    setStep(2,'done'); setStep(3,'run');
+    status('Model eğitiliyor…');
+    await new Promise(r=>setTimeout(r,30)); // UI nefes alsın
+    const res=runModel(data.filter(r=>r.temp!=null));
+    if(!res){ status('Model kurulamadı — en az 6 aylık kesintisiz saatlik veri gerekir.'); setStep(3,''); return; }
+    setStep(3,'done'); setStep(4,'done');
+    status("Tamamlandı. Test dönemi: verinin son %20'lik bölümü.");
+    renderResults(res,data);
+  }catch(err){
+    status('Hata: '+err.message);
+  }
+}
+
+$('btnSample').onclick=()=>{
+  status('Örnek veri üretiliyor (2 yıl × 24 saat)…');
+  setTimeout(()=>{ const data=genSample(); runPipeline(data,{fetchWeather:false}); },30);
+};
+$('btnPaste').onclick=()=>{
+  const rows=parseCSV($('csvIn').value);
+  if(rows.length<24*180){ status(`Okunan satır: ${rows.length}. En az 6 aylık saatlik veri (≈4.300 satır) gerekir.`); return; }
+  runPipeline(rows,{fetchWeather:true});
+};
+</script>
+</body>
+</html>
