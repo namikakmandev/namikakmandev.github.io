@@ -142,13 +142,12 @@ cardMedias.forEach((media) => {
     media.addEventListener("mouseleave", () => { v.pause(); });
   }
 });
-// Floating hero demo cards: play on desktop, click opens the lightbox
+// Floating hero data cards: click glides down to the flagship tools
 document.querySelectorAll(".hero-float").forEach((f) => {
-  f.addEventListener("click", () => openLightbox(f.dataset.demo));
-  const v = f.querySelector("video");
-  if (v && !previewReduceMotion && window.matchMedia("(min-width: 1400px)").matches) {
-    v.play().catch(() => {});
-  }
+  f.addEventListener("click", () => {
+    const target = document.querySelector("#flagships");
+    if (target) target.scrollIntoView({ behavior: "smooth" });
+  });
 });
 
 if (!previewReduceMotion && cardMedias.length && "IntersectionObserver" in window) {

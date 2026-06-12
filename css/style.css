@@ -142,6 +142,114 @@ img { max-width: 100%; display: block; }
 @media (min-width: 1400px) {
   .hero-float { display: block; }
 }
+
+/* Glass data cards inside the hero floats — living micro-charts, no videos */
+.hf-card {
+  background: rgba(23, 26, 33, 0.72);
+  backdrop-filter: blur(8px);
+  padding: 12px 14px 10px;
+  opacity: 0.9;
+}
+.hf-card svg { width: 100%; height: auto; display: block; }
+.hf-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.hf-head i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.hf-head span {
+  margin-left: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hf-live {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 0 rgba(25, 195, 125, 0.55);
+  animation: hf-pulse 2.2s ease-out infinite;
+}
+@keyframes hf-pulse {
+  70% { box-shadow: 0 0 0 8px rgba(25, 195, 125, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(25, 195, 125, 0); }
+}
+.hf-cap {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+/* waterfall bars breathe gently, one after another */
+.hfb {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: hf-bar 5.5s ease-in-out infinite;
+}
+.hfb2 { animation-delay: 0.4s; }
+.hfb3 { animation-delay: 0.8s; }
+.hfb4 { animation-delay: 1.2s; }
+.hfb5 { animation-delay: 1.6s; }
+@keyframes hf-bar {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.82); }
+}
+/* the data line draws itself, again and again */
+.hf-line {
+  stroke-dasharray: 300;
+  animation: hf-draw 6s ease-in-out infinite alternate;
+}
+@keyframes hf-draw {
+  from { stroke-dashoffset: 300; }
+  to   { stroke-dashoffset: 0; }
+}
+.hf-dot { animation: hf-blink 1.6s ease-in-out infinite; }
+@keyframes hf-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+/* the margin donut sweeps to 64% and breathes there */
+.hf-donut {
+  animation: hf-sweep 5s ease-in-out infinite alternate;
+}
+@keyframes hf-sweep {
+  from { stroke-dasharray: 60 214; }
+  to   { stroke-dasharray: 137 214; }
+}
+.hf-donut-row { display: flex; align-items: center; gap: 12px; }
+.hf-donut-row svg { width: 84px; flex: none; }
+.hf-rows { display: flex; flex-direction: column; gap: 6px; }
+.hf-rows span {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  padding-left: 12px;
+  position: relative;
+}
+.hf-rows span::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  opacity: 0.7;
+}
 .hero h1 {
   font-size: clamp(2.2rem, 5vw, 3.6rem);
   line-height: 1.1;
@@ -1369,6 +1477,7 @@ label.btn { cursor: pointer; }
   .card::after { display: none; }
   .stories-track { transition: none; }
   .hero-float { animation: none; }
+  .hfb, .hf-line, .hf-dot, .hf-donut, .hf-live { animation: none; }
 }
 
 /* ---------- Footer ---------- */
