@@ -1,6 +1,6 @@
 /* Design tokens live in tokens.css (single source of truth — see DESIGN_TOKENS.md).
    @import must remain the first rule in this file. */
-@import url("tokens.css?v=2");
+@import url("tokens.css?v=3");
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -31,7 +31,7 @@ img { max-width: 100%; display: block; }
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(22, 26, 36, 0.85);
+  background: rgba(36, 43, 58, 0.85);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
@@ -132,9 +132,30 @@ img { max-width: 100%; display: block; }
 }
 .hero-float video { width: 100%; display: block; }
 .hero-float:hover { opacity: 1; scale: 1.04; }
-.hero-float-a { left: max(1.5vw, 16px); top: 205px; transform: rotate(-5deg); }
-.hero-float-b { right: max(1.5vw, 16px); top: 185px; transform: rotate(4deg); animation-duration: 8.5s; animation-delay: -2.5s; }
-.hero-float-c { left: max(4vw, 40px); bottom: 36px; width: clamp(180px, 14vw, 230px); transform: rotate(-3deg); animation-duration: 9.5s; animation-delay: -5s; }
+.hero-float-a { left: max(1.5vw, 16px); top: 185px; }
+.hero-float-b { right: max(1.5vw, 16px); top: 185px; animation-duration: 8.5s; animation-delay: -2.5s; }
+.hero-float-c { left: max(1.5vw, 16px); bottom: 44px; animation-duration: 9.5s; animation-delay: -5s; }
+.hero-float-d { right: max(1.5vw, 16px); bottom: 44px; animation-duration: 8s; animation-delay: -7s; }
+
+/* Scenario pills on the 4th card */
+.hf-pills { display: flex; gap: 6px; margin-bottom: 8px; }
+.hf-pills b {
+  font-size: 0.66rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.hf-pills b.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.hf-line2 {
+  stroke-dasharray: 260;
+  animation: hf-draw2 7s ease-in-out infinite alternate;
+}
+@keyframes hf-draw2 {
+  from { stroke-dashoffset: 260; }
+  to   { stroke-dashoffset: 0; }
+}
 @keyframes hero-bob {
   from { translate: 0 -9px; }
   to   { translate: 0 11px; }
@@ -145,7 +166,7 @@ img { max-width: 100%; display: block; }
 
 /* Glass data cards inside the hero floats — living micro-charts, no videos */
 .hf-card {
-  background: rgba(30, 35, 48, 0.72);
+  background: rgba(45, 53, 71, 0.72);
   backdrop-filter: blur(8px);
   padding: 12px 14px 10px;
   opacity: 0.9;
@@ -473,7 +494,7 @@ a.pulse-chip:hover {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: rgba(22, 26, 36, 0.62);
+  background: rgba(36, 43, 58, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.4);
   color: #fff;
   display: flex;
@@ -1500,7 +1521,7 @@ label.btn { cursor: pointer; }
 
 /* Header gains depth once the page is scrolled */
 .site-header.scrolled {
-  background: rgba(22, 26, 36, 0.95);
+  background: rgba(36, 43, 58, 0.95);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -1511,7 +1532,7 @@ label.btn { cursor: pointer; }
   .card::after { display: none; }
   .stories-track { transition: none; }
   .hero-float { animation: none; }
-  .hfb, .hf-line, .hf-dot, .hf-donut, .hf-live { animation: none; }
+  .hfb, .hf-line, .hf-line2, .hf-dot, .hf-donut, .hf-live { animation: none; }
 }
 
 /* ---------- Footer ---------- */
