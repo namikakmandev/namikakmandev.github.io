@@ -46,7 +46,8 @@ body{font-family:var(--sans);background:var(--surface);color:var(--ink);font-siz
 .pad{padding:0 16px 14px}
 textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--panel2);resize:vertical;line-height:1.6;min-height:110px}
 textarea::placeholder{color:#5B6472}
-select,input[type=number]{padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--panel2)}
+select,input[type=number],input[type=date]{padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--panel2)}
+input[type=date]{width:150px;color-scheme:dark}
 select{width:100%}
 input[type=number]{width:104px;text-align:right}
 .mini-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
@@ -143,6 +144,9 @@ svg{display:block;width:100%}
       <div class="pad">
         <button class="btn primary" id="btnReal">Gerçek veriyle çalıştır (EPİAŞ 2022–23)</button>
         <button class="btn ghost" id="btnSample">Sentetik örnek veriyle çalıştır</button>
+        <div class="mini-row"><label>Başlangıç (isteğe bağlı)</label><input type="date" id="dateFrom"></div>
+        <div class="mini-row"><label>Bitiş (isteğe bağlı)</label><input type="date" id="dateTo"></div>
+        <div class="note" style="margin-top:6px">Tarih aralığı boş bırakılırsa tüm veri kullanılır. Analiz, seçilen aralıkla sınırlanır (en az 6 ay).</div>
         <div class="note">veya kendi saatlik tüketim verinizi yapıştırın<br><span style="font-family:var(--mono);font-size:10.5px">tarih;MWh → 2025-01-01 00:00;512,4</span></div>
         <textarea id="csvIn" placeholder="2025-01-01 00:00;512,4&#10;2025-01-01 01:00;498,1&#10;..."></textarea>
         <div class="mini-row">
@@ -604,6 +608,17 @@ function renderResults(res,data){
 
 async function runPipeline(data,opts){
   try{
+    // isteğe bağlı tarih aralığı filtresi
+    const from=$('dateFrom').value?new Date($('dateFrom').value+'T00:00'):null;
+    const to=$('dateTo').value?new Date($('dateTo').value+'T23:59'):null;
+    if(from||to){
+      data=data.filter(r=>(!from||r.t>=from)&&(!to||r.t<=to));
+    }
+    if(data.length<24*180){
+      status('Seçilen aralıkta '+data.length.toLocaleString('tr-TR')+' saat var — analiz için en az 6 aylık (≈4.300 saat) veri gerekir. Aralığı genişletin.');
+      setStep(1,''); setStep(2,''); setStep(3,''); setStep(4,'');
+      return;
+    }
     setStep(1,'done'); setStep(2,'run'); setStep(3,''); setStep(4,'');
     if(opts.fetchWeather){
       status('Sıcaklık verisi indiriliyor (Open-Meteo)…');
