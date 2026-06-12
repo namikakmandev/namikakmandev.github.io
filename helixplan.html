@@ -110,6 +110,13 @@ select{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6p
 .scen-btn.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .export-btn{margin:0 16px 16px;width:calc(100% - 32px);padding:10px;background:var(--primary);color:#fff;border:none;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans)}
 .export-btn:hover{background:#1D86E8}
+/* ---------- AI commentary ---------- */
+.ai-btn{margin-top:10px;width:100%;padding:9px;background:var(--green);color:#0A2818;border:none;border-radius:6px;font-weight:700;font-size:12.5px;cursor:pointer;font-family:var(--sans)}
+.ai-btn:hover{background:#15AD6E}
+.ai-btn:disabled{opacity:.6;cursor:wait}
+.ai-out{margin-top:10px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:12.5px;line-height:1.55;color:var(--ink);white-space:pre-wrap}
+.ai-out.err{color:var(--loe)}
+.ai-disc{margin-top:6px;font-size:10.5px;color:var(--muted)}
 /* ---------- how it works ---------- */
 .how{max-width:900px;margin:4px auto 16px;padding:0 24px}
 .how details{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;color:var(--muted);font-size:13px}
@@ -233,6 +240,15 @@ footer a:hover{text-decoration:underline}
       </div>
       <button class="export-btn" id="exportBtn">Download Budget (CSV) →</button>
     </div>
+    <div class="panel" style="margin-top:16px">
+      <h3>AI Budget Commentary</h3>
+      <div class="ctl" style="border-top:none;padding-top:0">
+        <small>Drafts a review-ready commentary of the current scenario. Sends only the summary figures shown on screen — <b style="color:var(--green)">never your pasted quarterly values</b>.</small>
+        <button class="ai-btn" id="aiBtn">Generate commentary →</button>
+        <div class="ai-out" id="aiOut" hidden></div>
+        <div class="ai-disc">AI-generated from the on-screen figures — review before use.</div>
+      </div>
+    </div>
   </aside>
 </div>
 
@@ -242,11 +258,11 @@ footer a:hover{text-decoration:underline}
     <p><b>1. Baseline.</b> The tool fits a growth trend plus quarterly seasonality to your history (a log-linear regression with multiplicative seasonal factors), then projects 5 years forward. The three method chips apply different trend damping — full growth, damped, or conservative. They are simplified stand-ins for the Holt-Winters / ARIMA family, honest about what they are.</p>
     <p><b>2. Honest fit statistics.</b> The error figure shown is genuinely backtested: the model is fitted on your history <i>excluding the last four quarters</i>, those four quarters are predicted, and the average percentage miss (MAPE) is reported. No invented accuracy numbers.</p>
     <p><b>3. Adjustments.</b> On top of the statistical baseline you layer what statistics cannot know: a loss-of-exclusivity event with exponential erosion, a demand uplift from a chosen year, and quarter re-phasing that moves weight between Q1 and Q4 without changing the full-year total. Base / Management / Downside scenarios scale these assumptions.</p>
-    <p><b>4. Privacy.</b> Everything runs in your browser. Pasted data is never sent anywhere — there is no server, no analytics on your numbers, nothing to upload.</p>
+    <p><b>4. Privacy.</b> Everything runs in your browser. Pasted data is never sent anywhere — there is no server, no analytics on your numbers, nothing to upload. The one optional exception is the <b>AI commentary</b> button: clicking it sends the summary figures shown on screen (annual totals, growth percentages and your settings) to an AI service to draft the text — never your pasted quarterly values, and it asks you to confirm first when you are on your own data.</p>
   </details>
 </div>
 
-<footer>HelixPlan · sample product and figures are illustrative · your pasted data never leaves your browser · <a href="projects.html">← All projects</a></footer>
+<footer>HelixPlan · sample products and figures are illustrative · your pasted data never leaves your browser (optional AI commentary sends on-screen summary figures only) · <a href="projects.html">← All projects</a></footer>
 
 <script>
 // ---------- data & state ----------
@@ -545,6 +561,7 @@ function selectProduct(id){
   const msg=document.getElementById('dataMsg');
   msg.classList.remove('err');
   msg.textContent='Viewing '+p.name+' — or paste your own data above';
+  aiReset();
   rebuildLoeOptions();
   buildPortfolio();
   render();
@@ -570,6 +587,7 @@ function applyData(){
   document.getElementById('segTag').textContent='your data · in-browser';
   msg.classList.remove('err');
   msg.textContent='Using your data · '+vals.length+' qtrs from '+y;
+  aiReset();
   buildPortfolio();
   render();
 }
@@ -599,6 +617,81 @@ function downloadCsv(){
   setTimeout(()=>btn.textContent='Download Budget (CSV) →',1800);
 }
 
+// ---------- AI commentary ----------
+const AI_PROXY_URL="https://assetix-ai.akmannamik83.workers.dev";
+const AI_SYSTEM="You are a senior pharma FP&A lead drafting budget commentary for a finance review meeting. Use ONLY the figures provided — never invent numbers, market events, competitors or company facts; if something was not provided, do not mention it. Write 2–3 short paragraphs, 120–160 words total, plain professional English, no bullet points, no headings, no greeting: (1) the headline budget number and growth vs baseline, (2) what drives the bridge — volume, LOE erosion, phasing — and the scenario stance, (3) one candid risk or watch-item, referencing the backtested forecast error if given. This is decision-support commentary, not advice.";
+async function askAI(prompt,system){
+  try{
+    const r=await fetch(AI_PROXY_URL,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({prompt,system})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)return {error:(j.error||("AI error ("+r.status+")"))+(j.detail?' — '+j.detail:'')};
+    return {text:j.text||""};
+  }catch(e){return {error:"Connection error — could not reach the AI service."}}
+}
+function aiContext(){
+  const base=baseline(), adj=adjusted(base);
+  const b27=base.slice(4,8).reduce((a,b)=>a+b);
+  const scenMul=state.scen==='base'?0:state.scen==='down'?-1:1;
+  const vol=state.vol/100*(state.scen==='down'?0.3:1)+(scenMul===-1?-0.06:0);
+  const v27=base.map((v,i)=>i>=4?v*(1+vol):v).slice(4,8).reduce((a,b)=>a+b);
+  const a27=adj.slice(4,8).reduce((a,b)=>a+b);
+  const cum=adj.reduce((a,b)=>a+b), cumb=base.reduce((a,b)=>a+b);
+  let peak=0,peakI=0;adj.forEach((v,i)=>{if(v>peak){peak=v;peakI=i}});
+  const m=backtestMape(state.method);
+  const names={reg:'log-linear trend',hw:'damped trend',arima:'conservative trend'};
+  const scen={base:'Base',mgmt:'Management Case',down:'Downside'}[state.scen];
+  const phase={none:'no re-phasing',q4q1:'Q4 weight pulled forward to Q1 (tender cycle)',q1q4:'Q1 weight pushed back to Q4 (price reset)'}[state.phase];
+  const c=state.cur, f=v=>c+v.toFixed(1)+'M';
+  let loeLine='LOE adjustment off';
+  if(state.loe)loeLine='LOE '+qFull(loeIndex())+' with '+state.ero+'% year-1 erosion';
+  else if(curProd){
+    const off=loeOffsetOf(curProd);
+    if(off<0)loeLine='exclusivity already lost in '+curProd.loe[0]+' — the erosion is inside the actuals';
+    else if(off>=fcQ)loeLine='LOE '+curProd.loe[0]+' — beyond the 5-year horizon';
+  }
+  let s='PRODUCT: '+(curProd?curProd.name+' ('+curProd.segment+')':"the user's own product")
+    +'. History: '+H()+' quarters from '+startYear
+    +(customData?' (user data — quarterly values intentionally not shared with you)':' (illustrative sample data)')+'.\n'
+    +'BUDGET YEAR: FY'+budgetYear()+'. Baseline '+f(b27)+' → adjusted '+f(a27)
+    +' ('+((a27/b27-1)>=0?'+':'')+((a27/b27-1)*100).toFixed(1)+'% vs baseline). Scenario: '+scen+'.\n'
+    +'BRIDGE: volume effect '+(v27-b27>=0?'+':'−')+c+Math.abs(v27-b27).toFixed(1)+'M; LOE & phasing '+(a27-v27>=0?'+':'−')+c+Math.abs(a27-v27).toFixed(1)+'M.\n'
+    +'5-YR CUMULATIVE: adjusted '+c+(cum/1000).toFixed(2)+'B vs baseline '+c+(cumb/1000).toFixed(2)+'B. Peak quarter: '+f(peak)+' in '+qFull(H()+peakI)+'.\n'
+    +'ASSUMPTIONS: forecast method '+names[state.method]
+    +(fitStart>0?' (fitted on the '+(H()-fitStart)+' post-LOE quarters only)':'')
+    +'; '+loeLine+'; volume uplift '+(state.vol>=0?'+':'')+state.vol+'% from '+budgetYear()+'; '+phase+'.\n'
+    +'FORECAST ERROR: '+(m===null?'history too short to backtest honestly':'backtested MAPE '+m.toFixed(1)+'% on the last 4 quarters')+'.';
+  if(!customData){
+    let tFy=0,tLy=0;PRODUCTS.forEach(p=>{const r=productBudget(p);tFy+=r.fy;tLy+=r.ly});
+    s+='\nPORTFOLIO CONTEXT (sample BU, 6 products): FY25 actual '+c+tLy.toFixed(0)+'M → FY27 central baseline '+c+tFy.toFixed(0)+'M.';
+  }
+  return s;
+}
+let aiArmed=false;
+async function runAi(){
+  const btn=document.getElementById('aiBtn'), out=document.getElementById('aiOut');
+  if(customData&&!aiArmed){
+    aiArmed=true;
+    out.hidden=false;out.classList.remove('err');
+    out.textContent='Heads-up: this sends the summary figures shown on screen (annual totals, growth %, your settings) to the AI service. Your pasted quarterly values are NOT sent. Click again to continue.';
+    btn.textContent='Confirm & generate →';
+    return;
+  }
+  aiArmed=false;
+  btn.disabled=true;btn.textContent='Drafting…';
+  out.hidden=false;out.classList.remove('err');out.textContent='Reading the numbers…';
+  const r=await askAI(aiContext(),AI_SYSTEM);
+  btn.disabled=false;btn.textContent='Generate commentary →';
+  if(r.error){out.classList.add('err');out.textContent=r.error}
+  else out.textContent=r.text.replace(/\*\*/g,'').replace(/^#+ .*\n+/,'').trim();
+}
+function aiReset(){
+  aiArmed=false;
+  const out=document.getElementById('aiOut'), btn=document.getElementById('aiBtn');
+  out.hidden=true;out.textContent='';out.classList.remove('err');
+  btn.disabled=false;btn.textContent='Generate commentary →';
+}
+
 // ---------- wiring ----------
 document.querySelectorAll('.method-chip').forEach(c=>c.onclick=()=>{document.querySelectorAll('.method-chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');state.method=c.dataset.m;render()});
 const lt=document.getElementById('loeToggle');
@@ -612,6 +705,7 @@ document.querySelectorAll('.scen-btn').forEach(b=>b.onclick=()=>{document.queryS
 document.getElementById('curIn').onchange=e=>{state.cur=e.target.value;buildPortfolio();render()};
 document.getElementById('applyData').onclick=applyData;
 document.getElementById('exportBtn').onclick=downloadCsv;
+document.getElementById('aiBtn').onclick=runAi;
 selectProduct('FLDX');
 </script>
 </body>
