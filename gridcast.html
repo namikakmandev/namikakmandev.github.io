@@ -637,13 +637,27 @@ async function runPipeline(data,opts){
   }
 }
 
-$('btnReal').onclick=()=>{
-  if(typeof REAL_DATA==='undefined'){ status('Gerçek veri paketi bu sürümde yok.'); return; }
+$('btnReal').onclick=async()=>{
+  status('Güncel veri aranıyor…');
+  let D=null, tag='';
+  try{
+    const r=await fetch('assets/epias-live.json',{cache:'no-store'});
+    if(r.ok){
+      const j=await r.json();
+      if(j&&j.load&&j.temp&&j.load.length>24*365){
+        D=j; tag='gerçek veri (güncel: '+(j.updated||'').slice(0,10)+') · '+(j.src||'EPİAŞ');
+      }
+    }
+  }catch(e){} // çevrimdışı / dosya yok → gömülü veriye düş
+  if(!D){
+    if(typeof REAL_DATA==='undefined'){ status('Gerçek veri paketi bu sürümde yok.'); return; }
+    D=REAL_DATA; tag='gerçek veri · '+REAL_DATA.src;
+  }
   status('Gerçek veri yükleniyor (EPİAŞ ulusal tüketim)…');
   setTimeout(()=>{
-    const t0=new Date(REAL_DATA.start.replace(' ','T'));
-    const data=REAL_DATA.load.map((v,i)=>({t:new Date(t0.getTime()+i*3600*1000),y:v,temp:REAL_DATA.temp[i]}));
-    runPipeline(data,{fetchWeather:false,mode:'real',tag:'gerçek veri · '+REAL_DATA.src});
+    const t0=new Date(D.start.replace(' ','T'));
+    const data=D.load.map((v,i)=>({t:new Date(t0.getTime()+i*3600*1000),y:v,temp:D.temp[i]}));
+    runPipeline(data,{fetchWeather:false,mode:'real',tag:tag});
   },30);
 };
 $('btnSample').onclick=()=>{
