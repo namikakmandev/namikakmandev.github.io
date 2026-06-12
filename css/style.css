@@ -176,6 +176,7 @@ img { max-width: 100%; display: block; }
   gap: 6px;
 }
 .hf-live {
+  display: inline-block;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -380,6 +381,39 @@ img { max-width: 100%; display: block; }
   border-color: var(--accent);
 }
 .card.f-hide { display: none; }
+
+/* ---------- Live market pulse (real TCMB / TÜİK / ECB / FRED data) ---------- */
+.pulse-section { padding: 64px 0 0; }
+.pulse-dot { width: 10px; height: 10px; margin-right: 12px; vertical-align: 2px; }
+.pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 14px;
+}
+a.pulse-chip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.15s, border-color 0.15s;
+}
+a.pulse-chip:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  text-decoration: none;
+}
+.pulse-chip strong {
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.pulse-chip span { font-size: 0.8rem; font-weight: 600; color: var(--text-dim); }
+.pulse-chip em { font-style: normal; font-size: 0.7rem; color: var(--text-dim); opacity: 0.75; }
 
 /* ---------- Sections ---------- */
 .section { padding: 80px 0; }

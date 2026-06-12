@@ -166,6 +166,40 @@ document.querySelectorAll(".story-video").forEach((v) => {
   v.addEventListener("click", () => openLightbox(v.getAttribute("src")));
 });
 
+// Live market pulse: real numbers from the site's own data pipelines.
+// rates.json = TCMB/TÜİK/ECB (refreshed daily by a GitHub Action);
+// us.json on the finance-tools site = FRED producer prices (monthly).
+(async function buildPulse() {
+  const el = document.getElementById("pulse");
+  if (!el) return;
+  const hide = () => { const s = el.closest("section"); if (s) s.style.display = "none"; };
+  try {
+    const r = await (await fetch("rates.json", { cache: "no-store" })).json();
+    const chips = [];
+    const fx = r.fx || {};
+    const m = r.market || {};
+    if (fx.USDTRY) chips.push({ v: fx.USDTRY.toFixed(2), l: "USD / TRY", s: "ECB · " + (r.fxAsof || ""), h: "assetix.html" });
+    if (fx.EURTRY) chips.push({ v: fx.EURTRY.toFixed(2), l: "EUR / TRY", s: "ECB · " + (r.fxAsof || ""), h: "assetix.html" });
+    if (r.rate && r.rate.value != null) chips.push({ v: r.rate.value.toFixed(1) + "%", l: "TCMB policy rate", s: "TCMB · " + (r.rate.asof || ""), h: "assetix.html" });
+    if (m.deposit) chips.push({ v: m.deposit.value.toFixed(1) + "%", l: "TL deposit rate", s: "TCMB · " + m.deposit.asof, h: "assetix.html" });
+    if (m.tufe) chips.push({ v: "+" + m.tufe.yoy.toFixed(1) + "%", l: "TR inflation · CPI YoY", s: "TÜİK · " + m.tufe.asof, h: "assetix.html" });
+    if (m.kfe_tr) chips.push({ v: "+" + m.kfe_tr.yoy.toFixed(1) + "%", l: "TR house prices · YoY", s: "TCMB KFE · " + m.kfe_tr.asof, h: "assetix.html" });
+    try {
+      const us = await (await fetch("https://namikakmandev.github.io/commercial-finance-tools/data/us.json", { cache: "no-store" })).json();
+      const steel = (us.buckets || []).find((b) => b.id === "us_steel");
+      if (steel && steel.series && steel.series.length >= 13) {
+        const n = steel.series.length;
+        const yoy = (steel.series[n - 1] / steel.series[n - 13] - 1) * 100;
+        chips.push({ v: (yoy >= 0 ? "+" : "") + yoy.toFixed(1) + "%", l: "US steel PPI · YoY", s: "FRED · " + (us.last_updated || ""), h: "https://namikakmandev.github.io/commercial-finance-tools/" });
+      }
+    } catch (e) { /* FRED chip is optional */ }
+    if (!chips.length) return hide();
+    el.innerHTML = chips.map((c) =>
+      '<a class="pulse-chip" href="' + c.h + '"><strong>' + c.v + "</strong><span>" + c.l + "</span><em>" + c.s + "</em></a>"
+    ).join("");
+  } catch (e) { hide(); }
+})();
+
 // Auto-update footer year
 const yearEl = document.querySelector("[data-year]");
 if (yearEl) yearEl.textContent = new Date().getFullYear();
