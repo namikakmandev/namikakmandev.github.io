@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Account &amp; Portfolio Prioritization — Namık Akman</title>
+  <meta name="description" content="Upload a sales export and get each account manager a ranked, explained list of customer-product whitespace opportunities. Runs entirely in your browser." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Account &amp; Portfolio Prioritization</h2>
+        </div>
+        <p class="data-note">
+          Upload a sales export and the engine finds <strong>whitespace</strong> —
+          products a customer's peers buy but they don't — and gives each account
+          manager a ranked, <em>explained</em> action list.
+          <strong>Your data never leaves your browser</strong> — all processing is
+          local; nothing is uploaded anywhere.
+        </p>
+
+        <div class="card-light up-card">
+          <div class="up-row">
+            <label class="btn btn-primary" for="csv-file">Upload CSV</label>
+            <input type="file" id="csv-file" accept=".csv,text/csv" hidden />
+            <button class="btn btn-ghost" id="sample-btn" type="button">Try with sample data</button>
+            <a class="up-link" href="assets/sample_prioritization.csv" download>Download sample CSV</a>
+          </div>
+          <p class="up-schema">
+            Required columns: <code>AccountManager</code>, <code>Customer</code>,
+            <code>Product</code>, <code>Sales</code>.
+            Optional (sharpen results): <code>Segment</code>, <code>Region</code>,
+            <code>ProductGroup</code>, <code>Margin%</code>. One row per
+            Customer&nbsp;×&nbsp;Product&nbsp;×&nbsp;Account&nbsp;Manager.
+          </p>
+          <p id="up-status" class="up-status"></p>
+        </div>
+
+        <details class="howto">
+          <summary>How the whitespace engine works</summary>
+          <div class="howto-body">
+            <ol>
+              <li><strong>Peer groups.</strong> Each customer is grouped with comparable
+                peers — same <code>Segment</code> if provided, plus a similar revenue
+                band — so you compare like with like.</li>
+              <li><strong>Adoption.</strong> For every product, the engine measures how
+                many of a customer's peers buy it. It only counts as an opportunity
+                when a clear majority of peers (≥40%) buy it but this customer buys
+                little or none.</li>
+              <li><strong>Benchmark &amp; opportunity.</strong> Expected spend is the
+                peer median for that product, scaled to the customer's size. The
+                estimated opportunity is that benchmark minus what they buy today;
+                small/noise gaps are filtered out.</li>
+              <li><strong>Margin weighting.</strong> If a <code>Margin%</code> column is
+                present, opportunities are ranked by margin value, not just revenue.</li>
+              <li><strong>Every recommendation is explained</strong> in plain language
+                (the "Why" column) — auditable, not a black box.</li>
+            </ol>
+            <p class="howto-note">
+              Estimates are a prioritisation aid, not a forecast. All processing runs
+              in your browser — your data is never uploaded or stored.
+            </p>
+          </div>
+        </details>
+
+        <div id="results" hidden>
+          <div class="cockpit-toolbar">
+            <label class="ctb-filter">Account manager
+              <select id="am-filter"><option value="">All</option></select>
+            </label>
+            <span class="ctb-hint">drives the whole cockpit</span>
+            <button class="btn btn-primary" id="export-btn" type="button">Export Excel</button>
+          </div>
+          <div class="kpi-bar">
+            <div class="kpi-box"><span>Total whitespace opportunity</span><strong id="k-total">—</strong></div>
+            <div class="kpi-box"><span>Whitespace opportunities <em>(customer × product)</em></span><strong id="k-count">—</strong></div>
+            <div class="kpi-box"><span>Accounts with whitespace <em>(distinct customers)</em></span><strong id="k-custs">—</strong></div>
+            <div class="kpi-box"><span>Biggest single opportunity</span><strong id="k-max">—</strong></div>
+          </div>
+
+          <div class="cockpit">
+            <div class="card-light cp-matrix">
+              <h3>Portfolio matrix <span>current value vs. untapped whitespace</span></h3>
+              <svg id="cp-matrix-svg" viewBox="0 0 640 470" preserveAspectRatio="none"
+                   role="img" aria-label="Portfolio matrix"></svg>
+              <p class="cp-legend">
+                <span class="lg lg-green"></span> Grow
+                <span class="lg lg-blue"></span> Develop / Defend
+                <span class="lg lg-grey"></span> Maintain
+              </p>
+            </div>
+            <div class="cp-side">
+              <div class="card-light">
+                <h3>Whitespace by account manager</h3>
+                <svg id="cp-am-svg" viewBox="0 0 420 230" preserveAspectRatio="xMidYMid meet"></svg>
+              </div>
+              <div class="card-light">
+                <h3>Whitespace by product group</h3>
+                <svg id="cp-grp-svg" viewBox="0 0 420 200" preserveAspectRatio="xMidYMid meet"></svg>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="band-title">Where the value is</h3>
+          <div class="insights">
+            <div class="card-light insight"><h4>Forgotten products</h4><div id="ins-forgotten"></div></div>
+            <div class="card-light insight"><h4>Strategic product-group performance</h4><div id="ins-group"></div></div>
+            <div class="card-light insight"><h4>Account-manager scorecard</h4><div id="ins-amscore"></div></div>
+            <div class="card-light insight"><h4>Revenue concentration</h4><div id="ins-conc"></div></div>
+          </div>
+          <h3 class="band-title">What to act on</h3>
+          <div class="insights">
+            <div class="card-light insight"><h4>Dormant / under-served accounts</h4><div id="ins-dormant"></div></div>
+            <div class="card-light insight"><h4>Quick wins <span>high peer adoption</span></h4><div id="ins-quick"></div></div>
+            <div class="card-light insight"><h4>Big bets <span>largest opportunities</span></h4><div id="ins-big"></div></div>
+            <div class="card-light insight"><h4>Margin-priority opportunities</h4><div id="ins-margin"></div></div>
+          </div>
+
+          <div class="card-light se-tablewrap">
+            <div class="res-head">
+              <h3>Prioritized actions <span id="res-sub"></span></h3>
+            </div>
+            <div class="se-tablescroll">
+              <table class="se-table">
+                <thead>
+                  <tr>
+                    <th>#</th><th>Account Mgr</th><th>Customer</th><th>Product</th>
+                    <th class="num">Current</th><th class="num">Peer adoption</th>
+                    <th class="num">Est. opportunity</th><th>Why</th>
+                  </tr>
+                </thead>
+                <tbody id="res-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Processed locally in your browser — no data uploaded</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=28"></script>
+  <script src="assets/sample-data.js?v=12"></script>
+  <script src="js/xlsx-export.js?v=18"></script>
+  <script src="js/prioritization.js?v=12"></script>
+</body>
+</html>

@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dealership Profit &amp; Variance Diagnostic</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<meta name="theme-color" content="#2F9BFF" />
+<link rel="stylesheet" href="tokens.css?v=18" />
+<meta name="description" content="Turn a dealership's own trial balance and unit counts into the commercial story the accounts hide: where money is really made, price left on the table vs list, and why plan was missed. Runs locally — nothing is uploaded." />
+<style>
+  .tool-light{
+    /* navy palette remapped onto canonical tokens (Phase 6) */
+    --panel: var(--surface);
+    --ink: var(--text);
+    --muted: var(--text-dim);
+    --line: var(--border);
+    --accent-soft: #cfe3fb;
+    --good: var(--accent-2);
+    --warn: var(--accent-3);
+    --budget: var(--accent-3);
+    /* --accent, --bg, --loss inherit canonical values from tokens.css */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 22px 70px}
+  header h1{font-size:24px;letter-spacing:-.3px}
+  header p.sub{color:var(--muted);font-size:14px;margin-top:5px;max-width:760px}
+  .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border-radius:5px;margin-bottom:12px}
+  h2.band{font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:34px 0 4px;padding-bottom:7px;border-bottom:2px solid var(--line)}
+  p.note{color:var(--muted);font-size:13px;margin:6px 0 14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px;margin-top:12px;overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+  thead th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:2px solid var(--line)}
+  tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:12px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .kpi span{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .kpi strong{display:block;font-size:21px;margin-top:5px;font-variant-numeric:tabular-nums}
+  .inrow{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .inrow.head{font-weight:700;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--line)}
+  .inrow label b{font-variant-numeric:tabular-nums}
+  input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=number]:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+  .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:var(--accent-soft);color:var(--accent);margin-left:6px}
+  .synth{background:#101a26;color:#eef3f8;border-radius:11px;padding:20px 22px;margin-top:14px;font-size:15px;line-height:1.7}
+  .synth b{color:#7fc6f5}
+  .synth .ln{margin:3px 0}
+  .lo{color:var(--loss)} .hi{color:var(--good)} .wn{color:var(--warn)}
+  /* Threat & Opportunity verdict — the "so what", lead of the Overview */
+  .verdict{background:#0c1722;border:1px solid #1c2c3c;border-radius:13px;margin:14px 0 18px;overflow:hidden}
+  .verdict .vhead{font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:#9fb4c6;font-weight:700;padding:14px 18px 10px}
+  .vrow{display:block;padding:13px 18px;border-top:1px solid #15273a;cursor:pointer;text-decoration:none;color:#eef3f8}
+  .vrow:hover{background:#11202f}
+  .vrow .vtag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:2px 9px;border-radius:20px;margin-bottom:8px}
+  .vthreat{border-left:4px solid #d23b3b} .vopp{border-left:4px solid #19c37d}
+  .vthreat .vtag{background:rgba(210,59,59,.16);color:#ff8b8b} .vopp .vtag{background:rgba(25,195,125,.16);color:#7fe0b4}
+  .vrow .vmain{font-size:16px;font-weight:700;line-height:1.42} .vrow .vmain b{color:#fff}
+  .vrow .vsub{font-size:13px;color:#9fb4c6;margin-top:5px;line-height:1.5}
+  .vrow .vgo{font-size:12px;color:#7fc6f5;margin-top:7px;display:inline-block;font-weight:600}
+  .vbottom{font-size:13.5px;color:#cdd9e5;padding:13px 18px;border-top:1px solid #15273a;line-height:1.6;background:#0a131d}
+  .vbottom b{color:#7fe0b4}
+  /* data-source key — what comes from where, what's a typed-in input */
+  .srckey{display:flex;flex-wrap:wrap;gap:7px 16px;font-size:12px;color:var(--muted);margin:0 0 14px;padding:9px 13px;background:var(--panel);border:1px solid var(--line);border-radius:9px}
+  .srckey b{color:var(--ink);font-size:11px;text-transform:uppercase;letter-spacing:.4px;width:100%}
+  .srckey span{display:inline-flex;align-items:center;gap:6px}
+  .srckey em{font-style:normal;opacity:.75}
+  .srckey i{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .dot-acc{background:var(--accent)} .dot-trk{background:var(--good)} .dot-in{background:var(--warn)}
+  /* inline source chips used on panel rows/headers */
+  .srctag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.3px;text-transform:uppercase;padding:1px 6px;border-radius:10px;vertical-align:middle;white-space:nowrap}
+  .tag-acc{background:rgba(47,155,255,.15);color:#2F9BFF}
+  .tag-trk{background:rgba(25,195,125,.15);color:#0e8f5b}
+  .tag-in{background:rgba(255,101,0,.15);color:#FF6500}
+  /* source-coded input fields — coloured edge + wash = where the figure belongs */
+  input[type=number].src-acc,input[type=date].src-acc{border-left:4px solid var(--accent);background:rgba(47,155,255,.07)}
+  input[type=number].src-trk,input[type=date].src-trk{border-left:4px solid var(--good);background:rgba(25,195,125,.09)}
+  input[type=number].src-in,input[type=date].src-in{border-left:4px solid var(--warn);background:rgba(255,101,0,.07)}
+  .chart{width:100%;height:auto;display:block}
+  .chart text{font-size:11px;fill:var(--muted)}
+  .chart .vlab{fill:var(--ink);font-weight:600}
+  .nav{display:flex;gap:8px;margin:4px 0 18px}
+  .nav a{font-size:13px;font-weight:600;text-decoration:none;color:var(--muted);padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel)}
+  .nav a.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  footer{margin-top:46px;color:var(--muted);font-size:12px;text-align:center;border-top:1px solid var(--line);padding-top:18px}
+  .upbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .btn{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radius:7px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block}
+  .btnlink{color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer}
+  .status{font-size:13px;color:var(--good);margin-top:8px;min-height:18px}
+  .nav{flex-wrap:wrap;position:sticky;top:0;z-index:50;background:var(--bg);padding:8px 0}
+  .pane{display:none;position:relative}
+  .pane.active{display:block}
+  .pane-badge{position:absolute;top:0;right:0;font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;max-width:60%;justify-content:flex-end;text-align:right;line-height:1.3}
+  .bdot{width:8px;height:8px;border-radius:50%;background:var(--good);display:inline-block;flex:0 0 auto}
+  @media(max-width:560px){.pane-badge{position:static;justify-content:flex-start;text-align:left;max-width:100%;margin-bottom:8px}}
+  @keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(25,195,125,.5)}50%{box-shadow:0 0 0 6px rgba(25,195,125,0)}}
+  .livedot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--good);animation:livePulse 2s infinite;margin-right:8px;vertical-align:middle}
+  .livedot.stale{background:var(--warn);animation:none}
+  .livedot.off{background:var(--muted);animation:none}
+  @media print{
+    header,nav.nav,#aiFab,#aiChat,#printBtn,footer{display:none!important}
+    .pane{display:none!important}
+    #printSheet{display:block!important}
+    #printSheet,#printSheet *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    .wrap{max-width:100%;padding:0}
+    body{background:#fff;color:#111}
+  }
+</style>
+</head>
+<body class="tool-light">
+<div class="wrap">
+  <header>
+    <span class="tag">Confidential — runs on this computer only</span>
+    <h1>Dealership Profit &amp; Variance Diagnostic</h1>
+    <p class="sub">Give it the dealership's own <b>trial balance</b> and a few figures they already track (units sold, list price, plan). It rebuilds the commercial story the accountant's report hides: where money is really made, how much price is left on the table vs list, and exactly why plan was missed. Nothing is uploaded — everything is computed in this browser.</p>
+  </header>
+
+  <nav class="nav" id="tabs">
+    <a href="#" class="tab on" data-pane="pane-overview">1 · Overview</a>
+    <a href="#" class="tab" data-pane="pane-divisional">2 · Divisional P&amp;L</a>
+    <a href="#" class="tab" data-pane="pane-leakage">3 · Leakage</a>
+    <a href="#" class="tab" data-pane="pane-oem">4 · OEM bonus</a>
+    <a href="#" class="tab" data-pane="pane-variance">5 · Variance</a>
+    <a href="#" class="tab" data-pane="pane-data">6 · Data</a>
+    <a href="#" class="tab" data-pane="pane-aged">7 · Aged stock</a>
+    <a href="cash.html">Cash &amp; Budget →</a>
+  </nav>
+
+  <section class="pane active" id="pane-overview">
+  <span class="pane-badge"><span class="livedot off" id="mkBadgeDot" style="margin-right:0"></span><span id="mkBadgeTxt">market data…</span></span>
+  <h2 class="band">1 · Overview — the bottom line</h2>
+  <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: the headline result, how the dealership compares to industry, and live market context — your starting point.</p>
+  <p class="note">Built live from the dealership's own trial balance (the sample is loaded — edit it, or upload a real CSV, in the <b>Data</b> tab). Ask the <b>AI advisor</b> (bottom-right) anything about these numbers.</p>
+
+  <div class="verdict" id="verdict"></div>
+
+  <div class="srckey">
+    <b>Where each number comes from</b>
+    <span><i class="dot-acc"></i> From the trial balance <em>(the accounts)</em></span>
+    <span><i class="dot-trk"></i> Figures the dealer tracks <em>(units, list price, stock dates)</em></span>
+    <span><i class="dot-in"></i> Your inputs &amp; targets <em>(assumptions you can change)</em></span>
+    <span style="width:100%;font-size:11px;opacity:.7">Each input box is edged in its source colour; plain figures with no box are read or calculated.</span>
+  </div>
+
+  <div class="grid">
+    <div class="kpi"><span>Total revenue</span><strong id="kRev">—</strong></div>
+    <div class="kpi"><span>Gross profit</span><strong id="kGross">—</strong></div>
+    <div class="kpi"><span>Operating overhead</span><strong id="kOh">—</strong></div>
+    <div class="kpi"><span>Net profit</span><strong id="kNet">—</strong></div>
+    <div class="kpi"><span>Service absorption <em style="text-transform:none;font-style:normal">(target 100%)</em></span><strong id="kAbs">—</strong></div>
+  </div>
+  <div class="synth" id="synth" style="margin-top:14px"></div>
+
+  <div class="card" id="macroCard" style="margin-top:18px;display:none">
+    <div style="display:flex;align-items:center;margin-bottom:10px">
+      <span class="livedot off" id="macroDot"></span>
+      <span style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700">Live Türkiye market backdrop · TCMB</span>
+      <span id="macroLive" style="margin-left:auto;font-size:11px;color:var(--muted)">connecting…</span>
+    </div>
+    <div class="grid" style="margin-top:0">
+      <div class="kpi"><span>Inflation (TÜFE, yıllık)</span><strong id="mInf">—</strong></div>
+      <div class="kpi"><span>Policy rate</span><strong id="mPol">—</strong></div>
+      <div class="kpi"><span>Commercial loan rate</span><strong id="mLoan">—</strong></div>
+      <div class="kpi"><span>USD / TRY</span><strong id="mUsd">—</strong></div>
+      <div class="kpi"><span>EUR / TRY</span><strong id="mEur">—</strong></div>
+    </div>
+    <p class="note" id="macroNote" style="margin-top:12px"></p>
+    <p class="note" id="macroAsof" style="margin-top:2px;font-size:11px"></p>
+  </div>
+
+  <h2 class="band" style="margin-top:26px">Real margin — your profit, adjusted for inflation</h2>
+  <p class="note" style="margin:0 0 6px">Your accounts cost stock at what you <b>paid</b>; replacing it today costs more — so part of your reported "profit" is just inflation on inventory. We re-price cost of sales to today using <b>live TÜFE inflation</b> and your average stock-holding period.</p>
+  <p class="note" style="margin:0 0 8px">Average stock-holding period: <input type="number" id="rm_hold" value="2" min="0" step="0.5" style="width:70px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"> months · using live inflation <b id="rm_infl">—</b></p>
+  <div class="grid">
+    <div class="kpi"><span>Reported gross margin</span><strong id="rm_rep">—</strong></div>
+    <div class="kpi"><span>Real (replacement-cost) margin</span><strong id="rm_real">—</strong></div>
+    <div class="kpi"><span>Inflation drag on gross</span><strong id="rm_drag">—</strong></div>
+  </div>
+  <p class="note" id="rmRead" style="margin-top:10px"></p>
+
+  <h2 class="band" style="margin-top:26px">Outlook — year-end 2026 (official sources)</h2>
+  <p class="note" style="margin:0 0 6px">What official and institutional sources expect for the year — shown as published, with sources. Judge for yourself.</p>
+  <div class="card"><table id="outlookTable"><thead><tr><th>Source</th><th class="num">CPI inflation</th><th class="num">USD/TRY</th><th class="num">GDP growth</th></tr></thead><tbody id="outlookBody"></tbody></table></div>
+  <p class="note" id="outlookNote" style="font-size:11px;margin-top:6px"></p>
+
+  <h2 class="band" style="margin-top:26px">How this dealership compares — industry context</h2>
+  <p class="note">The dealership's own ratios set against general automotive-retail reference ranges.</p>
+  <div class="card"><table id="bmTable">
+    <thead><tr><th>Metric</th><th class="num">This dealership</th><th class="num">Industry reference</th><th>Read</th></tr></thead>
+    <tbody id="bmBody"></tbody>
+  </table></div>
+  <p class="note">Reference ranges are <b>general automotive-retail benchmarks for orientation only</b> (incl. NADA Data 2025, US franchised dealers — e.g. service &amp; parts ≈ 13% of sales) — the right yardstick is the dealership's own franchise/brand norms and local market. Treat a flag as a question to ask, not a verdict.</p>
+
+  <div class="card" style="margin-top:18px;border-left:3px solid var(--warn)">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--warn);font-weight:700;margin-bottom:6px">⚡ Strategic watch · the EV shift</div>
+    <p class="note" id="evNote" style="margin-top:0"></p>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div style="font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700;margin-bottom:6px">Used-car market · BETAM sahibindex</div>
+    <p class="note" id="usedcarNote" style="margin-top:0"></p>
+    <p class="note" id="usedcarSrc" style="margin-top:2px;font-size:11px"></p>
+  </div>
+
+  <div style="margin-top:18px"><button class="btn" type="button" id="printBtn">🖨 Print one-page summary (leave-behind)</button></div>
+  </section>
+
+  <section class="pane" id="pane-divisional">
+  <span class="pane-badge"><span class="bdot dot-acc"></span>From the trial balance · recalculated live</span>
+  <h2 class="band">2 · Divisional P&amp;L <span class="pill">from the accounts</span></h2>
+  <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: where the profit really comes from, division by division — built straight from the trial balance.</p>
+  <p class="note" style="margin:0 0 6px">View: <select id="plView" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"><option value="company">Whole company</option></select></p>
+  <div id="plCompany">
+  <p class="note">The real result, straight from the trial balance — no assumptions. By default overhead stays one shared pool, netted at the total. You can also <b>allocate</b> it across divisions to see a net profit per division.</p>
+  <p class="note" style="margin-bottom:6px">Allocate operating overhead:
+    <select id="ohBasis" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px">
+      <option value="none">Shared pool — no split (default)</option>
+      <option value="rev">By revenue share</option>
+      <option value="gross">By gross-profit share</option>
+      <option value="equal">Equal per division</option>
+    </select>
+  </p>
+  <div class="card"><table id="plTable"><thead id="plHead"></thead><tbody id="plBody"></tbody></table></div>
+  <p class="note" id="plAllocNote" style="margin-top:8px;display:none"></p>
+  <p class="note" id="plChartCap" style="margin:14px 0 2px;font-weight:600;color:var(--ink)">Gross profit by division</p>
+  <div class="card"><svg id="cGross" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Profit by division"></svg></div>
+  <p class="note" id="plRead"></p>
+  </div>
+  <div id="plDivision" style="display:none">
+    <div class="card" id="plDivBody"></div>
+    <p class="note" id="plDivRead"></p>
+  </div>
+  </section>
+
+  <section class="pane" id="pane-leakage">
+  <span class="pane-badge"><span class="bdot dot-in"></span>Your targets, measured against the accounts</span>
+  <h2 class="band">3 · Leakage map — where money quietly leaks</h2>
+  <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: controllable money lost vs the dealership's own targets, ranked, each with the lever to fix it.</p>
+  <p class="note">Each part of the store leaks differently. We measure each against the dealership's <b>own targets</b> (not sticker price), and strip out manufacturer campaign support — which is reimbursed, not a real loss — so nothing is over-claimed. First, the units sold and list price per division; then the targets; then the ranked result.</p>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:18px 0 2px">Step 1 · Your inputs — units &amp; list price <span class="srctag tag-trk">dealer tracks</span></h3>
+  <p class="note" style="margin:0 0 4px">Figures the dealer already tracks (from the DMS and the price list).</p>
+  <div class="card">
+    <div id="opGrid"></div>
+  </div>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:18px 0 2px">Step 2 · Your targets — what "good" looks like here <span class="srctag tag-in">your input</span></h3>
+  <p class="note" style="margin:0 0 4px">The dealership's own benchmarks. Every leak below is measured against these.</p>
+  <div class="card">
+    <div class="inrow head" style="grid-template-columns:1.7fr 1fr"><span>Leakage targets &amp; rates — the dealership's own</span><span style="text-align:right">Value</span></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>New cars — target discount %</label><input type="number" id="lk_new_tgt" step="0.5" value="3"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>New cars — OEM campaign support % (reimbursed)</label><input type="number" id="lk_new_oem" step="0.5" value="1.5"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Used cars — target discount %</label><input type="number" id="lk_used_tgt" step="0.5" value="5"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Used cars — OEM/campaign support %</label><input type="number" id="lk_used_oem" step="0.5" value="0"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Service — posted labour rate ₺/hr</label><input type="number" id="lk_svc_posted" step="50" value="1500"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Service — effective (realized) rate ₺/hr</label><input type="number" id="lk_svc_eff" step="50" value="1200"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Service — billable hours / yr</label><input type="number" id="lk_svc_hrs" step="100" value="1600"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>Parts — target gross margin %</label><input type="number" id="lk_parts_tgt" step="1" value="30"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>F&amp;I — attach % now</label><input type="number" id="lk_fi_act" step="1" value="45"/></div>
+    <div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>F&amp;I — attach % achievable</label><input type="number" id="lk_fi_tgt" step="1" value="65"/></div>
+  </div>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Step 3 · The result</h3>
+  <p class="note" style="margin:0 0 6px">View leakage for:
+    <select id="lkView" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"><option value="company">Whole company</option></select>
+  </p>
+  <div id="lkCompany">
+    <p class="note" style="margin:0 0 4px">Start at the profit you could keep; each leak knocks it down to what you actually keep.</p>
+    <div class="card"><svg id="cLeakWf" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Leakage waterfall"></svg></div>
+    <div class="card" style="margin-top:12px"><table id="lkTable"><thead><tr><th>#</th><th>Where it leaks</th><th class="num">₺ / year</th><th>The lever</th></tr></thead><tbody id="lkBody"></tbody></table></div>
+    <p class="note" id="lkRead"></p>
+  </div>
+  <div id="lkDivision" style="display:none">
+    <p class="note" id="lkDivDef" style="margin:0 0 8px"></p>
+    <div class="card"><div id="lkDivBar"></div></div>
+    <p class="note" id="lkDivRead"></p>
+  </div>
+  <h3 style="font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:22px 0 4px">Step 4 · Detail — pocket-price waterfall (one new car)</h3>
+  <p class="note" style="margin-top:0">How one new car's list price erodes to what you actually pocket — separating reimbursed OEM support from controllable discount.</p>
+  <div class="card"><div id="pwf"></div></div>
+  <p class="note" id="pwfRead"></p>
+  </section>
+
+  <section class="pane" id="pane-oem">
+  <span class="pane-badge"><span class="bdot dot-in"></span>Your programme terms, reconciled to the accounts</span>
+  <h2 class="band">4 · OEM bonus &amp; incentive income</h2>
+  <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: the manufacturer money (holdback, volume stair-step, CSI) that is the real new-car profit the metal margin hides.</p>
+  <p class="note">A franchised dealer's real new-car profit is the manufacturer money paid <em>after</em> the sale: holdback, the volume / registration stair-step bonus (paid retroactively on <em>every</em> unit once a tier is reached), and CSI / margin support. These are brand- and dealer-specific — enter the dealership's own programme. New-car units and revenue are taken live from the trial balance / price-leakage tab. The tool then <b>reconciles</b> what the programme should pay against the incentive income actually booked in the trial balance — exposing any bonus money left uncollected.</p>
+  <div class="card"><div id="bnIn"></div></div>
+  <div class="card" style="margin-top:12px"><table id="bnTable" style="min-width:420px"><tbody id="bnBody"></tbody></table></div>
+  <p class="note" id="bnRead"></p>
+  </section>
+
+  <section class="pane" id="pane-variance">
+  <span class="pane-badge"><span class="bdot dot-acc"></span>Actuals from the accounts vs your budget</span>
+  <h2 class="band">5 · Variance vs plan — why the gap happened</h2>
+  <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: actual vs the budget you set, split into volume effect (units) vs rate effect (margin / discounting).</p>
+  <p class="note">Enter the <b>budget</b> (planned) revenue and gross profit per division below. The gross gap vs actual is split into <b>Volume effect (units)</b> — sold more/fewer at plan margin — and <b>Rate effect (pricing)</b> — margin better/worse than plan, mainly discounting (a cost spike can also move it). Volume + Rate reconciles exactly to the total gross variance.</p>
+  <div class="card"><div id="budGrid"></div></div>
+  <p class="note" style="margin:10px 0 6px">View: <select id="vaView" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"><option value="company">Whole company</option></select></p>
+  <div id="vaCompany">
+    <div class="card"><table id="vaTable"><thead id="vaHead"></thead><tbody id="vaBody"></tbody></table></div>
+    <div class="card"><svg id="cBridge" class="chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Budget to actual gross bridge"></svg></div>
+    <p class="note" id="vaRead"></p>
+  </div>
+  <div id="vaDivision" style="display:none">
+    <p class="note" id="vaDivDef" style="margin:0 0 8px"></p>
+    <div class="card"><svg id="cVaDiv" class="chart" viewBox="0 0 760 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Division budget to actual bridge"></svg></div>
+    <p class="note" id="vaDivRead"></p>
+  </div>
+  </section>
+
+  <section class="pane" id="pane-data">
+  <span class="pane-badge"><span class="bdot dot-acc"></span>Your trial balance · edits apply instantly</span>
+  <h2 class="band">6 · Data — the numbers behind this</h2>
+  <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: the trial balance everything is built from. Edit any figure, or upload the dealer's real CSV — every tab updates.</p>
+  <p class="note">The sample dealership's trial balance (Turkish uniform-chart / Tek Düzen). Change any amount and everything updates instantly — or upload the dealer's real CSV export (columns: <code>code, name, division, kind, amount</code> — kind = rev / cogs / opex / oem).</p>
+  <div class="card">
+    <div class="upbar">
+      <label class="btn" for="tbfile">Upload trial balance (CSV)</label>
+      <input type="file" id="tbfile" accept=".csv,text/csv" hidden />
+      <span class="btnlink" id="tpl">Download CSV template</span>
+    </div>
+    <div class="status" id="tbstatus"></div>
+    <div id="tbgrid" style="margin-top:12px"></div>
+  </div>
+  </section>
+
+  <section class="pane" id="pane-aged">
+  <span class="pane-badge"><span class="bdot dot-trk"></span>Stock you enter × live loan rate</span>
+  <h2 class="band">7 · Aged stock — what holding it costs</h2>
+  <p class="note" style="margin:0 0 6px;font-weight:600;color:var(--ink)">What this is: each car in stock, how long it's sat, and the floorplan interest it's burning — the dealer version of ASSETIX's "is this asset still earning its keep?"</p>
+  <p class="note">Every financed car costs interest every day it sits — at today's ~50% commercial rates that adds up fast. Enter your stock (date in + cost); we age each unit against today and apply the live loan rate.</p>
+  <div class="card"><div id="agedGrid"></div></div>
+  <div class="grid">
+    <div class="kpi"><span>Stock value</span><strong id="ag_val">—</strong></div>
+    <div class="kpi"><span>Floorplan carried so far</span><strong id="ag_carry">—</strong></div>
+    <div class="kpi"><span>Bleed rate</span><strong id="ag_perday">—</strong></div>
+    <div class="kpi"><span>Units &gt; 90 days</span><strong id="ag_stale">—</strong></div>
+  </div>
+  <div class="card" style="margin-top:12px"><table id="agTable"><thead><tr><th>Unit</th><th class="num">Days in stock</th><th class="num">Cost</th><th class="num">Floorplan so far</th><th class="num">Cost/day</th><th>Status</th></tr></thead><tbody id="agedBody"></tbody></table></div>
+  <p class="note" id="agRead"></p>
+  </section>
+
+  <div id="printSheet" style="display:none"></div>
+
+  <footer>
+    Dealership Profit &amp; Variance Diagnostic · Phase 1 (trial-balance driven) · Confidential working tool — files are processed locally in your browser and never uploaded.
+  </footer>
+</div>
+
+<script>
+/* ---------- sample: Turkish uniform-chart auto dealer ---------- */
+var TB = [
+  { code:"600.01", name:"New car sales",            div:"New cars",  kind:"rev",  amount:18000000 },
+  { code:"600.02", name:"Used car sales",           div:"Used cars", kind:"rev",  amount:9000000 },
+  { code:"600.03", name:"Service & repair revenue", div:"Service",   kind:"rev",  amount:2400000 },
+  { code:"600.04", name:"Parts sales",              div:"Parts",     kind:"rev",  amount:1800000 },
+  { code:"600.05", name:"F&I / commission income",  div:"F&I",       kind:"rev",  amount:600000 },
+  { code:"600.06", name:"Rental income",            div:"Rental",    kind:"rev",  amount:700000 },
+  { code:"649.01", name:"Manufacturer incentive / bonus income (prim)", div:"New cars", kind:"oem", amount:950000 },
+  { code:"620.01", name:"New car cost of sales",    div:"New cars",  kind:"cogs", amount:17100000 },
+  { code:"620.02", name:"Used car cost of sales",   div:"Used cars", kind:"cogs", amount:8100000 },
+  { code:"620.03", name:"Service direct cost",      div:"Service",   kind:"cogs", amount:840000 },
+  { code:"620.04", name:"Parts cost of sales",      div:"Parts",     kind:"cogs", amount:1350000 },
+  { code:"620.05", name:"F&I direct cost",          div:"F&I",       kind:"cogs", amount:60000 },
+  { code:"620.06", name:"Rental direct cost",       div:"Rental",    kind:"cogs", amount:490000 },
+  { code:"760.00", name:"Marketing & selling exp.", div:"Overhead",  kind:"opex", amount:1500000 },
+  { code:"770.00", name:"General admin expense",    div:"Overhead",  kind:"opex", amount:2400000 }
+];
+/* per-division operating inputs the dealer already has */
+var OPS = {
+  "New cars": { units:200,  list:95000, budRev:17000000, budGross:1020000 },
+  "Used cars":{ units:150,  list:62000, budRev:10000000, budGross:1100000 },
+  "Service":  { units:4000, list:650,   budRev:2600000,  budGross:1742000 },
+  "Parts":    { units:12000,list:160,   budRev:1900000,  budGross:494000 },
+  "F&I":      { units:180,  list:4000,  budRev:550000,   budGross:506000 },
+  "Rental":   { units:1400, list:520,   budRev:700000,   budGross:224000 }
+};
+
+/* true while the built-in sample is loaded; flipped to false on CSV upload.
+   The AI advisor only runs when this is true — a real dealer's uploaded
+   trial balance is never sent anywhere (keeps the "nothing is uploaded" promise). */
+var DATA_IS_SAMPLE = true;
+
+function n(v){ var x=parseFloat(v); return isNaN(x)?0:x; }
+function gN(id){ var e=document.getElementById(id); return e?n(e.value):0; }
+function set(id,t){ var e=document.getElementById(id); if(e) e.textContent=t; }
+function L(v){ var r=Math.round(v); return (r<0?"-₺":"₺")+Math.abs(r).toLocaleString("en-US"); }
+function P(v){ return "("+L(Math.abs(v))+")"; }
+function pc(a,b){ return b?(a/b)*100:0; }
+function divisions(){ var d=[]; TB.forEach(function(a){ if(a.kind!=="opex"&&a.kind!=="oem"&&d.indexOf(a.div)===-1) d.push(a.div); }); return d; }
+function short(v){ var a=Math.abs(v),s=v<0?"-₺":"₺";
+  if(a>=1e6) return s+(a/1e6).toFixed(a>=1e7?0:1)+"M";
+  if(a>=1e3) return s+Math.round(a/1e3)+"k"; return s+Math.round(a); }
+var UNITLABEL={ "New cars":"cars","Used cars":"cars","Service":"repair orders","Parts":"parts lines","F&I":"contracts","Rental":"rental days" };
+function ulab(d){ return UNITLABEL[d]||"units"; }
+
+/* vertical bar chart into an <svg> by id; items=[{label,value}] */
+function barChart(id,items,posColor,negColor){
+  var W=760,He=300,mL=58,mR=14,mT=22,mB=58, pw=W-mL-mR, ph=He-mT-mB;
+  var max=0; items.forEach(function(it){ max=Math.max(max,Math.abs(it.value)); });
+  max=max||1;
+  var hasNeg=items.some(function(it){return it.value<0;});
+  var zeroY = hasNeg ? mT+ph/2 : mT+ph;
+  var unit = hasNeg ? (ph/2)/max : ph/max;
+  var n=items.length, slot=pw/n, bw=Math.min(64,slot*0.56);
+  var s='<line x1="'+mL+'" y1="'+zeroY.toFixed(1)+'" x2="'+(mL+pw)+'" y2="'+zeroY.toFixed(1)+'" stroke="var(--line)"/>';
+  items.forEach(function(it,i){
+    var cx=mL+slot*i+slot/2, h=Math.abs(it.value)*unit;
+    var y=it.value>=0? zeroY-h : zeroY;
+    var col=it.value>=0?posColor:negColor;
+    s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,h).toFixed(1)+'" rx="3" fill="'+col+'"><title>'+it.label+': '+L(it.value)+'</title></rect>';
+    s+='<text class="vlab" x="'+cx.toFixed(1)+'" y="'+(it.value>=0?y-7:y+h+15).toFixed(1)+'" text-anchor="middle">'+short(it.value)+'</text>';
+    s+='<text x="'+cx.toFixed(1)+'" y="'+(He-mB+18)+'" text-anchor="middle">'+it.label+'</text>';
+  });
+  var el=document.getElementById(id); if(el) el.innerHTML=s;
+}
+
+/* budget -> actual gross bridge (waterfall) */
+function bridge(id,budget,vol,rate,actual){
+  var W=760,He=320,mL=58,mR=14,mT=26,mB=46, pw=W-mL-mR, ph=He-mT-mB;
+  var top=Math.max(budget,actual,budget+Math.max(0,vol),budget+vol+Math.max(0,rate));
+  var bot=Math.min(0,budget,actual,budget+Math.min(0,vol),budget+vol+Math.min(0,rate));
+  var span=(top-bot)||1, Y=function(v){ return mT+ph-((v-bot)/span)*ph; };
+  var cols=[
+    {lab:"Budget gross",base:0,val:budget,kind:"tot"},
+    {lab:"Volume (units)",base:budget,val:vol,kind:"d"},
+    {lab:"Rate (pricing)",base:budget+vol,val:rate,kind:"d"},
+    {lab:"Actual gross",base:0,val:actual,kind:"tot"}
+  ];
+  var n=cols.length, slot=pw/n, bw=Math.min(86,slot*0.5);
+  var s='<line x1="'+mL+'" y1="'+Y(0).toFixed(1)+'" x2="'+(mL+pw)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--line)"/>';
+  var prevTopX=null,prevTopY=null;
+  cols.forEach(function(c,i){
+    var cx=mL+slot*i+slot/2;
+    var v0=c.kind==="tot"?0:c.base, v1=c.kind==="tot"?c.val:c.base+c.val;
+    var yA=Y(Math.max(v0,v1)), yB=Y(Math.min(v0,v1)), h=Math.max(1,yB-yA);
+    var col=c.kind==="tot"?"var(--accent)":(c.val>=0?"var(--good)":"var(--loss)");
+    s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yA.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+col+'"><title>'+c.lab+': '+L(c.val)+'</title></rect>';
+    s+='<text class="vlab" x="'+cx.toFixed(1)+'" y="'+(yA-7).toFixed(1)+'" text-anchor="middle">'+(c.kind==="d"&&c.val>=0?"+":"")+short(c.val)+'</text>';
+    s+='<text x="'+cx.toFixed(1)+'" y="'+(He-mB+20)+'" text-anchor="middle">'+c.lab+'</text>';
+    var topV=c.kind==="tot"?c.val:c.base+c.val, ty=Y(topV);
+    if(prevTopX!==null) s+='<line x1="'+prevTopX.toFixed(1)+'" y1="'+prevTopY.toFixed(1)+'" x2="'+(cx-bw/2).toFixed(1)+'" y2="'+prevTopY.toFixed(1)+'" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0.6"/>';
+    prevTopX=cx+bw/2; prevTopY=ty;
+  });
+  var el=document.getElementById(id); if(el) el.innerHTML=s;
+}
+
+/* general waterfall: items=[{lab,val,kind:'tot'|'down'}] — totals are absolute bars from 0, downs are floating decrements */
+function wfall(id, items){
+  var el=document.getElementById(id); if(!el) return;
+  var W=760,He=300,mL=10,mR=10,mT=26,mB=52, pw=W-mL-mR, ph=He-mT-mB;
+  var run=0, cols=[];
+  items.forEach(function(it){
+    if(it.kind==='tot'){ cols.push({lab:it.lab, base:0, val:it.val, kind:'tot'}); run=it.val; }
+    else { cols.push({lab:it.lab, base:run, val:it.val, kind:'down'}); run=run+it.val; }
+  });
+  var hi=0, lo=0;
+  cols.forEach(function(c){ var a=c.kind==='tot'?0:c.base, b=c.kind==='tot'?c.val:c.base+c.val; hi=Math.max(hi,a,b); lo=Math.min(lo,a,b); });
+  var span=(hi-lo)||1, Y=function(v){ return mT+ph-((v-lo)/span)*ph; };
+  var n=cols.length, slot=pw/n, bw=Math.min(74,slot*0.56);
+  var s='<line x1="'+mL+'" y1="'+Y(0).toFixed(1)+'" x2="'+(mL+pw)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--line)"/>';
+  var pX=null,pY=null;
+  cols.forEach(function(c,i){
+    var cx=mL+slot*i+slot/2;
+    var v0=c.kind==='tot'?0:c.base, v1=c.kind==='tot'?c.val:c.base+c.val;
+    var yA=Y(Math.max(v0,v1)), yB=Y(Math.min(v0,v1)), h=Math.max(1,yB-yA);
+    var col=c.kind==='tot'?'var(--accent)':'var(--loss)';
+    s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yA.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+col+'"><title>'+c.lab+': '+L(c.val)+'</title></rect>';
+    s+='<text class="vlab" x="'+cx.toFixed(1)+'" y="'+(yA-7).toFixed(1)+'" text-anchor="middle">'+(c.kind==='down'?'−'+short(Math.abs(c.val)):short(c.val))+'</text>';
+    s+='<text x="'+cx.toFixed(1)+'" y="'+(He-mB+18)+'" text-anchor="middle">'+c.lab+'</text>';
+    var topV=c.kind==='tot'?c.val:c.base+c.val, ty=Y(topV);
+    // connector is HORIZONTAL at the previous running level (= the top of this bar) so it touches the bar tops
+    if(pX!==null) s+='<line x1="'+pX.toFixed(1)+'" y1="'+pY.toFixed(1)+'" x2="'+(cx-bw/2).toFixed(1)+'" y2="'+pY.toFixed(1)+'" stroke="var(--muted)" stroke-dasharray="3 3" opacity="0.6"/>';
+    pX=cx+bw/2; pY=ty;
+  });
+  el.innerHTML=s;
+}
+
+/* per-division leakage: should-have (full bar) vs captured (solid), gap striped */
+function renderDivLeak(d, det){
+  var defEl=document.getElementById("lkDivDef"), bar=document.getElementById("lkDivBar"), readEl=document.getElementById("lkDivRead");
+  if(defEl) defEl.innerHTML="<b>"+d+".</b> "+det.def;
+  if(!bar) return;
+  if(det.leak<=0 || !det.shouldBe){
+    bar.innerHTML='<div style="padding:8px 2px;color:var(--good);font-weight:600">✓ No leakage — '+d+' is within its target.</div>';
+    if(readEl) readEl.textContent="";
+    return;
+  }
+  var actPct=Math.max(0,Math.min(100, det.actual/det.shouldBe*100));
+  bar.innerHTML=
+    '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px"><span>Captured (solid) vs should-have (whole bar)</span><span>'+det.metric+'</span></div>'+
+    '<div style="display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--line)">'+
+      '<div style="width:'+actPct+'%;background:var(--accent);min-width:34px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">'+L(det.actual)+'</div>'+
+      '<div style="width:'+(100-actPct)+'%;background:repeating-linear-gradient(45deg,#f3b0b0,#f3b0b0 7px,#fff 7px,#fff 14px);min-width:34px;display:flex;align-items:center;justify-content:center;color:var(--loss);font-size:12px;font-weight:700">−'+L(det.leak)+'</div>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px"><span>Captured <b>'+L(det.actual)+'</b></span><span>Should have <b>'+L(det.shouldBe)+'</b></span></div>';
+  if(readEl) readEl.innerHTML="The striped slice — <b>"+L(det.leak)+"</b> — is what leaked away versus your own target. Recovering it is pure profit.";
+}
+
+/* ---------- input grids ---------- */
+/* colour-code every input box by where its figure belongs (matches the
+   Overview source key). Re-run after any grid rebuild. Read/derived values
+   are plain text, so a coloured-edged box always means "you provide this". */
+function tagSources(){
+  function tag(sel,cls){ document.querySelectorAll(sel).forEach(function(e){ e.classList.add(cls); }); }
+  tag('#tbgrid input','src-acc');                                                      /* trial balance = the accounts */
+  tag('[id^="u_"],[id^="l_"],#agedGrid input','src-trk');                              /* units, list, stock = dealer tracks */
+  tag('[id^="lk_"],[id^="bn_"],[id^="br_"],[id^="bg_"],#rm_hold','src-in'); /* targets & assumptions */
+}
+function buildTB(){
+  var h="";
+  TB.forEach(function(a,i){
+    h+='<div class="inrow" style="grid-template-columns:2fr 1fr"><label><b>'+a.code+'</b> '+a.name+
+       ' <span class="pill">'+a.div+'</span></label>'+
+       '<input type="number" id="tb'+i+'" step="10000" value="'+a.amount+'"/></div>';
+  });
+  document.getElementById("tbgrid").innerHTML=h;
+  TB.forEach(function(a,i){ document.getElementById("tb"+i).addEventListener("input",calc); });
+}
+function buildOps(){
+  var D=divisions();
+  var col='grid-template-columns:1.6fr 1fr 1fr';
+  // sales facts (units + list) → Leakage tab; budget (rev + gross) → Variance tab
+  var sales='<div class="inrow head" style="'+col+'"><span>Division</span><span style="text-align:right">Units sold</span><span style="text-align:right">List price ₺</span></div>';
+  var bud='<div class="inrow head" style="'+col+'"><span>Division <span class="srctag tag-in">your input</span></span><span style="text-align:right">Budget revenue ₺</span><span style="text-align:right">Budget gross ₺</span></div>';
+  D.forEach(function(d){
+    var o=OPS[d]||{units:0,list:0,budRev:0,budGross:0};
+    var k=d.replace(/[^a-z]/gi,"");
+    sales+='<div class="inrow" style="'+col+'"><label>'+d+'</label>'+
+       '<input type="number" id="u_'+k+'" value="'+o.units+'"/>'+
+       '<input type="number" id="l_'+k+'" value="'+o.list+'"/></div>';
+    bud+='<div class="inrow" style="'+col+'"><label>'+d+'</label>'+
+       '<input type="number" id="br_'+k+'" step="100000" value="'+o.budRev+'"/>'+
+       '<input type="number" id="bg_'+k+'" step="100000" value="'+o.budGross+'"/></div>';
+  });
+  var og=document.getElementById("opGrid"); if(og) og.innerHTML=sales;
+  var bgrid=document.getElementById("budGrid"); if(bgrid) bgrid.innerHTML=bud;
+  D.forEach(function(d){
+    var k=d.replace(/[^a-z]/gi,"");
+    ["u_","l_","br_","bg_"].forEach(function(p){ var e=document.getElementById(p+k); if(e) e.addEventListener("input",calc); });
+  });
+  var divOpts='<option value="company">Whole company</option>'+D.map(function(d){return '<option value="'+d+'">'+d+'</option>';}).join('');
+  var lv=document.getElementById("lkView"); if(lv) lv.innerHTML=divOpts;
+  var pv=document.getElementById("plView"); if(pv) pv.innerHTML=divOpts;
+  var vv=document.getElementById("vaView"); if(vv) vv.innerHTML=divOpts;
+}
+
+function buildBonus(){
+  function row(lbl,id,val,step){ return '<div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>'+lbl+'</label><input type="number" id="'+id+'" step="'+(step||1)+'" value="'+val+'"/></div>'; }
+  var h='<div class="inrow head" style="grid-template-columns:1.7fr 1fr"><span>OEM programme — enter the dealership’s own <span class="srctag tag-in">your input</span></span><span style="text-align:right">Value</span></div>';
+  h+=row("Annual registration target (units)","bn_tgt",210,1);
+  h+=row("Holdback — % of new-car revenue","bn_hb",2,0.1);
+  h+=row("Stair-step ₺/unit — below 90% of target","bn_b0",0,500);
+  h+=row("Stair-step ₺/unit — 90–99% of target","bn_b1",3000,500);
+  h+=row("Stair-step ₺/unit — 100–109% of target","bn_b2",6000,500);
+  h+=row("Stair-step ₺/unit — 110%+ of target","bn_b3",9000,500);
+  h+=row("CSI / margin support — % of new-car revenue","bn_csi",1,0.1);
+  h+='<div class="inrow" style="grid-template-columns:1.7fr 1fr"><label>CSI / survey target met?</label><label style="text-align:right;color:var(--muted)"><input type="checkbox" id="bn_csimet" checked style="width:auto;margin-right:6px"/>yes, release it</label></div>';
+  document.getElementById("bnIn").innerHTML=h;
+  ["bn_tgt","bn_hb","bn_b0","bn_b1","bn_b2","bn_b3","bn_csi"].forEach(function(id){ document.getElementById(id).addEventListener("input",calc); });
+  document.getElementById("bn_csimet").addEventListener("change",calc);
+}
+
+/* ---------- core ---------- */
+function calc(){
+  var D=divisions(), per={}, oh=0, bookedOEM=0;
+  D.forEach(function(d){ per[d]={rev:0,cogs:0}; });
+  TB.forEach(function(a,i){
+    var amt=gN("tb"+i);
+    if(a.kind==="opex"){ oh+=amt; return; }
+    if(a.kind==="oem"){ bookedOEM+=amt; return; }
+    if(!per[a.div]) per[a.div]={rev:0,cogs:0};
+    per[a.div][a.kind==="rev"?"rev":"cogs"]+=amt;
+  });
+  var tR=0,tG=0;
+  D.forEach(function(d){ per[d].gross=per[d].rev-per[d].cogs; tR+=per[d].rev; tG+=per[d].gross; });
+  var tC=tR-tG, net=tG-oh;
+
+  /* A — KPIs + table */
+  set("kRev",L(tR)); set("kGross",L(tG)); set("kOh",L(oh));
+  var kn=document.getElementById("kNet"); kn.textContent=L(net); kn.className=net<0?"lo":"hi"; kn.style.color="";
+  var hh='<tr><th>P&amp;L</th>'; D.forEach(function(d){ hh+='<th class="num">'+d+'</th>'; }); hh+='<th class="num">Total</th></tr>';
+  document.getElementById("plHead").innerHTML=hh;
+  function rowt(lbl,fn,tot,bold){ var r='<tr'+(bold?' class="tot"':'')+'><td>'+lbl+'</td>'; D.forEach(function(d){ r+='<td class="num">'+fn(d)+'</td>'; }); r+='<td class="num">'+tot+'</td></tr>'; return r; }
+  var b=rowt("Revenue",function(d){return L(per[d].rev);},L(tR));
+  b+=rowt("Cost of sales",function(d){return P(per[d].cogs);},P(tC));
+  b+=rowt("Gross profit",function(d){return L(per[d].gross);},L(tG),1);
+  b+=rowt("Gross margin %",function(d){return pc(per[d].gross,per[d].rev).toFixed(1)+"%";},pc(tG,tR).toFixed(1)+"%");
+  /* optional overhead allocation across divisions */
+  var ohBasis=(document.getElementById("ohBasis")||{}).value||"none";
+  var alloc={}, netBy={};
+  D.forEach(function(d){ alloc[d]=0; });
+  if(ohBasis!=="none"){
+    if(ohBasis==="equal"){ D.forEach(function(d){ alloc[d]=oh/D.length; }); }
+    else {
+      var keyTot=0, key={};
+      D.forEach(function(d){ var w=ohBasis==="rev"?per[d].rev:Math.max(0,per[d].gross); key[d]=w; keyTot+=w; });
+      D.forEach(function(d){ alloc[d]=keyTot?oh*(key[d]/keyTot):oh/D.length; });
+    }
+  }
+  D.forEach(function(d){ netBy[d]=per[d].gross-alloc[d]; });
+  if(ohBasis==="none"){
+    b+='<tr><td>Operating overhead (shared)</td>'; D.forEach(function(){ b+='<td class="num">—</td>'; }); b+='<td class="num">'+P(oh)+'</td></tr>';
+    b+='<tr class="tot"><td>Net profit</td>'; D.forEach(function(){ b+='<td class="num">—</td>'; }); b+='<td class="num '+(net<0?'lo':'hi')+'">'+L(net)+'</td></tr>';
+  } else {
+    b+='<tr><td>Operating overhead (allocated)</td>'; D.forEach(function(d){ b+='<td class="num">'+P(alloc[d])+'</td>'; }); b+='<td class="num">'+P(oh)+'</td></tr>';
+    b+='<tr class="tot"><td>Net profit</td>'; D.forEach(function(d){ b+='<td class="num '+(netBy[d]<0?'lo':'hi')+'">'+L(netBy[d])+'</td>'; }); b+='<td class="num '+(net<0?'lo':'hi')+'">'+L(net)+'</td></tr>';
+  }
+  document.getElementById("plBody").innerHTML=b;
+  var allocNote=document.getElementById("plAllocNote");
+  if(allocNote){
+    if(ohBasis==="none"){ allocNote.style.display="none"; allocNote.innerHTML=""; }
+    else {
+      var basisLbl={rev:"each division's share of revenue",gross:"each division's share of gross profit",equal:"an equal share per division"}[ohBasis];
+      var losers2=D.filter(function(d){ return netBy[d]<0; });
+      allocNote.style.display="";
+      allocNote.innerHTML="<b>Allocation is a modelling choice, not a hard cost.</b> Overhead is spread by "+basisLbl+". A division showing a loss after allocation may simply be carrying shared cost it doesn't truly cause"+(losers2.length?" (here: "+losers2.join(", ")+")":"")+" — a prompt for the conversation, not a reason on its own to close anything.";
+    }
+  }
+  var rk=D.slice().sort(function(a,c){return per[c].gross-per[a].gross;});
+  var fixedG=0; D.forEach(function(d){ if(/service|parts|fixed/i.test(d)) fixedG+=per[d].gross; });
+  var absorp = oh? fixedG/oh*100 : 0;
+  var ka=document.getElementById("kAbs");
+  if(ka){ ka.textContent=absorp.toFixed(0)+"%"; ka.className=absorp>=100?"hi":(absorp>=70?"wn":"lo"); }
+
+  /* ---------- industry benchmark context (Overview) ---------- */
+  var fixedShare = tG ? fixedG/tG*100 : 0;
+  var ncD=null, ucD=null;
+  D.forEach(function(d){ if(/new/i.test(d)&&!ncD) ncD=d; if(/used/i.test(d)&&!ucD) ucD=d; });
+  var BM = [
+    { lab:"Net profit margin (return on sales)", val:pc(net,tR), lo:1.5, hi:3.0, kind:"range" },
+    { lab:"Overall gross margin",                val:pc(tG,tR),  lo:12,  hi:16,  kind:"range" },
+    { lab:"Service absorption",                  val:absorp,     lo:70,  hi:100, kind:"target" },
+    { lab:"Fixed-ops share of gross (service + parts)", val:fixedShare, lo:45, hi:55, kind:"range" }
+  ];
+  if(ncD) BM.push({ lab:"New-car gross margin", val:pc(per[ncD].gross,per[ncD].rev), lo:4, hi:7, kind:"range" });
+  if(ucD) BM.push({ lab:"Used-car gross margin", val:pc(per[ucD].gross,per[ucD].rev), lo:8, hi:12, kind:"range" });
+  var fixedRev=0; D.forEach(function(d){ if(/service|parts/i.test(d)) fixedRev+=per[d].rev; });
+  BM.push({ lab:"Service & parts share of revenue", val:tR?fixedRev/tR*100:0, lo:10, hi:18, kind:"range" }); /* NADA US ~13.3% */
+  BM.forEach(function(r){
+    if(r.kind==="target"){
+      r.status = r.val>=r.hi ? "At / above best practice" : (r.val>=r.lo ? "Acceptable" : "Below — opportunity");
+      r.cls    = r.val>=r.hi ? "hi" : (r.val>=r.lo ? "wn" : "lo");
+    } else {
+      r.status = r.val<r.lo ? "Below range" : (r.val>r.hi ? "Above range" : "In range");
+      r.cls    = r.val<r.lo ? "wn" : "hi";
+    }
+  });
+  var bmBody=document.getElementById("bmBody");
+  if(bmBody){
+    bmBody.innerHTML = BM.map(function(r){
+      return '<tr><td>'+r.lab+'</td><td class="num">'+r.val.toFixed(1)+'%</td><td class="num">'+r.lo+'–'+r.hi+'%</td><td class="'+r.cls+'">'+r.status+'</td></tr>';
+    }).join("");
+  }
+  var evEl=document.getElementById("evNote");
+  if(evEl) evEl.innerHTML="Electric-vehicle sales in Türkiye roughly <b>doubled in 2025</b>. EVs need far less routine maintenance — and Service &amp; Parts is this dealership's main profit engine (absorption "+absorp.toFixed(0)+"%). As the fleet electrifies, that engine faces structural pressure: worth planning the service/parts mix and EV-readiness now, not later.";
+  buildPrintSheet();
+  set("plRead","Biggest profit engine: "+rk[0]+" ("+L(per[rk[0]].gross)+", "+pc(per[rk[0]].gross,tG).toFixed(0)+"% of all gross). Thinnest margin: "+rk[rk.length-1]+" ("+pc(per[rk[rk.length-1]].gross,per[rk[rk.length-1]].rev).toFixed(1)+"%). Service absorption "+absorp.toFixed(0)+"% — fixed-ops gross covers "+absorp.toFixed(0)+"% of total overhead"+(absorp>=100?" (the whole store stands on parts & service).":"; the rest must come from selling metal."));
+
+  /* B — LEAKAGE MAP (controllable leaks vs the dealer's own targets) + pocket-price waterfall */
+  var partsD=null, svcD=null, fiD=null;
+  D.forEach(function(d){ if(/parts/i.test(d))partsD=d; if(/service/i.test(d))svcD=d; if(/f&i/i.test(d))fiD=d; });
+  var LEAKS=[], DIVDET={};
+  // car discount discipline: strip OEM support, then count only over-target
+  [{d:ncD,t:"lk_new"},{d:ucD,t:"lk_used"}].forEach(function(c){
+    if(!c.d) return;
+    var k=c.d.replace(/[^a-z]/gi,""), u=gN("u_"+k), li=gN("l_"+k), rv=per[c.d].rev;
+    if(!(u>0&&li>0)) return;
+    var real=rv/u, gapPct=(li-real)/li*100;
+    var ctrlPct=Math.max(0, gapPct-gN(c.t+"_oem"));
+    var overPct=Math.max(0, ctrlPct-gN(c.t+"_tgt"));
+    var leak=overPct/100*rv;
+    DIVDET[c.d]={leak:leak, shouldBe:per[c.d].gross+leak, actual:per[c.d].gross, metric:"gross profit",
+      def: leak>0 ? ("Discount discipline — at your "+gN(c.t+"_tgt")+"% target (OEM support already excluded), "+c.d+" should hold <b>"+L(per[c.d].gross+leak)+"</b> gross; it held <b>"+L(per[c.d].gross)+"</b>. The gap is discount given "+overPct.toFixed(1)+" pts beyond target.")
+        : (c.d+" is within its discount target — no controllable leakage here. Well disciplined.") };
+    if(leak>0) LEAKS.push({name:c.d+" — discount "+overPct.toFixed(1)+" pts beyond target", amt:leak, lever:"Tighten sign-off on large discounts"});
+  });
+  // service: effective vs posted labour rate
+  var posted=gN("lk_svc_posted"), eff=gN("lk_svc_eff"), hrs=gN("lk_svc_hrs");
+  var svcLeak=Math.max(0,posted-eff)*hrs;
+  if(svcD) DIVDET[svcD]={leak:svcLeak, shouldBe:posted*hrs, actual:eff*hrs, metric:"labour billings",
+    def: svcLeak>0 ? ("Labour-rate realization — at your posted <b>₺"+Math.round(posted)+"/hr</b> across "+hrs+" hours you'd bill <b>"+L(posted*hrs)+"</b>; at the effective <b>₺"+Math.round(eff)+"/hr</b> you billed <b>"+L(eff*hrs)+"</b>. The gap is rate given away — comebacks, goodwill, unbilled hours.")
+      : "Service is realizing its posted rate — no labour-rate leakage." };
+  if(svcLeak>0) LEAKS.push({name:"Service — effective ₺"+Math.round(eff)+" vs posted ₺"+Math.round(posted)+"/hr", amt:svcLeak, lever:"Cut comeback / goodwill / unbilled hours"});
+  // parts: margin vs target
+  if(partsD){ var pmReal=pc(per[partsD].gross,per[partsD].rev), pmTgt=gN("lk_parts_tgt"), sbP=pmTgt/100*per[partsD].rev; var pLeak=Math.max(0,pmTgt-pmReal)/100*per[partsD].rev;
+    DIVDET[partsD]={leak:pLeak, shouldBe:sbP, actual:per[partsD].gross, metric:"parts gross",
+      def: pLeak>0 ? ("Margin — at your "+pmTgt.toFixed(0)+"% target, Parts should make <b>"+L(sbP)+"</b> gross; it made <b>"+L(per[partsD].gross)+"</b> at "+pmReal.toFixed(0)+"%.")
+        : "Parts is at or above its target margin — no margin leakage." };
+    if(pLeak>0) LEAKS.push({name:"Parts — margin "+pmReal.toFixed(0)+"% vs "+pmTgt.toFixed(0)+"% target", amt:pLeak, lever:"Fix the parts pricing matrix"}); }
+  // F&I: attach-rate gap (missed income)
+  if(fiD){ var fact=gN("lk_fi_act"), ftgt=gN("lk_fi_tgt"), sbF=(fact>0)?per[fiD].rev*(ftgt/fact):per[fiD].rev; var fiMiss=(fact>0)?Math.max(0,sbF-per[fiD].rev):0;
+    DIVDET[fiD]={leak:fiMiss, shouldBe:sbF, actual:per[fiD].rev, metric:"F&I income",
+      def: fiMiss>0 ? ("Attach rate — at "+ftgt+"% attach, F&I should earn <b>"+L(sbF)+"</b>; at "+fact+"% it earned <b>"+L(per[fiD].rev)+"</b>. The gap is missed F&I income.")
+        : "F&I is at its achievable attach rate — no missed income." };
+    if(fiMiss>0) LEAKS.push({name:"F&I — attach "+fact+"% vs "+ftgt+"% achievable", amt:fiMiss, lever:"Train / incentivise the F&I desk"}); }
+  LEAKS.sort(function(a,b){ return b.amt-a.amt; });
+  var totLeak=LEAKS.reduce(function(s,x){ return s+x.amt; },0);
+  var worstLeak = LEAKS.length ? LEAKS[0].name : "—";
+  var worstLeakShort = LEAKS.length ? LEAKS[0].name.split(" — ")[0] : "—";
+  var worstLeakAmt = LEAKS.length ? LEAKS[0].amt : 0;
+  var lkb="";
+  LEAKS.forEach(function(x,i){ lkb+='<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td class="num lo">'+L(x.amt)+'</td><td>'+x.lever+'</td></tr>'; });
+  lkb+='<tr class="tot"><td></td><td>Total addressable leakage</td><td class="num lo">'+L(totLeak)+'</td><td>= '+(net>0?pc(totLeak,net).toFixed(0)+'% of net profit':'—')+'</td></tr>';
+  document.getElementById("lkBody").innerHTML=lkb;
+  // leakage waterfall: potential profit → minus each leak → actual net
+  var wfItems=[{lab:"Potential", val:net+totLeak, kind:"tot"}];
+  LEAKS.forEach(function(x){ wfItems.push({lab:x.name.split(" — ")[0], val:-x.amt, kind:"down"}); });
+  wfItems.push({lab:"Actual net", val:net, kind:"tot"});
+  wfall("cLeakWf", wfItems);
+  set("lkRead", LEAKS.length
+    ? ("Biggest leak: "+worstLeakShort+" ("+L(worstLeakAmt)+"). Total addressable leakage "+L(totLeak)+" — "+(net>0?pc(totLeak,net).toFixed(0)+"% of this year's net profit. ":"")+"Most of it sits in fixed-ops, not the showroom, and every figure is measured against the dealership's own targets with OEM support stripped out.")
+    : "Set the targets above to map the leakage.");
+  // whole-company vs per-division view
+  var lkViewSel=(document.getElementById("lkView")||{}).value||"company";
+  var compEl=document.getElementById("lkCompany"), divEl=document.getElementById("lkDivision");
+  if(lkViewSel==="company" || !DIVDET[lkViewSel]){
+    if(compEl) compEl.style.display=""; if(divEl) divEl.style.display="none";
+  } else {
+    if(compEl) compEl.style.display="none"; if(divEl) divEl.style.display="";
+    renderDivLeak(lkViewSel, DIVDET[lkViewSel]);
+  }
+  // pocket-price waterfall (new cars)
+  if(ncD){
+    var nk=ncD.replace(/[^a-z]/gi,""), nu=gN("u_"+nk), nli=gN("l_"+nk), nrv=per[ncD].rev;
+    var pwfEl=document.getElementById("pwf");
+    if(pwfEl && nu>0 && nli>0){
+      var nreal=nrv/nu, gap=nli-nreal, oemv=gN("lk_new_oem")/100*nli, ctrl=Math.max(0,gap-oemv);
+      function wrow(lab,val,w,col){ return '<div style="display:flex;align-items:center;gap:10px;margin:5px 0;font-size:13px"><span style="width:210px;flex:0 0 auto;color:var(--muted)">'+lab+'</span><div style="flex:1;background:#f0f3f7;border-radius:4px;height:20px"><div style="height:100%;border-radius:4px;width:'+Math.max(2,Math.min(100,w))+'%;background:'+col+'"></div></div><span style="width:96px;text-align:right;font-weight:600">'+val+'</span></div>'; }
+      var g=gap||1;
+      pwfEl.innerHTML =
+        wrow("List price", L(nli), 100, "#9fb4c6")+
+        wrow("− OEM campaign support", "−"+L(oemv), oemv/g*45, "#9aa0ab")+
+        wrow("− Controllable discount", "−"+L(ctrl), ctrl/g*45, "var(--loss)")+
+        wrow("Pocket price", L(nreal), 100*nreal/nli, "var(--accent)");
+      set("pwfRead","Per new car, of the "+L(gap)+" off list, "+L(oemv)+" is OEM campaign support (reimbursed — not a loss) and "+L(ctrl)+" is controllable. Across "+nu+" cars that's "+L(ctrl*nu)+" of controllable discount; only the slice beyond your target counts as leakage in the map above.");
+    } else if(pwfEl){ pwfEl.innerHTML='<p class="note" style="margin:0">Enter new-car units and list price (in the grid above) to see the waterfall.</p>'; set("pwfRead",""); }
+  }
+
+  /* C — variance vs plan */
+  var vh='<tr><th>Division</th><th class="num">Actual gross <span class="srctag tag-acc">accounts</span></th><th class="num">Budget gross <span class="srctag tag-in">your input</span></th><th class="num">Variance</th><th class="num">Volume effect <span style="font-weight:400;text-transform:none;opacity:.7">(units)</span></th><th class="num">Rate effect <span style="font-weight:400;text-transform:none;opacity:.7">(pricing)</span></th></tr>';
+  document.getElementById("vaHead").innerHTML=vh;
+  var vb="",tVar=0,tVol=0,tRate=0,varBy={},VADET={};
+  D.forEach(function(d){
+    var k=d.replace(/[^a-z]/gi,""), bR=gN("br_"+k), bG=gN("bg_"+k);
+    var aR=per[d].rev, aG=per[d].gross;
+    var gpB=bR?bG/bR:0, gpA=aR?aG/aR:0;
+    var vol=(aR-bR)*gpB, rate=aR*(gpA-gpB), v=aG-bG;
+    tVar+=v; tVol+=vol; tRate+=rate; varBy[d]=v; VADET[d]={aG:aG,bG:bG,v:v,vol:vol,rate:rate};
+    function c(x){ return '<td class="num '+(x<0?'lo':(x>0?'hi':''))+'">'+L(x)+'</td>'; }
+    vb+='<tr><td>'+d+'</td><td class="num">'+L(aG)+'</td><td class="num">'+L(bG)+'</td>'+c(v)+c(vol)+c(rate)+'</tr>';
+  });
+  vb+='<tr class="tot"><td>Total vs plan</td><td class="num"></td><td class="num"></td>'+
+      '<td class="num '+(tVar<0?'lo':'hi')+'">'+L(tVar)+'</td>'+
+      '<td class="num '+(tVol<0?'lo':'hi')+'">'+L(tVol)+'</td>'+
+      '<td class="num '+(tRate<0?'lo':'hi')+'">'+L(tRate)+'</td></tr>';
+  document.getElementById("vaBody").innerHTML=vb;
+  var worstVar=Object.keys(varBy).sort(function(a,c){return varBy[a]-varBy[c];})[0];
+  var driver=Math.abs(tRate)>=Math.abs(tVol)?"rate (margin / discounting)":"volume (units sold)";
+  set("vaRead","Gross "+(tVar<0?"missed plan by ":"beat plan by ")+L(Math.abs(tVar))+", driven mainly by "+driver+
+      ". Worst division vs plan: "+worstVar+" ("+L(varBy[worstVar])+"). Volume "+L(tVol)+" + Rate "+L(tRate)+" reconciles to the "+L(tVar)+" total.");
+  // whole-company vs per-division variance
+  var vaView=(document.getElementById("vaView")||{}).value||"company";
+  var vaC=document.getElementById("vaCompany"), vaDv=document.getElementById("vaDivision");
+  if(vaView==="company" || !VADET[vaView]){
+    if(vaC)vaC.style.display=""; if(vaDv)vaDv.style.display="none";
+  } else {
+    if(vaC)vaC.style.display="none"; if(vaDv)vaDv.style.display="";
+    var vd=VADET[vaView];
+    bridge("cVaDiv", vd.bG, vd.vol, vd.rate, vd.aG);
+    var drv=Math.abs(vd.rate)>=Math.abs(vd.vol)?"rate (margin / discounting)":"volume (units sold)";
+    var ddEl=document.getElementById("vaDivDef");
+    if(ddEl) ddEl.innerHTML="<b>"+vaView+".</b> Budget gross "+L(vd.bG)+" → actual "+L(vd.aG)+" = "+(vd.v<0?"a shortfall of ":"a beat of ")+"<b>"+L(Math.abs(vd.v))+"</b>. Split into <b>volume effect</b> "+L(vd.vol)+" (sold more/fewer units at plan margin) + <b>rate effect</b> "+L(vd.rate)+" (margin better/worse than plan) — driven mainly by "+drv+".";
+    var drEl=document.getElementById("vaDivRead");
+    if(drEl) drEl.textContent="Volume "+L(vd.vol)+" + Rate "+L(vd.rate)+" reconciles exactly to the "+L(vd.v)+" variance.";
+  }
+
+  /* B2 — OEM bonus & incentive income */
+  var ncDiv=null; D.forEach(function(d){ if(/new/i.test(d)) ncDiv=d; }); if(!ncDiv) ncDiv=D[0];
+  var ncRev=per[ncDiv]?per[ncDiv].rev:0, ncGross=per[ncDiv]?per[ncDiv].gross:0;
+  var ncUnits=gN("u_"+ncDiv.replace(/[^a-z]/gi,""));
+  var bnTgt=gN("bn_tgt"), ach=bnTgt?ncUnits/bnTgt:0;
+  var bb=[gN("bn_b0"),gN("bn_b1"),gN("bn_b2"),gN("bn_b3")];
+  var tierIx = ach<0.90?0 : (ach<1.00?1 : (ach<1.10?2:3));
+  var tierLbl = ["below 90%","90–99%","100–109%","110%+"][tierIx];
+  var perUnit=bb[tierIx], volBonus=perUnit*ncUnits;
+  var holdback=gN("bn_hb")/100*ncRev;
+  var csiEl=document.getElementById("bn_csimet"), csiOn=csiEl?csiEl.checked:false;
+  var csiAmt=csiOn? gN("bn_csi")/100*ncRev : 0;
+  var oem=holdback+volBonus+csiAmt, ncGrossOEM=ncGross+oem;
+  var bounds=[0.90,1.00,1.10], nextB=null, nextIx=null;
+  for(var bi=0;bi<bounds.length;bi++){ if(ach<bounds[bi]){ nextB=bounds[bi]; nextIx=bi+1; break; } }
+  var nextInfo, unitsNeeded=0, nextJump=0;
+  if(nextB!==null){
+    unitsNeeded=Math.max(0,Math.ceil(nextB*bnTgt)-ncUnits);
+    var bonusAtNext=bb[nextIx]*Math.ceil(nextB*bnTgt), jump=bonusAtNext-volBonus;
+    nextJump=jump;
+    nextInfo=unitsNeeded+" more car"+(unitsNeeded===1?"":"s")+" reaches the "+(nextB*100).toFixed(0)+"% tier — the stair-step jumps to "+L(bonusAtNext)+" (retroactive on every unit): a "+L(jump)+" gain for "+unitsNeeded+" incremental car"+(unitsNeeded===1?"":"s")+".";
+  } else { nextInfo="Top tier already reached — the full "+L(volBonus)+" stair-step is being earned."; }
+  var lowerPer = tierIx>0? bb[tierIx-1] : bb[0];
+  var riskLoss = (perUnit-lowerPer)*ncUnits;
+  function bnr(l,v,b){ return '<tr'+(b?' class="tot"':'')+'><td>'+l+'</td><td class="num">'+v+'</td></tr>'; }
+  var bn = bnr("Holdback ("+gN("bn_hb")+"% of "+ncDiv+" revenue)", L(holdback));
+  bn += bnr("Volume stair-step (tier "+tierLbl+" @ "+(ach*100).toFixed(0)+"%, "+L(perUnit)+"/unit × "+ncUnits+")", L(volBonus));
+  bn += bnr("CSI / margin support", csiOn? L(csiAmt) : "withheld — target not met");
+  bn += bnr("Total OEM income", L(oem), 1);
+  bn += bnr(ncDiv+" gross — from the accounts", L(ncGross)+"  ("+pc(ncGross,ncRev).toFixed(1)+"%)");
+  bn += bnr(ncDiv+" gross — with OEM money", L(ncGrossOEM)+"  ("+pc(ncGrossOEM,ncRev).toFixed(1)+"%)", 1);
+  var oemGap = oem - bookedOEM;
+  bn += '<tr><td colspan="2" style="padding-top:14px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);font-weight:700;border-bottom:2px solid var(--line)">Reconciliation — programme vs your accounts</td></tr>';
+  bn += bnr("Programme should pay (reconstructed above) <span class=\"srctag tag-in\">your terms</span>", L(oem));
+  bn += bnr("Actually booked in the trial balance (incentive income) <span class=\"srctag tag-acc\">accounts</span>", L(bookedOEM));
+  bn += '<tr class="tot"><td>Gap — uncollected / unbooked</td><td class="num '+(oemGap>0?"lo":"hi")+'">'+L(oemGap)+'</td></tr>';
+  document.getElementById("bnBody").innerHTML=bn;
+  var reconRead = oemGap>0
+    ? (" Reconciliation: your books show "+L(bookedOEM)+" of incentive income, but your programme should pay about "+L(oem)+" — a "+L(oemGap)+" gap worth chasing (missed claims, timing, or accruals not yet booked).")
+    : (oemGap<0
+        ? (" Reconciliation: your books show "+L(bookedOEM)+" of incentive income — more than this reconstruction ("+L(oem)+"); you likely have other incentive streams not modelled here.")
+        : (" Reconciliation: booked incentive income matches the reconstructed programme — nothing obviously uncollected."));
+  set("bnRead", nextInfo + (riskLoss>0? (" At risk: slip below this tier and ~"+L(riskLoss)+" of stair-step is lost across the whole year — every car near a threshold is worth far more than its own margin.") : "") + reconRead);
+
+  /* charts — when overhead is allocated, the bar chart shows NET per division
+     (matching the table); otherwise it shows gross profit. */
+  barChart("cGross",
+           D.map(function(d){ return {label:d, value: (ohBasis==="none" ? per[d].gross : netBy[d])}; }),
+           "var(--accent)","var(--loss)");
+  var plCap=document.getElementById("plChartCap");
+  if(plCap) plCap.textContent = (ohBasis==="none")
+    ? "Gross profit by division"
+    : "Net profit by division — after overhead allocated by "+({rev:"revenue share",gross:"gross-profit share",equal:"equal share"}[ohBasis]||ohBasis);
+  // whole-company vs single-division P&L
+  var plView=(document.getElementById("plView")||{}).value||"company";
+  var plC=document.getElementById("plCompany"), plDv=document.getElementById("plDivision");
+  if(plView==="company" || !per[plView]){
+    if(plC)plC.style.display=""; if(plDv)plDv.style.display="none";
+  } else {
+    if(plC)plC.style.display="none"; if(plDv)plDv.style.display="";
+    var dd=plView, rws="";
+    TB.forEach(function(a,i){ if(a.div===dd && a.kind!=="oem"){ var amt=gN("tb"+i); rws+='<tr><td>'+a.code+' '+a.name+'</td><td class="num">'+(a.kind==="rev"?L(amt):P(amt))+'</td></tr>'; } });
+    var dgm=pc(per[dd].gross,per[dd].rev), share=pc(per[dd].gross,tG);
+    var html='<table><tbody>'+rws+
+      '<tr class="tot"><td>Revenue</td><td class="num">'+L(per[dd].rev)+'</td></tr>'+
+      '<tr><td>Cost of sales</td><td class="num">'+P(per[dd].cogs)+'</td></tr>'+
+      '<tr class="tot"><td>Gross profit</td><td class="num">'+L(per[dd].gross)+'</td></tr>'+
+      '<tr><td>Gross margin %</td><td class="num">'+dgm.toFixed(1)+'%</td></tr>'+
+      '<tr><td>Share of company gross</td><td class="num">'+share.toFixed(0)+'%</td></tr>';
+    if(ohBasis!=="none") html+='<tr><td>Allocated overhead</td><td class="num">'+P(alloc[dd])+'</td></tr><tr class="tot"><td>Net profit</td><td class="num '+(netBy[dd]<0?"lo":"hi")+'">'+L(netBy[dd])+'</td></tr>';
+    html+='</tbody></table>';
+    document.getElementById("plDivBody").innerHTML=html;
+    set("plDivRead", dd+" makes "+L(per[dd].gross)+" gross at "+dgm.toFixed(1)+"% margin — "+share.toFixed(0)+"% of the company's total gross profit"+(ohBasis!=="none"?", and "+L(netBy[dd])+" net after its allocated overhead":"")+".");
+  }
+  bridge("cBridge", tG - tVar, tVol, tRate, tG);
+
+  /* D — synthesis */
+  var s='<div class="ln">Net profit <b>'+L(net)+'</b> — <b>'+pc(net,tR).toFixed(1)+'%</b> of ₺'+Math.round(tR).toLocaleString("en-US")+' revenue. The metal barely pays; the profit really lives in '+rk[0]+'.</div>';
+  s+='<div class="ln">Addressable leakage <b class="'+(totLeak>0?'lo':'hi')+'">'+L(totLeak)+'</b>'+(net>0?' — '+pc(totLeak,net).toFixed(0)+'% of net profit':'')+(worstLeakShort&&worstLeakShort!=="—"?', biggest in <b>'+worstLeakShort+'</b>':'')+'. Measured vs the dealership’s own targets — recovering even part is pure profit.</div>';
+  s+='<div class="ln">You '+(tVar<0?'missed plan by ':'beat plan by ')+'<b class="'+(tVar<0?'lo':'hi')+'">'+L(Math.abs(tVar))+'</b>, driven mainly by <b>'+driver+'</b>'+(worstVar?(' in <b>'+worstVar+'</b>'):'')+'.</div>';
+  s+='<div class="ln">OEM money adds <b class="hi">'+L(oem)+'</b> — that, not the metal, is the real '+ncDiv+' profit (margin '+pc(ncGross,ncRev).toFixed(1)+'% → <b>'+pc(ncGrossOEM,ncRev).toFixed(1)+'%</b>)'+((nextB!==null&&unitsNeeded>0)?(' — and you are <b>'+unitsNeeded+'</b> car'+(unitsNeeded===1?'':'s')+' from the next bonus tier, often worth more than the price you protect on a deal'):'')+'.</div>';
+  s+='<div class="ln" style="margin-top:10px;color:#9fb4c6;font-size:13px">And under high inflation your cost-based numbers understate the real cost of what you sold — see the inflation-adjusted real margin below.</div>';
+  document.getElementById("synth").innerHTML=s;
+
+  /* snapshot for the AI advisor (read-only; mirrors what's on screen) */
+  window.__DD = {
+    isSample: DATA_IS_SAMPLE,
+    rev:tR, gross:tG, grossPct:pc(tG,tR), overhead:oh, net:net, netPct:pc(net,tR),
+    divisions:D, per:per,
+    best:rk[0], bestGross:per[rk[0]].gross, bestSharePct:pc(per[rk[0]].gross,tG),
+    thin:rk[rk.length-1], thinPct:pc(per[rk[rk.length-1]].gross,per[rk[rk.length-1]].rev),
+    absorption:absorp,
+    totLeak:totLeak, worstLeak:worstLeakShort, worstLeakAmt:worstLeakAmt, leaks:LEAKS,
+    tVar:tVar, tVol:tVol, tRate:tRate, driver:driver, worstVar:worstVar, worstVarAmt:varBy[worstVar],
+    ncDiv:ncDiv, ncGross:ncGross, ncGrossOEM:ncGrossOEM, ncRev:ncRev,
+    oem:oem, holdback:holdback, volBonus:volBonus, csiAmt:csiAmt, csiOn:csiOn,
+    bookedOEM:bookedOEM, oemGap:oemGap,
+    ach:ach, tierLbl:tierLbl, perUnit:perUnit, ncUnits:ncUnits, bnTgt:bnTgt,
+    unitsNeeded:unitsNeeded, nextB:nextB, nextJump:nextJump, riskLoss:riskLoss,
+    ohBasis:ohBasis, alloc:alloc, netBy:netBy,
+    benchmarks:BM
+  };
+  if(typeof renderRealMargin==="function") renderRealMargin();
+  if(typeof renderVerdict==="function") renderVerdict();
+}
+
+/* ---------- Threat & Opportunity verdict — the "so what" lead ----------
+   Reuses the live snapshot (window.__DD). Ranks every quantified threat and
+   opportunity by ₺ impact and surfaces the single biggest of each, with a
+   one-click jump to the tab that explains it. Pure local math — safe on
+   uploaded real data too (nothing is sent anywhere). */
+function gotoPane(id){
+  var tabs=document.querySelectorAll("#tabs .tab");
+  tabs.forEach(function(x){ x.classList.toggle("on", x.dataset.pane===id); });
+  document.querySelectorAll(".pane").forEach(function(p){ p.classList.remove("active"); });
+  var pane=document.getElementById(id); if(pane) pane.classList.add("active");
+  window.scrollTo(0,0);
+}
+window.gotoPane=gotoPane;
+
+function renderVerdict(){
+  var d=window.__DD, el=document.getElementById("verdict"); if(!d||!el) return;
+  var threats=[], opps=[];
+
+  /* ---- threats (things distorting the picture or bleeding money) ---- */
+  if(d.net<0){
+    threats.push({amt:Infinity, pane:"pane-divisional",
+      main:"The dealership is running at a net loss of <b>"+L(-d.net)+"</b>.",
+      sub:"Total overhead is larger than all the gross profit combined — the structural priority before anything else.",
+      go:"Open Divisional P&L →"});
+  }
+  if(d.realMargin && d.realMargin.drag>0){
+    threats.push({amt:d.realMargin.drag, pane:"pane-overview",
+      main:"About <b>"+L(d.realMargin.drag)+"</b> of your reported profit is inflation on stock — not real earnings.",
+      sub:"On a replacement-cost basis the true margin is <b>"+d.realMargin.real.toFixed(1)+"%</b>, not "+d.realMargin.reported.toFixed(1)+"%. The accounts flatter the reality.",
+      go:"See the real-margin breakdown ↓"});
+  }
+  if(d.tVar<0){
+    var ctrl = d.driver.indexOf("rate")===0;
+    threats.push({amt:Math.abs(d.tVar), pane:"pane-variance",
+      main:"You missed plan by <b>"+L(Math.abs(d.tVar))+"</b>"+(d.worstVar?", worst in "+d.worstVar:"")+".",
+      sub:"Driven mainly by "+d.driver+" — "+(ctrl?"that's discounting eating margin, which is controllable.":"a volume shortfall, i.e. a traffic / demand issue."),
+      go:"Open Variance →"});
+  }
+  if(d.aged && d.aged.carry>0){
+    threats.push({amt:d.aged.carry, pane:"pane-aged",
+      main:"Stock has already burned <b>"+L(d.aged.carry)+"</b> in floorplan interest.",
+      sub:(d.aged.stale? d.aged.stale+" unit"+(d.aged.stale!==1?"s":"")+" over 90 days are the prime bleeders — about "+L(d.aged.perDay)+"/day across the lot." : "About "+L(d.aged.perDay)+"/day across the lot at today's commercial rate."),
+      go:"Open Aged stock →"});
+  }
+  if(d.riskLoss>0){
+    threats.push({amt:d.riskLoss, pane:"pane-oem",
+      main:"Slipping a bonus tier would cost <b>"+L(d.riskLoss)+"</b> over the full year.",
+      sub:"Stair-step bonuses pay retroactively on every unit — cars near a threshold are worth far more than their own margin.",
+      go:"Open OEM bonus →"});
+  }
+
+  /* ---- opportunities (controllable upside) ---- */
+  if(d.totLeak>0){
+    opps.push({amt:d.totLeak, pane:"pane-leakage",
+      main:"You're leaking <b>"+L(d.totLeak)+"</b> against your own targets"+(d.worstLeak&&d.worstLeak!=="—"?", biggest in "+d.worstLeak:"")+".",
+      sub:(d.net>0?"That's "+Math.round(d.totLeak/d.net*100)+"% of this year's net profit — ":"")+"each leak has a named lever, and recovering even part is pure profit.",
+      go:"Open Leakage map →"});
+  }
+  if(d.nextB && d.unitsNeeded>0 && d.nextJump>0){
+    opps.push({amt:d.nextJump, pane:"pane-oem",
+      main:"<b>"+d.unitsNeeded+"</b> more new car"+(d.unitsNeeded!==1?"s":"")+" unlocks <b>"+L(d.nextJump)+"</b> in OEM bonus.",
+      sub:"The stair-step jumps retroactively on every unit once the next tier is reached — often worth more than a whole deal's margin.",
+      go:"Open OEM bonus →"});
+  }
+  if(d.oemGap>0){
+    opps.push({amt:d.oemGap, pane:"pane-oem",
+      main:"<b>"+L(d.oemGap)+"</b> of manufacturer bonus looks uncollected vs your programme.",
+      sub:"Your programme should pay ~"+L(d.oem)+" but only "+L(d.bookedOEM)+" is booked — chase the gap: missed claims, timing, or unbooked accruals.",
+      go:"Open OEM bonus →"});
+  }
+
+  threats.sort(function(a,b){ return b.amt-a.amt; });
+  opps.sort(function(a,b){ return b.amt-a.amt; });
+  var t=threats[0], o=opps[0];
+
+  function row(c,cls,tag){ return '<a class="vrow '+cls+'" href="#" onclick="gotoPane(\''+c.pane+'\');return false;">'+
+    '<span class="vtag">'+tag+'</span><div class="vmain">'+c.main+'</div><div class="vsub">'+c.sub+'</div><span class="vgo">'+c.go+'</span></a>'; }
+
+  var html='<div class="vhead">⚡ The bottom line — what to act on first</div>';
+  if(t) html+=row(t,"vthreat","▲ Biggest threat");
+  if(o) html+=row(o,"vopp","▼ Biggest opportunity");
+  if(!t && !o){ html+='<a class="vrow vopp" href="#" onclick="return false"><span class="vtag">✓ Clean</span><div class="vmain">No quantified threat or leakage detected against the current targets.</div><div class="vsub">Adjust the targets and budget to stress-test the picture.</div></a>'; }
+  if(o && d.totLeak>0 && d.net>0){
+    var halfRecover=d.net+Math.round(d.totLeak*0.5);
+    html+='<div class="vbottom"><b>In one line:</b> the headline profit is softer than it looks — but the biggest win is controllable. Recover half the leakage and net profit goes from '+L(d.net)+' to about <b>'+L(halfRecover)+'</b>.</div>';
+  } else if(t){
+    html+='<div class="vbottom"><b>In one line:</b> deal with the threat above first — it\'s the number quietly distorting every other decision.</div>';
+  }
+  el.innerHTML=html;
+}
+window.renderVerdict=renderVerdict;
+
+/* ---------- CSV upload (TB only) ---------- */
+function parseCSV(t){
+  var rows=[],row=[],cur="",q=false,i,c; t=t.replace(/\r\n/g,"\n").replace(/\r/g,"\n");
+  for(i=0;i<t.length;i++){ c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else if(c==='"') q=true;
+    else if(c===",") { row.push(cur); cur=""; }
+    else if(c==="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; }
+    else cur+=c;
+  }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(x){ return String(x).trim()!==""; }); });
+}
+function ci(h,names){ for(var i=0;i<h.length;i++){ if(names.indexOf(String(h[i]).toLowerCase().trim())!==-1) return i; } return -1; }
+function kKind(s){ s=String(s).toLowerCase(); if(/opex|overhead|admin|operating|expense/.test(s))return"opex"; if(/cogs|cost/.test(s))return"cogs"; if(/oem|incentive|prim|bonus|holdback|tesvik|teşvik/.test(s))return"oem"; if(/rev|sale|income|turnover/.test(s))return"rev"; return""; }
+function kAmt(s){ s=String(s).trim(); var num=parseFloat(s.replace(/[^0-9.\-]/g,"")); return isNaN(num)?NaN:Math.abs(num); }
+
+document.getElementById("tbfile").addEventListener("change",function(e){
+  var f=e.target.files&&e.target.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var rows=parseCSV(String(rd.result)); if(rows.length<2) throw new Error("File looks empty.");
+      var h=rows[0];
+      var cC=ci(h,["code","account code","acct"]), cN=ci(h,["name","account","account name","description"]),
+          cD=ci(h,["division","dept","department","segment"]), cK=ci(h,["kind","type","category"]), cA=ci(h,["amount","balance","value","net"]);
+      if(cD===-1||cK===-1||cA===-1) throw new Error("Need columns: division, kind, amount.");
+      var t=[],cnt=0;
+      for(var r=1;r<rows.length;r++){
+        var x=rows[r], kd=kKind(x[cK]), am=kAmt(x[cA]), dv=String(x[cD]||"").trim();
+        if(!kd||isNaN(am)||!dv) continue;
+        t.push({ code:cC!==-1?String(x[cC]||"").trim():String(r), name:cN!==-1?String(x[cN]||"").trim():dv, div:kd==="opex"?"Overhead":dv, kind:kd, amount:am }); cnt++;
+      }
+      if(!cnt) throw new Error("No usable rows.");
+      TB=t; DATA_IS_SAMPLE=false;
+      divisions().forEach(function(d){ if(!OPS[d]) OPS[d]={units:0,list:0,budRev:0,budGross:0}; });
+      buildTB(); buildOps(); calc(); tagSources();
+      set("tbstatus","Loaded "+cnt+" accounts. Now fill in units, list price and budget below.");
+    }catch(err){ set("tbstatus","Could not read file: "+err.message); document.getElementById("tbstatus").style.color="var(--loss)"; }
+  };
+  rd.readAsText(f); e.target.value="";
+});
+document.getElementById("tpl").addEventListener("click",function(){
+  var rows=[["code","name","division","kind","amount"]];
+  TB.forEach(function(a){ rows.push([a.code,a.name,a.div,a.kind,a.amount]); });
+  var csv=rows.map(function(r){ return r.map(function(x){ x=String(x); return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x; }).join(","); }).join("\n");
+  var u=URL.createObjectURL(new Blob([csv],{type:"text/csv"})), a=document.createElement("a");
+  a.href=u; a.download="trial-balance-template.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u);
+});
+
+buildTB(); buildOps(); buildBonus();
+var _ohb=document.getElementById("ohBasis"); if(_ohb) _ohb.addEventListener("change",calc);
+calc();
+
+/* ---------- live Türkiye macro backdrop (TCMB, via bundled rates.json) ---------- */
+var MACRO=null;
+function renderMacro(){
+  var c=document.getElementById("macroCard"); if(!c) return;
+  if(!MACRO){ c.style.display="none"; var bt0=document.getElementById("mkBadgeTxt"); if(bt0) bt0.textContent="Market data unavailable"; return; }
+  var inf = MACRO.market && MACRO.market.tufe && MACRO.market.tufe.yoy,
+      pol = MACRO.rate && MACRO.rate.value,
+      loan= MACRO.market && MACRO.market.loan_comm && MACRO.market.loan_comm.value,
+      usd = MACRO.fx && MACRO.fx.USDTRY,
+      eur = MACRO.fx && MACRO.fx.EURTRY;
+  set("mInf",  inf!=null ? inf.toFixed(1)+"%" : "—");
+  set("mPol",  pol!=null ? pol.toFixed(1)+"%" : "—");
+  set("mLoan", loan!=null ? loan.toFixed(1)+"%" : "—");
+  set("mUsd",  usd!=null ? usd.toFixed(2) : "—");
+  set("mEur",  eur!=null ? eur.toFixed(2) : "—");
+  var lines=[];
+  if(loan!=null) lines.push("At ~"+loan.toFixed(1)+"% commercial borrowing, financing unsold stock is expensive — every month a car sits unsold carries real interest, so floorplan discipline matters.");
+  if(inf!=null) lines.push("Inflation ~"+inf.toFixed(1)+"% means cost-based COGS understates the true replacement cost of what you sold — your reported margin flatters the real, replacement-cost margin.");
+  document.getElementById("macroNote").innerHTML=lines.join(" ");
+  document.getElementById("macroAsof").textContent="Source: TCMB EVDS · "+(MACRO.fxSource||"FX")+" · inflation as of "+((MACRO.market&&MACRO.market.tufe&&MACRO.market.tufe.asof)||"—")+", rate as of "+((MACRO.rate&&MACRO.rate.asof)||"—")+", FX "+((MACRO.fxAsof)||"—")+".";
+  // live/alive indicator — green when the daily feed is fresh, amber when it's an older snapshot
+  var dot=document.getElementById("macroDot"), live=document.getElementById("macroLive");
+  if(dot&&live){
+    var fa = MACRO.fetchedAt ? new Date(MACRO.fetchedAt) : null;
+    var ageDays = fa ? (new Date().getTime()-fa.getTime())/86400000 : 999;
+    if(ageDays<=3){ dot.className="livedot"; live.textContent="● Connected · live data"; live.style.color="var(--good)"; }
+    else { dot.className="livedot stale"; live.textContent="Snapshot · "+(MACRO.fxAsof||"older"); live.style.color="var(--muted)"; }
+    var bd=document.getElementById("mkBadgeDot"), bt=document.getElementById("mkBadgeTxt");
+    if(bd&&bt){
+      bd.className = ageDays<=3 ? "livedot" : "livedot stale";
+      bt.textContent = (ageDays<=3 ? "Market data: live" : "Market data: snapshot") + (MACRO.fxAsof ? " · "+MACRO.fxAsof : "");
+    }
+  }
+  buildPrintSheet();
+  if(typeof renderRealMargin==="function") renderRealMargin();
+  if(typeof calcAged==="function") calcAged();
+  c.style.display="";
+}
+/* Outlook — year-end 2026 expectations from official / institutional sources.
+   Shown as published; sources cited; the observer judges. Update on release. */
+var OUTLOOK = {
+  note: "Year-end figures unless marked “avg.” TCMB = market expectation · OVP = government target · IMF = independent forecast. Not a forecast by this tool.",
+  rows: [
+    { src:"TCMB — Survey of Market Participants", date:"May 2026", inf:"28.9%", fx:"51.57", gdp:"—", url:"https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Istatistikler/Egilim+Anketleri/Piyasa+Katilimcilari+Anketi/" },
+    { src:"OVP — Medium-Term Programme (government)", date:"Sep 2025", inf:"16.0% (target)", fx:"46.60 (avg)", gdp:"+3.8%", url:"https://www.sbb.gov.tr/wp-content/uploads/2025/09/Orta-Vadeli-Program-2026-2028.pdf" },
+    { src:"IMF — World Economic Outlook", date:"Apr 2026", inf:"28.6% (avg)", fx:"—", gdp:"+3.4%", url:"https://www.imf.org/en/countries/tur" }
+  ]
+};
+window.OUTLOOK = OUTLOOK;
+function renderOutlook(){
+  var b=document.getElementById("outlookBody"); if(!b) return;
+  b.innerHTML = OUTLOOK.rows.map(function(r){
+    return '<tr><td><a href="'+r.url+'" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">'+r.src+'</a><div style="font-size:11px;color:var(--muted)">'+r.date+'</div></td>'+
+      '<td class="num">'+r.inf+'</td><td class="num">'+r.fx+'</td><td class="num">'+r.gdp+'</td></tr>';
+  }).join("");
+  var n=document.getElementById("outlookNote"); if(n) n.textContent=OUTLOOK.note;
+}
+renderOutlook();
+
+/* ---------- Aged stock — per-unit floorplan carrying cost (ASSETIX-asset style) ---------- */
+var STOCK_SAMPLE = [
+  { label:"New · Model A", days:25,  cost:920000 },
+  { label:"New · Model B", days:58,  cost:1150000 },
+  { label:"Used · Sedan",  days:95,  cost:640000 },
+  { label:"New · SUV",     days:140, cost:1480000 },
+  { label:"Used · Hatch",  days:215, cost:410000 },
+  { label:"New · Model A", days:34,  cost:900000 }
+];
+function buildAged(){
+  var g=document.getElementById("agedGrid"); if(!g) return;
+  var today=new Date(), col="grid-template-columns:1.6fr 1fr 1fr";
+  var h='<div class="inrow head" style="'+col+'"><span>Unit <span class="srctag tag-trk">you enter</span></span><span style="text-align:right">Stock-in date</span><span style="text-align:right">Cost ₺</span></div>';
+  STOCK_SAMPLE.forEach(function(s,i){
+    var d=new Date(today.getTime()-s.days*86400000), ds=d.toISOString().slice(0,10);
+    h+='<div class="inrow" style="'+col+'"><label>'+s.label+'</label>'+
+       '<input type="date" id="ag_d'+i+'" value="'+ds+'"/>'+
+       '<input type="number" id="ag_c'+i+'" step="10000" value="'+s.cost+'"/></div>';
+  });
+  g.innerHTML=h;
+  STOCK_SAMPLE.forEach(function(s,i){ ["ag_d"+i,"ag_c"+i].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener("input",calcAged); }); });
+  tagSources();
+}
+function calcAged(){
+  var body=document.getElementById("agedBody"); if(!body) return;
+  var loan=(window.MACRO&&window.MACRO.market&&window.MACRO.market.loan_comm&&window.MACRO.market.loan_comm.value);
+  var infl=(window.MACRO&&window.MACRO.market&&window.MACRO.market.tufe&&window.MACRO.market.tufe.yoy);
+  var rate=(loan!=null?loan:50)/100, today=new Date();
+  var rows=[], totVal=0, totCarry=0, totPerDay=0, stale=0, staleVal=0, staleCarry=0, oldest=0;
+  STOCK_SAMPLE.forEach(function(s,i){
+    var dEl=document.getElementById("ag_d"+i), cEl=document.getElementById("ag_c"+i); if(!dEl||!cEl) return;
+    var din=new Date(dEl.value), cost=parseFloat(cEl.value)||0;
+    var days=Math.max(0, Math.floor((today-din)/86400000));
+    var carry=cost*rate*days/365, perDay=cost*rate/365;
+    totVal+=cost; totCarry+=carry; totPerDay+=perDay; oldest=Math.max(oldest,days);
+    if(days>90){ stale++; staleVal+=cost; staleCarry+=carry; }
+    rows.push({label:s.label, days:days, cost:cost, carry:carry, perDay:perDay, st:(days>90?"stale":(days>60?"aging":"fresh"))});
+  });
+  rows.sort(function(a,b){ return b.days-a.days; });
+  body.innerHTML=rows.map(function(r){
+    var cls=r.st==="stale"?"lo":(r.st==="aging"?"wn":"hi");
+    return '<tr><td>'+r.label+'</td><td class="num">'+r.days+'</td><td class="num">'+L(r.cost)+'</td><td class="num lo">'+L(r.carry)+'</td><td class="num">'+L(r.perDay)+'/day</td><td class="'+cls+'">'+r.st+'</td></tr>';
+  }).join("")+'<tr class="tot"><td>Total ('+rows.length+' units)</td><td class="num">'+oldest+' max</td><td class="num">'+L(totVal)+'</td><td class="num lo">'+L(totCarry)+'</td><td class="num">'+L(totPerDay)+'/day</td><td></td></tr>';
+  set("ag_val",L(totVal)); set("ag_carry",L(totCarry)); set("ag_perday",L(totPerDay)+"/day"); set("ag_stale",stale+" of "+rows.length);
+  var rd=document.getElementById("agRead");
+  if(rd) rd.innerHTML="Your stock is bleeding about <b>"+L(totPerDay)+"/day</b> in floorplan interest at ~"+(rate*100).toFixed(0)+"% borrowing. "+
+    (stale? "<b>"+stale+"</b> unit"+(stale!==1?"s":"")+" over 90 days ("+L(staleVal)+" of capital) "+(stale!==1?"have":"has")+" already burned <b>"+L(staleCarry)+"</b> in interest — prime candidates to move." : "No unit over 90 days — stock is turning well.")+
+    (infl!=null? " And at ~"+infl.toFixed(0)+"% inflation, capital tied in stock loses real value on top of this." : "");
+  if(window.__DD) window.__DD.aged={units:rows.length, value:totVal, carry:totCarry, perDay:totPerDay, stale:stale, staleCarry:staleCarry, oldest:oldest};
+  if(typeof renderVerdict==="function") renderVerdict();
+}
+buildAged(); calcAged();
+
+/* Real (inflation-adjusted / replacement-cost) margin — the ASSETIX concept for a dealer */
+function renderRealMargin(){
+  var d=window.__DD; if(!d) return;
+  var inflEl=document.getElementById("rm_infl");
+  var infl = (window.MACRO && window.MACRO.market && window.MACRO.market.tufe && window.MACRO.market.tufe.yoy);
+  var holdM = parseFloat((document.getElementById("rm_hold")||{}).value); if(isNaN(holdM)) holdM=2;
+  if(infl==null){ if(inflEl) inflEl.textContent="(loading…)"; set("rmRead","Live inflation not available yet — open online to compute the inflation-adjusted margin."); return; }
+  if(inflEl) inflEl.textContent=infl.toFixed(1)+"% (TÜFE, yıllık)";
+  var cost=d.rev-d.gross;
+  var inflHold=Math.pow(1+infl/100, holdM/12)-1;     // inflation accrued over the holding period
+  var drag=cost*inflHold;                             // illusory inventory holding gain
+  var realGross=d.gross-drag;
+  var repM=d.rev?d.gross/d.rev*100:0, realM=d.rev?realGross/d.rev*100:0;
+  set("rm_rep", repM.toFixed(1)+"%");
+  set("rm_real", realM.toFixed(1)+"%"); var rr=document.getElementById("rm_real"); if(rr) rr.style.color=realM<0?"var(--loss)":"";
+  set("rm_drag", L(drag));
+  var rd=document.getElementById("rmRead"); if(rd) rd.innerHTML="At ~"+infl.toFixed(0)+"% inflation and ~"+holdM+" months' average stock-holding, about <b>"+L(drag)+"</b> of your reported gross is just the rising replacement cost of inventory — not real profit. On a replacement-cost basis your margin is <b>"+realM.toFixed(1)+"%</b>, not "+repM.toFixed(1)+"%. (Diagnosis, not a tax position.)";
+  d.realMargin={reported:repM, real:realM, drag:drag, holdM:holdM, infl:infl};
+  if(typeof renderVerdict==="function") renderVerdict();
+}
+var _rmh=document.getElementById("rm_hold"); if(_rmh) _rmh.addEventListener("input",renderRealMargin);
+
+/* Used-car market index (BETAM sahibindex) — periodic MANUAL reference.
+   UPDATE monthly from betam.bahcesehir.edu.tr; confirm republishing ToS before commercial use. */
+var USEDCAR_IDX = { avg:1168000, yoyNom:23.3, yoyReal:-6.8, asof:"May 2026", src:"BETAM sahibindex (Bahçeşehir Üniversitesi)" };
+
+/* Build the printable one-page leave-behind from the live snapshot. */
+function buildPrintSheet(){
+  var el=document.getElementById("printSheet"); if(!el) return;
+  var d=window.__DD; if(!d) return;
+  var m=window.MACRO;
+  var EX="-webkit-print-color-adjust:exact;print-color-adjust:exact;";
+  var netCol = d.net>=0 ? "#0e8f5b" : "#d23b3b";
+  function tile(label,val,col){
+    return '<td style="width:25%;border:1px solid #dfe5ee;border-radius:8px;padding:9px 11px;vertical-align:top">'+
+      '<div style="font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:#7a828f">'+label+'</div>'+
+      '<div style="font-size:16px;font-weight:800;margin-top:3px;color:'+(col||"#1f2430")+'">'+val+'</div></td>';
+  }
+  function find(lead,leadCol,rest){
+    return '<div style="margin:0 0 7px;font-size:12.5px;line-height:1.5"><b style="color:'+leadCol+'">'+lead+'</b> '+rest+'</div>';
+  }
+  var macroLine = m ? ("Inflation <b>"+((m.market&&m.market.tufe&&m.market.tufe.yoy)||"—")+"%</b> · policy <b>"+((m.rate&&m.rate.value)||"—")+"%</b> · commercial loan <b>"+((m.market&&m.market.loan_comm&&m.market.loan_comm.value)||"—")+"%</b> · USD/TRY <b>"+((m.fx&&m.fx.USDTRY)||"—")+"</b>") : "";
+
+  el.innerHTML =
+  '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1f2430;max-width:760px;margin:0 auto">'+
+    // header band
+    '<div style="background:linear-gradient(135deg,#0f2233,#1d3a52);color:#fff;padding:18px 22px;border-radius:10px;'+EX+'">'+
+      '<div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.65">Dealership Diagnostic · Phase 1 · Confidential</div>'+
+      '<div style="font-size:22px;font-weight:800;letter-spacing:-.3px;margin-top:5px">Profit &amp; Variance — Executive Summary</div>'+
+      '<div style="font-size:12px;opacity:.8;margin-top:4px">Rebuilt from the dealership’s own trial balance — where the money is really made, and why.</div>'+
+    '</div>'+
+    // KPI tiles
+    '<table style="width:100%;border-collapse:separate;border-spacing:8px 0;margin:14px 0 4px;table-layout:fixed"><tr>'+
+      tile("Total revenue", L(d.rev))+
+      tile("Gross profit", L(d.gross)+" · "+d.grossPct.toFixed(1)+"%")+
+      tile("Net profit", L(d.net)+" · "+d.netPct.toFixed(1)+"%", netCol)+
+      tile("Service absorption", d.absorption.toFixed(0)+"%", d.absorption>=70?"#0e8f5b":"#c87f00")+
+    '</tr></table>'+
+    // headline insight
+    '<div style="background:#eef5ff;border-left:4px solid #2f9bff;padding:11px 15px;border-radius:6px;margin:12px 0 16px;font-size:13px;'+EX+'">'+
+      '<b>The metal barely pays — the profit really lives in '+d.best+'</b> ('+L(d.bestGross)+', '+d.bestSharePct.toFixed(0)+'% of all gross profit).</div>'+
+    // findings
+    '<div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#2f9bff;font-weight:700;margin-bottom:8px">What the numbers say</div>'+
+    find("Addressable leakage:", "#d23b3b", L(d.totLeak)+(d.netPct?" ("+(d.net>0?Math.round(d.totLeak/d.net*100):0)+"% of net profit)":"")+(d.worstLeak&&d.worstLeak!=="—"?", biggest in <b>"+d.worstLeak+"</b>":"")+" — measured vs the dealership's own targets, OEM support stripped out.")+
+    find("Variance vs plan:", "#1f2430", (d.tVar<0?"missed plan by ":"beat plan by ")+"<b>"+L(Math.abs(d.tVar))+"</b>, driven mainly by "+d.driver+".")+
+    find("OEM bonus money:", "#0e8f5b", "<b>"+L(d.oem)+"</b> — the real "+d.ncDiv+" profit"+((d.nextB&&d.unitsNeeded>0)?(", and only <b>"+d.unitsNeeded+"</b> car(s) from the next bonus tier"):"")+".")+
+    find("Watch — the EV shift:", "#c87f00", "EVs need far less service; as the fleet electrifies, the service-absorption profit engine is under structural pressure.")+
+    // market backdrop strip
+    (macroLine ? '<div style="background:#f4f6f9;border-radius:6px;padding:10px 14px;margin-top:14px;font-size:11.5px;color:#445;'+EX+'"><b style="color:#1f2430">Market backdrop (TCMB):</b> '+macroLine+'.</div>' : '')+
+    // footer
+    '<div style="display:flex;justify-content:space-between;font-size:9.5px;color:#9aa0ab;margin-top:14px;border-top:1px solid #e3e7ee;padding-top:7px">'+
+      '<span>Indicative analysis from a trial-balance model — not audited accounts or financial advice.</span>'+
+      '<span>Runs locally · nothing uploaded</span>'+
+    '</div>'+
+  '</div>';
+}
+
+function loadMacro(){
+  // 1) ./rates.json — the demo's OWN file, refreshed daily by its own Action
+  //    (dealer-demo-macro.yml). Independent of ASSETIX. Also serves as the
+  //    bundled offline snapshot when run locally.
+  var urls=["rates.json"], v="?v="+(new Date().getTime());
+  (function tryNext(i){
+    if(i>=urls.length){ MACRO=null; renderMacro(); return; }
+    fetch(urls[i]+v,{cache:"no-store"})
+      .then(function(r){ if(!r.ok) throw new Error("bad"); return r.json(); })
+      .then(function(j){ MACRO=j; window.MACRO=j; renderMacro(); })
+      .catch(function(){ tryNext(i+1); });
+  })(0);
+}
+loadMacro();
+
+/* ---------- used-car index text + print button ---------- */
+(function(){
+  var u=document.getElementById("usedcarNote");
+  if(u) u.innerHTML="Average used-car listing ≈ ₺"+(USEDCAR_IDX.avg/1e6).toFixed(2)+"M ("+USEDCAR_IDX.asof+"): <b>+"+USEDCAR_IDX.yoyNom+"%</b> year-on-year in lira, but <b>"+USEDCAR_IDX.yoyReal+"%</b> in <b>real</b> terms after inflation — nominal prices rising while real values erode, so used-car margins are under quiet pressure.";
+  var s=document.getElementById("usedcarSrc");
+  if(s) s.textContent="Source: "+USEDCAR_IDX.src+" — periodic reference, updated manually.";
+  var pb=document.getElementById("printBtn");
+  if(pb) pb.addEventListener("click",function(){ buildPrintSheet(); window.print(); });
+})();
+
+/* leakage-target inputs → recalc */
+["lk_new_tgt","lk_new_oem","lk_used_tgt","lk_used_oem","lk_svc_posted","lk_svc_eff","lk_svc_hrs","lk_parts_tgt","lk_fi_act","lk_fi_tgt"].forEach(function(id){
+  var e=document.getElementById(id); if(e) e.addEventListener("input",calc);
+});
+var _lv=document.getElementById("lkView"); if(_lv) _lv.addEventListener("change",calc);
+var _pv=document.getElementById("plView"); if(_pv) _pv.addEventListener("change",calc);
+var _vv=document.getElementById("vaView"); if(_vv) _vv.addEventListener("change",calc);
+
+/* ---------- tabbed panes ---------- */
+(function(){
+  var tabs=document.querySelectorAll("#tabs .tab");
+  tabs.forEach(function(t){
+    t.addEventListener("click",function(e){
+      e.preventDefault();
+      tabs.forEach(function(x){ x.classList.remove("on"); });
+      t.classList.add("on");
+      document.querySelectorAll(".pane").forEach(function(p){ p.classList.remove("active"); });
+      var pane=document.getElementById(t.dataset.pane);
+      if(pane) pane.classList.add("active");
+      window.scrollTo(0,0);
+    });
+  });
+})();
+</script>
+
+<!-- Floating AI advisor — runs on the SAMPLE only (uploaded data is never sent) -->
+<button id="aiFab" type="button" aria-label="AI advisor" title="Ask the AI advisor"
+  style="position:fixed;right:22px;bottom:22px;z-index:8000;width:54px;height:54px;border:0;cursor:pointer;border-radius:50%;background:linear-gradient(135deg,#2f9bff,#19c37d);color:#fff;font-size:13px;font-weight:800;letter-spacing:.04em;box-shadow:0 8px 24px rgba(47,155,255,.42)">AI</button>
+<div id="aiChat"
+  style="position:fixed;right:22px;bottom:88px;z-index:8000;width:min(390px,calc(100vw - 32px));height:min(560px,74vh);background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.28);display:none;flex-direction:column;overflow:hidden">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:linear-gradient(135deg,#0f2233,#1d3a52);color:#fff">
+    <div style="font-weight:700;font-size:14px">✨ Dealership Advisor</div>
+    <button id="aiChatClose" type="button" style="background:0;border:0;color:#cbd5e1;font-size:22px;cursor:pointer;line-height:1">&times;</button>
+  </div>
+  <div id="aiChatMsgs" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:13.5px;line-height:1.55;background:var(--bg)"></div>
+  <div style="padding:6px 12px;font-size:11px;color:var(--muted);background:var(--bg);border-top:1px solid var(--line)">Runs on the sample dealership · your uploaded files are never sent</div>
+  <div style="display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:var(--surface)">
+    <input id="aiChatInput" placeholder="Ask about this dealership…" autocomplete="off"
+      style="flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:14px;background:var(--bg);color:var(--ink)">
+    <button id="aiChatSend" type="button"
+      style="padding:9px 14px;border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer">Send</button>
+  </div>
+</div>
+<script src="dd-ai.js?v=1"></script>
+</body>
+</html>

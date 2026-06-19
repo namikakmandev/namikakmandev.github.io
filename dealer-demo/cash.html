@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dealership Cash &amp; Budget Reporting</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<meta name="theme-color" content="#2F9BFF" />
+<link rel="stylesheet" href="tokens.css?v=18" />
+<meta name="description" content="The same dealership numbers, turned into a 12-month cash and budget picture: which months run short even in a profitable year, and where cash lands vs plan. Runs locally — nothing is uploaded." />
+<style>
+  .tool-light{
+    /* navy palette remapped onto canonical tokens (Phase 6) */
+    --panel: var(--surface);
+    --ink: var(--text);
+    --muted: var(--text-dim);
+    --line: var(--border);
+    --accent-soft: #cfe3fb;
+    --good: var(--accent-2);
+    --warn: var(--accent-3);
+    --budget: var(--accent-3);
+    /* --accent, --bg, --loss inherit canonical values from tokens.css */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 22px 70px}
+  header h1{font-size:24px;letter-spacing:-.3px}
+  header p.sub{color:var(--muted);font-size:14px;margin-top:5px;max-width:760px}
+  .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 9px;border-radius:5px;margin-bottom:12px}
+  h2.band{font-size:13px;letter-spacing:.6px;text-transform:uppercase;color:var(--accent);font-weight:700;margin:34px 0 4px;padding-bottom:7px;border-bottom:2px solid var(--line)}
+  p.note{color:var(--muted);font-size:13px;margin:6px 0 14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px;margin-top:12px;overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+  thead th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:2px solid var(--line)}
+  tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:12px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .kpi span{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .kpi strong{display:block;font-size:21px;margin-top:5px;font-variant-numeric:tabular-nums}
+  .inrow{display:grid;grid-template-columns:1.4fr 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+  input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=number]:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+  input[type=range]{width:100%}
+  .sl{padding:8px 0}
+  .sl label{font-size:13px;display:flex;justify-content:space-between;margin-bottom:4px}
+  .chart{width:100%;height:auto;display:block}
+  .chart text{font-size:11px;fill:var(--muted)}
+  .chart .vlab{fill:var(--ink);font-weight:600}
+  .nav{display:flex;gap:8px;margin:4px 0 18px}
+  .nav a{font-size:13px;font-weight:600;text-decoration:none;color:var(--muted);padding:7px 14px;border:1px solid var(--line);border-radius:7px;background:var(--panel)}
+  .nav a.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .lo{color:var(--loss)} .hi{color:var(--good)} .bd{color:var(--budget)}
+  .synth{background:#101a26;color:#eef3f8;border-radius:11px;padding:20px 22px;margin-top:14px;font-size:15px;line-height:1.7}
+  .synth b{color:#7fc6f5} .synth .ln{margin:3px 0}
+  footer{margin-top:46px;color:var(--muted);font-size:12px;text-align:center;border-top:1px solid var(--line);padding-top:18px}
+  .leg{display:flex;gap:18px;font-size:12px;color:var(--muted);margin:8px 0 0;flex-wrap:wrap}
+  .leg i{display:inline-block;width:14px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body class="tool-light">
+<div class="wrap">
+  <header>
+    <span class="tag">Confidential — runs on this computer only</span>
+    <h1>Dealership Cash &amp; Budget Reporting</h1>
+    <p class="sub">The same dealership numbers as the Profit &amp; Variance view — turned into the cash story. A profitable year still runs short in some months because overhead is fixed while sales swing with the season. This shows which months bite, and where cash lands versus plan.</p>
+  </header>
+
+  <nav class="nav">
+    <a href="index.html">Profit &amp; Variance</a>
+    <a href="cash.html" class="on">Cash &amp; Budget</a>
+  </nav>
+
+  <h2 class="band">Inputs <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:12px">— prefilled from the dealer sample; edit freely</span></h2>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <div class="inrow"><label>Starting cash ₺</label><input type="number" id="i-cash" step="100000" value="1500000"/></div>
+        <div class="inrow"><label>Actual revenue (year) ₺</label><input type="number" id="i-rev" step="100000" value="32500000"/></div>
+        <div class="inrow"><label>Actual gross profit (year) ₺</label><input type="number" id="i-gr" step="100000" value="4560000"/></div>
+        <div class="inrow"><label>Operating overhead (year) ₺</label><input type="number" id="i-oh" step="100000" value="3900000"/></div>
+      </div>
+      <div>
+        <div class="inrow"><label>Budget revenue (year) ₺</label><input type="number" id="b-rev" step="100000" value="32750000"/></div>
+        <div class="inrow"><label>Budget gross profit (year) ₺</label><input type="number" id="b-gr" step="100000" value="5086000"/></div>
+        <div class="sl"><label>Collection lag <b id="lagv">0 days</b></label><input type="range" id="lag" min="0" max="90" step="5" value="0"/></div>
+        <p class="note" style="margin:6px 0 0">Overhead is fixed and spread evenly; revenue &amp; cost flex with a dealership seasonality. Collection lag slips part of a month's sales into the next month's cash.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="band">The cash year</h2>
+  <div class="grid">
+    <div class="kpi"><span>Lowest cash point</span><strong id="kLow">—</strong></div>
+    <div class="kpi"><span>Months in the red</span><strong id="kRed">—</strong></div>
+    <div class="kpi"><span>Ending cash (Dec)</span><strong id="kEnd">—</strong></div>
+    <div class="kpi"><span>Ending vs budget</span><strong id="kVar">—</strong></div>
+  </div>
+  <div class="card"><svg id="cChart" class="chart" viewBox="0 0 900 380" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Projected closing cash, actual vs budget"></svg>
+    <div class="leg"><span><i style="background:var(--accent)"></i>Actual closing cash</span><span><i style="background:var(--budget)"></i>Budget closing cash</span><span><i style="background:var(--loss)"></i>Below zero</span></div>
+  </div>
+
+  <h2 class="band">Monthly cash — actual vs budget</h2>
+  <div class="card"><table id="mTable"><thead id="mHead"></thead><tbody id="mBody"></tbody></table></div>
+  <p class="note" id="mRead"></p>
+
+  <h2 class="band">The one-line story</h2>
+  <div class="synth" id="synth"></div>
+
+  <footer>
+    Dealership Cash &amp; Budget Reporting · same dataset as the Profit &amp; Variance view · Confidential working tool — computed locally in your browser, never uploaded.
+  </footer>
+</div>
+
+<script>
+var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var SEAS=[80,80,95,100,105,100,85,80,95,105,100,75];
+function n(v){ var x=parseFloat(v); return isNaN(x)?0:x; }
+function gN(id){ var e=document.getElementById(id); return e?n(e.value):0; }
+function set(id,t){ var e=document.getElementById(id); if(e) e.textContent=t; }
+function L(v){ var r=Math.round(v); return (r<0?"-₺":"₺")+Math.abs(r).toLocaleString("en-US"); }
+function short(v){ var a=Math.abs(v),s=v<0?"-₺":"₺";
+  if(a>=1e6) return s+(a/1e6).toFixed(a>=1e7?0:1)+"M";
+  if(a>=1e3) return s+Math.round(a/1e3)+"k"; return s+Math.round(a); }
+
+function project(rev,gross,oh,lagDays){
+  var sumW=SEAS.reduce(function(s,w){return s+w;},0)||1;
+  var cogs=rev-gross, k=Math.min(1,lagDays/30);
+  var rows=[], prevClose=gN("i-cash"), prevRev=0;
+  for(var m=0;m<12;m++){
+    var f=SEAS[m]/sumW;
+    var mRev=rev*f, mCogs=cogs*f, mOH=oh/12;
+    var received=(1-k)*mRev + k*prevRev;
+    var out=mCogs+mOH;
+    var opening=m===0?gN("i-cash"):prevClose;
+    var net=received-out, closing=opening+net;
+    rows.push({m:m,opening:opening,inflow:received,out:out,net:net,closing:closing});
+    prevClose=closing; prevRev=mRev;
+  }
+  return rows;
+}
+
+function lineChart(id,act,bud){
+  var W=900,He=380,mL=72,mR=16,mT=20,mB=40, pw=W-mL-mR, ph=He-mT-mB;
+  var vals=[0]; act.forEach(function(r){vals.push(r.closing);}); bud.forEach(function(r){vals.push(r.closing);});
+  vals.push(gN("i-cash"));
+  var max=Math.max.apply(null,vals), min=Math.min.apply(null,vals), span=(max-min)||1;
+  var X=function(i){ return mL+(i/11)*pw; };
+  var Y=function(v){ return mT+ph-((v-min)/span)*ph; };
+  var y0=Y(0), s="";
+  s+='<line x1="'+mL+'" y1="'+y0.toFixed(1)+'" x2="'+(mL+pw)+'" y2="'+y0.toFixed(1)+'" stroke="var(--loss)" stroke-dasharray="4 4" opacity="0.6"/>';
+  s+='<text x="'+(mL-8)+'" y="'+y0.toFixed(1)+'" text-anchor="end" dominant-baseline="middle">0</text>';
+  s+='<text x="'+(mL-8)+'" y="'+(Y(max)+4).toFixed(1)+'" text-anchor="end">'+short(max)+'</text>';
+  act.forEach(function(r,i){ s+='<text x="'+X(i).toFixed(1)+'" y="'+(He-14)+'" text-anchor="middle">'+MON[i]+'</text>'; });
+  function path(rows,col,w,op){
+    var d="";
+    rows.forEach(function(r,i){ d+=(i?"L":"M")+" "+X(i).toFixed(1)+" "+Y(r.closing).toFixed(1)+" "; });
+    return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+w+'" opacity="'+op+'"/>';
+  }
+  s+=path(bud,"var(--budget)",2,0.85);
+  s+=path(act,"var(--accent)",3,1);
+  act.forEach(function(r,i){
+    s+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(r.closing).toFixed(1)+'" r="4" fill="'+(r.closing<0?"var(--loss)":"var(--accent)")+'"><title>'+MON[i]+' actual: '+L(r.closing)+'</title></circle>';
+  });
+  var el=document.getElementById(id); if(el) el.innerHTML=s;
+}
+
+function calc(){
+  document.getElementById("lagv").textContent=gN("lag")+" days";
+  var rev=gN("i-rev"), gr=gN("i-gr"), oh=gN("i-oh"), lag=gN("lag");
+  var bRev=gN("b-rev"), bGr=gN("b-gr");
+  var act=project(rev,gr,oh,lag);
+  var bud=project(bRev,bGr,oh,lag);
+
+  var low=act[0]; act.forEach(function(r){ if(r.closing<low.closing) low=r; });
+  var red=act.filter(function(r){ return r.closing<0; });
+  var endA=act[11].closing, endB=bud[11].closing, vAr=endA-endB;
+
+  set("kLow",L(low.closing)); var kl=document.getElementById("kLow");
+  kl.className=low.closing<0?"lo":"hi"; kl.insertAdjacentHTML("beforeend",' <span style="font-size:12px;color:var(--muted);font-weight:400">@ '+MON[low.m]+'</span>');
+  set("kRed", red.length? (red.length+" ("+red.map(function(r){return MON[r.m];}).join(", ")+")") : "None");
+  document.getElementById("kRed").className=red.length?"lo":"hi";
+  set("kEnd",L(endA)); document.getElementById("kEnd").className=endA<0?"lo":"hi";
+  set("kVar",(vAr>=0?"+":"")+L(vAr)); document.getElementById("kVar").className=vAr<0?"lo":"hi";
+
+  lineChart("cChart",act,bud);
+
+  var hh='<tr><th>Month</th><th class="num">Opening</th><th class="num">Cash in</th><th class="num">Cash out</th><th class="num">Net</th><th class="num">Closing (actual)</th><th class="num">Closing (budget)</th></tr>';
+  document.getElementById("mHead").innerHTML=hh;
+  var b="";
+  act.forEach(function(r,i){
+    var cls=r.closing<0?' class="lo"':'';
+    b+='<tr><td>'+MON[i]+'</td><td class="num">'+L(r.opening)+'</td><td class="num">'+L(r.inflow)+
+       '</td><td class="num">('+L(r.out).replace("₺","₺")+')</td><td class="num">'+L(r.net)+
+       '</td><td class="num"'+cls+'>'+L(r.closing)+'</td><td class="num bd">'+L(bud[i].closing)+'</td></tr>';
+  });
+  document.getElementById("mBody").innerHTML=b;
+  set("mRead", red.length
+    ? (red.length+" month"+(red.length>1?"s":"")+" go below zero ("+red.map(function(r){return MON[r.m];}).join(", ")+") even though the year nets "+L(rev-(rev-gr)-oh)+" — that is exactly when a thin-margin dealer needs an overdraft or floorplan headroom.")
+    : "No month closes below zero on this seasonality and starting cash — but a slower quarter or a later collection lag changes that fast (move the slider).");
+
+  var s='<div class="ln">The year nets <b>'+L(rev-(rev-gr)-oh)+'</b>, but cash bottoms at <b class="'+(low.closing<0?'lo':'hi')+'">'+L(low.closing)+'</b> in <b>'+MON[low.m]+'</b> — profit and cash are not the same month.</div>';
+  s+='<div class="ln">'+(red.length?('<b class="lo">'+red.length+' month'+(red.length>1?'s':'')+'</b> run in the red'):'<b class="hi">No month</b> runs in the red')+', because overhead is fixed while sales follow the season.</div>';
+  s+='<div class="ln">Cash ends the year at <b>'+L(endA)+'</b>, <b class="'+(vAr<0?'lo':'hi')+'">'+(vAr>=0?'+':'')+L(vAr)+'</b> vs the budget plan.</div>';
+  s+='<div class="ln" style="margin-top:10px;color:#9fb4c6;font-size:13px">Phase 2 adds the real cash levers a dealer lives on: inventory days, floorplan financing cost, and the bank line — under high inflation that is where the money actually goes.</div>';
+  document.getElementById("synth").innerHTML=s;
+}
+
+["i-cash","i-rev","i-gr","i-oh","b-rev","b-gr"].forEach(function(id){
+  document.getElementById(id).addEventListener("input",calc);
+});
+document.getElementById("lag").addEventListener("input",calc);
+calc();
+</script>
+</body>
+</html>

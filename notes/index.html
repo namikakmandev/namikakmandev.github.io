@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f1117" />
+<title>Notes</title>
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./icon.svg" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== Sidebar: notebooks + pages ===== -->
+  <aside id="sidebar">
+    <div class="side-head">
+      <button id="menuClose" class="icon-btn only-mobile" title="Close">&#10005;</button>
+      <span class="brand">Notes</span>
+      <button id="settingsBtn" class="icon-btn" title="Sync settings">&#9881;</button>
+    </div>
+
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="Search notes..." autocomplete="off" />
+    </div>
+
+    <div class="list-section">
+      <div class="list-title">
+        <span>Notebooks</span>
+        <button id="addNotebook" class="mini-btn" title="New notebook">+</button>
+      </div>
+      <ul id="notebookList" class="vlist"></ul>
+    </div>
+
+    <div class="list-section grow">
+      <div class="list-title">
+        <span id="pagesLabel">Pages</span>
+        <button id="addPage" class="mini-btn" title="New page">+</button>
+      </div>
+      <ul id="pageList" class="vlist"></ul>
+    </div>
+
+    <div id="syncBar" class="sync-bar">
+      <span id="syncStatus" class="sync-status">Not synced</span>
+      <button id="syncBtn" class="text-btn">Sync now</button>
+    </div>
+  </aside>
+
+  <!-- ===== Editor ===== -->
+  <main id="editorPane">
+    <div class="editor-top">
+      <button id="menuOpen" class="icon-btn only-mobile" title="Menu">&#9776;</button>
+      <input id="pageTitle" type="text" placeholder="Page title" />
+      <button id="deletePage" class="icon-btn danger" title="Delete this page">&#128465;</button>
+    </div>
+
+    <div id="toolbar" class="toolbar">
+      <button data-cmd="bold" title="Bold"><b>B</b></button>
+      <button data-cmd="italic" title="Italic"><i>I</i></button>
+      <button data-cmd="underline" title="Underline"><u>U</u></button>
+      <span class="sep"></span>
+      <button data-block="h1" title="Big heading">H1</button>
+      <button data-block="h2" title="Heading">H2</button>
+      <button data-block="p" title="Normal text">&#182;</button>
+      <span class="sep"></span>
+      <button data-cmd="insertUnorderedList" title="Bullet list">&#8226; List</button>
+      <button data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+      <button data-todo title="Checkbox to-do">&#9744; To-do</button>
+      <span class="sep"></span>
+      <button data-hl title="Highlight">Highlight</button>
+      <button data-cmd="removeFormat" title="Clear formatting">Clear</button>
+    </div>
+
+    <div id="editor" class="editor" contenteditable="true" spellcheck="true"></div>
+
+    <div id="emptyState" class="empty-state">
+      <p>No page open.</p>
+      <p class="dim">Pick a page on the left, or create a new one with the <b>+</b> button.</p>
+    </div>
+  </main>
+</div>
+
+<!-- ===== Settings / Sync modal ===== -->
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Sync across your devices</h2>
+      <button id="modalClose" class="icon-btn">&#10005;</button>
+    </div>
+    <div class="modal-body">
+      <p class="dim">
+        Your notes are saved on this device automatically. To see the same
+        notes on your phone, connect a <b>private GitHub repository</b> below.
+        This is free and only you can see it.
+      </p>
+
+      <details class="howto">
+        <summary>First time? Click here for step-by-step setup</summary>
+        <ol>
+          <li>Open <a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a> and create a repository.
+            Name it <code>my-notes-data</code>, choose <b>Private</b>, click <b>Create repository</b>.</li>
+          <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">this token page</a>.
+            Set <b>Token name</b> = <code>notes app</code>,
+            <b>Expiration</b> = No expiration (or 1 year),
+            <b>Repository access</b> = Only select repositories &rarr; pick <code>my-notes-data</code>.</li>
+          <li>Under <b>Permissions &rarr; Repository permissions</b>, find
+            <b>Contents</b> and set it to <b>Read and write</b>. Click
+            <b>Generate token</b> and copy the long text it shows.</li>
+          <li>Paste the repository name and that token into the boxes below and press <b>Save &amp; connect</b>.</li>
+        </ol>
+      </details>
+
+      <label class="field">
+        <span>Repository name</span>
+        <input id="repoInput" type="text" placeholder="my-notes-data" autocomplete="off" />
+      </label>
+      <label class="field">
+        <span>GitHub token</span>
+        <input id="tokenInput" type="password" placeholder="github_pat_..." autocomplete="off" />
+      </label>
+
+      <p id="modalMsg" class="modal-msg"></p>
+
+      <div class="modal-actions">
+        <button id="disconnectBtn" class="text-btn danger">Disconnect</button>
+        <button id="saveSettings" class="primary-btn">Save &amp; connect</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./app.js"></script>
+</body>
+</html>

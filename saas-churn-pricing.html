@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cheap-and-Upsell or High-Margin? — A SaaS Pricing Study — Namık Akman</title>
+  <meta name="description" content="What 24 months of multi-tier SaaS subscription data say about the right pricing strategy: lead cheap and upsell, or sell premium from day one." />
+
+  <!-- Open Graph (LinkedIn, Facebook, Slack, WhatsApp) -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Namık Akman" />
+  <meta property="og:title" content="Cheap-and-Upsell or High-Margin? — A SaaS Pricing Study" />
+  <meta property="og:description" content="24 months of multi-tier SaaS subscription data — 500 customers, 5,000 subscription records — to answer the central commercial question: lead with a cheap plan and rely on upgrades, or sell premium from day one?" />
+  <meta property="og:url" content="https://namikakmandev.github.io/saas-churn-pricing.html" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/saas-study/15_strategy_ltv_comparison.png" />
+  <meta property="og:image:width" content="1540" />
+  <meta property="og:image:height" content="840" />
+  <meta property="og:image:alt" content="Mean lifetime revenue by strategy: Basic-no-upgrade $13k, Basic-upgraded $24k (highest), Pro-land $21k, Enterprise-land $23k." />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Cheap-and-Upsell or High-Margin? — A SaaS Pricing Study" />
+  <meta name="twitter:description" content="24 months of multi-tier SaaS subscription data — 500 customers, 5,000 subscription records — put through regression to answer the central commercial pricing question." />
+  <meta name="twitter:image" content="https://namikakmandev.github.io/assets/saas-study/15_strategy_ltv_comparison.png" />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    /* Case-study layout — long-form reading on top of the existing dark theme */
+    .study { padding: 32px 0 64px; }
+    .study .container { max-width: 880px; }
+    .study .back { color: var(--text-dim); font-size: .9rem; }
+    .study .back:hover { color: var(--text); text-decoration: none; }
+    .study h1 { font-size: 2.1rem; line-height: 1.18; letter-spacing: -.015em; margin: 14px 0 10px; }
+    .study .lede { color: var(--text-dim); font-size: 1.1rem; line-height: 1.55; margin-bottom: 22px; max-width: 760px; }
+    .study .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--text-dim); font-size: .85rem;
+                   border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+                   padding: 12px 0; margin-bottom: 32px; }
+    .study .meta b { color: var(--text); font-weight: 600; }
+    .study h2 { font-size: 1.35rem; margin: 40px 0 14px; letter-spacing: -.01em; }
+    .study h2 .accent { color: var(--accent-2); }
+    .study h3 { font-size: 1.05rem; margin: 26px 0 10px; color: var(--text); }
+    .study p { margin: 0 0 16px; color: var(--text); }
+    .study p.dim { color: var(--text-dim); }
+    .study ul.bullets { margin: 0 0 18px 22px; padding: 0; }
+    .study ul.bullets li { margin-bottom: 8px; color: var(--text); }
+
+    .chart {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin: 22px 0 8px;
+    }
+    .chart img { width: 100%; height: auto; border-radius: 8px; }
+    .chart-cap { color: var(--text-dim); font-size: .85rem; margin: 8px 4px 4px; }
+
+    .kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      margin: 18px 0 30px;
+    }
+    .kpis .k {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px 18px;
+    }
+    .kpis .k .l { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+    .kpis .k .v { font-size: 1.55rem; font-weight: 700; margin-top: 4px; letter-spacing: -.01em; }
+    .kpis .k.green .v { color: var(--accent-2); }
+    .kpis .k.orange .v { color: var(--accent-3); }
+    .kpis .k.blue .v { color: var(--accent); }
+    .kpis .k .d { font-size: .82rem; color: var(--text-dim); margin-top: 4px; }
+
+    .pullquote {
+      border-left: 3px solid var(--accent-2);
+      padding: 6px 18px;
+      margin: 24px 0 24px;
+      font-size: 1.05rem;
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .pullquote.orange { border-left-color: var(--accent-3); }
+
+    .recs {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin: 28px 0 18px;
+    }
+    .recs h3 { margin-top: 0; color: var(--accent); }
+    .recs ol { margin: 10px 0 0 22px; }
+    .recs ol li { margin-bottom: 14px; }
+    .recs ol li b { color: var(--text); }
+
+    table.tbl { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: .92rem; }
+    table.tbl th, table.tbl td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    table.tbl th { color: var(--text-dim); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+    table.tbl th.num, table.tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    table.tbl tr.hi td { background: rgba(25, 195, 125, 0.06); }
+
+    .footnote { color: var(--text-dim); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 36px; }
+    .footnote a { color: var(--accent); }
+
+    @media (max-width: 720px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .study h1 { font-size: 1.65rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="projects.html" class="back">&larr; Back to projects</a>
+
+        <h1>Cheap-and-upsell, or high-margin? <span style="color:var(--text-dim);font-weight:500;">A SaaS pricing study.</span></h1>
+        <p class="lede">
+          Every multi-tier subscription business asks the same question: lead with a cheap plan
+          and rely on upgrades, or sell the premium tier from day one? I worked through 24 months
+          of real-shape SaaS data — 500 customers, 5,000 subscription records, 5 linked tables —
+          to find an answer grounded in numbers rather than instinct.
+        </p>
+
+        <div class="meta">
+          <span><b>Dataset</b> — RavenStack (simulated multi-tier SaaS, MIT licence)</span>
+          <span><b>Method</b> — Python · pandas · matplotlib · Jupyter</span>
+          <span><b>Scope</b> — 500 accounts · 5,000 subscriptions · 24 months</span>
+        </div>
+
+        <!-- ================= HEADLINE KPIs ================ -->
+        <div class="kpis">
+          <div class="k green">
+            <div class="l">Top LTV strategy</div>
+            <div class="v">$24,362</div>
+            <div class="d">Basic land, then upgrade</div>
+          </div>
+          <div class="k blue">
+            <div class="l">vs. Enterprise direct</div>
+            <div class="v">+$1,776</div>
+            <div class="d">8% higher LTV</div>
+          </div>
+          <div class="k orange">
+            <div class="l">Basic→upgrade rate</div>
+            <div class="v">61%</div>
+            <div class="d">The highest-leverage metric</div>
+          </div>
+          <div class="k">
+            <div class="l">Worst channel</div>
+            <div class="v">Event</div>
+            <div class="d">30% churn · $17k LTV</div>
+          </div>
+        </div>
+
+        <!-- ================= THE FIRST INSIGHT — WHEN ================ -->
+        <h2>1. When do customers leave? <span class="accent">— two humps, not one</span></h2>
+        <p>
+          The first analytical reflex is to ask <em>when</em> in a customer's lifecycle they
+          churn. A single answer would simplify the strategy: invest in onboarding (early-churn
+          business) or invest in customer success and renewals (late-churn business).
+        </p>
+        <p>
+          The data tells a less convenient story. Splitting the 74 customers with timestamped
+          exit dates by their tenure-at-churn gives a clearly bimodal pattern:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/09_lifecycle_stage_bar.png" alt="Bar chart showing churn by lifecycle stage. Two roughly equal peaks: 32% in Onboarding (0-3 months) and 31% at the Renewal moment (12-18 months), with a quieter middle.">
+          <div class="chart-cap">Of customers who churned, ~32% left in the first 3 months and ~31% left at the 12–18 month renewal moment. Activation and year-one are quiet.</div>
+        </div>
+
+        <p>
+          Two equal-sized churn populations, separated by nine quiet months. That means
+          there are <strong>two different problems</strong> here, each requiring a different
+          playbook:
+        </p>
+        <ul class="bullets">
+          <li><strong>Onboarding leavers</strong> say the product wasn't the right fit — the reasons they cite at exit lean to features and pricing. <em>"This isn't for us."</em></li>
+          <li><strong>Renewal leavers</strong> made it through the first year but didn't renew. Their stated reasons skew toward support quality and feature gaps. <em>"After 12 months, we're not getting what we need."</em></li>
+        </ul>
+
+        <!-- ================= WHERE THEY COME FROM ================ -->
+        <h2>2. Where do customers come from? <span class="accent">— acquisition channel is a 2× lever</span></h2>
+        <p>
+          Acquisition source is not just a cost-per-lead conversation. It is a churn-rate
+          conversation. Customers acquired through partners churn at less than half the rate
+          of customers acquired at events:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/04_churn_by_referral.png" alt="Bar chart of lifetime churn rate by acquisition channel. Event 30.2%, Other 24.3%, Ads 23.5%, Organic 17.5%, Partner 14.6%.">
+          <div class="chart-cap">Partner-sourced customers churn at 14.6%; event-sourced churn at 30.2%. A dollar spent on partner acquisition is worth roughly twice a dollar spent on events, before considering acquisition cost.</div>
+        </div>
+
+        <p>
+          This is the kind of structural finding that should reshape a marketing-mix
+          conversation. The cost of an event-sourced customer is not just their CAC — it is
+          their CAC plus a 30% probability of losing them.
+        </p>
+
+        <!-- ================= THE PRICING QUESTION ================ -->
+        <h2>3. The pricing question <span class="accent">— and the answer that surprised me</span></h2>
+        <p>
+          The setup that makes this question interesting: Basic plans average $475/month MRR,
+          Enterprise plans average $4,918/month. A 10× price gap. The natural expectation is
+          that Enterprise landings generate dramatically higher lifetime revenue.
+        </p>
+
+        <p>They don't.</p>
+
+        <p>
+          Splitting all 500 customers by their <strong>landing plan</strong> (the plan they
+          first signed up on), the lifetime revenue distribution is much flatter than you'd
+          expect:
+        </p>
+
+        <table class="tbl">
+          <thead>
+            <tr><th>Landing plan</th><th class="num">n</th><th class="num">Mean LTV</th><th class="num">Avg tenure</th><th class="num">Churn rate</th><th class="num">% who upgrade</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Basic</td><td class="num">163</td><td class="num">$19,912</td><td class="num">9.6 mo</td><td class="num">22.1%</td><td class="num">60.7%</td></tr>
+            <tr><td>Pro</td><td class="num">164</td><td class="num">$21,368</td><td class="num">9.8 mo</td><td class="num">19.5%</td><td class="num">61.6%</td></tr>
+            <tr><td>Enterprise</td><td class="num">173</td><td class="num">$22,586</td><td class="num">8.7 mo</td><td class="num">24.3%</td><td class="num">61.8%</td></tr>
+          </tbody>
+        </table>
+
+        <p>
+          A 13% LTV gap from cheapest to most expensive, despite a 10× difference in entry
+          price. The reason is in the right-most column: <strong>60–62% of customers in every
+          tier upgrade at some point.</strong> A Basic lander doesn't stay Basic — most of
+          them migrate up the stack. The product has strong built-in expansion mechanics,
+          and that compresses the LTV gap dramatically.
+        </p>
+
+        <p>
+          That reframes the strategic question. <em>"Which plan should we sell?"</em> is the
+          wrong frame; the customer self-selects their final plan over time. The right
+          question is: <strong>of the customers who land cheap, how many upgrade — and what
+          are the ones who do worth?</strong>
+        </p>
+
+        <h3>The decisive split</h3>
+        <p>
+          Cut the Basic landers into two: those who upgraded and those who didn't. Compare
+          all four resulting strategies head-to-head:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/15_strategy_ltv_comparison.png" alt="Bar chart of mean lifetime revenue by acquisition strategy. Basic-land-no-upgrade $13k, Basic-land-upgraded $24k (the highest), Pro-land $21k, Enterprise-land $23k.">
+          <div class="chart-cap">Mean lifetime revenue per customer, by strategy. The Basic-then-upgrade customer outperforms direct-Enterprise landings.</div>
+        </div>
+
+        <div class="pullquote">
+          The single most valuable customer segment is a Basic lander who upgrades — they
+          generate roughly <strong>$1,800 more lifetime revenue</strong> than a customer
+          who lands directly at Enterprise, and they churn at a lower rate. They self-selected
+          upward because the product was working for them, rather than being sold into a
+          high tier from day one.
+        </div>
+
+        <p>
+          The catch: only <strong>61%</strong> of Basic landers actually upgrade. The other
+          39% are worth less than half ($13,027 mean LTV). That makes the Basic→upgrade
+          conversion rate the single highest-leverage operating metric in the business.
+          A 5-point lift on the 163 Basic landers in this dataset would have added roughly
+          $92,000 in lifetime revenue — without acquiring a single new customer.
+        </p>
+
+        <h3>The same story, customer by customer</h3>
+        <p>
+          The bar chart above is a summary — averages over groups of ~100 customers each.
+          A scatter of all 500 customers tells the same story at the individual level, and
+          shows where the variation actually sits:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/19_scatter_tenure_vs_revenue.png" alt="Scatter plot of customer tenure (x-axis, months) vs lifetime revenue (y-axis, USD). Each dot is one of 500 customers. Circles are customers who upgraded, X marks are those who didn't. Colors: blue for Basic landers, green for Pro, orange for Enterprise.">
+          <div class="chart-cap">Each point is one customer. Circles upgraded, X marks did not. Tenure runs left-to-right; lifetime revenue runs bottom-to-top. Dashed lines mark the median LTV per landing plan.</div>
+        </div>
+
+        <p>
+          A few things jump out:
+        </p>
+        <ul class="bullets">
+          <li><strong>Revenue rises with tenure</strong>, as you'd expect — but the slope is steeper for upgraders (circles) than for non-upgraders (X marks) in every plan tier.</li>
+          <li><strong>The high-LTV outliers in the upper-right are mostly blue and green circles</strong> — Basic-upgraders and Pro-landers who stayed long enough to expand. The orange Enterprise-direct customers cluster lower than you'd guess from their starting MRR alone.</li>
+          <li><strong>The X marks are concentrated at low tenure</strong> — customers who didn't upgrade also didn't stay. They're a single customer profile, not two: short-tenure non-expanders.</li>
+        </ul>
+
+        <p>
+          The scatter is the reason the bar chart's headline holds up: it's not driven by a
+          handful of giant Enterprise outliers paying their way to high group averages.
+          It's a structural pattern across the whole customer base.
+        </p>
+
+        <!-- ================= WHERE THE MONEY ACTUALLY COMES FROM ================ -->
+        <h2>4. Where the money actually comes from <span class="accent">— channel × plan</span></h2>
+        <p>
+          Crossing acquisition channel with landing plan exposes which combinations of
+          sourcing and product entry actually generate revenue:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/16_channel_x_plan_ltv.png" alt="Heatmap of mean LTV by acquisition channel and landing plan. Organic+Basic is the brightest cell at $30,119. Partner+Pro is $28,002. Event+Basic is the darkest at $14,957.">
+          <div class="chart-cap">Mean LTV by channel × landing plan. Brighter = higher lifetime value. The most productive cell on the grid is Organic + Basic.</div>
+        </div>
+
+        <p>
+          Three things stand out:
+        </p>
+        <ul class="bullets">
+          <li><strong>Organic + Basic at $30,119</strong> — customers who find the product themselves and start small are the most valuable cell on the whole grid. They have time to build conviction and upgrade aggressively.</li>
+          <li><strong>Partner + Pro at $28,002</strong> — partner-sourced Pro landers convert at exceptional rates.</li>
+          <li><strong>Event-sourced is bottom-quartile across all plans.</strong> Event + Basic and Event + Pro are the two worst cells; combined with the 30% lifetime churn rate, the event channel is a genuine double loss.</li>
+        </ul>
+
+        <!-- ================= THE LOCK-IN MYTH ================ -->
+        <h2>5. The annual-billing myth <span class="accent">— tested and rejected</span></h2>
+        <p>
+          Standard SaaS thinking holds that annual contracts reduce churn because they lock
+          customers in for 12 months. The data doesn't support it:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/17_billing_freq.png" alt="Bar chart comparing annual vs monthly billing. Annual: 22.0% churn, 9.3 months tenure. Monthly: 21.0% churn, 9.4 months tenure.">
+          <div class="chart-cap">Annual billing customers churn at 22.0%; monthly at 21.0%. Tenure is identical. The annual discount doesn't buy retention.</div>
+        </div>
+
+        <p>
+          Annual billing customers churn at 22.0%, monthly at 21.0%. Average tenure is
+          identical. The 9% LTV gap is almost entirely a price effect (annual is typically
+          slightly discounted), not a retention effect. Customers who want to leave appear
+          to leave regardless of contract structure; annual contracts simply <em>defer</em>
+          the cancellation to the renewal anniversary.
+        </p>
+
+        <p class="dim">
+          The practical implication is that any annual-billing discount RavenStack offers is
+          not buying retention — it is buying upfront cash. That can still be a defensible
+          trade-off, but it's a treasury argument, not a churn argument. If the discount is
+          larger than the cost-of-capital justification, it is margin given away for nothing.
+        </p>
+
+        <!-- ================= CONTRIBUTION ================ -->
+        <h2>6. Share of customers vs share of revenue</h2>
+        <p>
+          One last cut: if every strategy generated revenue in proportion to its customer
+          share, blue and green bars below would be equal. Imbalances point to structural
+          over- or under-performance:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/18_customer_vs_revenue_share.png" alt="Grouped bar chart of share of customers vs share of revenue by strategy. Basic-no-upgrade: 13% customers, 8% revenue. Basic-upgraded: 20% customers, 23% revenue. Pro: 33% / 33%. Enterprise: 35% / 37%.">
+          <div class="chart-cap">Basic-upgraded customers over-index on revenue (23% of revenue from 20% of base). Basic-no-upgrade under-indexes (8% of revenue from 13%). Enterprise direct is only marginally more efficient than its share.</div>
+        </div>
+
+        <p>
+          The Enterprise-direct cohort is only slightly more revenue-productive than its
+          customer share would predict. The "premium customers pull weight" hypothesis isn't
+          really supported in this dataset — they pay more per month, but they also churn
+          faster and stay shorter, which cancels most of the advantage.
+        </p>
+
+        <!-- ================= STATISTICAL EVIDENCE ================ -->
+        <h2>7. Statistical evidence <span class="accent">— what survives proper controls</span></h2>
+        <p>
+          Bar charts and group averages can mislead. A finding that looks strong in raw
+          comparisons sometimes evaporates once you control for other things — and a finding
+          that looks weak can turn out to be the dominant signal. To stress-test the
+          patterns above, I ran two regression models on the per-customer dataset:
+        </p>
+        <ul class="bullets">
+          <li><strong>A linear model on lifetime revenue (LTV)</strong> with 9 predictors — tenure, seats, plan tier, channel, billing, industry, upgrade count. <em>What independently moves the dollar number?</em></li>
+          <li><strong>A logistic model on churn</strong> (binary outcome) with the same predictor set. <em>What independently moves the odds of leaving?</em></li>
+        </ul>
+
+        <h3>Correlations first — the simple view</h3>
+        <p>
+          Before the models, the pairwise correlation matrix among the numeric features
+          confirms three things at a glance:
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/20_correlation_matrix.png" alt="Correlation matrix heatmap of LTV, Tenure, Upgrades, Subs, Tickets, Seats, Churn. LTV correlates strongest with Tenure (0.57) and Seats (0.32). Tickets correlate with essentially nothing (~0). Churn correlates weakly negative with everything.">
+          <div class="chart-cap">Pearson correlations on per-customer numeric features. Red = positive, blue = negative.</div>
+        </div>
+
+        <ul class="bullets">
+          <li><strong>LTV is anchored by tenure (r=0.57) and seats (r=0.32).</strong> Everything else is a sideshow at the bivariate level.</li>
+          <li><strong>Support tickets correlate with nothing</strong> (|r| ≤ 0.04 across the board) — confirming the null finding from the support-vs-churn notebook with another method.</li>
+          <li>Churn correlates only modestly even with tenure (r = −0.11), which means a single number can't predict it — interactions and categorical features do most of the work.</li>
+        </ul>
+
+        <h3>What drives lifetime revenue — the linear model</h3>
+        <p>
+          Forest plot of the regression coefficients with 95% confidence intervals.
+          Stars indicate p-values: *** &lt; 0.001, ** &lt; 0.01, * &lt; 0.05, n.s. = not significant.
+        </p>
+
+        <div class="chart">
+          <img src="assets/saas-study/21_ltv_regression_forest.png" alt="Forest plot of OLS regression coefficients on LTV. Enterprise landing significant at p<0.05 (+$4,405). Per seat significant at p<0.001 (+$421). Organic channel and annual billing marginal (p<0.10). Other variables not significant.">
+          <div class="chart-cap">OLS regression of LTV on 9 predictors. Tenure (β = +$2,275/month, p &lt; 0.001) is included in the model as a control but omitted from the plot — it dominates the x-axis. R² = 0.48 across 500 customers.</div>
+        </div>
+
+        <p>
+          What survives the regression:
+        </p>
+        <ul class="bullets">
+          <li><strong>Tenure: +$2,275 per month</strong> (p &lt; 0.001). The dominant LTV mechanic — revenue accumulates over time. Tenure alone explains a large share of the R² = 0.48.</li>
+          <li><strong>Seats: +$421 per seat</strong> (p &lt; 0.001). Bigger organisations generate proportionally more LTV. The single most reliable non-tenure predictor.</li>
+          <li><strong>Enterprise landing: +$4,405 vs Basic</strong> (p = 0.02). After controlling for tenure and seats, an Enterprise lander still earns a measurable premium — the only landing-plan effect that survives.</li>
+          <li>Organic channel (+$3,523, p = 0.07) and annual billing (+$2,653, p = 0.09) trend positive but don't reach conventional significance with 500 customers.</li>
+          <li>Per-upgrade event (+$1,101, p = 0.13), Pro landing, partner channel, DevTools industry: <strong>not significant</strong> after controlling for the others.</li>
+        </ul>
+
+        <div class="pullquote">
+          <strong>The honest reframing:</strong> the bar-chart "Basic-upgraders earn $24k vs $13k for Basic-only" finding is <em>real</em> — but a meaningful portion of it is a tenure effect (upgraders also stay longer). The marginal effect of upgrading itself, controlling for tenure and seats, is positive but smaller and not statistically significant in this dataset.
+        </div>
+
+        <p>
+          That doesn't invalidate the recommendation to focus on upgrade conversion — the
+          combined effect (more upgrades → more tenure → more LTV) still flows through the
+          same operational lever. But it's a more honest statement of the mechanism than a
+          raw average comparison.
+        </p>
+
+        <h3>What drives churn — the logistic model</h3>
+        <p>
+          For churn (a binary outcome) the logit model is the right tool. Coefficients are
+          reported as odds ratios: values above 1 mean higher churn odds; values below 1
+          mean lower churn odds.
+        </p>
+
+        <table class="tbl">
+          <thead>
+            <tr><th>Predictor</th><th class="num">Odds ratio</th><th class="num">95% CI</th><th class="num">p-value</th><th>Verdict</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Partner channel</strong> (vs event)</td><td class="num">0.51</td><td class="num">0.26 – 0.97</td><td class="num"><strong>0.040</strong></td><td>Partner = half the odds of churning</td></tr>
+            <tr><td><strong>DevTools industry</strong></td><td class="num">1.80</td><td class="num">1.11 – 2.93</td><td class="num"><strong>0.018</strong></td><td>DevTools = 80% higher odds of churning</td></tr>
+            <tr><td>Tenure (per month observed)</td><td class="num">0.96</td><td class="num">0.92 – 0.99</td><td class="num"><strong>0.011</strong></td><td>Survivor bias — long-tenure customers don't churn</td></tr>
+            <tr><td>Organic channel (vs event)</td><td class="num">0.57</td><td class="num">0.33 – 1.01</td><td class="num">0.054</td><td>Marginal — directionally lower churn</td></tr>
+            <tr><td>Enterprise landing (vs Basic)</td><td class="num">1.19</td><td class="num">0.71 – 2.01</td><td class="num">0.514</td><td>n.s.</td></tr>
+            <tr><td>Pro landing (vs Basic)</td><td class="num">0.87</td><td class="num">0.50 – 1.51</td><td class="num">0.627</td><td>n.s.</td></tr>
+            <tr><td>Annual billing (vs monthly)</td><td class="num">1.04</td><td class="num">0.67 – 1.61</td><td class="num">0.861</td><td><strong>n.s. — confirms the lock-in myth</strong></td></tr>
+            <tr><td>Support tickets (per ticket)</td><td class="num">0.97</td><td class="num">0.86 – 1.09</td><td class="num">0.562</td><td><strong>n.s. — confirms the support null</strong></td></tr>
+            <tr><td>Seats (per seat)</td><td class="num">1.00</td><td class="num">0.99 – 1.01</td><td class="num">0.453</td><td>n.s.</td></tr>
+          </tbody>
+        </table>
+
+        <p>
+          What the logit tells us with statistical force:
+        </p>
+        <ul class="bullets">
+          <li><strong>Partner-sourced customers have ~50% lower odds of churning</strong> vs event-sourced (OR = 0.51, p = 0.04). The channel-quality finding is real, not a sample-size artifact.</li>
+          <li><strong>DevTools customers have 80% higher odds of churning</strong> (OR = 1.80, p = 0.02). The industry effect is real and large.</li>
+          <li><strong>Plan tier, annual billing, support-ticket count, and organisation size are not predictive of churn</strong> after controls. Every single one of the "common wisdom" levers fails the statistical test.</li>
+        </ul>
+
+        <div class="pullquote orange">
+          The annual-billing-doesn't-buy-retention claim, the support-doesn't-predict-churn claim, and the plan-tier-doesn't-matter claim are all <strong>confirmed</strong> by the logit at p &gt; 0.4 — these aren't "we didn't find a signal," they are "the data actively says no signal exists at this sample size."
+        </div>
+
+        <p>
+          The findings that <em>do</em> survive — channel quality and industry fit — are the
+          two strategic levers the recommendations below lean on.
+        </p>
+
+        <!-- ================= RECOMMENDATIONS ================ -->
+        <div class="recs">
+          <h3>What I'd actually do, based on this</h3>
+          <ol>
+            <li><b>Lead with Basic, optimise for upgrade conversion.</b> The successful Basic-upgrader is the highest-LTV segment in the business. The strategic priority isn't <em>which plan to push at the top of the funnel</em> — it's the <em>Basic→Pro/Enterprise conversion rate</em>, currently 61%. A structured upgrade prompt at the 90-day mark is the obvious first move.</li>
+            <li><b>Cut event-led acquisition.</b> Events deliver the lowest-LTV customers ($17,424) at the highest churn rate (30%). Every dollar of events budget would be better spent on partner channel ($24,177 LTV, 14.6% churn) or organic SEO ($21,748 LTV, 17.5% churn).</li>
+            <li><b>Stop subsidising annual billing for retention.</b> The annual contract isn't buying retention. If the discount is being justified on retention grounds, tighten it. If the cash-flow argument stands on its own, keep it — but be honest about which lever you're pulling.</li>
+          </ol>
+        </div>
+
+        <!-- ================= PUTTING IT TOGETHER ================ -->
+        <h2>Putting it together</h2>
+        <p>
+          The customers most worth having are the ones who choose the product on their own
+          terms (organic), start small (Basic), and grow into it (upgrade within the first
+          year). Almost every operational lever in this study points the same direction:
+          de-risk the entry, invest in upgrade conversion, and stop spending money on
+          channels and structural discounts that don't pay back.
+        </p>
+
+        <p>
+          That's not the conventional SaaS playbook — which leans heavily into events,
+          high-touch enterprise sales, and annual lock-in. But it's what the numbers in
+          this dataset support, and the structural mechanics behind the result (expansion
+          rates, self-selection, channel quality) are the kind of patterns that tend to
+          generalise.
+        </p>
+
+        <!-- ================= TECHNICAL APPENDIX ================ -->
+        <h2>How this was built</h2>
+        <p>
+          Five Jupyter notebooks in Python. Each is a self-contained analysis the others
+          build on; GitHub renders them inline with all charts visible. Plain-Python script
+          equivalents are available alongside for readers who prefer non-notebook source.
+        </p>
+        <ul class="bullets">
+          <li><strong>01 — First look:</strong> segmentation by plan, industry, country, acquisition channel — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/01_first_look.ipynb" target="_blank" rel="noopener">notebook</a> · <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/scripts/01_first_look.py" target="_blank" rel="noopener">script</a></li>
+          <li><strong>02 — Cohort retention:</strong> pooled curve, by-cohort curves, full retention heatmap, lifecycle-stage analysis — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/02_cohort_retention.ipynb" target="_blank" rel="noopener">notebook</a> · <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/scripts/02_cohort_retention.py" target="_blank" rel="noopener">script</a></li>
+          <li><strong>03 — Playground:</strong> a beginner notebook with chart recipes for re-slicing the data — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/03_playground.ipynb" target="_blank" rel="noopener">notebook</a></li>
+          <li><strong>04 — Support vs churn:</strong> stress-test of the "support drives renewal churn" hypothesis — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/04_support_vs_churn.ipynb" target="_blank" rel="noopener">notebook</a> · <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/scripts/04_support_vs_churn.py" target="_blank" rel="noopener">script</a></li>
+          <li><strong>05 — Pricing strategy:</strong> the analysis behind the recommendations above — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/05_pricing_strategy.ipynb" target="_blank" rel="noopener">notebook</a> · <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/scripts/05_pricing_strategy.py" target="_blank" rel="noopener">script</a></li>
+          <li><strong>06 — Statistical evidence:</strong> correlation matrix, OLS regression on LTV, logistic regression on churn (statsmodels) — <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/notebooks/06_statistical_evidence.ipynb" target="_blank" rel="noopener">notebook</a> · <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/assets/saas-study/scripts/07_statistical_analysis.py" target="_blank" rel="noopener">script</a></li>
+        </ul>
+        <p class="dim">
+          Browse the full <a href="https://github.com/namikakmandev/namikakmandev.github.io/tree/main/assets/saas-study" target="_blank" rel="noopener">study folder on GitHub</a> — notebooks, scripts and chart exports.
+        </p>
+
+        <p class="dim">
+          Stack: Python 3.13, pandas 3.0, matplotlib. Dataset: <a href="https://www.kaggle.com/datasets/rivalytics/saas-subscription-and-churn-analytics-dataset" target="_blank" rel="noopener">RavenStack on Kaggle</a> (simulated, MIT licence).
+          Charts use the brand palette: blue <code>#2F9BFF</code>, green <code>#19C37D</code>, orange <code>#FF6500</code>.
+        </p>
+
+        <div class="footnote">
+          <p>
+            <strong>Caveats and limitations.</strong> The dataset is simulated, so the
+            absolute numbers shouldn't be taken as benchmarks. The patterns (LTV convergence
+            via expansion, channel-quality gradient, billing-frequency neutrality) are
+            structurally plausible and the kind of effects worth testing on real data.
+            74 of 110 churned accounts have timestamped exit dates; the remaining 36 are
+            flagged churned but undated and were excluded from stage-level analyses. With
+            500 customers, some of the channel × plan cells are small (n ≈ 25–48); the
+            study leans on the directional pattern rather than any single cell.
+          </p>
+          <p>
+            <strong>Want to discuss the methodology, or run this on your data?</strong>
+            <a href="contact.html">Get in touch</a>.
+          </p>
+        </div>
+
+      </div>
+    </article>
+  </main>
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Built with plain HTML, CSS &amp; JavaScript</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=28"></script>
+</body>
+</html>

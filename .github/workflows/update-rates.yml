@@ -1,0 +1,46 @@
+name: Update ASSETIX rates
+
+# Refreshes rates.json from live FX + TCMB EVDS data.
+# The EVDS key is read from the repo secret EVDS_KEY — never stored in the repo.
+on:
+  schedule:
+    - cron: "0 6 * * *"     # every day at 06:00 UTC (09:00 İstanbul)
+  workflow_dispatch: {}      # lets you run it manually from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-rates
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install evds
+
+      - name: Build rates.json
+        env:
+          EVDS_KEY: ${{ secrets.EVDS_KEY }}
+          TWELVEDATA_KEY: ${{ secrets.TWELVEDATA_KEY }}
+        run: python scripts/build_rates.py
+
+      - name: Commit if changed
+        run: |
+          if git status --porcelain rates.json | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add rates.json
+            git commit -m "chore: refresh ASSETIX rates [skip ci]"
+            git push
+          else
+            echo "rates.json unchanged — nothing to commit."
+          fi

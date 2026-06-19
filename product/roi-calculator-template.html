@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ROI Calculator</title>
+<!--
+  ============================================================
+  EMBEDDABLE ROI / SAVINGS CALCULATOR  —  drop-in lead magnet
+  One file. No dependencies. Works anywhere (embed via <iframe>
+  or paste the <body> markup into your page).
+
+  CUSTOMISE: edit the CONFIG block below — colours, currency,
+  labels, the call-to-action link, and the default numbers.
+  ============================================================
+-->
+<style>
+  :root {
+    --brand: #2F9BFF;          /* your primary colour */
+    --brand-2: #19C37D;        /* positive / result colour */
+    --ink: #1f2430;
+    --dim: #5b6472;
+    --line: #e4e7ec;
+    --bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .roi {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--ink); background: var(--bg);
+    max-width: 720px; margin: 0 auto; padding: 28px;
+    border: 1px solid var(--line); border-radius: 16px;
+  }
+  .roi h2 { font-size: 1.35rem; margin-bottom: 4px; }
+  .roi .sub { color: var(--dim); font-size: 0.95rem; margin-bottom: 22px; }
+  .roi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+  .roi-field label { display:block; font-size:0.85rem; color:var(--dim); margin-bottom:6px; }
+  .roi-field input {
+    width:100%; padding:11px 13px; font-size:1rem; color:var(--ink);
+    border:1px solid var(--line); border-radius:10px; background:#fff;
+  }
+  .roi-field input:focus { outline:none; border-color:var(--brand); }
+  .roi-out {
+    margin-top:22px; border-top:1px solid var(--line); padding-top:18px;
+    display:grid; grid-template-columns:1fr 1fr; gap:14px;
+  }
+  .roi-kpi { background:#f6f8fb; border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .roi-kpi span { display:block; font-size:0.8rem; color:var(--dim); margin-bottom:6px; }
+  .roi-kpi strong { font-size:1.5rem; }
+  .roi-kpi.win strong { color:var(--brand-2); }
+  .roi-kpi.bad strong { color:#e5484d; }
+  .roi-bar { height:10px; border-radius:6px; background:#eef1f5; margin:18px 0 4px; overflow:hidden; }
+  .roi-bar > i { display:block; height:100%; background:var(--brand-2); width:0; transition:width .3s; }
+  .roi-cta {
+    display:inline-block; margin-top:20px; padding:13px 26px; border-radius:999px;
+    background:var(--brand); color:#fff; font-weight:600; text-decoration:none; font-size:0.97rem;
+  }
+  .roi-note { font-size:0.78rem; color:var(--dim); margin-top:14px; }
+  @media (max-width:560px){ .roi-grid,.roi-out{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="roi" id="roi">
+  <h2 id="roi-title">See your return on investment</h2>
+  <p class="sub" id="roi-sub">Enter your numbers — the result updates instantly.</p>
+
+  <div class="roi-grid">
+    <div class="roi-field"><label id="lab-cost">Upfront cost</label>
+      <input type="number" id="f-cost" min="0" step="100" value="5000" /></div>
+    <div class="roi-field"><label id="lab-gain">Monthly gain / saving</label>
+      <input type="number" id="f-gain" min="0" step="50" value="900" /></div>
+    <div class="roi-field"><label id="lab-months">Period (months)</label>
+      <input type="number" id="f-months" min="1" step="1" value="12" /></div>
+    <div class="roi-field"><label id="lab-run">Monthly running cost</label>
+      <input type="number" id="f-run" min="0" step="10" value="100" /></div>
+  </div>
+
+  <div class="roi-out">
+    <div class="roi-kpi"><span>Net gain over the period</span><strong id="o-net">—</strong></div>
+    <div class="roi-kpi win"><span>ROI</span><strong id="o-roi">—</strong></div>
+    <div class="roi-kpi"><span>Payback</span><strong id="o-payback">—</strong></div>
+    <div class="roi-kpi"><span>Total return</span><strong id="o-return">—</strong></div>
+  </div>
+  <div class="roi-bar"><i id="o-bar"></i></div>
+  <p class="roi-note" id="o-msg"></p>
+
+  <a class="roi-cta" id="roi-cta" href="#">Talk to us</a>
+</div>
+
+<script>
+/* ============== CONFIG — edit this block only ============== */
+var CONFIG = {
+  currency: "$",                       // "$", "€", "£", "₺" ...
+  title: "See your return on investment",
+  subtitle: "Enter your numbers — the result updates instantly.",
+  labels: {
+    cost:   "Upfront cost",
+    gain:   "Monthly gain / saving",
+    months: "Period (months)",
+    run:    "Monthly running cost"
+  },
+  defaults: { cost: 5000, gain: 900, months: 12, run: 100 },
+  ctaText: "Talk to us",
+  ctaUrl:  "https://example.com/contact"   // <-- your booking / contact link
+};
+/* ========================================================== */
+
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function money(n){
+    return CONFIG.currency + Math.round(n).toLocaleString("en-US");
+  }
+  // apply config
+  $("roi-title").textContent = CONFIG.title;
+  $("roi-sub").textContent = CONFIG.subtitle;
+  $("lab-cost").textContent = CONFIG.labels.cost;
+  $("lab-gain").textContent = CONFIG.labels.gain;
+  $("lab-months").textContent = CONFIG.labels.months;
+  $("lab-run").textContent = CONFIG.labels.run;
+  $("f-cost").value = CONFIG.defaults.cost;
+  $("f-gain").value = CONFIG.defaults.gain;
+  $("f-months").value = CONFIG.defaults.months;
+  $("f-run").value = CONFIG.defaults.run;
+  var cta = $("roi-cta");
+  cta.textContent = CONFIG.ctaText;
+  cta.href = CONFIG.ctaUrl;
+
+  function num(id){ var v = parseFloat($(id).value); return isNaN(v)||v<0 ? 0 : v; }
+
+  function calc(){
+    var cost = num("f-cost"), gain = num("f-gain"),
+        months = Math.max(1, num("f-months")), run = num("f-run");
+    var netMonthly = gain - run;
+    var totalReturn = netMonthly * months;
+    var netGain = totalReturn - cost;
+    var roi = cost > 0 ? (netGain / cost) * 100 : 0;
+    var payback = netMonthly > 0 ? cost / netMonthly : Infinity;
+
+    $("o-net").textContent = money(netGain);
+    $("o-return").textContent = money(totalReturn);
+    $("o-roi").textContent = roi.toFixed(0) + "%";
+    $("o-payback").textContent =
+      payback === Infinity ? "never" : payback.toFixed(1) + " mo";
+
+    var netBox = $("o-net").parentElement;
+    netBox.className = "roi-kpi " + (netGain >= 0 ? "win" : "bad");
+
+    var bar = $("o-bar");
+    var pct = Math.max(0, Math.min(100, roi));
+    bar.style.width = pct + "%";
+    bar.style.background = netGain >= 0 ? "var(--brand-2)" : "#e5484d";
+
+    $("o-msg").textContent = netGain >= 0
+      ? "Over " + months + " months you turn " + money(cost) + " into "
+        + money(netGain) + " of net gain — a " + roi.toFixed(0) + "% return."
+      : "On these numbers it does not pay back within " + months
+        + " months. Adjust the inputs to find the break-even.";
+  }
+
+  ["f-cost","f-gain","f-months","f-run"].forEach(function(id){
+    $(id).addEventListener("input", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>
