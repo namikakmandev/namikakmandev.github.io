@@ -264,7 +264,7 @@
     <select id="lkView" style="margin-left:6px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px"><option value="company">Whole company</option></select>
   </p>
   <div id="lkCompany">
-    <p class="note" style="margin:0 0 4px">Start at the profit you could keep; each leak knocks it down to what you actually keep.</p>
+    <p class="note" style="margin:0 0 4px">Start at the net you actually booked; recover each leak to see the potential net within reach. Adjust the targets above and the potential moves — the booked net is history and stays put.</p>
     <div class="card"><svg id="cLeakWf" class="chart" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Leakage waterfall"></svg></div>
     <div class="card" style="margin-top:12px"><table id="lkTable"><thead><tr><th>#</th><th>Where it leaks</th><th class="num">₺ / year</th><th>The lever</th></tr></thead><tbody id="lkBody"></tbody></table></div>
     <p class="note" id="lkRead"></p>
@@ -453,7 +453,7 @@ function wfall(id, items){
   var run=0, cols=[];
   items.forEach(function(it){
     if(it.kind==='tot'){ cols.push({lab:it.lab, base:0, val:it.val, kind:'tot'}); run=it.val; }
-    else { cols.push({lab:it.lab, base:run, val:it.val, kind:'down'}); run=run+it.val; }
+    else { var k=it.kind || (it.val>=0?'up':'down'); cols.push({lab:it.lab, base:run, val:it.val, kind:k}); run=run+it.val; }
   });
   var hi=0, lo=0;
   cols.forEach(function(c){ var a=c.kind==='tot'?0:c.base, b=c.kind==='tot'?c.val:c.base+c.val; hi=Math.max(hi,a,b); lo=Math.min(lo,a,b); });
@@ -465,9 +465,9 @@ function wfall(id, items){
     var cx=mL+slot*i+slot/2;
     var v0=c.kind==='tot'?0:c.base, v1=c.kind==='tot'?c.val:c.base+c.val;
     var yA=Y(Math.max(v0,v1)), yB=Y(Math.min(v0,v1)), h=Math.max(1,yB-yA);
-    var col=c.kind==='tot'?'var(--accent)':'var(--loss)';
+    var col=c.kind==='tot'?'var(--accent)':(c.kind==='up'?'var(--good)':'var(--loss)');
     s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yA.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" rx="3" fill="'+col+'"><title>'+c.lab+': '+L(c.val)+'</title></rect>';
-    s+='<text class="vlab" x="'+cx.toFixed(1)+'" y="'+(yA-7).toFixed(1)+'" text-anchor="middle">'+(c.kind==='down'?'−'+short(Math.abs(c.val)):short(c.val))+'</text>';
+    s+='<text class="vlab" x="'+cx.toFixed(1)+'" y="'+(yA-7).toFixed(1)+'" text-anchor="middle">'+(c.kind==='down'?'−'+short(Math.abs(c.val)):(c.kind==='up'?'+'+short(Math.abs(c.val)):short(c.val)))+'</text>';
     s+='<text x="'+cx.toFixed(1)+'" y="'+(He-mB+18)+'" text-anchor="middle">'+c.lab+'</text>';
     var topV=c.kind==='tot'?c.val:c.base+c.val, ty=Y(topV);
     // connector is HORIZONTAL at the previous running level (= the top of this bar) so it touches the bar tops
@@ -704,10 +704,12 @@ function calc(){
   LEAKS.forEach(function(x,i){ lkb+='<tr><td>'+(i+1)+'</td><td>'+x.name+'</td><td class="num lo">'+L(x.amt)+'</td><td>'+x.lever+'</td></tr>'; });
   lkb+='<tr class="tot"><td></td><td>Total addressable leakage</td><td class="num lo">'+L(totLeak)+'</td><td>= '+(net>0?pc(totLeak,net).toFixed(0)+'% of net profit':'—')+'</td></tr>';
   document.getElementById("lkBody").innerHTML=lkb;
-  // leakage waterfall: potential profit → minus each leak → actual net
-  var wfItems=[{lab:"Potential", val:net+totLeak, kind:"tot"}];
-  LEAKS.forEach(function(x){ wfItems.push({lab:x.name.split(" — ")[0], val:-x.amt, kind:"down"}); });
-  wfItems.push({lab:"Actual net", val:net, kind:"tot"});
+  // leakage opportunity bridge: realized net (fixed) → recover each leak (up) → recoverable potential net
+  // The realized net is history and never moves; the recoverable-potential endpoint is what
+  // responds as the targets above are changed, so the chart reacts to the user's inputs.
+  var wfItems=[{lab:"Actual net", val:net, kind:"tot"}];
+  LEAKS.forEach(function(x){ wfItems.push({lab:x.name.split(" — ")[0], val:x.amt, kind:"up"}); });
+  wfItems.push({lab:"Potential net", val:net+totLeak, kind:"tot"});
   wfall("cLeakWf", wfItems);
   set("lkRead", LEAKS.length
     ? ("Biggest leak: "+worstLeakShort+" ("+L(worstLeakAmt)+"). Total addressable leakage "+L(totLeak)+" — "+(net>0?pc(totLeak,net).toFixed(0)+"% of this year's net profit. ":"")+"Most of it sits in fixed-ops, not the showroom, and every figure is measured against the dealership's own targets with OEM support stripped out.")
@@ -1285,6 +1287,6 @@ var _vv=document.getElementById("vaView"); if(_vv) _vv.addEventListener("change"
       style="padding:9px 14px;border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer">Send</button>
   </div>
 </div>
-<script src="dd-ai.js?v=1"></script>
+<script src="dd-ai.js?v=3"></script>
 </body>
 </html>
