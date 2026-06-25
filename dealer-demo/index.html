@@ -527,15 +527,24 @@ function buildTB(){
 function buildOps(){
   var D=divisions();
   var col='grid-template-columns:1.6fr 1fr 1fr';
-  // sales facts (units + list) → Leakage tab; budget (rev + gross) → Variance tab
+  // Step-1 facts (units + list) on the Leakage tab are ordered to match the
+  // Step-2 targets below (Service · F&I · New cars · Parts · Used cars · …) so
+  // each division lines up across the two sections. Budget (Variance tab) keeps
+  // the natural division order.
+  var rank=function(d){ return /service/i.test(d)?1:/f&i/i.test(d)?2:/new/i.test(d)?3:/parts/i.test(d)?4:/used/i.test(d)?5:6; };
+  var salesD=D.slice().sort(function(a,b){ return rank(a)-rank(b); });
   var sales='<div class="inrow head" style="'+col+'"><span>Division</span><span style="text-align:right">Units sold</span><span style="text-align:right">List price ₺</span></div>';
-  var bud='<div class="inrow head" style="'+col+'"><span>Division <span class="srctag tag-in">your input</span></span><span style="text-align:right">Budget revenue ₺</span><span style="text-align:right">Budget gross ₺</span></div>';
-  D.forEach(function(d){
+  salesD.forEach(function(d){
     var o=OPS[d]||{units:0,list:0,budRev:0,budGross:0};
     var k=d.replace(/[^a-z]/gi,"");
     sales+='<div class="inrow" style="'+col+'"><label>'+d+'</label>'+
        '<input type="number" id="u_'+k+'" value="'+o.units+'"/>'+
        '<input type="number" id="l_'+k+'" value="'+o.list+'"/></div>';
+  });
+  var bud='<div class="inrow head" style="'+col+'"><span>Division <span class="srctag tag-in">your input</span></span><span style="text-align:right">Budget revenue ₺</span><span style="text-align:right">Budget gross ₺</span></div>';
+  D.forEach(function(d){
+    var o=OPS[d]||{units:0,list:0,budRev:0,budGross:0};
+    var k=d.replace(/[^a-z]/gi,"");
     bud+='<div class="inrow" style="'+col+'"><label>'+d+'</label>'+
        '<input type="number" id="br_'+k+'" step="100000" value="'+o.budRev+'"/>'+
        '<input type="number" id="bg_'+k+'" step="100000" value="'+o.budGross+'"/></div>';
