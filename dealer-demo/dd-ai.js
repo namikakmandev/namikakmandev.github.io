@@ -139,7 +139,7 @@
       closeBtn = document.getElementById("aiChatClose");
   if (!fab || !panel) return;
 
-  var history = [], greeted = false;
+  var history = [], greeted = false, retryBtn = null;
   function bubble(role, text) {
     var me = role === "user", w = document.createElement("div");
     w.style.cssText = "max-width:86%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;" +
@@ -159,9 +159,20 @@
   fab.addEventListener("click", function () { panel.style.display === "flex" ? closePanel() : openPanel(); });
   closeBtn.addEventListener("click", closePanel);
 
-  function send() {
-    var q = (input.value || "").trim(); if (!q) return;
-    input.value = ""; bubble("user", q); history.push("User: " + q);
+  // A one-click "Retry" under the latest answer re-asks the last question —
+  // useful when the service errors out or the answer misses the point.
+  function addRetry() {
+    if (retryBtn) { retryBtn.remove(); retryBtn = null; }
+    var r = document.createElement("button");
+    r.type = "button"; r.textContent = "↻ Retry";
+    r.style.cssText = "align-self:flex-start;margin:-4px 0 0 2px;background:none;border:0;color:var(--accent);font-size:12px;cursor:pointer;padding:2px 4px";
+    r.addEventListener("click", retry);
+    msgs.appendChild(r); msgs.scrollTop = msgs.scrollHeight;
+    retryBtn = r;
+  }
+
+  function callAI() {
+    if (retryBtn) { retryBtn.remove(); retryBtn = null; }
     // Privacy guard: never send an uploaded real trial balance.
     if (!window.__DD || !window.__DD.isSample) {
       bubble("ai", "To protect confidentiality, the assistant only works on the built-in sample dealership — your uploaded trial balance stays in your browser and is never sent anywhere. Reload the page to return to the sample and I'll answer in full.");
@@ -183,9 +194,27 @@
     askAI(prompt, AI_SYSTEM).then(function (res) {
       typing.textContent = res.error ? "⚠ " + res.error : res.text;
       if (!res.error) history.push("Advisor: " + res.text);
-      sendBtn.disabled = false; setTimeout(function () { input.focus(); }, 50);
+      sendBtn.disabled = false;
+      addRetry();
+      setTimeout(function () { input.focus(); }, 50);
     });
   }
+
+  function send() {
+    if (sendBtn.disabled) return;             // a request is already in flight
+    var q = (input.value || "").trim(); if (!q) return;
+    input.value = ""; bubble("user", q); history.push("User: " + q);
+    callAI();
+  }
+
+  function retry() {
+    if (sendBtn.disabled) return;
+    // Drop the previous answer (if any) so this is a clean re-attempt of the
+    // same question rather than a follow-up turn.
+    if (history.length && history[history.length - 1].indexOf("Advisor: ") === 0) history.pop();
+    callAI();
+  }
+
   sendBtn.addEventListener("click", send);
   input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); send(); } });
 })();
