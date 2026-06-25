@@ -169,8 +169,17 @@
     }
     var typing = bubble("ai", "…"); sendBtn.disabled = true;
     var convo = history.slice(-6).join("\n");
-    var prompt = ddContext() + "\n\nCONVERSATION:\n" + convo +
-      "\n\nAnswer the last question in the context of this dealership — short, clear, English.";
+    // Lead with the dealer's actual question, THEN the reference diagnostic.
+    // The diagnostic is large; when the question was placed after it, an
+    // oversized prompt could lose the question and every answer came back the
+    // same. Putting the conversation first guarantees the question always
+    // reaches the model and the core figures sit early in the prompt too.
+    var prompt =
+      "CONVERSATION (the dealer's current question is the last \"User:\" line — answer THAT one specifically):\n" +
+      convo +
+      "\n\nUse this diagnostic of the dealership as your reference data:\n\n" +
+      ddContext() +
+      "\n\nNow answer the dealer's last question in the context of this dealership — short, clear, English.";
     askAI(prompt, AI_SYSTEM).then(function (res) {
       typing.textContent = res.error ? "⚠ " + res.error : res.text;
       if (!res.error) history.push("Advisor: " + res.text);
