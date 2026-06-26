@@ -303,7 +303,29 @@ def tour_romance(page):
     pause(page, 1200)
 
 
+def tour_filodesk(page):
+    page.goto(BASE + "/filodesk.html", wait_until="domcontentloaded")
+    pause(page, 2400)                                      # load + live TCMB rate lands
+    page.mouse.move(620, 360, steps=25)
+    smooth_scroll(page, 360, 1300)                         # Nakit: kira vs taksit bars
+    smooth_scroll(page, 380, 1300)                         # deal waterfall + cumulative cash
+    smooth_scroll(page, -740, 900)
+    click_el(page, '.tab[data-tab="accrual"]', ms_after=1500)   # Tahakkuk: steady profit climb
+    smooth_scroll(page, 380, 1300)
+    smooth_scroll(page, -380, 800)
+    click_el(page, '.tab[data-tab="profit"]', ms_after=1500)    # Kârlılık — the two IRRs
+    move_to(page, "#fz-irru", ms_after=1300)               # highlight unlevered Proje IRR
+    smooth_scroll(page, 360, 1300)                          # cost breakdown bars
+    smooth_scroll(page, 360, 1400)                          # "nasıl hesaplanıyor" explainer
+    type_into(page, "#residual", "60", ms_after=1500)      # residual = the biggest lever
+    smooth_scroll(page, -340, 900)
+    click_el(page, '.tab[data-tab="quote"]', ms_after=1600)    # Müşteri Teklifi — clean offer
+    page.mouse.move(860, 400, steps=30)
+    pause(page, 1500)
+
+
 TOURS = {
+    "filodesk": tour_filodesk,
     "assetix": tour_assetix,
     "dealer": tour_dealer,
     "gross-to-net": tour_grosstonet,
