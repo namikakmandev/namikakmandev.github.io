@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FiloDesk — Filo Kiralama Fiyatlama</title>
+<meta name="description" content="Filo / araç kiralama fiyatlama aracı: vade sonu değeri, değer kaybı, canlı faiz (fonlama maliyeti), işletme giderleri ve kâr marjından şeffaf aylık kira hesaplar. Müşteri teklifi + kârlılık görünümü.">
+<meta name="theme-color" content="#2F9BFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#E6E8EE; --surface:#0F1117; --panel:#171A21; --panel2:#1F232D; --line:#2A2F3A;
+  --primary:#2F9BFF; --primary-soft:rgba(47,155,255,.14);
+  --green:#19C37D; --green-soft:rgba(25,195,125,.14);
+  --orange:#FF6500; --red:#E5484D; --muted:#A3A8B5;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',-apple-system,Segoe UI,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--surface);color:var(--ink);font-size:14px;line-height:1.5}
+a{color:var(--primary);text-decoration:none}
+/* ---- topbar ---- */
+.topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-weight:700;font-size:16px;letter-spacing:.3px}
+.logo span{color:var(--green)}
+.crumb{color:var(--muted);font-size:13px}
+.env{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;background:var(--panel2);padding:4px 11px;border-radius:20px;color:var(--muted)}
+.env .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.env.live{color:var(--green)} .env.live .dot{background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+/* ---- layout ---- */
+.layout{display:grid;grid-template-columns:330px 1fr;gap:16px;padding:16px 24px;max-width:1380px;margin:0 auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.panel h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:14px 16px 4px;font-weight:600}
+.sub{font-size:11px;color:var(--muted);padding:0 16px 8px}
+/* ---- inputs ---- */
+.presets{display:flex;gap:8px;padding:8px 16px 12px}
+.preset{flex:1;font-size:12px;font-weight:600;padding:8px 6px;border:1px solid var(--line);border-radius:7px;background:var(--panel2);color:var(--ink);cursor:pointer;font-family:var(--sans)}
+.preset:hover{border-color:var(--primary);color:var(--primary)}
+.grp{border-top:1px solid var(--line);padding:12px 16px}
+.grp-t{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.grp-t .pill{font-size:9.5px;font-weight:600;padding:1px 7px;border-radius:10px;background:var(--green-soft);color:var(--green);text-transform:none;letter-spacing:0}
+.f{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.f:last-child{margin-bottom:0}
+.f label{font-size:12.5px;color:var(--ink);font-weight:500}
+.f label small{display:block;color:var(--muted);font-size:10.5px;font-weight:400}
+.f .wrap{position:relative;flex-shrink:0}
+.f input[type=text],.f input[type=number]{padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--panel2);width:118px;text-align:right}
+.f input[type=text]{text-align:left;font-family:var(--sans)}
+.f input:focus{outline:none;border-color:var(--primary)}
+.f .suf{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--muted);pointer-events:none}
+.f input.has-suf{padding-right:24px}
+.rate-live{border-color:var(--green)!important}
+.mini-refresh{display:inline-block;margin-top:3px;font-size:10.5px;font-weight:600;color:var(--primary);cursor:pointer;background:var(--primary-soft);padding:2px 8px;border-radius:10px;font-family:var(--sans)}
+.mini-refresh:hover{background:var(--primary);color:#fff}
+/* ---- center ---- */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--line)}
+.tab{padding:13px 20px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+.tab:hover:not(.active){color:var(--ink)}
+.view{padding:14px 16px}
+.npv-row{margin-top:10px!important}
+.npv-box{padding:9px 12px!important}
+.npv-v{font-size:20px!important}
+.verdict{padding:13px 16px!important;margin-bottom:0!important;font-size:12.5px}
+.view.hidden{display:none}
+/* ---- quote ---- */
+.quote-card{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:12px;padding:24px;text-align:center;position:relative;overflow:hidden}
+.quote-card::before{content:'';position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--primary),var(--green))}
+.qc-model{font-size:13px;color:var(--muted);font-weight:500}
+.qc-model b{color:var(--ink);font-size:15px;font-weight:600}
+.qc-big{font-family:var(--mono);font-size:48px;font-weight:600;line-height:1.05;margin:10px 0 2px;color:var(--ink)}
+.qc-big .cur{font-size:24px;color:var(--muted);margin-right:4px}
+.qc-per{font-size:13px;color:var(--muted)}
+.qc-sub{font-size:12px;color:var(--green);margin-top:6px;font-family:var(--mono)}
+.qc-meta{display:flex;justify-content:center;gap:0;margin-top:18px;border-top:1px solid var(--line);padding-top:16px;flex-wrap:wrap}
+.qc-meta div{padding:0 18px;border-right:1px solid var(--line)}
+.qc-meta div:last-child{border-right:none}
+.qc-meta .m-l{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.qc-meta .m-v{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:2px}
+.incl{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px}
+.incl h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+.incl ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:6px 18px}
+.incl li{font-size:12.5px;display:flex;align-items:center;gap:8px}
+.incl li::before{content:'✓';color:var(--green);font-weight:700}
+/* ---- compare strip ---- */
+.compare{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.cmp{text-align:center}
+.cmp .c-l{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.cmp .c-v{font-family:var(--mono);font-size:20px;font-weight:600;margin-top:3px}
+.cmp.old .c-v{color:var(--muted)}
+.cmp.new .c-v{color:var(--green)}
+.cmp-arrow{font-size:20px;color:var(--muted)}
+.cmp-note{grid-column:1/-1;font-size:11.5px;color:var(--muted);text-align:center;border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+.cmp-note b{color:var(--orange)}
+/* ---- profit ---- */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.kpi{background:var(--panel);padding:9px 12px}
+.kpi .k-l{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+.kpi .k-v{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:2px}
+.kpi .k-d{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:1px}
+.k-v.green{color:var(--green)} .k-v.red{color:var(--red)}
+.bt{width:100%;border-collapse:collapse;font-size:13px}
+.bt th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:right;padding:6px 14px 8px;font-weight:600}
+.bt th:first-child{text-align:left}
+.bt td{padding:9px 14px;border-top:1px solid var(--line);text-align:right;font-family:var(--mono);font-size:12.5px}
+.bt td:first-child{text-align:left;font-family:var(--sans)}
+.bt .bar-cell{padding:9px 14px;border-top:1px solid var(--line);width:34%}
+.bar{height:9px;border-radius:5px;background:var(--primary)}
+.bar.dep{background:var(--primary)} .bar.fin{background:var(--orange)} .bar.fee{background:#FFB000} .bar.op{background:#7C5CFF} .bar.mrg{background:var(--green)}
+.bt tr.tot td{border-top:2px solid var(--line);font-weight:700}
+.bt tr.rent td{background:var(--primary-soft);font-weight:700}
+.bt tr.rent td:first-child{color:var(--primary)}
+.legend-mini{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:12px 2px 0}
+.legend-mini span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+/* coverage */
+.cov{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.cov-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.cov-head h4{font-size:13px;font-weight:600}
+.cov-bar{height:14px;border-radius:7px;background:var(--panel2);overflow:hidden;position:relative;margin-top:10px}
+.cov-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,var(--orange),var(--green))}
+.cov-mark{position:absolute;top:-4px;width:2px;height:22px;background:var(--ink);opacity:.5}
+.cov-l{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:7px}
+/* buttons */
+.acts{display:flex;gap:10px;margin-top:18px}
+.btn{flex:1;padding:11px;border:1px solid var(--line);border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;font-family:var(--sans);background:var(--panel2);color:var(--ink)}
+.btn:hover{border-color:var(--primary)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.pri:hover{background:#1D86E8}
+.note{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6}
+.offer-note{font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.offer-note b{color:var(--ink)}
+.note b{color:var(--ink)}
+/* charts */
+.charts{display:grid;grid-template-columns:380px 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:900px){.charts{grid-template-columns:1fr}}
+.hbar-row{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.hbar-l{font-size:11.5px;color:var(--ink);width:88px;flex-shrink:0}
+.hbar-track{flex:1;height:17px;background:var(--panel);border-radius:4px;overflow:hidden}
+.hbar-fill{height:100%;border-radius:4px;min-width:2px}
+.hbar-v{font-family:var(--mono);font-size:11.5px;width:74px;text-align:right;flex-shrink:0;color:var(--ink)}
+.hbar-net{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:9px;margin-top:4px}
+.fin-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px}
+.chart-card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.chart-card h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;font-weight:600}
+.donut-card{display:flex;flex-direction:column;align-items:center}
+.donut-card svg{width:116px;height:116px;display:block}
+.donut-leg{display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:var(--muted);margin-top:10px;align-self:stretch}
+.donut-leg span{display:flex;align-items:center;gap:7px}
+.donut-leg b{color:var(--ink);font-family:var(--mono);margin-left:auto}
+.chart-card svg{display:block;width:100%}
+.chart-x{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:6px;font-family:var(--mono)}
+.verdict{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--green);border-radius:8px;padding:14px 16px;font-size:12.5px;line-height:1.55;margin-bottom:18px;color:var(--muted)}
+.verdict.warn{border-left-color:var(--orange)}
+.verdict b{color:var(--ink)}
+.verdict .vh{font-weight:700;color:var(--ink);display:flex;align-items:center;gap:9px;margin-bottom:6px;font-size:13.5px}
+.npv-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+.npv-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column}
+.npv-l{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.npv-v{font-family:var(--mono);font-size:22px;font-weight:600;margin-top:3px}
+.npv-v.pos{color:var(--green)} .npv-v.neg{color:var(--red)}
+.npv-d{font-size:10.5px;color:var(--muted);margin-top:2px}
+.explain{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px 18px;margin-top:14px;font-size:12.5px;line-height:1.6;color:var(--muted)}
+.explain h4{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink);margin-bottom:11px;font-weight:700}
+.explain b{color:var(--ink)}
+.explain .ex-blk{margin-bottom:14px}
+.explain ul{margin:6px 0 6px 20px}
+.explain li{margin:2px 0}
+.explain .formula{font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin:8px 0;color:var(--primary);font-size:12px}
+.explain sup{font-size:8px}
+.rent-eval{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:8px 12px}
+.rent-eval label{font-size:12.5px;color:var(--ink);font-weight:500}
+.rent-eval .wrap{position:relative;flex-shrink:0}
+.rent-eval input{padding:7px 22px 7px 9px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--panel);width:170px;text-align:right}
+.rent-eval input:focus{outline:none;border-color:var(--primary)}
+.rent-eval .suf{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--muted);pointer-events:none}
+.dyn-factor{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--primary);border-radius:8px;padding:13px 18px;margin-bottom:12px}
+.df-l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.df-v{font-family:var(--mono);font-size:30px;font-weight:600;color:var(--primary);margin:1px 0 2px}
+.df-d{font-size:11.5px;color:var(--muted)}
+.verdict .badge{font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:10px;background:var(--green-soft);color:var(--green)}
+.verdict.warn .badge{background:rgba(255,101,0,.16);color:var(--orange)}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block;flex-shrink:0}
+@media(max-width:760px){.charts{grid-template-columns:1fr}.donut-card svg{width:130px;height:130px}}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:10px 0 28px}
+@media(max-width:980px){.layout{grid-template-columns:1fr}.incl ul{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.qc-big{font-size:38px}}
+@media print{.topbar .env,.left,.tabs,.acts,.compare,.cov,footer,.note{display:none!important}.layout{grid-template-columns:1fr;padding:0}.view.hidden{display:block!important}.profit-only-print{display:none}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">Filo<span>Desk</span></div>
+  <div class="crumb">Filo Kiralama Fiyatlama</div>
+  <div class="env" id="env"><span class="dot"></span><span id="envText">veri yükleniyor…</span></div>
+  <div class="env" id="envInf" style="margin-left:8px"><span class="dot"></span><span id="envInfText">TÜFE</span></div>
+</div>
+
+<div class="layout">
+  <!-- ================= LEFT : INPUTS ================= -->
+  <div class="left">
+    <div class="panel">
+      <h3>Araç & Varsayımlar</h3>
+      <div class="sub">Bir örnek seçin ya da kendi değerlerinizi girin. Tüm alanlar düzenlenebilir.</div>
+      <div class="presets">
+        <button class="preset" data-preset="city">Honda City</button>
+        <button class="preset" data-preset="tayron">VW Tayron</button>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">Araç</div>
+        <div class="f"><label>Model</label><div class="wrap"><input type="text" id="model" value="Honda City"></div></div>
+        <div class="f"><label>Araç fiyatı</label><div class="wrap"><input type="text" inputmode="numeric" id="price" class="has-suf" value="1.150.000"><span class="suf">₺</span></div></div>
+        <div class="f"><label>Adet</label><div class="wrap"><input type="number" id="qty" value="1"></div></div>
+        <div class="f"><label>Vade <small>kira süresi</small></label><div class="wrap"><input type="number" id="term" class="has-suf" value="36"><span class="suf">ay</span></div></div>
+        <div class="f"><label>Yıllık KM limiti</label><div class="wrap"><input type="text" inputmode="numeric" id="km" class="has-suf" value="30.000"><span class="suf">km</span></div></div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">Banka Kredisi & Faiz <span class="pill" id="rate-pill" style="display:none">canlı</span></div>
+        <div class="f"><label>Peşinat <small>özkaynak payı</small></label><div class="wrap"><input type="number" id="down" class="has-suf" value="0"><span class="suf">%</span></div></div>
+        <div class="f"><label>Banka kredi faizi <small>yıllık · TCMB ticari kredi</small><span id="rate-refresh" class="mini-refresh">↻ TCMB’den güncelle</span></label><div class="wrap"><input type="number" id="rate" class="has-suf" value="55.32" step="0.1"><span class="suf">%</span></div></div>
+        <div class="f"><label>Kredi masrafları <small>tahsis, BSMV vb. · krediye oran</small></label><div class="wrap"><input type="number" id="fee" class="has-suf" value="1" step="0.5"><span class="suf">%</span></div></div>
+        <div class="f"><label>Vade sonu değeri <small>aracın ikinci el değeri</small></label><div class="wrap"><input type="number" id="residual" class="has-suf" value="50"><span class="suf">%</span></div></div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">İşletme Giderleri</div>
+        <div class="f"><label>Sigorta <small>kasko + trafik · yıllık</small></label><div class="wrap"><input type="number" id="ins" class="has-suf" value="6" step="0.5"><span class="suf">%</span></div></div>
+        <div class="f"><label>Bakım + lastik <small>yıllık</small></label><div class="wrap"><input type="text" inputmode="numeric" id="maint" class="has-suf" value="25.000"><span class="suf">₺</span></div></div>
+        <div class="f"><label>MTV + diğer <small>vergi, HGS, ikame · yıllık</small></label><div class="wrap"><input type="text" inputmode="numeric" id="other" class="has-suf" value="12.000"><span class="suf">₺</span></div></div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-t">Fiyatlama</div>
+        <div class="f"><label>Kâr marjı <small>maliyet üzeri</small></label><div class="wrap"><input type="number" id="margin" class="has-suf" value="25"><span class="suf">%</span></div></div>
+        <div class="f"><label>KDV</label><div class="wrap"><input type="number" id="vat" class="has-suf" value="20"><span class="suf">%</span></div></div>
+      </div>
+
+    </div>
+    <p class="note">Varsayılan değerler Türkiye piyasası için <b>tahminidir</b> — bayinin gerçek rakamlarıyla güncellendiğinde sonuç netleşir. Fonlama faizi canlı TCMB verisinden gelir.</p>
+  </div>
+
+  <!-- ================= RIGHT : RESULTS ================= -->
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="cash">Finansman · Nakit</div>
+      <div class="tab" data-tab="accrual">Finansman · Tahakkuk</div>
+      <div class="tab" data-tab="profit">Kârlılık</div>
+      <div class="tab" data-tab="quote">Müşteri Teklifi</div>
+    </div>
+
+    <!-- FINANCE (primary) -->
+    <div class="view" id="view-finance">
+      <div class="kpis">
+        <div class="kpi"><div class="k-l">Kredi tutarı</div><div class="k-v" id="fn-loan">₺0</div><div class="k-d" id="fn-loan-d">tam finansman</div></div>
+        <div class="kpi"><div class="k-l">Aylık taksit</div><div class="k-v" id="fn-inst">₺0</div><div class="k-d">bankaya ödeme</div></div>
+        <div class="kpi"><div class="k-l">Toplam faiz</div><div class="k-v" id="fn-int">₺0</div><div class="k-d" id="fn-int-d">vade boyunca</div></div>
+        <div class="kpi"><div class="k-l">Faiz oranı</div><div class="k-v" id="fn-rate">%0</div><div class="k-d" id="fn-rate-d">yıllık</div></div>
+      </div>
+
+      <div class="charts">
+        <div class="chart-card">
+          <h4 id="fn-cashbars-h">Aylık nakit — gelir vs gider (araç başına)</h4>
+          <div id="fn-cashbars"></div>
+        </div>
+        <div class="chart-card">
+          <h4>Taksit içindeki faiz zamanla azalır</h4>
+          <div id="fn-amort"></div>
+          <div class="chart-x"><span>Ay 1 — faiz yüksek</span><span>anapara büyür →</span><span id="fn-amort-end">Ay 36</span></div>
+        </div>
+      </div>
+
+      <div class="kpis" style="margin-bottom:14px">
+        <div class="kpi"><div class="k-l">Aylık kira · gelir</div><div class="k-v" id="fz-rev">₺0</div><div class="k-d" id="fz-rev-inc">KDV dahil ₺0 / araç</div></div>
+        <div class="kpi"><div class="k-l" id="fz-be-l">Nakit başabaş</div><div class="k-v" id="fz-be">₺0</div><div class="k-d" id="fz-be-d">aylık taksit + işletme</div></div>
+        <div class="kpi"><div class="k-l" id="fz-prof-l">Aylık nakit</div><div class="k-v" id="fz-prof">₺0</div><div class="k-d" id="fz-prof-fleet">kira − taksit − işletme</div></div>
+        <div class="kpi"><div class="k-l" id="fz-margin-l">Sözleşme kârı</div><div class="k-v green" id="fz-margin">₺0</div><div class="k-d" id="fz-margin-d">vade sonu satışla realize</div></div>
+      </div>
+
+      <div class="dyn-factor">
+        <div class="df-l">Karşılama oranı — aylık kira (KDV dahil) ÷ aylık banka taksiti</div>
+        <div class="df-v" id="dyn-factor">%0</div>
+        <div class="df-d" id="dyn-factor-d"></div>
+      </div>
+
+      <div class="fin-grid">
+        <div class="chart-card">
+          <h4>Sözleşme ekonomisi — gelirden net kâra</h4>
+          <div id="fz-wf"></div>
+        </div>
+        <div class="chart-card">
+          <h4 id="fz-monthly-h">Kümülatif nakit — vade sonunda artıya geçer</h4>
+          <div id="fz-monthly"></div>
+          <div class="legend-mini" style="margin-top:6px">
+            <span><i class="sw" style="background:#E5484D"></i>Negatif (0 altı = açık)</span>
+            <span><i class="sw" style="background:#19C37D"></i>Pozitif (0 üstü = kâr)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="verdict" id="fz-verdict"></div>
+    </div>
+
+    <!-- QUOTE -->
+    <div class="view hidden" id="view-quote">
+      <div class="quote-card">
+        <div class="qc-model">Aylık Kiralama Teklifi · <b id="q-model">Honda City</b></div>
+        <div class="qc-big"><span class="cur">₺</span><span id="q-monthly">0</span></div>
+        <div class="qc-per">araç / ay · KDV dahil</div>
+        <div class="qc-sub" id="q-fleet">Filo toplamı: ₺0 / ay (× <span id="q-qty">7</span> araç)</div>
+        <div class="qc-meta">
+          <div><div class="m-l">Vade</div><div class="m-v" id="q-term">36 ay</div></div>
+          <div><div class="m-l">KM limiti</div><div class="m-v" id="q-km">30.000 km/yıl</div></div>
+          <div><div class="m-l">KDV hariç</div><div class="m-v" id="q-exvat">₺0</div></div>
+          <div><div class="m-l">Toplam sözleşme</div><div class="m-v" id="q-total">₺0</div></div>
+        </div>
+      </div>
+
+      <div class="incl">
+        <h4>Kiraya dahil</h4>
+        <ul>
+          <li>Araç + değer kaybı</li>
+          <li>Kasko + trafik sigortası</li>
+          <li>Periyodik bakım + lastik</li>
+          <li>MTV ve vergiler</li>
+          <li id="incl-km">Yıllık 30.000 km</li>
+          <li>İkame araç desteği</li>
+        </ul>
+      </div>
+
+      <p class="offer-note">Fiyatlara <b>KDV dahildir</b>. Aylık kira; araç, kasko + trafik sigortası, periyodik bakım ve lastik, MTV ve vergiler ile ikame araç hizmetini kapsar. Belirtilen KM limiti yıllıktır; aşım ücreti sözleşmede tanımlanır.</p>
+
+      <div class="acts">
+        <button class="btn pri" onclick="window.print()">Teklifi yazdır / PDF</button>
+      </div>
+    </div>
+
+    <!-- PROFIT -->
+    <div class="view hidden" id="view-profit">
+      <div class="kpis">
+        <div class="kpi"><div class="k-l">Aylık maliyet</div><div class="k-v" id="p-cost">₺0</div><div class="k-d">araç başına</div></div>
+        <div class="kpi"><div class="k-l">Aylık kâr</div><div class="k-v green" id="p-profit">₺0</div><div class="k-d" id="p-marginpct">marj %0</div></div>
+        <div class="kpi"><div class="k-l">Sözleşme kârı</div><div class="k-v green" id="p-totprofit">₺0</div><div class="k-d" id="p-totprofit-fleet">filo: ₺0</div></div>
+        <div class="kpi"><div class="k-l">Ciro marjı</div><div class="k-v" id="p-cov">%0</div><div class="k-d">kâr ÷ ciro</div></div>
+      </div>
+
+      <table class="bt">
+        <thead><tr><th>Aylık maliyet kalemi (araç başına)</th><th></th><th>Tutar</th><th>Pay</th></tr></thead>
+        <tbody id="p-rows"></tbody>
+        <tfoot>
+          <tr class="tot"><td>Toplam aylık maliyet</td><td></td><td id="p-costfoot">₺0</td><td>100%</td></tr>
+          <tr><td>+ Kâr marjı (<span id="p-mpct">25</span>%)</td><td></td><td id="p-mrg">₺0</td><td></td></tr>
+          <tr class="rent"><td>Aylık kira (KDV hariç)</td><td></td><td id="p-rent">₺0</td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="legend-mini">
+        <span><i class="sw" style="background:var(--primary)"></i>Değer kaybı</span>
+        <span><i class="sw" style="background:var(--orange)"></i>Kredi faizi</span>
+        <span><i class="sw" style="background:#FFB000"></i>Kredi masrafı</span>
+        <span><i class="sw" style="background:#7C5CFF"></i>İşletme gideri</span>
+        <span><i class="sw" style="background:var(--green)"></i>Kâr marjı</span>
+      </div>
+
+      <div class="npv-row">
+        <div class="npv-box"><span class="npv-l">Net Present Value (NPV)</span><span class="npv-v" id="fz-npv">₺0</span><span class="npv-d">Net bugünkü değer · %<span id="fz-npv-d">55</span> fonlama maliyetiyle iskontolu</span></div>
+        <div class="npv-box"><span class="npv-l">Öz sermaye IRR (kaldıraçlı)</span><span class="npv-v" id="fz-irr">%0</span><span class="npv-d">yıllık · banka finansmanıyla, öz koyduğunuz paranın getirisi</span></div>
+        <div class="npv-box"><span class="npv-l">Proje IRR (kaldıraçsız)</span><span class="npv-v" id="fz-irru">%0</span><span class="npv-d">yıllık · bankasız, aracın kendi gerçek getirisi</span></div>
+      </div>
+
+      <div class="explain">
+        <h4>Bu değerler nasıl hesaplanıyor?</h4>
+        <div class="ex-blk">
+          <b>Net Present Value (NPV) — Net Bugünkü Değer.</b> Gelecekteki tüm nakit akışlarını <b>bugünkü paraya</b> indirger (bugünkü ₺, gelecekteki ₺’den değerlidir — paranın bir maliyeti vardır). Sözleşmenin nakit akışları:
+          <ul>
+            <li><b>Ay 0:</b> peşinat + kredi masrafı (çıkış, −)</li>
+            <li><b>Her ay:</b> kira geliri − banka taksiti − işletme gideri</li>
+            <li><b>Vade sonu:</b> + araç satışı (ikinci el değer)</li>
+          </ul>
+          Her akış, aylık fonlama faiziyle (<b>%<span id="ex-rate">55</span> ÷ 12</b>) iskonto edilip toplanır:
+          <div class="formula">NPV = Σ  Nakit(t) ÷ (1 + aylık faiz)<sup>t</sup></div>
+          <b>NPV &gt; 0</b> → yatırım, paranın maliyetinin (fonlama faizi) <b>üzerinde</b> değer üretiyor; deal kârlı.
+        </div>
+        <div class="ex-blk" style="margin-bottom:0">
+          <b>İç Verim Oranı (IRR) — Internal Rate of Return.</b> NPV’yi tam <b>sıfır</b> yapan iskonto oranıdır — yani yatırımın <b>kendi yıllık getiri oranı</b>. Sayısal olarak (deneme-yanılma ile NPV=0 noktası) bulunur.
+          <div class="formula">IRR = NPV’nin 0 olduğu faiz oranı</div>
+          İki ayrı IRR gösteriyoruz, çünkü ölçü çok farklı:
+          <ul>
+            <li><b>Öz sermaye IRR (kaldıraçlı):</b> aracı banka kredisiyle alırsınız; cebinizden yalnızca <b>peşinat + masraf</b> çıkar. Az para koyup tüm kârı ve araç satışını aldığınız için oran çok yüksek görünür — bu <b>kaldıraç</b> etkisidir, hata değildir. Cebinizdeki paranın getirisini ölçer.</li>
+            <li><b>Proje IRR (kaldıraçsız):</b> aracı <b>tüm parayla, bankasız</b> alıp kiraladığınızı varsayar. <b>Varlığın kendi gerçek getirisidir</b> — bir bayinin sezgisine en yakın, en dürüst sayı budur.</li>
+          </ul>
+          <b>IRR &gt; fonlama faizi (%<span id="ex-rate2">55</span>)</b> → yatırım, borç maliyetinden daha hızlı para kazandırıyor; cazip.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>FiloDesk · tarayıcıda çalışır, veri yüklenmez · fonlama faizi: <span id="foot-rate">TCMB</span></footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const trN=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0});
+const trN1=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:1});
+const money=v=>'₺'+trN.format(Math.round(v));
+const IDS=['model','price','qty','term','km','down','residual','rate','fee','ins','maint','other','margin','vat'];
+let rateLive=false, userTouchedRate=false, infYoY=0, basis='cash';
+
+const PRESETS={
+  city:  {model:'Honda City', price:1150000, qty:1, term:36, km:30000, down:0, residual:50, fee:1, ins:6, maint:25000, other:12000, margin:25, factor:1.70},
+  tayron:{model:'VW Tayron', price:3415000, qty:1, term:36, km:30000, down:0, residual:52, fee:1, ins:6, maint:38000, other:18000, margin:25, factor:1.75}
+};
+
+function readState(){
+  const s={};
+  s.model=$('model').value||'Araç';
+  ['price','qty','term','km','down','residual','rate','fee','ins','maint','other','margin','vat'].forEach(k=>{
+    const raw=String($(k).value);
+    s[k]=(k==='price'||k==='km'||k==='maint'||k==='other') ? (parseInt(raw.replace(/\D/g,''))||0) : (parseFloat(raw)||0);
+  });
+  s.factor=1.70; // bayinin tarihsel kuralı — sabit referans (dinamik faktör ayrı hesaplanır)
+  return s;
+}
+
+function compute(s){
+  const P=s.price, n=Math.max(1,s.term);
+  const R=P*s.residual/100;                          // vade sonu (ikinci el) değer
+  const loan=P*(1-s.down/100);                       // banka kredisi tutarı
+  const mr=s.rate/100/12;                            // aylık faiz
+  const installment = mr>0 ? loan*mr*Math.pow(1+mr,n)/(Math.pow(1+mr,n)-1) : loan/n; // anüite taksiti
+  const totalPaid=installment*n;
+  const totalInterest=totalPaid-loan;               // vade boyu toplam faiz
+  const finMonth=totalInterest/n;                   // aylık GERÇEK kredi faizi (ortalama)
+  const principalMonth=loan/n;                       // aylık anapara (geri döner)
+  const depMonth=(P-R)/n;                            // değer kaybı = geri dönmeyen bedel
+  const insYr=P*s.ins/100;                           // sigorta = fiyatın %'si
+  const opYr=insYr+s.maint+s.other;                 // toplam yıllık işletme
+  const opMonth=opYr/12;
+  const feeOneTime=loan*s.fee/100, feeMonth=feeOneTime/n;
+  const cost=depMonth+finMonth+feeMonth+opMonth;             // aylık net maliyet (değer kaybı + gerçek faiz + işletme)
+  const mrg=cost*s.margin/100;                       // kâr
+  const rentEx=cost+mrg;                             // KDV hariç kira
+  const rentInc=rentEx*(1+s.vat/100);                // KDV dahil kira
+  const oldEx=P*s.factor/n;                          // eski yöntem KDV hariç
+  const oldInc=oldEx*(1+s.vat/100);
+  const coverage=cost>0?oldEx/cost:0;                // eski yöntemin maliyeti karşılama oranı
+  // bayinin karşılama oranı ölçeğinde (kira×KDV ÷ faktör benchmark)
+  const benchmark=oldEx;                             // fiyat × faktör ÷ vade
+  const covOurs=benchmark>0?rentInc/benchmark:0;     // önerdiğimiz kiranın oranı
+  const covBreakeven=benchmark>0?(cost*(1+s.vat/100))/benchmark:0; // gerçek başabaş bu ölçekte
+  const marginRev=rentEx>0?mrg/rentEx:0, totalProfit=mrg*n;
+  const cashMonth=rentEx-installment-opMonth;        // aylık nakit (taksit dahil; R vade sonunda kapatır)
+  const upfront=(s.down/100)*P+feeOneTime;
+  let cum=-upfront, trough=-upfront;
+  for(let i=1;i<=n;i++){ cum+=cashMonth; if(i===n)cum+=R; if(cum<trough)trough=cum; }
+  const workingCap=Math.max(0,-trough);
+  // NBD (NPV) + IRR — nakit akışları fonlama maliyetiyle iskontolu
+  const dM=s.rate/100/12;
+  let cfs=[-upfront]; for(let i=1;i<=n;i++){ let cf=cashMonth; if(i===n)cf+=R; cfs.push(cf); }
+  const npvAt=r=>{ let v=0; for(let t=0;t<cfs.length;t++) v+=cfs[t]/Math.pow(1+r,t); return v; };
+  const npv=npvAt(dM);
+  let lo=-0.9,hi=3,irrA=null; const sl=npvAt(lo)>0;
+  if(sl!==(npvAt(hi)>0)){ for(let k=0;k<90;k++){ const mid=(lo+hi)/2; if((npvAt(mid)>0)===sl) lo=mid; else hi=mid; } irrA=Math.pow(1+(lo+hi)/2,12)-1; }
+  // Kaldıraçsız (bankasız) proje IRR — aracı tüm parayla alıp kiralarsanız varlığın kendi getirisi.
+  // Banka taksiti yok; ay 0'da tüm araç bedeli çıkar, kira − işletme gideri girer, vade sonunda araç satışı.
+  const cashMonthU=rentEx-opMonth;
+  let cfsU=[-P]; for(let i=1;i<=n;i++){ let cf=cashMonthU; if(i===n)cf+=R; cfsU.push(cf); }
+  const npvAtU=r=>{ let v=0; for(let t=0;t<cfsU.length;t++) v+=cfsU[t]/Math.pow(1+r,t); return v; };
+  let loU=-0.9,hiU=3,irrU=null; const slU=npvAtU(loU)>0;
+  if(slU!==(npvAtU(hiU)>0)){ for(let k=0;k<90;k++){ const mid=(loU+hiU)/2; if((npvAtU(mid)>0)===slU) loU=mid; else hiU=mid; } irrU=Math.pow(1+(loU+hiU)/2,12)-1; }
+  return {P,R,n,loan,installment,totalPaid,totalInterest,finMonth,principalMonth,feeOneTime,feeMonth,depMonth,opMonth,insYr,cost,mrg,rentEx,rentInc,marginRev,totalProfit,oldEx,oldInc,coverage,covOurs,covBreakeven,cashMonth,workingCap,npv,irrA,irrU};
+}
+
+function donutSVG(intShare){
+  const r=54,cx=70,cy=70,sw=22,c=2*Math.PI*r,seg=Math.max(0,Math.min(1,intShare))*c;
+  return '<svg viewBox="0 0 140 140">'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#5B6472" stroke-width="'+sw+'"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#FF6500" stroke-width="'+sw+'" stroke-linecap="butt" stroke-dasharray="'+seg+' '+(c-seg)+'" transform="rotate(-90 '+cx+' '+cy+')"/>'
+    +'<text x="'+cx+'" y="'+(cy-2)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="25" font-weight="600" fill="#E6E8EE">%'+Math.round(intShare*100)+'</text>'
+    +'<text x="'+cx+'" y="'+(cy+16)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10" letter-spacing="1" fill="#A3A8B5">FAİZ</text>'
+    +'</svg>';
+}
+function amortSVG(loan,mr,n,installment){
+  let bal=loan, sched=[];
+  for(let i=0;i<n;i++){ let intr=bal*mr; let prin=installment-intr; bal-=prin; sched.push({intr:Math.max(intr,0),prin:Math.max(prin,0)}); }
+  const W=680,H=190,padL=6,padR=6,padT=10,padB=8;
+  const innerW=W-padL-padR, innerH=H-padT-padB, gap=innerW/n, bw=Math.max(2,gap*0.74), maxv=installment*1.02;
+  let bars='';
+  sched.forEach(function(m,i){
+    const x=padL+i*gap+(gap-bw)/2;
+    const ih=(m.intr/maxv)*innerH, ph=(m.prin/maxv)*innerH;
+    const yi=padT+innerH-ih, yp=yi-ph;
+    bars+='<rect x="'+x.toFixed(1)+'" y="'+yp.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+ph.toFixed(1)+'" fill="#5B6472"/>';
+    bars+='<rect x="'+x.toFixed(1)+'" y="'+yi.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+ih.toFixed(1)+'" fill="#FF6500"/>';
+  });
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" height="118">'+bars+'</svg>';
+}
+function shortM(v){ const a=Math.abs(v), s=v<0?'−':''; if(a>=1e6) return s+'₺'+trN1.format(a/1e6)+'M'; if(a>=1e3) return s+'₺'+trN.format(a/1e3)+'B'; return s+'₺'+trN.format(a); }
+function waterfallSVG(steps){
+  const W=1360,H=300,padL=18,padR=18,padT=30,padB=44, innerW=W-padL-padR, innerH=H-padT-padB;
+  let topv=1; steps.forEach(s=>{ if(s.type==='pos'&&s.val>topv)topv=s.val; });
+  topv*=1.10; const yOf=v=>padT+innerH-(v/topv)*innerH;
+  const n=steps.length, gap=innerW/n, bw=gap*0.5;
+  let running=0,g='',prevRX=null,prevRunY=null;
+  steps.forEach((s,i)=>{
+    const x=padL+i*gap+(gap-bw)/2, cx=x+bw/2; let yTop,yBot,col,start=running;
+    if(s.type==='pos'){ running=s.val; yTop=yOf(running); yBot=yOf(0); col='#19C37D'; }
+    else if(s.type==='total'){ running=s.val; yTop=yOf(s.val); yBot=yOf(0); col='#2F9BFF'; }
+    else { running=start+s.val; yTop=yOf(start); yBot=yOf(running); col='#E5484D'; }
+    const y=Math.min(yTop,yBot), h=Math.max(1.5,Math.abs(yBot-yTop));
+    if(prevRX!=null && s.type!=='total'){ g+='<line x1="'+prevRX.toFixed(1)+'" y1="'+prevRunY.toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+prevRunY.toFixed(1)+'" stroke="#3A4150" stroke-width="1" stroke-dasharray="3 3"/>'; }
+    g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+col+'" rx="2"/>';
+    const wfl=(s.val<0?'−':'')+'₺'+trN.format(Math.abs(Math.round(s.val)));
+    g+='<text x="'+cx.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="14" font-weight="600" fill="'+(s.type==='neg'?'#E5484D':'#E6E8EE')+'">'+wfl+'</text>';
+    g+='<text x="'+cx.toFixed(1)+'" y="'+(H-20).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="12" fill="#A3A8B5">'+s.short+'</text>';
+    prevRX=x+bw; prevRunY=yOf(running);
+  });
+  g+='<line x1="'+padL+'" y1="'+yOf(0).toFixed(1)+'" x2="'+(W-padR)+'" y2="'+yOf(0).toFixed(1)+'" stroke="#2A2F3A" stroke-width="1"/>';
+  return '<svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg>';
+}
+function cashLineSVG(c){
+  const n=c.n, gelir=c.rentEx, gider=c.installment+c.opMonth;
+  const lo=Math.min(gelir,gider), hi=Math.max(gelir,gider), span=Math.max(hi-lo,hi*0.012);
+  const ymin=lo-span*2.4-300, ymax=hi+span*2.4+300;
+  const W=680,H=238,padL=14,padR=16,padT=26,padB=24, innerW=W-padL-padR, innerH=H-padT-padB;
+  const xOf=i=>padL+((i-1)/Math.max(1,n-1))*innerW, yOf=v=>padT+innerH-((v-ymin)/(ymax-ymin))*innerH;
+  let pg='',pd='';
+  for(let i=1;i<=n;i++){ pg+=(i===1?'M ':'L ')+xOf(i).toFixed(1)+' '+yOf(gelir).toFixed(1)+' '; pd+=(i===1?'M ':'L ')+xOf(i).toFixed(1)+' '+yOf(gider).toFixed(1)+' '; }
+  const area='M '+xOf(1).toFixed(1)+' '+yOf(gelir).toFixed(1)+' L '+xOf(n).toFixed(1)+' '+yOf(gelir).toFixed(1)+' L '+xOf(n).toFixed(1)+' '+yOf(gider).toFixed(1)+' L '+xOf(1).toFixed(1)+' '+yOf(gider).toFixed(1)+' Z';
+  let g='';
+  g+='<path d="'+area+'" fill="rgba(229,72,77,.16)"/>';
+  g+='<path d="'+pd+'" fill="none" stroke="#E5484D" stroke-width="2.2"/>';
+  g+='<path d="'+pg+'" fill="none" stroke="#19C37D" stroke-width="2.2"/>';
+  g+='<text x="'+(padL+4)+'" y="'+(yOf(gider)-6).toFixed(1)+'" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#E5484D">Gider '+shortM(gider)+'</text>';
+  g+='<text x="'+(padL+4)+'" y="'+(yOf(gelir)+14).toFixed(1)+'" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#19C37D">Gelir '+shortM(gelir)+'</text>';
+  const xe=xOf(n);
+  g+='<line x1="'+xe.toFixed(1)+'" y1="'+yOf(gelir).toFixed(1)+'" x2="'+xe.toFixed(1)+'" y2="'+(padT+8).toFixed(1)+'" stroke="#19C37D" stroke-width="1.6" stroke-dasharray="3 3"/>';
+  g+='<circle cx="'+xe.toFixed(1)+'" cy="'+(padT+8).toFixed(1)+'" r="4" fill="#19C37D"/>';
+  g+='<text x="'+(xe-6).toFixed(1)+'" y="'+(padT+4).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="#19C37D">+'+shortM(c.R)+' ▲ araç satışı</text>';
+  g+='<text x="'+padL+'" y="'+(H-6)+'" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">Ay 1</text>';
+  g+='<text x="'+(W-padR).toFixed(1)+'" y="'+(H-6)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">Ay '+n+'</text>';
+  return '<svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg>';
+}
+function cumLineSVG(c,down,basis){
+  const n=c.n;
+  let pts, cum;
+  if(basis==='accrual'){ pts=[0]; cum=0; for(let i=1;i<=n;i++){ cum+=c.mrg; pts.push(cum); } }
+  else { const upfront=c.feeOneTime+(down/100)*c.P; pts=[-upfront]; cum=-upfront; for(let i=1;i<=n;i++){ cum+=c.cashMonth; if(i===n)cum+=c.R; pts.push(cum); } }
+  const endPos=pts[n]>=0;
+  const W=1360,H=300,padL=20,padR=20,padT=30,padB=26, innerW=W-padL-padR, innerH=H-padT-padB;
+  let minv=Math.min.apply(null,pts), maxv=Math.max.apply(null,pts);
+  if(minv>0)minv=0; if(maxv<0)maxv=0; const pad=(maxv-minv)*0.12||1; minv-=pad; maxv+=pad;
+  const range=(maxv-minv)||1, xOf=i=>padL+(i/n)*innerW, yOf=v=>padT+innerH-((v-minv)/range)*innerH, zeroY=yOf(0);
+  // birikmiş açık (kırmızı) alanı — vade boyu sıfırın altında
+  let neg='M '+xOf(0).toFixed(1)+' '+zeroY.toFixed(1);
+  for(let i=0;i<n;i++) neg+=' L '+xOf(i).toFixed(1)+' '+yOf(pts[i]).toFixed(1);
+  neg+=' L '+xOf(n-1).toFixed(1)+' '+zeroY.toFixed(1)+' Z';
+  // kırmızı çizgi (su altı) + yeşil sıçrama (araç satışı)
+  let lr='M '+xOf(0).toFixed(1)+' '+yOf(pts[0]).toFixed(1);
+  for(let i=1;i<n;i++) lr+=' L '+xOf(i).toFixed(1)+' '+yOf(pts[i]).toFixed(1);
+  const lj='M '+xOf(n-1).toFixed(1)+' '+yOf(pts[n-1]).toFixed(1)+' L '+xOf(n).toFixed(1)+' '+yOf(pts[n]).toFixed(1);
+  const endCol=pts[n]>=0?'#19C37D':'#E5484D';
+  let g='';
+  // kırmızı açık bölgesi (sıfırın altı)
+  g+='<path d="'+neg+'" fill="rgba(229,72,77,.14)"/>';
+  // yeşil kâr bölgesi (sıfırın üstü — vade sonu sıçraması)
+  if(pts[n]>0 && pts[n-1]<0){ const f=(-pts[n-1])/(pts[n]-pts[n-1]); const xc=xOf(n-1)+f*(xOf(n)-xOf(n-1)); g+='<path d="M '+xc.toFixed(1)+' '+zeroY.toFixed(1)+' L '+xOf(n).toFixed(1)+' '+yOf(pts[n]).toFixed(1)+' L '+xOf(n).toFixed(1)+' '+zeroY.toFixed(1)+' Z" fill="rgba(25,195,125,.22)"/>'; }
+  g+='<line x1="'+padL+'" y1="'+zeroY.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+zeroY.toFixed(1)+'" stroke="#5B6472" stroke-width="1" stroke-dasharray="4 4"/>';
+  g+='<text x="'+padL+'" y="'+(zeroY-5).toFixed(1)+'" font-family="IBM Plex Mono,monospace" font-size="12" fill="#A3A8B5">0 · başabaş</text>';
+  for(let i=0;i<n;i++){ const a=pts[i], b=pts[i+1], xa=xOf(i), xb=xOf(i+1);
+    if((a>=0)===(b>=0)){ g+='<path d="M '+xa.toFixed(1)+' '+yOf(a).toFixed(1)+' L '+xb.toFixed(1)+' '+yOf(b).toFixed(1)+'" fill="none" stroke="'+(a>=0?'#19C37D':'#E5484D')+'" stroke-width="2.7"/>'; }
+    else { const f=(-a)/(b-a), xc=xa+f*(xb-xa); g+='<path d="M '+xa.toFixed(1)+' '+yOf(a).toFixed(1)+' L '+xc.toFixed(1)+' '+zeroY.toFixed(1)+'" fill="none" stroke="'+(a>=0?'#19C37D':'#E5484D')+'" stroke-width="2.7"/>'; g+='<path d="M '+xc.toFixed(1)+' '+zeroY.toFixed(1)+' L '+xb.toFixed(1)+' '+yOf(b).toFixed(1)+'" fill="none" stroke="'+(b>=0?'#19C37D':'#E5484D')+'" stroke-width="3.1"/>'; }
+  }
+  g+='<circle cx="'+xOf(0).toFixed(1)+'" cy="'+yOf(pts[0]).toFixed(1)+'" r="3.5" fill="#A3A8B5"/>';
+  g+='<circle cx="'+xOf(n).toFixed(1)+'" cy="'+yOf(pts[n]).toFixed(1)+'" r="5.5" fill="'+endCol+'"/>';
+  g+='<text x="'+(xOf(n)-8).toFixed(1)+'" y="'+(yOf(pts[n])-13).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="18" font-weight="600" fill="'+endCol+'">'+money(pts[n])+'</text>';
+  if(basis==='accrual'){ g+='<text x="'+xOf(Math.round(n*0.4)).toFixed(1)+'" y="'+(yOf(pts[Math.round(n*0.4)])-14).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="12.5" fill="#19C37D">kâr her ay birikir (muhasebe esası)</text>'; }
+  else { g+='<text x="'+xOf(Math.round(n*0.4)).toFixed(1)+'" y="'+(zeroY+26).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="12.5" fill="#A3A8B5">aylık açık birikir — vade sonu araç satışıyla artıya geçer</text>'; }
+  const tickStep=Math.max(1,Math.round(n/6));
+  for(let t=0;t<=n;t+=tickStep){ if(t>0&&t<n) g+='<line x1="'+xOf(t).toFixed(1)+'" y1="'+padT+'" x2="'+xOf(t).toFixed(1)+'" y2="'+(H-padB).toFixed(1)+'" stroke="#2A2F3A" stroke-width="0.7"/>'; g+='<text x="'+xOf(t).toFixed(1)+'" y="'+(H-7)+'" text-anchor="'+(t===0?'start':'middle')+'" font-family="IBM Plex Mono,monospace" font-size="12" fill="#A3A8B5">Ay '+t+'</text>'; }
+  if(n%tickStep!==0) g+='<text x="'+(W-padR).toFixed(1)+'" y="'+(H-7)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="12" fill="#A3A8B5">Ay '+n+'</text>';
+  return '<svg viewBox="0 0 '+W+' '+H+'">'+g+'</svg>';
+}
+
+function cashBarsHTML(c, basis){
+  let items, netTxt;
+  if(basis==='accrual'){
+    items=[['Kira geliri',c.rentEx,'#19C37D'],['Değer kaybı+faiz',c.depMonth+c.finMonth+c.feeMonth,'#FF6500'],['İşletme gideri',c.opMonth,'#7C5CFF']];
+    netTxt='= Aylık kâr (kira − maliyet): <b style="color:#19C37D">'+money(c.mrg)+'</b> · muhasebe (tahakkuk) esası';
+  } else {
+    items=[['Kira geliri',c.rentEx,'#19C37D'],['Banka taksiti',c.installment,'#FF6500'],['İşletme gideri',c.opMonth,'#7C5CFF']];
+    const net=c.rentEx-c.installment-c.opMonth;
+    netTxt='= Aylık net (kira − taksit − işletme): <b style="color:'+(net>=0?'#19C37D':'#E5484D')+'">'+money(net)+'</b> · kâr çoğunlukla vade sonu satışta';
+  }
+  const max=Math.max(items[0][1],items[1][1],items[2][1])||1;
+  let h=items.map(it=>'<div class="hbar-row"><span class="hbar-l">'+it[0]+'</span><div class="hbar-track"><div class="hbar-fill" style="width:'+(it[1]/max*100).toFixed(1)+'%;background:'+it[2]+'"></div></div><span class="hbar-v">'+money(it[1])+'</span></div>').join('');
+  h+='<div class="hbar-net">'+netTxt+'</div>';
+  return h;
+}
+
+function render(){
+  const s=readState(), c=compute(s);
+  // sync mirrors
+  $('p-mpct').textContent=trN1.format(s.margin);
+  $('p-marginpct').textContent='marj %'+trN1.format(s.margin);
+  // QUOTE
+  $('q-model').textContent=s.model;
+  $('q-monthly').textContent=trN.format(Math.round(c.rentInc));
+  $('q-fleet').style.display = s.qty>1 ? '' : 'none';
+  if(s.qty>1) $('q-fleet').textContent='Filo toplamı: '+money(c.rentInc*s.qty)+' / ay · '+trN.format(s.qty)+' araç';
+  $('q-term').textContent=s.term+' ay';
+  $('q-km').textContent=trN.format(s.km)+' km/yıl';
+  $('q-exvat').textContent=money(c.rentEx);
+  $('q-total').textContent=money(c.rentInc*c.n*s.qty);
+  $('incl-km').textContent='Yıllık '+trN.format(s.km)+' km';
+  // PROFIT
+  $('p-cost').textContent=money(c.cost);
+  $('p-profit').textContent=money(c.mrg);
+  $('p-totprofit').textContent=money(c.mrg*c.n);
+  $('p-totprofit-fleet').textContent='filo: '+money(c.mrg*c.n*s.qty);
+  $('p-cov').textContent='%'+trN.format(c.marginRev*100);
+  $('p-cov').className='k-v'+(c.marginRev>=0.08?' green':' red');
+  $('p-costfoot').textContent=money(c.cost);
+  $('p-mrg').textContent=money(c.mrg);
+  $('p-rent').textContent=money(c.rentEx);
+  // breakdown rows
+  const rows=[
+    ['Değer kaybı (geri dönmeyen bedel)',c.depMonth,'dep'],
+    ['Banka kredisi faizi (gerçek)',c.finMonth,'fin'],
+    ['Kredi masrafı (tahsis/BSMV)',c.feeMonth,'fee'],
+    ['İşletme gideri (sigorta/bakım/MTV)',c.opMonth,'op']
+  ];
+  const maxv=Math.max(c.depMonth,c.finMonth,c.feeMonth,c.opMonth,1);
+  $('p-rows').innerHTML=rows.map(r=>{
+    const share=c.cost>0?r[1]/c.cost*100:0;
+    const w=r[1]/maxv*100;
+    return '<tr><td>'+r[0]+'</td><td class="bar-cell"><div class="bar '+r[2]+'" style="width:'+w+'%"></div></td><td>'+money(r[1])+'</td><td>%'+trN.format(share)+'</td></tr>';
+  }).join('');
+  // FINANCE (banka kredisi)
+  $('fn-loan').textContent=money(c.loan);
+  $('fn-loan-d').textContent= s.down>0 ? ('%'+trN.format(s.down)+' peşinat sonrası') : 'tam finansman';
+  $('fn-inst').textContent=money(c.installment);
+  $('fn-int').textContent=money(c.totalInterest);
+  $('fn-int-d').textContent= c.loan>0 ? ('kredinin %'+trN.format(c.totalInterest/c.loan*100)+'’i') : 'vade boyunca';
+  $('fn-rate').textContent='%'+trN1.format(s.rate);
+  $('fn-rate-d').textContent= rateLive ? 'TCMB · canlı · düzenlenebilir' : 'düzenlenebilir';
+  $('fn-cashbars').innerHTML=cashBarsHTML(c, basis);
+  $('fn-cashbars-h').textContent = basis==='accrual' ? 'Aylık kâr — gelir vs maliyet (araç başına)' : 'Aylık nakit — gelir vs gider (araç başına)';
+  $('fn-amort').innerHTML=amortSVG(c.loan, s.rate/100/12, c.n, c.installment);
+  $('fn-amort-end').textContent='Ay '+c.n;
+  // FİZİBİLİTE (başabaş + kâr + nakit akışı)
+  $('fz-rev').textContent=money(c.rentEx);
+  $('fz-rev-inc').textContent='KDV dahil '+money(c.rentInc)+' / araç';
+  if(basis==='accrual'){
+    $('fz-be-l').textContent='Başabaş kira'; $('fz-be').textContent=money(c.cost); $('fz-be-d').textContent='KDV hariç · maliyet (değer kaybı+faiz+işletme)';
+    $('fz-prof-l').textContent='Aylık kâr'; $('fz-prof').textContent=money(c.mrg); $('fz-prof').className='k-v green'; $('fz-prof-fleet').textContent='filo: '+money(c.mrg*s.qty)+'/ay';
+    $('fz-margin-l').textContent='Ciro marjı'; $('fz-margin').textContent='%'+trN.format(c.marginRev*100); $('fz-margin').className='k-v'; $('fz-margin-d').textContent='ciro üzeri · indirim payı';
+  } else {
+    $('fz-be-l').textContent='Nakit başabaş'; $('fz-be').textContent=money(c.installment+c.opMonth); $('fz-be-d').textContent='aylık taksit + işletme';
+    $('fz-prof-l').textContent='Aylık nakit'; $('fz-prof').textContent=money(c.cashMonth); $('fz-prof').className='k-v '+(c.cashMonth>=0?'green':'red'); $('fz-prof-fleet').textContent='filo: '+money(c.cashMonth*s.qty)+'/ay';
+    $('fz-margin-l').textContent='Sözleşme kârı'; $('fz-margin').textContent=money(c.totalProfit); $('fz-margin').className='k-v green'; $('fz-margin-d').textContent='vade sonu satışla realize';
+  }
+  // eski yöntem faktörü — dinamik (vade boyu toplam kira ÷ araç fiyatı; marj + faiz + vade hepsi etkiler)
+  const ratio = c.installment>0 ? c.rentInc/c.installment : 0;
+  $('dyn-factor').textContent='%'+trN1.format(ratio*100);
+  $('dyn-factor').style.color = ratio>=1 ? '#19C37D' : '#E5484D';
+  $('dyn-factor-d').innerHTML='aylık kira KDV dahil (₺'+trN.format(Math.round(c.rentInc))+') ÷ aylık banka taksiti (₺'+trN.format(Math.round(c.installment))+') · %100 üstü = kira taksiti karşılıyor';
+  $('fz-wf').innerHTML=waterfallSVG([
+    {short:'Kira geliri', val:c.rentEx*c.n, type:'pos'},
+    {short:'Faiz', val:-c.totalInterest, type:'neg'},
+    {short:'Değer kaybı', val:-(c.P-c.R), type:'neg'},
+    {short:'Kredi masrafı', val:-c.feeOneTime, type:'neg'},
+    {short:'İşletme', val:-c.opMonth*c.n, type:'neg'},
+    {short:'Net kâr', val:c.totalProfit, type:'total'}
+  ]);
+  $('fz-monthly').innerHTML=cumLineSVG(c,s.down,basis);
+  $('fz-monthly-h').textContent = basis==='accrual' ? 'Kümülatif kâr — vade boyunca birikir' : 'Kümülatif nakit — vade sonunda artıya geçer';
+  $('fz-npv').textContent=money(c.npv);
+  $('fz-npv').className='npv-v '+(c.npv>=0?'pos':'neg');
+  $('fz-npv-d').textContent=trN1.format(s.rate);
+  { const er=$('ex-rate'); if(er) er.textContent=trN1.format(s.rate); const er2=$('ex-rate2'); if(er2) er2.textContent=trN1.format(s.rate); }
+  $('fz-irr').textContent= c.irrA!=null ? '%'+trN.format(c.irrA*100) : '—';
+  $('fz-irru').textContent= c.irrU!=null ? '%'+trN.format(c.irrU*100) : '—';
+  const okf=c.totalProfit>0 && c.marginRev>=0.08 && c.npv>0;
+  const vd=$('fz-verdict');
+  vd.className='verdict'+(okf?'':' warn');
+  const vhd='<div class="vh"><span class="badge">'+(okf?'Uygulanabilir':'Dikkat')+'</span>'+(okf?'Bu kiralama kâr ediyor':'Marj zayıf — gözden geçirin')+'</div>';
+  if(basis==='accrual') vd.innerHTML=vhd+'Muhasebe (tahakkuk) esasında araç başına <b>aylık ₺'+trN.format(Math.round(c.mrg))+'</b> kâr · ciro marjı <b>%'+trN.format(c.marginRev*100)+'</b> · vade boyu <b>'+money(c.totalProfit)+'</b> (filo '+money(c.totalProfit*s.qty)+') · NBD <b>'+money(c.npv)+'</b>. Her ay kâr eder çünkü değer kaybı ve faiz maliyet sayılır. <b>Nakit zamanlaması</b> için «Finansman · Nakit» sekmesine bakın.';
+  else vd.innerHTML=vhd+'Araç başına vade boyunca <b>'+money(c.totalProfit)+'</b> kâr · filo geneli <b>'+money(c.totalProfit*s.qty)+'</b> · NBD <b>'+money(c.npv)+'</b>. Ama <b>aylık nakit '+money(c.cashMonth)+'</b> — kira, taksiti tam karşılamaz; vade boyunca araç başına ~<b>'+money(c.workingCap)+'</b> işletme sermayesi bağlanır ve <b>kâr büyük ölçüde vade sonu araç satışında</b> realize olur. Aylık nakit-pozitif olmak için kira en az <b>'+money(c.installment+c.opMonth)+'</b> olmalı.';
+  $('foot-rate').textContent='%'+trN1.format(s.rate)+(rateLive?' (TCMB canlı)':'');
+}
+
+// preset buttons
+document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{
+  const p=PRESETS[b.dataset.preset];
+  Object.keys(p).forEach(k=>{ if($(k)) $(k).value=p[k]; });
+  fmtIntInputs();
+  render();
+}));
+// tabs
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  const d=t.dataset.tab;
+  basis = (d==='accrual') ? 'accrual' : 'cash';
+  $('view-finance').classList.toggle('hidden', !(d==='cash'||d==='accrual'));
+  $('view-quote').classList.toggle('hidden', d!=='quote');
+  $('view-profit').classList.toggle('hidden', d!=='profit');
+  render();
+}));
+// inputs
+IDS.forEach(k=>$(k).addEventListener('input',()=>{ if(k==='rate')userTouchedRate=true; render(); }));
+// sayı alanları fareyle kaydırınca değer değişmesin
+document.querySelectorAll('input[type=number]').forEach(el=>{ el.setAttribute('autocomplete','off'); el.addEventListener('wheel',()=>el.blur(),{passive:true}); });
+// büyük sayı alanlarında binlik ayraç (.) — yaz: ham, çık: ayraçlı
+const INTF=['price','km','maint','other'];
+function fmtIntInputs(){ INTF.forEach(k=>{ const el=$(k); if(el && document.activeElement!==el){ const n=parseInt(String(el.value).replace(/\D/g,''))||0; el.value=n?trN.format(n):''; } }); }
+INTF.forEach(k=>{ const el=$(k); if(!el)return; el.setAttribute('autocomplete','off'); el.addEventListener('focus',()=>{ el.value=String(parseInt(String(el.value).replace(/\D/g,''))||''); }); el.addEventListener('blur',fmtIntInputs); });
+fmtIntInputs();
+// sayı alanları her zaman pozitif (Adet ve Vade en az 1)
+if($('qty'))$('qty').min='1'; if($('term'))$('term').min='1';
+['down','residual','rate','fee','ins','margin','vat'].forEach(k=>{ if($(k)) $(k).min='0'; });
+document.querySelectorAll('input[type=number]').forEach(el=>{ el.addEventListener('blur',()=>{ const mn=parseFloat(el.min)||0; if(el.value!=='' && (parseFloat(el.value)||0)<mn){ el.value=mn; render(); } }); });
+
+// live TCMB rate
+function loadRate(force){
+  const btn=$('rate-refresh'); if(btn){ btn.textContent='↻ güncelleniyor…'; }
+  fetch('rates.json?v='+Date.now(),{cache:'no-store'})
+    .then(r=>r.ok?r.json():Promise.reject())
+    .then(m=>{
+      const loan=m&&m.market&&m.market.loan_comm&&m.market.loan_comm.value;
+      const asof=m&&m.market&&m.market.loan_comm&&m.market.loan_comm.asof;
+      const tufe=m&&m.market&&m.market.tufe&&m.market.tufe.yoy;
+      if(loan){
+        rateLive=true;
+        if(force) userTouchedRate=false;
+        if(!userTouchedRate){ $('rate').value=loan; $('rate').classList.add('rate-live'); }
+        $('env').classList.add('live');
+        $('envText').textContent='Banka kredi faizi %'+trN1.format(loan)+(asof?' · '+asof:'');
+        const rp=$('rate-pill'); if(rp) rp.style.display='inline-block';
+      }else throw 0;
+      if(tufe){ infYoY=tufe; $('envInf').classList.add('live'); $('envInfText').textContent='Enflasyon (TÜFE) %'+trN1.format(tufe); }
+      if(btn){ btn.textContent='↻ TCMB’den güncelle'; }
+      render();
+    })
+    .catch(()=>{ $('envText').textContent='varsayılan faiz (çevrimdışı)'; $('envInfText').textContent='TÜFE —'; if(btn){ btn.textContent='↻ TCMB’den güncelle'; } render(); });
+}
+loadRate(false);
+const rr=$('rate-refresh'); if(rr) rr.addEventListener('click',()=>loadRate(true));
+
+render();
+</script>
+</body>
+</html>
