@@ -127,10 +127,17 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
     </div>
 
     <div class="grp">
+      <div class="grp-t">Makro <span class="pill" id="ovp-pill">OVP</span></div>
+      <div class="f"><label>Başlangıç yılı</label><div class="wrap"><input type="number" id="startYear" value="2026"></div></div>
+      <div class="f"><label>Faiz patikası</label><select id="rateMode"><option value="fixed">Sabit (manuel)</option><option value="ovp">OVP faiz patikası (₺)</option></select></div>
+      <div class="f"><label>USD-bağlı gelir <small>OVP USD/TRY ile artar</small></label><div class="wrap"><input type="number" id="fxRevPct" value="40" class="has-suf"><span class="suf">%</span></div></div>
+    </div>
+
+    <div class="grp">
       <div class="grp-t">Gelir</div>
       <div class="f"><label>Yıllık gelir <small>tam kapasite</small></label><div class="wrap"><input type="text" id="rev0" value="900.000.000"><span class="suf">₺</span></div></div>
       <div class="f"><label>1. yıl rampası</label><div class="wrap"><input type="number" id="ramp" value="70" class="has-suf"><span class="suf">%</span></div></div>
-      <div class="f"><label>Yıllık artış (eskalasyon)</label><div class="wrap"><input type="number" id="esc" value="6" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>₺-gelir artışı <small>USD-dışı pay</small></label><div class="wrap"><input type="number" id="esc" value="6" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
     </div>
 
     <div class="grp">
@@ -159,6 +166,17 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       <div class="kpi k-eq"><div class="k-l">Özkaynak NPV</div><div class="k-v" id="k-enpv">—</div><div class="k-d" id="k-enpv-d">hurdle oranında</div></div>
       <div class="kpi"><div class="k-l">Özkaynak ihtiyacı</div><div class="k-v" id="k-eq">—</div><div class="k-d">inşaatta yatırılan</div></div>
       <div class="kpi"><div class="k-l">LLCR / Geri ödeme</div><div class="k-v" id="k-llcr">—</div><div class="k-d" id="k-pay-d">kredi ömrü kapsamı</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Makro Projeksiyon · OVP <span class="tag" id="ovp-src">Orta Vadeli Program</span></h2>
+      <div class="tbl-wrap">
+        <table id="ovp-table">
+          <thead><tr><th>Yıl</th><th>Enflasyon (TÜFE)</th><th>Ticari faiz</th><th>USD/TRY</th></tr></thead>
+          <tbody id="ovp-body"></tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px" id="ovp-note"></div>
     </div>
 
     <div class="card">
@@ -196,7 +214,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       <div class="tbl-wrap">
         <table id="cf-table">
           <thead><tr>
-            <th>Yıl</th><th>Faz</th><th>Gelir</th><th>EBITDA</th><th>Faiz</th><th>Vergi</th>
+            <th>Yıl</th><th>Faz</th><th>Faiz%</th><th>USD/TRY</th><th>Gelir</th><th>EBITDA</th><th>Faiz</th><th>Vergi</th>
             <th>Borç servisi</th><th>CFADS</th><th>DSCR</th><th>Borç bakiyesi</th><th>Özkaynak NA</th>
           </tr></thead>
           <tbody id="cf-body"></tbody>
@@ -225,21 +243,45 @@ function shortM(v){const a=Math.abs(v),s=v<0?'−':'';
 const pct=v=>'%'+trN1.format(v);
 
 const PRESETS={
-  toll:{name:'Otoyol Projesi',capex:5000000000,constr:3,opyears:25,tv:15,gearing:70,debtRate:9,tenor:15,repay:'sculpt',dscr:1.30,rev0:900000000,ramp:70,esc:6,opexPct:22,maintPct:4,tax:25,depYears:20,disc:10,discE:15},
-  power:{name:'Güneş Enerjisi (GES)',capex:2200000000,constr:2,opyears:30,tv:5,gearing:75,debtRate:8.5,tenor:14,repay:'sculpt',dscr:1.25,rev0:430000000,ramp:90,esc:4,opexPct:15,maintPct:2,tax:25,depYears:25,disc:9,discE:14}
+  toll:{name:'Otoyol Projesi',capex:5000000000,constr:3,opyears:25,tv:15,gearing:70,debtRate:9,tenor:15,repay:'sculpt',dscr:1.30,startYear:2026,rateMode:'fixed',fxRevPct:40,rev0:900000000,ramp:70,esc:6,opexPct:22,maintPct:4,tax:25,depYears:20,disc:10,discE:15},
+  power:{name:'Güneş Enerjisi (GES)',capex:2200000000,constr:2,opyears:30,tv:5,gearing:75,debtRate:8.5,tenor:14,repay:'sculpt',dscr:1.25,startYear:2026,rateMode:'fixed',fxRevPct:60,rev0:430000000,ramp:90,esc:4,opexPct:15,maintPct:2,tax:25,depYears:25,disc:9,discE:14}
 };
 
 const NUMF=['capex','rev0']; // binlik ayraçlı büyük alanlar
-const IDS=['name','capex','constr','opyears','tv','gearing','debtRate','tenor','repay','dscr','rev0','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE'];
+const IDS=['name','capex','constr','opyears','tv','gearing','debtRate','tenor','repay','dscr','startYear','rateMode','fxRevPct','rev0','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE'];
 
 function readState(){
   const s={};
   s.name=$('name').value||'Proje';
   s.repay=$('repay').value;
-  ['constr','opyears','tv','gearing','debtRate','tenor','dscr','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE']
+  s.rateMode=$('rateMode').value;
+  ['constr','opyears','tv','gearing','debtRate','tenor','dscr','startYear','fxRevPct','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE']
     .forEach(k=>s[k]=parseFloat(String($(k).value).replace(',','.'))||0);
   NUMF.forEach(k=>s[k]=parseInt(String($(k).value).replace(/\D/g,''))||0);
   return s;
+}
+
+// ---- OVP makro projeksiyonu ----
+let OVP=null;
+// Bir takvim yılı için OVP enflasyon / faiz / USDTRY; tablo dışı yıllar ekstrapole edilir.
+function macroFor(year){
+  if(!OVP||!OVP.years||!OVP.years.length) return null;
+  const ys=OVP.years, first=ys[0], last=ys[ys.length-1];
+  const hit=ys.find(r=>r.y===year);
+  if(hit) return {infl:hit.infl, rate:hit.rate, usdtry:hit.usdtry};
+  if(year<first.y) return {infl:first.infl, rate:first.rate, usdtry:first.usdtry};
+  // son OVP yılından sonra: faiz/enflasyon terminal değere iner, USDTRY enflasyon farkıyla artar
+  const term=OVP.terminal||{infl:last.infl,rate:last.rate};
+  const usInf=OVP.us_inflation||2.5;
+  let usd=last.usdtry, n=year-last.y;
+  for(let i=0;i<n;i++) usd*= (1+(term.infl-usInf)/100);
+  return {infl:term.infl, rate:term.rate, usdtry:usd};
+}
+// Proje yılları boyunca makro diziler (y=1..N → takvim = startYear+y-1)
+function macroPath(startYear,N){
+  const arr=[];
+  for(let y=1;y<=N;y++){ const m=macroFor(Math.round(startYear)+y-1); arr.push(m||{infl:0,rate:0,usdtry:1}); }
+  return arr;
 }
 
 function irr(cfs){
@@ -250,31 +292,46 @@ function irr(cfs){
 function npv(cfs,r){let v=0;for(let t=0;t<cfs.length;t++)v+=cfs[t]/Math.pow(1+r,t+1);return v;}
 
 function compute(s){
-  const C=Math.max(0,Math.round(s.constr)), O=Math.max(1,Math.round(s.opyears));
-  const capex=s.capex, gear=Math.min(1,Math.max(0,s.gearing/100)), rate=s.debtRate/100;
+  const C=Math.max(0,Math.round(s.constr)), O=Math.max(1,Math.round(s.opyears)), N=C+O;
+  const capex=s.capex, gear=Math.min(1,Math.max(0,s.gearing/100));
   const tenor=Math.max(1,Math.round(s.tenor)), taxRate=s.tax/100;
   const tgtD=Math.max(1.0,s.dscr), tvPct=s.tv/100;
+  const fxRev=Math.min(1,Math.max(0,s.fxRevPct/100));
+  // makro patika (proje yılı bazında)
+  const mp=macroPath(s.startYear,N);
+  const haveMacro = !!OVP;
+  // her yılın borç faizi: OVP patikası ya da sabit manuel
+  const rateAt=y=>{ // y: proje yılı (1..N)
+    if(s.rateMode==='ovp' && haveMacro) return (mp[y-1].rate||0)/100;
+    return s.debtRate/100;
+  };
+  const fxAt=y=> haveMacro ? mp[y-1].usdtry : 1;
+  const fxBase = haveMacro ? fxAt(C+1) : 1;   // ilk işletme yılı USDTRY (USD-bağlı gelir tabanı)
   const rows=[];
   // ---- İnşaat dönemi: capex çekişi + IDC ----
   const drawY=C>0?capex/C:0;
   let debtBal=0, equityTot=0, idcTot=0, debtDrawn=0;
   for(let y=1;y<=C;y++){
-    const idc=debtBal*rate; idcTot+=idc; debtBal+=idc;
+    const r=rateAt(y);
+    const idc=debtBal*r; idcTot+=idc; debtBal+=idc;
     const dD=drawY*gear, dE=drawY*(1-gear);
     debtBal+=dD; debtDrawn+=dD; equityTot+=dE;
-    rows.push({year:y,phase:'İnşaat',rev:0,ebitda:0,interest:idc,tax:0,ds:0,cfads:0,dscr:null,debtBal:debtBal,projCF:-drawY,eqCF:-dE});
+    rows.push({year:y,cal:Math.round(s.startYear)+y-1,phase:'İnşaat',rev:0,ebitda:0,interest:idc,tax:0,ds:0,cfads:0,dscr:null,debtBal:debtBal,rate:r,fx:fxAt(y),projCF:-drawY,eqCF:-dE});
   }
   const debtCOD=debtBal; // IDC dahil, işletmeye geçişte borç
   // ---- İşletme dönemi ----
   const depYears=Math.max(1,Math.min(Math.round(s.depYears),O));
   const depPerYear=capex/depYears;
-  let bal=debtCOD, minDSCR=Infinity, sumDSCR=0, nDSCR=0, pvCFADS=0;
+  let bal=debtCOD, minDSCR=Infinity, sumDSCR=0, nDSCR=0, pvCFADS=0, df=1;
   for(let k=1;k<=O;k++){
-    const ramp=(k===1)?s.ramp/100:1;
-    const rev=s.rev0*ramp*Math.pow(1+s.esc/100,k-1);
+    const py=C+k, r=rateAt(py), fx=fxAt(py), ramp=(k===1)?s.ramp/100:1;
+    // gelir: ₺-endeksli pay eskalasyonla; USD-endeksli pay OVP USD/TRY ile
+    const tryRev=s.rev0*(1-fxRev)*Math.pow(1+s.esc/100,k-1);
+    const usdRev=s.rev0*fxRev*(fx/fxBase);
+    const rev=(tryRev+usdRev)*ramp;
     const opex=rev*s.opexPct/100, ebitda=rev-opex, maint=rev*s.maintPct/100;
     const dep=(k<=depYears)?depPerYear:0;
-    const interest=bal*rate;
+    const interest=bal*r;
     const taxLev=Math.max(0,(ebitda-dep-interest)*taxRate);
     const taxUnlev=Math.max(0,(ebitda-dep)*taxRate);
     const cfads=ebitda-taxLev-maint;
@@ -282,7 +339,7 @@ function compute(s){
     if(k<=tenor && bal>1){
       if(s.repay==='annuity'){
         const rem=tenor-(k-1);
-        const ann=rate>0? bal*rate*Math.pow(1+rate,rem)/(Math.pow(1+rate,rem)-1) : bal/rem;
+        const ann=r>0? bal*r*Math.pow(1+r,rem)/(Math.pow(1+r,rem)-1) : bal/rem;
         principal=Math.min(Math.max(ann-interest,0),bal);
       } else {
         const target=cfads/tgtD;
@@ -293,8 +350,8 @@ function compute(s){
     bal-=principal;
     const dscr= ds>0? cfads/ds : null;
     if(dscr!=null){ if(dscr<minDSCR)minDSCR=dscr; sumDSCR+=dscr; nDSCR++; }
-    if(k<=tenor) pvCFADS+=cfads/Math.pow(1+rate,k);
-    rows.push({year:C+k,phase:'İşletme',rev,ebitda,interest,tax:taxLev,ds,cfads,dscr,debtBal:bal,
+    if(k<=tenor){ df/=(1+r); pvCFADS+=cfads*df; }
+    rows.push({year:py,cal:Math.round(s.startYear)+py-1,phase:'İşletme',rev,ebitda,interest,tax:taxLev,ds,cfads,dscr,debtBal:bal,rate:r,fx,
                projCF:ebitda-taxUnlev-maint, eqCF:cfads-ds});
   }
   // vade sonu değer (son işletme yılına)
@@ -303,17 +360,19 @@ function compute(s){
   last.projCF+=tv;
   last.eqCF+=Math.max(0,tv-residDebt);
   last.tv=tv; last.residDebt=residDebt;
-  // IRR / NPV
+  // IRR / NPV (₺) + USD-eşdeğer özkaynak getirisi
   const projCFs=rows.map(r=>r.projCF), eqCFs=rows.map(r=>r.eqCF);
-  const pIRR=irr(projCFs), eIRR=irr(eqCFs);
+  const eqCFsUSD=rows.map(r=>r.eqCF/(haveMacro?r.fx:1));
+  const pIRR=irr(projCFs), eIRR=irr(eqCFs), eIRRusd=haveMacro?irr(eqCFsUSD):null;
   const pNPV=npv(projCFs,s.disc/100), eNPV=npv(eqCFs,s.discE/100);
   const llcr= debtCOD>0? pvCFADS/debtCOD : null;
   // özkaynak geri ödeme yılı (kümülatif eqCF > 0)
   let cum=0, payback=null;
   for(let i=0;i<eqCFs.length;i++){ cum+=eqCFs[i]; if(payback===null && cum>=0) payback=i+1; }
-  return {C,O,rows,capex,idcTot,debtCOD,debtDrawn,equityTot,gear,
+  return {C,O,rows,capex,idcTot,debtCOD,debtDrawn,equityTot,gear,haveMacro,fxRev,rateMode:s.rateMode,
           minDSCR:isFinite(minDSCR)?minDSCR:null, avgDSCR:nDSCR?sumDSCR/nDSCR:null,
-          pIRR,eIRR,pNPV,eNPV,llcr,payback,tgtD,repay:s.repay,residDebt,tv,
+          pIRR,eIRR,eIRRusd,pNPV,eNPV,llcr,payback,tgtD,repay:s.repay,residDebt,tv,
+          fxStart:fxAt(C+1), fxEnd:fxAt(N),
           uses:capex+idcTot, sources:debtCOD+equityTot};
 }
 
@@ -378,6 +437,7 @@ function render(){
   $('k-pirr').textContent = r.pIRR!=null?pct(r.pIRR*100):'—';
   $('k-eirr').textContent = r.eIRR!=null?pct(r.eIRR*100):'—';
   $('k-eirr').className='k-v '+(r.eIRR!=null&&r.eIRR*100>=(s.discE)?'green':'red');
+  $('k-eirr-d').textContent = r.eIRRusd!=null ? ('USD-eşdeğer '+pct(r.eIRRusd*100)) : 'sponsor getirisi';
   $('k-dscr').textContent = r.minDSCR!=null?trN2.format(r.minDSCR)+'x':'—';
   $('k-dscr').className='k-v '+(r.minDSCR!=null&&r.minDSCR>=r.tgtD?'green':(r.minDSCR!=null&&r.minDSCR>=1?'orange':'red'));
   $('k-dscr-d').textContent = 'hedef '+trN2.format(r.tgtD)+'x';
@@ -398,6 +458,21 @@ function render(){
   const bal=Math.abs(r.uses-r.sources)<1;
   $('su-bal').textContent = bal?'✓ denge':'≠ dengesiz';
   $('su-bal').style.color = bal?'var(--green)':'var(--red)';
+  // Makro projeksiyon kartı (OVP)
+  if(OVP){
+    $('ovp-src').textContent = OVP.source || 'Orta Vadeli Program';
+    $('ovp-body').innerHTML = OVP.years.map(y=>
+      '<tr><td>'+y.y+'</td><td>%'+trN1.format(y.infl)+'</td><td>%'+trN1.format(y.rate)+'</td><td>'+trN2.format(y.usdtry)+'</td></tr>'
+    ).join('') + '<tr style="color:var(--muted)"><td>'+(OVP.years[OVP.years.length-1].y+1)+'+</td><td>%'+trN1.format((OVP.terminal||{}).infl||0)+'</td><td>%'+trN1.format((OVP.terminal||{}).rate||0)+'</td><td>ekstrapolasyon</td></tr>';
+    const endY=Math.round(s.startYear)+r.C+r.O-1;
+    $('ovp-note').innerHTML='<b style="color:'+(/(PLACEHOLDER|placeholder)/.test(OVP.status||'')?'var(--orange)':'var(--muted)')+'">'+(OVP.status||'')+'</b> · '
+      +'Proje '+Math.round(s.startYear)+'–'+endY+'; USD/TRY '+trN2.format(r.fxStart)+' → '+trN2.format(r.fxEnd)+'. '
+      +'Faiz patikası: '+(r.rateMode==='ovp'?'OVP (₺)':'sabit %'+trN1.format(s.debtRate))+' · USD-bağlı gelir %'+trN.format(r.fxRev*100)+'.';
+    $('ovp-pill').textContent = OVP.status&&/(PLACEHOLDER|placeholder)/.test(OVP.status)?'OVP·taslak':'OVP';
+  } else {
+    $('ovp-body').innerHTML='<tr><td colspan="4" style="color:var(--muted)">OVP verisi yüklenmedi (ovp.json).</td></tr>';
+    $('ovp-note').textContent='Makro projeksiyon devre dışı — sabit faiz ve ₺ gelir kullanılıyor.';
+  }
   // charts
   $('chart-dscr').innerHTML=dscrChart(r.rows,r.tgtD);
   $('chart-jcurve').innerHTML=jCurve(r.rows);
@@ -409,7 +484,9 @@ function render(){
       : '<td style="color:var(--muted)">—</td>';
     const eq=row.eqCF;
     return '<tr class="'+(isC?'phase-c':'')+'">'
-      +'<td>'+row.year+'</td><td>'+row.phase+'</td>'
+      +'<td>'+row.cal+'</td><td>'+row.phase+'</td>'
+      +'<td>%'+trN1.format(row.rate*100)+'</td>'
+      +'<td>'+(r.haveMacro?trN2.format(row.fx):'—')+'</td>'
       +'<td>'+(row.rev?shortM(row.rev):'—')+'</td>'
       +'<td>'+(row.ebitda?shortM(row.ebitda):'—')+'</td>'
       +'<td>'+(row.interest?shortM(row.interest):'—')+'</td>'
@@ -432,6 +509,7 @@ function render(){
     +'Toplam '+shortM(r.uses)+' yatırım, '+shortM(r.equityTot)+' özkaynakla finanse ediliyor; IDC '+shortM(r.idcTot)+'. '
     +(okDSCR?'Borç servisi her yıl hedef kapsamı tutuyor. ':'<b>DSCR hedefin altına düşüyor</b> — borç oranını düşürün, vadeyi uzatın ya da geliri yeniden gözden geçirin. ')
     +(okIRR?'Özkaynak getirisi hurdle oranını aşıyor.':'<b>Özkaynak IRR hurdle oranının altında</b> — kaldıraç, gelir veya capex varsayımlarını test edin.')
+    +(r.haveMacro?' <b>OVP makro:</b> USD/TRY '+trN2.format(r.fxStart)+'→'+trN2.format(r.fxEnd)+', gelirin %'+trN.format(r.fxRev*100)+'’i USD-bağlı. ₺ özkaynak IRR '+(r.eIRR!=null?pct(r.eIRR*100):'—')+', <b>USD-eşdeğer '+(r.eIRRusd!=null?pct(r.eIRRusd*100):'—')+'</b> — aradaki fark TRY değer kaybının getirdiği nominal şişkinliktir.':'')
     +(r.residDebt>1?' <b>Not:</b> vade sonunda '+shortM(r.residDebt)+' bakiye borç kalıyor (balon); vade sonu değeri bunu kapatmak için kullanılıyor.':'');
 }
 
@@ -447,6 +525,12 @@ function fmtNum(){ NUMF.forEach(k=>{ const el=$(k); if(el&&document.activeElemen
 NUMF.forEach(k=>{ const el=$(k); if(!el)return; el.addEventListener('focus',()=>{ el.value=String(parseInt(String(el.value).replace(/\D/g,''))||''); }); el.addEventListener('blur',()=>{fmtNum();render();}); });
 fmtNum();
 render();
+
+// OVP makro projeksiyonunu yükle (rates.json benzeri; düzenlenebilir)
+fetch('ovp.json?v='+Date.now(),{cache:'no-store'})
+  .then(r=>r.ok?r.json():Promise.reject())
+  .then(j=>{ if(j&&j.years&&j.years.length){ OVP=j; $('envText').textContent='OVP yüklü · '+(j.source||'Orta Vadeli Program'); render(); } })
+  .catch(()=>{ $('envText').textContent='OVP yüklenemedi — sabit faiz/₺'; render(); });
 </script>
 </body>
 </html>
