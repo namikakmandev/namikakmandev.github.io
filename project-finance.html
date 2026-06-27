@@ -47,6 +47,10 @@ a{color:var(--primary);text-decoration:none}
 .f .suf{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--muted);pointer-events:none}
 .f input.has-suf{padding-right:26px}
 .f input.has-suf-yil{padding-right:34px}
+/* currency toggle */
+.curtog{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.curtog button{background:var(--panel);color:var(--muted);border:0;padding:6px 14px;font-size:12.5px;font-weight:600;font-family:var(--mono);cursor:pointer}
+.curtog button.on{background:var(--primary);color:#fff}
 /* KPI cards */
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px;position:relative;overflow:hidden}
@@ -157,15 +161,23 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
 
   <!-- ===== RESULTS ===== -->
   <div class="right">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <div class="curtog"><button id="cur-try" type="button" class="on">₺ TRY</button><button id="cur-usd" type="button">$ USD</button></div>
+    </div>
     <div class="kpis">
       <div class="kpi"><div class="k-l">Proje IRR <small>(kaldıraçsız)</small></div><div class="k-v" id="k-pirr">—</div><div class="k-d" id="k-pirr-d">varlığın getirisi</div></div>
       <div class="kpi k-eq"><div class="k-l">Özkaynak IRR <small>(kaldıraçlı)</small></div><div class="k-v green" id="k-eirr">—</div><div class="k-d" id="k-eirr-d">sponsor getirisi</div></div>
       <div class="kpi k-dscr"><div class="k-l">Min DSCR</div><div class="k-v orange" id="k-dscr">—</div><div class="k-d" id="k-dscr-d">borç servisi karşılama</div></div>
-      <div class="kpi"><div class="k-l">Ortalama DSCR</div><div class="k-v" id="k-adscr">—</div><div class="k-d">vade boyu ortalama</div></div>
+      <div class="kpi"><div class="k-l">Ortalama DSCR</div><div class="k-v" id="k-adscr">—</div><div class="k-d" id="k-adscr-d">vade boyu ortalama</div></div>
       <div class="kpi"><div class="k-l">Proje NPV</div><div class="k-v" id="k-pnpv">—</div><div class="k-d" id="k-pnpv-d">proje iskontosunda</div></div>
       <div class="kpi k-eq"><div class="k-l">Özkaynak NPV</div><div class="k-v" id="k-enpv">—</div><div class="k-d" id="k-enpv-d">hurdle oranında</div></div>
-      <div class="kpi"><div class="k-l">Özkaynak ihtiyacı</div><div class="k-v" id="k-eq">—</div><div class="k-d">inşaatta yatırılan</div></div>
-      <div class="kpi"><div class="k-l">LLCR / Geri ödeme</div><div class="k-v" id="k-llcr">—</div><div class="k-d" id="k-pay-d">kredi ömrü kapsamı</div></div>
+      <div class="kpi"><div class="k-l">Özkaynak ihtiyacı</div><div class="k-v" id="k-eq">—</div><div class="k-d" id="k-eq-d">inşaatta yatırılan</div></div>
+      <div class="kpi k-eq"><div class="k-l">Geri ödeme · Başabaş</div><div class="k-v green" id="k-pay">—</div><div class="k-d" id="k-pay-d">özkaynak / proje</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Kilometre Taşları <span class="tag">proje zaman çizelgesi</span></h2>
+      <div id="chart-milestones"></div>
     </div>
 
     <div class="card">
@@ -241,6 +253,14 @@ function shortM(v){const a=Math.abs(v),s=v<0?'−':'';
   if(a>=1e3)return s+'₺'+trN.format(a/1e3)+' B';
   return s+'₺'+trN.format(a);}
 const pct=v=>'%'+trN1.format(v);
+function shortUSD(v){const a=Math.abs(v),s=v<0?'−':'';
+  if(a>=1e9)return s+'$'+trN2.format(a/1e9)+' bn';
+  if(a>=1e6)return s+'$'+trN1.format(a/1e6)+' mn';
+  if(a>=1e3)return s+'$'+trN.format(a/1e3)+' k';
+  return s+'$'+trN.format(a);}
+let CUR='TRY';                                   // ₺ / USD görünüm
+// ₺ tutarı, o yılın USD/TRY'siyle USD'ye çevirerek biçimle (fx verilmezse fxFb)
+function M(vTRY, fx){ return CUR==='USD' ? shortUSD(vTRY/((fx||0)>0?fx:1)) : shortM(vTRY); }
 
 const PRESETS={
   toll:{name:'Otoyol Projesi',capex:5000000000,constr:3,opyears:25,tv:15,gearing:70,debtRate:9,tenor:15,repay:'sculpt',dscr:1.30,startYear:2026,rateMode:'fixed',fxRevPct:40,rev0:900000000,ramp:70,esc:6,opexPct:22,maintPct:4,tax:25,depYears:20,disc:10,discE:15},
@@ -360,18 +380,29 @@ function compute(s){
   last.projCF+=tv;
   last.eqCF+=Math.max(0,tv-residDebt);
   last.tv=tv; last.residDebt=residDebt;
-  // IRR / NPV (₺) + USD-eşdeğer özkaynak getirisi
+  // IRR / NPV (₺) + USD-eşdeğer
+  const fxOf=r=> haveMacro? r.fx : 1;
   const projCFs=rows.map(r=>r.projCF), eqCFs=rows.map(r=>r.eqCF);
-  const eqCFsUSD=rows.map(r=>r.eqCF/(haveMacro?r.fx:1));
+  const eqCFsUSD=rows.map(r=>r.eqCF/fxOf(r));
   const pIRR=irr(projCFs), eIRR=irr(eqCFs), eIRRusd=haveMacro?irr(eqCFsUSD):null;
   const pNPV=npv(projCFs,s.disc/100), eNPV=npv(eqCFs,s.discE/100);
+  // NPV bir bugünkü değerdir → spot (1. yıl) kurla USD'ye çevrilir (yeniden iskonto edilmez)
+  const fx0=fxAt(1);
+  const pNPVusd=haveMacro?pNPV/fx0:pNPV, eNPVusd=haveMacro?eNPV/fx0:eNPV;
   const llcr= debtCOD>0? pvCFADS/debtCOD : null;
-  // özkaynak geri ödeme yılı (kümülatif eqCF > 0)
-  let cum=0, payback=null;
-  for(let i=0;i<eqCFs.length;i++){ cum+=eqCFs[i]; if(payback===null && cum>=0) payback=i+1; }
-  return {C,O,rows,capex,idcTot,debtCOD,debtDrawn,equityTot,gear,haveMacro,fxRev,rateMode:s.rateMode,
+  // USD toplamları (her yıl kendi USD/TRY ile)
+  let capexUSD=0,idcUSD=0,equityUSD=0,debtCODusd=0;
+  rows.forEach(r=>{ if(r.phase==='İnşaat'){ const fx=fxOf(r), drawY=-r.projCF, dE=-r.eqCF;
+    capexUSD+=drawY/fx; idcUSD+=r.interest/fx; equityUSD+=dE/fx; debtCODusd+=(drawY-dE+r.interest)/fx; }});
+  // geri ödeme (özkaynak) ve başabaş (proje) yılları — kümülatif nakit ≥ 0
+  const startY=Math.round(s.startYear);
+  let cumE=0, ePayPy=null; for(let i=0;i<eqCFs.length;i++){ cumE+=eqCFs[i]; if(ePayPy===null&&cumE>=0) ePayPy=i+1; }
+  let cumP=0, pBePy=null; for(let i=0;i<projCFs.length;i++){ cumP+=projCFs[i]; if(pBePy===null&&cumP>=0) pBePy=i+1; }
+  return {C,O,N,rows,capex,idcTot,debtCOD,debtDrawn,equityTot,gear,haveMacro,fxRev,rateMode:s.rateMode,startY,
           minDSCR:isFinite(minDSCR)?minDSCR:null, avgDSCR:nDSCR?sumDSCR/nDSCR:null,
-          pIRR,eIRR,eIRRusd,pNPV,eNPV,llcr,payback,tgtD,repay:s.repay,residDebt,tv,
+          pIRR,eIRR,eIRRusd,pNPV,eNPV,pNPVusd,eNPVusd,llcr,tgtD,repay:s.repay,residDebt,tv,
+          capexUSD,idcUSD,equityTotUSD:equityUSD,debtCODusd, usesUSD:capexUSD+idcUSD, sourcesUSD:debtCODusd+equityUSD,
+          payback:ePayPy, ePayPy, pBePy, eqPaybackCal:ePayPy!=null?startY+ePayPy-1:null, projBreakevenCal:pBePy!=null?startY+pBePy-1:null,
           fxStart:fxAt(C+1), fxEnd:fxAt(N),
           uses:capex+idcTot, sources:debtCOD+equityTot};
 }
@@ -389,7 +420,7 @@ function dscrChart(rows,target){
     const x=padL+i*gap+(gap-bw)/2, y=yOf(o.dscr), h=padT+iH-y;
     const col=o.dscr<target?'#E5484D':(o.dscr<target*1.05?'#FF6500':'#19C37D');
     g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,h).toFixed(1)+'" fill="'+col+'" rx="2"/>';
-    if(i%Math.ceil(n/14)===0||n<=16) g+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+o.year+'</text>';
+    if(i%Math.ceil(n/14)===0||n<=16) g+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+o.cal+'</text>';
   });
   const ty=yOf(target);
   g+='<line x1="'+padL+'" y1="'+ty.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ty.toFixed(1)+'" stroke="#FF6500" stroke-width="1.4" stroke-dasharray="6 4"/>';
@@ -399,17 +430,25 @@ function dscrChart(rows,target){
   g+='<text x="'+padL+'" y="'+(oy-5).toFixed(1)+'" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">1,0x · başabaş</text>';
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
 }
-function jCurve(rows){
+function jCurve(rows,startY,ePayPy){
+  const usd=CUR==='USD';
+  const val=r=> usd? r.eqCF/((r.fx||0)>0?r.fx:1) : r.eqCF;
+  const fmt=v=> usd? shortUSD(v) : shortM(v);
   const pts=[0]; let cum=0;
-  rows.forEach(r=>{cum+=r.eqCF; pts.push(cum);});
-  const n=pts.length, W=1320,H=260,padL=58,padR=20,padT=22,padB=28,iW=W-padL-padR,iH=H-padT-padB;
+  rows.forEach(r=>{cum+=val(r); pts.push(cum);});
+  const n=pts.length, W=1320,H=260,padL=64,padR=20,padT=22,padB=28,iW=W-padL-padR,iH=H-padT-padB;
   let mn=Math.min(...pts), mx=Math.max(...pts); if(mn>0)mn=0; if(mx<0)mx=0;
   const pad=(mx-mn)*0.1||1; mn-=pad; mx+=pad;
   const xOf=i=>padL+(i/(n-1))*iW, yOf=v=>padT+iH-((v-mn)/(mx-mn))*iH, zY=yOf(0);
+  const calOf=i=> startY+i-1; // pts[i] = i. yıl sonu (i>=1)
   let g='';
   g+='<line x1="'+padL+'" y1="'+zY.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+zY.toFixed(1)+'" stroke="#5B6472" stroke-width="1" stroke-dasharray="4 4"/>';
   g+='<text x="'+(padL-6)+'" y="'+(zY+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">0</text>';
-  // segments colored by sign
+  // geri ödeme (özkaynak) işaretçisi
+  if(ePayPy!=null){ const xp=xOf(ePayPy);
+    g+='<line x1="'+xp.toFixed(1)+'" y1="'+padT+'" x2="'+xp.toFixed(1)+'" y2="'+(H-padB).toFixed(1)+'" stroke="#19C37D" stroke-width="1.3" stroke-dasharray="5 4"/>';
+    g+='<text x="'+(xp+5).toFixed(1)+'" y="'+(padT+12)+'" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="#19C37D">▲ geri ödeme '+(startY+ePayPy-1)+'</text>';
+  }
   for(let i=0;i<n-1;i++){
     const a=pts[i],b=pts[i+1],xa=xOf(i),xb=xOf(i+1);
     if((a>=0)===(b>=0)){
@@ -420,14 +459,31 @@ function jCurve(rows){
       g+='<path d="M '+xc.toFixed(1)+' '+zY.toFixed(1)+' L '+xb.toFixed(1)+' '+yOf(b).toFixed(1)+'" fill="none" stroke="'+(b>=0?'#19C37D':'#E5484D')+'" stroke-width="2.6"/>';
     }
   }
-  // y labels (min, max)
-  g+='<text x="'+(padL-6)+'" y="'+(yOf(mx)+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+shortM(mx)+'</text>';
-  g+='<text x="'+(padL-6)+'" y="'+(yOf(mn)+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+shortM(mn)+'</text>';
+  g+='<text x="'+(padL-6)+'" y="'+(yOf(mx)+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+fmt(mx)+'</text>';
+  g+='<text x="'+(padL-6)+'" y="'+(yOf(mn)+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+fmt(mn)+'</text>';
   const endCol=pts[n-1]>=0?'#19C37D':'#E5484D';
   g+='<circle cx="'+xOf(n-1).toFixed(1)+'" cy="'+yOf(pts[n-1]).toFixed(1)+'" r="5" fill="'+endCol+'"/>';
-  g+='<text x="'+(xOf(n-1)-6).toFixed(1)+'" y="'+(yOf(pts[n-1])-12).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="15" font-weight="600" fill="'+endCol+'">'+shortM(pts[n-1])+'</text>';
-  g+='<text x="'+padL+'" y="'+(H-8)+'" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">Yıl 0</text>';
-  g+='<text x="'+(W-padR).toFixed(1)+'" y="'+(H-8)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">Yıl '+(n-1)+'</text>';
+  g+='<text x="'+(xOf(n-1)-6).toFixed(1)+'" y="'+(yOf(pts[n-1])-12).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="15" font-weight="600" fill="'+endCol+'">'+fmt(pts[n-1])+'</text>';
+  // takvim yılı eksen etiketleri (~6 tık)
+  const step=Math.max(1,Math.round((n-1)/6));
+  for(let i=1;i<n;i+=step) g+='<text x="'+xOf(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+calOf(i)+'</text>';
+  g+='<text x="'+(W-padR).toFixed(1)+'" y="'+(H-8)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+calOf(n-1)+'</text>';
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
+}
+function milestones(items,y0,y1){
+  const W=1320,H=140,padL=40,padR=40,iW=W-padL-padR, axisY=72;
+  const span=Math.max(1,y1-y0), xOf=y=>padL+((y-y0)/span)*iW;
+  let g='';
+  g+='<line x1="'+padL+'" y1="'+axisY+'" x2="'+(W-padR)+'" y2="'+axisY+'" stroke="#2A2F3A" stroke-width="2"/>';
+  g+='<text x="'+padL+'" y="'+(axisY+34)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#5B6472">'+y0+'</text>';
+  g+='<text x="'+(W-padR)+'" y="'+(axisY+34)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#5B6472">'+y1+'</text>';
+  items.filter(m=>m.year!=null).forEach((m,i)=>{
+    const x=xOf(m.year), up=i%2===0, yT=up?axisY-40:axisY+24;
+    g+='<line x1="'+x.toFixed(1)+'" y1="'+axisY+'" x2="'+x.toFixed(1)+'" y2="'+(up?yT+18:yT-12).toFixed(1)+'" stroke="'+m.color+'" stroke-width="1" stroke-dasharray="2 2"/>';
+    g+='<circle cx="'+x.toFixed(1)+'" cy="'+axisY+'" r="6" fill="'+m.color+'" stroke="#0F1117" stroke-width="2"/>';
+    g+='<text x="'+x.toFixed(1)+'" y="'+yT+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="12.5" font-weight="600" fill="'+m.color+'">'+m.year+'</text>';
+    g+='<text x="'+x.toFixed(1)+'" y="'+(up?yT-15:yT+14)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10.5" fill="#A3A8B5">'+m.label+'</text>';
+  });
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
 }
 
@@ -442,16 +498,24 @@ function render(){
   $('k-dscr').className='k-v '+(r.minDSCR!=null&&r.minDSCR>=r.tgtD?'green':(r.minDSCR!=null&&r.minDSCR>=1?'orange':'red'));
   $('k-dscr-d').textContent = 'hedef '+trN2.format(r.tgtD)+'x';
   $('k-adscr').textContent = r.avgDSCR!=null?trN2.format(r.avgDSCR)+'x':'—';
-  $('k-pnpv').textContent = shortM(r.pNPV); $('k-pnpv').className='k-v '+(r.pNPV>=0?'green':'red');
-  $('k-pnpv-d').textContent='%'+trN1.format(s.disc)+' iskontoda';
-  $('k-enpv').textContent = shortM(r.eNPV); $('k-enpv').className='k-v '+(r.eNPV>=0?'green':'red');
-  $('k-enpv-d').textContent='%'+trN1.format(s.discE)+' hurdle';
-  $('k-eq').textContent = shortM(r.equityTot);
-  $('k-llcr').textContent = (r.llcr!=null?trN2.format(r.llcr)+'x':'—');
-  $('k-pay-d').textContent = r.payback!=null?('özkaynak geri ödeme: '+r.payback+'. yıl'):'geri ödeme: vade içinde değil';
+  $('k-adscr-d').textContent = r.llcr!=null?('LLCR '+trN2.format(r.llcr)+'x'):'vade boyu ortalama';
+  const isU=CUR==='USD';
+  $('k-pnpv').textContent = isU?shortUSD(r.pNPVusd):shortM(r.pNPV); $('k-pnpv').className='k-v '+(r.pNPV>=0?'green':'red');
+  $('k-pnpv-d').textContent='%'+trN1.format(s.disc)+' iskontoda'+(isU?' · USD-eşd.':'');
+  $('k-enpv').textContent = isU?shortUSD(r.eNPVusd):shortM(r.eNPV); $('k-enpv').className='k-v '+(r.eNPV>=0?'green':'red');
+  $('k-enpv-d').textContent='%'+trN1.format(s.discE)+' hurdle'+(isU?' · USD-eşd.':'');
+  $('k-eq').textContent = isU?shortUSD(r.equityTotUSD):shortM(r.equityTot);
+  $('k-eq-d').textContent = 'inşaatta yatırılan'+(isU?' (USD)':'');
+  $('k-pay').textContent = r.eqPaybackCal!=null? String(r.eqPaybackCal) : '—';
+  $('k-pay-d').textContent = (r.eqPaybackCal!=null?('özkaynak geri ödeme'):'vade içinde geri ödeme yok')
+    + (r.projBreakevenCal!=null?(' · proje başabaş '+r.projBreakevenCal):'');
   // Sources & Uses
-  $('u-capex').textContent=shortM(r.capex); $('u-idc').textContent=shortM(r.idcTot); $('u-tot').textContent=shortM(r.uses);
-  $('s-debt').textContent=shortM(r.debtCOD); $('s-eq').textContent=shortM(r.equityTot); $('s-tot').textContent=shortM(r.sources);
+  $('u-capex').textContent=isU?shortUSD(r.capexUSD):shortM(r.capex);
+  $('u-idc').textContent=isU?shortUSD(r.idcUSD):shortM(r.idcTot);
+  $('u-tot').textContent=isU?shortUSD(r.usesUSD):shortM(r.uses);
+  $('s-debt').textContent=isU?shortUSD(r.debtCODusd):shortM(r.debtCOD);
+  $('s-eq').textContent=isU?shortUSD(r.equityTotUSD):shortM(r.equityTot);
+  $('s-tot').textContent=isU?shortUSD(r.sourcesUSD):shortM(r.sources);
   const dShare=r.sources>0?r.debtCOD/r.sources*100:0;
   $('bar-debt').style.width=dShare.toFixed(1)+'%'; $('bar-eq').style.width=(100-dShare).toFixed(1)+'%';
   $('lg-debt').textContent='%'+trN.format(dShare); $('lg-eq').textContent='%'+trN.format(100-dShare);
@@ -473,29 +537,40 @@ function render(){
     $('ovp-body').innerHTML='<tr><td colspan="4" style="color:var(--muted)">OVP verisi yüklenmedi (ovp.json).</td></tr>';
     $('ovp-note').textContent='Makro projeksiyon devre dışı — sabit faiz ve ₺ gelir kullanılıyor.';
   }
+  // Kilometre taşları
+  const dc=r.rows.find(x=>x.phase==='İşletme'&&x.debtBal<=1);
+  const endY=r.startY+r.N-1;
+  const ms=[
+    {year:r.startY, label:'İnşaat başlangıcı', color:'#A3A8B5'},
+    {year:r.startY+r.C, label:'İşletmeye geçiş (COD)', color:'#2F9BFF'},
+    {year:r.eqPaybackCal, label:'Özkaynak geri ödeme', color:'#19C37D'},
+    {year:dc?dc.cal:null, label:'Borç kapanışı', color:'#FF6500'},
+    {year:endY, label:'İşletme sonu', color:'#7C5CFF'}
+  ].filter(m=>m.year!=null).sort((a,b)=>a.year-b.year);
+  $('chart-milestones').innerHTML=milestones(ms, r.startY, endY);
   // charts
   $('chart-dscr').innerHTML=dscrChart(r.rows,r.tgtD);
-  $('chart-jcurve').innerHTML=jCurve(r.rows);
+  $('chart-jcurve').innerHTML=jCurve(r.rows, r.startY, r.ePayPy);
   // table
   $('cf-body').innerHTML=r.rows.map(row=>{
     const isC=row.phase==='İnşaat';
     const dscrCell = row.dscr!=null
       ? '<td class="'+(row.dscr<r.tgtD?'dscr-bad':'dscr-ok')+'">'+trN2.format(row.dscr)+'x</td>'
       : '<td style="color:var(--muted)">—</td>';
-    const eq=row.eqCF;
+    const eq=row.eqCF, fx=row.fx;
     return '<tr class="'+(isC?'phase-c':'')+'">'
       +'<td>'+row.cal+'</td><td>'+row.phase+'</td>'
       +'<td>%'+trN1.format(row.rate*100)+'</td>'
       +'<td>'+(r.haveMacro?trN2.format(row.fx):'—')+'</td>'
-      +'<td>'+(row.rev?shortM(row.rev):'—')+'</td>'
-      +'<td>'+(row.ebitda?shortM(row.ebitda):'—')+'</td>'
-      +'<td>'+(row.interest?shortM(row.interest):'—')+'</td>'
-      +'<td>'+(row.tax?shortM(row.tax):'—')+'</td>'
-      +'<td>'+(row.ds?shortM(row.ds):'—')+'</td>'
-      +'<td>'+(row.cfads?shortM(row.cfads):'—')+'</td>'
+      +'<td>'+(row.rev?M(row.rev,fx):'—')+'</td>'
+      +'<td>'+(row.ebitda?M(row.ebitda,fx):'—')+'</td>'
+      +'<td>'+(row.interest?M(row.interest,fx):'—')+'</td>'
+      +'<td>'+(row.tax?M(row.tax,fx):'—')+'</td>'
+      +'<td>'+(row.ds?M(row.ds,fx):'—')+'</td>'
+      +'<td>'+(row.cfads?M(row.cfads,fx):'—')+'</td>'
       +dscrCell
-      +'<td>'+shortM(row.debtBal)+'</td>'
-      +'<td class="'+(eq<0?'neg':'')+'">'+shortM(eq)+'</td></tr>';
+      +'<td>'+M(row.debtBal,fx)+'</td>'
+      +'<td class="'+(eq<0?'neg':'')+'">'+M(eq,fx)+'</td></tr>';
   }).join('');
   // verdict
   const okDSCR=r.minDSCR!=null&&r.minDSCR>=r.tgtD-0.005;   // ekran 2 hane; hedefe yuvarlanan değerleri geçir
@@ -506,11 +581,13 @@ function render(){
   v.innerHTML='<div class="vh"><span class="badge">'+(ok?'Finanse edilebilir':'Dikkat')+'</span>'+s.name+'</div>'
     +'Proje IRR <b>'+(r.pIRR!=null?pct(r.pIRR*100):'—')+'</b> (kaldıraçsız), özkaynak IRR <b>'+(r.eIRR!=null?pct(r.eIRR*100):'—')+'</b> (%'+trN1.format(s.gearing)+' borç ile). '
     +'Min DSCR <b>'+(r.minDSCR!=null?trN2.format(r.minDSCR)+'x':'—')+'</b> / ortalama <b>'+(r.avgDSCR!=null?trN2.format(r.avgDSCR)+'x':'—')+'</b> (hedef '+trN2.format(r.tgtD)+'x · '+repayTxt+'). '
-    +'Toplam '+shortM(r.uses)+' yatırım, '+shortM(r.equityTot)+' özkaynakla finanse ediliyor; IDC '+shortM(r.idcTot)+'. '
+    +'Toplam '+(isU?shortUSD(r.usesUSD):shortM(r.uses))+' yatırım, '+(isU?shortUSD(r.equityTotUSD):shortM(r.equityTot))+' özkaynakla finanse ediliyor; IDC '+(isU?shortUSD(r.idcUSD):shortM(r.idcTot))+'. '
+    +(r.eqPaybackCal!=null?'<b>Özkaynak '+r.eqPaybackCal+'</b> yılında geri ödeniyor':'<b>Özkaynak vade içinde geri ödenmiyor</b>')
+    +(r.projBreakevenCal!=null?', proje <b>'+r.projBreakevenCal+'</b> yılında başabaşa ulaşıyor. ':'. ')
     +(okDSCR?'Borç servisi her yıl hedef kapsamı tutuyor. ':'<b>DSCR hedefin altına düşüyor</b> — borç oranını düşürün, vadeyi uzatın ya da geliri yeniden gözden geçirin. ')
     +(okIRR?'Özkaynak getirisi hurdle oranını aşıyor.':'<b>Özkaynak IRR hurdle oranının altında</b> — kaldıraç, gelir veya capex varsayımlarını test edin.')
     +(r.haveMacro?' <b>OVP makro:</b> USD/TRY '+trN2.format(r.fxStart)+'→'+trN2.format(r.fxEnd)+', gelirin %'+trN.format(r.fxRev*100)+'’i USD-bağlı. ₺ özkaynak IRR '+(r.eIRR!=null?pct(r.eIRR*100):'—')+', <b>USD-eşdeğer '+(r.eIRRusd!=null?pct(r.eIRRusd*100):'—')+'</b> — aradaki fark TRY değer kaybının getirdiği nominal şişkinliktir.':'')
-    +(r.residDebt>1?' <b>Not:</b> vade sonunda '+shortM(r.residDebt)+' bakiye borç kalıyor (balon); vade sonu değeri bunu kapatmak için kullanılıyor.':'');
+    +(r.residDebt>1?' <b>Not:</b> vade sonunda '+(isU?shortUSD(r.residDebt/r.fxEnd):shortM(r.residDebt))+' bakiye borç kalıyor (balon); vade sonu değeri bunu kapatmak için kullanılıyor.':'');
 }
 
 document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{
@@ -519,6 +596,10 @@ document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{
   render();
 }));
 IDS.forEach(k=>{ const el=$(k); if(el) el.addEventListener('input',render); });
+// para birimi ₺/USD geçişi
+function setCur(c){ CUR=c; $('cur-try').classList.toggle('on',c==='TRY'); $('cur-usd').classList.toggle('on',c==='USD'); render(); }
+$('cur-try').addEventListener('click',()=>setCur('TRY'));
+$('cur-usd').addEventListener('click',()=>setCur('USD'));
 document.querySelectorAll('input[type=number]').forEach(el=>{ el.setAttribute('autocomplete','off'); el.addEventListener('wheel',()=>el.blur(),{passive:true}); });
 // binlik ayraç
 function fmtNum(){ NUMF.forEach(k=>{ const el=$(k); if(el&&document.activeElement!==el){ const n=parseInt(String(el.value).replace(/\D/g,''))||0; el.value=n?trN.format(n):''; }}); }
