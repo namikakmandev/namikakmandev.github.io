@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProjeFin — Altyapı Proje Finansmanı</title>
+<meta name="description" content="Altyapı projeleri için proje finansman modeli: inşaat dönemi (IDC), işletme dönemi gelir/gider, borç servisi (anüite veya DSCR hedefli sculpt), vergi ve amortisman; Proje IRR, Özkaynak IRR, NPV, DSCR ve LLCR çıktıları.">
+<meta name="theme-color" content="#2F9BFF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#E6E8EE; --surface:#0F1117; --panel:#171A21; --panel2:#1F232D; --line:#2A2F3A;
+  --primary:#2F9BFF; --primary-soft:rgba(47,155,255,.14);
+  --green:#19C37D; --green-soft:rgba(25,195,125,.14);
+  --orange:#FF6500; --red:#E5484D; --muted:#A3A8B5; --purple:#7C5CFF;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',-apple-system,Segoe UI,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--surface);color:var(--ink);font-size:14px;line-height:1.5}
+a{color:var(--primary);text-decoration:none}
+.topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-weight:700;font-size:16px;letter-spacing:.3px}
+.logo span{color:var(--primary)}
+.crumb{color:var(--muted);font-size:13px}
+.env{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;background:var(--panel2);padding:4px 11px;border-radius:20px;color:var(--muted)}
+.env .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.layout{display:grid;grid-template-columns:336px 1fr;gap:16px;padding:16px 24px;max-width:1480px;margin:0 auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.panel h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:14px 16px 4px;font-weight:600}
+.presets{display:flex;gap:8px;padding:8px 16px 12px}
+.preset{flex:1;font-size:12px;font-weight:600;padding:8px 6px;border:1px solid var(--line);border-radius:7px;background:var(--panel2);color:var(--ink);cursor:pointer;font-family:var(--sans)}
+.preset:hover{border-color:var(--primary);color:var(--primary)}
+.grp{border-top:1px solid var(--line);padding:12px 16px}
+.grp-t{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.grp-t .pill{font-size:9.5px;font-weight:600;padding:1px 7px;border-radius:10px;background:var(--primary-soft);color:var(--primary);text-transform:none;letter-spacing:0}
+.f{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.f:last-child{margin-bottom:0}
+.f label{font-size:12.5px;color:var(--ink);font-weight:500}
+.f label small{display:block;color:var(--muted);font-size:10.5px;font-weight:400}
+.f .wrap{position:relative;flex-shrink:0}
+.f input[type=text],.f input[type=number]{padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--panel2);width:124px;text-align:right}
+.f input[type=text]{text-align:left;font-family:var(--sans)}
+.f input:focus{outline:none;border-color:var(--primary)}
+.f select{padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-family:var(--sans);font-size:12px;color:var(--ink);background:var(--panel2);width:124px}
+.f .suf{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--muted);pointer-events:none}
+.f input.has-suf{padding-right:26px}
+.f input.has-suf-yil{padding-right:34px}
+/* KPI cards */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;background:var(--primary)}
+.kpi.k-eq::before{background:var(--green)} .kpi.k-dscr::before{background:var(--orange)}
+.kpi.k-warn::before{background:var(--red)}
+.k-l{font-size:11px;color:var(--muted);font-weight:500}
+.k-v{font-family:var(--mono);font-size:23px;font-weight:600;margin-top:3px;letter-spacing:-.5px}
+.k-v.green{color:var(--green)} .k-v.red{color:var(--red)} .k-v.orange{color:var(--orange)}
+.k-d{font-size:10.5px;color:var(--muted);margin-top:2px;font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.card h2{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 .tag{font-size:10px;font-weight:600;color:var(--muted);background:var(--panel2);padding:2px 8px;border-radius:10px;font-family:var(--mono)}
+/* sources & uses */
+.su{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.su-col h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px}
+.su-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.su-row.tot{border-bottom:0;border-top:1px solid var(--line);margin-top:4px;padding-top:8px;font-weight:600}
+.su-row .v{font-family:var(--mono)}
+.su-bar{height:8px;border-radius:5px;background:var(--panel2);overflow:hidden;display:flex;margin-top:10px}
+.su-bar i{display:block;height:100%}
+.legend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+/* table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-family:var(--sans);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
+td:first-child,th:first-child{text-align:left}
+tr.phase-c td{color:var(--muted)}
+td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
+.neg{color:var(--red)}
+/* verdict */
+.verdict{border-radius:10px;padding:15px 18px;font-size:13px;line-height:1.6;background:var(--green-soft);border:1px solid rgba(25,195,125,.3)}
+.verdict.warn{background:rgba(229,72,77,.12);border-color:rgba(229,72,77,.35)}
+.verdict .vh{font-weight:700;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:9px}
+.verdict .badge{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:11px;background:var(--green);color:#04130c;text-transform:uppercase;letter-spacing:.04em}
+.verdict.warn .badge{background:var(--red);color:#fff}
+.note{font-size:11.5px;color:var(--muted);padding:14px 24px 30px;max-width:1480px;margin:0 auto;line-height:1.6}
+.note b{color:var(--ink)}
+@media print{.topbar .env,.left,#aiFab,#aiChat{display:none!important}.layout{grid-template-columns:1fr;padding:0}}
+@media(max-width:920px){.layout{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">Proje<span>Fin</span></div>
+  <div class="crumb">Altyapı Proje Finansmanı</div>
+  <div class="env"><span class="dot"></span><span id="envText">yıllık model · ₺</span></div>
+</div>
+
+<div class="layout">
+  <!-- ===== INPUTS ===== -->
+  <div class="panel left">
+    <h3>Proje Girdileri</h3>
+    <div class="presets">
+      <button class="preset" data-preset="toll">🛣️ Otoyol</button>
+      <button class="preset" data-preset="power">⚡ Enerji (GES)</button>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Proje</div>
+      <div class="f"><label>Proje adı</label><div class="wrap"><input type="text" id="name" value="Otoyol Projesi"></div></div>
+      <div class="f"><label>Toplam yatırım (Capex)</label><div class="wrap"><input type="text" id="capex" value="5.000.000.000"><span class="suf">₺</span></div></div>
+      <div class="f"><label>İnşaat süresi</label><div class="wrap"><input type="number" id="constr" value="3" class="has-suf-yil"><span class="suf">yıl</span></div></div>
+      <div class="f"><label>İşletme süresi <small>imtiyaz/operasyon</small></label><div class="wrap"><input type="number" id="opyears" value="25" class="has-suf-yil"><span class="suf">yıl</span></div></div>
+      <div class="f"><label>Vade sonu değer <small>capex %'si</small></label><div class="wrap"><input type="number" id="tv" value="15" class="has-suf"><span class="suf">%</span></div></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Finansman</div>
+      <div class="f"><label>Borç oranı (gearing)</label><div class="wrap"><input type="number" id="gearing" value="70" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Borç faizi</label><div class="wrap"><input type="number" id="debtRate" value="9" step="0.1" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Borç vadesi <small>işletme yılı</small></label><div class="wrap"><input type="number" id="tenor" value="15" class="has-suf-yil"><span class="suf">yıl</span></div></div>
+      <div class="f"><label>Geri ödeme</label><select id="repay"><option value="sculpt">DSCR hedefli</option><option value="annuity">Anüite (eşit)</option></select></div>
+      <div class="f"><label>Hedef DSCR</label><div class="wrap"><input type="number" id="dscr" value="1.30" step="0.05"></div></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Gelir</div>
+      <div class="f"><label>Yıllık gelir <small>tam kapasite</small></label><div class="wrap"><input type="text" id="rev0" value="900.000.000"><span class="suf">₺</span></div></div>
+      <div class="f"><label>1. yıl rampası</label><div class="wrap"><input type="number" id="ramp" value="70" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Yıllık artış (eskalasyon)</label><div class="wrap"><input type="number" id="esc" value="6" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Gider & Vergi</div>
+      <div class="f"><label>İşletme gideri <small>gelirin %'si</small></label><div class="wrap"><input type="number" id="opexPct" value="22" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Bakım yatırımı <small>gelirin %'si</small></label><div class="wrap"><input type="number" id="maintPct" value="4" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Kurumlar vergisi</label><div class="wrap"><input type="number" id="tax" value="25" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Amortisman süresi</label><div class="wrap"><input type="number" id="depYears" value="20" class="has-suf-yil"><span class="suf">yıl</span></div></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">İskonto Oranları</div>
+      <div class="f"><label>Proje iskonto <small>NPV (kaldıraçsız)</small></label><div class="wrap"><input type="number" id="disc" value="10" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Özkaynak hurdle <small>NPV (kaldıraçlı)</small></label><div class="wrap"><input type="number" id="discE" value="15" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+    </div>
+  </div>
+
+  <!-- ===== RESULTS ===== -->
+  <div class="right">
+    <div class="kpis">
+      <div class="kpi"><div class="k-l">Proje IRR <small>(kaldıraçsız)</small></div><div class="k-v" id="k-pirr">—</div><div class="k-d" id="k-pirr-d">varlığın getirisi</div></div>
+      <div class="kpi k-eq"><div class="k-l">Özkaynak IRR <small>(kaldıraçlı)</small></div><div class="k-v green" id="k-eirr">—</div><div class="k-d" id="k-eirr-d">sponsor getirisi</div></div>
+      <div class="kpi k-dscr"><div class="k-l">Min DSCR</div><div class="k-v orange" id="k-dscr">—</div><div class="k-d" id="k-dscr-d">borç servisi karşılama</div></div>
+      <div class="kpi"><div class="k-l">Ortalama DSCR</div><div class="k-v" id="k-adscr">—</div><div class="k-d">vade boyu ortalama</div></div>
+      <div class="kpi"><div class="k-l">Proje NPV</div><div class="k-v" id="k-pnpv">—</div><div class="k-d" id="k-pnpv-d">proje iskontosunda</div></div>
+      <div class="kpi k-eq"><div class="k-l">Özkaynak NPV</div><div class="k-v" id="k-enpv">—</div><div class="k-d" id="k-enpv-d">hurdle oranında</div></div>
+      <div class="kpi"><div class="k-l">Özkaynak ihtiyacı</div><div class="k-v" id="k-eq">—</div><div class="k-d">inşaatta yatırılan</div></div>
+      <div class="kpi"><div class="k-l">LLCR / Geri ödeme</div><div class="k-v" id="k-llcr">—</div><div class="k-d" id="k-pay-d">kredi ömrü kapsamı</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Kaynaklar &amp; Kullanımlar <span class="tag" id="su-bal">denge</span></h2>
+      <div class="su">
+        <div class="su-col">
+          <h4>Kullanımlar</h4>
+          <div class="su-row"><span>İnşaat yatırımı (Capex)</span><span class="v" id="u-capex">—</span></div>
+          <div class="su-row"><span>İnşaat dönemi faizi (IDC)</span><span class="v" id="u-idc">—</span></div>
+          <div class="su-row tot"><span>Toplam kullanım</span><span class="v" id="u-tot">—</span></div>
+        </div>
+        <div class="su-col">
+          <h4>Kaynaklar</h4>
+          <div class="su-row"><span>Banka kredisi (borç)</span><span class="v" id="s-debt">—</span></div>
+          <div class="su-row"><span>Özkaynak (sponsor)</span><span class="v" id="s-eq">—</span></div>
+          <div class="su-row tot"><span>Toplam kaynak</span><span class="v" id="s-tot">—</span></div>
+        </div>
+      </div>
+      <div class="su-bar"><i id="bar-debt" style="background:var(--primary)"></i><i id="bar-eq" style="background:var(--green)"></i></div>
+      <div class="legend"><span><i style="background:var(--primary)"></i>Borç <b id="lg-debt" style="color:var(--ink);margin-left:3px"></b></span><span><i style="background:var(--green)"></i>Özkaynak <b id="lg-eq" style="color:var(--ink);margin-left:3px"></b></span></div>
+    </div>
+
+    <div class="card">
+      <h2>DSCR Profili <span class="tag">borç servisi karşılama oranı · işletme yılları</span></h2>
+      <div id="chart-dscr"></div>
+    </div>
+
+    <div class="card">
+      <h2>Kümülatif Özkaynak Nakit Akışı <span class="tag">J-eğrisi · geri ödeme</span></h2>
+      <div id="chart-jcurve"></div>
+    </div>
+
+    <div class="card">
+      <h2>Yıllık Nakit Akış Tablosu</h2>
+      <div class="tbl-wrap">
+        <table id="cf-table">
+          <thead><tr>
+            <th>Yıl</th><th>Faz</th><th>Gelir</th><th>EBITDA</th><th>Faiz</th><th>Vergi</th>
+            <th>Borç servisi</th><th>CFADS</th><th>DSCR</th><th>Borç bakiyesi</th><th>Özkaynak NA</th>
+          </tr></thead>
+          <tbody id="cf-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="verdict" class="verdict"></div>
+  </div>
+</div>
+
+<div class="note">
+  <b>ProjeFin</b>, altyapı projeleri için illüstratif bir proje finansman (PF) modelidir. İnşaat dönemi capex çekişi ve <b>inşaat dönemi faizini (IDC)</b> kapitalize eder; işletme döneminde gelir rampası/eskalasyonu, işletme gideri, bakım yatırımı ve amortismanlı vergiyi modeller. Borç ya <b>anüite</b> ile ya da <b>hedef DSCR'a göre sculpt</b> edilerek geri ödenir. Çıktılar: kaldıraçsız <b>Proje IRR</b>, kaldıraçlı <b>Özkaynak IRR</b>, NPV, <b>DSCR</b> (min/ortalama) ve <b>LLCR</b>. Vergi; özkaynak için faiz kalkanıyla, proje (kaldıraçsız) için faizsiz hesaplanır. Tüm hesaplama tarayıcıda, yıllık esasta yapılır — resmi finansal model veya yatırım tavsiyesi değildir.
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const trN=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0});
+const trN1=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:1});
+const trN2=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:2});
+function shortM(v){const a=Math.abs(v),s=v<0?'−':'';
+  if(a>=1e9)return s+'₺'+trN2.format(a/1e9)+' Mr';
+  if(a>=1e6)return s+'₺'+trN1.format(a/1e6)+' M';
+  if(a>=1e3)return s+'₺'+trN.format(a/1e3)+' B';
+  return s+'₺'+trN.format(a);}
+const pct=v=>'%'+trN1.format(v);
+
+const PRESETS={
+  toll:{name:'Otoyol Projesi',capex:5000000000,constr:3,opyears:25,tv:15,gearing:70,debtRate:9,tenor:15,repay:'sculpt',dscr:1.30,rev0:900000000,ramp:70,esc:6,opexPct:22,maintPct:4,tax:25,depYears:20,disc:10,discE:15},
+  power:{name:'Güneş Enerjisi (GES)',capex:2200000000,constr:2,opyears:30,tv:5,gearing:75,debtRate:8.5,tenor:14,repay:'sculpt',dscr:1.25,rev0:430000000,ramp:90,esc:4,opexPct:15,maintPct:2,tax:25,depYears:25,disc:9,discE:14}
+};
+
+const NUMF=['capex','rev0']; // binlik ayraçlı büyük alanlar
+const IDS=['name','capex','constr','opyears','tv','gearing','debtRate','tenor','repay','dscr','rev0','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE'];
+
+function readState(){
+  const s={};
+  s.name=$('name').value||'Proje';
+  s.repay=$('repay').value;
+  ['constr','opyears','tv','gearing','debtRate','tenor','dscr','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE']
+    .forEach(k=>s[k]=parseFloat(String($(k).value).replace(',','.'))||0);
+  NUMF.forEach(k=>s[k]=parseInt(String($(k).value).replace(/\D/g,''))||0);
+  return s;
+}
+
+function irr(cfs){
+  const f=r=>{let v=0;for(let t=0;t<cfs.length;t++)v+=cfs[t]/Math.pow(1+r,t+1);return v;};
+  let lo=-0.95,hi=4; const sl=f(lo)>0; if(sl===(f(hi)>0))return null;
+  for(let i=0;i<120;i++){const m=(lo+hi)/2; if((f(m)>0)===sl)lo=m;else hi=m;} return (lo+hi)/2;
+}
+function npv(cfs,r){let v=0;for(let t=0;t<cfs.length;t++)v+=cfs[t]/Math.pow(1+r,t+1);return v;}
+
+function compute(s){
+  const C=Math.max(0,Math.round(s.constr)), O=Math.max(1,Math.round(s.opyears));
+  const capex=s.capex, gear=Math.min(1,Math.max(0,s.gearing/100)), rate=s.debtRate/100;
+  const tenor=Math.max(1,Math.round(s.tenor)), taxRate=s.tax/100;
+  const tgtD=Math.max(1.0,s.dscr), tvPct=s.tv/100;
+  const rows=[];
+  // ---- İnşaat dönemi: capex çekişi + IDC ----
+  const drawY=C>0?capex/C:0;
+  let debtBal=0, equityTot=0, idcTot=0, debtDrawn=0;
+  for(let y=1;y<=C;y++){
+    const idc=debtBal*rate; idcTot+=idc; debtBal+=idc;
+    const dD=drawY*gear, dE=drawY*(1-gear);
+    debtBal+=dD; debtDrawn+=dD; equityTot+=dE;
+    rows.push({year:y,phase:'İnşaat',rev:0,ebitda:0,interest:idc,tax:0,ds:0,cfads:0,dscr:null,debtBal:debtBal,projCF:-drawY,eqCF:-dE});
+  }
+  const debtCOD=debtBal; // IDC dahil, işletmeye geçişte borç
+  // ---- İşletme dönemi ----
+  const depYears=Math.max(1,Math.min(Math.round(s.depYears),O));
+  const depPerYear=capex/depYears;
+  let bal=debtCOD, minDSCR=Infinity, sumDSCR=0, nDSCR=0, pvCFADS=0;
+  for(let k=1;k<=O;k++){
+    const ramp=(k===1)?s.ramp/100:1;
+    const rev=s.rev0*ramp*Math.pow(1+s.esc/100,k-1);
+    const opex=rev*s.opexPct/100, ebitda=rev-opex, maint=rev*s.maintPct/100;
+    const dep=(k<=depYears)?depPerYear:0;
+    const interest=bal*rate;
+    const taxLev=Math.max(0,(ebitda-dep-interest)*taxRate);
+    const taxUnlev=Math.max(0,(ebitda-dep)*taxRate);
+    const cfads=ebitda-taxLev-maint;
+    let ds=0,principal=0;
+    if(k<=tenor && bal>1){
+      if(s.repay==='annuity'){
+        const rem=tenor-(k-1);
+        const ann=rate>0? bal*rate*Math.pow(1+rate,rem)/(Math.pow(1+rate,rem)-1) : bal/rem;
+        principal=Math.min(Math.max(ann-interest,0),bal);
+      } else {
+        const target=cfads/tgtD;
+        principal=Math.min(Math.max(target-interest,0),bal);
+      }
+      ds=interest+principal;
+    }
+    bal-=principal;
+    const dscr= ds>0? cfads/ds : null;
+    if(dscr!=null){ if(dscr<minDSCR)minDSCR=dscr; sumDSCR+=dscr; nDSCR++; }
+    if(k<=tenor) pvCFADS+=cfads/Math.pow(1+rate,k);
+    rows.push({year:C+k,phase:'İşletme',rev,ebitda,interest,tax:taxLev,ds,cfads,dscr,debtBal:bal,
+               projCF:ebitda-taxUnlev-maint, eqCF:cfads-ds});
+  }
+  // vade sonu değer (son işletme yılına)
+  const tv=capex*tvPct, residDebt=bal;
+  const last=rows[rows.length-1];
+  last.projCF+=tv;
+  last.eqCF+=Math.max(0,tv-residDebt);
+  last.tv=tv; last.residDebt=residDebt;
+  // IRR / NPV
+  const projCFs=rows.map(r=>r.projCF), eqCFs=rows.map(r=>r.eqCF);
+  const pIRR=irr(projCFs), eIRR=irr(eqCFs);
+  const pNPV=npv(projCFs,s.disc/100), eNPV=npv(eqCFs,s.discE/100);
+  const llcr= debtCOD>0? pvCFADS/debtCOD : null;
+  // özkaynak geri ödeme yılı (kümülatif eqCF > 0)
+  let cum=0, payback=null;
+  for(let i=0;i<eqCFs.length;i++){ cum+=eqCFs[i]; if(payback===null && cum>=0) payback=i+1; }
+  return {C,O,rows,capex,idcTot,debtCOD,debtDrawn,equityTot,gear,
+          minDSCR:isFinite(minDSCR)?minDSCR:null, avgDSCR:nDSCR?sumDSCR/nDSCR:null,
+          pIRR,eIRR,pNPV,eNPV,llcr,payback,tgtD,repay:s.repay,residDebt,tv,
+          uses:capex+idcTot, sources:debtCOD+equityTot};
+}
+
+/* ---- charts ---- */
+function dscrChart(rows,target){
+  const ops=rows.filter(r=>r.dscr!=null);
+  if(!ops.length) return '<div style="color:var(--muted);font-size:12px">Borç servisi yok.</div>';
+  const W=1320,H=240,padL=20,padR=20,padT=22,padB=30,iW=W-padL-padR,iH=H-padT-padB;
+  let maxv=Math.max(target*1.25,...ops.map(o=>o.dscr)); maxv=Math.max(maxv,1.6);
+  const n=ops.length, gap=iW/n, bw=Math.min(gap*0.62,46);
+  const yOf=v=>padT+iH-(v/maxv)*iH;
+  let g='';
+  ops.forEach((o,i)=>{
+    const x=padL+i*gap+(gap-bw)/2, y=yOf(o.dscr), h=padT+iH-y;
+    const col=o.dscr<target?'#E5484D':(o.dscr<target*1.05?'#FF6500':'#19C37D');
+    g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,h).toFixed(1)+'" fill="'+col+'" rx="2"/>';
+    if(i%Math.ceil(n/14)===0||n<=16) g+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+o.year+'</text>';
+  });
+  const ty=yOf(target);
+  g+='<line x1="'+padL+'" y1="'+ty.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+ty.toFixed(1)+'" stroke="#FF6500" stroke-width="1.4" stroke-dasharray="6 4"/>';
+  g+='<text x="'+(W-padR-2)+'" y="'+(ty-6).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="11" font-weight="600" fill="#FF6500">hedef '+trN2.format(target)+'x</text>';
+  const oy=yOf(1);
+  g+='<line x1="'+padL+'" y1="'+oy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+oy.toFixed(1)+'" stroke="#2A2F3A" stroke-width="1"/>';
+  g+='<text x="'+padL+'" y="'+(oy-5).toFixed(1)+'" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">1,0x · başabaş</text>';
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
+}
+function jCurve(rows){
+  const pts=[0]; let cum=0;
+  rows.forEach(r=>{cum+=r.eqCF; pts.push(cum);});
+  const n=pts.length, W=1320,H=260,padL=58,padR=20,padT=22,padB=28,iW=W-padL-padR,iH=H-padT-padB;
+  let mn=Math.min(...pts), mx=Math.max(...pts); if(mn>0)mn=0; if(mx<0)mx=0;
+  const pad=(mx-mn)*0.1||1; mn-=pad; mx+=pad;
+  const xOf=i=>padL+(i/(n-1))*iW, yOf=v=>padT+iH-((v-mn)/(mx-mn))*iH, zY=yOf(0);
+  let g='';
+  g+='<line x1="'+padL+'" y1="'+zY.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+zY.toFixed(1)+'" stroke="#5B6472" stroke-width="1" stroke-dasharray="4 4"/>';
+  g+='<text x="'+(padL-6)+'" y="'+(zY+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">0</text>';
+  // segments colored by sign
+  for(let i=0;i<n-1;i++){
+    const a=pts[i],b=pts[i+1],xa=xOf(i),xb=xOf(i+1);
+    if((a>=0)===(b>=0)){
+      g+='<path d="M '+xa.toFixed(1)+' '+yOf(a).toFixed(1)+' L '+xb.toFixed(1)+' '+yOf(b).toFixed(1)+'" fill="none" stroke="'+(a>=0?'#19C37D':'#E5484D')+'" stroke-width="2.6"/>';
+    } else {
+      const f=(-a)/(b-a), xc=xa+f*(xb-xa);
+      g+='<path d="M '+xa.toFixed(1)+' '+yOf(a).toFixed(1)+' L '+xc.toFixed(1)+' '+zY.toFixed(1)+'" fill="none" stroke="'+(a>=0?'#19C37D':'#E5484D')+'" stroke-width="2.6"/>';
+      g+='<path d="M '+xc.toFixed(1)+' '+zY.toFixed(1)+' L '+xb.toFixed(1)+' '+yOf(b).toFixed(1)+'" fill="none" stroke="'+(b>=0?'#19C37D':'#E5484D')+'" stroke-width="2.6"/>';
+    }
+  }
+  // y labels (min, max)
+  g+='<text x="'+(padL-6)+'" y="'+(yOf(mx)+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+shortM(mx)+'</text>';
+  g+='<text x="'+(padL-6)+'" y="'+(yOf(mn)+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+shortM(mn)+'</text>';
+  const endCol=pts[n-1]>=0?'#19C37D':'#E5484D';
+  g+='<circle cx="'+xOf(n-1).toFixed(1)+'" cy="'+yOf(pts[n-1]).toFixed(1)+'" r="5" fill="'+endCol+'"/>';
+  g+='<text x="'+(xOf(n-1)-6).toFixed(1)+'" y="'+(yOf(pts[n-1])-12).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="15" font-weight="600" fill="'+endCol+'">'+shortM(pts[n-1])+'</text>';
+  g+='<text x="'+padL+'" y="'+(H-8)+'" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">Yıl 0</text>';
+  g+='<text x="'+(W-padR).toFixed(1)+'" y="'+(H-8)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">Yıl '+(n-1)+'</text>';
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
+}
+
+function render(){
+  const s=readState(), r=compute(s);
+  // KPI
+  $('k-pirr').textContent = r.pIRR!=null?pct(r.pIRR*100):'—';
+  $('k-eirr').textContent = r.eIRR!=null?pct(r.eIRR*100):'—';
+  $('k-eirr').className='k-v '+(r.eIRR!=null&&r.eIRR*100>=(s.discE)?'green':'red');
+  $('k-dscr').textContent = r.minDSCR!=null?trN2.format(r.minDSCR)+'x':'—';
+  $('k-dscr').className='k-v '+(r.minDSCR!=null&&r.minDSCR>=r.tgtD?'green':(r.minDSCR!=null&&r.minDSCR>=1?'orange':'red'));
+  $('k-dscr-d').textContent = 'hedef '+trN2.format(r.tgtD)+'x';
+  $('k-adscr').textContent = r.avgDSCR!=null?trN2.format(r.avgDSCR)+'x':'—';
+  $('k-pnpv').textContent = shortM(r.pNPV); $('k-pnpv').className='k-v '+(r.pNPV>=0?'green':'red');
+  $('k-pnpv-d').textContent='%'+trN1.format(s.disc)+' iskontoda';
+  $('k-enpv').textContent = shortM(r.eNPV); $('k-enpv').className='k-v '+(r.eNPV>=0?'green':'red');
+  $('k-enpv-d').textContent='%'+trN1.format(s.discE)+' hurdle';
+  $('k-eq').textContent = shortM(r.equityTot);
+  $('k-llcr').textContent = (r.llcr!=null?trN2.format(r.llcr)+'x':'—');
+  $('k-pay-d').textContent = r.payback!=null?('özkaynak geri ödeme: '+r.payback+'. yıl'):'geri ödeme: vade içinde değil';
+  // Sources & Uses
+  $('u-capex').textContent=shortM(r.capex); $('u-idc').textContent=shortM(r.idcTot); $('u-tot').textContent=shortM(r.uses);
+  $('s-debt').textContent=shortM(r.debtCOD); $('s-eq').textContent=shortM(r.equityTot); $('s-tot').textContent=shortM(r.sources);
+  const dShare=r.sources>0?r.debtCOD/r.sources*100:0;
+  $('bar-debt').style.width=dShare.toFixed(1)+'%'; $('bar-eq').style.width=(100-dShare).toFixed(1)+'%';
+  $('lg-debt').textContent='%'+trN.format(dShare); $('lg-eq').textContent='%'+trN.format(100-dShare);
+  const bal=Math.abs(r.uses-r.sources)<1;
+  $('su-bal').textContent = bal?'✓ denge':'≠ dengesiz';
+  $('su-bal').style.color = bal?'var(--green)':'var(--red)';
+  // charts
+  $('chart-dscr').innerHTML=dscrChart(r.rows,r.tgtD);
+  $('chart-jcurve').innerHTML=jCurve(r.rows);
+  // table
+  $('cf-body').innerHTML=r.rows.map(row=>{
+    const isC=row.phase==='İnşaat';
+    const dscrCell = row.dscr!=null
+      ? '<td class="'+(row.dscr<r.tgtD?'dscr-bad':'dscr-ok')+'">'+trN2.format(row.dscr)+'x</td>'
+      : '<td style="color:var(--muted)">—</td>';
+    const eq=row.eqCF;
+    return '<tr class="'+(isC?'phase-c':'')+'">'
+      +'<td>'+row.year+'</td><td>'+row.phase+'</td>'
+      +'<td>'+(row.rev?shortM(row.rev):'—')+'</td>'
+      +'<td>'+(row.ebitda?shortM(row.ebitda):'—')+'</td>'
+      +'<td>'+(row.interest?shortM(row.interest):'—')+'</td>'
+      +'<td>'+(row.tax?shortM(row.tax):'—')+'</td>'
+      +'<td>'+(row.ds?shortM(row.ds):'—')+'</td>'
+      +'<td>'+(row.cfads?shortM(row.cfads):'—')+'</td>'
+      +dscrCell
+      +'<td>'+shortM(row.debtBal)+'</td>'
+      +'<td class="'+(eq<0?'neg':'')+'">'+shortM(eq)+'</td></tr>';
+  }).join('');
+  // verdict
+  const okDSCR=r.minDSCR!=null&&r.minDSCR>=r.tgtD-0.005;   // ekran 2 hane; hedefe yuvarlanan değerleri geçir
+  const okIRR=r.eIRR!=null&&r.eIRR*100>=s.discE;
+  const ok=okDSCR&&okIRR&&r.pNPV>0;
+  const v=$('verdict'); v.className='verdict'+(ok?'':' warn');
+  const repayTxt=r.repay==='sculpt'?'DSCR hedefli (sculpt)':'anüite';
+  v.innerHTML='<div class="vh"><span class="badge">'+(ok?'Finanse edilebilir':'Dikkat')+'</span>'+s.name+'</div>'
+    +'Proje IRR <b>'+(r.pIRR!=null?pct(r.pIRR*100):'—')+'</b> (kaldıraçsız), özkaynak IRR <b>'+(r.eIRR!=null?pct(r.eIRR*100):'—')+'</b> (%'+trN1.format(s.gearing)+' borç ile). '
+    +'Min DSCR <b>'+(r.minDSCR!=null?trN2.format(r.minDSCR)+'x':'—')+'</b> / ortalama <b>'+(r.avgDSCR!=null?trN2.format(r.avgDSCR)+'x':'—')+'</b> (hedef '+trN2.format(r.tgtD)+'x · '+repayTxt+'). '
+    +'Toplam '+shortM(r.uses)+' yatırım, '+shortM(r.equityTot)+' özkaynakla finanse ediliyor; IDC '+shortM(r.idcTot)+'. '
+    +(okDSCR?'Borç servisi her yıl hedef kapsamı tutuyor. ':'<b>DSCR hedefin altına düşüyor</b> — borç oranını düşürün, vadeyi uzatın ya da geliri yeniden gözden geçirin. ')
+    +(okIRR?'Özkaynak getirisi hurdle oranını aşıyor.':'<b>Özkaynak IRR hurdle oranının altında</b> — kaldıraç, gelir veya capex varsayımlarını test edin.')
+    +(r.residDebt>1?' <b>Not:</b> vade sonunda '+shortM(r.residDebt)+' bakiye borç kalıyor (balon); vade sonu değeri bunu kapatmak için kullanılıyor.':'');
+}
+
+document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{
+  const p=PRESETS[b.dataset.preset];
+  Object.keys(p).forEach(k=>{ if($(k)){ $(k).value = NUMF.includes(k)? trN.format(p[k]) : p[k]; }});
+  render();
+}));
+IDS.forEach(k=>{ const el=$(k); if(el) el.addEventListener('input',render); });
+document.querySelectorAll('input[type=number]').forEach(el=>{ el.setAttribute('autocomplete','off'); el.addEventListener('wheel',()=>el.blur(),{passive:true}); });
+// binlik ayraç
+function fmtNum(){ NUMF.forEach(k=>{ const el=$(k); if(el&&document.activeElement!==el){ const n=parseInt(String(el.value).replace(/\D/g,''))||0; el.value=n?trN.format(n):''; }}); }
+NUMF.forEach(k=>{ const el=$(k); if(!el)return; el.addEventListener('focus',()=>{ el.value=String(parseInt(String(el.value).replace(/\D/g,''))||''); }); el.addEventListener('blur',()=>{fmtNum();render();}); });
+fmtNum();
+render();
+</script>
+</body>
+</html>
