@@ -219,7 +219,8 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:10px 0 28px}
       <div class="grp">
         <div class="grp-t">Banka Kredisi & Faiz <span class="pill" id="rate-pill" style="display:none">canlı</span></div>
         <div class="f"><label>Peşinat <small>özkaynak payı</small></label><div class="wrap"><input type="number" id="down" class="has-suf" value="0"><span class="suf">%</span></div></div>
-        <div class="f"><label>Banka kredi faizi <small>yıllık · TCMB ticari kredi</small><span id="rate-refresh" class="mini-refresh">↻ TCMB’den güncelle</span></label><div class="wrap"><input type="number" id="rate" class="has-suf" value="55.32" step="0.1"><span class="suf">%</span></div></div>
+        <div class="f"><label>Aylık kredi faizi <small>sürükleyici · TCMB ÷ 12</small></label><div class="wrap"><input type="number" id="rateM" class="has-suf" value="4.61" step="0.05"><span class="suf">%</span></div></div>
+        <div class="f"><label>Yıllık karşılığı <small>aylık × 12 · TCMB ticari kredi</small><span id="rate-refresh" class="mini-refresh">↻ TCMB’den güncelle</span></label><div class="wrap"><input type="number" id="rate" class="has-suf" value="55.32" step="0.1"><span class="suf">%</span></div></div>
         <div class="f"><label>Kredi masrafları <small>tahsis, BSMV vb. · krediye oran</small></label><div class="wrap"><input type="number" id="fee" class="has-suf" value="1" step="0.5"><span class="suf">%</span></div></div>
         <div class="f"><label>Vade sonu değeri <small>aracın ikinci el değeri</small></label><div class="wrap"><input type="number" id="residual" class="has-suf" value="50"><span class="suf">%</span></div></div>
       </div>
@@ -403,6 +404,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:10px 0 28px}
 const $=id=>document.getElementById(id);
 const trN=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0});
 const trN1=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:1});
+const trN2=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:2});
 const money=v=>'₺'+trN.format(Math.round(v));
 const IDS=['model','price','qty','term','km','down','residual','rate','fee','ins','maint','other','margin','vat'];
 let rateLive=false, userTouchedRate=false, infYoY=0, basis='cash';
@@ -644,7 +646,7 @@ function render(){
   $('fn-int').textContent=money(c.totalInterest);
   $('fn-int-d').textContent= c.loan>0 ? ('kredinin %'+trN.format(c.totalInterest/c.loan*100)+'’i') : 'vade boyunca';
   $('fn-rate').textContent='%'+trN1.format(s.rate);
-  $('fn-rate-d').textContent= rateLive ? 'TCMB · canlı · düzenlenebilir' : 'düzenlenebilir';
+  $('fn-rate-d').textContent= 'aylık %'+trN2.format(s.rate/12)+((rateLive && !userTouchedRate) ? ' · TCMB canlı' : '');
   $('fn-cashbars').innerHTML=cashBarsHTML(c, basis);
   $('fn-cashbars-h').textContent = basis==='accrual' ? 'Aylık kâr — gelir vs maliyet (araç başına)' : 'Aylık nakit — gelir vs gider (araç başına)';
   $('fn-amort').innerHTML=amortSVG(c.loan, s.rate/100/12, c.n, c.installment);
@@ -714,6 +716,11 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 }));
 // inputs
 IDS.forEach(k=>$(k).addEventListener('input',()=>{ if(k==='rate')userTouchedRate=true; render(); }));
+// aylık ⇄ yıllık faiz senkronu — aylık sürükleyici, yıllık = aylık × 12
+function syncFromMonthly(){ const m=parseFloat(String($('rateM').value).replace(',','.'))||0; $('rate').value=+(m*12).toFixed(2); }
+function syncFromYearly(){ const a=parseFloat(String($('rate').value).replace(',','.'))||0; $('rateM').value=+(a/12).toFixed(2); }
+$('rateM').addEventListener('input',()=>{ userTouchedRate=true; syncFromMonthly(); $('rate').classList.remove('rate-live'); $('rateM').classList.remove('rate-live'); render(); });
+$('rate').addEventListener('input',()=>{ syncFromYearly(); $('rateM').classList.remove('rate-live'); });
 // sayı alanları fareyle kaydırınca değer değişmesin
 document.querySelectorAll('input[type=number]').forEach(el=>{ el.setAttribute('autocomplete','off'); el.addEventListener('wheel',()=>el.blur(),{passive:true}); });
 // büyük sayı alanlarında binlik ayraç (.) — yaz: ham, çık: ayraçlı
@@ -723,7 +730,7 @@ INTF.forEach(k=>{ const el=$(k); if(!el)return; el.setAttribute('autocomplete','
 fmtIntInputs();
 // sayı alanları her zaman pozitif (Adet ve Vade en az 1)
 if($('qty'))$('qty').min='1'; if($('term'))$('term').min='1';
-['down','residual','rate','fee','ins','margin','vat'].forEach(k=>{ if($(k)) $(k).min='0'; });
+['down','residual','rate','rateM','fee','ins','margin','vat'].forEach(k=>{ if($(k)) $(k).min='0'; });
 document.querySelectorAll('input[type=number]').forEach(el=>{ el.addEventListener('blur',()=>{ const mn=parseFloat(el.min)||0; if(el.value!=='' && (parseFloat(el.value)||0)<mn){ el.value=mn; render(); } }); });
 
 // live TCMB rate
@@ -738,7 +745,7 @@ function loadRate(force){
       if(loan){
         rateLive=true;
         if(force) userTouchedRate=false;
-        if(!userTouchedRate){ $('rate').value=loan; $('rate').classList.add('rate-live'); }
+        if(!userTouchedRate){ $('rate').value=loan; $('rate').classList.add('rate-live'); $('rateM').value=+(loan/12).toFixed(2); $('rateM').classList.add('rate-live'); }
         $('env').classList.add('live');
         $('envText').textContent='Banka kredi faizi %'+trN1.format(loan)+(asof?' · '+asof:'');
         const rp=$('rate-pill'); if(rp) rp.style.display='inline-block';
