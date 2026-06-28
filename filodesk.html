@@ -704,6 +704,7 @@ function render(){
   // AI asistanı için canlı durumu dışa aç (fd-ai.js okur)
   const activeTab=document.querySelector('.tab.active');
   window.__FD={s:s, c:c, basis:basis, live:rateLive, tab:activeTab?activeTab.textContent.trim():'Teklif'};
+  saveState();
 }
 
 // preset buttons
@@ -731,6 +732,23 @@ function syncFromMonthly(){ const m=parseFloat(String($('rateM').value).replace(
 function syncFromYearly(){ const a=parseFloat(String($('rate').value).replace(',','.'))||0; $('rateM').value=+(a/12).toFixed(2); }
 $('rateM').addEventListener('input',()=>{ userTouchedRate=true; syncFromMonthly(); $('rate').classList.remove('rate-live'); $('rateM').classList.remove('rate-live'); render(); });
 $('rate').addEventListener('input',()=>{ syncFromYearly(); $('rateM').classList.remove('rate-live'); });
+// --- kalıcılık: girdiler yenilemede korunur (localStorage) ---
+const STORE_KEY='filodesk_state_v1';
+const SAVE_KEYS=IDS.concat(['rateM']);
+function saveState(){ try{ const at=document.querySelector('.tab.active'); const o={uT:userTouchedRate, tab:at?at.dataset.tab:'cash'};
+  SAVE_KEYS.forEach(k=>{ const el=$(k); if(el) o[k]=el.value; });
+  localStorage.setItem(STORE_KEY, JSON.stringify(o)); }catch(e){} }
+function loadState(){ try{ const raw=localStorage.getItem(STORE_KEY); if(!raw) return false; const o=JSON.parse(raw)||{};
+  SAVE_KEYS.forEach(k=>{ const el=$(k); if(el && o[k]!=null && o[k]!=='') el.value=o[k]; });
+  if(o.uT) userTouchedRate=true;
+  if(o.tab){ const tb=[...document.querySelectorAll('.tab')].find(t=>t.dataset.tab===o.tab);
+    if(tb){ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); tb.classList.add('active');
+      basis=(o.tab==='accrual')?'accrual':'cash';
+      $('view-finance').classList.toggle('hidden', !(o.tab==='cash'||o.tab==='accrual'));
+      $('view-quote').classList.toggle('hidden', o.tab!=='quote');
+      $('view-profit').classList.toggle('hidden', o.tab!=='profit'); } }
+  return true; }catch(e){ return false; } }
+loadState();
 // sayı alanları fareyle kaydırınca değer değişmesin
 document.querySelectorAll('input[type=number]').forEach(el=>{ el.setAttribute('autocomplete','off'); el.addEventListener('wheel',()=>el.blur(),{passive:true}); });
 // büyük sayı alanlarında binlik ayraç (.) — yaz: ham, çık: ayraçlı
