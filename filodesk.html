@@ -235,6 +235,7 @@ footer{text-align:center;color:var(--muted);font-size:11px;padding:10px 0 28px}
       <div class="grp">
         <div class="grp-t">Fiyatlama</div>
         <div class="f"><label>Kâr marjı <small>maliyet üzeri</small></label><div class="wrap"><input type="number" id="margin" class="has-suf" value="25"><span class="suf">%</span></div></div>
+        <div class="f"><label>Hedef primi (bonus) <small>üreticiden · araç fiyatının %'si</small></label><div class="wrap"><input type="number" id="bonus" class="has-suf" value="0" step="0.5"><span class="suf">%</span></div></div>
         <div class="f"><label>KDV</label><div class="wrap"><input type="number" id="vat" class="has-suf" value="20"><span class="suf">%</span></div></div>
       </div>
 
@@ -406,7 +407,7 @@ const trN=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0});
 const trN1=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:1});
 const trN2=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:2});
 const money=v=>'₺'+trN.format(Math.round(v));
-const IDS=['model','price','qty','term','km','down','residual','rate','fee','ins','maint','other','margin','vat'];
+const IDS=['model','price','qty','term','km','down','residual','rate','fee','ins','maint','other','margin','bonus','vat'];
 let rateLive=false, userTouchedRate=false, infYoY=0, basis='cash';
 
 const PRESETS={
@@ -417,7 +418,7 @@ const PRESETS={
 function readState(){
   const s={};
   s.model=$('model').value||'Araç';
-  ['price','qty','term','km','down','residual','rate','fee','ins','maint','other','margin','vat'].forEach(k=>{
+  ['price','qty','term','km','down','residual','rate','fee','ins','maint','other','margin','bonus','vat'].forEach(k=>{
     const raw=String($(k).value);
     s[k]=(k==='price'||k==='km'||k==='maint'||k==='other') ? (parseInt(raw.replace(/\D/g,''))||0) : (parseFloat(raw)||0);
   });
@@ -452,14 +453,16 @@ function compute(s){
   const covOurs=benchmark>0?rentInc/benchmark:0;     // önerdiğimiz kiranın oranı
   const covBreakeven=benchmark>0?(cost*(1+s.vat/100))/benchmark:0; // gerçek başabaş bu ölçekte
   const marginRev=rentEx>0?mrg/rentEx:0, totalProfit=mrg*n;
+  const bonus=P*(s.bonus||0)/100;                    // hedef primi — üreticiden, teslimde (peşin) alınan ekstra gelir
+  const profitAll=totalProfit+bonus;                 // vade boyu toplam bayi kârı (kira marjı + prim)
   const cashMonth=rentEx-installment-opMonth;        // aylık nakit (taksit dahil; R vade sonunda kapatır)
   const upfront=(s.down/100)*P+feeOneTime;
-  let cum=-upfront, trough=-upfront;
+  let cum=-upfront+bonus, trough=cum;                // prim peşin gelir → işletme sermayesini azaltır
   for(let i=1;i<=n;i++){ cum+=cashMonth; if(i===n)cum+=R; if(cum<trough)trough=cum; }
   const workingCap=Math.max(0,-trough);
-  // NBD (NPV) + IRR — nakit akışları fonlama maliyetiyle iskontolu
+  // NBD (NPV) + IRR — nakit akışları fonlama maliyetiyle iskontolu (prim ay 0'da girer)
   const dM=s.rate/100/12;
-  let cfs=[-upfront]; for(let i=1;i<=n;i++){ let cf=cashMonth; if(i===n)cf+=R; cfs.push(cf); }
+  let cfs=[-upfront+bonus]; for(let i=1;i<=n;i++){ let cf=cashMonth; if(i===n)cf+=R; cfs.push(cf); }
   const npvAt=r=>{ let v=0; for(let t=0;t<cfs.length;t++) v+=cfs[t]/Math.pow(1+r,t); return v; };
   const npv=npvAt(dM);
   let lo=-0.9,hi=3,irrA=null; const sl=npvAt(lo)>0;
@@ -467,11 +470,11 @@ function compute(s){
   // Kaldıraçsız (bankasız) proje IRR — aracı tüm parayla alıp kiralarsanız varlığın kendi getirisi.
   // Banka taksiti yok; ay 0'da tüm araç bedeli çıkar, kira − işletme gideri girer, vade sonunda araç satışı.
   const cashMonthU=rentEx-opMonth;
-  let cfsU=[-P]; for(let i=1;i<=n;i++){ let cf=cashMonthU; if(i===n)cf+=R; cfsU.push(cf); }
+  let cfsU=[-P+bonus]; for(let i=1;i<=n;i++){ let cf=cashMonthU; if(i===n)cf+=R; cfsU.push(cf); }
   const npvAtU=r=>{ let v=0; for(let t=0;t<cfsU.length;t++) v+=cfsU[t]/Math.pow(1+r,t); return v; };
   let loU=-0.9,hiU=3,irrU=null; const slU=npvAtU(loU)>0;
   if(slU!==(npvAtU(hiU)>0)){ for(let k=0;k<90;k++){ const mid=(loU+hiU)/2; if((npvAtU(mid)>0)===slU) loU=mid; else hiU=mid; } irrU=Math.pow(1+(loU+hiU)/2,12)-1; }
-  return {P,R,n,loan,installment,totalPaid,totalInterest,finMonth,principalMonth,feeOneTime,feeMonth,depMonth,opMonth,insYr,cost,mrg,rentEx,rentInc,marginRev,totalProfit,oldEx,oldInc,coverage,covOurs,covBreakeven,cashMonth,workingCap,npv,irrA,irrU};
+  return {P,R,n,loan,installment,totalPaid,totalInterest,finMonth,principalMonth,feeOneTime,feeMonth,depMonth,opMonth,insYr,cost,mrg,rentEx,rentInc,marginRev,totalProfit,bonus,profitAll,oldEx,oldInc,coverage,covOurs,covBreakeven,cashMonth,workingCap,npv,irrA,irrU};
 }
 
 function donutSVG(intShare){
@@ -501,7 +504,8 @@ function amortSVG(loan,mr,n,installment){
 function shortM(v){ const a=Math.abs(v), s=v<0?'−':''; if(a>=1e6) return s+'₺'+trN1.format(a/1e6)+'M'; if(a>=1e3) return s+'₺'+trN.format(a/1e3)+'B'; return s+'₺'+trN.format(a); }
 function waterfallSVG(steps){
   const W=1360,H=300,padL=18,padR=18,padT=30,padB=44, innerW=W-padL-padR, innerH=H-padT-padB;
-  let topv=1; steps.forEach(s=>{ if(s.type==='pos'&&s.val>topv)topv=s.val; });
+  // ölçek için zirveyi simüle ederek bul (artılar/eksiler kümülatif)
+  let r0=0, topv=1; steps.forEach(s=>{ if(s.type==='pos'||s.type==='total') r0=s.val; else r0=r0+s.val; if(r0>topv)topv=r0; if(s.val>topv)topv=s.val; });
   topv*=1.10; const yOf=v=>padT+innerH-(v/topv)*innerH;
   const n=steps.length, gap=innerW/n, bw=gap*0.5;
   let running=0,g='',prevRX=null,prevRunY=null;
@@ -509,12 +513,14 @@ function waterfallSVG(steps){
     const x=padL+i*gap+(gap-bw)/2, cx=x+bw/2; let yTop,yBot,col,start=running;
     if(s.type==='pos'){ running=s.val; yTop=yOf(running); yBot=yOf(0); col='#19C37D'; }
     else if(s.type==='total'){ running=s.val; yTop=yOf(s.val); yBot=yOf(0); col='#2F9BFF'; }
+    else if(s.type==='add'){ running=start+s.val; yTop=yOf(running); yBot=yOf(start); col='#19C37D'; } // pozitif artış (yeşil)
     else { running=start+s.val; yTop=yOf(start); yBot=yOf(running); col='#E5484D'; }
     const y=Math.min(yTop,yBot), h=Math.max(1.5,Math.abs(yBot-yTop));
     if(prevRX!=null && s.type!=='total'){ g+='<line x1="'+prevRX.toFixed(1)+'" y1="'+prevRunY.toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+prevRunY.toFixed(1)+'" stroke="#3A4150" stroke-width="1" stroke-dasharray="3 3"/>'; }
     g+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+h.toFixed(1)+'" fill="'+col+'" rx="2"/>';
-    const wfl=(s.val<0?'−':'')+'₺'+trN.format(Math.abs(Math.round(s.val)));
-    g+='<text x="'+cx.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="14" font-weight="600" fill="'+(s.type==='neg'?'#E5484D':'#E6E8EE')+'">'+wfl+'</text>';
+    const wfl=(s.val<0?'−':'+')+'₺'+trN.format(Math.abs(Math.round(s.val)));
+    const lblCol=s.type==='neg'?'#E5484D':(s.type==='add'||s.type==='pos')?'#19C37D':'#E6E8EE';
+    g+='<text x="'+cx.toFixed(1)+'" y="'+(y-8).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="14" font-weight="600" fill="'+lblCol+'">'+wfl+'</text>';
     g+='<text x="'+cx.toFixed(1)+'" y="'+(H-20).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="12" fill="#A3A8B5">'+s.short+'</text>';
     prevRX=x+bw; prevRunY=yOf(running);
   });
@@ -547,8 +553,8 @@ function cashLineSVG(c){
 function cumLineSVG(c,down,basis){
   const n=c.n;
   let pts, cum;
-  if(basis==='accrual'){ pts=[0]; cum=0; for(let i=1;i<=n;i++){ cum+=c.mrg; pts.push(cum); } }
-  else { const upfront=c.feeOneTime+(down/100)*c.P; pts=[-upfront]; cum=-upfront; for(let i=1;i<=n;i++){ cum+=c.cashMonth; if(i===n)cum+=c.R; pts.push(cum); } }
+  if(basis==='accrual'){ cum=c.bonus||0; pts=[cum]; for(let i=1;i<=n;i++){ cum+=c.mrg; pts.push(cum); } }
+  else { const upfront=c.feeOneTime+(down/100)*c.P-(c.bonus||0); pts=[-upfront]; cum=-upfront; for(let i=1;i<=n;i++){ cum+=c.cashMonth; if(i===n)cum+=c.R; pts.push(cum); } }
   const endPos=pts[n]>=0;
   const W=1360,H=300,padL=20,padR=20,padT=30,padB=26, innerW=W-padL-padR, innerH=H-padT-padB;
   let minv=Math.min.apply(null,pts), maxv=Math.max.apply(null,pts);
@@ -619,8 +625,8 @@ function render(){
   // PROFIT
   $('p-cost').textContent=money(c.cost);
   $('p-profit').textContent=money(c.mrg);
-  $('p-totprofit').textContent=money(c.mrg*c.n);
-  $('p-totprofit-fleet').textContent='filo: '+money(c.mrg*c.n*s.qty);
+  $('p-totprofit').textContent=money(c.profitAll);
+  $('p-totprofit-fleet').textContent=(c.bonus>0?'prim dahil · ':'')+'filo: '+money(c.profitAll*s.qty);
   $('p-cov').textContent='%'+trN.format(c.marginRev*100);
   $('p-cov').className='k-v'+(c.marginRev>=0.08?' green':' red');
   $('p-costfoot').textContent=money(c.cost);
@@ -661,21 +667,24 @@ function render(){
   } else {
     $('fz-be-l').textContent='Nakit başabaş'; $('fz-be').textContent=money(c.installment+c.opMonth); $('fz-be-d').textContent='aylık taksit + işletme';
     $('fz-prof-l').textContent='Aylık nakit'; $('fz-prof').textContent=money(c.cashMonth); $('fz-prof').className='k-v '+(c.cashMonth>=0?'green':'red'); $('fz-prof-fleet').textContent='filo: '+money(c.cashMonth*s.qty)+'/ay';
-    $('fz-margin-l').textContent='Sözleşme kârı'; $('fz-margin').textContent=money(c.totalProfit); $('fz-margin').className='k-v green'; $('fz-margin-d').textContent='vade sonu satışla realize';
+    $('fz-margin-l').textContent='Sözleşme kârı'; $('fz-margin').textContent=money(c.profitAll); $('fz-margin').className='k-v green'; $('fz-margin-d').textContent=c.bonus>0?('prim dahil · '+money(c.bonus)+' bonus'):'vade sonu satışla realize';
   }
   // eski yöntem faktörü — dinamik (vade boyu toplam kira ÷ araç fiyatı; marj + faiz + vade hepsi etkiler)
   const ratio = c.installment>0 ? c.rentInc/c.installment : 0;
   $('dyn-factor').textContent='%'+trN1.format(ratio*100);
   $('dyn-factor').style.color = ratio>=1 ? '#19C37D' : '#E5484D';
   $('dyn-factor-d').innerHTML='aylık kira KDV dahil (₺'+trN.format(Math.round(c.rentInc))+') ÷ aylık banka taksiti (₺'+trN.format(Math.round(c.installment))+') · %100 üstü = kira taksiti karşılıyor';
-  $('fz-wf').innerHTML=waterfallSVG([
+  const wfSteps=[
     {short:'Kira geliri', val:c.rentEx*c.n, type:'pos'},
+    {short:'Araç bedeli', val:-c.P, type:'neg'},
+    {short:'Vade sonu değer', val:c.R, type:'add'},
     {short:'Faiz', val:-c.totalInterest, type:'neg'},
-    {short:'Değer kaybı', val:-(c.P-c.R), type:'neg'},
     {short:'Kredi masrafı', val:-c.feeOneTime, type:'neg'},
-    {short:'İşletme', val:-c.opMonth*c.n, type:'neg'},
-    {short:'Net kâr', val:c.totalProfit, type:'total'}
-  ]);
+    {short:'İşletme', val:-c.opMonth*c.n, type:'neg'}
+  ];
+  if(c.bonus>0) wfSteps.push({short:'Hedef primi', val:c.bonus, type:'add'});
+  wfSteps.push({short:'Net kâr', val:c.profitAll, type:'total'});
+  $('fz-wf').innerHTML=waterfallSVG(wfSteps);
   $('fz-monthly').innerHTML=cumLineSVG(c,s.down,basis);
   $('fz-monthly-h').textContent = basis==='accrual' ? 'Kümülatif kâr — vade boyunca birikir' : 'Kümülatif nakit — vade sonunda artıya geçer';
   $('fz-npv').textContent=money(c.npv);
@@ -688,8 +697,9 @@ function render(){
   const vd=$('fz-verdict');
   vd.className='verdict'+(okf?'':' warn');
   const vhd='<div class="vh"><span class="badge">'+(okf?'Uygulanabilir':'Dikkat')+'</span>'+(okf?'Bu kiralama kâr ediyor':'Marj zayıf — gözden geçirin')+'</div>';
-  if(basis==='accrual') vd.innerHTML=vhd+'Muhasebe (tahakkuk) esasında araç başına <b>aylık ₺'+trN.format(Math.round(c.mrg))+'</b> kâr · ciro marjı <b>%'+trN.format(c.marginRev*100)+'</b> · vade boyu <b>'+money(c.totalProfit)+'</b> (filo '+money(c.totalProfit*s.qty)+') · NBD <b>'+money(c.npv)+'</b>. Her ay kâr eder çünkü değer kaybı ve faiz maliyet sayılır. <b>Nakit zamanlaması</b> için «Finansman · Nakit» sekmesine bakın.';
-  else vd.innerHTML=vhd+'Araç başına vade boyunca <b>'+money(c.totalProfit)+'</b> kâr · filo geneli <b>'+money(c.totalProfit*s.qty)+'</b> · NBD <b>'+money(c.npv)+'</b>. Ama <b>aylık nakit '+money(c.cashMonth)+'</b> — kira, taksiti tam karşılamaz; vade boyunca araç başına ~<b>'+money(c.workingCap)+'</b> işletme sermayesi bağlanır ve <b>kâr büyük ölçüde vade sonu araç satışında</b> realize olur. Aylık nakit-pozitif olmak için kira en az <b>'+money(c.installment+c.opMonth)+'</b> olmalı.';
+  const bonusTxt=c.bonus>0?(' Hedef primi araç başına <b>'+money(c.bonus)+'</b> ekstra getiriyor (vade boyu kâra dahil).'):'';
+  if(basis==='accrual') vd.innerHTML=vhd+'Muhasebe (tahakkuk) esasında araç başına <b>aylık ₺'+trN.format(Math.round(c.mrg))+'</b> kâr · ciro marjı <b>%'+trN.format(c.marginRev*100)+'</b> · vade boyu <b>'+money(c.profitAll)+'</b> (filo '+money(c.profitAll*s.qty)+') · NBD <b>'+money(c.npv)+'</b>. Her ay kâr eder çünkü değer kaybı ve faiz maliyet sayılır.'+bonusTxt+' <b>Nakit zamanlaması</b> için «Finansman · Nakit» sekmesine bakın.';
+  else vd.innerHTML=vhd+'Araç başına vade boyunca <b>'+money(c.profitAll)+'</b> kâr · filo geneli <b>'+money(c.profitAll*s.qty)+'</b> · NBD <b>'+money(c.npv)+'</b>. Ama <b>aylık nakit '+money(c.cashMonth)+'</b> — kira, taksiti tam karşılamaz; vade boyunca araç başına ~<b>'+money(c.workingCap)+'</b> işletme sermayesi bağlanır ve <b>kâr büyük ölçüde vade sonu araç satışında</b> realize olur.'+bonusTxt+' Aylık nakit-pozitif olmak için kira en az <b>'+money(c.installment+c.opMonth)+'</b> olmalı.';
   $('foot-rate').textContent='%'+trN1.format(s.rate)+(rateLive?' (TCMB canlı)':'');
   // AI asistanı için canlı durumu dışa aç (fd-ai.js okur)
   const activeTab=document.querySelector('.tab.active');
@@ -730,7 +740,7 @@ INTF.forEach(k=>{ const el=$(k); if(!el)return; el.setAttribute('autocomplete','
 fmtIntInputs();
 // sayı alanları her zaman pozitif (Adet ve Vade en az 1)
 if($('qty'))$('qty').min='1'; if($('term'))$('term').min='1';
-['down','residual','rate','rateM','fee','ins','margin','vat'].forEach(k=>{ if($(k)) $(k).min='0'; });
+['down','residual','rate','rateM','fee','ins','margin','bonus','vat'].forEach(k=>{ if($(k)) $(k).min='0'; });
 document.querySelectorAll('input[type=number]').forEach(el=>{ el.addEventListener('blur',()=>{ const mn=parseFloat(el.min)||0; if(el.value!=='' && (parseFloat(el.value)||0)<mn){ el.value=mn; render(); } }); });
 
 // live TCMB rate
