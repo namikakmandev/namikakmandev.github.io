@@ -677,12 +677,12 @@ function render(){
   const wfSteps=[
     {short:'Kira geliri', val:c.rentEx*c.n, type:'pos'},
     {short:'Araç bedeli', val:-c.P, type:'neg'},
-    {short:'Vade sonu değer', val:c.R, type:'add'},
     {short:'Faiz', val:-c.totalInterest, type:'neg'},
     {short:'Kredi masrafı', val:-c.feeOneTime, type:'neg'},
     {short:'İşletme', val:-c.opMonth*c.n, type:'neg'}
   ];
   if(c.bonus>0) wfSteps.push({short:'Hedef primi', val:c.bonus, type:'add'});
+  wfSteps.push({short:'Vade sonu değer', val:c.R, type:'add'});
   wfSteps.push({short:'Net kâr', val:c.profitAll, type:'total'});
   $('fz-wf').innerHTML=waterfallSVG(wfSteps);
   $('fz-monthly').innerHTML=cumLineSVG(c,s.down,basis);
