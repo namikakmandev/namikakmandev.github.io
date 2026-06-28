@@ -588,6 +588,7 @@ function render(){
     +(okIRR?'Özkaynak getirisi hurdle oranını aşıyor.':'<b>Özkaynak IRR hurdle oranının altında</b> — kaldıraç, gelir veya capex varsayımlarını test edin.')
     +(r.haveMacro?' <b>OVP makro:</b> USD/TRY '+trN2.format(r.fxStart)+'→'+trN2.format(r.fxEnd)+', gelirin %'+trN.format(r.fxRev*100)+'’i USD-bağlı. ₺ özkaynak IRR '+(r.eIRR!=null?pct(r.eIRR*100):'—')+', <b>USD-eşdeğer '+(r.eIRRusd!=null?pct(r.eIRRusd*100):'—')+'</b> — aradaki fark TRY değer kaybının getirdiği nominal şişkinliktir.':'')
     +(r.residDebt>1?' <b>Not:</b> vade sonunda '+(isU?shortUSD(r.residDebt/r.fxEnd):shortM(r.residDebt))+' bakiye borç kalıyor (balon); vade sonu değeri bunu kapatmak için kullanılıyor.':'');
+  saveState();
 }
 
 document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{
@@ -600,6 +601,14 @@ IDS.forEach(k=>{ const el=$(k); if(el) el.addEventListener('input',render); });
 function setCur(c){ CUR=c; $('cur-try').classList.toggle('on',c==='TRY'); $('cur-usd').classList.toggle('on',c==='USD'); render(); }
 $('cur-try').addEventListener('click',()=>setCur('TRY'));
 $('cur-usd').addEventListener('click',()=>setCur('USD'));
+// --- kalıcılık: girdiler + para birimi yenilemede korunur (localStorage) ---
+const STORE_KEY='projefin_state_v1';
+function saveState(){ try{ const o={cur:CUR}; IDS.forEach(k=>{ const el=$(k); if(el) o[k]=el.value; }); localStorage.setItem(STORE_KEY, JSON.stringify(o)); }catch(e){} }
+function loadState(){ try{ const raw=localStorage.getItem(STORE_KEY); if(!raw) return false; const o=JSON.parse(raw)||{};
+  IDS.forEach(k=>{ const el=$(k); if(el && o[k]!=null && o[k]!=='') el.value=o[k]; });
+  if(o.cur){ CUR=o.cur; $('cur-try').classList.toggle('on',CUR==='TRY'); $('cur-usd').classList.toggle('on',CUR==='USD'); }
+  return true; }catch(e){ return false; } }
+loadState();
 document.querySelectorAll('input[type=number]').forEach(el=>{ el.setAttribute('autocomplete','off'); el.addEventListener('wheel',()=>el.blur(),{passive:true}); });
 // binlik ayraç
 function fmtNum(){ NUMF.forEach(k=>{ const el=$(k); if(el&&document.activeElement!==el){ const n=parseInt(String(el.value).replace(/\D/g,''))||0; el.value=n?trN.format(n):''; }}); }
