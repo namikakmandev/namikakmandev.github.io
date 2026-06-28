@@ -674,16 +674,16 @@ function render(){
   $('dyn-factor').textContent='%'+trN1.format(ratio*100);
   $('dyn-factor').style.color = ratio>=1 ? '#19C37D' : '#E5484D';
   $('dyn-factor-d').innerHTML='aylık kira KDV dahil (₺'+trN.format(Math.round(c.rentInc))+') ÷ aylık banka taksiti (₺'+trN.format(Math.round(c.installment))+') · %100 üstü = kira taksiti karşılıyor';
-  const wfSteps=[
-    {short:'Kira geliri', val:c.rentEx*c.n, type:'pos'},
+  const wfSteps=[{short:'Kira geliri', val:c.rentEx*c.n, type:'pos'}];
+  if(c.bonus>0) wfSteps.push({short:'Hedef primi', val:c.bonus, type:'add'});   // gelir tarafında, prim
+  wfSteps.push(
     {short:'Araç bedeli', val:-c.P, type:'neg'},
     {short:'Faiz', val:-c.totalInterest, type:'neg'},
     {short:'Kredi masrafı', val:-c.feeOneTime, type:'neg'},
-    {short:'İşletme', val:-c.opMonth*c.n, type:'neg'}
-  ];
-  if(c.bonus>0) wfSteps.push({short:'Hedef primi', val:c.bonus, type:'add'});
-  wfSteps.push({short:'Vade sonu değer', val:c.R, type:'add'});
-  wfSteps.push({short:'Net kâr', val:c.profitAll, type:'total'});
+    {short:'İşletme', val:-c.opMonth*c.n, type:'neg'},
+    {short:'Vade sonu değer', val:c.R, type:'add'},          // mavi Net kâr'dan hemen önce
+    {short:'Net kâr', val:c.profitAll, type:'total'}
+  );
   $('fz-wf').innerHTML=waterfallSVG(wfSteps);
   $('fz-monthly').innerHTML=cumLineSVG(c,s.down,basis);
   $('fz-monthly-h').textContent = basis==='accrual' ? 'Kümülatif kâr — vade boyunca birikir' : 'Kümülatif nakit — vade sonunda artıya geçer';
