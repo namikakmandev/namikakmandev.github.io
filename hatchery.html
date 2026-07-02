@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Hatchery — Unit Economics & Efficiency</title>
+<title>Poultry Hatchery — Unit Economics & Efficiency</title>
 <style>
 :root{
   --bg:#0F1117;--panel:#161922;--panel2:#10131B;--line:#262B36;--ink:#E6E8EC;--muted:#A3A8B5;
@@ -59,7 +59,7 @@ body:not(.detailed) .adv{display:none!important}
 <body>
 <div class="topbar">
   <div class="logo">Hatch<span>Econ</span></div>
-  <div class="crumb">Hatchery · unit economics &amp; efficiency</div>
+  <div class="crumb">Poultry hatchery · unit economics &amp; efficiency</div>
   <button id="modeTog" type="button" style="background:var(--panel2);border:1px solid var(--line);border-radius:16px;color:var(--muted);padding:5px 13px;font:600 12px system-ui;cursor:pointer">🔎 Detailed view</button>
   <div class="curtog"><button id="cur-try" class="on" type="button">₺ TRY</button><button id="cur-usd" type="button">$ USD</button></div>
 </div>
@@ -67,39 +67,39 @@ body:not(.detailed) .adv{display:none!important}
   <div class="panel left">
     <h3>Inputs</h3>
     <div class="presets">
-      <button class="preset" data-preset="trout">🐟 Trout</button>
-      <button class="preset" data-preset="marine">🌊 Marine (bass/bream)</button>
-      <button class="preset" data-preset="shrimp">🦐 Shrimp</button>
+      <button class="preset" data-preset="broiler">🐔 Broiler chicks</button>
+      <button class="preset" data-preset="layer">🐣 Layer pullets</button>
+      <button class="preset" data-preset="turkey">🦃 Turkey</button>
     </div>
 
     <div class="grp"><div class="grp-t">Capacity &amp; efficiency</div>
-      <div class="f"><label>Nameplate capacity <small>units / year</small></label><div class="wrap"><input id="cap" value="12,000,000"></div></div>
-      <div class="f"><label>Utilization</label><div class="wrap"><input id="util" type="number" value="80" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Setter capacity <small>eggs set / year</small></label><div class="wrap"><input id="cap" value="50,000,000"></div></div>
+      <div class="f"><label>Utilization</label><div class="wrap"><input id="util" type="number" value="85" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Year-1 ramp</label><div class="wrap"><input id="ramp" type="number" value="60" class="has-suf"><span class="suf">%</span></div></div>
-      <div class="f"><label>Saleable yield <small>output ÷ started</small></label><div class="wrap"><input id="yield" type="number" value="88" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Saleable chicks <small>chicks sold ÷ eggs set</small></label><div class="wrap"><input id="yield" type="number" value="84" class="has-suf"><span class="suf">%</span></div></div>
     </div>
 
     <div class="grp"><div class="grp-t">Price</div>
-      <div class="f"><label>Selling price <small>per saleable unit</small></label><div class="wrap"><input id="price" type="number" value="8.5" step="0.1" class="has-suf"><span class="suf" id="pcur">₺</span></div></div>
+      <div class="f"><label>Chick price <small>per saleable chick</small></label><div class="wrap"><input id="price" type="number" value="20" step="0.1" class="has-suf"><span class="suf" id="pcur">₺</span></div></div>
       <div class="f adv"><label>Price escalation</label><div class="wrap"><input id="priceEsc" type="number" value="5" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
     </div>
 
-    <div class="grp"><div class="grp-t">Variable cost · per started unit</div>
-      <div class="f"><label>Feed</label><div class="wrap"><input id="cFeed" type="number" value="1.6" step="0.1" class="has-suf"><span class="suf" id="c1">₺</span></div></div>
-      <div class="f"><label>Energy &amp; water</label><div class="wrap"><input id="cEnergy" type="number" value="0.6" step="0.1" class="has-suf"><span class="suf" id="c2">₺</span></div></div>
-      <div class="f"><label>Health &amp; consumables</label><div class="wrap"><input id="cHealth" type="number" value="0.4" step="0.1" class="has-suf"><span class="suf" id="c3">₺</span></div></div>
-      <div class="f"><label>Other variable</label><div class="wrap"><input id="cOther" type="number" value="0.2" step="0.1" class="has-suf"><span class="suf" id="c4">₺</span></div></div>
+    <div class="grp"><div class="grp-t">Variable cost · per egg set</div>
+      <div class="f"><label>Hatching egg</label><div class="wrap"><input id="cFeed" type="number" value="9" step="0.1" class="has-suf"><span class="suf" id="c1">₺</span></div></div>
+      <div class="f"><label>Energy &amp; water</label><div class="wrap"><input id="cEnergy" type="number" value="1.2" step="0.1" class="has-suf"><span class="suf" id="c2">₺</span></div></div>
+      <div class="f"><label>Health &amp; consumables</label><div class="wrap"><input id="cHealth" type="number" value="0.8" step="0.1" class="has-suf"><span class="suf" id="c3">₺</span></div></div>
+      <div class="f"><label>Other variable</label><div class="wrap"><input id="cOther" type="number" value="0.5" step="0.1" class="has-suf"><span class="suf" id="c4">₺</span></div></div>
       <div class="f adv"><label>Cost escalation</label><div class="wrap"><input id="costEsc" type="number" value="6" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
     </div>
 
     <div class="grp"><div class="grp-t">Fixed cost · per year</div>
-      <div class="f"><label>Labour</label><div class="wrap"><input id="fLabour" value="8,000,000"></div></div>
-      <div class="f"><label>Maintenance</label><div class="wrap"><input id="fMaint" value="3,000,000"></div></div>
-      <div class="f"><label>Overhead &amp; admin</label><div class="wrap"><input id="fOh" value="4,000,000"></div></div>
+      <div class="f"><label>Labour</label><div class="wrap"><input id="fLabour" value="45,000,000"></div></div>
+      <div class="f"><label>Maintenance</label><div class="wrap"><input id="fMaint" value="15,000,000"></div></div>
+      <div class="f"><label>Overhead &amp; admin</label><div class="wrap"><input id="fOh" value="20,000,000"></div></div>
     </div>
 
     <div class="grp"><div class="grp-t">Investment</div>
-      <div class="f"><label>Capex</label><div class="wrap"><input id="capex" value="90,000,000"></div></div>
+      <div class="f"><label>Capex</label><div class="wrap"><input id="capex" value="450,000,000"></div></div>
       <div class="f adv"><label>Project life</label><div class="wrap"><input id="life" type="number" value="10" class="has-suf"><span class="suf">yrs</span></div></div>
       <div class="f adv"><label>Depreciation</label><div class="wrap"><input id="dep" type="number" value="10" class="has-suf"><span class="suf">yrs</span></div></div>
       <div class="f adv"><label>Corporate tax</label><div class="wrap"><input id="tax" type="number" value="25" class="has-suf"><span class="suf">%</span></div></div>
@@ -113,7 +113,7 @@ body:not(.detailed) .adv{display:none!important}
       <div class="kpi eq"><div class="k-l">Margin / unit</div><div class="k-v green" id="k-mpu">—</div><div class="k-d" id="k-mpu-d">price − cost</div></div>
       <div class="kpi"><div class="k-l">Profit / year <small>before financing</small></div><div class="k-v" id="k-ebitda">—</div><div class="k-d" id="k-ebitda-d">margin</div></div>
       <div class="kpi warn"><div class="k-l">Breakeven utilization</div><div class="k-v orange" id="k-be">—</div><div class="k-d" id="k-be-d">EBITDA = 0</div></div>
-      <div class="kpi"><div class="k-l">Saleable output</div><div class="k-v" id="k-out">—</div><div class="k-d" id="k-out-d">units / year</div></div>
+      <div class="kpi"><div class="k-l">Chicks sold</div><div class="k-v" id="k-out">—</div><div class="k-d" id="k-out-d">units / year</div></div>
       <div class="kpi eq adv"><div class="k-l">Project IRR</div><div class="k-v green" id="k-irr">—</div><div class="k-d" id="k-irr-d">unlevered</div></div>
       <div class="kpi adv"><div class="k-l">NPV</div><div class="k-v" id="k-npv">—</div><div class="k-d" id="k-npv-d">at discount rate</div></div>
       <div class="kpi eq"><div class="k-l">Payback</div><div class="k-v green" id="k-pay">—</div><div class="k-d" id="k-pay-d">simple</div></div>
@@ -159,9 +159,9 @@ function per(v){return sym()+trN2.format(v);}
 var NUMF=['cap','fLabour','fMaint','fOh','capex'];
 var IDS=['cap','util','ramp','yield','price','priceEsc','cFeed','cEnergy','cHealth','cOther','costEsc','fLabour','fMaint','fOh','capex','life','dep','tax','disc'];
 var PRESETS={
- trout:{cap:12000000,util:80,ramp:60,yield:88,price:8.5,priceEsc:5,cFeed:1.6,cEnergy:0.6,cHealth:0.4,cOther:0.2,costEsc:6,fLabour:8000000,fMaint:3000000,fOh:4000000,capex:90000000,life:10,dep:10,tax:25,disc:18},
- marine:{cap:40000000,util:78,ramp:55,yield:82,price:3.2,priceEsc:5,cFeed:0.4,cEnergy:0.2,cHealth:0.12,cOther:0.08,costEsc:6,fLabour:11000000,fMaint:5000000,fOh:6000000,capex:150000000,life:12,dep:12,tax:25,disc:18},
- shrimp:{cap:150000000,util:72,ramp:50,yield:78,price:0.65,priceEsc:4,cFeed:0.12,cEnergy:0.07,cHealth:0.04,cOther:0.03,costEsc:6,fLabour:9000000,fMaint:4000000,fOh:5000000,capex:120000000,life:10,dep:10,tax:25,disc:20}
+ broiler:{cap:50000000,util:85,ramp:60,yield:84,price:20,priceEsc:5,cFeed:9,cEnergy:1.2,cHealth:0.8,cOther:0.5,costEsc:6,fLabour:45000000,fMaint:15000000,fOh:20000000,capex:450000000,life:10,dep:10,tax:25,disc:18},
+ layer:{cap:20000000,util:80,ramp:55,yield:42,price:55,priceEsc:5,cFeed:12,cEnergy:1.5,cHealth:1.2,cOther:0.8,costEsc:6,fLabour:30000000,fMaint:10000000,fOh:14000000,capex:250000000,life:10,dep:10,tax:25,disc:18},
+ turkey:{cap:8000000,util:75,ramp:50,yield:78,price:90,priceEsc:5,cFeed:45,cEnergy:4,cHealth:3,cOther:2,costEsc:6,fLabour:35000000,fMaint:12000000,fOh:15000000,capex:200000000,life:10,dep:10,tax:25,disc:18}
 };
 function read(){var s={};
   IDS.forEach(function(k){s[k]=parseFloat(String($(k).value).replace(/,/g, k==='price'||k.indexOf('c')===0?'':'').replace(/[^\d.\-]/g,''))||0;});
@@ -212,7 +212,7 @@ function stackChart(s,r){
   // fully-loaded cost per SOLD unit, broken into components
   var per=function(v){return v/r.soldSS;};
   var comps=[
-    ['Feed', per(s.cap*r.util*s.cFeed), '#2F9BFF'],
+    ['Hatching egg', per(s.cap*r.util*s.cFeed), '#2F9BFF'],
     ['Energy & water', per(s.cap*r.util*s.cEnergy), '#19C37D'],
     ['Health & consumables', per(s.cap*r.util*s.cHealth), '#FF6500'],
     ['Other variable', per(s.cap*r.util*s.cOther), '#7C5CFF'],
@@ -297,10 +297,10 @@ function render(){
   var vcol=r.npv>=0&&r.pIRR!=null&&r.pIRR*100>=s.disc?'var(--green)':(r.ss.ebitda<0?'var(--red)':'var(--orange)');
   var msg;
   if(r.ss.ebitda<0) msg='At '+trN.format(s.util)+'% utilization the hatchery is <b>EBITDA-negative</b> — each unit sells below its cash cost of '+per2(r.cashCostPerU)+'. Fill the facility past <b>'+(r.beUtil!=null?trN.format(r.beUtil*100)+'%':'—')+'</b> or raise price/yield before this is investable.';
-  else if(r.pIRR!=null&&r.pIRR*100>=s.disc) msg='Efficient: cost per unit '+per2(r.costPerU)+' vs price '+per2(s.price)+' → <b>'+per2(r.marginPerU)+'</b>/unit. It earns about <b>'+trN1.format(r.pIRR*100)+'%</b> a year on the money (your target is '+trN1.format(s.disc)+'%), and pays back the '+money(s.capex)+' investment in <b>'+r.pay+' years</b>. The one thing to protect: keep the tanks full — cost per unit rises fast when they are not.';
-  else msg='It makes money on each unit ('+per2(r.marginPerU)+'), but the return (~'+(r.pIRR!=null?trN1.format(r.pIRR*100)+'%':'n/a')+' a year) is below your '+trN1.format(s.disc)+'% target. Three levers fix that: keep the tanks fuller, get more units to sale (yield above '+trN.format(s.yield)+'%), or trim feed — the biggest single cost.';
+  else if(r.pIRR!=null&&r.pIRR*100>=s.disc) msg='Efficient: cost per unit '+per2(r.costPerU)+' vs price '+per2(s.price)+' → <b>'+per2(r.marginPerU)+'</b>/unit. It earns about <b>'+trN1.format(r.pIRR*100)+'%</b> a year on the money (your target is '+trN1.format(s.disc)+'%), and pays back the '+money(s.capex)+' investment in <b>'+r.pay+' years</b>. The one thing to protect: keep the incubators full — cost per chick rises fast when they are not.';
+  else msg='It makes money on each unit ('+per2(r.marginPerU)+'), but the return (~'+(r.pIRR!=null?trN1.format(r.pIRR*100)+'%':'n/a')+' a year) is below your '+trN1.format(s.disc)+'% target. Three levers fix that: keep the incubators fuller, get more chicks to sale (yield above '+trN.format(s.yield)+'%), or buy hatching eggs better — the biggest single cost.';
   $('verdict').innerHTML='<div style="font-weight:700;margin-bottom:5px">Verdict</div><div style="color:var(--muted)">'+msg+'</div>'
-    +'<div class="note">Illustrative model — “units” are abstract throughput (read them as fingerlings/smolt). Efficiency-driven, no biological simulation: yield, utilization and unit costs are financial levers, not growth curves.</div>';
+    +'<div class="note">Illustrative model — a poultry-hatchery economics model — eggs set in, day-old chicks out. Efficiency-driven: hatch yield, utilization and unit costs are financial levers; no biological simulation.</div>';
 }
 // currency toggle (display only, no FX)
 function setCur(c){ CUR=c; $('cur-try').classList.toggle('on',c==='TRY'); $('cur-usd').classList.toggle('on',c==='USD');
