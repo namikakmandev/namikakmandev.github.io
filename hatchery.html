@@ -60,6 +60,7 @@ th:first-child,td:first-child{text-align:left}
     <select id="siteSel"></select>
     <button id="siteAdd" title="Yeni kuluçkahane ekle">＋</button>
     <button id="siteRen" title="Adını değiştir">✎</button>
+    <button id="siteDel" title="Bu kuluçkahaneyi sil">🗑</button>
   </div>
   <div class="tb-r">
     <select id="monthSel"></select>
@@ -201,6 +202,7 @@ var TXT={
  confirm:{tr:'Bu kuluçkahanenin tüm kayıtları silinsin mi?',en:'Delete all records of this hatchery?'},
  perD:{tr:'işletme gideri dahil',en:'incl. running cost'},
  newSite:{tr:'Yeni kuluçkahane adı:',en:'New hatchery name:'},
+ delSite:{tr:'silinsin mi? Tüm partileri ve giderleri de silinir.',en:'delete? All its batches and costs will be removed.'},
  renSite:{tr:'Yeni ad:',en:'New name:'},
  defSite:{tr:'Merkez',en:'Main'}
 };
@@ -280,6 +282,7 @@ function render(){
   $('profitCard').style.display=isAll?'none':'';
   $('cmpCard').style.display=isAll?'':'none';
   $('siteRen').style.display=isAll?'none':'';
+  $('siteDel').style.display=(isAll||DATA.sites.length<2)?'none':'';
   var rs=calcView();
   var eggs=rs.reduce(function(a,r){return a+r.b.eggs;},0);
   var chicks=rs.reduce(function(a,r){return a+r.b.chicks;},0);
@@ -326,18 +329,23 @@ function render(){
 }
 function renderCmp(){
   $('cmpH').innerHTML='<tr><th>'+T('thSite')+'</th><th>'+T('thBat')+'</th><th>'+T('thEggs')+'</th><th>'+T('thChicks')+'</th><th>'+T('thHatch')+'</th><th>'+T('thRev')+'</th><th>'+T('thCost')+'</th><th>'+T('thProfit')+'</th><th>'+T('thPer')+'</th></tr>';
-  var body='';
-  DATA.sites.forEach(function(st,i){
+  var rows=DATA.sites.map(function(st,i){
     var rs=calcSite(i);
     var eggs=rs.reduce(function(a,r){return a+r.b.eggs;},0), chicks=rs.reduce(function(a,r){return a+r.b.chicks;},0);
     var rev=rs.reduce(function(a,r){return a+r.rev;},0), profit=rs.reduce(function(a,r){return a+r.profit;},0);
     var cost=rs.reduce(function(a,r){return a+r.cost;},0);
-    var h= eggs? chicks/eggs*100 : 0;
-    body+='<tr><td>'+esc(st.name)+'</td><td>'+rs.length+'</td><td>'+nf.format(eggs)+'</td><td>'+nf.format(chicks)+'</td>'
-      +'<td class="'+(h>=82?'g':(h>=75?'o':'r'))+'">'+(eggs?'%'+nf1.format(h):'—')+'</td>'
-      +'<td>'+money(rev)+'</td><td>'+money(cost)+'</td>'
-      +'<td class="'+(profit>=0?'g':'r')+'">'+money(profit)+'</td>'
-      +'<td>'+(chicks?nf2.format(profit/chicks):'—')+'</td></tr>';
+    return {name:st.name,n:rs.length,eggs:eggs,chicks:chicks,rev:rev,cost:cost,profit:profit,h:eggs?chicks/eggs*100:0};
+  }).sort(function(a,b){return b.profit-a.profit;});     // en kârlı üstte
+  var worstH=Math.min.apply(null,rows.filter(function(r){return r.eggs>0;}).map(function(r){return r.h;}));
+  var body='';
+  rows.forEach(function(r,idx){
+    var crown= idx===0&&r.profit>0 ? ' 🥇' : '';
+    var flag= r.eggs>0&&r.h===worstH&&rows.length>1 ? ' ⚠️' : '';
+    body+='<tr><td>'+esc(r.name)+crown+flag+'</td><td>'+r.n+'</td><td>'+nf.format(r.eggs)+'</td><td>'+nf.format(r.chicks)+'</td>'
+      +'<td class="'+(r.h>=82?'g':(r.h>=75?'o':'r'))+'">'+(r.eggs?'%'+nf1.format(r.h):'—')+'</td>'
+      +'<td>'+money(r.rev)+'</td><td>'+money(r.cost)+'</td>'
+      +'<td class="'+(r.profit>=0?'g':'r')+'">'+money(r.profit)+'</td>'
+      +'<td>'+(r.chicks?nf2.format(r.profit/r.chicks):'—')+'</td></tr>';
   });
   $('cmpB').innerHTML=body;
 }
@@ -396,6 +404,12 @@ $('siteAdd').onclick=function(){
   var n2=prompt(T('newSite'),'Şube '+(DATA.sites.length+1)); if(n2===null)return;
   DATA.sites.push(blankSite(n2||('Şube '+(DATA.sites.length+1)))); SEL=DATA.sites.length-1; save(); render();
 };
+$('siteDel').onclick=function(){
+  if(SEL==='ALL'||DATA.sites.length<2)return;
+  var st=DATA.sites[+SEL];
+  if(!confirm('“'+st.name+'” '+T('delSite')))return;
+  DATA.sites.splice(+SEL,1); SEL=0; save(); render();
+};
 $('siteRen').onclick=function(){
   if(SEL==='ALL')return;
   var st=DATA.sites[+SEL], n2=prompt(T('renSite'),st.name); if(n2===null||!n2.trim())return;
@@ -450,7 +464,21 @@ function seedDemo(){
    {d:mk(12),eggs:39000,chicks:29700,eggCost:9.5,price:21,extra:0},
    {d:mk(5),eggs:41000,chicks:32500,eggCost:9.6,price:21,extra:10000}
   ];
-  DATA={v:2,sites:[a,b2]}; SEL=0; save();
+  var c2=blankSite('Şube — Sakarya'); c2.fix={maas:300000,enerji:140000,bakim:55000,diger:35000};
+  c2.batches=[
+   {d:mk(27),eggs:46000,chicks:39600,eggCost:8.9,price:20,extra:0},
+   {d:mk(20),eggs:47000,chicks:40400,eggCost:9.0,price:20,extra:0},
+   {d:mk(13),eggs:45000,chicks:38700,eggCost:9.2,price:21,extra:12000},
+   {d:mk(6),eggs:48000,chicks:41800,eggCost:9.3,price:21,extra:0}
+  ];
+  var d2=blankSite('Şube — Konya'); d2.fix={maas:280000,enerji:130000,bakim:60000,diger:30000};
+  d2.batches=[
+   {d:mk(25),eggs:42000,chicks:30200,eggCost:9.4,price:20,extra:30000},
+   {d:mk(18),eggs:43000,chicks:31400,eggCost:9.5,price:20,extra:0},
+   {d:mk(11),eggs:41000,chicks:28900,eggCost:9.7,price:21,extra:20000},
+   {d:mk(4),eggs:44000,chicks:32100,eggCost:9.8,price:21,extra:0}
+  ];
+  DATA={v:2,sites:[a,b2,c2,d2]}; SEL=0; save();
 }
 $('demoBtn').onclick=function(){ seedDemo(); render(); };
 
