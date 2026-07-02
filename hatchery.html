@@ -71,6 +71,10 @@ th:first-child,td:first-child{text-align:left}
   </div>
   <div id="verList"></div>
 </div>
+<div id="demoBanner" style="display:none;background:rgba(255,101,0,.12);border-bottom:1px solid rgba(255,101,0,.4);padding:10px 22px;font-size:13px;color:var(--ink)">
+  <span data-i="dbText">👋 Sayfa <b>örnek verilerle</b> açıldı — böyle görünür. Kendi kayıtlarınıza başlamak için</span>
+  <button class="smallbtn" id="dbClear" style="margin:0 6px;background:var(--orange);color:#fff;border:0" data-i="dbBtn">örnekleri sil, temiz başla</button>
+</div>
 <div class="wrap">
 
   <div class="kpis">
@@ -126,6 +130,8 @@ var $=function(id){return document.getElementById(id);};
 var KEY='hatchops.v1';
 var LANG='tr';
 var TXT={
+ dbText:{tr:'👋 Sayfa örnek verilerle açıldı — böyle görünür. Kendi kayıtlarınıza başlamak için',en:'👋 The page opened with sample data — this is how it looks. To start your own records'},
+ dbBtn:{tr:'örnekleri sil, temiz başla',en:'clear samples, start fresh'},
  vTitle:{tr:'💾 Yedekler',en:'💾 Backups'},
  vHint:{tr:'Kayıtlarınızın anlık kopyası. Geri yükleyebilir, dosya olarak indirip başka cihazda açabilirsiniz.',en:'Snapshots of your records. Restore any of them, or download as a file and open on another device.'},
  vSave:{tr:'＋ Yedek al',en:'＋ Save backup'},
@@ -303,6 +309,7 @@ $('addBtn').onclick=function(){
   var eggs=num($('fEggs').value), chicks=num($('fChicks').value);
   if(eggs<=0){$('fEggs').focus();return;}
   if(chicks<0||chicks>eggs){$('fChicks').focus();return;}
+  setTouched();
   DATA.batches.push({d:d,eggs:eggs,chicks:chicks,eggCost:num($('fEggCost').value),price:num($('fPrice').value),extra:num($('fExtra').value)});
   save();
   ['fEggs','fChicks','fExtra'].forEach(function(k){$(k).value='';});
@@ -311,8 +318,8 @@ $('addBtn').onclick=function(){
 $('fixCost').addEventListener('change',function(){DATA.fix=num(this.value);save();render();});
 $('monthSel').addEventListener('change',render);
 $('langBtn').onclick=function(){LANG=LANG==='tr'?'en':'tr';applyLang();};
-$('clearBtn').onclick=function(){ if(confirm(T('confirm'))){DATA={batches:[],fix:DATA.fix};save();render();} };
-$('demoBtn').onclick=function(){
+$('clearBtn').onclick=function(){ if(confirm(T('confirm'))){DATA={batches:[],fix:DATA.fix};save();setTouched();render();} };
+function seedDemo(){
   var today=new Date(); var mk=function(off){var d=new Date(today);d.setDate(d.getDate()-off);return d.toISOString().slice(0,10);};
   DATA.fix=DATA.fix||600000;
   DATA.batches=[
@@ -325,8 +332,13 @@ $('demoBtn').onclick=function(){
    {d:mk(7),eggs:52000,chicks:42600,eggCost:9.6,price:21,extra:20000},
    {d:mk(3),eggs:56000,chicks:47600,eggCost:9.6,price:21,extra:0}
   ];
-  save(); render();
-};
+  save();
+}
+var TKEY='hatchops.touched';
+function touched(){ try{return !!localStorage.getItem(TKEY);}catch(e){return true;} }
+function setTouched(){ try{localStorage.setItem(TKEY,'1');}catch(e){} $('demoBanner').style.display='none'; }
+$('dbClear').onclick=function(){ DATA={batches:[],fix:DATA.fix}; save(); setTouched(); render(); };
+$('demoBtn').onclick=function(){ seedDemo(); render(); };
 // CSV
 $('csvBtn').onclick=function(){
   var rs=calc(); if(!rs.length)return;
@@ -379,6 +391,8 @@ $('verFile').addEventListener('change',function(){
   rd.readAsText(f);
 });
 verLabel();
+if(!touched() && DATA.batches.length===0){ seedDemo(); $('demoBanner').style.display='block'; }
+else if(!touched() && DATA.batches.length>0){ $('demoBanner').style.display='block'; }
 $('fDate').value=new Date().toISOString().slice(0,10);
 applyLang();
 })();
