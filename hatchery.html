@@ -1,318 +1,321 @@
 <!doctype html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Poultry Hatchery — Unit Economics & Efficiency</title>
+<title>Kuluçkahane Takip — üretim & kârlılık</title>
 <style>
 :root{
   --bg:#0F1117;--panel:#161922;--panel2:#10131B;--line:#262B36;--ink:#E6E8EC;--muted:#A3A8B5;
-  --primary:#2F9BFF;--green:#19C37D;--orange:#FF6500;--red:#E5484D;--purple:#7C5CFF;
-  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;color-scheme:dark;
+  --primary:#2F9BFF;--green:#19C37D;--orange:#FF6500;--red:#E5484D;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;font-size:13px}
-.topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.logo{font-weight:800;font-size:17px}.logo span{color:var(--primary)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px}
+.topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:18px}.logo span{color:var(--orange)}
 .crumb{color:var(--muted);font-size:12.5px}
-.curtog{margin-left:auto;display:flex;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.curtog button{background:var(--panel2);color:var(--muted);border:0;padding:5px 13px;font:600 12px system-ui;cursor:pointer}
-.curtog button.on{background:var(--primary);color:#fff}
-.layout{display:grid;grid-template-columns:340px 1fr;gap:16px;padding:16px 24px;max-width:1480px;margin:0 auto}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
-.panel.left{padding:16px}
-.panel.left h3{font-size:13px;margin:0 0 12px}
-.presets{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.preset{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:600 11.5px system-ui;color:var(--ink);cursor:pointer}
-.grp{border-top:1px solid var(--line);padding-top:11px;margin-top:11px}
-.grp-t{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;margin-bottom:10px}
-.f{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
-.f label{font-size:12px}.f label small{display:block;color:var(--muted);font-size:10px}
-.wrap{position:relative;display:flex;align-items:center}
-.f input,.f select{width:130px;background:var(--panel2);border:1px solid var(--line);border-radius:7px;color:var(--ink);padding:7px 9px;font:12px var(--mono);text-align:right;outline:none}
-.f select{text-align:left}
-.f input:focus{border-color:var(--primary)}
-.suf{position:absolute;right:9px;color:var(--muted);font-size:11px;font-family:var(--mono);pointer-events:none}
-.f input.has-suf{padding-right:24px}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-@media(max-width:1000px){.kpis{grid-template-columns:repeat(2,1fr)}.layout{grid-template-columns:1fr}}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 13px;position:relative;overflow:hidden}
+.tb-r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tb-r button,.tb-r select{background:var(--panel2);border:1px solid var(--line);border-radius:14px;color:var(--muted);padding:6px 12px;font:600 12px system-ui;cursor:pointer}
+.wrap{max-width:1150px;margin:0 auto;padding:16px 22px 60px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px;position:relative;overflow:hidden}
 .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary)}
-.kpi.eq::before{background:var(--green)}.kpi.warn::before{background:var(--orange)}
-.k-l{font-size:10.5px;color:var(--muted)}.k-l small{opacity:.8}
-.k-v{font-family:var(--mono);font-size:21px;font-weight:600;margin-top:4px}
+.kpi.good::before{background:var(--green)}.kpi.warn::before{background:var(--orange)}
+.k-l{font-size:11px;color:var(--muted)}
+.k-v{font-family:var(--mono);font-size:24px;font-weight:700;margin-top:5px}
 .k-v.green{color:var(--green)}.k-v.red{color:var(--red)}.k-v.orange{color:var(--orange)}
-.k-d{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
-.card h2{font-size:13px;font-weight:600;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.k-d{font-size:10.5px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:14px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .tag{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:2px 8px;border-radius:10px;font-weight:400}
-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
-th{color:var(--muted);text-align:right;padding:7px 9px;border-bottom:1px solid var(--line);font-size:10px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
-td{padding:6px 9px;text-align:right;border-bottom:1px solid rgba(38,43,54,.5)}
+.form{display:grid;grid-template-columns:repeat(6,1fr) auto;gap:10px;align-items:end}
+@media(max-width:900px){.form{grid-template-columns:repeat(2,1fr)}}
+.fld label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}
+.fld input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:10px;font:14px var(--mono);text-align:right;outline:none}
+.fld input[type=date]{text-align:left;font-family:system-ui;font-size:13px}
+.fld input:focus{border-color:var(--orange)}
+.addbtn{background:var(--orange);color:#fff;border:0;border-radius:9px;padding:11px 20px;font:700 14px system-ui;cursor:pointer;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+th{color:var(--muted);text-align:right;padding:8px 9px;border-bottom:1px solid var(--line);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+td{padding:8px 9px;text-align:right;border-bottom:1px solid rgba(38,43,54,.5)}
 th:first-child,td:first-child{text-align:left}
+.g{color:var(--green)}.r{color:var(--red)}.o{color:var(--orange)}.mut{color:var(--muted)}
+.del{background:none;border:0;color:#5B6472;cursor:pointer;font-size:14px}
 .note{font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
-.g{color:var(--green)}.o{color:var(--orange)}.r{color:var(--red)}
-body:not(.detailed) .adv{display:none!important}
+.fixedrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.fixedrow input{width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:8px 10px;font:13px var(--mono);text-align:right}
+.empty{color:var(--muted);font-size:13px;padding:14px 0}
+.smallbtn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--muted);padding:7px 12px;font:600 12px system-ui;cursor:pointer}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <div class="logo">Hatch<span>Econ</span></div>
-  <div class="crumb">Poultry hatchery · unit economics &amp; efficiency</div>
-  <button id="modeTog" type="button" style="background:var(--panel2);border:1px solid var(--line);border-radius:16px;color:var(--muted);padding:5px 13px;font:600 12px system-ui;cursor:pointer">🔎 Detailed view</button>
-  <div class="curtog"><button id="cur-try" class="on" type="button">₺ TRY</button><button id="cur-usd" type="button">$ USD</button></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span></div>
+  <div class="crumb" data-i="crumb">üretim &amp; kârlılık takibi</div>
+  <div class="tb-r">
+    <select id="monthSel"></select>
+    <button id="csvBtn" type="button" data-i="csv">⬇ Excel (CSV)</button>
+    <button id="langBtn" type="button">EN</button>
+  </div>
 </div>
-<div class="layout">
-  <div class="panel left">
-    <h3>Inputs</h3>
-    <div class="presets">
-      <button class="preset" data-preset="broiler">🐔 Broiler chicks</button>
-      <button class="preset" data-preset="layer">🐣 Layer pullets</button>
-      <button class="preset" data-preset="turkey">🦃 Turkey</button>
-    </div>
+<div class="wrap">
 
-    <div class="grp"><div class="grp-t">Capacity &amp; efficiency</div>
-      <div class="f"><label>Setter capacity <small>eggs set / year</small></label><div class="wrap"><input id="cap" value="50,000,000"></div></div>
-      <div class="f"><label>Utilization</label><div class="wrap"><input id="util" type="number" value="85" class="has-suf"><span class="suf">%</span></div></div>
-      <div class="f"><label>Year-1 ramp</label><div class="wrap"><input id="ramp" type="number" value="60" class="has-suf"><span class="suf">%</span></div></div>
-      <div class="f"><label>Saleable chicks <small>chicks sold ÷ eggs set</small></label><div class="wrap"><input id="yield" type="number" value="84" class="has-suf"><span class="suf">%</span></div></div>
-    </div>
+  <div class="kpis">
+    <div class="kpi"><div class="k-l" data-i="kEggs">Basılan yumurta</div><div class="k-v" id="k-eggs">—</div><div class="k-d" id="k-batches"></div></div>
+    <div class="kpi good"><div class="k-l" data-i="kChicks">Satılan civciv</div><div class="k-v" id="k-chicks">—</div><div class="k-d" id="k-hatch"></div></div>
+    <div class="kpi good"><div class="k-l" data-i="kProfit">Kâr</div><div class="k-v green" id="k-profit">—</div><div class="k-d" id="k-margin"></div></div>
+    <div class="kpi warn"><div class="k-l" data-i="kPer">Civciv başına kâr</div><div class="k-v orange" id="k-per">—</div><div class="k-d" id="k-per-d"></div></div>
+  </div>
 
-    <div class="grp"><div class="grp-t">Price</div>
-      <div class="f"><label>Chick price <small>per saleable chick</small></label><div class="wrap"><input id="price" type="number" value="20" step="0.1" class="has-suf"><span class="suf" id="pcur">₺</span></div></div>
-      <div class="f adv"><label>Price escalation</label><div class="wrap"><input id="priceEsc" type="number" value="5" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+  <div class="card">
+    <h2 data-i="fNew">➕ Yeni çıkım (parti) gir <span class="tag" data-i="fTag">makineden çıkan her parti için bir satır</span></h2>
+    <div class="form">
+      <div class="fld"><label data-i="fDate">Tarih</label><input type="date" id="fDate"></div>
+      <div class="fld"><label data-i="fEggs">Basılan yumurta (adet)</label><input id="fEggs" inputmode="numeric" placeholder="50.000"></div>
+      <div class="fld"><label data-i="fChicks">Satılan civciv (adet)</label><input id="fChicks" inputmode="numeric" placeholder="41.000"></div>
+      <div class="fld"><label data-i="fEggCost">Yumurta maliyeti (₺/adet)</label><input id="fEggCost" inputmode="decimal" placeholder="9,00"></div>
+      <div class="fld"><label data-i="fPrice">Civciv satış fiyatı (₺/adet)</label><input id="fPrice" inputmode="decimal" placeholder="20,00"></div>
+      <div class="fld"><label data-i="fExtra">Ek gider (₺, ops.)</label><input id="fExtra" inputmode="numeric" placeholder="0"></div>
+      <button class="addbtn" id="addBtn" data-i="fAdd">Kaydet</button>
     </div>
-
-    <div class="grp"><div class="grp-t">Variable cost · per egg set</div>
-      <div class="f"><label>Hatching egg</label><div class="wrap"><input id="cFeed" type="number" value="9" step="0.1" class="has-suf"><span class="suf" id="c1">₺</span></div></div>
-      <div class="f"><label>Energy &amp; water</label><div class="wrap"><input id="cEnergy" type="number" value="1.2" step="0.1" class="has-suf"><span class="suf" id="c2">₺</span></div></div>
-      <div class="f"><label>Health &amp; consumables</label><div class="wrap"><input id="cHealth" type="number" value="0.8" step="0.1" class="has-suf"><span class="suf" id="c3">₺</span></div></div>
-      <div class="f"><label>Other variable</label><div class="wrap"><input id="cOther" type="number" value="0.5" step="0.1" class="has-suf"><span class="suf" id="c4">₺</span></div></div>
-      <div class="f adv"><label>Cost escalation</label><div class="wrap"><input id="costEsc" type="number" value="6" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
-    </div>
-
-    <div class="grp"><div class="grp-t">Fixed cost · per year</div>
-      <div class="f"><label>Labour</label><div class="wrap"><input id="fLabour" value="45,000,000"></div></div>
-      <div class="f"><label>Maintenance</label><div class="wrap"><input id="fMaint" value="15,000,000"></div></div>
-      <div class="f"><label>Overhead &amp; admin</label><div class="wrap"><input id="fOh" value="20,000,000"></div></div>
-    </div>
-
-    <div class="grp"><div class="grp-t">Investment</div>
-      <div class="f"><label>Capex</label><div class="wrap"><input id="capex" value="450,000,000"></div></div>
-      <div class="f adv"><label>Project life</label><div class="wrap"><input id="life" type="number" value="10" class="has-suf"><span class="suf">yrs</span></div></div>
-      <div class="f adv"><label>Depreciation</label><div class="wrap"><input id="dep" type="number" value="10" class="has-suf"><span class="suf">yrs</span></div></div>
-      <div class="f adv"><label>Corporate tax</label><div class="wrap"><input id="tax" type="number" value="25" class="has-suf"><span class="suf">%</span></div></div>
-      <div class="f adv"><label>Discount rate</label><div class="wrap"><input id="disc" type="number" value="18" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+    <div class="note fixedrow">
+      <span data-i="fixLbl">Aylık işletme gideri (maaş, enerji, genel):</span>
+      <input id="fixCost" inputmode="numeric" placeholder="500.000"> ₺
+      <span data-i="fixNote">— partilere civciv sayısına göre dağıtılır, kâr hesabına dahildir.</span>
     </div>
   </div>
 
-  <div>
-    <div class="kpis">
-      <div class="kpi"><div class="k-l">Cost / unit <small>fully loaded</small></div><div class="k-v" id="k-cpu">—</div><div class="k-d" id="k-cpu-d">at target utilization</div></div>
-      <div class="kpi eq"><div class="k-l">Margin / unit</div><div class="k-v green" id="k-mpu">—</div><div class="k-d" id="k-mpu-d">price − cost</div></div>
-      <div class="kpi"><div class="k-l">Profit / year <small>before financing</small></div><div class="k-v" id="k-ebitda">—</div><div class="k-d" id="k-ebitda-d">margin</div></div>
-      <div class="kpi warn"><div class="k-l">Breakeven utilization</div><div class="k-v orange" id="k-be">—</div><div class="k-d" id="k-be-d">EBITDA = 0</div></div>
-      <div class="kpi"><div class="k-l">Chicks sold</div><div class="k-v" id="k-out">—</div><div class="k-d" id="k-out-d">units / year</div></div>
-      <div class="kpi eq adv"><div class="k-l">Project IRR</div><div class="k-v green" id="k-irr">—</div><div class="k-d" id="k-irr-d">unlevered</div></div>
-      <div class="kpi adv"><div class="k-l">NPV</div><div class="k-v" id="k-npv">—</div><div class="k-d" id="k-npv-d">at discount rate</div></div>
-      <div class="kpi eq"><div class="k-l">Payback</div><div class="k-v green" id="k-pay">—</div><div class="k-d" id="k-pay-d">simple</div></div>
-    </div>
-
-    <div class="card">
-      <h2>Cost per unit — the efficiency stack <span class="tag">where each unit's cost comes from</span></h2>
-      <div id="stack"></div>
-    </div>
-
-    <div class="card">
-      <h2>Efficiency curve <span class="tag">unit cost falls as you fill the facility</span></h2>
-      <div id="curve"></div>
-      <div class="note" id="curveNote"></div>
-    </div>
-
-    <div class="card adv">
-      <h2>Annual P&amp;L <span class="tag">unlevered</span></h2>
-      <div style="overflow-x:auto"><table id="pnl"><thead id="pnlH"></thead><tbody id="pnlB"></tbody></table></div>
-    </div>
-
-    <div class="card" id="verdict" style="line-height:1.65"></div>
+  <div class="card">
+    <h2 data-i="tTitle">📒 Partiler <span class="tag" id="tCount"></span>
+      <span style="margin-left:auto;display:flex;gap:8px">
+        <button class="smallbtn" id="demoBtn" data-i="demo">Örnek veri</button>
+        <button class="smallbtn" id="clearBtn" data-i="clear">Hepsini sil</button>
+      </span></h2>
+    <div style="overflow-x:auto"><table><thead id="tHead"></thead><tbody id="tBody"></tbody></table></div>
+    <div class="empty" id="emptyMsg" style="display:none" data-i="empty">Henüz kayıt yok — yukarıdan ilk çıkımı girin, ya da “Örnek veri” ile deneyin.</div>
   </div>
+
+  <div class="card">
+    <h2 data-i="cHatch">📈 Çıkım oranı — parti parti <span class="tag" data-i="cHatchTag">satılan civciv ÷ basılan yumurta</span></h2>
+    <div id="chartHatch"></div>
+  </div>
+
+  <div class="card">
+    <h2 data-i="cProfit">💰 Parti başına kâr <span class="tag" data-i="cProfitTag">yeşil kazanç · kırmızı zarar</span></h2>
+    <div id="chartProfit"></div>
+    <div class="note" data-i="foot">Veriler bu tarayıcıda saklanır (internete gönderilmez). Excel butonu ile dışarı alabilirsiniz.</div>
+  </div>
+
 </div>
 <script>
 (function(){
 var $=function(id){return document.getElementById(id);};
-var CUR='TRY', SYM={TRY:'₺',USD:'$'};
-var trN=new Intl.NumberFormat('en-US',{maximumFractionDigits:0});
-var trN1=new Intl.NumberFormat('en-US',{maximumFractionDigits:1});
-var trN2=new Intl.NumberFormat('en-US',{maximumFractionDigits:2});
-function sym(){return SYM[CUR];}
-function money(v){var a=Math.abs(v),s=v<0?'−':'';
-  if(a>=1e9)return s+sym()+trN2.format(a/1e9)+' bn';
-  if(a>=1e6)return s+sym()+trN1.format(a/1e6)+' mn';
-  if(a>=1e3)return s+sym()+trN.format(a/1e3)+' k';
-  return s+sym()+trN.format(a);}
-function units(v){var a=Math.abs(v);
-  if(a>=1e6)return trN2.format(v/1e6)+' M';
-  if(a>=1e3)return trN1.format(v/1e3)+' k';
-  return trN.format(v);}
-function per(v){return sym()+trN2.format(v);}
-var NUMF=['cap','fLabour','fMaint','fOh','capex'];
-var IDS=['cap','util','ramp','yield','price','priceEsc','cFeed','cEnergy','cHealth','cOther','costEsc','fLabour','fMaint','fOh','capex','life','dep','tax','disc'];
-var PRESETS={
- broiler:{cap:50000000,util:85,ramp:60,yield:84,price:20,priceEsc:5,cFeed:9,cEnergy:1.2,cHealth:0.8,cOther:0.5,costEsc:6,fLabour:45000000,fMaint:15000000,fOh:20000000,capex:450000000,life:10,dep:10,tax:25,disc:18},
- layer:{cap:20000000,util:80,ramp:55,yield:42,price:55,priceEsc:5,cFeed:12,cEnergy:1.5,cHealth:1.2,cOther:0.8,costEsc:6,fLabour:30000000,fMaint:10000000,fOh:14000000,capex:250000000,life:10,dep:10,tax:25,disc:18},
- turkey:{cap:8000000,util:75,ramp:50,yield:78,price:90,priceEsc:5,cFeed:45,cEnergy:4,cHealth:3,cOther:2,costEsc:6,fLabour:35000000,fMaint:12000000,fOh:15000000,capex:200000000,life:10,dep:10,tax:25,disc:18}
+var KEY='hatchops.v1';
+var LANG='tr';
+var TXT={
+ crumb:{tr:'üretim & kârlılık takibi',en:'production & profit tracker'},
+ csv:{tr:'⬇ Excel (CSV)',en:'⬇ Excel (CSV)'},
+ kEggs:{tr:'Basılan yumurta',en:'Eggs set'},
+ kChicks:{tr:'Satılan civciv',en:'Chicks sold'},
+ kProfit:{tr:'Kâr',en:'Profit'},
+ kPer:{tr:'Civciv başına kâr',en:'Profit per chick'},
+ fNew:{tr:'➕ Yeni çıkım (parti) gir ',en:'➕ Add a hatch (batch) '},
+ fTag:{tr:'makineden çıkan her parti için bir satır',en:'one row per hatch from the setters'},
+ fDate:{tr:'Tarih',en:'Date'},
+ fEggs:{tr:'Basılan yumurta (adet)',en:'Eggs set (pcs)'},
+ fChicks:{tr:'Satılan civciv (adet)',en:'Chicks sold (pcs)'},
+ fEggCost:{tr:'Yumurta maliyeti (₺/adet)',en:'Egg cost (₺/pc)'},
+ fPrice:{tr:'Civciv satış fiyatı (₺/adet)',en:'Chick price (₺/pc)'},
+ fExtra:{tr:'Ek gider (₺, ops.)',en:'Extra cost (₺, opt.)'},
+ fAdd:{tr:'Kaydet',en:'Save'},
+ fixLbl:{tr:'Aylık işletme gideri (maaş, enerji, genel):',en:'Monthly running cost (wages, energy, overhead):'},
+ fixNote:{tr:'— partilere civciv sayısına göre dağıtılır, kâr hesabına dahildir.',en:'— allocated to batches by chick count, included in profit.'},
+ tTitle:{tr:'📒 Partiler ',en:'📒 Batches '},
+ demo:{tr:'Örnek veri',en:'Sample data'},
+ clear:{tr:'Hepsini sil',en:'Delete all'},
+ empty:{tr:'Henüz kayıt yok — yukarıdan ilk çıkımı girin, ya da “Örnek veri” ile deneyin.',en:'No records yet — add your first hatch above, or try “Sample data”.'},
+ cHatch:{tr:'📈 Çıkım oranı — parti parti ',en:'📈 Hatch rate — batch by batch '},
+ cHatchTag:{tr:'satılan civciv ÷ basılan yumurta',en:'chicks sold ÷ eggs set'},
+ cProfit:{tr:'💰 Parti başına kâr ',en:'💰 Profit per batch '},
+ cProfitTag:{tr:'yeşil kazanç · kırmızı zarar',en:'green gain · red loss'},
+ foot:{tr:'Veriler bu tarayıcıda saklanır (internete gönderilmez). Excel butonu ile dışarı alabilirsiniz.',en:'Data stays in this browser (nothing is sent online). Use the Excel button to export.'},
+ thDate:{tr:'Tarih',en:'Date'},thEggs:{tr:'Yumurta',en:'Eggs'},thChicks:{tr:'Civciv',en:'Chicks'},
+ thHatch:{tr:'Çıkım %',en:'Hatch %'},thRev:{tr:'Ciro',en:'Revenue'},thCost:{tr:'Maliyet',en:'Cost'},
+ thProfit:{tr:'Kâr',en:'Profit'},thPer:{tr:'₺/civciv',en:'₺/chick'},
+ allM:{tr:'Tüm aylar',en:'All months'},
+ batches:{tr:'parti',en:'batches'},
+ hatchAvg:{tr:'çıkım',en:'hatch'},
+ marginOf:{tr:'ciro',en:'of revenue'},
+ confirm:{tr:'Tüm kayıtlar silinsin mi?',en:'Delete all records?'},
+ perD:{tr:'işletme gideri dahil',en:'incl. running cost'}
 };
-function read(){var s={};
-  IDS.forEach(function(k){s[k]=parseFloat(String($(k).value).replace(/,/g, k==='price'||k.indexOf('c')===0?'':'').replace(/[^\d.\-]/g,''))||0;});
-  NUMF.forEach(function(k){s[k]=parseInt(String($(k).value).replace(/[^\d]/g,''))||0;});
-  return s;}
-function irr(cfs){var f=function(r){var v=0;for(var t=0;t<cfs.length;t++)v+=cfs[t]/Math.pow(1+r,t);return v;};
-  var lo=-0.9,hi=3;if((f(lo)>0)===(f(hi)>0))return null;
-  for(var i=0;i<100;i++){var m=(lo+hi)/2;if((f(m)>0)===(f(lo)>0))lo=m;else hi=m;}return (lo+hi)/2;}
-
-function compute(s){
-  var vcU=s.cFeed+s.cEnergy+s.cHealth+s.cOther;   // variable cost per STARTED unit
-  var fixed=s.fLabour+s.fMaint+s.fOh;
-  var y=Math.max(0.01,s.yield/100);
-  var life=Math.max(1,Math.round(s.life)), depY=Math.max(1,Math.round(s.dep));
-  function yearVals(k,util){          // k=1..life ; util fraction
-    var esc=Math.pow(1+s.costEsc/100,k-1), pesc=Math.pow(1+s.priceEsc/100,k-1);
-    var started=s.cap*util, sold=started*y;
-    var rev=sold*s.price*pesc;
-    var vc=started*vcU*esc, fx=fixed*esc;
-    var ebitda=rev-vc-fx;
-    var dep=(k<=depY)?s.capex/depY:0;
-    var tax=Math.max(0,(ebitda-dep))*s.tax/100;
-    return {started:started,sold:sold,rev:rev,vc:vc,fx:fx,ebitda:ebitda,dep:dep,tax:tax,fcf:ebitda-tax};
-  }
-  var util=Math.max(0,s.util/100);
-  // steady-state (year where ramp done) unit economics, using year-1 escalation base = steady yr ~ util
-  var ss=yearVals(1,util);
-  var soldSS=ss.sold||1;
-  var depPerU=(s.capex/depY)/soldSS;
-  var costPerU=(ss.vc+ss.fx+ s.capex/depY)/soldSS;   // fully loaded incl. depreciation
-  var cashCostPerU=(ss.vc+ss.fx)/soldSS;
-  var marginPerU=s.price-costPerU;
-  // breakeven utilization: EBITDA=0 → util_be = fixed / (cap*(yield*price - vcU))
-  var contribPerStarted=y*s.price-vcU;
-  var beUtil= contribPerStarted>0? fixed/(s.cap*contribPerStarted) : null;
-  // cash flows
-  var cfs=[-s.capex]; var rows=[]; var cum=-s.capex, pay=null;
-  for(var k=1;k<=life;k++){ var u=(k===1)?util*s.ramp/100:util; var v=yearVals(k,u);
-    cfs.push(v.fcf); rows.push({k:k,util:u,v:v}); cum+=v.fcf; if(pay===null&&cum>=0)pay=k; }
-  var pIRR=irr(cfs);
-  var npv=0; for(var t=0;t<cfs.length;t++)npv+=cfs[t]/Math.pow(1+s.disc/100,t);
-  return {vcU:vcU,fixed:fixed,y:y,ss:ss,costPerU:costPerU,cashCostPerU:cashCostPerU,depPerU:depPerU,marginPerU:marginPerU,
-    beUtil:beUtil,contribPerStarted:contribPerStarted,soldSS:soldSS,rows:rows,cfs:cfs,pIRR:pIRR,npv:npv,pay:pay,
-    price:s.price,cap:s.cap,util:util,fixedEsc:s.fixed};
+function T(k){return (TXT[k]||{})[LANG]||'';}
+function applyLang(){
+  document.querySelectorAll('[data-i]').forEach(function(el){var k=el.getAttribute('data-i');
+    if(!TXT[k])return;
+    if(el.children.length&&el.querySelector('.tag')){ el.childNodes[0].nodeValue=T(k); } else el.textContent=T(k);});
+  // restore tags inside headers
+  document.querySelectorAll('.tag[data-i]').forEach(function(el){el.textContent=T(el.getAttribute('data-i'));});
+  $('langBtn').textContent=LANG==='tr'?'EN':'TR';
+  render();
 }
+var nf=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0});
+var nf1=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:1});
+var nf2=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:2});
+function money(v){var a=Math.abs(v),s=v<0?'−':'';
+  if(a>=1e6)return s+'₺'+nf1.format(a/1e6)+' mn';
+  if(a>=1e3)return s+'₺'+nf.format(a/1e3)+' b';
+  return s+'₺'+nf.format(a);}
+function num(x){ if(x==null)return 0; x=String(x).trim().replace(/\./g,'').replace(',','.').replace(/[^\d.\-]/g,''); return parseFloat(x)||0; }
 
-function stackChart(s,r){
-  // fully-loaded cost per SOLD unit, broken into components
-  var per=function(v){return v/r.soldSS;};
-  var comps=[
-    ['Hatching egg', per(s.cap*r.util*s.cFeed), '#2F9BFF'],
-    ['Energy & water', per(s.cap*r.util*s.cEnergy), '#19C37D'],
-    ['Health & consumables', per(s.cap*r.util*s.cHealth), '#FF6500'],
-    ['Other variable', per(s.cap*r.util*s.cOther), '#7C5CFF'],
-    ['Fixed / unit (labour, maint, o/h)', per(r.fixed), '#A3A8B5'],
-    ['Depreciation / unit', r.depPerU, '#5B6472']
-  ].filter(function(c){return c[1]>0;});
-  var tot=comps.reduce(function(a,c){return a+c[1];},0);
-  var maxv=Math.max(tot,s.price)*1.08;
-  var W=1320,H=118,padL=20,padR=20,iW=W-padL-padR;
-  var g='',x=padL;
-  comps.forEach(function(c){ var w=c[1]/maxv*iW;
-    g+='<rect x="'+x.toFixed(1)+'" y="34" width="'+Math.max(0,w-2).toFixed(1)+'" height="34" fill="'+c[2]+'" rx="2"><title>'+c[0]+': '+per2(c[1])+'</title></rect>';
-    if(w>60)g+='<text x="'+(x+w/2).toFixed(1)+'" y="55" text-anchor="middle" font-family="IBM Plex Sans" font-size="10" fill="#0F1117" font-weight="600">'+per2(c[1])+'</text>';
-    x+=w;});
-  // price marker
-  var px=padL+s.price/maxv*iW;
-  g+='<line x1="'+px.toFixed(1)+'" y1="20" x2="'+px.toFixed(1)+'" y2="82" stroke="#fff" stroke-width="1.5" stroke-dasharray="4 3"/>';
-  g+='<text x="'+px.toFixed(1)+'" y="16" text-anchor="middle" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="#fff">price '+per2(s.price)+'</text>';
-  g+='<text x="'+padL+'" y="94" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="'+(r.marginPerU>=0?'#19C37D':'#E5484D')+'">cost '+per2(tot)+' → margin '+per2(r.marginPerU)+'/unit</text>';
-  var leg=comps.map(function(c){return '<span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:11px;color:var(--muted)"><i style="width:9px;height:9px;border-radius:2px;background:'+c[2]+'"></i>'+c[0]+'</span>';}).join('');
-  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg><div style="margin-top:6px">'+leg+'</div>';
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY))||{batches:[],fix:0}; }catch(e){ return {batches:[],fix:0}; } }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(DATA)); }catch(e){} }
+var DATA=load();
+
+function monthOf(d){ return d.slice(0,7); }
+function months(){ var m={}; DATA.batches.forEach(function(b){m[monthOf(b.d)]=1;}); return Object.keys(m).sort().reverse(); }
+function fillMonths(){
+  var sel=$('monthSel'), cur=sel.value;
+  var ms=months(); var opts='<option value="all">'+T('allM')+'</option>';
+  ms.forEach(function(m){opts+='<option value="'+m+'">'+m+'</option>';});
+  sel.innerHTML=opts;
+  if(cur&&(cur==='all'||ms.indexOf(cur)>=0))sel.value=cur; else sel.value= ms.length? ms[0] : 'all';
 }
-function per2(v){return sym()+trN2.format(v);}
+function inview(b){ var v=$('monthSel').value; return v==='all'||monthOf(b.d)===v; }
 
-function curveChart(s,r){
-  var W=1320,H=250,padL=54,padR=20,padT=16,padB=34,iW=W-padL-padR,iH=H-padT-padB;
-  var us=[]; for(var u=40;u<=100;u+=2)us.push(u);
-  var vcU=r.vcU, fixed=r.fixed, y=r.y, depAnnual=s.capex/Math.max(1,Math.round(s.dep));
-  function cpu(u){ var started=s.cap*u/100, sold=started*y; if(sold<=0)return null;
-    return (started*vcU+fixed+depAnnual)/sold; }
-  var vals=us.map(cpu).filter(function(v){return v!=null;});
-  var maxv=Math.max(s.price*1.15, Math.max.apply(null,vals)); var minv=Math.min(s.price*0.85, Math.min.apply(null,vals)); if(minv<0)minv=0;
-  var xOf=function(u){return padL+(u-40)/60*iW;}, yOf=function(v){return padT+iH-(v-minv)/(maxv-minv)*iH;};
-  var g='';
-  // y gridlines
-  for(var t=0;t<=4;t++){var vv=minv+(maxv-minv)*t/4, yy=yOf(vv);
-    g+='<line x1="'+padL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+yy.toFixed(1)+'" stroke="#1c212b" stroke-width="1"/>';
-    g+='<text x="'+(padL-6)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">'+per2(vv)+'</text>';}
-  // price line
-  var py=yOf(s.price);
-  g+='<line x1="'+padL+'" y1="'+py.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+py.toFixed(1)+'" stroke="#19C37D" stroke-width="1.6" stroke-dasharray="6 4"/>';
-  g+='<text x="'+(W-padR-2)+'" y="'+(py-5).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="11" font-weight="600" fill="#19C37D">price '+per2(s.price)+'</text>';
-  // cost curve
-  var d='';us.forEach(function(u,i){var v=cpu(u);if(v==null)return;d+=(i===0?'M':'L')+xOf(u).toFixed(1)+' '+yOf(v).toFixed(1)+' ';});
-  g+='<path d="'+d+'" fill="none" stroke="#2F9BFF" stroke-width="2.4"/>';
-  // current utilization marker
-  var cu=Math.min(100,Math.max(40,s.util)), cv=cpu(cu);
-  if(cv!=null){var cx=xOf(cu),cy=yOf(cv);
-    g+='<line x1="'+cx.toFixed(1)+'" y1="'+padT+'" x2="'+cx.toFixed(1)+'" y2="'+(padT+iH)+'" stroke="#7C5CFF" stroke-width="1.2" stroke-dasharray="3 3"/>';
-    g+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5" fill="#7C5CFF" stroke="#0F1117" stroke-width="2"/>';
-    g+='<text x="'+cx.toFixed(1)+'" y="'+(padT+11)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="10.5" font-weight="600" fill="#7C5CFF">you: '+trN.format(s.util)+'%</text>';}
-  // x labels
-  [40,55,70,85,100].forEach(function(u){g+='<text x="'+xOf(u).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">'+u+'%</text>';});
-  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
+function calc(){
+  var rows=DATA.batches.filter(inview).sort(function(a,b){return a.d<b.d?-1:1;});
+  var chicksTot=rows.reduce(function(a,b){return a+b.chicks;},0);
+  // monthly fixed cost allocated by chick share; for 'all', allocate per month
+  var fixByMonth={};
+  rows.forEach(function(b){ var m=monthOf(b.d); (fixByMonth[m]=fixByMonth[m]||[]).push(b); });
+  var out=rows.map(function(b){
+    var mrows=fixByMonth[monthOf(b.d)], mch=mrows.reduce(function(a,x){return a+x.chicks;},0);
+    var fixShare= mch>0? DATA.fix*(b.chicks/mch) : 0;
+    var rev=b.chicks*b.price;
+    var cost=b.eggs*b.eggCost+(b.extra||0)+fixShare;
+    return {b:b,rev:rev,cost:cost,profit:rev-cost,hatch:b.eggs>0?b.chicks/b.eggs*100:0,fixShare:fixShare};
+  });
+  return out;
 }
 
 function render(){
-  var s=read(), r=compute(s);
-  $('k-cpu').textContent=per2(r.costPerU); $('k-cpu-d').textContent='running '+per2(r.cashCostPerU)+' + equipment '+per2(r.depPerU);
-  $('k-mpu').textContent=per2(r.marginPerU); $('k-mpu').className='k-v '+(r.marginPerU>=0?'green':'red');
-  $('k-mpu-d').textContent=s.price>0?trN.format(r.marginPerU/s.price*100)+'% of price':'';
-  $('k-ebitda').textContent=money(r.ss.ebitda); $('k-ebitda').className='k-v '+(r.ss.ebitda>=0?'green':'red');
-  $('k-ebitda-d').textContent=r.ss.rev>0?trN.format(r.ss.ebitda/r.ss.rev*100)+'% margin':'';
-  $('k-be').textContent=r.beUtil!=null?trN.format(r.beUtil*100)+'%':'—';
-  $('k-be').className='k-v '+(r.beUtil==null?'red':(r.beUtil*100<=s.util*0.85?'green':(r.beUtil*100<=s.util?'orange':'red')));
-  $('k-be-d').textContent=r.beUtil!=null?(r.beUtil*100<=s.util?'you run at '+trN.format(s.util)+'% → cushion':'above your '+trN.format(s.util)+'% — loss-making'):'no positive contribution';
-  $('k-out').textContent=units(r.soldSS); $('k-out-d').textContent=trN.format(s.util)+'% util × '+trN.format(s.yield)+'% yield';
-  $('k-irr').textContent=r.pIRR!=null?trN1.format(r.pIRR*100)+'%':'—'; $('k-irr').className='k-v '+(r.pIRR!=null&&r.pIRR*100>=s.disc?'green':'red');
-  $('k-npv').textContent=money(r.npv); $('k-npv').className='k-v '+(r.npv>=0?'green':'red'); $('k-npv-d').textContent=trN1.format(s.disc)+'% discount';
-  $('k-pay').textContent=r.pay!=null?r.pay+' yrs':'—'; $('k-pay').className='k-v '+(r.pay!=null?'green':'red');
-  $('stack').innerHTML=stackChart(s,r);
-  $('curve').innerHTML=curveChart(s,r);
-  $('curveNote').innerHTML='Every unit carries its share of <b style="color:var(--ink)">fixed cost and depreciation</b> — so the more of the facility you fill, the lower the cost per unit. '
-    +'You break even at <b style="color:var(--orange)">'+(r.beUtil!=null?trN.format(r.beUtil*100)+'%':'—')+'</b> utilization; you plan to run at <b style="color:var(--purple)">'+trN.format(s.util)+'%</b>. '
-    +'';
-  // P&L
-  var hd='<tr><th>Year</th><th>Util</th><th>Sold units</th><th>Revenue</th><th>Variable</th><th>Fixed</th><th>EBITDA</th><th>Tax</th><th>FCF</th></tr>';
-  $('pnlH').innerHTML=hd;
-  var b='';r.rows.forEach(function(x){b+='<tr><td>'+x.k+'</td><td>'+trN.format(x.util*100)+'%</td><td>'+units(x.v.sold)+'</td><td>'+money(x.v.rev)+'</td><td>'+money(x.v.vc)+'</td><td>'+money(x.v.fx)+'</td><td class="'+(x.v.ebitda>=0?'g':'r')+'">'+money(x.v.ebitda)+'</td><td>'+money(x.v.tax)+'</td><td>'+money(x.v.fcf)+'</td></tr>';});
-  $('pnlB').innerHTML=b;
-  // verdict
-  var vcol=r.npv>=0&&r.pIRR!=null&&r.pIRR*100>=s.disc?'var(--green)':(r.ss.ebitda<0?'var(--red)':'var(--orange)');
-  var msg;
-  if(r.ss.ebitda<0) msg='At '+trN.format(s.util)+'% utilization the hatchery is <b>EBITDA-negative</b> — each unit sells below its cash cost of '+per2(r.cashCostPerU)+'. Fill the facility past <b>'+(r.beUtil!=null?trN.format(r.beUtil*100)+'%':'—')+'</b> or raise price/yield before this is investable.';
-  else if(r.pIRR!=null&&r.pIRR*100>=s.disc) msg='Efficient: cost per unit '+per2(r.costPerU)+' vs price '+per2(s.price)+' → <b>'+per2(r.marginPerU)+'</b>/unit. It earns about <b>'+trN1.format(r.pIRR*100)+'%</b> a year on the money (your target is '+trN1.format(s.disc)+'%), and pays back the '+money(s.capex)+' investment in <b>'+r.pay+' years</b>. The one thing to protect: keep the incubators full — cost per chick rises fast when they are not.';
-  else msg='It makes money on each unit ('+per2(r.marginPerU)+'), but the return (~'+(r.pIRR!=null?trN1.format(r.pIRR*100)+'%':'n/a')+' a year) is below your '+trN1.format(s.disc)+'% target. Three levers fix that: keep the incubators fuller, get more chicks to sale (yield above '+trN.format(s.yield)+'%), or buy hatching eggs better — the biggest single cost.';
-  $('verdict').innerHTML='<div style="font-weight:700;margin-bottom:5px">Verdict</div><div style="color:var(--muted)">'+msg+'</div>'
-    +'<div class="note">Illustrative model — a poultry-hatchery economics model — eggs set in, day-old chicks out. Efficiency-driven: hatch yield, utilization and unit costs are financial levers; no biological simulation.</div>';
+  fillMonths();
+  var rs=calc();
+  var eggs=rs.reduce(function(a,r){return a+r.b.eggs;},0);
+  var chicks=rs.reduce(function(a,r){return a+r.b.chicks;},0);
+  var rev=rs.reduce(function(a,r){return a+r.rev;},0);
+  var profit=rs.reduce(function(a,r){return a+r.profit;},0);
+  $('k-eggs').textContent=eggs?nf.format(eggs):'—';
+  $('k-batches').textContent=rs.length? rs.length+' '+T('batches') : '';
+  $('k-chicks').textContent=chicks?nf.format(chicks):'—';
+  $('k-hatch').textContent=eggs? '%'+nf1.format(chicks/eggs*100)+' '+T('hatchAvg') : '';
+  $('k-profit').textContent=rs.length?money(profit):'—';
+  $('k-profit').className='k-v '+(profit>=0?'green':'red');
+  $('k-margin').textContent=rev? '%'+nf.format(profit/rev*100)+' · '+T('marginOf')+' '+money(rev) : '';
+  $('k-per').textContent=chicks? '₺'+nf2.format(profit/chicks) : '—';
+  $('k-per').className='k-v '+(chicks&&profit/chicks>=0?'orange':'red');
+  $('k-per-d').textContent=chicks?T('perD'):'';
+  // table
+  $('tHead').innerHTML='<tr><th>'+T('thDate')+'</th><th>'+T('thEggs')+'</th><th>'+T('thChicks')+'</th><th>'+T('thHatch')+'</th><th>'+T('thRev')+'</th><th>'+T('thCost')+'</th><th>'+T('thProfit')+'</th><th>'+T('thPer')+'</th><th></th></tr>';
+  var body='';
+  rs.slice().reverse().forEach(function(r){
+    var i=DATA.batches.indexOf(r.b);
+    body+='<tr><td>'+r.b.d+'</td><td>'+nf.format(r.b.eggs)+'</td><td>'+nf.format(r.b.chicks)+'</td>'
+      +'<td class="'+(r.hatch>=82?'g':(r.hatch>=75?'o':'r'))+'">%'+nf1.format(r.hatch)+'</td>'
+      +'<td>'+money(r.rev)+'</td><td>'+money(r.cost)+'</td>'
+      +'<td class="'+(r.profit>=0?'g':'r')+'">'+money(r.profit)+'</td>'
+      +'<td>'+(r.b.chicks?nf2.format(r.profit/r.b.chicks):'—')+'</td>'
+      +'<td><button class="del" data-i2="'+i+'" title="sil">✕</button></td></tr>';
+  });
+  $('tBody').innerHTML=body;
+  $('tCount').textContent=rs.length? rs.length+' '+T('batches') : '';
+  $('emptyMsg').style.display=rs.length?'none':'block';
+  document.querySelectorAll('.del').forEach(function(b){b.onclick=function(){DATA.batches.splice(+b.getAttribute('data-i2'),1);save();render();};});
+  $('fixCost').value=DATA.fix?nf.format(DATA.fix):'';
+  drawHatch(rs); drawProfit(rs);
 }
-// currency toggle (display only, no FX)
-function setCur(c){ CUR=c; $('cur-try').classList.toggle('on',c==='TRY'); $('cur-usd').classList.toggle('on',c==='USD');
-  ['pcur','c1','c2','c3','c4'].forEach(function(id){$(id).textContent=sym();}); render(); }
-$('cur-try').onclick=function(){setCur('TRY');}; $('cur-usd').onclick=function(){setCur('USD');};
-var mt=$('modeTog'); mt.onclick=function(){ document.body.classList.toggle('detailed'); mt.textContent=document.body.classList.contains('detailed')?'🔎 Simple view':'🔎 Detailed view'; };
-// thousands formatting for big fields
-function fmt(){NUMF.forEach(function(k){var el=$(k);if(el&&document.activeElement!==el){var n=parseInt(String(el.value).replace(/[^\d]/g,''))||0;el.value=n?trN.format(n):'';}});}
-IDS.forEach(function(k){var el=$(k);if(el)el.addEventListener('input',function(){render();});});
-NUMF.forEach(function(k){var el=$(k);if(el){el.addEventListener('blur',fmt);}});
-document.querySelectorAll('.preset').forEach(function(b){b.onclick=function(){var p=PRESETS[b.dataset.preset];if(!p)return;Object.keys(p).forEach(function(k){if($(k))$(k).value=p[k];});fmt();render();};});
-fmt(); render();
+
+function drawHatch(rs){
+  if(!rs.length){$('chartHatch').innerHTML='';return;}
+  var W=1080,H=190,padL=44,padR=16,padT=16,padB=26,iW=W-padL-padR,iH=H-padT-padB;
+  var vals=rs.map(function(r){return r.hatch;});
+  var lo=Math.max(0,Math.min.apply(null,vals)-5), hi=Math.min(100,Math.max.apply(null,vals)+4);
+  if(hi-lo<8){hi=Math.min(100,lo+8);}
+  var n=rs.length, xOf=function(i){return padL+(n===1?iW/2:i/(n-1)*iW);}, yOf=function(v){return padT+iH-(v-lo)/(hi-lo)*iH;};
+  var g='';
+  for(var t=0;t<=3;t++){var vv=lo+(hi-lo)*t/3,yy=yOf(vv);
+    g+='<line x1="'+padL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+yy.toFixed(1)+'" stroke="#1c212b"/>';
+    g+='<text x="'+(padL-6)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%'+nf.format(vv)+'</text>';}
+  var d='';rs.forEach(function(r,i){d+=(i===0?'M':'L')+xOf(i).toFixed(1)+' '+yOf(r.hatch).toFixed(1)+' ';});
+  g+='<path d="'+d+'" fill="none" stroke="#2F9BFF" stroke-width="2.4"/>';
+  rs.forEach(function(r,i){var x=xOf(i),y=yOf(r.hatch);
+    g+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4.5" fill="'+(r.hatch>=82?'#19C37D':(r.hatch>=75?'#FF6500':'#E5484D'))+'" stroke="#0F1117" stroke-width="2"><title>'+r.b.d+': %'+nf1.format(r.hatch)+'</title></circle>';
+    if(n<=14)g+='<text x="'+x.toFixed(1)+'" y="'+(y-9).toFixed(1)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%'+nf1.format(r.hatch)+'</text>';
+    if(n<=10)g+='<text x="'+x.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">'+r.b.d.slice(5)+'</text>';});
+  $('chartHatch').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
+}
+function drawProfit(rs){
+  if(!rs.length){$('chartProfit').innerHTML='';return;}
+  var W=1080,H=200,padL=56,padR=16,padT=14,padB=26,iW=W-padL-padR,iH=H-padT-padB;
+  var vals=rs.map(function(r){return r.profit;});
+  var hi=Math.max(0,Math.max.apply(null,vals)), lo=Math.min(0,Math.min.apply(null,vals));
+  if(hi===lo)hi=lo+1;
+  var n=rs.length, gap=iW/n, bw=Math.min(gap*0.66,56);
+  var yOf=function(v){return padT+iH-(v-lo)/(hi-lo)*iH;};
+  var g='', y0=yOf(0);
+  g+='<line x1="'+padL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y0.toFixed(1)+'" stroke="#2A2F3A" stroke-width="1.4"/>';
+  for(var t=0;t<=3;t++){var vv=lo+(hi-lo)*t/3,yy=yOf(vv);
+    g+='<text x="'+(padL-6)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">'+money(vv)+'</text>';}
+  rs.forEach(function(r,i){var x=padL+i*gap+(gap-bw)/2, y=yOf(Math.max(0,r.profit)), h=Math.abs(yOf(r.profit)-y0);
+    g+='<rect x="'+x.toFixed(1)+'" y="'+(r.profit>=0?y:y0).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,h).toFixed(1)+'" rx="3" fill="'+(r.profit>=0?'#19C37D':'#E5484D')+'"><title>'+r.b.d+': '+money(r.profit)+'</title></rect>';
+    if(n<=10)g+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">'+r.b.d.slice(5)+'</text>';});
+  $('chartProfit').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
+}
+
+// add batch
+$('addBtn').onclick=function(){
+  var d=$('fDate').value; if(!d){$('fDate').focus();return;}
+  var eggs=num($('fEggs').value), chicks=num($('fChicks').value);
+  if(eggs<=0){$('fEggs').focus();return;}
+  if(chicks<0||chicks>eggs){$('fChicks').focus();return;}
+  DATA.batches.push({d:d,eggs:eggs,chicks:chicks,eggCost:num($('fEggCost').value),price:num($('fPrice').value),extra:num($('fExtra').value)});
+  save();
+  ['fEggs','fChicks','fExtra'].forEach(function(k){$(k).value='';});
+  render();
+};
+$('fixCost').addEventListener('change',function(){DATA.fix=num(this.value);save();render();});
+$('monthSel').addEventListener('change',render);
+$('langBtn').onclick=function(){LANG=LANG==='tr'?'en':'tr';applyLang();};
+$('clearBtn').onclick=function(){ if(confirm(T('confirm'))){DATA={batches:[],fix:DATA.fix};save();render();} };
+$('demoBtn').onclick=function(){
+  var today=new Date(); var mk=function(off){var d=new Date(today);d.setDate(d.getDate()-off);return d.toISOString().slice(0,10);};
+  DATA.fix=DATA.fix||600000;
+  DATA.batches=[
+   {d:mk(28),eggs:52000,chicks:43700,eggCost:9,price:20,extra:0},
+   {d:mk(24),eggs:50000,chicks:41000,eggCost:9,price:20,extra:15000},
+   {d:mk(21),eggs:54000,chicks:44300,eggCost:9.2,price:20,extra:0},
+   {d:mk(17),eggs:51000,chicks:37200,eggCost:9.2,price:20,extra:40000},
+   {d:mk(14),eggs:53000,chicks:44500,eggCost:9.4,price:21,extra:0},
+   {d:mk(10),eggs:55000,chicks:46800,eggCost:9.4,price:21,extra:0},
+   {d:mk(7),eggs:52000,chicks:42600,eggCost:9.6,price:21,extra:20000},
+   {d:mk(3),eggs:56000,chicks:47600,eggCost:9.6,price:21,extra:0}
+  ];
+  save(); render();
+};
+// CSV
+$('csvBtn').onclick=function(){
+  var rs=calc(); if(!rs.length)return;
+  var L=['sep=;','tarih;yumurta;civciv;cikim_%;ciro;maliyet;kar;kar_per_civciv'];
+  rs.forEach(function(r){L.push([r.b.d,r.b.eggs,r.b.chicks,(Math.round(r.hatch*10)/10),Math.round(r.rev),Math.round(r.cost),Math.round(r.profit),(r.b.chicks?Math.round(r.profit/r.b.chicks*100)/100:'')].join(';'));});
+  var blob=new Blob(['﻿'+L.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kuluckahane-takip.csv';a.click();
+};
+$('fDate').value=new Date().toISOString().slice(0,10);
+applyLang();
 })();
 </script>
 </body>
