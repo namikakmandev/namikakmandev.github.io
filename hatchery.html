@@ -48,7 +48,7 @@ th:first-child,td:first-child{text-align:left}
 .note{font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
 .empty{color:var(--muted);font-size:13px;padding:14px 0}
 .smallbtn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--muted);padding:7px 12px;font:600 12px system-ui;cursor:pointer}
-.gider{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end}
+.gider{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:10px;align-items:end}
 @media(max-width:900px){.gider{grid-template-columns:repeat(2,1fr)}}
 .gtot{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--orange);white-space:nowrap;padding-bottom:8px}
 </style>
@@ -115,6 +115,7 @@ th:first-child,td:first-child{text-align:left}
     <div class="gider">
       <div class="fld"><label data-i="gMaas">Maaşlar (₺/ay)</label><input id="gMaas" inputmode="numeric" placeholder="350.000"></div>
       <div class="fld"><label data-i="gEnerji">Enerji (₺/ay)</label><input id="gEnerji" inputmode="numeric" placeholder="150.000"></div>
+      <div class="fld"><label data-i="gKira">Kira (₺/ay)</label><input id="gKira" inputmode="numeric" placeholder="100.000"></div>
       <div class="fld"><label data-i="gBakim">Bakım (₺/ay)</label><input id="gBakim" inputmode="numeric" placeholder="60.000"></div>
       <div class="fld"><label data-i="gDiger">Diğer (₺/ay)</label><input id="gDiger" inputmode="numeric" placeholder="40.000"></div>
       <div class="gtot" id="gTot">—</div>
@@ -179,6 +180,7 @@ var TXT={
  gT:{tr:'💸 Aylık işletme giderleri ',en:'💸 Monthly running costs '},
  gMaas:{tr:'Maaşlar (₺/ay)',en:'Wages (₺/mo)'},
  gEnerji:{tr:'Enerji (₺/ay)',en:'Energy (₺/mo)'},
+ gKira:{tr:'Kira (₺/ay)',en:'Rent (₺/mo)'},
  gBakim:{tr:'Bakım (₺/ay)',en:'Maintenance (₺/mo)'},
  gDiger:{tr:'Diğer (₺/ay)',en:'Other (₺/mo)'},
  gNote:{tr:'Bu giderler, ilgili ayın partilerine civciv sayısına orantılı dağıtılır ve kâr hesabına dahildir. Yumurta bedeli ve partiye özel ek giderler ise yukarıda, parti girişinde yazılır.',en:'These costs are allocated to that month’s batches in proportion to chicks and included in profit. Egg cost and batch-specific extras are entered above, per batch.'},
@@ -218,7 +220,7 @@ function num(x){ if(x==null)return 0; x=String(x).trim().replace(/\./g,'').repla
 function esc(t){return String(t).replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});}
 
 // ---- data: v2 = multi-site ----
-function blankSite(name){ return {name:name,batches:[],fix:{maas:0,enerji:0,bakim:0,diger:0}}; }
+function blankSite(name){ return {name:name,batches:[],fix:{maas:0,enerji:0,kira:0,bakim:0,diger:0}}; }
 function load(){
   var d=null; try{ d=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   if(!d) return {v:2,sites:[blankSite('Merkez')]};
@@ -229,7 +231,7 @@ function load(){
 }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(DATA)); }catch(e){} }
 var DATA=load(), SEL=0;   // SEL: site index or 'ALL'
-function fixTotal(st){ var f=st.fix||{}; return (f.maas||0)+(f.enerji||0)+(f.bakim||0)+(f.diger||0); }
+function fixTotal(st){ var f=st.fix||{}; return (f.maas||0)+(f.enerji||0)+(f.kira||0)+(f.bakim||0)+(f.diger||0); }
 
 // ---- selectors ----
 function fillSites(){
@@ -320,7 +322,7 @@ function render(){
     var st=DATA.sites[+SEL];
     $('siteTag').textContent='🏭 '+st.name;
     $('giderSite').textContent='🏭 '+st.name;
-    [['gMaas','maas'],['gEnerji','enerji'],['gBakim','bakim'],['gDiger','diger']].forEach(function(p){
+    [['gMaas','maas'],['gEnerji','enerji'],['gKira','kira'],['gBakim','bakim'],['gDiger','diger']].forEach(function(p){
       var el=$(p[0]); if(document.activeElement!==el) el.value=st.fix[p[1]]?nf.format(st.fix[p[1]]):'';
     });
     $('gTot').textContent='= '+money(fixTotal(st))+'/ay';
@@ -433,7 +435,7 @@ $('addBtn').onclick=function(){
   ['fEggs','fChicks','fExtra'].forEach(function(k){$(k).value='';});
   render();
 };
-[['gMaas','maas'],['gEnerji','enerji'],['gBakim','bakim'],['gDiger','diger']].forEach(function(p){
+[['gMaas','maas'],['gEnerji','enerji'],['gKira','kira'],['gBakim','bakim'],['gDiger','diger']].forEach(function(p){
   $(p[0]).addEventListener('change',function(){
     if(SEL==='ALL')return;
     DATA.sites[+SEL].fix[p[1]]=num(this.value); save(); render();
@@ -446,7 +448,7 @@ $('clearBtn').onclick=function(){ if(SEL==='ALL')return;
 // ---- demo ----
 function seedDemo(){
   var today=new Date(); var mk=function(off){var d=new Date(today);d.setDate(d.getDate()-off);return d.toISOString().slice(0,10);};
-  var a=blankSite('Merkez'); a.fix={maas:350000,enerji:150000,bakim:60000,diger:40000};
+  var a=blankSite('Merkez'); a.fix={maas:350000,enerji:150000,kira:120000,bakim:60000,diger:40000};
   a.batches=[
    {d:mk(28),eggs:52000,chicks:43700,eggCost:9,price:20,extra:0},
    {d:mk(24),eggs:50000,chicks:41000,eggCost:9,price:20,extra:15000},
@@ -457,21 +459,21 @@ function seedDemo(){
    {d:mk(7),eggs:52000,chicks:42600,eggCost:9.6,price:21,extra:20000},
    {d:mk(3),eggs:56000,chicks:47600,eggCost:9.6,price:21,extra:0}
   ];
-  var b2=blankSite('Şube — Bolu'); b2.fix={maas:250000,enerji:120000,bakim:50000,diger:30000};
+  var b2=blankSite('Şube — Bolu'); b2.fix={maas:250000,enerji:120000,kira:90000,bakim:50000,diger:30000};
   b2.batches=[
    {d:mk(26),eggs:38000,chicks:29600,eggCost:9.1,price:20,extra:0},
    {d:mk(19),eggs:40000,chicks:31200,eggCost:9.3,price:20,extra:25000},
    {d:mk(12),eggs:39000,chicks:29700,eggCost:9.5,price:21,extra:0},
    {d:mk(5),eggs:41000,chicks:32500,eggCost:9.6,price:21,extra:10000}
   ];
-  var c2=blankSite('Şube — Sakarya'); c2.fix={maas:300000,enerji:140000,bakim:55000,diger:35000};
+  var c2=blankSite('Şube — Sakarya'); c2.fix={maas:300000,enerji:140000,kira:100000,bakim:55000,diger:35000};
   c2.batches=[
    {d:mk(27),eggs:46000,chicks:39600,eggCost:8.9,price:20,extra:0},
    {d:mk(20),eggs:47000,chicks:40400,eggCost:9.0,price:20,extra:0},
    {d:mk(13),eggs:45000,chicks:38700,eggCost:9.2,price:21,extra:12000},
    {d:mk(6),eggs:48000,chicks:41800,eggCost:9.3,price:21,extra:0}
   ];
-  var d2=blankSite('Şube — Konya'); d2.fix={maas:280000,enerji:130000,bakim:60000,diger:30000};
+  var d2=blankSite('Şube — Konya'); d2.fix={maas:280000,enerji:130000,kira:80000,bakim:60000,diger:30000};
   d2.batches=[
    {d:mk(25),eggs:42000,chicks:30200,eggCost:9.4,price:20,extra:30000},
    {d:mk(18),eggs:43000,chicks:31400,eggCost:9.5,price:20,extra:0},
