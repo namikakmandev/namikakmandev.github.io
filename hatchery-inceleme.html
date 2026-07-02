@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>KuluçkaTakip — inceleme kopyası</title>
+<style>
+:root{
+  --bg:#0F1117;--panel:#161922;--panel2:#10131B;--line:#262B36;--ink:#E6E8EC;--muted:#A3A8B5;
+  --primary:#2F9BFF;--green:#19C37D;--orange:#FF6500;--red:#E5484D;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px}
+.topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:18px}.logo span{color:var(--orange)}
+.tb-r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tb-r button,.tb-r select,.sitebar select,.sitebar button{background:var(--panel2);border:1px solid var(--line);border-radius:14px;color:var(--muted);padding:6px 12px;font:600 12px system-ui;cursor:pointer}
+.sitebar{display:flex;gap:8px;align-items:center}
+.sitebar select{color:var(--ink);font-weight:700}
+.wrap{max-width:1150px;margin:0 auto;padding:16px 22px 60px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 15px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary)}
+.kpi.good::before{background:var(--green)}.kpi.warn::before{background:var(--orange)}
+.k-l{font-size:11px;color:var(--muted)}
+.k-v{font-family:var(--mono);font-size:24px;font-weight:700;margin-top:5px}
+.k-v.green{color:var(--green)}.k-v.red{color:var(--red)}.k-v.orange{color:var(--orange)}
+.k-d{font-size:10.5px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:14px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:2px 8px;border-radius:10px;font-weight:400}
+.form{display:grid;grid-template-columns:repeat(6,1fr) auto;gap:10px;align-items:end}
+@media(max-width:900px){.form{grid-template-columns:repeat(2,1fr)}}
+.fld label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}
+.fld input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:10px;font:14px var(--mono);text-align:right;outline:none}
+.fld input[type=date]{text-align:left;font-family:system-ui;font-size:13px}
+.fld input:focus{border-color:var(--orange)}
+.addbtn{background:var(--orange);color:#fff;border:0;border-radius:9px;padding:11px 20px;font:700 14px system-ui;cursor:pointer;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+th{color:var(--muted);text-align:right;padding:8px 9px;border-bottom:1px solid var(--line);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+td{padding:8px 9px;text-align:right;border-bottom:1px solid rgba(38,43,54,.5)}
+th:first-child,td:first-child{text-align:left}
+.g{color:var(--green)}.r{color:var(--red)}.o{color:var(--orange)}.mut{color:var(--muted)}
+.del{background:none;border:0;color:#5B6472;cursor:pointer;font-size:14px}
+.note{font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
+.empty{color:var(--muted);font-size:13px;padding:14px 0}
+.smallbtn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--muted);padding:7px 12px;font:600 12px system-ui;cursor:pointer}
+.gider{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end}
+@media(max-width:900px){.gider{grid-template-columns:repeat(2,1fr)}}
+.gtot{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--orange);white-space:nowrap;padding-bottom:8px}
+</style>
+<meta name="STATIC_READY"></head>
+<body><div style="background:#161922;border-bottom:1px solid #262B36;color:#A3A8B5;font:12px system-ui;padding:8px 22px">📌 Statik anlık görüntü — annotation için. Butonlar tıklanmaz; canlı sürüm: namikakmandev.github.io/hatchery.html</div><div style="background:#2F9BFF;color:#fff;font:700 15px system-ui;padding:12px 22px">GÖRÜNÜM 1 — 🏭 Merkez (tek tesis)</div>
+<div class="topbar">
+  <div class="logo">🐣 Kuluçka<span>Takip</span></div>
+  <div class="sitebar">
+    <select id="siteSel"><option value="0" selected="">🏭 Merkez</option><option value="1">🏭 Şube — Bolu</option><option value="2">🏭 Şube — Sakarya</option><option value="3">🏭 Şube — Konya</option><option value="ALL">🏭 TÜMÜ (karşılaştır)</option></select>
+    <button id="siteAdd" title="Yeni kuluçkahane ekle">＋</button>
+    <button id="siteRen" title="Adını değiştir">✎</button>
+    <button id="siteDel" title="Bu kuluçkahaneyi sil">🗑</button>
+  </div>
+  <div class="tb-r">
+    <select id="monthSel"><option value="all">Tüm aylar</option><option value="2026-06" selected="">2026-06</option></select>
+    <button id="csvBtn" type="button" data-i="csv">⬇ Excel (CSV)</button>
+    <button id="verBtn" type="button">💾 (0)</button>
+    <button id="langBtn" type="button">EN</button>
+  </div>
+</div>
+<div id="verPanel" style="display:none;position:fixed;top:56px;right:22px;z-index:999;width:min(460px,94vw);max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 16px 50px rgba(0,0,0,.6)">
+  <h3 style="margin:0 0 4px;font-size:14px" data-i="vTitle">💾 Yedekler</h3>
+  <p style="color:var(--muted);font-size:11.5px;margin:0 0 10px" data-i="vHint">Tüm kuluçkahanelerin anlık kopyası. Geri yükleyebilir, dosya olarak indirip başka cihazda açabilirsiniz.</p>
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="smallbtn" id="verSave" style="background:var(--orange);color:#fff;border:0" data-i="vSave">＋ Yedek al</button>
+    <label class="smallbtn" style="cursor:pointer" data-i="vLoad">📂 Dosyadan yükle</label>
+  </div>
+  <div id="verList"></div>
+</div>
+<div id="demoBanner" style="display:none;background:rgba(255,101,0,.12);border-bottom:1px solid rgba(255,101,0,.4);padding:10px 22px;font-size:13px;color:var(--ink)">
+  <span data-i="dbText">👋 Sayfa örnek verilerle açıldı — böyle görünür. Kendi kayıtlarınıza başlamak için</span>
+  <button class="smallbtn" id="dbClear" style="margin:0 6px;background:var(--orange);color:#fff;border:0" data-i="dbBtn">örnekleri sil, temiz başla</button>
+</div>
+<div class="wrap">
+
+  <div class="kpis">
+    <div class="kpi"><div class="k-l" data-i="kEggs">Basılan yumurta</div><div class="k-v" id="k-eggs">423.000</div><div class="k-d" id="k-batches">8 parti</div></div>
+    <div class="kpi good"><div class="k-l" data-i="kChicks">Satılan civciv</div><div class="k-v" id="k-chicks">347.700</div><div class="k-d" id="k-hatch">%82,2 çıkım</div></div>
+    <div class="kpi good"><div class="k-l" data-i="kProfit">Kâr</div><div class="k-v green" id="k-profit">₺2,5 mn</div><div class="k-d" id="k-margin">%35 · ciro ₺7,1 mn</div></div>
+    <div class="kpi warn"><div class="k-l" data-i="kPer">Civciv başına kâr</div><div class="k-v orange" id="k-per">₺7,26</div><div class="k-d" id="k-per-d">işletme gideri dahil</div></div>
+  </div>
+
+  <div class="card" id="cmpCard" style="display:none">
+    <h2 data-i="cmpT">🏭 Kuluçkahane karşılaştırması <span class="tag" data-i="cmpTag">seçili dönem</span></h2>
+    <div style="overflow-x:auto"><table><thead id="cmpH"></thead><tbody id="cmpB"></tbody></table></div>
+    <div class="note" data-i="cmpNote">Kayıt girmek ve grafikleri görmek için üstten tek bir kuluçkahane seçin.</div>
+  </div>
+
+  <div class="card" id="formCard">
+    <h2 data-i="fNew">➕ Yeni çıkım (parti) gir <span class="tag" id="siteTag">🏭 Merkez</span></h2>
+    <div class="form">
+      <div class="fld"><label data-i="fDate">Tarih</label><input type="date" id="fDate" value="2026-07-02"></div>
+      <div class="fld"><label data-i="fEggs">Basılan yumurta (adet)</label><input id="fEggs" inputmode="numeric" placeholder="50.000" value=""></div>
+      <div class="fld"><label data-i="fChicks">Satılan civciv (adet)</label><input id="fChicks" inputmode="numeric" placeholder="41.000" value=""></div>
+      <div class="fld"><label data-i="fEggCost">Yumurta maliyeti (₺/adet)</label><input id="fEggCost" inputmode="decimal" placeholder="9,00" value=""></div>
+      <div class="fld"><label data-i="fPrice">Civciv satış fiyatı (₺/adet)</label><input id="fPrice" inputmode="decimal" placeholder="20,00" value=""></div>
+      <div class="fld"><label data-i="fExtra">Ek gider (₺, ops.)</label><input id="fExtra" inputmode="numeric" placeholder="0" value=""></div>
+      <button class="addbtn" id="addBtn" data-i="fAdd">Kaydet</button>
+    </div>
+  </div>
+
+  <div class="card" id="giderCard">
+    <h2 data-i="gT">💸 Aylık işletme giderleri <span class="tag" id="giderSite">🏭 Merkez</span></h2>
+    <div class="gider">
+      <div class="fld"><label data-i="gMaas">Maaşlar (₺/ay)</label><input id="gMaas" inputmode="numeric" placeholder="350.000" value="350.000"></div>
+      <div class="fld"><label data-i="gEnerji">Enerji (₺/ay)</label><input id="gEnerji" inputmode="numeric" placeholder="150.000" value="150.000"></div>
+      <div class="fld"><label data-i="gBakim">Bakım (₺/ay)</label><input id="gBakim" inputmode="numeric" placeholder="60.000" value="60.000"></div>
+      <div class="fld"><label data-i="gDiger">Diğer (₺/ay)</label><input id="gDiger" inputmode="numeric" placeholder="40.000" value="40.000"></div>
+      <div class="gtot" id="gTot">= ₺600 b/ay</div>
+    </div>
+    <div class="note" data-i="gNote">Bu giderler, ilgili ayın partilerine civciv sayısına orantılı dağıtılır ve kâr hesabına dahildir. Yumurta bedeli ve partiye özel ek giderler ise yukarıda, parti girişinde yazılır.</div>
+  </div>
+
+  <div class="card">
+    <h2 data-i="tTitle">📒 Partiler <span class="tag" id="tCount">8 parti</span>
+      <span style="margin-left:auto;display:flex;gap:8px">
+        <button class="smallbtn" id="demoBtn" data-i="demo">Örnek veri</button>
+        <button class="smallbtn" id="clearBtn" data-i="clear">Hepsini sil</button>
+      </span></h2>
+    <div style="overflow-x:auto"><table><thead id="tHead"><tr><th>Tarih</th><th>Yumurta</th><th>Civciv</th><th>Çıkım %</th><th>Ciro</th><th>Maliyet</th><th>Kâr</th><th>₺/civciv</th><th></th></tr></thead><tbody id="tBody"><tr><td>2026-06-29</td><td>56.000</td><td>47.600</td><td class="g">%85</td><td>₺1.000 b</td><td>₺620 b</td><td class="g">₺380 b</td><td>7,98</td><td><button class="del" data-si="0" data-bi="7">✕</button></td></tr><tr><td>2026-06-25</td><td>52.000</td><td>42.600</td><td class="o">%81,9</td><td>₺895 b</td><td>₺593 b</td><td class="g">₺302 b</td><td>7,09</td><td><button class="del" data-si="0" data-bi="6">✕</button></td></tr><tr><td>2026-06-22</td><td>55.000</td><td>46.800</td><td class="g">%85,1</td><td>₺983 b</td><td>₺598 b</td><td class="g">₺385 b</td><td>8,23</td><td><button class="del" data-si="0" data-bi="5">✕</button></td></tr><tr><td>2026-06-18</td><td>53.000</td><td>44.500</td><td class="g">%84</td><td>₺935 b</td><td>₺575 b</td><td class="g">₺360 b</td><td>8,08</td><td><button class="del" data-si="0" data-bi="4">✕</button></td></tr><tr><td>2026-06-15</td><td>51.000</td><td>37.200</td><td class="r">%72,9</td><td>₺744 b</td><td>₺573 b</td><td class="g">₺171 b</td><td>4,59</td><td><button class="del" data-si="0" data-bi="3">✕</button></td></tr><tr><td>2026-06-11</td><td>54.000</td><td>44.300</td><td class="g">%82</td><td>₺886 b</td><td>₺573 b</td><td class="g">₺313 b</td><td>7,06</td><td><button class="del" data-si="0" data-bi="2">✕</button></td></tr><tr><td>2026-06-08</td><td>50.000</td><td>41.000</td><td class="g">%82</td><td>₺820 b</td><td>₺536 b</td><td class="g">₺284 b</td><td>6,93</td><td><button class="del" data-si="0" data-bi="1">✕</button></td></tr><tr><td>2026-06-04</td><td>52.000</td><td>43.700</td><td class="g">%84</td><td>₺874 b</td><td>₺543 b</td><td class="g">₺331 b</td><td>7,56</td><td><button class="del" data-si="0" data-bi="0">✕</button></td></tr></tbody></table></div>
+    <div class="empty" id="emptyMsg" style="display:none" data-i="empty">Henüz kayıt yok — yukarıdan ilk çıkımı girin, ya da “Örnek veri” ile deneyin.</div>
+  </div>
+
+  <div class="card" id="hatchCard">
+    <h2 data-i="cHatch">📈 Çıkım oranı — parti parti <span class="tag" data-i="cHatchTag">satılan civciv ÷ basılan yumurta</span></h2>
+    <div id="chartHatch"><svg viewBox="0 0 1080 190" style="width:100%;height:auto"><line x1="44" y1="164.0" x2="1064" y2="164.0" stroke="#1c212b"></line><text x="38" y="167.0" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%68</text><line x1="44" y1="114.7" x2="1064" y2="114.7" stroke="#1c212b"></line><text x="38" y="117.7" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%75</text><line x1="44" y1="65.3" x2="1064" y2="65.3" stroke="#1c212b"></line><text x="38" y="68.3" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%82</text><line x1="44" y1="16.0" x2="1064" y2="16.0" stroke="#1c212b"></line><text x="38" y="19.0" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%89</text><path d="M44.0 51.4 L189.7 65.6 L335.4 65.4 L481.1 129.0 L626.9 51.9 L772.6 44.0 L918.3 66.2 L1064.0 44.6 " fill="none" stroke="#2F9BFF" stroke-width="2.4"></path><circle cx="44.0" cy="51.4" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-04: %84</title></circle><text x="44.0" y="42.4" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%84</text><text x="44.0" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-04</text><circle cx="189.7" cy="65.6" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-08: %82</title></circle><text x="189.7" y="56.6" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%82</text><text x="189.7" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-08</text><circle cx="335.4" cy="65.4" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-11: %82</title></circle><text x="335.4" y="56.4" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%82</text><text x="335.4" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-11</text><circle cx="481.1" cy="129.0" r="4.5" fill="#E5484D" stroke="#0F1117" stroke-width="2"><title>2026-06-15: %72,9</title></circle><text x="481.1" y="120.0" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%72,9</text><text x="481.1" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-15</text><circle cx="626.9" cy="51.9" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-18: %84</title></circle><text x="626.9" y="42.9" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%84</text><text x="626.9" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-18</text><circle cx="772.6" cy="44.0" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-22: %85,1</title></circle><text x="772.6" y="35.0" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%85,1</text><text x="772.6" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-22</text><circle cx="918.3" cy="66.2" r="4.5" fill="#FF6500" stroke="#0F1117" stroke-width="2"><title>2026-06-25: %81,9</title></circle><text x="918.3" y="57.2" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%81,9</text><text x="918.3" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-25</text><circle cx="1064.0" cy="44.6" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-29: %85</title></circle><text x="1064.0" y="35.6" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%85</text><text x="1064.0" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-29</text></svg></div>
+  </div>
+
+  <div class="card" id="profitCard">
+    <h2 data-i="cProfit">💰 Parti başına kâr <span class="tag" data-i="cProfitTag">yeşil kazanç · kırmızı zarar</span></h2>
+    <div id="chartProfit"><svg viewBox="0 0 1080 200" style="width:100%;height:auto"><line x1="56" y1="174.0" x2="1064" y2="174.0" stroke="#2A2F3A" stroke-width="1.4"></line><text x="50" y="177.0" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">₺0</text><text x="50" y="123.7" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">₺128 b</text><text x="50" y="70.3" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">₺257 b</text><text x="50" y="17.0" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">₺385 b</text><rect x="91.0" y="36.6" width="56.0" height="137.4" rx="3" fill="#19C37D"><title>2026-06-04: ₺331 b</title></rect><text x="119.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-04</text><rect x="217.0" y="55.9" width="56.0" height="118.1" rx="3" fill="#19C37D"><title>2026-06-08: ₺284 b</title></rect><text x="245.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-08</text><rect x="343.0" y="44.0" width="56.0" height="130.0" rx="3" fill="#19C37D"><title>2026-06-11: ₺313 b</title></rect><text x="371.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-11</text><rect x="469.0" y="103.1" width="56.0" height="70.9" rx="3" fill="#19C37D"><title>2026-06-15: ₺171 b</title></rect><text x="497.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-15</text><rect x="595.0" y="24.6" width="56.0" height="149.4" rx="3" fill="#19C37D"><title>2026-06-18: ₺360 b</title></rect><text x="623.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-18</text><rect x="721.0" y="14.0" width="56.0" height="160.0" rx="3" fill="#19C37D"><title>2026-06-22: ₺385 b</title></rect><text x="749.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-22</text><rect x="847.0" y="48.6" width="56.0" height="125.4" rx="3" fill="#19C37D"><title>2026-06-25: ₺302 b</title></rect><text x="875.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-25</text><rect x="973.0" y="16.2" width="56.0" height="157.8" rx="3" fill="#19C37D"><title>2026-06-29: ₺380 b</title></rect><text x="1001.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-29</text></svg></div>
+    <div class="note" data-i="foot">Veriler bu tarayıcıda saklanır (internete gönderilmez). Excel butonu ile dışarı alabilirsiniz.</div>
+  </div>
+
+</div>
+
+
+
+<div style="background:#FF6500;color:#fff;font:700 15px system-ui;padding:12px 22px;margin:30px 0 0">GÖRÜNÜM 2 — 🏭 TÜMÜ (kuluçkahane karşılaştırması)</div>
+<div class="topbar">
+  <div class="logo">🐣 Kuluçka<span>Takip</span></div>
+  <div class="sitebar">
+    <select id="siteSel"><option value="0">🏭 Merkez</option><option value="1">🏭 Şube — Bolu</option><option value="2">🏭 Şube — Sakarya</option><option value="3">🏭 Şube — Konya</option><option value="ALL">🏭 TÜMÜ (karşılaştır)</option></select>
+    <button id="siteAdd" title="Yeni kuluçkahane ekle">＋</button>
+    <button id="siteRen" title="Adını değiştir" style="display: none;">✎</button>
+    <button id="siteDel" title="Bu kuluçkahaneyi sil" style="display: none;">🗑</button>
+  </div>
+  <div class="tb-r">
+    <select id="monthSel"><option value="all">Tüm aylar</option><option value="2026-06">2026-06</option></select>
+    <button id="csvBtn" type="button" data-i="csv">⬇ Excel (CSV)</button>
+    <button id="verBtn" type="button">💾 (0)</button>
+    <button id="langBtn" type="button">EN</button>
+  </div>
+</div>
+<div id="verPanel" style="display:none;position:fixed;top:56px;right:22px;z-index:999;width:min(460px,94vw);max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 16px 50px rgba(0,0,0,.6)">
+  <h3 style="margin:0 0 4px;font-size:14px" data-i="vTitle">💾 Yedekler</h3>
+  <p style="color:var(--muted);font-size:11.5px;margin:0 0 10px" data-i="vHint">Tüm kuluçkahanelerin anlık kopyası. Geri yükleyebilir, dosya olarak indirip başka cihazda açabilirsiniz.</p>
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="smallbtn" id="verSave" style="background:var(--orange);color:#fff;border:0" data-i="vSave">＋ Yedek al</button>
+    <label class="smallbtn" style="cursor:pointer" data-i="vLoad">📂 Dosyadan yükle</label>
+  </div>
+  <div id="verList"></div>
+</div>
+<div id="demoBanner" style="display:none;background:rgba(255,101,0,.12);border-bottom:1px solid rgba(255,101,0,.4);padding:10px 22px;font-size:13px;color:var(--ink)">
+  <span data-i="dbText">👋 Sayfa örnek verilerle açıldı — böyle görünür. Kendi kayıtlarınıza başlamak için</span>
+  <button class="smallbtn" id="dbClear" style="margin:0 6px;background:var(--orange);color:#fff;border:0" data-i="dbBtn">örnekleri sil, temiz başla</button>
+</div>
+<div class="wrap">
+
+  <div class="kpis">
+    <div class="kpi"><div class="k-l" data-i="kEggs">Basılan yumurta</div><div class="k-v" id="k-eggs">937.000</div><div class="k-d" id="k-batches">20 parti · 4 🏭</div></div>
+    <div class="kpi good"><div class="k-l" data-i="kChicks">Satılan civciv</div><div class="k-v" id="k-chicks">753.800</div><div class="k-d" id="k-hatch">%80,4 çıkım</div></div>
+    <div class="kpi good"><div class="k-l" data-i="kProfit">Kâr</div><div class="k-v green" id="k-profit">₺4,5 mn</div><div class="k-d" id="k-margin">%29 · ciro ₺15,5 mn</div></div>
+    <div class="kpi warn"><div class="k-l" data-i="kPer">Civciv başına kâr</div><div class="k-v orange" id="k-per">₺5,93</div><div class="k-d" id="k-per-d">işletme gideri dahil</div></div>
+  </div>
+
+  <div class="card" id="cmpCard" style="">
+    <h2 data-i="cmpT">🏭 Kuluçkahane karşılaştırması <span class="tag" data-i="cmpTag">seçili dönem</span></h2>
+    <div style="overflow-x:auto"><table><thead id="cmpH"><tr><th>Tesis</th><th>Parti</th><th>Yumurta</th><th>Civciv</th><th>Çıkım %</th><th>Ciro</th><th>Maliyet</th><th>Kâr</th><th>₺/civciv</th></tr></thead><tbody id="cmpB"><tr><td>Merkez 🥇</td><td>8</td><td>423.000</td><td>347.700</td><td class="g">%82,2</td><td>₺7,1 mn</td><td>₺4,6 mn</td><td class="g">₺2,5 mn</td><td>7,26</td></tr><tr><td>Şube — Sakarya</td><td>4</td><td>186.000</td><td>160.500</td><td class="g">%86,3</td><td>₺3,3 mn</td><td>₺2,2 mn</td><td class="g">₺1,1 mn</td><td>6,58</td></tr><tr><td>Şube — Bolu</td><td>4</td><td>158.000</td><td>123.000</td><td class="o">%77,8</td><td>₺2,5 mn</td><td>₺2 mn</td><td class="g">₺555 b</td><td>4,51</td></tr><tr><td>Şube — Konya ⚠️</td><td>4</td><td>170.000</td><td>122.600</td><td class="r">%72,1</td><td>₺2,5 mn</td><td>₺2,2 mn</td><td class="g">₺331 b</td><td>2,7</td></tr></tbody></table></div>
+    <div class="note" data-i="cmpNote">Kayıt girmek ve grafikleri görmek için üstten tek bir kuluçkahane seçin.</div>
+  </div>
+
+  <div class="card" id="formCard" style="display: none;">
+    <h2 data-i="fNew">➕ Yeni çıkım (parti) gir <span class="tag" id="siteTag">🏭 Merkez</span></h2>
+    <div class="form">
+      <div class="fld"><label data-i="fDate">Tarih</label><input type="date" id="fDate" value="2026-07-02"></div>
+      <div class="fld"><label data-i="fEggs">Basılan yumurta (adet)</label><input id="fEggs" inputmode="numeric" placeholder="50.000" value=""></div>
+      <div class="fld"><label data-i="fChicks">Satılan civciv (adet)</label><input id="fChicks" inputmode="numeric" placeholder="41.000" value=""></div>
+      <div class="fld"><label data-i="fEggCost">Yumurta maliyeti (₺/adet)</label><input id="fEggCost" inputmode="decimal" placeholder="9,00" value=""></div>
+      <div class="fld"><label data-i="fPrice">Civciv satış fiyatı (₺/adet)</label><input id="fPrice" inputmode="decimal" placeholder="20,00" value=""></div>
+      <div class="fld"><label data-i="fExtra">Ek gider (₺, ops.)</label><input id="fExtra" inputmode="numeric" placeholder="0" value=""></div>
+      <button class="addbtn" id="addBtn" data-i="fAdd">Kaydet</button>
+    </div>
+  </div>
+
+  <div class="card" id="giderCard" style="display: none;">
+    <h2 data-i="gT">💸 Aylık işletme giderleri <span class="tag" id="giderSite">🏭 Merkez</span></h2>
+    <div class="gider">
+      <div class="fld"><label data-i="gMaas">Maaşlar (₺/ay)</label><input id="gMaas" inputmode="numeric" placeholder="350.000" value="350.000"></div>
+      <div class="fld"><label data-i="gEnerji">Enerji (₺/ay)</label><input id="gEnerji" inputmode="numeric" placeholder="150.000" value="150.000"></div>
+      <div class="fld"><label data-i="gBakim">Bakım (₺/ay)</label><input id="gBakim" inputmode="numeric" placeholder="60.000" value="60.000"></div>
+      <div class="fld"><label data-i="gDiger">Diğer (₺/ay)</label><input id="gDiger" inputmode="numeric" placeholder="40.000" value="40.000"></div>
+      <div class="gtot" id="gTot">= ₺600 b/ay</div>
+    </div>
+    <div class="note" data-i="gNote">Bu giderler, ilgili ayın partilerine civciv sayısına orantılı dağıtılır ve kâr hesabına dahildir. Yumurta bedeli ve partiye özel ek giderler ise yukarıda, parti girişinde yazılır.</div>
+  </div>
+
+  <div class="card">
+    <h2 data-i="tTitle">📒 Partiler <span class="tag" id="tCount">20 parti</span>
+      <span style="margin-left:auto;display:flex;gap:8px">
+        <button class="smallbtn" id="demoBtn" data-i="demo">Örnek veri</button>
+        <button class="smallbtn" id="clearBtn" data-i="clear">Hepsini sil</button>
+      </span></h2>
+    <div style="overflow-x:auto"><table><thead id="tHead"><tr><th>Tesis</th><th>Tarih</th><th>Yumurta</th><th>Civciv</th><th>Çıkım %</th><th>Ciro</th><th>Maliyet</th><th>Kâr</th><th>₺/civciv</th><th></th></tr></thead><tbody id="tBody"><tr><td>Merkez</td><td>2026-06-29</td><td>56.000</td><td>47.600</td><td class="g">%85</td><td>₺1.000 b</td><td>₺620 b</td><td class="g">₺380 b</td><td>7,98</td><td><button class="del" data-si="0" data-bi="7">✕</button></td></tr><tr><td>Şube — Konya</td><td>2026-06-28</td><td>44.000</td><td>32.100</td><td class="r">%73</td><td>₺674 b</td><td>₺562 b</td><td class="g">₺112 b</td><td>3,49</td><td><button class="del" data-si="3" data-bi="3">✕</button></td></tr><tr><td>Şube — Bolu</td><td>2026-06-27</td><td>41.000</td><td>32.500</td><td class="o">%79,3</td><td>₺683 b</td><td>₺523 b</td><td class="g">₺160 b</td><td>4,92</td><td><button class="del" data-si="1" data-bi="3">✕</button></td></tr><tr><td>Şube — Sakarya</td><td>2026-06-26</td><td>48.000</td><td>41.800</td><td class="g">%87,1</td><td>₺878 b</td><td>₺584 b</td><td class="g">₺293 b</td><td>7,02</td><td><button class="del" data-si="2" data-bi="3">✕</button></td></tr><tr><td>Merkez</td><td>2026-06-25</td><td>52.000</td><td>42.600</td><td class="o">%81,9</td><td>₺895 b</td><td>₺593 b</td><td class="g">₺302 b</td><td>7,09</td><td><button class="del" data-si="0" data-bi="6">✕</button></td></tr><tr><td>Merkez</td><td>2026-06-22</td><td>55.000</td><td>46.800</td><td class="g">%85,1</td><td>₺983 b</td><td>₺598 b</td><td class="g">₺385 b</td><td>8,23</td><td><button class="del" data-si="0" data-bi="5">✕</button></td></tr><tr><td>Şube — Konya</td><td>2026-06-21</td><td>41.000</td><td>28.900</td><td class="r">%70,5</td><td>₺607 b</td><td>₺536 b</td><td class="g">₺71 b</td><td>2,47</td><td><button class="del" data-si="3" data-bi="2">✕</button></td></tr><tr><td>Şube — Bolu</td><td>2026-06-20</td><td>39.000</td><td>29.700</td><td class="o">%76,2</td><td>₺624 b</td><td>₺479 b</td><td class="g">₺145 b</td><td>4,87</td><td><button class="del" data-si="1" data-bi="2">✕</button></td></tr><tr><td>Şube — Sakarya</td><td>2026-06-19</td><td>45.000</td><td>38.700</td><td class="g">%86</td><td>₺813 b</td><td>₺554 b</td><td class="g">₺259 b</td><td>6,69</td><td><button class="del" data-si="2" data-bi="2">✕</button></td></tr><tr><td>Merkez</td><td>2026-06-18</td><td>53.000</td><td>44.500</td><td class="g">%84</td><td>₺935 b</td><td>₺575 b</td><td class="g">₺360 b</td><td>8,08</td><td><button class="del" data-si="0" data-bi="4">✕</button></td></tr><tr><td>Merkez</td><td>2026-06-15</td><td>51.000</td><td>37.200</td><td class="r">%72,9</td><td>₺744 b</td><td>₺573 b</td><td class="g">₺171 b</td><td>4,59</td><td><button class="del" data-si="0" data-bi="3">✕</button></td></tr><tr><td>Şube — Konya</td><td>2026-06-14</td><td>43.000</td><td>31.400</td><td class="r">%73</td><td>₺628 b</td><td>₺537 b</td><td class="g">₺91 b</td><td>2,91</td><td><button class="del" data-si="3" data-bi="1">✕</button></td></tr><tr><td>Şube — Bolu</td><td>2026-06-13</td><td>40.000</td><td>31.200</td><td class="o">%78</td><td>₺624 b</td><td>₺511 b</td><td class="g">₺113 b</td><td>3,62</td><td><button class="del" data-si="1" data-bi="1">✕</button></td></tr><tr><td>Şube — Sakarya</td><td>2026-06-12</td><td>47.000</td><td>40.400</td><td class="g">%86</td><td>₺808 b</td><td>₺556 b</td><td class="g">₺252 b</td><td>6,23</td><td><button class="del" data-si="2" data-bi="1">✕</button></td></tr><tr><td>Merkez</td><td>2026-06-11</td><td>54.000</td><td>44.300</td><td class="g">%82</td><td>₺886 b</td><td>₺573 b</td><td class="g">₺313 b</td><td>7,06</td><td><button class="del" data-si="0" data-bi="2">✕</button></td></tr><tr><td>Merkez</td><td>2026-06-08</td><td>50.000</td><td>41.000</td><td class="g">%82</td><td>₺820 b</td><td>₺536 b</td><td class="g">₺284 b</td><td>6,93</td><td><button class="del" data-si="0" data-bi="1">✕</button></td></tr><tr><td>Şube — Konya</td><td>2026-06-07</td><td>42.000</td><td>30.200</td><td class="r">%71,9</td><td>₺604 b</td><td>₺548 b</td><td class="g">₺56 b</td><td>1,86</td><td><button class="del" data-si="3" data-bi="0">✕</button></td></tr><tr><td>Şube — Bolu</td><td>2026-06-06</td><td>38.000</td><td>29.600</td><td class="o">%77,9</td><td>₺592 b</td><td>₺454 b</td><td class="g">₺138 b</td><td>4,66</td><td><button class="del" data-si="1" data-bi="0">✕</button></td></tr><tr><td>Şube — Sakarya</td><td>2026-06-05</td><td>46.000</td><td>39.600</td><td class="g">%86,1</td><td>₺792 b</td><td>₺540 b</td><td class="g">₺252 b</td><td>6,36</td><td><button class="del" data-si="2" data-bi="0">✕</button></td></tr><tr><td>Merkez</td><td>2026-06-04</td><td>52.000</td><td>43.700</td><td class="g">%84</td><td>₺874 b</td><td>₺543 b</td><td class="g">₺331 b</td><td>7,56</td><td><button class="del" data-si="0" data-bi="0">✕</button></td></tr></tbody></table></div>
+    <div class="empty" id="emptyMsg" style="display:none" data-i="empty">Henüz kayıt yok — yukarıdan ilk çıkımı girin, ya da “Örnek veri” ile deneyin.</div>
+  </div>
+
+  <div class="card" id="hatchCard" style="display: none;">
+    <h2 data-i="cHatch">📈 Çıkım oranı — parti parti <span class="tag" data-i="cHatchTag">satılan civciv ÷ basılan yumurta</span></h2>
+    <div id="chartHatch"><svg viewBox="0 0 1080 190" style="width:100%;height:auto"><line x1="44" y1="164.0" x2="1064" y2="164.0" stroke="#1c212b"></line><text x="38" y="167.0" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%68</text><line x1="44" y1="114.7" x2="1064" y2="114.7" stroke="#1c212b"></line><text x="38" y="117.7" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%75</text><line x1="44" y1="65.3" x2="1064" y2="65.3" stroke="#1c212b"></line><text x="38" y="68.3" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%82</text><line x1="44" y1="16.0" x2="1064" y2="16.0" stroke="#1c212b"></line><text x="38" y="19.0" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">%89</text><path d="M44.0 51.4 L189.7 65.6 L335.4 65.4 L481.1 129.0 L626.9 51.9 L772.6 44.0 L918.3 66.2 L1064.0 44.6 " fill="none" stroke="#2F9BFF" stroke-width="2.4"></path><circle cx="44.0" cy="51.4" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-04: %84</title></circle><text x="44.0" y="42.4" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%84</text><text x="44.0" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-04</text><circle cx="189.7" cy="65.6" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-08: %82</title></circle><text x="189.7" y="56.6" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%82</text><text x="189.7" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-08</text><circle cx="335.4" cy="65.4" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-11: %82</title></circle><text x="335.4" y="56.4" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%82</text><text x="335.4" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-11</text><circle cx="481.1" cy="129.0" r="4.5" fill="#E5484D" stroke="#0F1117" stroke-width="2"><title>2026-06-15: %72,9</title></circle><text x="481.1" y="120.0" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%72,9</text><text x="481.1" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-15</text><circle cx="626.9" cy="51.9" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-18: %84</title></circle><text x="626.9" y="42.9" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%84</text><text x="626.9" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-18</text><circle cx="772.6" cy="44.0" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-22: %85,1</title></circle><text x="772.6" y="35.0" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%85,1</text><text x="772.6" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-22</text><circle cx="918.3" cy="66.2" r="4.5" fill="#FF6500" stroke="#0F1117" stroke-width="2"><title>2026-06-25: %81,9</title></circle><text x="918.3" y="57.2" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%81,9</text><text x="918.3" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-25</text><circle cx="1064.0" cy="44.6" r="4.5" fill="#19C37D" stroke="#0F1117" stroke-width="2"><title>2026-06-29: %85</title></circle><text x="1064.0" y="35.6" text-anchor="middle" font-family="IBM Plex Mono" font-size="9.5" fill="#A3A8B5">%85</text><text x="1064.0" y="182" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-29</text></svg></div>
+  </div>
+
+  <div class="card" id="profitCard" style="display: none;">
+    <h2 data-i="cProfit">💰 Parti başına kâr <span class="tag" data-i="cProfitTag">yeşil kazanç · kırmızı zarar</span></h2>
+    <div id="chartProfit"><svg viewBox="0 0 1080 200" style="width:100%;height:auto"><line x1="56" y1="174.0" x2="1064" y2="174.0" stroke="#2A2F3A" stroke-width="1.4"></line><text x="50" y="177.0" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">₺0</text><text x="50" y="123.7" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">₺128 b</text><text x="50" y="70.3" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">₺257 b</text><text x="50" y="17.0" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#5B6472">₺385 b</text><rect x="91.0" y="36.6" width="56.0" height="137.4" rx="3" fill="#19C37D"><title>2026-06-04: ₺331 b</title></rect><text x="119.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-04</text><rect x="217.0" y="55.9" width="56.0" height="118.1" rx="3" fill="#19C37D"><title>2026-06-08: ₺284 b</title></rect><text x="245.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-08</text><rect x="343.0" y="44.0" width="56.0" height="130.0" rx="3" fill="#19C37D"><title>2026-06-11: ₺313 b</title></rect><text x="371.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-11</text><rect x="469.0" y="103.1" width="56.0" height="70.9" rx="3" fill="#19C37D"><title>2026-06-15: ₺171 b</title></rect><text x="497.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-15</text><rect x="595.0" y="24.6" width="56.0" height="149.4" rx="3" fill="#19C37D"><title>2026-06-18: ₺360 b</title></rect><text x="623.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-18</text><rect x="721.0" y="14.0" width="56.0" height="160.0" rx="3" fill="#19C37D"><title>2026-06-22: ₺385 b</title></rect><text x="749.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-22</text><rect x="847.0" y="48.6" width="56.0" height="125.4" rx="3" fill="#19C37D"><title>2026-06-25: ₺302 b</title></rect><text x="875.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-25</text><rect x="973.0" y="16.2" width="56.0" height="157.8" rx="3" fill="#19C37D"><title>2026-06-29: ₺380 b</title></rect><text x="1001.0" y="192" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#5B6472">06-29</text></svg></div>
+    <div class="note" data-i="foot">Veriler bu tarayıcıda saklanır (internete gönderilmez). Excel butonu ile dışarı alabilirsiniz.</div>
+  </div>
+
+</div>
+
+
+
+
+<style>
+#dwCanvas{position:absolute;top:0;left:0;z-index:9980;pointer-events:none;touch-action:none}
+#dwBar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9992;display:flex;gap:5px;align-items:center;
+ background:#161922;border:1px solid #2A3040;border-radius:12px;padding:7px 9px;box-shadow:0 8px 28px rgba(0,0,0,.55)}
+#dwBar button{border:0;background:#222834;color:#d3d7df;border-radius:8px;padding:7px 10px;font:600 12px system-ui;cursor:pointer;line-height:1}
+#dwBar button.on{background:#FF6500;color:#fff}
+#dwBar .sw{width:19px;height:19px;border-radius:50%;border:2px solid #0F1117;cursor:pointer;padding:0}
+#dwBar .sw.on{outline:2px solid #fff;outline-offset:1px}
+#dwBar .sep{width:1px;height:22px;background:#2A3040;margin:0 3px}
+body.dw-active{cursor:crosshair}
+#dwHint{position:fixed;right:16px;bottom:18px;z-index:9992;background:#161922;border:1px solid #2A3040;color:#A3A8B5;
+ font:11.5px system-ui;padding:8px 12px;border-radius:10px;max-width:260px;line-height:1.5}
+</style>
+<script>
+(function(){
+ var cv=document.createElement('canvas');cv.id='dwCanvas';var ctx=cv.getContext('2d');
+ var mode='pen',color='#FF3B30',strokes=[],cur=null,dpr=window.devicePixelRatio||1;
+ var SIZE={pen:3,marker:16,eraser:26};
+ function ds(){return [Math.max(document.documentElement.scrollWidth,innerWidth),Math.max(document.documentElement.scrollHeight,innerHeight)];}
+ function resize(){var s=ds();dpr=window.devicePixelRatio||1;cv.width=s[0]*dpr;cv.height=s[1]*dpr;cv.style.width=s[0]+'px';cv.style.height=s[1]+'px';ctx.setTransform(dpr,0,0,dpr,0,0);redraw();}
+ function style(st){ctx.lineJoin=ctx.lineCap='round';ctx.lineWidth=st.size;
+  if(st.tool==='eraser'){ctx.globalCompositeOperation='destination-out';ctx.globalAlpha=1;ctx.strokeStyle='#000';}
+  else{ctx.globalCompositeOperation='source-over';ctx.strokeStyle=st.color;ctx.globalAlpha=st.tool==='marker'?0.4:1;}}
+ function drawS(st){if(st.pts.length<1)return;style(st);ctx.beginPath();ctx.moveTo(st.pts[0].x,st.pts[0].y);
+  for(var i=1;i<st.pts.length;i++)ctx.lineTo(st.pts[i].x,st.pts[i].y);
+  if(st.pts.length===1)ctx.lineTo(st.pts[0].x+0.1,st.pts[0].y+0.1);ctx.stroke();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;}
+ function redraw(){ctx.clearRect(0,0,cv.width,cv.height);strokes.forEach(drawS);}
+ function pt(e){return {x:e.clientX+(scrollX||0),y:e.clientY+(scrollY||0)};}
+ cv.addEventListener('pointerdown',function(e){if(mode==='off')return;e.preventDefault();
+  cur={tool:mode,color:color,size:SIZE[mode],pts:[pt(e)]};strokes.push(cur);cv.setPointerCapture&&cv.setPointerCapture(e.pointerId);drawS(cur);});
+ cv.addEventListener('pointermove',function(e){if(!cur)return;var p=pt(e),a=cur.pts[cur.pts.length-1];cur.pts.push(p);style(cur);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(p.x,p.y);ctx.stroke();ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;});
+ function end(){cur=null;} cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+ addEventListener('resize',resize);
+ var bar=document.createElement('div');bar.id='dwBar';
+ function mk(h,t){var b=document.createElement('button');b.innerHTML=h;if(t)b.title=t;bar.appendChild(b);return b;}
+ var bPen=mk('✏️ Kalem'),bMark=mk('🖍 Fosforlu'),bErase=mk('⌫ Silgi');
+ var s1=document.createElement('span');s1.className='sep';bar.appendChild(s1);
+ var sws=[];['#FF3B30','#FF9500','#FFE64D','#19C37D','#2F9BFF','#FFFFFF'].forEach(function(c){
+  var b=document.createElement('button');b.className='sw';b.style.background=c;
+  b.onclick=function(){color=c;sws.forEach(function(x){x.classList.remove('on');});b.classList.add('on');if(mode==='off')setMode('pen');};bar.appendChild(b);sws.push(b);});
+ sws[0].classList.add('on');
+ var s2=document.createElement('span');s2.className='sep';bar.appendChild(s2);
+ var bUndo=mk('↶','Geri al'),bClear=mk('🗑','Temizle'),bSave=mk('📷 Kaydet','Resim olarak indir — "Bu sekme"yi seç');
+ document.body.appendChild(bar);
+ function setMode(m){mode=m;cv.style.pointerEvents=m==='off'?'none':'auto';document.body.classList.toggle('dw-active',m!=='off');
+  [[bPen,'pen'],[bMark,'marker'],[bErase,'eraser']].forEach(function(p){p[0].classList.toggle('on',mode===p[1]);});}
+ bPen.onclick=function(){setMode(mode==='pen'?'off':'pen');};
+ bMark.onclick=function(){setMode(mode==='marker'?'off':'marker');};
+ bErase.onclick=function(){setMode(mode==='eraser'?'off':'eraser');};
+ bUndo.onclick=function(){strokes.pop();redraw();};
+ bClear.onclick=function(){if(strokes.length&&confirm('Tüm çizimler silinsin mi?')){strokes=[];redraw();}};
+ bSave.onclick=async function(){
+  try{
+   var stream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser'},preferCurrentTab:true,selfBrowserSurface:'include'});
+   var v=document.createElement('video');v.srcObject=stream;await v.play();await new Promise(function(r){setTimeout(r,250);});
+   bar.style.visibility='hidden';var hint=document.getElementById('dwHint');if(hint)hint.style.visibility='hidden';
+   await new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(r);});});
+   var c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+   bar.style.visibility='';if(hint)hint.style.visibility='';
+   stream.getTracks().forEach(function(t){t.stop();});
+   var a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='kuluckatakip-notlar.png';a.click();
+  }catch(err){bar.style.visibility='';alert('Ekran paylaşımına izin verip "Bu sekme"yi seçin — ya da sistem ekran görüntüsü alın (çizimler sayfanın üzerinde).');}
+ };
+ var hint=document.createElement('div');hint.id='dwHint';
+ hint.innerHTML='🖊️ <b>Çiz</b> → <b>📷 Kaydet</b> (\u201cBu sekme\u201d) → inen resmi Claude\u2019a g\u00f6nder.';
+ document.body.appendChild(hint);
+ document.body.appendChild(cv);resize();setMode('pen');
+})();
+</script></body></html>
