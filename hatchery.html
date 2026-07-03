@@ -79,6 +79,7 @@ th:first-child,td:first-child{text-align:left}
   </div>
   <div class="tb-r">
     <select id="monthSel"></select>
+    <button id="repBtn" type="button" data-i="repBtn" style="background:var(--orange);color:#fff;border-color:var(--orange)">🖨 Patron raporu</button>
     <button id="csvBtn" type="button" data-i="csv">⬇ Excel (CSV)</button>
     <button id="verBtn" type="button">💾</button>
     <button id="langBtn" type="button">EN</button>
@@ -126,6 +127,22 @@ th:first-child,td:first-child{text-align:left}
     <div class="note" data-i="opsNote">Boşta duran makine de kira, maaş ve enerji öder — doluluk düştükçe civciv başına sabit gider büyür. Çıkım günü gelen partiye “Çıkımı gir” ile sonucu yazın.</div>
   </div>
 
+  <div class="card" id="ordCard">
+    <h2 data-i="ordT">📦 Siparişler <span class="tag" data-i="ordTag">söz verilen civcivler</span></h2>
+    <div id="ordMatch" style="font-size:12px;font-family:var(--mono);margin-bottom:10px"></div>
+    <div class="form4" id="ordForm">
+      <div class="fld"><label data-i="ordCust">Müşteri</label><input id="oCust" class="txt" list="custList" placeholder="Yıldız Piliç"></div>
+      <div class="fld"><label data-i="ordQty">Adet</label><input id="oQty" inputmode="numeric" placeholder="40.000"></div>
+      <div class="fld"><label data-i="ordPrice">Fiyat (₺/adet)</label><input id="oPrice" inputmode="decimal" placeholder="21,00"></div>
+      <div class="fld"><label data-i="ordDate">Teslim tarihi</label><input type="date" id="oDate"></div>
+      <button class="addbtn" id="ordAddBtn" data-i="ordAdd">Ekle</button>
+    </div>
+    <div style="overflow-x:auto;margin-top:10px"><table><thead id="ordH"></thead><tbody id="ordB"></tbody></table></div>
+    <div class="empty" id="ordEmpty" style="display:none" data-i="ordEmpty">Açık sipariş yok — müşteri sözlerini buraya yazın.</div>
+    <div class="note" data-i="ordNote">“Teslim et” dediğinizde tutar otomatik olarak Alacaklar listesine düşer. Kâr hesabı partilerden gelir; bu kart söz–teslimat takibidir.</div>
+    <datalist id="custList"></datalist>
+  </div>
+
   <div class="card" id="formCard">
     <h2 data-i="fNew">➕ Kayıt gir <span class="tag" id="siteTag"></span></h2>
     <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -163,6 +180,19 @@ th:first-child,td:first-child{text-align:left}
       <div class="gtot" id="gTot">—</div>
     </div>
     <div class="note" data-i="gNote">Bu giderler, ilgili ayın partilerine civciv sayısına orantılı dağıtılır ve kâr hesabına dahildir. Yumurta bedeli ve partiye özel ek giderler ise parti girişinde yazılır.</div>
+  </div>
+
+  <div class="card" id="recvCard">
+    <h2 data-i="recvT">💳 Alacaklar <span class="tag" id="recvSum"></span></h2>
+    <div class="form4" id="recvForm">
+      <div class="fld"><label data-i="recvDate">Tarih</label><input type="date" id="rDate"></div>
+      <div class="fld"><label data-i="recvCust">Müşteri</label><input id="rCust" class="txt" list="custList" placeholder="Demir Civciv"></div>
+      <div class="fld"><label data-i="recvAmt">Tutar (₺)</label><input id="rAmt" inputmode="numeric" placeholder="500.000"></div>
+      <button class="addbtn" id="recvAddBtn" data-i="recvAdd">Ekle</button>
+    </div>
+    <div style="overflow-x:auto;margin-top:10px"><table><thead id="recvH"></thead><tbody id="recvB"></tbody></table></div>
+    <div class="empty" id="recvEmpty" style="display:none" data-i="recvEmpty">Açık alacak yok 👍</div>
+    <div class="note" data-i="recvNote">Kâr hesabına dokunmaz — sadece tahsilatı izler. “Tahsil edildi” deyince satır aşağıya, tahsil edilenlere iner.</div>
   </div>
 
   <div class="card" id="supCard" style="display:none">
@@ -280,6 +310,48 @@ var TXT={
  bePb:{tr:' — bu dönemin maliyetiyle, bunun altındaki fiyat zarar demek.',en:' — at this period’s cost, any price below this is a loss.'},
  beH:{tr:'Ortalama satış fiyatıyla başabaş çıkım oranı ≈ ',en:'At the average sale price, break-even hatch rate ≈ '},
  beHb:{tr:' — bunun altındaki çıkım zarar demek.',en:' — any hatch rate below this is a loss.'},
+ ordT:{tr:'📦 Siparişler ',en:'📦 Orders '},
+ ordTag:{tr:'söz verilen civcivler',en:'chicks promised'},
+ ordCust:{tr:'Müşteri',en:'Customer'},
+ ordQty:{tr:'Adet',en:'Qty'},
+ ordPrice:{tr:'Fiyat (₺/adet)',en:'Price (₺/pc)'},
+ ordDate:{tr:'Teslim tarihi',en:'Delivery date'},
+ ordAdd:{tr:'Ekle',en:'Add'},
+ ordEmpty:{tr:'Açık sipariş yok — müşteri sözlerini buraya yazın.',en:'No open orders — record customer commitments here.'},
+ ordNote:{tr:'“Teslim et” dediğinizde tutar otomatik olarak Alacaklar listesine düşer. Kâr hesabı partilerden gelir; bu kart söz–teslimat takibidir.',en:'When you press “Deliver”, the amount drops into Receivables automatically. Profit comes from batches; this card tracks promises and deliveries.'},
+ m14a:{tr:'Önümüzdeki 14 gün: beklenen ~',en:'Next 14 days: expected ~'},
+ m14b:{tr:' civciv · sipariş ',en:' chicks · ordered '},
+ m14free:{tr:' → satılmamış ≈ ',en:' → unsold ≈ '},
+ m14short:{tr:' → söz fazlası ≈ ',en:' → oversold by ≈ '},
+ m14ok:{tr:' → denk ✓',en:' → matched ✓'},
+ thDeliv:{tr:'Teslim',en:'Delivery'},thCust:{tr:'Müşteri',en:'Customer'},thQty:{tr:'Adet',en:'Qty'},thAmt:{tr:'Tutar',en:'Amount'},thStat:{tr:'Durum',en:'Status'},
+ stOpen:{tr:'bekliyor',en:'open'},
+ stDone:{tr:'teslim edildi',en:'delivered'},
+ deliver:{tr:'Teslim et',en:'Deliver'},
+ recvT:{tr:'💳 Alacaklar ',en:'💳 Receivables '},
+ recvDate:{tr:'Tarih',en:'Date'},
+ recvCust:{tr:'Müşteri',en:'Customer'},
+ recvAmt:{tr:'Tutar (₺)',en:'Amount (₺)'},
+ recvAdd:{tr:'Ekle',en:'Add'},
+ recvEmpty:{tr:'Açık alacak yok 👍',en:'No open receivables 👍'},
+ recvNote:{tr:'Kâr hesabına dokunmaz — sadece tahsilatı izler. “Tahsil edildi” deyince satır aşağıya, tahsil edilenlere iner.',en:'Doesn’t touch profit — it only tracks collection. “Collected” moves the row down to the collected list.'},
+ recvTot:{tr:'toplam',en:'total'},
+ recvOld:{tr:'en eskisi',en:'oldest'},
+ thAge:{tr:'Yaş',en:'Age'},
+ days:{tr:'gün',en:'days'},
+ paidBtn:{tr:'Tahsil edildi',en:'Collected'},
+ paidHdr:{tr:'✓ Tahsil edilenler',en:'✓ Collected'},
+ repBtn:{tr:'🖨 Patron raporu',en:'🖨 Boss report'},
+ repTitle:{tr:'Patron Raporu',en:'Boss Report'},
+ repGen:{tr:'Oluşturma',en:'Generated'},
+ repWeek:{tr:'Bu hafta çıkacaklar',en:'Hatching this week'},
+ repOrders:{tr:'Açık siparişler',en:'Open orders'},
+ repRecv:{tr:'Açık alacaklar',en:'Open receivables'},
+ repSup:{tr:'Tedarikçi karnesi',en:'Supplier scorecard'},
+ repCmp:{tr:'Kuluçkahane karşılaştırması',en:'Hatchery comparison'},
+ repPrint:{tr:'🖨 Yazdır / PDF kaydet',en:'🖨 Print / save PDF'},
+ repNone:{tr:'—',en:'—'},
+ repPop:{tr:'Tarayıcı yeni pencereye izin vermedi — açılır pencere engelini kaldırın.',en:'The browser blocked the window — allow pop-ups for this page.'},
  tTitle:{tr:'📒 Tamamlanan partiler ',en:'📒 Completed batches '},
  demo:{tr:'Örnek veri',en:'Sample data'},
  clear:{tr:'Hepsini sil',en:'Delete all'},
@@ -293,7 +365,7 @@ var TXT={
  thEggs:{tr:'Yumurta',en:'Eggs'},thChicks:{tr:'Civciv',en:'Chicks'},thSold:{tr:'Satılan',en:'Sold'},
  thHatch:{tr:'Çıkım %',en:'Hatch %'},thRev:{tr:'Ciro',en:'Revenue'},thCost:{tr:'Maliyet',en:'Cost'},
  thProfit:{tr:'Kâr',en:'Profit'},thPer:{tr:'₺/civciv',en:'₺/chick'},thBat:{tr:'Parti',en:'Batches'},
- thUtil:{tr:'Doluluk',en:'Util.'},thCostPer:{tr:'Maliyet ₺/civciv',en:'Cost ₺/chick'},
+ thUtil:{tr:'Doluluk',en:'Util.'},thCostPer:{tr:'Maliyet ₺/civciv',en:'Cost ₺/chick'},thPrice:{tr:'Fiyat',en:'Price'},
  allM:{tr:'Tüm aylar',en:'All months'},
  allS:{tr:'🏭 TÜMÜ (karşılaştır)',en:'🏭 ALL (compare)'},
  batches:{tr:'parti',en:'batches'},
@@ -324,11 +396,11 @@ function todayISO(){return fmtD(new Date());}
 
 // ---- data: v3 = multi-site + batch lifecycle (set -> hatch -> sold) ----
 // batch: {sd:set date, d:hatch date (expected while st=='in'), eggs, sup, eggCost, chicks, sold, price, extra, st:'in'|'done'}
-function blankSite(name){ return {name:name,cap:0,batches:[],fix:{maas:0,enerji:0,kira:0,bakim:0,diger:0}}; }
+function blankSite(name){ return {name:name,cap:0,batches:[],orders:[],recv:[],fix:{maas:0,enerji:0,kira:0,bakim:0,diger:0}}; }
 function migrate(d){
-  if(!d) return {v:3,sites:[blankSite('Merkez')]};
+  if(!d) return {v:4,sites:[blankSite('Merkez')]};
   if(!d.sites){ var s2=blankSite('Merkez'); s2.batches=d.batches||[]; s2.fix.diger=d.fix||0; d={v:2,sites:[s2]}; }
-  if(d.v!==3){
+  if(d.v!==3&&d.v!==4){
     d.sites.forEach(function(st){
       st.cap=st.cap||0;
       st.fix=st.fix||{}; ['maas','enerji','kira','bakim','diger'].forEach(function(k){st.fix[k]=st.fix[k]||0;});
@@ -338,8 +410,9 @@ function migrate(d){
         if(b.st!=='in'){ b.st='done'; if(b.sold==null) b.sold=b.chicks; }
       });
     });
-    d.v=3;
   }
+  d.sites.forEach(function(st){ st.orders=st.orders||[]; st.recv=st.recv||[]; });
+  d.v=4;
   return d;
 }
 function load(){
@@ -447,6 +520,8 @@ function render(){
   $('k-util-d').textContent= ut.u==null? (ut.eggs? nf.format(ut.eggs)+' '+T('kInM')+' · '+T('kUtilNoCap') : T('kUtilNoCap'))
     : nf.format(ut.eggs)+' / '+nf.format(ut.cap)+' '+T('kInM');
   renderOps();
+  renderOrd();
+  renderRecv();
   renderSup(rs);
   renderFun(rs);
   var head='<tr>'+(isAll?'<th>'+T('thSite')+'</th>':'')+'<th>'+T('thSet')+'</th><th>'+T('thDate')+'</th><th>'+T('thSup')+'</th><th>'+T('thEggs')+'</th><th>'+T('thChicks')+'</th><th>'+T('thSold')+'</th><th>'+T('thHatch')+'</th><th>'+T('thRev')+'</th><th>'+T('thCost')+'</th><th>'+T('thProfit')+'</th><th>'+T('thPer')+'</th><th></th></tr>';
@@ -481,6 +556,7 @@ function render(){
     drawHatch(rs); drawProfit(rs);
   } else renderCmp();
   fillSupList();
+  fillCustList();
   setHintUpd();
 }
 
@@ -558,6 +634,102 @@ function renderOps(){
   };
   var cc=$('cCancelBtn');
   if(cc) cc.onclick=function(){ OPEN=null; render(); };
+}
+
+// ---- orders (promise → delivery) ----
+function ordScope(){ var rows=[]; DATA.sites.forEach(function(st,si){ if(SEL!=='ALL'&&si!==+SEL)return; (st.orders||[]).forEach(function(o){rows.push({si:si,o:o});}); }); return rows; }
+function renderOrd(){
+  var isAll=SEL==='ALL';
+  $('ordForm').style.display=isAll?'none':'';
+  var exp=0;
+  DATA.sites.forEach(function(st,si){ if(!isAll&&si!==+SEL)return;
+    inB(st).forEach(function(b){ if(daysUntil(b.d)<=14) exp+=Math.round(b.eggs*estHatch(si)); });});
+  var rows=ordScope();
+  var ord14=rows.filter(function(x){return x.o.st==='open'&&daysUntil(x.o.d)<=14;}).reduce(function(a,x){return a+x.o.qty;},0);
+  var mt='';
+  if(exp>0||ord14>0){
+    var gap=exp-ord14;
+    mt=T('m14a')+nf.format(exp)+T('m14b')+nf.format(ord14);
+    if(Math.abs(gap)<=Math.max(1000,exp*0.03)) mt+='<span class="g">'+T('m14ok')+'</span>';
+    else if(gap>0) mt+='<span class="o">'+T('m14free')+nf.format(gap)+' 🐤</span>';
+    else mt+='<span class="r">'+T('m14short')+nf.format(-gap)+' 🐤</span>';
+  }
+  $('ordMatch').innerHTML=mt;
+  rows.sort(function(a,b){ if((a.o.st==='open')!==(b.o.st==='open'))return a.o.st==='open'?-1:1; return a.o.d<b.o.d?-1:1; });
+  var open=rows.filter(function(x){return x.o.st==='open';});
+  var done=rows.filter(function(x){return x.o.st!=='open';}).slice(-4);
+  $('ordH').innerHTML='<tr>'+(isAll?'<th>'+T('thSite')+'</th>':'')+'<th>'+T('thDeliv')+'</th><th style="text-align:left">'+T('thCust')+'</th><th>'+T('thQty')+'</th><th>'+T('thPrice')+'</th><th>'+T('thAmt')+'</th><th>'+T('thStat')+'</th><th></th></tr>';
+  var body='';
+  open.concat(done).forEach(function(x){
+    var oi=DATA.sites[x.si].orders.indexOf(x.o);
+    var isOpen=x.o.st==='open', dd=daysUntil(x.o.d);
+    var chip= isOpen? '<span class="chip '+(dd<0?'late':(dd===0?'today':'soon'))+'">'+T('stOpen')+(dd<0?' · '+(-dd)+T('dLate'):'')+'</span>'
+      : '<span class="mut">✓ '+T('stDone')+'</span>';
+    body+='<tr'+(isOpen?'':' style="opacity:.55"')+'>'+(isAll?'<td>'+esc(DATA.sites[x.si].name)+'</td>':'')
+      +'<td>'+x.o.d+'</td><td style="text-align:left">'+esc(x.o.c)+'</td><td>'+nf.format(x.o.qty)+'</td>'
+      +'<td>'+nf2.format(x.o.price)+'</td><td>'+money(x.o.qty*x.o.price)+'</td><td>'+chip+'</td>'
+      +'<td style="white-space:nowrap">'+(isOpen?'<button class="smallbtn" style="background:var(--green);color:#fff;border:0" data-od="'+x.si+':'+oi+'">'+T('deliver')+'</button> ':'')
+      +'<button class="del" data-odx="'+x.si+':'+oi+'">✕</button></td></tr>';
+  });
+  $('ordB').innerHTML=body;
+  $('ordEmpty').style.display=(open.length||done.length)?'none':'block';
+  $('ordB').querySelectorAll('[data-od]').forEach(function(b){ b.onclick=function(){
+    var p=b.getAttribute('data-od').split(':'), o=DATA.sites[+p[0]].orders[+p[1]];
+    o.st='done';
+    DATA.sites[+p[0]].recv.push({d:todayISO(),c:o.c,amt:o.qty*o.price,pd:null});
+    setTouched(); save(); render(); };});
+  $('ordB').querySelectorAll('[data-odx]').forEach(function(b){ b.onclick=function(){
+    if(!confirm(T('delBatch')))return;
+    var p=b.getAttribute('data-odx').split(':');
+    DATA.sites[+p[0]].orders.splice(+p[1],1); save(); render(); };});
+}
+
+// ---- receivables ----
+function recvScope(){ var rows=[]; DATA.sites.forEach(function(st,si){ if(SEL!=='ALL'&&si!==+SEL)return; (st.recv||[]).forEach(function(r){rows.push({si:si,r:r});}); }); return rows; }
+function ageOf(iso){ return Math.max(0,-daysUntil(iso)); }
+function renderRecv(){
+  var isAll=SEL==='ALL';
+  $('recvForm').style.display=isAll?'none':'';
+  var rows=recvScope();
+  var un=rows.filter(function(x){return !x.r.pd;}).sort(function(a,b){return a.r.d<b.r.d?-1:1;});
+  var pd=rows.filter(function(x){return x.r.pd;}).sort(function(a,b){return a.r.pd<b.r.pd?1:-1;}).slice(0,5);
+  var tot=un.reduce(function(a,x){return a+x.r.amt;},0);
+  $('recvSum').textContent= un.length? money(tot)+' '+T('recvTot')+' · '+T('recvOld')+' '+ageOf(un[0].r.d)+' '+T('days') : '';
+  $('recvH').innerHTML='<tr>'+(isAll?'<th>'+T('thSite')+'</th>':'')+'<th>'+T('recvDate')+'</th><th style="text-align:left">'+T('thCust')+'</th><th>'+T('thAmt')+'</th><th>'+T('thAge')+'</th><th></th></tr>';
+  var body='';
+  un.forEach(function(x){
+    var ri=DATA.sites[x.si].recv.indexOf(x.r);
+    var a=ageOf(x.r.d), cls=a>30?'r':(a>15?'o':'mut');
+    body+='<tr>'+(isAll?'<td>'+esc(DATA.sites[x.si].name)+'</td>':'')
+      +'<td>'+x.r.d+'</td><td style="text-align:left">'+esc(x.r.c)+'</td><td><b>'+money(x.r.amt)+'</b></td>'
+      +'<td class="'+cls+'">'+a+' '+T('days')+(a>30?' ⚠️':'')+'</td>'
+      +'<td style="white-space:nowrap"><button class="smallbtn" style="background:var(--primary);color:#fff;border:0" data-rp="'+x.si+':'+ri+'">'+T('paidBtn')+'</button> '
+      +'<button class="del" data-rx="'+x.si+':'+ri+'">✕</button></td></tr>';
+  });
+  if(pd.length){
+    body+='<tr><td colspan="'+(isAll?6:5)+'" style="text-align:left;color:var(--muted);font-size:10.5px;padding-top:12px">'+T('paidHdr')+'</td></tr>';
+    pd.forEach(function(x){
+      var ri=DATA.sites[x.si].recv.indexOf(x.r);
+      body+='<tr style="opacity:.5">'+(isAll?'<td>'+esc(DATA.sites[x.si].name)+'</td>':'')
+        +'<td>'+x.r.d+'</td><td style="text-align:left">'+esc(x.r.c)+'</td><td>'+money(x.r.amt)+'</td>'
+        +'<td class="g">✓ '+x.r.pd+'</td>'
+        +'<td><button class="del" data-rx="'+x.si+':'+ri+'">✕</button></td></tr>';
+    });
+  }
+  $('recvB').innerHTML=body;
+  $('recvEmpty').style.display=(un.length||pd.length)?'none':'block';
+  $('recvB').querySelectorAll('[data-rp]').forEach(function(b){ b.onclick=function(){
+    var p=b.getAttribute('data-rp').split(':');
+    DATA.sites[+p[0]].recv[+p[1]].pd=todayISO(); setTouched(); save(); render(); };});
+  $('recvB').querySelectorAll('[data-rx]').forEach(function(b){ b.onclick=function(){
+    if(!confirm(T('delBatch')))return;
+    var p=b.getAttribute('data-rx').split(':');
+    DATA.sites[+p[0]].recv.splice(+p[1],1); save(); render(); };});
+}
+function fillCustList(){
+  var m={};
+  DATA.sites.forEach(function(st){ (st.orders||[]).forEach(function(o){m[o.c]=1;}); (st.recv||[]).forEach(function(r){m[r.c]=1;}); });
+  $('custList').innerHTML=Object.keys(m).sort().map(function(c){return '<option value="'+esc(c)+'">';}).join('');
 }
 
 // ---- supplier scorecard ----
@@ -720,7 +892,7 @@ $('siteRen').onclick=function(){
 var TKEY='hatchops.touched';
 function touched(){ try{return !!localStorage.getItem(TKEY);}catch(e){return true;} }
 function setTouched(){ try{localStorage.setItem(TKEY,'1');}catch(e){} $('demoBanner').style.display='none'; }
-$('dbClear').onclick=function(){ DATA={v:3,sites:[blankSite('Merkez')]}; SEL=0; OPEN=null; save(); setTouched(); render(); };
+$('dbClear').onclick=function(){ DATA={v:4,sites:[blankSite('Merkez')]}; SEL=0; OPEN=null; save(); setTouched(); render(); };
 $('tabSet').onclick=function(){ $('setForm').style.display=''; $('setHint').style.display=''; $('oldForm').style.display='none'; $('tabSet').classList.add('tabOn'); $('tabOld').classList.remove('tabOn'); };
 $('tabOld').onclick=function(){ $('setForm').style.display='none'; $('setHint').style.display='none'; $('oldForm').style.display=''; $('tabOld').classList.add('tabOn'); $('tabSet').classList.remove('tabOn'); };
 function fillSupList(){
@@ -754,6 +926,25 @@ $('addBtn').onclick=function(){
   ['fEggs','fChicks'].forEach(function(k){$(k).value='';});
   render();
 };
+$('ordAddBtn').onclick=function(){
+  if(SEL==='ALL')return;
+  var c=$('oCust').value.trim(); if(!c){$('oCust').focus();return;}
+  var q=num($('oQty').value); if(q<=0){$('oQty').focus();return;}
+  var pr=num($('oPrice').value); if(pr<=0){$('oPrice').focus();return;}
+  var d=$('oDate').value; if(!d){$('oDate').focus();return;}
+  setTouched();
+  DATA.sites[+SEL].orders.push({c:c,qty:q,price:pr,d:d,st:'open'});
+  save(); $('oQty').value=''; render();
+};
+$('recvAddBtn').onclick=function(){
+  if(SEL==='ALL')return;
+  var d=$('rDate').value; if(!d){$('rDate').focus();return;}
+  var c=$('rCust').value.trim(); if(!c){$('rCust').focus();return;}
+  var a=num($('rAmt').value); if(a<=0){$('rAmt').focus();return;}
+  setTouched();
+  DATA.sites[+SEL].recv.push({d:d,c:c,amt:a,pd:null});
+  save(); $('rAmt').value=''; render();
+};
 [['gMaas','maas'],['gEnerji','enerji'],['gKira','kira'],['gBakim','bakim'],['gDiger','diger']].forEach(function(p){
   $(p[0]).addEventListener('change',function(){
     if(SEL==='ALL')return;
@@ -774,7 +965,20 @@ function seedDemo(){
   var S1='Koç Yumurta',S2='Anadolu Damızlık',S3='Öz-Tav';
   function done(off,eggs,chicks,cost,price,extra,sup){ return {sd:mk(off+INCUB),d:mk(off),eggs:eggs,sup:sup,eggCost:cost,chicks:chicks,sold:chicks,price:price,extra:extra,st:'done'}; }
   function inm(off,eggs,cost,sup){ return {sd:mk(off),d:mk(off-INCUB),eggs:eggs,sup:sup,eggCost:cost,chicks:null,sold:null,price:0,extra:0,st:'in'}; }
+  var C1='Yıldız Piliç',C2='Akkaya Tavukçuluk',C3='Demir Civciv',C4='Safir Tavukçuluk';
   var a=blankSite('Merkez'); a.fix={maas:350000,enerji:150000,kira:120000,bakim:60000,diger:40000}; a.cap=320000;
+  a.orders=[
+   {c:C1,qty:40000,price:21.5,d:mk(-2),st:'open'},
+   {c:C2,qty:45000,price:21.5,d:mk(-6),st:'open'},
+   {c:C4,qty:50000,price:21,d:mk(-12),st:'open'},
+   {c:C1,qty:47000,price:21,d:mk(3),st:'done'}
+  ];
+  a.recv=[
+   {d:mk(34),c:C3,amt:430000,pd:null},
+   {d:mk(12),c:C1,amt:870000,pd:null},
+   {d:mk(6),c:C2,amt:990000,pd:null},
+   {d:mk(20),c:C4,amt:650000,pd:mk(2)}
+  ];
   a.batches=[
    done(28,52000,43700,9,20,0,S1),
    done(24,50000,41000,9,20,15000,S2),
@@ -791,6 +995,8 @@ function seedDemo(){
    inm(4,53000,9.8,S2)
   ];
   var b2=blankSite('Şube — Bolu'); b2.fix={maas:250000,enerji:120000,kira:90000,bakim:50000,diger:30000}; b2.cap=180000;
+  b2.orders=[{c:C3,qty:38000,price:21,d:mk(-4),st:'open'}];
+  b2.recv=[{d:mk(18),c:C3,amt:620000,pd:null}];
   b2.batches=[
    done(26,38000,29600,9.1,20,0,S2),
    done(19,40000,31200,9.3,20,25000,S3),
@@ -801,6 +1007,8 @@ function seedDemo(){
    inm(2,41000,9.8,S1)
   ];
   var c2=blankSite('Şube — Sakarya'); c2.fix={maas:300000,enerji:140000,kira:100000,bakim:55000,diger:35000}; c2.cap=200000;
+  c2.orders=[{c:C2,qty:44000,price:21.5,d:mk(-3),st:'open'},{c:C4,qty:46000,price:21,d:mk(-9),st:'open'}];
+  c2.recv=[{d:mk(40),c:C1,amt:510000,pd:null},{d:mk(9),c:C2,amt:880000,pd:null}];
   c2.batches=[
    done(27,46000,39600,8.9,20,0,S1),
    done(20,47000,40400,9.0,20,0,S1),
@@ -812,6 +1020,7 @@ function seedDemo(){
    inm(1,45000,9.7,S1)
   ];
   var d2=blankSite('Şube — Konya'); d2.fix={maas:280000,enerji:130000,kira:80000,bakim:60000,diger:30000}; d2.cap=190000;
+  d2.recv=[{d:mk(45),c:C3,amt:740000,pd:null}];
   d2.batches=[
    done(25,42000,30200,9.4,20,30000,S3),
    done(18,43000,31400,9.5,20,0,S3),
@@ -820,9 +1029,89 @@ function seedDemo(){
    inm(15,43000,9.9,S3),
    inm(7,42000,9.9,S2)
   ];
-  DATA={v:3,sites:[a,b2,c2,d2]}; SEL=0; OPEN=null; save();
+  DATA={v:4,sites:[a,b2,c2,d2]}; SEL=0; OPEN=null; save();
 }
 $('demoBtn').onclick=function(){ seedDemo(); render(); };
+
+// ---- boss report (one printable page) ----
+$('repBtn').onclick=function(){
+  var isAll=SEL==='ALL';
+  var scope= isAll? (LANG==='tr'?'Tüm kuluçkahaneler':'All hatcheries') : DATA.sites[+SEL].name;
+  var per=$('monthSel').value==='all'? T('allM') : $('monthSel').value;
+  var rs=calcView();
+  var eggs=rs.reduce(function(a,r){return a+r.b.eggs;},0);
+  var chicks=rs.reduce(function(a,r){return a+r.b.chicks;},0);
+  var sold=rs.reduce(function(a,r){return a+r.sold;},0);
+  var rev=rs.reduce(function(a,r){return a+r.rev;},0);
+  var profit=rs.reduce(function(a,r){return a+r.profit;},0);
+  var ut=utilOf();
+  function kpi(l,v,neg){return '<div class="k"><div class="kl">'+l+'</div><div class="kv'+(neg?' neg':'')+'">'+v+'</div></div>';}
+  var H=[];
+  H.push('<!doctype html><html lang="'+LANG+'"><head><meta charset="utf-8"><title>KuluçkaTakip — '+esc(T('repTitle'))+'</title>');
+  H.push('<style>body{font-family:system-ui,-apple-system,sans-serif;color:#14181f;margin:30px;font-size:13px;line-height:1.45}h1{font-size:20px;margin:0}.sub{color:#67707e;font-size:12px;margin:3px 0 18px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}.k{border:1px solid #d8dce2;border-radius:9px;padding:10px 12px}.kl{font-size:10.5px;color:#67707e}.kv{font-size:19px;font-weight:700;font-family:ui-monospace,Menlo,monospace;margin-top:2px}h2{font-size:13.5px;border-bottom:1.5px solid #d8dce2;padding-bottom:4px;margin:20px 0 8px}table{width:100%;border-collapse:collapse;font-size:12px;font-family:ui-monospace,Menlo,monospace}td,th{padding:4px 7px;text-align:right;border-bottom:1px solid #edeff2}th{color:#67707e;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;text-align:right}td:first-child,th:first-child{text-align:left}.neg{color:#C0392B}.pos{color:#1E8449}.warn{color:#B9770E}.btn{position:fixed;top:12px;right:12px;padding:9px 16px;background:#FF6500;color:#fff;border:0;border-radius:9px;font-weight:700;cursor:pointer;font-size:13px}@media print{.btn{display:none}body{margin:8mm}}</style></head><body>');
+  H.push('<button class="btn" onclick="window.print()">'+esc(T('repPrint'))+'</button>');
+  H.push('<h1>🐣 KuluçkaTakip — '+esc(T('repTitle'))+'</h1>');
+  H.push('<div class="sub">🏭 '+esc(scope)+' · '+esc(per)+' · '+T('repGen')+': '+todayISO()+'</div>');
+  H.push('<div class="grid">');
+  H.push(kpi(T('kEggs'),nf.format(eggs)));
+  H.push(kpi(T('kChicks'),nf.format(sold)));
+  H.push(kpi(T('thHatch'),eggs?'%'+nf1.format(chicks/eggs*100):'—'));
+  H.push(kpi(T('kProfit'),money(profit),profit<0));
+  H.push(kpi(T('marginOf'),money(rev)));
+  H.push(kpi(T('kUtil'),ut.u==null?'—':'%'+nf.format(ut.u*100)));
+  H.push('</div>');
+  // upcoming week
+  var up=[];
+  DATA.sites.forEach(function(st,si){ if(!isAll&&si!==+SEL)return;
+    inB(st).forEach(function(b){ var dd=daysUntil(b.d); if(dd<=7) up.push({si:si,b:b,dd:dd}); });});
+  up.sort(function(a,b){return a.b.d<b.b.d?-1:1;});
+  H.push('<h2>⏳ '+T('repWeek')+'</h2>');
+  if(up.length){ H.push('<table><tr><th>'+T('thDate')+'</th>'+(isAll?'<th>'+T('thSite')+'</th>':'')+'<th>'+T('thSup')+'</th><th>'+T('thEggs')+'</th><th>'+T('expShort')+'🐤</th></tr>');
+    up.forEach(function(x){ H.push('<tr><td'+(x.dd<0?' class="neg"':'')+'>'+x.b.d+(x.dd<0?' ⚠️':'')+'</td>'+(isAll?'<td>'+esc(DATA.sites[x.si].name)+'</td>':'')+'<td>'+esc(x.b.sup||'—')+'</td><td>'+nf.format(x.b.eggs)+'</td><td>'+nf.format(Math.round(x.b.eggs*estHatch(x.si)))+'</td></tr>'); });
+    H.push('</table>'); } else H.push('<div>'+T('repNone')+'</div>');
+  // open orders
+  var oo=ordScope().filter(function(x){return x.o.st==='open';}).sort(function(a,b){return a.o.d<b.o.d?-1:1;});
+  var ooQty=oo.reduce(function(a,x){return a+x.o.qty;},0), ooAmt=oo.reduce(function(a,x){return a+x.o.qty*x.o.price;},0);
+  H.push('<h2>📦 '+T('repOrders')+' — '+nf.format(ooQty)+' 🐤 · '+money(ooAmt)+'</h2>');
+  if(oo.length){ H.push('<table><tr><th>'+T('thDeliv')+'</th>'+(isAll?'<th>'+T('thSite')+'</th>':'')+'<th>'+T('thCust')+'</th><th>'+T('thQty')+'</th><th>'+T('thAmt')+'</th></tr>');
+    oo.forEach(function(x){ H.push('<tr><td>'+x.o.d+'</td>'+(isAll?'<td>'+esc(DATA.sites[x.si].name)+'</td>':'')+'<td>'+esc(x.o.c)+'</td><td>'+nf.format(x.o.qty)+'</td><td>'+money(x.o.qty*x.o.price)+'</td></tr>'); });
+    H.push('</table>'); } else H.push('<div>'+T('repNone')+'</div>');
+  // receivables
+  var un=recvScope().filter(function(x){return !x.r.pd;}).sort(function(a,b){return a.r.d<b.r.d?-1:1;});
+  var unTot=un.reduce(function(a,x){return a+x.r.amt;},0);
+  H.push('<h2>💳 '+T('repRecv')+' — '+money(unTot)+'</h2>');
+  if(un.length){ H.push('<table><tr><th>'+T('recvDate')+'</th>'+(isAll?'<th>'+T('thSite')+'</th>':'')+'<th>'+T('thCust')+'</th><th>'+T('thAmt')+'</th><th>'+T('thAge')+'</th></tr>');
+    un.forEach(function(x){ var ag=ageOf(x.r.d);
+      H.push('<tr><td>'+x.r.d+'</td>'+(isAll?'<td>'+esc(DATA.sites[x.si].name)+'</td>':'')+'<td>'+esc(x.r.c)+'</td><td><b>'+money(x.r.amt)+'</b></td><td class="'+(ag>30?'neg':(ag>15?'warn':''))+'">'+ag+' '+T('days')+(ag>30?' ⚠️':'')+'</td></tr>'); });
+    H.push('</table>'); } else H.push('<div>'+T('repNone')+'</div>');
+  // suppliers
+  var sm={};
+  rs.forEach(function(r){ var s2=r.b.sup||'—'; var o=sm[s2]=sm[s2]||{n:0,eggs:0,chicks:0,cost:0,profit:0}; o.n++;o.eggs+=r.b.eggs;o.chicks+=r.b.chicks;o.cost+=r.cost;o.profit+=r.profit; });
+  var sn=Object.keys(sm);
+  if(sn.length>1){
+    H.push('<h2>🥚 '+T('repSup')+'</h2><table><tr><th>'+T('thSup')+'</th><th>'+T('thBat')+'</th><th>'+T('thHatch')+'</th><th>'+T('thCostPer')+'</th><th>'+T('thProfit')+'</th></tr>');
+    sn.map(function(k){var o=sm[k];return {k:k,n:o.n,h:o.eggs?o.chicks/o.eggs*100:0,cpc:o.chicks?o.cost/o.chicks:0,p:o.profit};})
+      .sort(function(a,b){return b.h-a.h;})
+      .forEach(function(r,i,arr){ H.push('<tr><td>'+esc(r.k)+(i===0?' 🥇':(i===arr.length-1?' ⚠️':''))+'</td><td>'+r.n+'</td><td>%'+nf1.format(r.h)+'</td><td>'+nf2.format(r.cpc)+'</td><td class="'+(r.p>=0?'pos':'neg')+'">'+money(r.p)+'</td></tr>'); });
+    H.push('</table>');
+  }
+  // site comparison (ALL only)
+  if(isAll){
+    H.push('<h2>🏭 '+T('repCmp')+'</h2><table><tr><th>'+T('thSite')+'</th><th>'+T('thBat')+'</th><th>'+T('thHatch')+'</th><th>'+T('thUtil')+'</th><th>'+T('thProfit')+'</th><th>'+T('thPer')+'</th></tr>');
+    DATA.sites.map(function(st,i){ var r2=calcSite(i);
+      var e2=r2.reduce(function(a,r){return a+r.b.eggs;},0),c3=r2.reduce(function(a,r){return a+r.b.chicks;},0);
+      var s3=r2.reduce(function(a,r){return a+r.sold;},0),p3=r2.reduce(function(a,r){return a+r.profit;},0);
+      var ie=inB(st).reduce(function(a,b){return a+b.eggs;},0);
+      return {name:st.name,n:r2.length,h:e2?c3/e2*100:0,u:st.cap>0?ie/st.cap:null,p:p3,s:s3};
+    }).sort(function(a,b){return b.p-a.p;})
+      .forEach(function(r,i){ H.push('<tr><td>'+esc(r.name)+(i===0&&r.p>0?' 🥇':'')+'</td><td>'+r.n+'</td><td>'+(r.n?'%'+nf1.format(r.h):'—')+'</td><td>'+(r.u==null?'—':'%'+nf.format(r.u*100))+'</td><td class="'+(r.p>=0?'pos':'neg')+'">'+money(r.p)+'</td><td>'+(r.s?nf2.format(r.p/r.s):'—')+'</td></tr>'); });
+    H.push('</table>');
+  }
+  H.push('</body></html>');
+  var w=window.open('','_blank');
+  if(!w){ alert(T('repPop')); return; }
+  w.document.write(H.join('')); w.document.close();
+};
 
 // ---- CSV ----
 $('csvBtn').onclick=function(){
@@ -884,6 +1173,8 @@ if(!touched() && allBatches().length===0){ seedDemo(); $('demoBanner').style.dis
 else if(!touched() && allBatches().length>0){ $('demoBanner').style.display='block'; }
 $('sDate').value=todayISO();
 $('fDate').value=todayISO();
+$('oDate').value=addDays(todayISO(),7);
+$('rDate').value=todayISO();
 applyLang();
 })();
 </script>
