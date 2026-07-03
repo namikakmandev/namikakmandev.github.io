@@ -34,10 +34,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 .tag{font-family:var(--mono);font-size:10px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:2px 8px;border-radius:10px;font-weight:400}
 .form{display:grid;grid-template-columns:repeat(6,1fr) auto;gap:10px;align-items:end}
 @media(max-width:900px){.form{grid-template-columns:repeat(2,1fr)}}
+.form4{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:10px;align-items:end}
+@media(max-width:900px){.form4{grid-template-columns:repeat(2,1fr)}}
 .fld label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px}
 .fld input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:10px;font:14px var(--mono);text-align:right;outline:none}
 .fld input[type=date]{text-align:left;font-family:system-ui;font-size:13px}
 .fld input:focus{border-color:var(--orange)}
+.fld input.txt{text-align:left;font-family:system-ui}
 .addbtn{background:var(--orange);color:#fff;border:0;border-radius:9px;padding:11px 20px;font:700 14px system-ui;cursor:pointer;white-space:nowrap}
 table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
 th{color:var(--muted);text-align:right;padding:8px 9px;border-bottom:1px solid var(--line);font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
@@ -48,9 +51,21 @@ th:first-child,td:first-child{text-align:left}
 .note{font-size:11px;color:var(--muted);line-height:1.6;margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
 .empty{color:var(--muted);font-size:13px;padding:14px 0}
 .smallbtn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--muted);padding:7px 12px;font:600 12px system-ui;cursor:pointer}
+.smallbtn.tabOn{background:var(--orange);color:#fff;border-color:var(--orange)}
 .gider{display:grid;grid-template-columns:repeat(5,1fr) auto;gap:10px;align-items:end}
 @media(max-width:900px){.gider{grid-template-columns:repeat(2,1fr)}}
 .gtot{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--orange);white-space:nowrap;padding-bottom:8px}
+.opsrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(38,43,54,.5);flex-wrap:wrap;font-size:13px}
+.opsrow .mono{font-family:var(--mono)}
+.chip{font-family:var(--mono);font-size:10.5px;padding:2px 9px;border-radius:10px;white-space:nowrap}
+.chip.soon{background:rgba(47,155,255,.13);color:var(--primary);border:1px solid rgba(47,155,255,.35)}
+.chip.today{background:rgba(25,195,125,.13);color:var(--green);border:1px solid rgba(25,195,125,.4)}
+.chip.late{background:rgba(229,72,77,.13);color:var(--red);border:1px solid rgba(229,72,77,.4)}
+.cform{width:100%;background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:10px;margin:4px 0 8px;display:grid;grid-template-columns:repeat(4,1fr) auto auto;gap:8px;align-items:end}
+@media(max-width:900px){.cform{grid-template-columns:repeat(2,1fr)}}
+.funrow{margin-bottom:10px}
+.funbar{height:22px;border-radius:6px;display:flex;align-items:center;padding:0 8px;font-family:var(--mono);font-size:11.5px;font-weight:700;color:#0F1117;min-width:60px;white-space:nowrap}
+.funloss{font-size:10.5px;color:var(--red);font-family:var(--mono);margin:3px 0 0 2px}
 </style>
 </head>
 <body>
@@ -88,7 +103,7 @@ th:first-child,td:first-child{text-align:left}
     <div class="kpi"><div class="k-l" data-i="kEggs">Basılan yumurta</div><div class="k-v" id="k-eggs">—</div><div class="k-d" id="k-batches"></div></div>
     <div class="kpi good"><div class="k-l" data-i="kChicks">Satılan civciv</div><div class="k-v" id="k-chicks">—</div><div class="k-d" id="k-hatch"></div></div>
     <div class="kpi good"><div class="k-l" data-i="kProfit">Kâr</div><div class="k-v green" id="k-profit">—</div><div class="k-d" id="k-margin"></div></div>
-    <div class="kpi warn"><div class="k-l" data-i="kPer">Civciv başına kâr</div><div class="k-v orange" id="k-per">—</div><div class="k-d" id="k-per-d"></div></div>
+    <div class="kpi warn"><div class="k-l" data-i="kUtil">Makine doluluğu</div><div class="k-v orange" id="k-util">—</div><div class="k-d" id="k-util-d"></div></div>
   </div>
 
   <div class="card" id="cmpCard" style="display:none">
@@ -97,17 +112,44 @@ th:first-child,td:first-child{text-align:left}
     <div class="note" data-i="cmpNote">Kayıt girmek ve grafikleri görmek için üstten tek bir kuluçkahane seçin.</div>
   </div>
 
+  <div class="card" id="opsCard">
+    <h2 data-i="opsT">⏳ Makinede — yaklaşan çıkımlar <span class="tag" data-i="opsTag">yumurta basıldı, çıkım bekleniyor</span></h2>
+    <div id="capBox" style="display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">
+      <div class="fld" id="capInWrap" style="width:200px"><label data-i="capL">Makine kapasitesi (yumurta)</label><input id="capIn" inputmode="numeric" placeholder="300.000"></div>
+      <div style="flex:1;min-width:230px;padding-bottom:2px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span data-i="utilL">Doluluk</span><span id="utilPct" style="font-family:var(--mono)"></span></div>
+        <div style="height:10px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;overflow:hidden"><div id="utilBar" style="height:100%;width:0%;background:var(--primary)"></div></div>
+        <div id="idleNote" style="font-size:10.5px;margin-top:4px;font-family:var(--mono);color:var(--muted)"></div>
+      </div>
+    </div>
+    <div id="opsList"></div>
+    <div class="note" data-i="opsNote">Boşta duran makine de kira, maaş ve enerji öder — doluluk düştükçe civciv başına sabit gider büyür. Çıkım günü gelen partiye “Çıkımı gir” ile sonucu yazın.</div>
+  </div>
+
   <div class="card" id="formCard">
-    <h2 data-i="fNew">➕ Yeni çıkım (parti) gir <span class="tag" id="siteTag"></span></h2>
-    <div class="form">
-      <div class="fld"><label data-i="fDate">Tarih</label><input type="date" id="fDate"></div>
+    <h2 data-i="fNew">➕ Kayıt gir <span class="tag" id="siteTag"></span></h2>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="smallbtn tabOn" id="tabSet" type="button" data-i="tabSet">🥚 Yumurta bastım</button>
+      <button class="smallbtn" id="tabOld" type="button" data-i="tabOld">📒 Geçmiş parti (tek seferde)</button>
+    </div>
+    <div id="setForm" class="form4">
+      <div class="fld"><label data-i="sDate">Basma tarihi</label><input type="date" id="sDate"></div>
+      <div class="fld"><label data-i="sEggs">Basılan yumurta (adet)</label><input id="sEggs" inputmode="numeric" placeholder="50.000"></div>
+      <div class="fld"><label data-i="sSup">Yumurta tedarikçisi</label><input id="sSup" class="txt" list="supList" placeholder="Koç Yumurta"></div>
+      <div class="fld"><label data-i="sEggCost">Yumurta maliyeti (₺/adet)</label><input id="sEggCost" inputmode="decimal" placeholder="9,00"></div>
+      <button class="addbtn" id="setBtn" data-i="sAdd">Makineye kaydet</button>
+    </div>
+    <div id="setHint" style="font-size:11px;color:var(--muted);margin-top:8px;font-family:var(--mono)"></div>
+    <div id="oldForm" class="form" style="display:none">
+      <div class="fld"><label data-i="fDate">Çıkım tarihi</label><input type="date" id="fDate"></div>
       <div class="fld"><label data-i="fEggs">Basılan yumurta (adet)</label><input id="fEggs" inputmode="numeric" placeholder="50.000"></div>
+      <div class="fld"><label data-i="fSup">Tedarikçi (ops.)</label><input id="fSup" class="txt" list="supList" placeholder="—"></div>
       <div class="fld"><label data-i="fChicks">Satılan civciv (adet)</label><input id="fChicks" inputmode="numeric" placeholder="41.000"></div>
       <div class="fld"><label data-i="fEggCost">Yumurta maliyeti (₺/adet)</label><input id="fEggCost" inputmode="decimal" placeholder="9,00"></div>
-      <div class="fld"><label data-i="fPrice">Civciv satış fiyatı (₺/adet)</label><input id="fPrice" inputmode="decimal" placeholder="20,00"></div>
-      <div class="fld"><label data-i="fExtra">Ek gider (₺, ops.)</label><input id="fExtra" inputmode="numeric" placeholder="0"></div>
+      <div class="fld"><label data-i="fPrice">Satış fiyatı (₺/adet)</label><input id="fPrice" inputmode="decimal" placeholder="20,00"></div>
       <button class="addbtn" id="addBtn" data-i="fAdd">Kaydet</button>
     </div>
+    <datalist id="supList"></datalist>
   </div>
 
   <div class="card" id="giderCard">
@@ -120,21 +162,32 @@ th:first-child,td:first-child{text-align:left}
       <div class="fld"><label data-i="gDiger">Diğer (₺/ay)</label><input id="gDiger" inputmode="numeric" placeholder="40.000"></div>
       <div class="gtot" id="gTot">—</div>
     </div>
-    <div class="note" data-i="gNote">Bu giderler, ilgili ayın partilerine civciv sayısına orantılı dağıtılır ve kâr hesabına dahildir. Yumurta bedeli ve partiye özel ek giderler ise yukarıda, parti girişinde yazılır.</div>
+    <div class="note" data-i="gNote">Bu giderler, ilgili ayın partilerine civciv sayısına orantılı dağıtılır ve kâr hesabına dahildir. Yumurta bedeli ve partiye özel ek giderler ise parti girişinde yazılır.</div>
+  </div>
+
+  <div class="card" id="supCard" style="display:none">
+    <h2 data-i="supT">🥚 Tedarikçi karnesi <span class="tag" data-i="supTag">hangi yumurta para kazandırıyor</span></h2>
+    <div style="overflow-x:auto"><table><thead id="supH"></thead><tbody id="supB"></tbody></table></div>
+  </div>
+
+  <div class="card" id="funCard" style="display:none">
+    <h2 data-i="funT">🔻 Verim hunisi &amp; başabaş <span class="tag" data-i="funTag">her aşamadaki kayıp, ₺ olarak</span></h2>
+    <div id="funBox"></div>
+    <div class="note" id="beNote"></div>
   </div>
 
   <div class="card">
-    <h2 data-i="tTitle">📒 Partiler <span class="tag" id="tCount"></span>
+    <h2 data-i="tTitle">📒 Tamamlanan partiler <span class="tag" id="tCount"></span>
       <span style="margin-left:auto;display:flex;gap:8px">
         <button class="smallbtn" id="demoBtn" data-i="demo">Örnek veri</button>
         <button class="smallbtn" id="clearBtn" data-i="clear">Hepsini sil</button>
       </span></h2>
     <div style="overflow-x:auto"><table><thead id="tHead"></thead><tbody id="tBody"></tbody></table></div>
-    <div class="empty" id="emptyMsg" style="display:none" data-i="empty">Henüz kayıt yok — yukarıdan ilk çıkımı girin, ya da “Örnek veri” ile deneyin.</div>
+    <div class="empty" id="emptyMsg" style="display:none" data-i="empty">Henüz kayıt yok — yukarıdan girin, ya da “Örnek veri” ile deneyin.</div>
   </div>
 
   <div class="card" id="hatchCard">
-    <h2 data-i="cHatch">📈 Çıkım oranı — parti parti <span class="tag" data-i="cHatchTag">satılan civciv ÷ basılan yumurta</span></h2>
+    <h2 data-i="cHatch">📈 Çıkım oranı — parti parti <span class="tag" data-i="cHatchTag">çıkan civciv ÷ basılan yumurta</span></h2>
     <div id="chartHatch"></div>
   </div>
 
@@ -148,7 +201,7 @@ th:first-child,td:first-child{text-align:left}
 <script>
 (function(){
 var $=function(id){return document.getElementById(id);};
-var KEY='hatchops.v1', LANG='tr';
+var KEY='hatchops.v1', LANG='tr', INCUB=21;
 var TXT={
  dbText:{tr:'👋 Sayfa örnek verilerle açıldı — böyle görünür. Kendi kayıtlarınıza başlamak için',en:'👋 The page opened with sample data — this is how it looks. To start your own records'},
  dbBtn:{tr:'örnekleri sil, temiz başla',en:'clear samples, start fresh'},
@@ -165,17 +218,47 @@ var TXT={
  kEggs:{tr:'Basılan yumurta',en:'Eggs set'},
  kChicks:{tr:'Satılan civciv',en:'Chicks sold'},
  kProfit:{tr:'Kâr',en:'Profit'},
- kPer:{tr:'Civciv başına kâr',en:'Profit per chick'},
+ kUtil:{tr:'Makine doluluğu',en:'Machine utilization'},
+ kUtilNoCap:{tr:'kapasiteyi aşağıya girin ↓',en:'enter capacity below ↓'},
+ kInM:{tr:'makinede',en:'in machines'},
  cmpT:{tr:'🏭 Kuluçkahane karşılaştırması ',en:'🏭 Hatchery comparison '},
  cmpTag:{tr:'seçili dönem',en:'selected period'},
  cmpNote:{tr:'Kayıt girmek ve grafikleri görmek için üstten tek bir kuluçkahane seçin.',en:'Pick a single hatchery above to enter records and see charts.'},
- fNew:{tr:'➕ Yeni çıkım (parti) gir ',en:'➕ Add a hatch (batch) '},
- fDate:{tr:'Tarih',en:'Date'},
+ opsT:{tr:'⏳ Makinede — yaklaşan çıkımlar ',en:'⏳ In the machines — upcoming hatches '},
+ opsTag:{tr:'yumurta basıldı, çıkım bekleniyor',en:'eggs set, awaiting hatch'},
+ opsNote:{tr:'Boşta duran makine de kira, maaş ve enerji öder — doluluk düştükçe civciv başına sabit gider büyür. Çıkım günü gelen partiye “Çıkımı gir” ile sonucu yazın.',en:'An idle machine still pays rent, wages and energy — the lower the utilization, the higher the fixed cost per chick. When a batch is due, record the result with “Enter hatch”.'},
+ opsEmpty:{tr:'Şu an makinede yumurta görünmüyor — “🥚 Yumurta bastım” ile girin.',en:'No eggs in the machines right now — add with “🥚 Eggs set”.'},
+ capL:{tr:'Makine kapasitesi (yumurta)',en:'Machine capacity (eggs)'},
+ utilL:{tr:'Doluluk',en:'Utilization'},
+ idleTxt:{tr:'boş kapasitenin sabit gider payı ≈ ',en:'fixed-cost share of idle capacity ≈ '},
+ perMo:{tr:'/ay',en:'/mo'},
+ dToday:{tr:'bugün çıkım günü',en:'hatch due today'},
+ dLeft:{tr:' gün kaldı',en:' days left'},
+ dLate:{tr:' gün gecikti',en:' days overdue'},
+ expShort:{tr:'beklenen ~',en:'expected ~'},
+ enterHatch:{tr:'Çıkımı gir',en:'Enter hatch'},
+ cChicks:{tr:'Çıkan civciv',en:'Chicks hatched'},
+ cSold:{tr:'Satılan (boşsa = çıkan)',en:'Sold (empty = hatched)'},
+ cPrice:{tr:'Fiyat (₺/adet)',en:'Price (₺/pc)'},
+ cExtra:{tr:'Ek gider (₺)',en:'Extra cost (₺)'},
+ cSave:{tr:'Kaydet',en:'Save'},
+ cCancel:{tr:'Vazgeç',en:'Cancel'},
+ fNew:{tr:'➕ Kayıt gir ',en:'➕ Add a record '},
+ tabSet:{tr:'🥚 Yumurta bastım',en:'🥚 Eggs set'},
+ tabOld:{tr:'📒 Geçmiş parti (tek seferde)',en:'📒 Past batch (one shot)'},
+ sDate:{tr:'Basma tarihi',en:'Set date'},
+ sEggs:{tr:'Basılan yumurta (adet)',en:'Eggs set (pcs)'},
+ sSup:{tr:'Yumurta tedarikçisi',en:'Egg supplier'},
+ sEggCost:{tr:'Yumurta maliyeti (₺/adet)',en:'Egg cost (₺/pc)'},
+ sAdd:{tr:'Makineye kaydet',en:'Save to machine'},
+ sHint:{tr:'Beklenen çıkım: ',en:'Expected hatch: '},
+ sHint2:{tr:' (21 gün sonra) — çıkım günü listede “Çıkımı gir” ile sonucu yazarsınız.',en:' (21 days later) — on hatch day, record the result with “Enter hatch”.'},
+ fDate:{tr:'Çıkım tarihi',en:'Hatch date'},
  fEggs:{tr:'Basılan yumurta (adet)',en:'Eggs set (pcs)'},
+ fSup:{tr:'Tedarikçi (ops.)',en:'Supplier (opt.)'},
  fChicks:{tr:'Satılan civciv (adet)',en:'Chicks sold (pcs)'},
  fEggCost:{tr:'Yumurta maliyeti (₺/adet)',en:'Egg cost (₺/pc)'},
- fPrice:{tr:'Civciv satış fiyatı (₺/adet)',en:'Chick price (₺/pc)'},
- fExtra:{tr:'Ek gider (₺, ops.)',en:'Extra cost (₺, opt.)'},
+ fPrice:{tr:'Satış fiyatı (₺/adet)',en:'Sale price (₺/pc)'},
  fAdd:{tr:'Kaydet',en:'Save'},
  gT:{tr:'💸 Aylık işletme giderleri ',en:'💸 Monthly running costs '},
  gMaas:{tr:'Maaşlar (₺/ay)',en:'Wages (₺/mo)'},
@@ -183,26 +266,42 @@ var TXT={
  gKira:{tr:'Kira (₺/ay)',en:'Rent (₺/mo)'},
  gBakim:{tr:'Bakım (₺/ay)',en:'Maintenance (₺/mo)'},
  gDiger:{tr:'Diğer (₺/ay)',en:'Other (₺/mo)'},
- gNote:{tr:'Bu giderler, ilgili ayın partilerine civciv sayısına orantılı dağıtılır ve kâr hesabına dahildir. Yumurta bedeli ve partiye özel ek giderler ise yukarıda, parti girişinde yazılır.',en:'These costs are allocated to that month’s batches in proportion to chicks and included in profit. Egg cost and batch-specific extras are entered above, per batch.'},
- tTitle:{tr:'📒 Partiler ',en:'📒 Batches '},
+ gNote:{tr:'Bu giderler, ilgili ayın partilerine civciv sayısına orantılı dağıtılır ve kâr hesabına dahildir. Yumurta bedeli ve partiye özel ek giderler ise parti girişinde yazılır.',en:'These costs are allocated to that month’s batches in proportion to chicks and included in profit. Egg cost and batch-specific extras are entered per batch.'},
+ supT:{tr:'🥚 Tedarikçi karnesi ',en:'🥚 Supplier scorecard '},
+ supTag:{tr:'hangi yumurta para kazandırıyor',en:'whose eggs make money'},
+ funT:{tr:'🔻 Verim hunisi & başabaş ',en:'🔻 Yield funnel & break-even '},
+ funTag:{tr:'her aşamadaki kayıp, ₺ olarak',en:'the loss at each stage, in ₺'},
+ fun1:{tr:'Basılan yumurta',en:'Eggs set'},
+ fun2:{tr:'Çıkan civciv',en:'Chicks hatched'},
+ fun3:{tr:'Satılan civciv',en:'Chicks sold'},
+ funL1:{tr:'çıkmayan yumurta',en:'eggs that didn’t hatch'},
+ funL2:{tr:'satılmayan civciv',en:'unsold chicks'},
+ beP:{tr:'Başabaş satış fiyatı ≈ ',en:'Break-even sale price ≈ '},
+ bePb:{tr:' — bu dönemin maliyetiyle, bunun altındaki fiyat zarar demek.',en:' — at this period’s cost, any price below this is a loss.'},
+ beH:{tr:'Ortalama satış fiyatıyla başabaş çıkım oranı ≈ ',en:'At the average sale price, break-even hatch rate ≈ '},
+ beHb:{tr:' — bunun altındaki çıkım zarar demek.',en:' — any hatch rate below this is a loss.'},
+ tTitle:{tr:'📒 Tamamlanan partiler ',en:'📒 Completed batches '},
  demo:{tr:'Örnek veri',en:'Sample data'},
  clear:{tr:'Hepsini sil',en:'Delete all'},
- empty:{tr:'Henüz kayıt yok — yukarıdan ilk çıkımı girin, ya da “Örnek veri” ile deneyin.',en:'No records yet — add your first hatch above, or try “Sample data”.'},
+ empty:{tr:'Henüz kayıt yok — yukarıdan girin, ya da “Örnek veri” ile deneyin.',en:'No records yet — add one above, or try “Sample data”.'},
  cHatch:{tr:'📈 Çıkım oranı — parti parti ',en:'📈 Hatch rate — batch by batch '},
- cHatchTag:{tr:'satılan civciv ÷ basılan yumurta',en:'chicks sold ÷ eggs set'},
+ cHatchTag:{tr:'çıkan civciv ÷ basılan yumurta',en:'chicks hatched ÷ eggs set'},
  cProfit:{tr:'💰 Parti başına kâr ',en:'💰 Profit per batch '},
  cProfitTag:{tr:'yeşil kazanç · kırmızı zarar',en:'green gain · red loss'},
  foot:{tr:'Veriler bu tarayıcıda saklanır (internete gönderilmez). Excel butonu ile dışarı alabilirsiniz.',en:'Data stays in this browser (nothing sent online). Use the Excel button to export.'},
- thSite:{tr:'Tesis',en:'Site'},thDate:{tr:'Tarih',en:'Date'},thEggs:{tr:'Yumurta',en:'Eggs'},thChicks:{tr:'Civciv',en:'Chicks'},
+ thSite:{tr:'Tesis',en:'Site'},thSet:{tr:'Basma',en:'Set'},thDate:{tr:'Çıkım',en:'Hatch'},thSup:{tr:'Tedarikçi',en:'Supplier'},
+ thEggs:{tr:'Yumurta',en:'Eggs'},thChicks:{tr:'Civciv',en:'Chicks'},thSold:{tr:'Satılan',en:'Sold'},
  thHatch:{tr:'Çıkım %',en:'Hatch %'},thRev:{tr:'Ciro',en:'Revenue'},thCost:{tr:'Maliyet',en:'Cost'},
  thProfit:{tr:'Kâr',en:'Profit'},thPer:{tr:'₺/civciv',en:'₺/chick'},thBat:{tr:'Parti',en:'Batches'},
+ thUtil:{tr:'Doluluk',en:'Util.'},thCostPer:{tr:'Maliyet ₺/civciv',en:'Cost ₺/chick'},
  allM:{tr:'Tüm aylar',en:'All months'},
  allS:{tr:'🏭 TÜMÜ (karşılaştır)',en:'🏭 ALL (compare)'},
  batches:{tr:'parti',en:'batches'},
  hatchAvg:{tr:'çıkım',en:'hatch'},
  marginOf:{tr:'ciro',en:'of revenue'},
+ perChick:{tr:'/civciv',en:'/chick'},
  confirm:{tr:'Bu kuluçkahanenin tüm kayıtları silinsin mi?',en:'Delete all records of this hatchery?'},
- perD:{tr:'işletme gideri dahil',en:'incl. running cost'},
+ delBatch:{tr:'Bu parti silinsin mi?',en:'Delete this batch?'},
  newSite:{tr:'Yeni kuluçkahane adı:',en:'New hatchery name:'},
  delSite:{tr:'silinsin mi? Tüm partileri ve giderleri de silinir.',en:'delete? All its batches and costs will be removed.'},
  renSite:{tr:'Yeni ad:',en:'New name:'},
@@ -218,20 +317,49 @@ function money(v){var a=Math.abs(v),s=v<0?'−':'';
   return s+'₺'+nf.format(a);}
 function num(x){ if(x==null)return 0; x=String(x).trim().replace(/\./g,'').replace(',','.').replace(/[^\d.\-]/g,''); return parseFloat(x)||0; }
 function esc(t){return String(t).replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});}
+function fmtD(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function addDays(iso,n){var p=iso.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()+n);return fmtD(d);}
+function daysUntil(iso){var p=iso.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]);var t=new Date();t.setHours(0,0,0,0);return Math.round((d-t)/86400000);}
+function todayISO(){return fmtD(new Date());}
 
-// ---- data: v2 = multi-site ----
-function blankSite(name){ return {name:name,batches:[],fix:{maas:0,enerji:0,kira:0,bakim:0,diger:0}}; }
+// ---- data: v3 = multi-site + batch lifecycle (set -> hatch -> sold) ----
+// batch: {sd:set date, d:hatch date (expected while st=='in'), eggs, sup, eggCost, chicks, sold, price, extra, st:'in'|'done'}
+function blankSite(name){ return {name:name,cap:0,batches:[],fix:{maas:0,enerji:0,kira:0,bakim:0,diger:0}}; }
+function migrate(d){
+  if(!d) return {v:3,sites:[blankSite('Merkez')]};
+  if(!d.sites){ var s2=blankSite('Merkez'); s2.batches=d.batches||[]; s2.fix.diger=d.fix||0; d={v:2,sites:[s2]}; }
+  if(d.v!==3){
+    d.sites.forEach(function(st){
+      st.cap=st.cap||0;
+      st.fix=st.fix||{}; ['maas','enerji','kira','bakim','diger'].forEach(function(k){st.fix[k]=st.fix[k]||0;});
+      (st.batches||[]).forEach(function(b){
+        if(!b.sd) b.sd=addDays(b.d,-INCUB);
+        if(b.sup==null) b.sup='';
+        if(b.st!=='in'){ b.st='done'; if(b.sold==null) b.sold=b.chicks; }
+      });
+    });
+    d.v=3;
+  }
+  return d;
+}
 function load(){
   var d=null; try{ d=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
-  if(!d) return {v:2,sites:[blankSite('Merkez')]};
-  if(d.v===2&&d.sites&&d.sites.length) return d;
-  var s2=blankSite('Merkez');
-  s2.batches=d.batches||[]; s2.fix.diger=d.fix||0;
-  return {v:2,sites:[s2]};
+  return migrate(d);
 }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(DATA)); }catch(e){} }
-var DATA=load(), SEL=0;   // SEL: site index or 'ALL'
+var DATA=load(), SEL=0, OPEN=null;   // SEL: site index or 'ALL'; OPEN: {si,bi} completion form open
 function fixTotal(st){ var f=st.fix||{}; return (f.maas||0)+(f.enerji||0)+(f.kira||0)+(f.bakim||0)+(f.diger||0); }
+function doneB(st){ return st.batches.filter(function(b){return b.st!=='in';}); }
+function inB(st){ return st.batches.filter(function(b){return b.st==='in';}); }
+function estHatch(si){
+  var d2=doneB(DATA.sites[si]).sort(function(a,b){return a.d<b.d?-1:1;}).slice(-6);
+  var e=0,c=0; d2.forEach(function(b){e+=b.eggs;c+=b.chicks;});
+  return e>0? c/e : 0.82;
+}
+function lastPrice(si){
+  var d2=doneB(DATA.sites[si]).sort(function(a,b){return a.d<b.d?-1:1;});
+  return d2.length? d2[d2.length-1].price : 0;
+}
 
 // ---- selectors ----
 function fillSites(){
@@ -246,33 +374,47 @@ function monthOf(d){ return d.slice(0,7); }
 function allBatches(){ var a=[]; DATA.sites.forEach(function(st,si){ st.batches.forEach(function(b){a.push({si:si,b:b});}); }); return a; }
 function fillMonths(){
   var sel=$('monthSel'), cur=sel.value, m={};
-  allBatches().forEach(function(x){ m[monthOf(x.b.d)]=1; });
+  allBatches().forEach(function(x){ if(x.b.st!=='in') m[monthOf(x.b.d)]=1; });
   var ms=Object.keys(m).sort().reverse();
   var opts='<option value="all">'+T('allM')+'</option>';
   ms.forEach(function(mm){opts+='<option value="'+mm+'">'+mm+'</option>';});
   sel.innerHTML=opts;
   if(cur&&(cur==='all'||ms.indexOf(cur)>=0))sel.value=cur; else sel.value= ms.length? ms[0] : 'all';
+  if(PENDM&&(PENDM==='all'||ms.indexOf(PENDM)>=0)){ sel.value=PENDM; }
+  PENDM=null;
 }
+var PENDM=null;
 function inMonth(b){ var v=$('monthSel').value; return v==='all'||monthOf(b.d)===v; }
 
-// ---- computation: fixed cost allocated within each site + month ----
+// ---- computation: fixed cost allocated within each site + month (completed batches only) ----
 function calcSite(si){
   var st=DATA.sites[si];
-  var rows=st.batches.filter(inMonth).sort(function(a,b){return a.d<b.d?-1:1;});
+  var rows=doneB(st).filter(inMonth).sort(function(a,b){return a.d<b.d?-1:1;});
   var fixByMonth={};
   rows.forEach(function(b){ var m=monthOf(b.d); (fixByMonth[m]=fixByMonth[m]||[]).push(b); });
   return rows.map(function(b){
     var mrows=fixByMonth[monthOf(b.d)], mch=mrows.reduce(function(a,x){return a+x.chicks;},0);
     var fixShare= mch>0? fixTotal(st)*(b.chicks/mch) : 0;
-    var rev=b.chicks*b.price;
+    var sold=(b.sold==null? b.chicks : b.sold);
+    var rev=sold*b.price;
     var cost=b.eggs*b.eggCost+(b.extra||0)+fixShare;
-    return {si:si,b:b,rev:rev,cost:cost,profit:rev-cost,hatch:b.eggs>0?b.chicks/b.eggs*100:0};
+    return {si:si,b:b,sold:sold,rev:rev,cost:cost,profit:rev-cost,hatch:b.eggs>0?b.chicks/b.eggs*100:0};
   });
 }
 function calcView(){
   if(SEL==='ALL'){ var out=[]; DATA.sites.forEach(function(_,i){ out=out.concat(calcSite(i)); });
     return out.sort(function(a,b){return a.b.d<b.b.d?-1:1;}); }
   return calcSite(+SEL);
+}
+function utilOf(){ // current in-machine eggs vs capacity, for SEL
+  var eggs=0,cap=0;
+  if(SEL==='ALL'){ DATA.sites.forEach(function(st){ eggs+=inB(st).reduce(function(a,b){return a+b.eggs;},0); cap+=(st.cap||0); }); }
+  else { var st=DATA.sites[+SEL]; eggs=inB(st).reduce(function(a,b){return a+b.eggs;},0); cap=st.cap||0; }
+  return {eggs:eggs,cap:cap,u:cap>0?eggs/cap:null};
+}
+function fixOf(){ // monthly fixed total for SEL
+  if(SEL==='ALL') return DATA.sites.reduce(function(a,st){return a+fixTotal(st);},0);
+  return fixTotal(DATA.sites[+SEL]);
 }
 
 function render(){
@@ -283,40 +425,49 @@ function render(){
   $('hatchCard').style.display=isAll?'none':'';
   $('profitCard').style.display=isAll?'none':'';
   $('cmpCard').style.display=isAll?'':'none';
+  $('capInWrap').style.display=isAll?'none':'';
   $('siteRen').style.display=isAll?'none':'';
   $('siteDel').style.display=(isAll||DATA.sites.length<2)?'none':'';
   var rs=calcView();
   var eggs=rs.reduce(function(a,r){return a+r.b.eggs;},0);
   var chicks=rs.reduce(function(a,r){return a+r.b.chicks;},0);
+  var sold=rs.reduce(function(a,r){return a+r.sold;},0);
   var rev=rs.reduce(function(a,r){return a+r.rev;},0);
   var profit=rs.reduce(function(a,r){return a+r.profit;},0);
   $('k-eggs').textContent=eggs?nf.format(eggs):'—';
   $('k-batches').textContent=rs.length? rs.length+' '+T('batches')+(isAll?' · '+DATA.sites.length+' 🏭':'') : '';
-  $('k-chicks').textContent=chicks?nf.format(chicks):'—';
+  $('k-chicks').textContent=sold?nf.format(sold):'—';
   $('k-hatch').textContent=eggs? '%'+nf1.format(chicks/eggs*100)+' '+T('hatchAvg') : '';
   $('k-profit').textContent=rs.length?money(profit):'—';
   $('k-profit').className='k-v '+(profit>=0?'green':'red');
-  $('k-margin').textContent=rev? '%'+nf.format(profit/rev*100)+' · '+T('marginOf')+' '+money(rev) : '';
-  $('k-per').textContent=chicks? '₺'+nf2.format(profit/chicks) : '—';
-  $('k-per').className='k-v '+(chicks&&profit/chicks>=0?'orange':'red');
-  $('k-per-d').textContent=chicks?T('perD'):'';
-  var head='<tr>'+(isAll?'<th>'+T('thSite')+'</th>':'')+'<th>'+T('thDate')+'</th><th>'+T('thEggs')+'</th><th>'+T('thChicks')+'</th><th>'+T('thHatch')+'</th><th>'+T('thRev')+'</th><th>'+T('thCost')+'</th><th>'+T('thProfit')+'</th><th>'+T('thPer')+'</th><th></th></tr>';
+  $('k-margin').textContent=rev? '%'+nf.format(profit/rev*100)+' · '+money(rev)+' '+T('marginOf')+' · ₺'+nf2.format(sold?profit/sold:0)+T('perChick') : '';
+  var ut=utilOf();
+  $('k-util').textContent= ut.u==null? '—' : '%'+nf.format(ut.u*100);
+  $('k-util').className='k-v '+(ut.u==null?'orange':(ut.u>=0.8?'green':(ut.u>=0.55?'orange':'red')));
+  $('k-util-d').textContent= ut.u==null? (ut.eggs? nf.format(ut.eggs)+' '+T('kInM')+' · '+T('kUtilNoCap') : T('kUtilNoCap'))
+    : nf.format(ut.eggs)+' / '+nf.format(ut.cap)+' '+T('kInM');
+  renderOps();
+  renderSup(rs);
+  renderFun(rs);
+  var head='<tr>'+(isAll?'<th>'+T('thSite')+'</th>':'')+'<th>'+T('thSet')+'</th><th>'+T('thDate')+'</th><th>'+T('thSup')+'</th><th>'+T('thEggs')+'</th><th>'+T('thChicks')+'</th><th>'+T('thSold')+'</th><th>'+T('thHatch')+'</th><th>'+T('thRev')+'</th><th>'+T('thCost')+'</th><th>'+T('thProfit')+'</th><th>'+T('thPer')+'</th><th></th></tr>';
   $('tHead').innerHTML=head;
   var body='';
   rs.slice().reverse().forEach(function(r){
     var bi=DATA.sites[r.si].batches.indexOf(r.b);
     body+='<tr>'+(isAll?'<td>'+esc(DATA.sites[r.si].name)+'</td>':'')
-      +'<td>'+r.b.d+'</td><td>'+nf.format(r.b.eggs)+'</td><td>'+nf.format(r.b.chicks)+'</td>'
+      +'<td class="mut">'+(r.b.sd||'—')+'</td><td>'+r.b.d+'</td><td class="mut" style="text-align:left">'+esc(r.b.sup||'—')+'</td>'
+      +'<td>'+nf.format(r.b.eggs)+'</td><td>'+nf.format(r.b.chicks)+'</td><td>'+nf.format(r.sold)+'</td>'
       +'<td class="'+(r.hatch>=82?'g':(r.hatch>=75?'o':'r'))+'">%'+nf1.format(r.hatch)+'</td>'
       +'<td>'+money(r.rev)+'</td><td>'+money(r.cost)+'</td>'
       +'<td class="'+(r.profit>=0?'g':'r')+'">'+money(r.profit)+'</td>'
-      +'<td>'+(r.b.chicks?nf2.format(r.profit/r.b.chicks):'—')+'</td>'
+      +'<td>'+(r.sold?nf2.format(r.profit/r.sold):'—')+'</td>'
       +'<td><button class="del" data-si="'+r.si+'" data-bi="'+bi+'">✕</button></td></tr>';
   });
   $('tBody').innerHTML=body;
   $('tCount').textContent=rs.length? rs.length+' '+T('batches') : '';
   $('emptyMsg').style.display=rs.length?'none':'block';
-  document.querySelectorAll('.del[data-si]').forEach(function(b){b.onclick=function(){
+  document.querySelectorAll('#tBody .del[data-si]').forEach(function(b){b.onclick=function(){
+    if(!confirm(T('delBatch')))return;
     DATA.sites[+b.getAttribute('data-si')].batches.splice(+b.getAttribute('data-bi'),1);save();render();};});
   if(!isAll){
     var st=DATA.sites[+SEL];
@@ -325,18 +476,164 @@ function render(){
     [['gMaas','maas'],['gEnerji','enerji'],['gKira','kira'],['gBakim','bakim'],['gDiger','diger']].forEach(function(p){
       var el=$(p[0]); if(document.activeElement!==el) el.value=st.fix[p[1]]?nf.format(st.fix[p[1]]):'';
     });
+    var ci=$('capIn'); if(document.activeElement!==ci) ci.value=st.cap?nf.format(st.cap):'';
     $('gTot').textContent='= '+money(fixTotal(st))+'/ay';
     drawHatch(rs); drawProfit(rs);
   } else renderCmp();
+  fillSupList();
+  setHintUpd();
 }
+
+// ---- cockpit: capacity bar + upcoming hatches ----
+function renderOps(){
+  var ut=utilOf();
+  if(ut.u==null){ $('utilPct').textContent= ut.eggs? nf.format(ut.eggs)+' 🥚' : ''; $('utilBar').style.width='0%'; $('idleNote').textContent=T('kUtilNoCap'); $('idleNote').style.color='var(--muted)'; }
+  else{
+    var pct=Math.min(100,ut.u*100);
+    $('utilPct').textContent='%'+nf.format(ut.u*100)+' · '+nf.format(ut.eggs)+' / '+nf.format(ut.cap);
+    $('utilBar').style.width=pct+'%';
+    $('utilBar').style.background= ut.u>=0.8?'var(--green)':(ut.u>=0.55?'var(--primary)':'var(--orange)');
+    var idle=fixOf()*Math.max(0,1-ut.u);
+    if(ut.u<1&&fixOf()>0){ $('idleNote').textContent=T('idleTxt')+money(idle)+T('perMo'); $('idleNote').style.color= ut.u<0.55?'var(--orange)':'var(--muted)'; }
+    else { $('idleNote').textContent=''; }
+  }
+  var rows=[];
+  DATA.sites.forEach(function(st,si){
+    if(SEL!=='ALL'&&si!==+SEL)return;
+    inB(st).forEach(function(b){ rows.push({si:si,b:b}); });
+  });
+  rows.sort(function(a,b){return a.b.d<b.b.d?-1:1;});
+  var html='';
+  rows.forEach(function(x){
+    var bi=DATA.sites[x.si].batches.indexOf(x.b);
+    var dd=daysUntil(x.b.d), chip, cls;
+    if(dd>0){ chip=dd+T('dLeft'); cls='soon'; }
+    else if(dd===0){ chip=T('dToday'); cls='today'; }
+    else { chip=(-dd)+T('dLate'); cls='late'; }
+    var exp=Math.round(x.b.eggs*estHatch(x.si));
+    html+='<div class="opsrow">'
+      +'<span class="mono" style="color:var(--muted)">'+x.b.sd+' → <b style="color:var(--ink)">'+x.b.d+'</b></span>'
+      +(SEL==='ALL'?'<span>🏭 '+esc(DATA.sites[x.si].name)+'</span>':'')
+      +(x.b.sup?'<span class="mut">'+esc(x.b.sup)+'</span>':'')
+      +'<span class="mono">'+nf.format(x.b.eggs)+' 🥚</span>'
+      +'<span class="mono mut">'+T('expShort')+nf.format(exp)+' 🐤</span>'
+      +'<span class="chip '+cls+'">'+chip+'</span>'
+      +'<span style="margin-left:auto;display:flex;gap:6px">'
+      +'<button class="smallbtn" style="background:var(--orange);color:#fff;border:0" data-oh="'+x.si+':'+bi+'">'+T('enterHatch')+'</button>'
+      +'<button class="del" data-ox="'+x.si+':'+bi+'">✕</button></span>'
+      +'</div>';
+    if(OPEN&&OPEN.si===x.si&&OPEN.bi===bi){
+      html+='<div class="cform">'
+        +'<div class="fld"><label>'+T('cChicks')+'</label><input id="cChicks" inputmode="numeric" placeholder="'+nf.format(exp)+'"></div>'
+        +'<div class="fld"><label>'+T('cSold')+'</label><input id="cSold" inputmode="numeric" placeholder="'+nf.format(exp)+'"></div>'
+        +'<div class="fld"><label>'+T('cPrice')+'</label><input id="cPrice" inputmode="decimal" placeholder="'+(lastPrice(x.si)?nf2.format(lastPrice(x.si)):'20,00')+'"></div>'
+        +'<div class="fld"><label>'+T('cExtra')+'</label><input id="cExtra" inputmode="numeric" placeholder="0"></div>'
+        +'<button class="addbtn" id="cSaveBtn" style="padding:10px 16px">'+T('cSave')+'</button>'
+        +'<button class="smallbtn" id="cCancelBtn">'+T('cCancel')+'</button>'
+        +'</div>';
+    }
+  });
+  $('opsList').innerHTML= html || '<div class="empty">'+T('opsEmpty')+'</div>';
+  $('opsList').querySelectorAll('[data-oh]').forEach(function(btn){ btn.onclick=function(){
+    var p=btn.getAttribute('data-oh').split(':');
+    OPEN={si:+p[0],bi:+p[1]}; render();
+    var el=$('cChicks'); if(el)el.focus();
+  };});
+  $('opsList').querySelectorAll('[data-ox]').forEach(function(btn){ btn.onclick=function(){
+    if(!confirm(T('delBatch')))return;
+    var p=btn.getAttribute('data-ox').split(':');
+    DATA.sites[+p[0]].batches.splice(+p[1],1); OPEN=null; save(); render();
+  };});
+  var sv=$('cSaveBtn');
+  if(sv) sv.onclick=function(){
+    var b=DATA.sites[OPEN.si].batches[OPEN.bi];
+    var ch=num($('cChicks').value);
+    if(ch<=0||ch>b.eggs){$('cChicks').focus();return;}
+    var so=num($('cSold').value)||ch; if(so>ch)so=ch;
+    var pr=num($('cPrice').value)||lastPrice(OPEN.si);
+    b.chicks=ch; b.sold=so; b.price=pr; b.extra=num($('cExtra').value); b.st='done';
+    if(daysUntil(b.d)>0) b.d=todayISO();   // hatched early: use today
+    PENDM=monthOf(b.d);
+    OPEN=null; setTouched(); save(); render();
+  };
+  var cc=$('cCancelBtn');
+  if(cc) cc.onclick=function(){ OPEN=null; render(); };
+}
+
+// ---- supplier scorecard ----
+function renderSup(rs){
+  var m={};
+  rs.forEach(function(r){
+    var s2=r.b.sup||'—';
+    var o=m[s2]=m[s2]||{n:0,eggs:0,chicks:0,cost:0,profit:0};
+    o.n++; o.eggs+=r.b.eggs; o.chicks+=r.b.chicks; o.cost+=r.cost; o.profit+=r.profit;
+  });
+  var names=Object.keys(m);
+  if(names.length<2){ $('supCard').style.display='none'; return; }
+  $('supCard').style.display='';
+  $('supH').innerHTML='<tr><th>'+T('thSup')+'</th><th>'+T('thBat')+'</th><th>'+T('thEggs')+'</th><th>'+T('thHatch')+'</th><th>'+T('thCostPer')+'</th><th>'+T('thProfit')+'</th></tr>';
+  var rows=names.map(function(k){var o=m[k];return {name:k,n:o.n,eggs:o.eggs,h:o.eggs?o.chicks/o.eggs*100:0,cpc:o.chicks?o.cost/o.chicks:0,profit:o.profit};})
+    .sort(function(a,b){return b.h-a.h;});
+  var body='';
+  rows.forEach(function(r,i){
+    var mark= i===0?' 🥇' : (i===rows.length-1?' ⚠️':'');
+    body+='<tr><td>'+esc(r.name)+mark+'</td><td>'+r.n+'</td><td>'+nf.format(r.eggs)+'</td>'
+      +'<td class="'+(r.h>=82?'g':(r.h>=75?'o':'r'))+'">%'+nf1.format(r.h)+'</td>'
+      +'<td>'+nf2.format(r.cpc)+'</td>'
+      +'<td class="'+(r.profit>=0?'g':'r')+'">'+money(r.profit)+'</td></tr>';
+  });
+  $('supB').innerHTML=body;
+}
+
+// ---- yield funnel + break-even ----
+function renderFun(rs){
+  if(!rs.length){ $('funCard').style.display='none'; return; }
+  $('funCard').style.display='';
+  var eggs=0,chicks=0,sold=0,eggLoss=0,unsoldVal=0,rev=0,cost=0;
+  rs.forEach(function(r){
+    eggs+=r.b.eggs; chicks+=r.b.chicks; sold+=r.sold; rev+=r.rev; cost+=r.cost;
+    eggLoss+=(r.b.eggs-r.b.chicks)*r.b.eggCost;
+    unsoldVal+=(r.b.chicks-r.sold)*r.b.price;
+  });
+  function bar(labelKey,val,base,color){
+    var pct=base>0? Math.max(8,val/base*100) : 0;
+    return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">'
+      +'<span style="width:130px;font-size:11px;color:var(--muted)">'+T(labelKey)+'</span>'
+      +'<div class="funbar" style="width:'+pct.toFixed(1)+'%;background:'+color+'">'+nf.format(val)+'</div></div>';
+  }
+  var html='';
+  html+='<div class="funrow">'+bar('fun1',eggs,eggs,'#2F9BFF')+'</div>';
+  html+='<div class="funrow">'+bar('fun2',chicks,eggs,'#19C37D')
+    +(eggs-chicks>0?'<div class="funloss" style="margin-left:140px">− '+nf.format(eggs-chicks)+' '+T('funL1')+' ≈ '+money(eggLoss)+'</div>':'')+'</div>';
+  html+='<div class="funrow">'+bar('fun3',sold,eggs,'#FF6500')
+    +(chicks-sold>0?'<div class="funloss" style="margin-left:140px">− '+nf.format(chicks-sold)+' '+T('funL2')+' ≈ '+money(unsoldVal)+'</div>':'')+'</div>';
+  $('funBox').innerHTML=html;
+  // break-even from this period's actual totals
+  var be='';
+  if(sold>0&&eggs>0){
+    var beP=cost/sold;
+    be+='<b style="color:var(--orange)">'+T('beP')+'₺'+nf2.format(beP)+'</b>'+T('bePb');
+    var avgP=rev/sold;
+    if(avgP>0){
+      var beH=cost/(avgP*eggs)*100;
+      be+='<br><b style="color:var(--orange)">'+T('beH')+'%'+nf1.format(beH)+'</b>'+T('beHb');
+    }
+  }
+  $('beNote').innerHTML=be;
+  $('beNote').style.display=be?'':'none';
+}
+
 function renderCmp(){
-  $('cmpH').innerHTML='<tr><th>'+T('thSite')+'</th><th>'+T('thBat')+'</th><th>'+T('thEggs')+'</th><th>'+T('thChicks')+'</th><th>'+T('thHatch')+'</th><th>'+T('thRev')+'</th><th>'+T('thCost')+'</th><th>'+T('thProfit')+'</th><th>'+T('thPer')+'</th></tr>';
+  $('cmpH').innerHTML='<tr><th>'+T('thSite')+'</th><th>'+T('thBat')+'</th><th>'+T('thEggs')+'</th><th>'+T('thChicks')+'</th><th>'+T('thHatch')+'</th><th>'+T('thUtil')+'</th><th>'+T('thRev')+'</th><th>'+T('thCost')+'</th><th>'+T('thProfit')+'</th><th>'+T('thPer')+'</th></tr>';
   var rows=DATA.sites.map(function(st,i){
     var rs=calcSite(i);
     var eggs=rs.reduce(function(a,r){return a+r.b.eggs;},0), chicks=rs.reduce(function(a,r){return a+r.b.chicks;},0);
+    var sold=rs.reduce(function(a,r){return a+r.sold;},0);
     var rev=rs.reduce(function(a,r){return a+r.rev;},0), profit=rs.reduce(function(a,r){return a+r.profit;},0);
     var cost=rs.reduce(function(a,r){return a+r.cost;},0);
-    return {name:st.name,n:rs.length,eggs:eggs,chicks:chicks,rev:rev,cost:cost,profit:profit,h:eggs?chicks/eggs*100:0};
+    var inEggs=inB(st).reduce(function(a,b){return a+b.eggs;},0);
+    var u= st.cap>0? inEggs/st.cap : null;
+    return {name:st.name,n:rs.length,eggs:eggs,chicks:chicks,sold:sold,rev:rev,cost:cost,profit:profit,h:eggs?chicks/eggs*100:0,u:u};
   }).sort(function(a,b){return b.profit-a.profit;});     // en kârlı üstte
   var worstH=Math.min.apply(null,rows.filter(function(r){return r.eggs>0;}).map(function(r){return r.h;}));
   var body='';
@@ -345,9 +642,10 @@ function renderCmp(){
     var flag= r.eggs>0&&r.h===worstH&&rows.length>1 ? ' ⚠️' : '';
     body+='<tr><td>'+esc(r.name)+crown+flag+'</td><td>'+r.n+'</td><td>'+nf.format(r.eggs)+'</td><td>'+nf.format(r.chicks)+'</td>'
       +'<td class="'+(r.h>=82?'g':(r.h>=75?'o':'r'))+'">'+(r.eggs?'%'+nf1.format(r.h):'—')+'</td>'
+      +'<td class="'+(r.u==null?'mut':(r.u>=0.8?'g':(r.u>=0.55?'o':'r')))+'">'+(r.u==null?'—':'%'+nf.format(r.u*100))+'</td>'
       +'<td>'+money(r.rev)+'</td><td>'+money(r.cost)+'</td>'
       +'<td class="'+(r.profit>=0?'g':'r')+'">'+money(r.profit)+'</td>'
-      +'<td>'+(r.chicks?nf2.format(r.profit/r.chicks):'—')+'</td></tr>';
+      +'<td>'+(r.sold?nf2.format(r.profit/r.sold):'—')+'</td></tr>';
   });
   $('cmpB').innerHTML=body;
 }
@@ -401,7 +699,7 @@ function applyLang(){
 $('langBtn').onclick=function(){LANG=LANG==='tr'?'en':'tr';applyLang();};
 
 // ---- site management ----
-$('siteSel').addEventListener('change',function(){ SEL=this.value==='ALL'?'ALL':+this.value; render(); });
+$('siteSel').addEventListener('change',function(){ SEL=this.value==='ALL'?'ALL':+this.value; OPEN=null; render(); });
 $('siteAdd').onclick=function(){
   var n2=prompt(T('newSite'),'Şube '+(DATA.sites.length+1)); if(n2===null)return;
   DATA.sites.push(blankSite(n2||('Şube '+(DATA.sites.length+1)))); SEL=DATA.sites.length-1; save(); render();
@@ -410,7 +708,7 @@ $('siteDel').onclick=function(){
   if(SEL==='ALL'||DATA.sites.length<2)return;
   var st=DATA.sites[+SEL];
   if(!confirm('“'+st.name+'” '+T('delSite')))return;
-  DATA.sites.splice(+SEL,1); SEL=0; save(); render();
+  DATA.sites.splice(+SEL,1); SEL=0; OPEN=null; save(); render();
 };
 $('siteRen').onclick=function(){
   if(SEL==='ALL')return;
@@ -422,7 +720,28 @@ $('siteRen').onclick=function(){
 var TKEY='hatchops.touched';
 function touched(){ try{return !!localStorage.getItem(TKEY);}catch(e){return true;} }
 function setTouched(){ try{localStorage.setItem(TKEY,'1');}catch(e){} $('demoBanner').style.display='none'; }
-$('dbClear').onclick=function(){ DATA={v:2,sites:[blankSite('Merkez')]}; SEL=0; save(); setTouched(); render(); };
+$('dbClear').onclick=function(){ DATA={v:3,sites:[blankSite('Merkez')]}; SEL=0; OPEN=null; save(); setTouched(); render(); };
+$('tabSet').onclick=function(){ $('setForm').style.display=''; $('setHint').style.display=''; $('oldForm').style.display='none'; $('tabSet').classList.add('tabOn'); $('tabOld').classList.remove('tabOn'); };
+$('tabOld').onclick=function(){ $('setForm').style.display='none'; $('setHint').style.display='none'; $('oldForm').style.display=''; $('tabOld').classList.add('tabOn'); $('tabSet').classList.remove('tabOn'); };
+function fillSupList(){
+  var m={}; allBatches().forEach(function(x){ if(x.b.sup)m[x.b.sup]=1; });
+  $('supList').innerHTML=Object.keys(m).sort().map(function(s2){return '<option value="'+esc(s2)+'">';}).join('');
+}
+function setHintUpd(){
+  var d=$('sDate').value;
+  $('setHint').textContent= d? T('sHint')+addDays(d,INCUB)+T('sHint2') : '';
+}
+$('sDate').addEventListener('change',setHintUpd);
+$('setBtn').onclick=function(){
+  if(SEL==='ALL')return;
+  var d=$('sDate').value; if(!d){$('sDate').focus();return;}
+  var eggs=num($('sEggs').value); if(eggs<=0){$('sEggs').focus();return;}
+  setTouched();
+  DATA.sites[+SEL].batches.push({sd:d,d:addDays(d,INCUB),eggs:eggs,sup:$('sSup').value.trim(),eggCost:num($('sEggCost').value),chicks:null,sold:null,price:0,extra:0,st:'in'});
+  save();
+  $('sEggs').value='';
+  render();
+};
 $('addBtn').onclick=function(){
   if(SEL==='ALL')return;
   var d=$('fDate').value; if(!d){$('fDate').focus();return;}
@@ -430,9 +749,9 @@ $('addBtn').onclick=function(){
   if(eggs<=0){$('fEggs').focus();return;}
   if(chicks<0||chicks>eggs){$('fChicks').focus();return;}
   setTouched();
-  DATA.sites[+SEL].batches.push({d:d,eggs:eggs,chicks:chicks,eggCost:num($('fEggCost').value),price:num($('fPrice').value),extra:num($('fExtra').value)});
+  DATA.sites[+SEL].batches.push({sd:addDays(d,-INCUB),d:d,eggs:eggs,sup:$('fSup').value.trim(),eggCost:num($('fEggCost').value),chicks:chicks,sold:chicks,price:num($('fPrice').value),extra:0,st:'done'});
   save();
-  ['fEggs','fChicks','fExtra'].forEach(function(k){$(k).value='';});
+  ['fEggs','fChicks'].forEach(function(k){$(k).value='';});
   render();
 };
 [['gMaas','maas'],['gEnerji','enerji'],['gKira','kira'],['gBakim','bakim'],['gDiger','diger']].forEach(function(p){
@@ -441,54 +760,75 @@ $('addBtn').onclick=function(){
     DATA.sites[+SEL].fix[p[1]]=num(this.value); save(); render();
   });
 });
+$('capIn').addEventListener('change',function(){
+  if(SEL==='ALL')return;
+  DATA.sites[+SEL].cap=num(this.value); save(); render();
+});
 $('monthSel').addEventListener('change',render);
 $('clearBtn').onclick=function(){ if(SEL==='ALL')return;
-  if(confirm(T('confirm'))){DATA.sites[+SEL].batches=[];save();setTouched();render();} };
+  if(confirm(T('confirm'))){DATA.sites[+SEL].batches=[];OPEN=null;save();setTouched();render();} };
 
 // ---- demo ----
 function seedDemo(){
-  var today=new Date(); var mk=function(off){var d=new Date(today);d.setDate(d.getDate()-off);return d.toISOString().slice(0,10);};
-  var a=blankSite('Merkez'); a.fix={maas:350000,enerji:150000,kira:120000,bakim:60000,diger:40000};
+  var mk=function(off){var d=new Date();d.setDate(d.getDate()-off);return fmtD(d);};
+  var S1='Koç Yumurta',S2='Anadolu Damızlık',S3='Öz-Tav';
+  function done(off,eggs,chicks,cost,price,extra,sup){ return {sd:mk(off+INCUB),d:mk(off),eggs:eggs,sup:sup,eggCost:cost,chicks:chicks,sold:chicks,price:price,extra:extra,st:'done'}; }
+  function inm(off,eggs,cost,sup){ return {sd:mk(off),d:mk(off-INCUB),eggs:eggs,sup:sup,eggCost:cost,chicks:null,sold:null,price:0,extra:0,st:'in'}; }
+  var a=blankSite('Merkez'); a.fix={maas:350000,enerji:150000,kira:120000,bakim:60000,diger:40000}; a.cap=320000;
   a.batches=[
-   {d:mk(28),eggs:52000,chicks:43700,eggCost:9,price:20,extra:0},
-   {d:mk(24),eggs:50000,chicks:41000,eggCost:9,price:20,extra:15000},
-   {d:mk(21),eggs:54000,chicks:44300,eggCost:9.2,price:20,extra:0},
-   {d:mk(17),eggs:51000,chicks:37200,eggCost:9.2,price:20,extra:40000},
-   {d:mk(14),eggs:53000,chicks:44500,eggCost:9.4,price:21,extra:0},
-   {d:mk(10),eggs:55000,chicks:46800,eggCost:9.4,price:21,extra:0},
-   {d:mk(7),eggs:52000,chicks:42600,eggCost:9.6,price:21,extra:20000},
-   {d:mk(3),eggs:56000,chicks:47600,eggCost:9.6,price:21,extra:0}
+   done(28,52000,43700,9,20,0,S1),
+   done(24,50000,41000,9,20,15000,S2),
+   done(21,54000,44300,9.2,20,0,S1),
+   done(17,51000,37200,9.2,20,40000,S3),
+   done(14,53000,44500,9.4,21,0,S2),
+   done(10,55000,46800,9.4,21,0,S1),
+   done(7,52000,42600,9.6,21,20000,S3),
+   done(3,56000,47600,9.6,21,0,S1),
+   inm(23,52000,9.6,S2),      // overdue — hatch was due 2 days ago
+   inm(18,54000,9.7,S1),
+   inm(14,51000,9.7,S3),
+   inm(9,55000,9.8,S1),
+   inm(4,53000,9.8,S2)
   ];
-  var b2=blankSite('Şube — Bolu'); b2.fix={maas:250000,enerji:120000,kira:90000,bakim:50000,diger:30000};
+  var b2=blankSite('Şube — Bolu'); b2.fix={maas:250000,enerji:120000,kira:90000,bakim:50000,diger:30000}; b2.cap=180000;
   b2.batches=[
-   {d:mk(26),eggs:38000,chicks:29600,eggCost:9.1,price:20,extra:0},
-   {d:mk(19),eggs:40000,chicks:31200,eggCost:9.3,price:20,extra:25000},
-   {d:mk(12),eggs:39000,chicks:29700,eggCost:9.5,price:21,extra:0},
-   {d:mk(5),eggs:41000,chicks:32500,eggCost:9.6,price:21,extra:10000}
+   done(26,38000,29600,9.1,20,0,S2),
+   done(19,40000,31200,9.3,20,25000,S3),
+   done(12,39000,29700,9.5,21,0,S2),
+   done(5,41000,32500,9.6,21,10000,S1),
+   inm(16,40000,9.7,S2),
+   inm(8,39000,9.8,S3),
+   inm(2,41000,9.8,S1)
   ];
-  var c2=blankSite('Şube — Sakarya'); c2.fix={maas:300000,enerji:140000,kira:100000,bakim:55000,diger:35000};
+  var c2=blankSite('Şube — Sakarya'); c2.fix={maas:300000,enerji:140000,kira:100000,bakim:55000,diger:35000}; c2.cap=200000;
   c2.batches=[
-   {d:mk(27),eggs:46000,chicks:39600,eggCost:8.9,price:20,extra:0},
-   {d:mk(20),eggs:47000,chicks:40400,eggCost:9.0,price:20,extra:0},
-   {d:mk(13),eggs:45000,chicks:38700,eggCost:9.2,price:21,extra:12000},
-   {d:mk(6),eggs:48000,chicks:41800,eggCost:9.3,price:21,extra:0}
+   done(27,46000,39600,8.9,20,0,S1),
+   done(20,47000,40400,9.0,20,0,S1),
+   done(13,45000,38700,9.2,21,12000,S2),
+   done(6,48000,41800,9.3,21,0,S1),
+   inm(19,47000,9.5,S1),
+   inm(12,46000,9.6,S1),
+   inm(6,48000,9.7,S2),
+   inm(1,45000,9.7,S1)
   ];
-  var d2=blankSite('Şube — Konya'); d2.fix={maas:280000,enerji:130000,kira:80000,bakim:60000,diger:30000};
+  var d2=blankSite('Şube — Konya'); d2.fix={maas:280000,enerji:130000,kira:80000,bakim:60000,diger:30000}; d2.cap=190000;
   d2.batches=[
-   {d:mk(25),eggs:42000,chicks:30200,eggCost:9.4,price:20,extra:30000},
-   {d:mk(18),eggs:43000,chicks:31400,eggCost:9.5,price:20,extra:0},
-   {d:mk(11),eggs:41000,chicks:28900,eggCost:9.7,price:21,extra:20000},
-   {d:mk(4),eggs:44000,chicks:32100,eggCost:9.8,price:21,extra:0}
+   done(25,42000,30200,9.4,20,30000,S3),
+   done(18,43000,31400,9.5,20,0,S3),
+   done(11,41000,28900,9.7,21,20000,S3),
+   done(4,44000,32100,9.8,21,0,S2),
+   inm(15,43000,9.9,S3),
+   inm(7,42000,9.9,S2)
   ];
-  DATA={v:2,sites:[a,b2,c2,d2]}; SEL=0; save();
+  DATA={v:3,sites:[a,b2,c2,d2]}; SEL=0; OPEN=null; save();
 }
 $('demoBtn').onclick=function(){ seedDemo(); render(); };
 
 // ---- CSV ----
 $('csvBtn').onclick=function(){
   var rs=calcView(); if(!rs.length)return;
-  var L=['sep=;','tesis;tarih;yumurta;civciv;cikim_%;ciro;maliyet;kar;kar_per_civciv'];
-  rs.forEach(function(r){L.push([DATA.sites[r.si].name,r.b.d,r.b.eggs,r.b.chicks,(Math.round(r.hatch*10)/10),Math.round(r.rev),Math.round(r.cost),Math.round(r.profit),(r.b.chicks?Math.round(r.profit/r.b.chicks*100)/100:'')].join(';'));});
+  var L=['sep=;','tesis;basma;cikim;tedarikci;yumurta;civciv;satilan;cikim_%;ciro;maliyet;kar;kar_per_civciv'];
+  rs.forEach(function(r){L.push([DATA.sites[r.si].name,r.b.sd||'',r.b.d,r.b.sup||'',r.b.eggs,r.b.chicks,r.sold,(Math.round(r.hatch*10)/10),Math.round(r.rev),Math.round(r.cost),Math.round(r.profit),(r.sold?Math.round(r.profit/r.sold*100)/100:'')].join(';'));});
   var blob=new Blob(['﻿'+L.join('\r\n')],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='kuluckatakip.csv';a.click();
 };
@@ -513,8 +853,7 @@ function renderVers(){
   $('verList').querySelectorAll('[data-vr]').forEach(function(b){ b.onclick=function(){
     if(!confirm(T('vConfirm')))return;
     var d=JSON.parse(JSON.stringify(vers()[+b.getAttribute('data-vr')].data));
-    if(!d.sites){ var s2=blankSite('Merkez'); s2.batches=d.batches||[]; s2.fix.diger=d.fix||0; d={v:2,sites:[s2]}; }
-    DATA=d; SEL=0; save(); render(); $('verPanel').style.display='none'; };});
+    DATA=migrate(d); SEL=0; OPEN=null; save(); render(); $('verPanel').style.display='none'; };});
   $('verList').querySelectorAll('[data-vd]').forEach(function(b){ b.onclick=function(){
     var x=vers()[+b.getAttribute('data-vd')];
     var blob=new Blob([JSON.stringify(x,null,1)],{type:'application/json'});
@@ -536,14 +875,15 @@ $('verSave').onclick=function(){
 };
 $('verFile').addEventListener('change',function(){
   var f=this.files[0]; if(!f)return; var rd=new FileReader();
-  rd.onload=function(){ try{ var x=JSON.parse(rd.result); if(x&&x.data){ var v=vers(); v.unshift(x); setVers(v); renderVers(); } }catch(e){alert('!');} };
+  rd.onload=function(){ try{ var x=JSON.parse(rd.result); if(x&&x.data){ x.data=migrate(x.data); var v=vers(); v.unshift(x); setVers(v); renderVers(); } }catch(e){alert('!');} };
   rd.readAsText(f);
 });
 
 // ---- boot ----
 if(!touched() && allBatches().length===0){ seedDemo(); $('demoBanner').style.display='block'; }
 else if(!touched() && allBatches().length>0){ $('demoBanner').style.display='block'; }
-$('fDate').value=new Date().toISOString().slice(0,10);
+$('sDate').value=todayISO();
+$('fDate').value=todayISO();
 applyLang();
 })();
 </script>
