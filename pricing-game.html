@@ -78,8 +78,13 @@
     .opt .ol { font-weight: 700; font-size: .87rem; }
     .opt .od { font-size: .76rem; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
 
+    /* month performance vs budget & last year — the FP&A strip */
+    .varline { margin-top: 10px; padding: 12px 14px; border-radius: 8px; background: var(--surface-2);
+               border-left: 3px solid var(--green); font-size: .92rem; line-height: 1.6; }
+    .varline.miss { border-left-color: var(--loss); }
+
     /* the numbers you price against — always visible while deciding */
-    .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+    .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
     .fact { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; text-align: center; }
     .fact .lbl { font-size: .66rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
     .fact .val { font-size: 1rem; font-weight: 700; margin-top: 2px; }
@@ -156,6 +161,7 @@
     @media (max-width: 640px) {
       .kpis { grid-template-columns: repeat(3, 1fr); }
       .results-grid { grid-template-columns: repeat(2, 1fr); }
+      .facts { grid-template-columns: repeat(2, 1fr); }
       .price-big { font-size: 2rem; }
       .opts { grid-template-columns: 1fr; }
       .mrow { grid-template-columns: 96px 52px 1fr 46px; gap: 6px; font-size: .78rem; }
@@ -187,9 +193,15 @@
       each option has real effects on demand, trust and cash, and earns points).
     </p>
     <p class="muted" style="margin-top:8px">
+      And the board is watching. <strong style="color:var(--text)">Last year Atlas made $520k profit.</strong>
+      Your <strong style="color:var(--text)">budget for this year is $572k (+10%)</strong>, phased month by month —
+      December carries a big target, summer is light. Every month you'll see exactly where you stand:
+      versus budget, versus last year, and versus the <em>autopilot</em> — a manager who never touches
+      the price and always picks the safe move.
+    </p>
+    <p class="muted" style="margin-top:8px">
       Market share is fought over by all four brands. Price too high and shoppers drift to BrewCo. Chase the discounter
-      and you burn margin. Raise prices at the wrong moment and customers stop trusting you. At year-end you are scored
-      against the <em>autopilot</em> — a manager who never touches the price and always picks the safe move.
+      and you burn margin. Raise prices at the wrong moment and customers stop trusting you.
     </p>
     <div style="margin-top:18px"><button class="btn" onclick="startGame()">Start the year &rarr;</button>
       <span class="muted" style="font-size:.78rem; margin-left:10px">or press Enter</span></div>
@@ -237,6 +249,7 @@
         <div class="pl-row" id="plCashRow"><span>Campaigns &amp; one-offs</span><span id="plCash"></span></div>
         <div class="pl-row total"><span>Month profit</span><span id="plProfit"></span></div>
       </div>
+      <div class="varline" id="varLine"></div>
       <div class="commentary" id="rComment"></div>
       <div class="moveline" id="moveLine"></div>
       <div class="bestline" id="bestLine"></div>
@@ -262,6 +275,7 @@
           <div class="fact"><div class="lbl">Your unit cost</div><div class="val" id="fCost">$6.00 / bag</div></div>
           <div class="fact"><div class="lbl">Fixed costs</div><div class="val">$120k / month</div></div>
           <div class="fact"><div class="lbl">Rival prices</div><div class="val" id="fComp">$10.50 · $13.50</div></div>
+          <div class="fact"><div class="lbl">Budget this month</div><div class="val" id="fBud">$42k profit</div></div>
         </div>
         <div class="price-row">
           <div class="price-big">$<span id="priceVal">10.00</span><small> / bag</small></div>
@@ -288,6 +302,7 @@
         <span><i style="background:var(--green)"></i>Monthly profit</span>
         <span><i style="background:var(--blue)"></i>Market share</span>
         <span><i style="background:var(--orange)"></i>Your price</span>
+        <span><i style="background:repeating-linear-gradient(90deg,#f5f7fb 0 3px,transparent 3px 5px)"></i>Budget</span>
       </div>
     </div>
   </div>
@@ -302,6 +317,7 @@
       <span><i style="background:var(--green)"></i>Monthly profit</span>
       <span><i style="background:var(--blue)"></i>Market share</span>
       <span><i style="background:var(--orange)"></i>Your price</span>
+        <span><i style="background:repeating-linear-gradient(90deg,#f5f7fb 0 3px,transparent 3px 5px)"></i>Budget</span>
     </div>
     <ul class="lessons" id="endLessons"></ul>
     <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
@@ -423,6 +439,14 @@ const EVENTS = [
 ];
 
 const NO_CHOICE = { fx: {} };
+
+/* ---------------- Last year & budget: the FP&A yardstick.
+   Last year Atlas made $520k profit with normal seasonality (strong December,
+   soft summer). The board budgeted +10% for this year, phased the same way —
+   set before anyone knew a discounter would enter in May. ---------------- */
+const LY_PROFIT = [38, 36, 40, 52, 34, 30, 44, 30, 38, 50, 55, 73].map(v => v * 1000);   // = $520k
+const BUDGET    = LY_PROFIT.map(v => Math.round(v * 1.10));                              // = $572k
+const sumTo = (arr, n) => arr.slice(0, n).reduce((a, b) => a + b, 0);
 
 /* ---------------- Simulation core (shared by player, coach and autopilot) ---------------- */
 function initState() {
@@ -590,6 +614,7 @@ function beginMonth() {
     '<div class="ol">' + c.label + '</div><div class="od">' + c.note + '</div></button>').join('');
 
   // decision facts + slider zones
+  $('fBud').textContent = moneyK(BUDGET[month]) + ' profit';
   $('fCost').textContent = '$' + S.cost.toFixed(2) + ' / bag';
   const actR = S.rivals.filter(r => r.active);
   $('fComp').textContent = actR.map(r => '$' + r.price.toFixed(2)).join(' · ');
@@ -665,6 +690,22 @@ function lockPrice() {
   $('plCash').textContent = (r.cash > 0 ? '+' : '−') + money(Math.abs(r.cash)).slice(0);
   $('plProfit').textContent = money(r.profit);
   $('plProfit').className = r.profit >= 0 ? 'up' : 'down';
+
+  // FP&A strip: this month and YTD vs budget and last year
+  const vBud = r.profit - BUDGET[month];
+  const vLY  = r.profit - LY_PROFIT[month];
+  const ytdBud = S.cumProfit - sumTo(BUDGET, month + 1);
+  const ytdLY  = S.cumProfit - sumTo(LY_PROFIT, month + 1);
+  const sgn = v => (v >= 0 ? '+' : '−') + moneyK(Math.abs(v)).slice(1);
+  const tick = v => v >= 0 ? '<span class="up">✓ ' : '<span class="down">✗ ';
+  const vl = $('varLine');
+  vl.className = 'varline' + (ytdBud >= 0 ? '' : ' miss');
+  vl.innerHTML =
+    '📊 <strong>vs Budget:</strong> ' + tick(vBud) + sgn(vBud) + '</span> (target ' + moneyK(BUDGET[month]) + ')' +
+    ' · <strong>vs Last year:</strong> ' + tick(vLY) + sgn(vLY) + '</span> (' + MONTHS[month].slice(0, 3) + ' LY ' + moneyK(LY_PROFIT[month]) + ')' +
+    '<br><strong>Year to date:</strong> ' + moneyK(S.cumProfit) + ' — ' + tick(ytdBud) +
+    (ytdBud >= 0 ? 'ahead of budget by ' : 'behind budget by ') + moneyK(Math.abs(ytdBud)) + '</span>, ' +
+    (ytdLY >= 0 ? '<span class="up">+' : '<span class="down">−') + moneyK(Math.abs(ytdLY)).slice(1) + ' vs last year</span>.';
 
   const c = $('rComment');
   const msg = commentary(ev, r, prev);
@@ -746,8 +787,9 @@ function updateKPIs(r) {
   $('kCost').textContent = '$' + S.cost.toFixed(2);
   $('kPts').textContent = S.pts;
   if (r) {
-    $('dProfit').textContent = (r.profit >= 0 ? '+' : '') + moneyK(r.profit) + ' this month';
-    $('dProfit').className = 'delta ' + (r.profit >= 0 ? 'up' : 'down');
+    const ytdBud = S.cumProfit - sumTo(BUDGET, S.history.length);
+    $('dProfit').textContent = (ytdBud >= 0 ? '+' : '−') + moneyK(Math.abs(ytdBud)).slice(1) + ' vs plan';
+    $('dProfit').className = 'delta ' + (ytdBud >= 0 ? 'up' : 'down');
     $('dTrust').textContent = r.dTrust ? (r.dTrust > 0 ? '+' : '') + r.dTrust : '';
     $('dTrust').className = 'delta ' + (r.dTrust > 0 ? 'up' : r.dTrust < 0 ? 'down' : 'flat');
     const prevShare = S.history.length > 1 ? S.history[S.history.length - 2].share : 0.425;
@@ -809,6 +851,17 @@ function drawChart(canvasId) {
     ctx.stroke(); ctx.setLineDash([]);
   }
 
+  // budget markers: a small dash at each month's target profit
+  ctx.strokeStyle = '#f5f7fb'; ctx.lineWidth = 1.6; ctx.setLineDash([3, 2]);
+  for (let i = 0; i < 12; i++) {
+    const by = zeroY - BUDGET[i] / maxP * (H - 2 * pad) * 0.9;
+    ctx.beginPath();
+    ctx.moveTo(pad + i * slotW + slotW * 0.10, by);
+    ctx.lineTo(pad + i * slotW + slotW * 0.68, by);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
   // month ticks
   ctx.fillStyle = '#c6cdda'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
   for (let i = 0; i < 12; i++) ctx.fillText(i + 1, pad + i * slotW + slotW * 0.5, H - pad + 14);
@@ -831,9 +884,17 @@ function endGame() {
   else if (ratio < 1.4)          title = 'Head of Pricing — clearly better than autopilot.';
   else                           title = 'Chief Pricing Officer — an outstanding year.';
   $('endTitle').textContent = title;
+  const totBud = sumTo(BUDGET, 12), totLY = sumTo(LY_PROFIT, 12);
+  const vBud = S.cumProfit - totBud, vLY = S.cumProfit - totLY;
   $('endScore').innerHTML =
     'Your full-year profit: <strong style="color:var(--text)">' + money(S.cumProfit) + '</strong> · ' +
     'Autopilot (frozen price, safe moves): <strong style="color:var(--text)">' + money(benchmark) + '</strong><br>' +
+    '<strong>Budget ' + money(totBud) + ':</strong> ' + (vBud >= 0
+      ? '<span class="up">✓ BEAT by ' + money(vBud) + '</span>'
+      : '<span class="down">✗ missed by ' + money(-vBud) + '</span>') +
+    ' · <strong>Last year ' + money(totLY) + ':</strong> ' + (vLY >= 0
+      ? '<span class="up">+' + Math.round(vLY / totLY * 100) + '% growth</span>'
+      : '<span class="down">' + Math.round(vLY / totLY * 100) + '% decline</span>') + '<br>' +
     'Strategic moves: <strong style="color:var(--text)">' + S.pts + ' / ' + S.maxPts + ' points</strong> · ' +
     'Final share ' + (S.share * 100).toFixed(1) + '% · Trust ' + Math.round(S.trust) + '/100';
 
@@ -847,6 +908,9 @@ function endGame() {
   const movePct = S.maxPts ? Math.round(S.pts / S.maxPts * 100) : 0;
   L.push('Strategic moves: you scored ' + movePct + '% of the available points' +
          (movePct >= 85 ? ' — you read the situations very well.' : movePct >= 65 ? ' — decent instincts; the 🧭 lines show the moves you missed.' : ' — replay and study the 🧭 lines; the moves matter as much as the price.'));
+  if (vBud >= 0) L.push('You beat a +10% budget in the year a discounter entered your market — that is a genuinely strong year, and boards notice the context.');
+  else if (vLY >= 0) L.push('You missed budget but still grew vs last year — in a year with a new discounter and a recession, a fair review would call that resilient.');
+  else L.push('You finished below last year. Look at where the YTD line turned red — the months after Kaffa entered are where share and margin slipped together.');
   if (S.flags.passedCost) L.push('You passed cost inflation through instead of absorbing it — the single most valuable pricing habit in an inflationary market.');
   if (S.flags.caughtBoom) L.push('You monetised the demand boom. Booms are when price increases are cheapest — you used yours.');
   if (S.flags.gouged) L.push('You raised prices during the shortage. It paid once and taxed you for months — trust is a balance sheet item.');
