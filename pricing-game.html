@@ -103,6 +103,13 @@
     .commentary.bad { border-left: 3px solid var(--loss); }
     .commentary.neutral { border-left: 3px solid var(--orange); }
 
+    /* the coach: what the best price this month would have been */
+    .bestline { margin-top: 10px; padding: 12px 14px; border-radius: 8px; background: rgba(255,101,0,.08);
+                border-left: 3px solid var(--orange); font-size: .92rem; line-height: 1.5; }
+    .bestline .grade { font-weight: 800; font-size: 1.05rem; }
+    #recap h2 { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+    #recap h2 small { font-size: .78rem; color: var(--text-dim); font-weight: 400; }
+
     canvas { width: 100%; height: 190px; display: block; margin-top: 6px; }
     .legend { display: flex; gap: 18px; font-size: .78rem; color: var(--text-dim); margin-top: 6px; }
     .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
@@ -172,6 +179,24 @@
       <div class="kpi"><div class="lbl">Competitor</div><div class="val" id="kComp">$10.50</div><div class="delta" id="dComp"></div></div>
     </div>
 
+    <div class="card hidden" id="recap">
+      <h2><span id="recapTitle"></span><small id="recapSub"></small></h2>
+      <div class="results-grid">
+        <div class="res"><div class="lbl">Volume</div><div class="val" id="rVol"></div></div>
+        <div class="res"><div class="lbl">Revenue</div><div class="val" id="rRev"></div></div>
+        <div class="res"><div class="lbl">Month profit</div><div class="val" id="rProfit"></div></div>
+        <div class="res"><div class="lbl">Share</div><div class="val" id="rShare"></div></div>
+      </div>
+      <div class="pl">
+        <div class="pl-row"><span id="plRevL">Revenue</span><span id="plRev"></span></div>
+        <div class="pl-row"><span id="plVarL">Variable costs</span><span id="plVar"></span></div>
+        <div class="pl-row"><span>Fixed costs (rent, salaries, roastery)</span><span id="plFix"></span></div>
+        <div class="pl-row total"><span>Month profit</span><span id="plProfit"></span></div>
+      </div>
+      <div class="commentary" id="rComment"></div>
+      <div class="bestline" id="bestLine"></div>
+    </div>
+
     <div class="card" id="eventCard">
       <div class="event-head">
         <div class="event-icon" id="evIcon">📈</div>
@@ -203,24 +228,8 @@
           <div class="zone-mark comp" id="markComp">competitor</div>
         </div>
         <div class="margin-note" id="marginNote"></div>
-        <button class="btn" onclick="lockPrice()">Lock price &amp; run the month</button>
-      </div>
-
-      <div id="results" class="hidden">
-        <div class="results-grid">
-          <div class="res"><div class="lbl">Volume</div><div class="val" id="rVol"></div></div>
-          <div class="res"><div class="lbl">Revenue</div><div class="val" id="rRev"></div></div>
-          <div class="res"><div class="lbl">Month profit</div><div class="val" id="rProfit"></div></div>
-          <div class="res"><div class="lbl">Share</div><div class="val" id="rShare"></div></div>
-        </div>
-        <div class="pl">
-          <div class="pl-row"><span id="plRevL">Revenue</span><span id="plRev"></span></div>
-          <div class="pl-row"><span id="plVarL">Variable costs</span><span id="plVar"></span></div>
-          <div class="pl-row"><span>Fixed costs (rent, salaries, roastery)</span><span id="plFix"></span></div>
-          <div class="pl-row total"><span>Month profit</span><span id="plProfit"></span></div>
-        </div>
-        <div class="commentary" id="rComment"></div>
-        <div style="margin-top:14px"><button class="btn green" id="nextBtn" onclick="nextMonth()">Next month &rarr;</button></div>
+        <button class="btn" id="lockBtn" onclick="lockPrice()">Lock price &amp; close the month</button>
+        <span class="muted" style="font-size:.78rem; margin-left:10px">or press Enter</span>
       </div>
     </div>
 
@@ -419,13 +428,10 @@ function beginMonth() {
   $('markCost').style.left = pct(S.cost) + '%';
   $('markComp').style.left = pct(S.comp) + '%';
 
-  $('decision').classList.remove('hidden');
-  $('results').classList.add('hidden');
-
   const slider = $('priceSlider');
   slider.value = S.lastPrice.toFixed(1);
   onSlide();
-  updateKPIs(null);
+  updateKPIs(S.history[S.history.length - 1] || null);   // keep last month's deltas visible
   drawChart('chart');
 }
 
@@ -465,10 +471,33 @@ function onSlide() {
   }
 }
 
+// The coach: replay this month at every possible price on a copy of the market.
+// Judged over a 4-month view (this month + three quiet months at the same price),
+// so the delayed share loss and price-war reactions count — a pure one-month view
+// would always say "charge the maximum", which is exactly the wrong lesson.
+const NEUTRAL_MONTH = { id: 'neutral' };
+function horizonProfit(baseJson, ev, p) {
+  const sim = JSON.parse(baseJson);
+  let total = runMonth(sim, ev, p).profit;
+  for (let i = 0; i < 3; i++) total += runMonth(sim, NEUTRAL_MONTH, p).profit;
+  return total;
+}
+function bestMoveThisMonth(ev) {
+  const base = JSON.stringify(S);
+  let bestP = 6, bestProfit = -Infinity;
+  for (let p = 6; p <= 18.001; p += 0.1) {
+    const t = horizonProfit(base, ev, p);
+    if (t > bestProfit) { bestProfit = t; bestP = p; }
+  }
+  return { bestP, bestProfit };
+}
+
 function lockPrice() {
   const ev = events[month];
   const price = parseFloat($('priceSlider').value);
   const prev = { share: S.share, trust: S.trust, cost: S.cost, comp: S.comp };
+  const best = bestMoveThisMonth(ev);
+  const playerHorizon = horizonProfit(JSON.stringify(S), ev, price);
   const r = runMonth(S, ev, price);
 
   $('rVol').textContent = Math.round(r.volume).toLocaleString('en-US') + ' bags';
@@ -496,11 +525,36 @@ function lockPrice() {
   if (ev.id === 'boom' && r.profit > 150000) S.flags.caughtBoom = true;
   if (r.belowCost) S.flags.belowCost = true;
 
-  $('decision').classList.add('hidden');
-  $('results').classList.remove('hidden');
-  $('nextBtn').textContent = month === 11 ? 'See your year-end review →' : 'Next month →';
+  // the coach: how close were you to the best sustainable price?
+  const bl = $('bestLine');
+  if (best.bestProfit <= 0) {
+    bl.innerHTML = '🎯 <strong>Coach:</strong> no price could make money here. Best damage control was <strong>$' +
+      best.bestP.toFixed(2) + '</strong>.';
+  } else {
+    const capture = Math.max(0, Math.min(100, playerHorizon / best.bestProfit * 100));
+    const grade = capture >= 97 ? 'A+' : capture >= 90 ? 'A' : capture >= 75 ? 'B' : capture >= 50 ? 'C' : 'D';
+    const diff = best.bestP - price;
+    const dir = Math.abs(diff) < 0.05 ? 'you found it' : diff > 0 ? 'you priced $' + diff.toFixed(2) + ' too low' : 'you priced $' + (-diff).toFixed(2) + ' too high';
+    bl.innerHTML = '🎯 <strong>Coach:</strong> best sustainable price was <strong>$' + best.bestP.toFixed(2) +
+      '</strong> — ' + dir + '. Judged over a 4-month view, you captured <strong>' + Math.round(capture) +
+      '%</strong> of the possible profit. <span class="grade">' + grade + '</span>' +
+      (capture >= 97 ? ' — nearly perfect.' : '');
+    S.captures = S.captures || []; S.captures.push(capture);
+  }
+
+  // close the month and roll straight into the next one — no extra click
+  $('recapTitle').textContent = MONTHS[month] + ' closed — ' + ev.title;
+  $('recapSub').textContent = 'Month ' + (month + 1) + ' of 12';
+  $('recap').classList.remove('hidden');
   updateKPIs(r);
   drawChart('chart');
+  month++;
+  if (month < 12) {
+    beginMonth();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    endGame();
+  }
 }
 
 function commentary(ev, r, prev) {
@@ -523,11 +577,12 @@ function commentary(ev, r, prev) {
   return { tone: 'neutral', text: 'The month closed at ' + moneyK(r.profit) + ' profit and ' + (r.share * 100).toFixed(1) + '% share. Steady. Watch the competitor at $' + r.comp.toFixed(2) + '.' };
 }
 
-function nextMonth() {
-  month++;
-  if (month >= 12) return endGame();
-  beginMonth();
-}
+// keyboard flow: Enter starts the year / locks the month
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.repeat) return;
+  if (!$('intro').classList.contains('hidden')) startGame();
+  else if (!$('game').classList.contains('hidden')) lockPrice();
+});
 
 function updateKPIs(r) {
   $('kMonth').textContent = Math.min(month + 1, 12) + '/12';
@@ -598,6 +653,9 @@ function drawChart(canvasId) {
 function endGame() {
   $('game').classList.add('hidden');
   $('end').classList.remove('hidden');
+  // keep December's report card visible above the year-end review
+  const endCard = $('end');
+  endCard.parentNode.insertBefore($('recap'), endCard);
   drawChart('endChart');
 
   const ratio = S.cumProfit / benchmark;
@@ -614,6 +672,12 @@ function endGame() {
     'Final share ' + (S.share * 100).toFixed(1) + '% · Trust ' + Math.round(S.trust) + '/100';
 
   const L = [];
+  if (S.captures && S.captures.length) {
+    const avg = S.captures.reduce((a, b) => a + b, 0) / S.captures.length;
+    L.push('Pricing sharpness: on average you captured ' + Math.round(avg) +
+           '% of each month’s best possible profit' +
+           (avg >= 90 ? ' — excellent instincts.' : avg >= 75 ? ' — solid; the coach lines show where the rest went.' : ' — replay and watch the 🎯 coach line each month.'));
+  }
   if (S.flags.passedCost) L.push('You passed cost inflation through instead of absorbing it — the single most valuable pricing habit in an inflationary market.');
   if (S.flags.caughtBoom) L.push('You monetised the demand boom. Booms are when price increases are cheapest — you used yours.');
   if (S.flags.gouged) L.push('You raised prices during the shortage. It paid once and taxed you for months — trust is a balance sheet item.');
