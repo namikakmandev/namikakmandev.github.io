@@ -8,7 +8,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Namık Akman" />
   <meta property="og:title" content="The Pricing Game — Can You Run Pricing for a Year?" />
-  <meta property="og:description" content="Cost spikes, price wars, a discounter entering your market. 12 months, three rivals, one price and one strategic move per month. Beat the autopilot." />
+  <meta property="og:description" content="Cost spikes, price wars, a discounter entering your market. 12 months, three rivals, one price and one strategic move per month. Beat the budget." />
   <meta property="og:url" content="https://namikakmandev.github.io/pricing-game.html" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
@@ -24,147 +24,166 @@
     body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
     a { color: var(--blue); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 12px 14px 40px; }
 
-    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-    .top .back { color: var(--text-dim); font-size: .88rem; }
-    .top .brand { font-weight: 700; font-size: .95rem; color: var(--text-dim); }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .top .back { color: var(--text-dim); font-size: .85rem; }
+    .top .brand { font-weight: 700; font-size: .9rem; color: var(--text-dim); }
     .top .brand span { color: var(--blue); }
 
-    /* ---------- KPI bar ---------- */
-    .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 14px; }
-    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; text-align: center; }
-    .kpi .lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
-    .kpi .val { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
-    .kpi .delta { font-size: .7rem; margin-top: 1px; min-height: .9em; }
+    /* ---------- HUD ---------- */
+    .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 10px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 5px 6px; text-align: center; }
+    .kpi .lbl { font-size: .6rem; text-transform: uppercase; letter-spacing: .03em; color: var(--text-dim); }
+    .kpi .val { font-size: .95rem; font-weight: 700; margin-top: 1px; }
+    .kpi .delta { font-size: .64rem; margin-top: 0; min-height: .85em; }
     .up { color: var(--green); } .down { color: var(--loss); } .flat { color: var(--text-dim); }
 
-    /* ---------- Cards ---------- */
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; }
-    .card h2 { font-size: 1.15rem; margin-bottom: 8px; }
-    .muted { color: var(--text-dim); font-size: .92rem; line-height: 1.55; }
+    /* ---------- Screens ---------- */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 12px; }
+    .screen { animation: pop .3s ease; }
+    @keyframes pop { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+    .muted { color: var(--text-dim); font-size: .9rem; line-height: 1.5; }
 
-    /* ---------- Market board ---------- */
-    #marketCard { padding: 14px 20px; }
-    .mrow { display: grid; grid-template-columns: 130px 60px 1fr 52px; gap: 10px; align-items: center; padding: 5px 0; font-size: .85rem; }
+    .event-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+    .event-icon { font-size: 2.1rem; }
+    .event-month { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--orange); font-weight: 700; }
+    .event-title { font-size: 1.25rem; font-weight: 800; }
+    .event-text { color: var(--text-dim); font-size: .92rem; line-height: 1.45; }
+    .event-hint { margin-top: 8px; font-size: .8rem; color: var(--text-dim); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .chip { font-size: .74rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); }
+    .chip.bad  { color: #ff9d9f; border-color: rgba(229,72,77,.5); }
+    .chip.good { color: var(--green); border-color: rgba(25,195,125,.5); }
+    .chip.warn { color: #ffb27a; border-color: rgba(255,101,0,.5); }
+
+    /* strategic move options */
+    .opts-title { margin: 14px 0 6px; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; }
+    .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .opt { text-align: left; background: var(--surface-2); border: 2px solid var(--border); border-radius: 10px;
+           padding: 8px 10px; cursor: pointer; color: var(--text); font-family: var(--font); }
+    .opt:hover { border-color: var(--blue); }
+    .opt.sel { border-color: var(--blue); background: rgba(47,155,255,.12); }
+    .opt .ol { font-weight: 700; font-size: .82rem; line-height: 1.25; }
+    .opt .od { font-size: .72rem; color: var(--text-dim); margin-top: 2px; line-height: 1.35; }
+
+    /* price control */
+    .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+    .fact { background: var(--surface-2); border-radius: 9px; padding: 6px 8px; text-align: center; }
+    .fact .lbl { font-size: .6rem; text-transform: uppercase; letter-spacing: .03em; color: var(--text-dim); }
+    .fact .val { font-size: .88rem; font-weight: 700; margin-top: 1px; }
+
+    .price-row { display: flex; align-items: center; gap: 12px; margin: 12px 0 4px; flex-wrap: wrap; }
+    .price-big { font-size: 2rem; font-weight: 800; min-width: 116px; font-variant-numeric: tabular-nums; }
+    .price-big small { font-size: .9rem; color: var(--text-dim); font-weight: 400; }
+    input[type=range] { flex: 1; min-width: 170px; accent-color: var(--blue); height: 32px; cursor: pointer; }
+    .step-btn { width: 40px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2);
+                color: var(--text); font-size: 1rem; font-weight: 700; cursor: pointer; }
+    .step-btn:hover { border-color: var(--blue); }
+
+    .zone-wrap { position: relative; margin: 0 2px 22px; }
+    .zone-bar { height: 5px; border-radius: 3px; overflow: hidden; display: flex; }
+    .zone-loss { background: rgba(229,72,77,.65); }
+    .zone-ok   { background: rgba(74,84,105,.9); flex: 1; }
+    .zone-mark { position: absolute; top: 7px; transform: translateX(-50%); font-size: .62rem; color: var(--text-dim); white-space: nowrap; }
+    .zone-mark::before { content: "▲"; display: block; text-align: center; font-size: .56rem; }
+    .zone-mark.cost::before { color: var(--loss); }
+    .zone-mark.comp::before { color: var(--orange); }
+
+    .margin-note { font-size: .8rem; margin: 2px 0 12px; min-height: 1.1em; color: var(--text-dim); }
+    .btn { display: inline-block; background: var(--blue); color: #fff; border: none; border-radius: 10px;
+           padding: 12px 24px; font-size: .98rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
+    .btn:hover { filter: brightness(1.1); }
+    .btn.green { background: var(--green); }
+    .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .keyhint { color: var(--text-dim); font-size: .74rem; margin-left: 10px; }
+
+    /* ---------- Result screen ---------- */
+    .r-head { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--orange); font-weight: 700; }
+    .r-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
+    .r-big { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .r-big-sub { font-size: .85rem; color: var(--text-dim); margin-bottom: 10px; }
+    .r-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 0; }
+    .res { background: var(--surface-2); border-radius: 9px; padding: 7px; text-align: center; }
+    .res .lbl { font-size: .6rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: .03em; }
+    .res .val { font-size: .95rem; font-weight: 700; margin-top: 2px; }
+
+    .rline { display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; border-radius: 8px;
+             background: var(--surface-2); font-size: .85rem; line-height: 1.45; margin-top: 6px; }
+    .rline .ic { flex: 0 0 auto; }
+    .rline.good { border-left: 3px solid var(--green); }
+    .rline.bad  { border-left: 3px solid var(--loss); }
+    .rline.warn { border-left: 3px solid var(--orange); }
+    .rline.info { border-left: 3px solid var(--blue); }
+    .grade { font-weight: 800; }
+
+    /* market strip */
+    .mtitle { margin: 12px 0 4px; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; }
+    .mrow { display: grid; grid-template-columns: 104px 54px 1fr 46px; gap: 8px; align-items: center; padding: 3px 0; font-size: .8rem; }
     .mrow .mname { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mrow.you .mname { color: var(--blue); }
     .mrow .mprice { color: var(--text-dim); font-variant-numeric: tabular-nums; }
-    .mbar { height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+    .mbar { height: 9px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
     .mbar i { display: block; height: 100%; background: var(--border); border-radius: 5px; transition: width .5s; }
     .mrow.you .mbar i { background: var(--blue); }
     .mrow .mpct { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
     .mrow.you .mpct { color: var(--text); font-weight: 700; }
 
-    .event-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-    .event-icon { font-size: 1.9rem; }
-    .event-month { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--orange); font-weight: 700; }
-    .event-title { font-size: 1.2rem; font-weight: 700; }
-    .event-hint { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--blue); border-radius: 6px; font-size: .88rem; color: var(--text-dim); }
-
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .chip { font-size: .78rem; font-weight: 700; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); }
-    .chip.bad  { color: #ff9d9f; border-color: rgba(229,72,77,.5); }
-    .chip.good { color: var(--green); border-color: rgba(25,195,125,.5); }
-    .chip.warn { color: #ffb27a; border-color: rgba(255,101,0,.5); }
-
-    /* ---------- Strategic move options ---------- */
-    .opts-title { margin: 18px 0 8px; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; }
-    .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .opt { text-align: left; background: var(--surface-2); border: 2px solid var(--border); border-radius: 10px;
-           padding: 10px 12px; cursor: pointer; color: var(--text); font-family: var(--font); }
-    .opt:hover { border-color: var(--blue); }
-    .opt.sel { border-color: var(--blue); background: rgba(47,155,255,.12); }
-    .opt .ol { font-weight: 700; font-size: .87rem; }
-    .opt .od { font-size: .76rem; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
-
-    /* month performance vs budget & last year — the FP&A strip */
-    .varline { margin-top: 10px; padding: 12px 14px; border-radius: 8px; background: var(--surface-2);
-               border-left: 3px solid var(--green); font-size: .92rem; line-height: 1.6; }
-    .varline.miss { border-left-color: var(--loss); }
-
-    /* the numbers you price against — always visible while deciding */
-    .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
-    .fact { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; text-align: center; }
-    .fact .lbl { font-size: .66rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
-    .fact .val { font-size: 1rem; font-weight: 700; margin-top: 2px; }
-
-    /* ---------- Price control ---------- */
-    .price-row { display: flex; align-items: center; gap: 16px; margin: 18px 0 6px; flex-wrap: wrap; }
-    .price-big { font-size: 2.4rem; font-weight: 800; min-width: 140px; font-variant-numeric: tabular-nums; }
-    .price-big small { font-size: 1rem; color: var(--text-dim); font-weight: 400; }
-    input[type=range] { flex: 1; min-width: 200px; accent-color: var(--blue); height: 34px; cursor: pointer; }
-    .step-btn { width: 44px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2);
-                color: var(--text); font-size: 1rem; font-weight: 700; cursor: pointer; }
-    .step-btn:hover { border-color: var(--blue); }
-
-    /* price zones under the slider: red = below cost, markers = rivals */
-    .zone-wrap { position: relative; margin: 2px 2px 26px; }
-    .zone-bar { height: 6px; border-radius: 3px; overflow: hidden; display: flex; }
-    .zone-loss { background: rgba(229,72,77,.65); }
-    .zone-ok   { background: rgba(74,84,105,.9); flex: 1; }
-    .zone-mark { position: absolute; top: 8px; transform: translateX(-50%); font-size: .66rem; color: var(--text-dim); white-space: nowrap; }
-    .zone-mark::before { content: "▲"; display: block; text-align: center; font-size: .6rem; }
-    .zone-mark.cost::before { color: var(--loss); }
-    .zone-mark.comp::before { color: var(--orange); }
-
-    .margin-note { font-size: .85rem; margin: 4px 0 14px; min-height: 1.2em; }
-    .btn { display: inline-block; background: var(--blue); color: #fff; border: none; border-radius: 10px;
-           padding: 13px 26px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
-    .btn:hover { filter: brightness(1.1); }
-    .btn.green { background: var(--green); }
-    .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
-
-    /* ---------- Results ---------- */
-    .results-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
-    .res { background: var(--surface-2); border-radius: 10px; padding: 10px; text-align: center; }
-    .res .lbl { font-size: .68rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: .04em; }
-    .res .val { font-size: 1.15rem; font-weight: 700; margin-top: 3px; }
-
-    /* month P&L: where the money actually went */
-    .pl { margin: 4px 0 14px; background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: .88rem; }
-    .pl-row { display: flex; justify-content: space-between; padding: 3px 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-    .pl-row.total { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 7px; color: var(--text); font-weight: 700; }
-
-    .commentary { padding: 12px 14px; border-radius: 8px; background: var(--surface-2); font-size: .92rem; line-height: 1.5; }
-    .commentary.good { border-left: 3px solid var(--green); }
-    .commentary.bad { border-left: 3px solid var(--loss); }
-    .commentary.neutral { border-left: 3px solid var(--orange); }
-
-    /* the coach: what the best price this month would have been */
-    .bestline { margin-top: 10px; padding: 12px 14px; border-radius: 8px; background: rgba(255,101,0,.08);
-                border-left: 3px solid var(--orange); font-size: .92rem; line-height: 1.5; }
-    .bestline .grade { font-weight: 800; font-size: 1.05rem; }
-    .moveline { margin-top: 10px; padding: 12px 14px; border-radius: 8px; background: rgba(47,155,255,.08);
-                border-left: 3px solid var(--blue); font-size: .92rem; line-height: 1.5; }
-    #recap h2 { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; }
-    #recap h2 small { font-size: .78rem; color: var(--text-dim); font-weight: 400; }
+    /* P&L behind a tap */
+    details.pl { margin-top: 8px; }
+    details.pl summary { cursor: pointer; color: var(--text-dim); font-size: .8rem; }
+    .pl-body { margin-top: 6px; background: var(--surface-2); border-radius: 9px; padding: 8px 12px; font-size: .82rem; }
+    .pl-row { display: flex; justify-content: space-between; padding: 2px 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+    .pl-row.total { border-top: 1px solid var(--border); margin-top: 3px; padding-top: 5px; color: var(--text); font-weight: 700; }
 
     canvas { width: 100%; height: 190px; display: block; margin-top: 6px; }
-    .legend { display: flex; gap: 18px; font-size: .78rem; color: var(--text-dim); margin-top: 6px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .76rem; color: var(--text-dim); margin-top: 6px; }
     .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
 
-    /* ---------- End screen ---------- */
-    .final-title { font-size: 1.7rem; font-weight: 800; margin: 6px 0; }
-    .final-score { font-size: 1rem; color: var(--text-dim); line-height: 1.6; }
-    .lessons { margin: 14px 0 6px; padding-left: 20px; font-size: .92rem; line-height: 1.7; color: var(--text-dim); }
-    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .78rem; font-weight: 700;
+    /* ---------- Intro & end ---------- */
+    .final-title { font-size: 1.55rem; font-weight: 800; margin: 6px 0; }
+    .final-score { font-size: .95rem; color: var(--text-dim); line-height: 1.6; }
+    .lessons { margin: 12px 0 6px; padding-left: 20px; font-size: .88rem; line-height: 1.65; color: var(--text-dim); }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .76rem; font-weight: 700;
              background: rgba(47,155,255,.15); color: var(--blue); border: 1px solid rgba(47,155,255,.4); margin-bottom: 8px; }
+    .intro-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+    .ichip { font-size: .8rem; font-weight: 700; padding: 6px 13px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
 
-    details { margin-top: 14px; }
-    summary { cursor: pointer; color: var(--text-dim); font-size: .88rem; }
-    details p { margin: 8px 0; font-size: .86rem; color: var(--text-dim); line-height: 1.55; }
+    details.how { margin-top: 12px; }
+    details.how summary { cursor: pointer; color: var(--text-dim); font-size: .85rem; }
+    details.how p { margin: 8px 0; font-size: .84rem; color: var(--text-dim); line-height: 1.5; }
 
     .hidden { display: none; }
-    footer { text-align: center; color: var(--text-dim); font-size: .8rem; margin-top: 40px; }
+    footer { text-align: center; color: var(--text-dim); font-size: .78rem; margin-top: 26px; }
+
+    /* while playing, strip everything that isn't the game */
+    body.playing footer, body.playing .top { display: none; }
+    body.playing .wrap { padding-top: 8px; }
 
     @media (max-width: 640px) {
-      .kpis { grid-template-columns: repeat(3, 1fr); }
-      .results-grid { grid-template-columns: repeat(2, 1fr); }
-      .facts { grid-template-columns: repeat(2, 1fr); }
-      .price-big { font-size: 2rem; }
-      .opts { grid-template-columns: 1fr; }
-      .mrow { grid-template-columns: 96px 52px 1fr 46px; gap: 6px; font-size: .78rem; }
+      .kpis { grid-template-columns: repeat(6, 1fr); gap: 4px; }
+      .kpi { padding: 4px 2px; border-radius: 7px; }
+      .kpi .val { font-size: .78rem; }
+      .kpi .lbl { font-size: .52rem; }
+      .kpi .delta { font-size: .56rem; }
+      .card { padding: 13px; }
+      .r-stats { grid-template-columns: repeat(4, 1fr); }
+      .facts { grid-template-columns: repeat(4, 1fr); }
+      .fact .val { font-size: .74rem; }
+      .fact .lbl { font-size: .54rem; }
+      .price-big { font-size: 1.6rem; min-width: 94px; }
+      .opts { grid-template-columns: 1fr; gap: 5px; }
+      .opt { padding: 6px 9px; }
+      .event-text { font-size: .85rem; }
+      .event-hint { font-size: .74rem; margin-top: 5px; }
+      .rline { padding: 6px 9px; font-size: .78rem; margin-top: 5px; }
+      .r-stats .res { padding: 5px; }
+      .mrow { grid-template-columns: 88px 48px 1fr 42px; gap: 5px; font-size: .74rem; padding: 2px 0; }
+      .r-big { font-size: 2rem; }
+      .price-row { margin: 8px 0 4px; gap: 8px; }
+      .zone-wrap { margin-bottom: 18px; }
+      .margin-note { margin-bottom: 8px; }
     }
   </style>
 </head>
@@ -176,45 +195,36 @@
   </div>
 
   <!-- ============ INTRO ============ -->
-  <div id="intro" class="card">
+  <div id="intro" class="card screen">
     <span class="badge">Interactive simulation</span>
     <h2 style="font-size:1.6rem">The Pricing Game</h2>
     <p class="muted" style="margin-top:8px">
-      You are the new Pricing Manager of <strong style="color:var(--text)">Atlas Coffee Co.</strong>
-      Your product: a premium 1&nbsp;kg coffee bag. Unit cost <strong style="color:var(--text)">$6.00</strong>,
-      shelf price <strong style="color:var(--text)">$10.00</strong>. You share the market with
-      <strong style="color:var(--text)">BrewCo</strong> ($10.50, mainstream — and it fights back),
-      <strong style="color:var(--text)">Velvet Roast</strong> ($13.50, premium) — and rumor says a discounter is coming.
+      You run pricing for <strong style="color:var(--text)">Atlas Coffee Co.</strong> for one year.
+      Each month: one event, one price, one strategic move. The board gave you a
+      <strong style="color:var(--text)">+10% budget</strong> — beat it.
     </p>
-    <p class="muted" style="margin-top:8px">
-      You have <strong style="color:var(--text)">12 months</strong>. Each month the market throws something at you,
-      and you make two decisions: <strong style="color:var(--text)">your price</strong> and
-      <strong style="color:var(--text)">one strategic move</strong> (how to respond to the situation —
-      each option has real effects on demand, trust and cash, and earns points).
-    </p>
-    <p class="muted" style="margin-top:8px">
-      And the board is watching. <strong style="color:var(--text)">Last year Atlas made $520k profit.</strong>
-      Your <strong style="color:var(--text)">budget for this year is $572k (+10%)</strong>, phased month by month —
-      December carries a big target, summer is light. Every month you'll see exactly where you stand:
-      versus budget, versus last year, and versus the <em>autopilot</em> — a manager who never touches
-      the price and always picks the safe move.
-    </p>
-    <p class="muted" style="margin-top:8px">
-      Market share is fought over by all four brands. Price too high and shoppers drift to BrewCo. Chase the discounter
-      and you burn margin. Raise prices at the wrong moment and customers stop trusting you.
-    </p>
-    <div style="margin-top:18px"><button class="btn" onclick="startGame()">Start the year &rarr;</button>
-      <span class="muted" style="font-size:.78rem; margin-left:10px">or press Enter</span></div>
-    <details>
-      <summary>How the simulation works</summary>
+    <div class="intro-chips">
+      <span class="ichip">☕ 12 months</span>
+      <span class="ichip">⚔️ 3 rivals</span>
+      <span class="ichip">📊 Budget +10%</span>
+      <span class="ichip">🎯 Coach grades every month</span>
+    </div>
+    <div style="margin-top:14px"><button class="btn" onclick="startGame()">Start the year &rarr;</button>
+      <span class="keyhint">or press Enter</span></div>
+    <details class="how">
+      <summary>The full story &amp; how the simulation works</summary>
+      <p>Your product: a premium 1&nbsp;kg coffee bag. Unit cost $6.00, shelf price $10.00. You share the market with
+      BrewCo ($10.50, mainstream — it fights back), Velvet Roast ($13.50, premium) — and rumor says a discounter is
+      coming. Last year Atlas made $520k profit; your budget is $572k, phased by month with real seasonality, set
+      before anyone knew what this year would bring.</p>
       <p>Each brand gets an attractiveness score from its brand strength minus a price-sensitivity penalty, and market
-      share is split between the four brands with a logit (softmax) choice model — with a one-month lag, because
-      customers don't all switch at once. A <em>customer trust</em> index (0–100) scales your demand: sharp hikes hurt
-      it, hikes during a shortage hurt it badly, stable pricing rebuilds it. Your strategic moves change trust, brand
-      strength, demand or cash directly. BrewCo reacts to being undercut; a recession makes everyone more
-      price-sensitive. Profit = (price − unit cost) × volume − $120k fixed costs ± one-off campaign costs. The
-      autopilot benchmark plays the identical year at a frozen $10.00 with the neutral move every month. The 🎯 coach
-      judges your price on a 4-month view, so it never rewards unsustainable gouging.</p>
+      share is split between the brands with a logit (softmax) choice model — with a one-month lag, because customers
+      don't all switch at once. A customer trust index (0–100) scales your demand: sharp hikes hurt it, hikes during a
+      shortage hurt it badly, stable pricing rebuilds it. Strategic moves change trust, brand strength, demand or cash.
+      BrewCo reacts to being undercut; a recession makes everyone more price-sensitive.
+      Profit = (price − unit cost) × volume − $120k fixed costs ± one-off campaign costs. The autopilot benchmark plays
+      the identical year at a frozen $10.00 with the neutral move every month. The 🎯 coach judges your price on a
+      4-month view, so it never rewards unsustainable gouging.</p>
     </details>
   </div>
 
@@ -222,40 +232,15 @@
   <div id="game" class="hidden">
     <div class="kpis">
       <div class="kpi"><div class="lbl">Month</div><div class="val" id="kMonth">1/12</div><div class="delta"></div></div>
-      <div class="kpi"><div class="lbl">Cum. profit</div><div class="val" id="kProfit">$0</div><div class="delta" id="dProfit"></div></div>
-      <div class="kpi"><div class="lbl">Market share</div><div class="val" id="kShare">–</div><div class="delta" id="dShare"></div></div>
+      <div class="kpi"><div class="lbl">YTD profit</div><div class="val" id="kProfit">$0</div><div class="delta" id="dProfit"></div></div>
+      <div class="kpi"><div class="lbl">Share</div><div class="val" id="kShare">–</div><div class="delta" id="dShare"></div></div>
       <div class="kpi"><div class="lbl">Trust</div><div class="val" id="kTrust">70</div><div class="delta" id="dTrust"></div></div>
       <div class="kpi"><div class="lbl">Unit cost</div><div class="val" id="kCost">$6.00</div><div class="delta" id="dCost"></div></div>
-      <div class="kpi"><div class="lbl">Move points</div><div class="val" id="kPts">0</div><div class="delta" id="dPts"></div></div>
+      <div class="kpi"><div class="lbl">Move pts</div><div class="val" id="kPts">0</div><div class="delta" id="dPts"></div></div>
     </div>
 
-    <div class="card" id="marketCard">
-      <h2 style="font-size:.95rem; margin-bottom:6px">The market</h2>
-      <div id="marketRows"></div>
-    </div>
-
-    <div class="card hidden" id="recap">
-      <h2><span id="recapTitle"></span><small id="recapSub"></small></h2>
-      <div class="results-grid">
-        <div class="res"><div class="lbl">Volume</div><div class="val" id="rVol"></div></div>
-        <div class="res"><div class="lbl">Revenue</div><div class="val" id="rRev"></div></div>
-        <div class="res"><div class="lbl">Month profit</div><div class="val" id="rProfit"></div></div>
-        <div class="res"><div class="lbl">Share</div><div class="val" id="rShare"></div></div>
-      </div>
-      <div class="pl">
-        <div class="pl-row"><span id="plRevL">Revenue</span><span id="plRev"></span></div>
-        <div class="pl-row"><span id="plVarL">Variable costs</span><span id="plVar"></span></div>
-        <div class="pl-row"><span>Fixed costs (rent, salaries, roastery)</span><span id="plFix"></span></div>
-        <div class="pl-row" id="plCashRow"><span>Campaigns &amp; one-offs</span><span id="plCash"></span></div>
-        <div class="pl-row total"><span>Month profit</span><span id="plProfit"></span></div>
-      </div>
-      <div class="varline" id="varLine"></div>
-      <div class="commentary" id="rComment"></div>
-      <div class="moveline" id="moveLine"></div>
-      <div class="bestline" id="bestLine"></div>
-    </div>
-
-    <div class="card" id="eventCard">
+    <!-- SCREEN 1: decide -->
+    <div class="card screen" id="screenDecide">
       <div class="event-head">
         <div class="event-icon" id="evIcon">📈</div>
         <div>
@@ -263,61 +248,87 @@
           <div class="event-title" id="evTitle"></div>
         </div>
       </div>
-      <p class="muted" id="evText"></p>
-      <div class="event-hint" id="evHint"></div>
+      <p class="event-text" id="evText"></p>
       <div class="chips" id="evChips"></div>
+      <div class="event-hint" id="evHint"></div>
 
-      <div id="decision">
-        <div class="opts-title">Your strategic move — choose one</div>
-        <div class="opts" id="optList"></div>
+      <div class="opts-title">Your move</div>
+      <div class="opts" id="optList"></div>
 
-        <div class="facts">
-          <div class="fact"><div class="lbl">Your unit cost</div><div class="val" id="fCost">$6.00 / bag</div></div>
-          <div class="fact"><div class="lbl">Fixed costs</div><div class="val">$120k / month</div></div>
-          <div class="fact"><div class="lbl">Rival prices</div><div class="val" id="fComp">$10.50 · $13.50</div></div>
-          <div class="fact"><div class="lbl">Budget this month</div><div class="val" id="fBud">$42k profit</div></div>
-        </div>
-        <div class="price-row">
-          <div class="price-big">$<span id="priceVal">10.00</span><small> / bag</small></div>
-          <button class="step-btn" onclick="stepPrice(-0.1)" aria-label="10 cents lower">&minus;</button>
-          <input type="range" id="priceSlider" min="6" max="18" step="0.1" value="10"
-                 oninput="onSlide()" aria-label="Your price" />
-          <button class="step-btn" onclick="stepPrice(0.1)" aria-label="10 cents higher">+</button>
-        </div>
-        <div class="zone-wrap">
-          <div class="zone-bar"><div class="zone-loss" id="zoneLoss"></div><div class="zone-ok"></div></div>
-          <div class="zone-mark cost" id="markCost">loss below</div>
-          <div class="zone-mark comp" id="markComp">cheapest rival</div>
-        </div>
-        <div class="margin-note" id="marginNote"></div>
-        <button class="btn" id="lockBtn" onclick="lockPrice()">Lock the month</button>
-        <span class="muted" style="font-size:.78rem; margin-left:10px">or press Enter</span>
+      <div class="facts">
+        <div class="fact"><div class="lbl">Unit cost</div><div class="val" id="fCost">$6.00</div></div>
+        <div class="fact"><div class="lbl">Fixed / mo</div><div class="val">$120k</div></div>
+        <div class="fact"><div class="lbl">Rivals</div><div class="val" id="fComp">$10.50 · $13.50</div></div>
+        <div class="fact"><div class="lbl">Budget / mo</div><div class="val" id="fBud">$42k</div></div>
       </div>
+      <div class="price-row">
+        <div class="price-big">$<span id="priceVal">10.00</span><small>/bag</small></div>
+        <button class="step-btn" onclick="stepPrice(-0.1)" aria-label="10 cents lower">&minus;</button>
+        <input type="range" id="priceSlider" min="6" max="18" step="0.1" value="10"
+               oninput="onSlide()" aria-label="Your price" />
+        <button class="step-btn" onclick="stepPrice(0.1)" aria-label="10 cents higher">+</button>
+      </div>
+      <div class="zone-wrap">
+        <div class="zone-bar"><div class="zone-loss" id="zoneLoss"></div><div class="zone-ok"></div></div>
+        <div class="zone-mark cost" id="markCost">loss below</div>
+        <div class="zone-mark comp" id="markComp">cheapest rival</div>
+      </div>
+      <div class="margin-note" id="marginNote"></div>
+      <button class="btn" id="lockBtn" onclick="lockPrice()">Lock the month</button>
+      <span class="keyhint">Enter</span>
     </div>
 
-    <div class="card">
-      <h2 style="font-size:.95rem">Your year so far</h2>
-      <canvas id="chart" width="820" height="190"></canvas>
-      <div class="legend">
-        <span><i style="background:var(--green)"></i>Monthly profit</span>
-        <span><i style="background:var(--blue)"></i>Market share</span>
-        <span><i style="background:var(--orange)"></i>Your price</span>
-        <span><i style="background:repeating-linear-gradient(90deg,#f5f7fb 0 3px,transparent 3px 5px)"></i>Budget</span>
+    <!-- SCREEN 2: result -->
+    <div class="card screen hidden" id="screenResult">
+      <div class="r-head" id="recapSub">Month 1 of 12</div>
+      <div class="r-title" id="recapTitle"></div>
+      <div class="r-big" id="rBig">$0</div>
+      <div class="r-big-sub" id="rBigSub"></div>
+      <div class="r-stats">
+        <div class="res"><div class="lbl">Volume</div><div class="val" id="rVol"></div></div>
+        <div class="res"><div class="lbl">Revenue</div><div class="val" id="rRev"></div></div>
+        <div class="res"><div class="lbl">Share</div><div class="val" id="rShare"></div></div>
+        <div class="res"><div class="lbl">Trust</div><div class="val" id="rTrust"></div></div>
+      </div>
+      <div class="rline" id="varLine"></div>
+      <div class="rline info" id="moveLine"></div>
+      <div class="rline warn" id="bestLine"></div>
+      <div class="rline" id="rComment" style="border-left:3px solid var(--border)"></div>
+
+      <div class="mtitle">The market</div>
+      <div id="marketRows"></div>
+
+      <details class="pl">
+        <summary>See the month P&amp;L</summary>
+        <div class="pl-body">
+          <div class="pl-row"><span id="plRevL">Revenue</span><span id="plRev"></span></div>
+          <div class="pl-row"><span id="plVarL">Variable costs</span><span id="plVar"></span></div>
+          <div class="pl-row"><span>Fixed costs</span><span id="plFix"></span></div>
+          <div class="pl-row" id="plCashRow"><span>Campaigns &amp; one-offs</span><span id="plCash"></span></div>
+          <div class="pl-row total"><span>Month profit</span><span id="plProfit"></span></div>
+        </div>
+      </details>
+
+      <div style="margin-top:14px">
+        <button class="btn green" id="nextBtn" onclick="nextScreen()">Next month &rarr;</button>
+        <span class="keyhint">Enter</span>
       </div>
     </div>
   </div>
 
   <!-- ============ END ============ -->
-  <div id="end" class="card hidden">
+  <div id="end" class="card screen hidden">
     <span class="badge">Year complete</span>
     <div class="final-title" id="endTitle"></div>
     <div class="final-score" id="endScore"></div>
+    <div class="mtitle">Final market standings</div>
+    <div id="marketRowsEnd"></div>
     <canvas id="endChart" width="820" height="190"></canvas>
     <div class="legend">
       <span><i style="background:var(--green)"></i>Monthly profit</span>
       <span><i style="background:var(--blue)"></i>Market share</span>
       <span><i style="background:var(--orange)"></i>Your price</span>
-        <span><i style="background:repeating-linear-gradient(90deg,#f5f7fb 0 3px,transparent 3px 5px)"></i>Budget</span>
+      <span><i style="background:repeating-linear-gradient(90deg,#f5f7fb 0 3px,transparent 3px 5px)"></i>Budget</span>
     </div>
     <ul class="lessons" id="endLessons"></ul>
     <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
@@ -332,118 +343,112 @@
 <script>
 'use strict';
 
-/* ---------------- Events: a curated 12-month story arc.
-   Each event offers 3 strategic moves; `neutral` marks the safe default
-   (also what the autopilot benchmark plays). fx = effects:
-   cash (one-off $), trust (points), eq (brand strength), costMult,
-   demand (this month's demand multiplier), hikeGrace (no trust penalty
-   for a ≤20% hike this month), kaffaEq (hits the discounter). ---------------- */
+/* ---------------- Events: a curated 12-month story arc. Short, game-length texts.
+   fx = effects: cash (one-off $), trust, eq (brand strength), costMult,
+   demand (this month), hikeGrace (no trust penalty for ≤20% hike), kaffaEq. ---------------- */
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 const EVENTS = [
   { id:'calm', icon:'☕', title:'A quiet start', neutral:2,
-    text:'Your first month on the job. The market is stable: BrewCo holds at $10.50, Velvet Roast at $13.50.',
-    hint:'A safe month to feel out the demand curve. Small moves teach you a lot.',
+    text:'Your first month. The market is calm — BrewCo $10.50, Velvet Roast $13.50.',
+    hint:'💡 Safe month to feel out the demand curve.',
     choices:[
-      { label:'Launch a loyalty card', note:'Costs $20k, but regulars feel valued — trust up.', pts:14, fx:{ cash:-20000, trust:3 } },
-      { label:'Small ad campaign', note:'$15k of local ads to sharpen the brand.', pts:12, fx:{ cash:-15000, eq:0.04 } },
-      { label:'Just watch the market', note:'Learn before you spend.', pts:10, fx:{} } ] },
+      { label:'Loyalty card', note:'-$20k · regulars feel valued, trust up', pts:14, fx:{ cash:-20000, trust:3 } },
+      { label:'Small ad push', note:'-$15k · sharpen the brand', pts:12, fx:{ cash:-15000, eq:0.04 } },
+      { label:'Just watch', note:'Learn before you spend', pts:10, fx:{} } ] },
   { id:'cost_spike', icon:'📈', title:'Bean prices jump 15%', neutral:2,
-    text:'A poor harvest in Brazil pushes green coffee up. Your unit cost rises 15% this month — and stays there.',
-    hint:'Classic dilemma: pass the cost through to protect margin, or hold price to protect share?',
+    text:'Bad harvest in Brazil. Your unit cost rises 15% — permanently.',
+    hint:'💡 Pass it through to protect margin, or hold price to protect share?',
     apply: s => { s.cost *= 1.15; },
     choices:[
-      { label:'Shrink the bag quietly', note:'Cut contents 5% — cost per unit falls, but customers notice these things.', pts:5, fx:{ costMult:0.95, trust:-6 } },
-      { label:'Explain the increase publicly', note:'$10k on an honest letter to customers — a hike this month won’t damage trust.', pts:20, fx:{ cash:-10000, trust:4, hikeGrace:true } },
-      { label:'Say nothing', note:'Absorb or pass through silently.', pts:10, fx:{} } ] },
+      { label:'Shrink the bag 5%', note:'Cheaper per unit — but customers notice', pts:5, fx:{ costMult:0.95, trust:-6 } },
+      { label:'Explain publicly', note:'-$10k · an honest hike won’t hurt trust', pts:20, fx:{ cash:-10000, trust:4, hikeGrace:true } },
+      { label:'Say nothing', note:'Absorb or pass through silently', pts:10, fx:{} } ] },
   { id:'comp_cut', icon:'⚔️', title:'BrewCo cuts price 10%', neutral:2,
-    text:'BrewCo drops to a promotional price. Shoppers are noticing.',
-    hint:'Matching a cut is easy — un-matching it later is the hard part. Chase, hold, or go premium?',
+    text:'BrewCo drops to a promo price. Shoppers are noticing.',
+    hint:'💡 Matching a cut is easy — un-matching it later is the hard part.',
     apply: s => { s.rivals[0].price *= 0.90; },
     choices:[
-      { label:'Attack ads vs BrewCo', note:'$25k comparing prices head-on. Risky tone for a premium brand.', pts:8, fx:{ cash:-25000, eq:0.04 } },
-      { label:'Tell your quality story', note:'$15k reminding people why Atlas costs more.', pts:18, fx:{ cash:-15000, trust:3, eq:0.05 } },
+      { label:'Attack ads', note:'-$25k · head-on price comparison', pts:8, fx:{ cash:-25000, eq:0.04 } },
+      { label:'Quality story', note:'-$15k · remind them why Atlas costs more', pts:18, fx:{ cash:-15000, trust:3, eq:0.05 } },
       { label:'Do nothing', note:'Promotions end. Panic doesn’t.', pts:12, fx:{} } ] },
-  { id:'boom', icon:'🌤️', title:'Demand boom', neutral:1,
-    text:'A cold snap plus work-from-home week: category demand jumps about 30% this month.',
-    hint:'More demand means less price sensitivity — booms are when pricing power is cheapest to use.',
+  { id:'boom', icon:'🌤️', title:'Demand boom +30%', neutral:1,
+    text:'Cold snap: category demand jumps 30% this month.',
+    hint:'💡 Booms are when pricing power is cheapest to use.',
     demandMult: 1.30,
     choices:[
-      { label:'Rent extra roasting capacity', note:'$30k to serve the wave fully — sell more while it lasts.', pts:18, fx:{ cash:-30000, demand:1.08 } },
-      { label:'Serve it as it comes', note:'Steady hands, no extra spend.', pts:11, fx:{} },
-      { label:'Cut the ad budget', note:'Demand is free this month — save $15k, lose a little presence.', pts:6, fx:{ cash:15000, eq:-0.04 } } ] },
+      { label:'Rent extra capacity', note:'-$30k · serve the wave fully', pts:18, fx:{ cash:-30000, demand:1.08 } },
+      { label:'Serve as it comes', note:'Steady hands, no extra spend', pts:11, fx:{} },
+      { label:'Cut the ad budget', note:'+$15k saved · fade a little', pts:6, fx:{ cash:15000, eq:-0.04 } } ] },
   { id:'entrant', icon:'🆕', title:'Kaffa Basic enters at $7.90', neutral:1,
-    text:'A no-name discounter launches nationwide at $7.90 — and it is now a permanent fourth player in your market.',
-    hint:'You can’t out-cheap a discounter. The question is which customers you want to keep.',
+    text:'A discounter launches nationwide — a permanent fourth player.',
+    hint:'💡 You can’t out-cheap a discounter. Which customers do you keep?',
     apply: s => { s.rivals[2].active = true; },
     choices:[
-      { label:'Launch a fighter product', note:'$40k to launch "Atlas Daily" — a simpler bag that blunts Kaffa’s attack.', pts:17, fx:{ cash:-40000, kaffaEq:-0.18 } },
-      { label:'Hold the premium ground', note:'Let Kaffa take the bargain hunters; keep your customers.', pts:13, fx:{} },
-      { label:'Cut costs to fight on price', note:'Cheaper beans save 3% cost — but the cup tastes like it.', pts:6, fx:{ costMult:0.97, trust:-3 } } ] },
+      { label:'Fighter product', note:'-$40k · "Atlas Daily" blunts the attack', pts:17, fx:{ cash:-40000, kaffaEq:-0.18 } },
+      { label:'Hold premium ground', note:'Let them take the bargain hunters', pts:13, fx:{} },
+      { label:'Cheaper beans', note:'-3% cost · the cup tastes like it', pts:6, fx:{ costMult:0.97, trust:-3 } } ] },
   { id:'shortage', icon:'🚢', title:'Supply shortage', neutral:0,
-    text:'A shipping disruption cuts category supply. Shelves are emptier — customers would pay more, this month.',
-    hint:'You could raise price sharply and it would sell. But customers remember who gouged them.',
+    text:'Shipping crisis cuts supply. Customers would pay more — this month.',
+    hint:'💡 Gouging sells once. Customers remember.',
     demandMult: 0.85, shortage: true,
     choices:[
-      { label:'Ration fairly & communicate', note:'Everyone gets some; you explain why. Trust grows in hard months.', pts:20, fx:{ trust:5, demand:0.95 } },
-      { label:'Prioritize big retail chains', note:'They pay a $10k bonus for guaranteed supply — small shops go empty.', pts:8, fx:{ cash:10000, trust:-4 } },
-      { label:'Buy emergency stock', note:'$35k for airfreighted beans — you sell while others can’t.', pts:13, fx:{ cash:-35000, demand:1.05 } } ] },
+      { label:'Ration fairly', note:'Everyone gets some; you explain why', pts:20, fx:{ trust:5, demand:0.95 } },
+      { label:'Prioritize big chains', note:'+$10k bonus · small shops go empty', pts:8, fx:{ cash:10000, trust:-4 } },
+      { label:'Airfreight stock', note:'-$35k · sell while others can’t', pts:13, fx:{ cash:-35000, demand:1.05 } } ] },
   { id:'viral', icon:'📱', title:'You went viral', neutral:1,
-    text:'A barista’s video with your bag hits 4M views. New customers are trying Atlas this month (+25% demand).',
-    hint:'New customers have no loyalty yet — first impressions on price stick.',
+    text:'A barista’s video hits 4M views: +25% demand this month.',
+    hint:'💡 New customers have no loyalty yet — first impressions stick.',
     demandMult: 1.25,
     choices:[
-      { label:'Boost the video with ads', note:'$25k to ride the wave — bigger reach, stronger brand.', pts:18, fx:{ cash:-25000, demand:1.08, eq:0.05 } },
-      { label:'Enjoy the free fame', note:'Viral moments don’t need help.', pts:12, fx:{} },
-      { label:'Rush out merchandise', note:'$10k on mugs and totes. Fun, small trust bump.', pts:9, fx:{ cash:-10000, trust:2 } } ] },
+      { label:'Boost with ads', note:'-$25k · ride the wave, build the brand', pts:18, fx:{ cash:-25000, demand:1.08, eq:0.05 } },
+      { label:'Enjoy the free fame', note:'Viral moments don’t need help', pts:12, fx:{} },
+      { label:'Rush out merch', note:'-$10k · mugs, totes, small trust bump', pts:9, fx:{ cash:-10000, trust:2 } } ] },
   { id:'recession', icon:'📉', title:'Recession bites', neutral:2,
-    text:'Consumer confidence drops. The whole category shrinks ~15% and shoppers compare prices harder — everyone’s customers are up for grabs.',
-    hint:'In a downturn, relative price matters more than absolute price.',
+    text:'Category −15%, and shoppers compare prices much harder.',
+    hint:'💡 In a downturn, relative price beats absolute price.',
     demandMult: 0.85, apply: s => { s.PSENS = 5.0; },
     choices:[
-      { label:'Launch a value pack', note:'A bigger family bag with thinner margin — stays in baskets through hard times.', pts:18, fx:{ costMult:1.02, demand:1.06 } },
-      { label:'Cut the ad budget', note:'Save $20k now, fade a little from memory.', pts:7, fx:{ cash:20000, eq:-0.06 } },
-      { label:'Hold course', note:'Recessions end. Brands that vanish don’t come back cheap.', pts:12, fx:{} } ] },
+      { label:'Value pack', note:'Thinner margin, stays in baskets', pts:18, fx:{ costMult:1.02, demand:1.06 } },
+      { label:'Cut the ad budget', note:'+$20k saved · fade from memory', pts:7, fx:{ cash:20000, eq:-0.06 } },
+      { label:'Hold course', note:'Recessions end. Vanished brands don’t.', pts:12, fx:{} } ] },
   { id:'comp_stockout', icon:'📦', title:'BrewCo stockout', neutral:2,
-    text:'BrewCo has a production problem and raises price 15% to slow its own sales. Its customers are shopping around.',
-    hint:'Their customers are in play this month. What’s the offer that keeps them afterwards?',
+    text:'BrewCo can’t deliver and raises price 15%. Its customers are shopping around.',
+    hint:'💡 Their customers are in play — this month only.',
     apply: s => { s.rivals[0].price *= 1.15; },
     choices:[
-      { label:'Big push to win them over', note:'$30k on shelf space and sampling where BrewCo is missing.', pts:20, fx:{ cash:-30000, eq:0.08 } },
-      { label:'Poach with coupons', note:'$20k of discount coupons — works fast, cheapens the brand a touch.', pts:11, fx:{ cash:-20000, eq:0.03, trust:-1 } },
-      { label:'Do nothing', note:'Some will wander over anyway.', pts:9, fx:{} } ] },
+      { label:'Big win-them-over push', note:'-$30k · shelf space where BrewCo is missing', pts:20, fx:{ cash:-30000, eq:0.08 } },
+      { label:'Coupons', note:'-$20k · fast but cheapens the brand', pts:11, fx:{ cash:-20000, eq:0.03, trust:-1 } },
+      { label:'Do nothing', note:'Some will wander over anyway', pts:9, fx:{} } ] },
   { id:'cost_relief', icon:'🌱', title:'Costs ease 8%', neutral:0,
-    text:'New harvest arrives; your unit cost falls 8%. Nobody outside the company knows.',
-    hint:'Cost down, price unchanged is pure margin. Cost down, price down is a share play. Your call.',
+    text:'New harvest: unit cost −8%. Nobody outside the company knows.',
+    hint:'💡 Cost down + price unchanged = pure margin.',
     apply: s => { s.cost *= 0.92; },
     choices:[
-      { label:'Bank the savings', note:'Quietly wider margin. This is how pricing pros retire early.', pts:14, fx:{} },
-      { label:'Invest in bean quality', note:'$20k into better sourcing — the cup improves, so does trust.', pts:18, fx:{ cash:-20000, trust:4, eq:0.05 } },
-      { label:'Announce "prices held!"', note:'Make generosity loud. Modest goodwill.', pts:10, fx:{ trust:2 } } ] },
+      { label:'Bank the savings', note:'Quietly wider margin', pts:14, fx:{} },
+      { label:'Invest in quality', note:'-$20k · better beans, better trust', pts:18, fx:{ cash:-20000, trust:4, eq:0.05 } },
+      { label:'Announce "prices held!"', note:'Loud generosity, modest goodwill', pts:10, fx:{ trust:2 } } ] },
   { id:'award', icon:'🏆', title:'"Best coffee 2026" award', neutral:2,
-    text:'A respected magazine ranks Atlas #1. Your brand can carry more premium than yesterday.',
-    hint:'Awards fade. Pricing power is only real while people remember why you earned it.',
+    text:'A top magazine ranks Atlas #1. Trust +10 — you can carry more premium.',
+    hint:'💡 Awards fade. Use the moment or lose it.',
     apply: s => { s.trust = Math.min(100, s.trust + 10); },
     choices:[
-      { label:'PR campaign on the award', note:'$20k to put "Best coffee 2026" on every shelf and feed.', pts:18, fx:{ cash:-20000, eq:0.09 } },
-      { label:'Thank-you giveaway day', note:'$15k of free coffee for loyal customers.', pts:13, fx:{ cash:-15000, trust:4 } },
-      { label:'Stay humble', note:'Let the award speak quietly.', pts:8, fx:{} } ] },
-  { id:'holiday', icon:'🎄', title:'Holiday season', neutral:2,
-    text:'December: gift boxes, office orders, family visits. Demand +35%, and price tags matter a little less.',
-    hint:'Your last month. Finish the year — the board is watching the full-year number.',
+      { label:'PR campaign', note:'-$20k · the award on every shelf', pts:18, fx:{ cash:-20000, eq:0.09 } },
+      { label:'Giveaway day', note:'-$15k · thank the loyal customers', pts:13, fx:{ cash:-15000, trust:4 } },
+      { label:'Stay humble', note:'Let the award speak quietly', pts:8, fx:{} } ] },
+  { id:'holiday', icon:'🎄', title:'Holiday season +35%', neutral:2,
+    text:'December: gifts and office orders. Price tags matter a little less.',
+    hint:'💡 Last month. The board is watching the full-year number.',
     demandMult: 1.35,
     choices:[
-      { label:'Launch gift bundles', note:'$15k on festive packaging — gifts sell at happy margins.', pts:18, fx:{ cash:-15000, demand:1.08 } },
-      { label:'Extra ad blast', note:'$25k to end the year loud.', pts:11, fx:{ cash:-25000, eq:0.05 } },
-      { label:'Keep it simple', note:'The shelves are full, the tills are ringing.', pts:10, fx:{} } ] },
+      { label:'Gift bundles', note:'-$15k · gifts sell at happy margins', pts:18, fx:{ cash:-15000, demand:1.08 } },
+      { label:'Extra ad blast', note:'-$25k · end the year loud', pts:11, fx:{ cash:-25000, eq:0.05 } },
+      { label:'Keep it simple', note:'The tills are ringing anyway', pts:10, fx:{} } ] },
 ];
 
 const NO_CHOICE = { fx: {} };
 
-/* ---------------- Last year & budget: the FP&A yardstick.
-   Last year Atlas made $520k profit with normal seasonality (strong December,
-   soft summer). The board budgeted +10% for this year, phased the same way —
-   set before anyone knew a discounter would enter in May. ---------------- */
+/* ---------------- Last year & budget: the FP&A yardstick. ---------------- */
 const LY_PROFIT = [38, 36, 40, 52, 34, 30, 44, 30, 38, 50, 55, 73].map(v => v * 1000);   // = $520k
 const BUDGET    = LY_PROFIT.map(v => Math.round(v * 1.10));                              // = $572k
 const sumTo = (arr, n) => arr.slice(0, n).reduce((a, b) => a + b, 0);
@@ -531,10 +536,8 @@ function runAutopilot(events) {
   return s.cumProfit;
 }
 
-/* ---------------- The coach: replay this month at every possible price on a copy
-   of the market. Judged over a 4-month view (this month + three quiet months at the
-   same price), so the delayed share loss and price-war reactions count — a pure
-   one-month view would always say "charge the maximum", the wrong lesson. ---------------- */
+/* ---------------- The coach: best sustainable price on a 4-month view.
+   A pure one-month view would always say "charge the maximum" — wrong lesson. ---------------- */
 const NEUTRAL_MONTH = { id: 'neutral' };
 function horizonProfit(baseJson, ev, p, choice) {
   const sim = JSON.parse(baseJson);
@@ -552,8 +555,8 @@ function bestMoveThisMonth(ev, choice) {
   return { bestP, bestProfit };
 }
 
-/* ---------------- Game flow ---------------- */
-let S, month, events, benchmark, chosenOpt;
+/* ---------------- Game flow: DECIDE screen → RESULT screen, 2 taps a month ---------------- */
+let S, month, events, benchmark, chosenOpt, phase;   // phase: 'decide' | 'result'
 const $ = id => document.getElementById(id);
 const money = v => (v < 0 ? '-$' : '$') + Math.abs(Math.round(v)).toLocaleString('en-US');
 const moneyK = v => (v < 0 ? '-$' : '$') + Math.abs(v / 1000).toFixed(0) + 'k';
@@ -565,7 +568,15 @@ function startGame() {
   month = 0;
   $('intro').classList.add('hidden');
   $('game').classList.remove('hidden');
+  document.body.classList.add('playing');
   beginMonth();
+}
+
+function showScreen(which) {
+  phase = which;
+  $('screenDecide').classList.toggle('hidden', which !== 'decide');
+  $('screenResult').classList.toggle('hidden', which !== 'result');
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 }
 
 function beginMonth() {
@@ -577,26 +588,25 @@ function beginMonth() {
   $('evIcon').textContent = ev.icon;
   $('evTitle').textContent = ev.title;
   $('evText').textContent = ev.text;
-  $('evHint').textContent = '💡 ' + ev.hint;
+  $('evHint').textContent = ev.hint;
 
-  // what just changed in the market, as explicit numbers
+  // what just changed, as numbers
   const chips = [];
   if (S.cost !== pre.cost)
-    chips.push({ t: 'Your unit cost: $' + pre.cost.toFixed(2) + ' → $' + S.cost.toFixed(2), c: S.cost > pre.cost ? 'bad' : 'good' });
+    chips.push({ t: 'Unit cost $' + pre.cost.toFixed(2) + ' → $' + S.cost.toFixed(2), c: S.cost > pre.cost ? 'bad' : 'good' });
   S.rivals.forEach((r, i) => {
     if (r.active && !pre.rivals[i].active)
-      chips.push({ t: 'New rival: ' + r.name + ' at $' + r.price.toFixed(2), c: 'bad' });
+      chips.push({ t: 'New rival: ' + r.name + ' $' + r.price.toFixed(2), c: 'bad' });
     else if (r.price !== pre.rivals[i].price)
-      chips.push({ t: r.name + ': $' + pre.rivals[i].price.toFixed(2) + ' → $' + r.price.toFixed(2), c: 'warn' });
+      chips.push({ t: r.name + ' $' + pre.rivals[i].price.toFixed(2) + ' → $' + r.price.toFixed(2), c: 'warn' });
   });
   if (S.trust !== pre.trust)
-    chips.push({ t: 'Trust: ' + Math.round(pre.trust) + ' → ' + Math.round(S.trust), c: 'good' });
+    chips.push({ t: 'Trust ' + Math.round(pre.trust) + ' → ' + Math.round(S.trust), c: 'good' });
   if (ev.demandMult && ev.demandMult !== 1) {
     const pct = Math.round((ev.demandMult - 1) * 100);
-    chips.push({ t: 'Demand this month: ' + (pct > 0 ? '+' : '') + pct + '%', c: pct > 0 ? 'good' : 'bad' });
+    chips.push({ t: 'Demand ' + (pct > 0 ? '+' : '') + pct + '% this month', c: pct > 0 ? 'good' : 'bad' });
   }
-  if (ev.id === 'recession') chips.push({ t: 'Shoppers more price-sensitive', c: 'bad' });
-  if (!chips.length) chips.push({ t: 'No market changes this month', c: '' });
+  if (ev.id === 'recession') chips.push({ t: 'Price sensitivity up', c: 'bad' });
   $('evChips').innerHTML = chips.map(x => '<span class="chip ' + x.c + '">' + x.t + '</span>').join('');
 
   // cost KPI delta from the event
@@ -604,18 +614,18 @@ function beginMonth() {
   if (S.cost !== pre.cost) {
     const p = Math.round((S.cost / pre.cost - 1) * 100);
     dc.textContent = (p > 0 ? '+' : '') + p + '%';
-    dc.className = 'delta ' + (p > 0 ? 'down' : 'up');   // cost up = bad for you
+    dc.className = 'delta ' + (p > 0 ? 'down' : 'up');
   } else { dc.textContent = ''; }
 
-  // strategic move options (safe default pre-selected, so Enter still works)
+  // strategic move options (safe default pre-selected, so Enter always works)
   chosenOpt = ev.neutral;
   $('optList').innerHTML = ev.choices.map((c, i) =>
     '<button type="button" class="opt' + (i === chosenOpt ? ' sel' : '') + '" onclick="pickOpt(' + i + ')">' +
     '<div class="ol">' + c.label + '</div><div class="od">' + c.note + '</div></button>').join('');
 
-  // decision facts + slider zones
-  $('fBud').textContent = moneyK(BUDGET[month]) + ' profit';
-  $('fCost').textContent = '$' + S.cost.toFixed(2) + ' / bag';
+  // facts + slider zones
+  $('fBud').textContent = moneyK(BUDGET[month]);
+  $('fCost').textContent = '$' + S.cost.toFixed(2);
   const actR = S.rivals.filter(r => r.active);
   $('fComp').textContent = actR.map(r => '$' + r.price.toFixed(2)).join(' · ');
   const pct = v => Math.max(0, Math.min(100, (v - 6) / 12 * 100));
@@ -626,9 +636,8 @@ function beginMonth() {
   const slider = $('priceSlider');
   slider.value = S.lastPrice.toFixed(1);
   onSlide();
-  updateKPIs(S.history[S.history.length - 1] || null);   // keep last month's deltas visible
-  updateMarket();
-  drawChart('chart');
+  updateKPIs(S.history[S.history.length - 1] || null);
+  showScreen('decide');
 }
 
 function pickOpt(i) {
@@ -650,11 +659,11 @@ function onSlide() {
   const note = $('marginNote');
   const cheapest = Math.min(...S.rivals.filter(r => r.active).map(r => r.price));
   if (m <= 0) {
-    note.innerHTML = '<span class="down">Selling below cost: you lose ' + money(-m) + ' on every bag.</span>';
+    note.innerHTML = '<span class="down">Below cost: you lose ' + money(-m) + ' per bag.</span>';
   } else {
-    const vsComp = p > cheapest ? ((p / cheapest - 1) * 100).toFixed(0) + '% above the cheapest rival'
-                                : (p < cheapest ? ((1 - p / cheapest) * 100).toFixed(0) + '% below the cheapest rival' : 'level with the cheapest rival');
-    note.innerHTML = 'Margin <strong>' + money(m) + '/bag (' + mPct + '%)</strong> · ' + vsComp + ' ($' + cheapest.toFixed(2) + ')';
+    const vsComp = p > cheapest ? ((p / cheapest - 1) * 100).toFixed(0) + '% above cheapest rival'
+                                : (p < cheapest ? ((1 - p / cheapest) * 100).toFixed(0) + '% below cheapest rival' : 'level with cheapest rival');
+    note.innerHTML = 'Margin <strong style="color:var(--text)">' + money(m) + '/bag (' + mPct + '%)</strong> · ' + vsComp;
   }
 }
 
@@ -674,108 +683,113 @@ function lockPrice() {
   $('dPts').textContent = '+' + choice.pts;
   $('dPts').className = 'delta ' + (choice.pts >= bestChoice.pts ? 'up' : choice.pts >= bestChoice.pts * 0.6 ? 'flat' : 'down');
 
-  $('rVol').textContent = Math.round(r.volume).toLocaleString('en-US') + ' bags';
-  $('rRev').textContent = moneyK(r.revenue);
-  $('rProfit').textContent = moneyK(r.profit);
-  $('rProfit').className = 'val ' + (r.profit >= 0 ? 'up' : 'down');
-  $('rShare').textContent = (r.share * 100).toFixed(1) + '%';
-
-  const vol = Math.round(r.volume).toLocaleString('en-US');
-  $('plRevL').textContent = 'Revenue (' + vol + ' bags × $' + price.toFixed(2) + ')';
-  $('plRev').textContent = money(r.revenue);
-  $('plVarL').textContent = 'Variable costs (' + vol + ' bags × $' + r.cost.toFixed(2) + ')';
-  $('plVar').textContent = '−' + money(r.cost * r.volume);
-  $('plFix').textContent = '−' + money(FIXED);
-  $('plCashRow').style.display = r.cash ? '' : 'none';
-  $('plCash').textContent = (r.cash > 0 ? '+' : '−') + money(Math.abs(r.cash)).slice(0);
-  $('plProfit').textContent = money(r.profit);
-  $('plProfit').className = r.profit >= 0 ? 'up' : 'down';
-
-  // FP&A strip: this month and YTD vs budget and last year
+  // headline
+  $('recapSub').textContent = 'Month ' + (month + 1) + ' of 12 · ' + MONTHS[month] + ' closed';
+  $('recapTitle').textContent = ev.icon + ' ' + ev.title;
+  $('rBig').className = 'r-big ' + (r.profit >= 0 ? 'up' : 'down');
+  countUp($('rBig'), r.profit);
   const vBud = r.profit - BUDGET[month];
-  const vLY  = r.profit - LY_PROFIT[month];
+  $('rBigSub').innerHTML = 'month profit · budget was ' + moneyK(BUDGET[month]) + ' → ' +
+    (vBud >= 0 ? '<span class="up">beat it by ' + moneyK(vBud) + '</span>' : '<span class="down">missed by ' + moneyK(-vBud) + '</span>');
+
+  $('rVol').textContent = Math.round(r.volume / 1000) + 'k bags';
+  $('rRev').textContent = moneyK(r.revenue);
+  $('rShare').textContent = (r.share * 100).toFixed(1) + '%';
+  $('rTrust').textContent = Math.round(r.trust) + '/100';
+
+  // FP&A strip: YTD vs plan and last year
   const ytdBud = S.cumProfit - sumTo(BUDGET, month + 1);
   const ytdLY  = S.cumProfit - sumTo(LY_PROFIT, month + 1);
-  const sgn = v => (v >= 0 ? '+' : '−') + moneyK(Math.abs(v)).slice(1);
-  const tick = v => v >= 0 ? '<span class="up">✓ ' : '<span class="down">✗ ';
   const vl = $('varLine');
-  vl.className = 'varline' + (ytdBud >= 0 ? '' : ' miss');
-  vl.innerHTML =
-    '📊 <strong>vs Budget:</strong> ' + tick(vBud) + sgn(vBud) + '</span> (target ' + moneyK(BUDGET[month]) + ')' +
-    ' · <strong>vs Last year:</strong> ' + tick(vLY) + sgn(vLY) + '</span> (' + MONTHS[month].slice(0, 3) + ' LY ' + moneyK(LY_PROFIT[month]) + ')' +
-    '<br><strong>Year to date:</strong> ' + moneyK(S.cumProfit) + ' — ' + tick(ytdBud) +
-    (ytdBud >= 0 ? 'ahead of budget by ' : 'behind budget by ') + moneyK(Math.abs(ytdBud)) + '</span>, ' +
-    (ytdLY >= 0 ? '<span class="up">+' : '<span class="down">−') + moneyK(Math.abs(ytdLY)).slice(1) + ' vs last year</span>.';
-
-  const c = $('rComment');
-  const msg = commentary(ev, r, prev);
-  c.textContent = msg.text;
-  c.className = 'commentary ' + msg.tone;
+  vl.className = 'rline ' + (ytdBud >= 0 ? 'good' : 'bad');
+  vl.innerHTML = '<span class="ic">📊</span><span><strong>YTD ' + moneyK(S.cumProfit) + '</strong> — ' +
+    (ytdBud >= 0 ? 'ahead of budget by ' + moneyK(ytdBud) : 'behind budget by ' + moneyK(-ytdBud)) + ', ' +
+    (ytdLY >= 0 ? '+' : '−') + moneyK(Math.abs(ytdLY)).slice(1) + ' vs last year.</span>';
 
   // the move, judged
-  const ml = $('moveLine');
   const isBest = choice.pts >= bestChoice.pts;
-  ml.innerHTML = '🧭 <strong>Your move:</strong> ' + choice.label + ' — <strong>+' + choice.pts + ' pts</strong>' +
-    (isBest ? ' (the best move this month).'
-            : ' (best was "' + bestChoice.label + '", worth +' + bestChoice.pts + ').');
+  $('moveLine').innerHTML = '<span class="ic">🧭</span><span><strong>' + choice.label + '</strong> +' + choice.pts + ' pts' +
+    (isBest ? ' — best move.' : ' — best was "' + bestChoice.label + '" (+' + bestChoice.pts + ').') + '</span>';
 
   if (r.gouged) S.flags.gouged = true;
   if (ev.id === 'cost_spike' && price >= prev.cost + 3.5) S.flags.passedCost = true;
   if (ev.id === 'boom' && r.profit > 150000) S.flags.caughtBoom = true;
   if (r.belowCost) S.flags.belowCost = true;
 
-  // the coach: how close were you to the best sustainable price?
+  // the coach
   const bl = $('bestLine');
   if (best.bestProfit <= 0) {
-    bl.innerHTML = '🎯 <strong>Coach:</strong> no price could make money here. Best damage control was <strong>$' +
-      best.bestP.toFixed(2) + '</strong>.';
+    bl.innerHTML = '<span class="ic">🎯</span><span>No price could make money here. Best damage control: <strong>$' + best.bestP.toFixed(2) + '</strong>.</span>';
   } else {
     const capture = Math.max(0, Math.min(100, playerHorizon / best.bestProfit * 100));
     const grade = capture >= 97 ? 'A+' : capture >= 90 ? 'A' : capture >= 75 ? 'B' : capture >= 50 ? 'C' : 'D';
     const diff = best.bestP - price;
-    const dir = Math.abs(diff) < 0.05 ? 'you found it' : diff > 0 ? 'you priced $' + diff.toFixed(2) + ' too low' : 'you priced $' + (-diff).toFixed(2) + ' too high';
-    bl.innerHTML = '🎯 <strong>Coach:</strong> best sustainable price was <strong>$' + best.bestP.toFixed(2) +
-      '</strong> — ' + dir + '. Judged over a 4-month view, you captured <strong>' + Math.round(capture) +
-      '%</strong> of the possible profit. <span class="grade">' + grade + '</span>' +
-      (capture >= 97 ? ' — nearly perfect.' : '');
+    const dir = Math.abs(diff) < 0.05 ? 'you found it' : diff > 0 ? '$' + diff.toFixed(2) + ' too low' : '$' + (-diff).toFixed(2) + ' too high';
+    bl.innerHTML = '<span class="ic">🎯</span><span>Best price <strong>$' + best.bestP.toFixed(2) + '</strong> (' + dir +
+      ') — you captured ' + Math.round(capture) + '% of the possible. <span class="grade">' + grade + '</span></span>';
     S.captures = S.captures || []; S.captures.push(capture);
   }
 
-  // close the month and roll straight into the next one — no extra click
-  $('recapTitle').textContent = MONTHS[month] + ' closed — ' + ev.title;
-  $('recapSub').textContent = 'Month ' + (month + 1) + ' of 12';
-  $('recap').classList.remove('hidden');
+  // one-line commentary
+  const msg = commentary(ev, r, prev);
+  const rc = $('rComment');
+  rc.innerHTML = '<span class="ic">💬</span><span>' + msg.text + '</span>';
+  rc.className = 'rline ' + (msg.tone === 'good' ? 'good' : msg.tone === 'bad' ? 'bad' : '');
+  if (msg.tone === 'neutral') rc.style.borderLeft = '3px solid var(--border)'; else rc.style.borderLeft = '';
+
+  // P&L (collapsed by default)
+  const vol = Math.round(r.volume).toLocaleString('en-US');
+  $('plRevL').textContent = 'Revenue (' + vol + ' × $' + price.toFixed(2) + ')';
+  $('plRev').textContent = money(r.revenue);
+  $('plVarL').textContent = 'Variable costs (' + vol + ' × $' + r.cost.toFixed(2) + ')';
+  $('plVar').textContent = '−' + money(r.cost * r.volume);
+  $('plFix').textContent = '−' + money(FIXED);
+  $('plCashRow').style.display = r.cash ? '' : 'none';
+  $('plCash').textContent = (r.cash > 0 ? '+' : '−') + money(Math.abs(r.cash)).slice(0);
+  $('plProfit').textContent = money(r.profit);
+
+  updateMarket($('marketRows'));
   updateKPIs(r);
-  updateMarket();
-  drawChart('chart');
+  $('nextBtn').textContent = month === 11 ? 'Year-end review →' : 'Next month →';
+  showScreen('result');
+}
+
+function nextScreen() {
   month++;
-  if (month < 12) {
-    beginMonth();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
-    endGame();
+  if (month < 12) beginMonth();
+  else endGame();
+}
+
+function countUp(el, target) {
+  const t0 = performance.now(), dur = 550;
+  function tick(t) {
+    const k = Math.min(1, (t - t0) / dur);
+    const ease = 1 - Math.pow(1 - k, 3);
+    el.textContent = money(target * ease);
+    if (k < 1) requestAnimationFrame(tick);
   }
+  requestAnimationFrame(tick);
 }
 
 function commentary(ev, r, prev) {
   const brewPrice = r.rivalPrices[0];
   if (r.gouged)
-    return { tone: 'bad', text: 'Ouch. "Atlas Coffee hikes prices during shortage" is trending. It sold this month — but trust dropped, and that costs you demand every month from now on.' };
+    return { tone: 'bad', text: '"Atlas hikes prices during shortage" is trending. It sold this month — trust will tax you for the rest of the year.' };
   if (r.belowCost)
-    return { tone: 'bad', text: 'You sold below cost. Volume looks great, but every bag burned money — and BrewCo is cutting too. Price wars have no winners, only survivors.' };
+    return { tone: 'bad', text: 'You sold below cost — every bag burned money, and BrewCo is cutting too. Price wars have no winners.' };
   if (r.sharpHike)
-    return { tone: 'bad', text: 'A sharp jump in one month — customers noticed and trust slipped. Big moves are cheaper when made in steps (or explained honestly).' };
+    return { tone: 'bad', text: 'A sharp jump in one month — trust slipped. Big moves are cheaper in steps, or explained honestly.' };
   if (ev.id === 'cost_spike' && r.price > prev.cost + 3.5 && r.profit > 0)
-    return { tone: 'good', text: 'You passed the cost increase through and protected your margin. Share dipped slightly — that’s the trade you chose, and the P&L says it was worth it.' };
+    return { tone: 'good', text: 'You passed the cost increase through and protected margin. Share dipped — a trade worth making.' };
   if (ev.id === 'comp_cut' && r.price > brewPrice * 1.05 && r.profit > 40000)
-    return { tone: 'good', text: 'You refused to chase BrewCo’s discount and held your position. You lost a little share but kept your margin — they are funding their own promotion.' };
+    return { tone: 'good', text: 'You refused to chase BrewCo’s discount. They are funding their own promotion.' };
   if ((ev.id === 'boom' || ev.id === 'holiday' || ev.id === 'viral') && r.profit > 140000)
-    return { tone: 'good', text: 'Strong month. You used the demand wave instead of just riding it — this is when pricing power is cheapest to exercise.' };
+    return { tone: 'good', text: 'You used the demand wave instead of just riding it. This is when pricing power is cheapest.' };
   if (r.profit < 0)
-    return { tone: 'bad', text: 'A loss-making month: after fixed costs, this price, move and volume combination doesn’t cover the business. Something has to give.' };
+    return { tone: 'bad', text: 'A loss month: this price, move and volume don’t cover the fixed costs. Something has to give.' };
   if (r.profit > 100000)
-    return { tone: 'good', text: 'Solid month — healthy margin on healthy volume. The boring months are where good pricing quietly compounds.' };
-  return { tone: 'neutral', text: 'The month closed at ' + moneyK(r.profit) + ' profit and ' + (r.share * 100).toFixed(1) + '% share. Steady. Watch BrewCo at $' + brewPrice.toFixed(2) + '.' };
+    return { tone: 'good', text: 'Healthy margin on healthy volume. Boring months are where good pricing quietly compounds.' };
+  return { tone: 'neutral', text: 'Steady month. Watch BrewCo at $' + brewPrice.toFixed(2) + '.' };
 }
 
 function updateKPIs(r) {
@@ -799,11 +813,11 @@ function updateKPIs(r) {
   } else { $('dProfit').textContent = ''; $('dTrust').textContent = ''; $('dShare').textContent = ''; }
 }
 
-function updateMarket() {
+function updateMarket(container) {
   const rows = [{ name: 'Atlas (you)', price: S.lastPrice, share: S.share, you: true }];
   S.rivals.forEach((r, i) => { if (r.active) rows.push({ name: r.name, price: r.price, share: S.rivalShares[i] }); });
   rows.sort((a, b) => b.share - a.share);
-  $('marketRows').innerHTML = rows.map(x =>
+  container.innerHTML = rows.map(x =>
     '<div class="mrow' + (x.you ? ' you' : '') + '">' +
     '<span class="mname">' + x.name + '</span>' +
     '<span class="mprice">$' + x.price.toFixed(2) + '</span>' +
@@ -811,7 +825,7 @@ function updateMarket() {
     '<span class="mpct">' + (x.share * 100).toFixed(1) + '%</span></div>').join('');
 }
 
-/* ---------------- Chart ---------------- */
+/* ---------------- Chart (end screen) ---------------- */
 function drawChart(canvasId) {
   const cv = $(canvasId), ctx = cv.getContext('2d');
   const W = cv.width, H = cv.height, pad = 28;
@@ -821,8 +835,6 @@ function drawChart(canvasId) {
 
   const h = S.history;
   const slotW = (W - pad - 16) / 12;
-
-  // profit bars
   const maxP = Math.max(150000, ...h.map(x => Math.abs(x.profit)));
   const zeroY = H - pad;
   h.forEach((x, i) => {
@@ -831,7 +843,6 @@ function drawChart(canvasId) {
     ctx.fillRect(pad + i * slotW + slotW * 0.18, x.profit >= 0 ? zeroY - bh : zeroY, slotW * 0.42, Math.max(bh, 1));
   });
 
-  // share line (0–100% mapped to plot height)
   if (h.length) {
     ctx.strokeStyle = '#2f9bff'; ctx.lineWidth = 2.5; ctx.beginPath();
     h.forEach((x, i) => {
@@ -841,7 +852,6 @@ function drawChart(canvasId) {
     });
     ctx.stroke();
 
-    // price line (mapped $6–$18)
     ctx.strokeStyle = '#ff6500'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath();
     h.forEach((x, i) => {
       const px = pad + i * slotW + slotW * 0.5;
@@ -851,7 +861,6 @@ function drawChart(canvasId) {
     ctx.stroke(); ctx.setLineDash([]);
   }
 
-  // budget markers: a small dash at each month's target profit
   ctx.strokeStyle = '#f5f7fb'; ctx.lineWidth = 1.6; ctx.setLineDash([3, 2]);
   for (let i = 0; i < 12; i++) {
     const by = zeroY - BUDGET[i] / maxP * (H - 2 * pad) * 0.9;
@@ -862,7 +871,6 @@ function drawChart(canvasId) {
   }
   ctx.setLineDash([]);
 
-  // month ticks
   ctx.fillStyle = '#c6cdda'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
   for (let i = 0; i < 12; i++) ctx.fillText(i + 1, pad + i * slotW + slotW * 0.5, H - pad + 14);
 }
@@ -871,9 +879,8 @@ function drawChart(canvasId) {
 function endGame() {
   $('game').classList.add('hidden');
   $('end').classList.remove('hidden');
-  // keep December's report card visible above the year-end review
-  const endCard = $('end');
-  endCard.parentNode.insertBefore($('recap'), endCard);
+  document.body.classList.remove('playing');
+  updateMarket($('marketRowsEnd'));
   drawChart('endChart');
 
   const ratio = S.cumProfit / benchmark;
@@ -887,44 +894,46 @@ function endGame() {
   const totBud = sumTo(BUDGET, 12), totLY = sumTo(LY_PROFIT, 12);
   const vBud = S.cumProfit - totBud, vLY = S.cumProfit - totLY;
   $('endScore').innerHTML =
-    'Your full-year profit: <strong style="color:var(--text)">' + money(S.cumProfit) + '</strong> · ' +
-    'Autopilot (frozen price, safe moves): <strong style="color:var(--text)">' + money(benchmark) + '</strong><br>' +
+    'Full-year profit: <strong style="color:var(--text)">' + money(S.cumProfit) + '</strong> · ' +
+    'Autopilot: <strong style="color:var(--text)">' + money(benchmark) + '</strong><br>' +
     '<strong>Budget ' + money(totBud) + ':</strong> ' + (vBud >= 0
       ? '<span class="up">✓ BEAT by ' + money(vBud) + '</span>'
       : '<span class="down">✗ missed by ' + money(-vBud) + '</span>') +
     ' · <strong>Last year ' + money(totLY) + ':</strong> ' + (vLY >= 0
       ? '<span class="up">+' + Math.round(vLY / totLY * 100) + '% growth</span>'
       : '<span class="down">' + Math.round(vLY / totLY * 100) + '% decline</span>') + '<br>' +
-    'Strategic moves: <strong style="color:var(--text)">' + S.pts + ' / ' + S.maxPts + ' points</strong> · ' +
-    'Final share ' + (S.share * 100).toFixed(1) + '% · Trust ' + Math.round(S.trust) + '/100';
+    'Moves: <strong style="color:var(--text)">' + S.pts + ' / ' + S.maxPts + ' pts</strong> · ' +
+    'Share ' + (S.share * 100).toFixed(1) + '% · Trust ' + Math.round(S.trust) + '/100';
 
   const L = [];
   if (S.captures && S.captures.length) {
     const avg = S.captures.reduce((a, b) => a + b, 0) / S.captures.length;
-    L.push('Pricing sharpness: on average you captured ' + Math.round(avg) +
-           '% of each month’s best possible profit' +
-           (avg >= 90 ? ' — excellent instincts.' : avg >= 75 ? ' — solid; the coach lines show where the rest went.' : ' — replay and watch the 🎯 coach line each month.'));
+    L.push('Pricing sharpness: you captured ' + Math.round(avg) + '% of each month’s best possible profit on average' +
+           (avg >= 90 ? ' — excellent instincts.' : avg >= 75 ? ' — solid.' : ' — replay and watch the 🎯 line.'));
   }
   const movePct = S.maxPts ? Math.round(S.pts / S.maxPts * 100) : 0;
-  L.push('Strategic moves: you scored ' + movePct + '% of the available points' +
-         (movePct >= 85 ? ' — you read the situations very well.' : movePct >= 65 ? ' — decent instincts; the 🧭 lines show the moves you missed.' : ' — replay and study the 🧭 lines; the moves matter as much as the price.'));
-  if (vBud >= 0) L.push('You beat a +10% budget in the year a discounter entered your market — that is a genuinely strong year, and boards notice the context.');
-  else if (vLY >= 0) L.push('You missed budget but still grew vs last year — in a year with a new discounter and a recession, a fair review would call that resilient.');
-  else L.push('You finished below last year. Look at where the YTD line turned red — the months after Kaffa entered are where share and margin slipped together.');
-  if (S.flags.passedCost) L.push('You passed cost inflation through instead of absorbing it — the single most valuable pricing habit in an inflationary market.');
-  if (S.flags.caughtBoom) L.push('You monetised the demand boom. Booms are when price increases are cheapest — you used yours.');
-  if (S.flags.gouged) L.push('You raised prices during the shortage. It paid once and taxed you for months — trust is a balance sheet item.');
+  L.push('Strategic moves: ' + movePct + '% of the available points' +
+         (movePct >= 85 ? ' — you read the situations very well.' : movePct >= 65 ? ' — decent instincts.' : ' — the moves matter as much as the price.'));
+  if (vBud >= 0) L.push('You beat a +10% budget in the year a discounter entered your market — a genuinely strong year.');
+  else if (vLY >= 0) L.push('You missed budget but still grew vs last year — with a new discounter and a recession, that reads as resilient.');
+  else L.push('You finished below last year. The months after Kaffa entered are where share and margin slipped together.');
+  if (S.flags.passedCost) L.push('You passed cost inflation through instead of absorbing it — the most valuable pricing habit there is.');
+  if (S.flags.caughtBoom) L.push('You monetised the demand boom. Booms are when price increases are cheapest.');
+  if (S.flags.gouged) L.push('You raised prices during the shortage. It paid once and taxed you for months.');
   if (S.flags.belowCost) L.push('You priced below cost at least once. Volume is vanity, margin is sanity.');
-  if (!S.flags.gouged && S.trust >= 75) L.push('You ended the year with high customer trust — next year’s price increases just got easier.');
+  if (!S.flags.gouged && S.trust >= 75) L.push('You ended with high customer trust — next year’s price increases just got easier.');
   L.push('The real version of this game runs inside companies every day — with more zeros. That’s the job.');
   $('endLessons').innerHTML = L.map(x => '<li>' + x + '</li>').join('');
 }
 
-// keyboard flow: Enter starts the year / locks the month
+// keyboard flow: Enter = start / lock / next
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.repeat) return;
   if (!$('intro').classList.contains('hidden')) startGame();
-  else if (!$('game').classList.contains('hidden')) lockPrice();
+  else if (!$('game').classList.contains('hidden')) {
+    if (phase === 'decide') lockPrice();
+    else nextScreen();
+  }
 });
 </script>
 </body>
