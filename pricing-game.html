@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Pricing Game — Can You Run Pricing for a Year?</title>
+  <meta name="description" content="An interactive pricing simulation: 12 months, real market events, one decision per month — your price. Built by Namık Akman." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Namık Akman" />
+  <meta property="og:title" content="The Pricing Game — Can You Run Pricing for a Year?" />
+  <meta property="og:description" content="Cost spikes, competitor price cuts, demand booms. 12 months, one decision per month: your price. Beat the autopilot." />
+  <meta property="og:url" content="https://namikakmandev.github.io/pricing-game.html" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <style>
+    :root {
+      --bg: #242b3a; --surface: #2d3547; --surface-2: #384156;
+      --text: #f5f7fb; --text-dim: #c6cdda;
+      --blue: #2f9bff; --green: #19c37d; --orange: #ff6500; --loss: #e5484d;
+      --border: #4a5469; --radius: 14px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .top .back { color: var(--text-dim); font-size: .88rem; }
+    .top .brand { font-weight: 700; font-size: .95rem; color: var(--text-dim); }
+    .top .brand span { color: var(--blue); }
+
+    /* ---------- KPI bar ---------- */
+    .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 14px; }
+    .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; text-align: center; }
+    .kpi .lbl { font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+    .kpi .val { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
+    .kpi .delta { font-size: .7rem; margin-top: 1px; min-height: .9em; }
+    .up { color: var(--green); } .down { color: var(--loss); } .flat { color: var(--text-dim); }
+
+    /* ---------- Cards ---------- */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 14px; }
+    .card h2 { font-size: 1.15rem; margin-bottom: 8px; }
+    .muted { color: var(--text-dim); font-size: .92rem; line-height: 1.55; }
+
+    .event-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .event-icon { font-size: 1.9rem; }
+    .event-month { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--orange); font-weight: 700; }
+    .event-title { font-size: 1.2rem; font-weight: 700; }
+    .event-hint { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--blue); border-radius: 6px; font-size: .88rem; color: var(--text-dim); }
+
+    /* ---------- Price control ---------- */
+    .price-row { display: flex; align-items: center; gap: 16px; margin: 18px 0 6px; flex-wrap: wrap; }
+    .price-big { font-size: 2.4rem; font-weight: 800; min-width: 140px; font-variant-numeric: tabular-nums; }
+    .price-big small { font-size: 1rem; color: var(--text-dim); font-weight: 400; }
+    input[type=range] { flex: 1; min-width: 200px; accent-color: var(--blue); height: 34px; cursor: pointer; }
+    .margin-note { font-size: .85rem; margin: 4px 0 14px; min-height: 1.2em; }
+    .btn { display: inline-block; background: var(--blue); color: #fff; border: none; border-radius: 10px;
+           padding: 13px 26px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
+    .btn:hover { filter: brightness(1.1); }
+    .btn.green { background: var(--green); }
+    .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+    /* ---------- Results ---------- */
+    .results-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+    .res { background: var(--surface-2); border-radius: 10px; padding: 10px; text-align: center; }
+    .res .lbl { font-size: .68rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: .04em; }
+    .res .val { font-size: 1.15rem; font-weight: 700; margin-top: 3px; }
+    .commentary { padding: 12px 14px; border-radius: 8px; background: var(--surface-2); font-size: .92rem; line-height: 1.5; }
+    .commentary.good { border-left: 3px solid var(--green); }
+    .commentary.bad { border-left: 3px solid var(--loss); }
+    .commentary.neutral { border-left: 3px solid var(--orange); }
+
+    canvas { width: 100%; height: 190px; display: block; margin-top: 6px; }
+    .legend { display: flex; gap: 18px; font-size: .78rem; color: var(--text-dim); margin-top: 6px; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+
+    /* ---------- End screen ---------- */
+    .final-title { font-size: 1.7rem; font-weight: 800; margin: 6px 0; }
+    .final-score { font-size: 1rem; color: var(--text-dim); }
+    .lessons { margin: 14px 0 6px; padding-left: 20px; font-size: .92rem; line-height: 1.7; color: var(--text-dim); }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .78rem; font-weight: 700;
+             background: rgba(47,155,255,.15); color: var(--blue); border: 1px solid rgba(47,155,255,.4); margin-bottom: 8px; }
+
+    details { margin-top: 14px; }
+    summary { cursor: pointer; color: var(--text-dim); font-size: .88rem; }
+    details p { margin: 8px 0; font-size: .86rem; color: var(--text-dim); line-height: 1.55; }
+
+    .hidden { display: none; }
+    footer { text-align: center; color: var(--text-dim); font-size: .8rem; margin-top: 40px; }
+
+    @media (max-width: 640px) {
+      .kpis { grid-template-columns: repeat(3, 1fr); }
+      .results-grid { grid-template-columns: repeat(2, 1fr); }
+      .price-big { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="projects.html">&larr; All projects</a>
+    <div class="brand">Namık<span> Akman</span></div>
+  </div>
+
+  <!-- ============ INTRO ============ -->
+  <div id="intro" class="card">
+    <span class="badge">Interactive simulation</span>
+    <h2 style="font-size:1.6rem">The Pricing Game</h2>
+    <p class="muted" style="margin-top:8px">
+      You are the new Pricing Manager of <strong style="color:var(--text)">Atlas Coffee Co.</strong>
+      Your product: a premium 1&nbsp;kg coffee bag. Unit cost <strong style="color:var(--text)">$6.00</strong>,
+      current shelf price <strong style="color:var(--text)">$10.00</strong>, main competitor at
+      <strong style="color:var(--text)">$10.50</strong>.
+    </p>
+    <p class="muted" style="margin-top:8px">
+      You have <strong style="color:var(--text)">12 months</strong>. Each month the market throws something at you —
+      cost spikes, competitor price cuts, demand booms — and you make exactly one decision: <strong style="color:var(--text)">your price</strong>.
+    </p>
+    <p class="muted" style="margin-top:8px">
+      Price too high and you lose customers. Too low and you burn margin — and start price wars.
+      Raise prices at the wrong moment and customers stop trusting you.
+      At the end, your result is compared to the <em>autopilot</em> — a manager who never touches the price.
+    </p>
+    <div style="margin-top:18px"><button class="btn" onclick="startGame()">Start the year &rarr;</button></div>
+    <details>
+      <summary>How the simulation works</summary>
+      <p>Market share follows relative price through a logistic response curve — undercut the competitor and share drifts toward you, with a one-month lag (customers don't all switch at once). Total category demand has mild price elasticity, and a <em>customer trust</em> index (0–100) scales your demand: sharp price hikes hurt it, hikes during a shortage hurt it badly, and stable pricing slowly rebuilds it. The competitor reacts to you — undercut them hard and they cut back next month. Profit = (price − unit cost) × volume − $120k fixed costs. The autopilot benchmark plays the identical year at a frozen $10.00.</p>
+    </details>
+  </div>
+
+  <!-- ============ GAME ============ -->
+  <div id="game" class="hidden">
+    <div class="kpis">
+      <div class="kpi"><div class="lbl">Month</div><div class="val" id="kMonth">1/12</div><div class="delta"></div></div>
+      <div class="kpi"><div class="lbl">Cum. profit</div><div class="val" id="kProfit">$0</div><div class="delta" id="dProfit"></div></div>
+      <div class="kpi"><div class="lbl">Market share</div><div class="val" id="kShare">–</div><div class="delta" id="dShare"></div></div>
+      <div class="kpi"><div class="lbl">Trust</div><div class="val" id="kTrust">70</div><div class="delta" id="dTrust"></div></div>
+      <div class="kpi"><div class="lbl">Unit cost</div><div class="val" id="kCost">$6.00</div><div class="delta" id="dCost"></div></div>
+      <div class="kpi"><div class="lbl">Competitor</div><div class="val" id="kComp">$10.50</div><div class="delta" id="dComp"></div></div>
+    </div>
+
+    <div class="card" id="eventCard">
+      <div class="event-head">
+        <div class="event-icon" id="evIcon">📈</div>
+        <div>
+          <div class="event-month" id="evMonth">Month 1 · January</div>
+          <div class="event-title" id="evTitle"></div>
+        </div>
+      </div>
+      <p class="muted" id="evText"></p>
+      <div class="event-hint" id="evHint"></div>
+
+      <div id="decision">
+        <div class="price-row">
+          <div class="price-big">$<span id="priceVal">10.00</span><small> / bag</small></div>
+          <input type="range" id="priceSlider" min="6" max="18" step="0.1" value="10"
+                 oninput="onSlide()" aria-label="Your price" />
+        </div>
+        <div class="margin-note" id="marginNote"></div>
+        <button class="btn" onclick="lockPrice()">Lock price &amp; run the month</button>
+      </div>
+
+      <div id="results" class="hidden">
+        <div class="results-grid">
+          <div class="res"><div class="lbl">Volume</div><div class="val" id="rVol"></div></div>
+          <div class="res"><div class="lbl">Revenue</div><div class="val" id="rRev"></div></div>
+          <div class="res"><div class="lbl">Month profit</div><div class="val" id="rProfit"></div></div>
+          <div class="res"><div class="lbl">Share</div><div class="val" id="rShare"></div></div>
+        </div>
+        <div class="commentary" id="rComment"></div>
+        <div style="margin-top:14px"><button class="btn green" id="nextBtn" onclick="nextMonth()">Next month &rarr;</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:.95rem">Your year so far</h2>
+      <canvas id="chart" width="820" height="190"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--green)"></i>Monthly profit</span>
+        <span><i style="background:var(--blue)"></i>Market share</span>
+        <span><i style="background:var(--orange)"></i>Your price</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ END ============ -->
+  <div id="end" class="card hidden">
+    <span class="badge">Year complete</span>
+    <div class="final-title" id="endTitle"></div>
+    <div class="final-score" id="endScore"></div>
+    <ul class="lessons" id="endLessons"></ul>
+    <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
+      <button class="btn" onclick="location.reload()">Play again</button>
+      <a class="btn ghost" href="projects.html">See the real pricing tools &rarr;</a>
+    </div>
+  </div>
+
+  <footer>Built by Namık Akman — because pricing is a game you can practice. <a href="index.html">namikakmandev.github.io</a></footer>
+</div>
+
+<script>
+'use strict';
+
+/* ---------------- Events: a curated 12-month story arc ---------------- */
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const EVENTS = [
+  { id:'calm', icon:'☕', title:'A quiet start',
+    text:'Your first month on the job. No surprises — the market is stable, the competitor holds at $10.50.',
+    hint:'A safe month to feel out the demand curve. Small moves teach you a lot.' },
+  { id:'cost_spike', icon:'📈', title:'Bean prices jump 15%',
+    text:'A poor harvest in Brazil pushes green coffee up. Your unit cost rises 15% this month — and stays there.',
+    hint:'Classic dilemma: pass the cost through to protect margin, or hold price to protect share?',
+    apply: s => { s.cost *= 1.15; } },
+  { id:'comp_cut', icon:'⚔️', title:'Competitor cuts price 10%',
+    text:'Your main rival drops to a promotional price. Shoppers are noticing.',
+    hint:'Matching a cut is easy — un-matching it later is the hard part. Chase, hold, or go premium?',
+    apply: s => { s.comp *= 0.90; } },
+  { id:'boom', icon:'🌤️', title:'Demand boom',
+    text:'A cold snap plus work-from-home week: category demand jumps about 30% this month.',
+    hint:'More demand means less price sensitivity — booms are when pricing power is cheapest to use.',
+    demandMult: 1.30 },
+  { id:'entrant', icon:'🆕', title:'A discounter enters',
+    text:'A no-name brand launches at $7.90. It nibbles at the value end of the market — permanently.',
+    hint:'You can’t out-cheap a discounter. The question is which customers you want to keep.',
+    apply: s => { s.marketBase *= 0.94; s.k = 7; } },
+  { id:'shortage', icon:'🚢', title:'Supply shortage',
+    text:'A shipping disruption cuts category supply. Shelves are emptier — customers will pay more, this month.',
+    hint:'You could raise price sharply and it would sell. But customers remember who gouged them.',
+    demandMult: 0.85, shortage: true },
+  { id:'viral', icon:'📱', title:'You went viral',
+    text:'A barista’s video with your bag hits 4M views. New customers are trying Atlas this month (+25% demand).',
+    hint:'New customers have no loyalty yet — first impressions on price stick.',
+    demandMult: 1.25 },
+  { id:'recession', icon:'📉', title:'Recession bites',
+    text:'Consumer confidence drops. The whole category shrinks ~15% and shoppers compare prices harder.',
+    hint:'In a downturn, relative price matters more than absolute price.',
+    demandMult: 0.85, apply: s => { s.k = Math.max(s.k, 8); } },
+  { id:'comp_stockout', icon:'📦', title:'Competitor stockout',
+    text:'Your rival has a production problem and raises price 15% to slow their own sales.',
+    hint:'Their customers are shopping around this month. What’s the offer that keeps them afterwards?',
+    apply: s => { s.comp *= 1.15; } },
+  { id:'cost_relief', icon:'🌱', title:'Costs ease 8%',
+    text:'New harvest arrives; your unit cost falls 8%. Nobody outside the company knows.',
+    hint:'Cost down, price unchanged is pure margin. Cost down, price down is a share play. Your call.',
+    apply: s => { s.cost *= 0.92; } },
+  { id:'award', icon:'🏆', title:'"Best coffee 2026" award',
+    text:'A respected magazine ranks Atlas #1. Trust jumps — your brand can carry more premium than yesterday.',
+    hint:'Awards fade. Pricing power is only real while people remember why you earned it.',
+    apply: s => { s.trust = Math.min(100, s.trust + 10); } },
+  { id:'holiday', icon:'🎄', title:'Holiday season',
+    text:'December: gift boxes, office orders, family visits. Demand +35%, and price tags matter a little less.',
+    hint:'Your last month. Finish the year — the board is watching the full-year number.',
+    demandMult: 1.35 },
+];
+
+/* ---------------- Simulation core (shared by player and autopilot) ---------------- */
+function initState() {
+  return { cost: 6.0, comp: 10.5, share: 0.50, trust: 70, marketBase: 100000, k: 6,
+           lastPrice: 10.0, cumProfit: 0, flags: {}, history: [] };
+}
+
+const FIXED = 120000;
+
+function runMonth(s, ev, price) {
+  const out = {};
+  const change = (price - s.lastPrice) / s.lastPrice;
+
+  // trust reaction to the price move
+  let dTrust = 0;
+  if (ev.shortage && change > 0.05)      { dTrust = -15; out.gouged = true; }
+  else if (change > 0.12)                { dTrust = -8;  out.sharpHike = true; }
+  else if (Math.abs(change) <= 0.04)     { dTrust = +2; }
+  s.trust = Math.max(0, Math.min(100, s.trust + dTrust));
+  out.dTrust = dTrust;
+
+  // share follows relative price with a lag
+  const rel = price / s.comp;
+  const target = 1 / (1 + Math.exp(s.k * (rel - 1)));
+  s.share += (target - s.share) * 0.45;
+  s.share = Math.max(0.05, Math.min(0.92, s.share));
+
+  // volume
+  const demandMult = ev.demandMult || 1;
+  const trustFactor = 0.7 + 0.006 * s.trust;           // 0.7 … 1.3
+  const elasticity = Math.pow(price / 10, -0.25);      // mild category elasticity
+  const volume = s.marketBase * demandMult * trustFactor * s.share * elasticity;
+
+  const revenue = price * volume;
+  const profit = (price - s.cost) * volume - FIXED;
+  s.cumProfit += profit;
+
+  // competitor reacts next month
+  if (price < s.comp * 0.93) { s.comp *= 0.96; out.compReacts = 'cut'; }
+  else if (price > s.comp * 1.10) { s.comp *= 1.02; out.compReacts = 'raise'; }
+
+  if (price < s.cost) out.belowCost = true;
+
+  s.lastPrice = price;
+  Object.assign(out, { price, volume, revenue, profit, share: s.share, trust: s.trust,
+                       cost: s.cost, comp: s.comp });
+  s.history.push(out);
+  return out;
+}
+
+/* ---------------- Autopilot benchmark: frozen $10.00 all year ---------------- */
+function runAutopilot(events) {
+  const s = initState();
+  events.forEach(ev => { if (ev.apply) ev.apply(s); runMonth(s, ev, 10.0); });
+  return s.cumProfit;
+}
+
+/* ---------------- Game flow ---------------- */
+let S, month, events, benchmark;
+const $ = id => document.getElementById(id);
+const money = v => (v < 0 ? '-$' : '$') + Math.abs(Math.round(v)).toLocaleString('en-US');
+const moneyK = v => (v < 0 ? '-$' : '$') + Math.abs(v / 1000).toFixed(0) + 'k';
+
+function startGame() {
+  events = EVENTS.slice(0, 12);
+  benchmark = runAutopilot(events);
+  S = initState();
+  month = 0;
+  $('intro').classList.add('hidden');
+  $('game').classList.remove('hidden');
+  beginMonth();
+}
+
+function beginMonth() {
+  const ev = events[month];
+  if (ev.apply) ev.apply(S);            // event hits the market before you price
+
+  $('evMonth').textContent = 'Month ' + (month + 1) + ' · ' + MONTHS[month];
+  $('evIcon').textContent = ev.icon;
+  $('evTitle').textContent = ev.title;
+  $('evText').textContent = ev.text;
+  $('evHint').textContent = '💡 ' + ev.hint;
+
+  $('decision').classList.remove('hidden');
+  $('results').classList.add('hidden');
+
+  const slider = $('priceSlider');
+  slider.value = S.lastPrice.toFixed(1);
+  onSlide();
+  updateKPIs(null);
+  drawChart();
+}
+
+function onSlide() {
+  const p = parseFloat($('priceSlider').value);
+  $('priceVal').textContent = p.toFixed(2);
+  const m = p - S.cost;
+  const mPct = (m / p * 100).toFixed(0);
+  const note = $('marginNote');
+  if (m <= 0) {
+    note.innerHTML = '<span class="down">Selling below cost: you lose ' + money(-m) + ' on every bag.</span>';
+  } else {
+    const vsComp = p > S.comp ? ((p / S.comp - 1) * 100).toFixed(0) + '% above competitor'
+                              : (p < S.comp ? ((1 - p / S.comp) * 100).toFixed(0) + '% below competitor' : 'at competitor parity');
+    note.innerHTML = 'Margin <strong>' + money(m) + '/bag (' + mPct + '%)</strong> · ' + vsComp + ' ($' + S.comp.toFixed(2) + ')';
+  }
+}
+
+function lockPrice() {
+  const ev = events[month];
+  const price = parseFloat($('priceSlider').value);
+  const prev = { share: S.share, trust: S.trust, cost: S.cost, comp: S.comp };
+  const r = runMonth(S, ev, price);
+
+  $('rVol').textContent = Math.round(r.volume).toLocaleString('en-US') + ' bags';
+  $('rRev').textContent = moneyK(r.revenue);
+  $('rProfit').textContent = moneyK(r.profit);
+  $('rProfit').className = 'val ' + (r.profit >= 0 ? 'up' : 'down');
+  $('rShare').textContent = (r.share * 100).toFixed(1) + '%';
+
+  const c = $('rComment');
+  const msg = commentary(ev, r, prev);
+  c.textContent = msg.text;
+  c.className = 'commentary ' + msg.tone;
+
+  if (r.gouged) S.flags.gouged = true;
+  if (ev.id === 'cost_spike' && price >= prev.cost * 1.15 + 3.4) S.flags.passedCost = true;
+  if (ev.id === 'boom' && r.profit > 150000) S.flags.caughtBoom = true;
+  if (r.belowCost) S.flags.belowCost = true;
+
+  $('decision').classList.add('hidden');
+  $('results').classList.remove('hidden');
+  $('nextBtn').textContent = month === 11 ? 'See your year-end review →' : 'Next month →';
+  updateKPIs(r);
+  drawChart();
+}
+
+function commentary(ev, r, prev) {
+  if (r.gouged)
+    return { tone: 'bad', text: 'Ouch. "Atlas Coffee hikes prices during shortage" is trending. It sold this month — but trust dropped ' + (-r.dTrust) + ' points, and that costs you demand every month from now on.' };
+  if (r.belowCost)
+    return { tone: 'bad', text: 'You sold below cost. Volume looks great, but every bag burned money — and the competitor is now cutting too. Price wars have no winners, only survivors.' };
+  if (r.sharpHike)
+    return { tone: 'bad', text: 'A ' + Math.round((r.price / (S.history.length > 1 ? S.history[S.history.length - 2].price : 10) - 1) * 100) + '% jump in one month — customers noticed. Trust slipped. Big moves are cheaper when made in steps.' };
+  if (ev.id === 'cost_spike' && r.price > prev.cost + 3.5 && r.profit > 0)
+    return { tone: 'good', text: 'You passed the cost increase through and protected your margin. Share dipped slightly — that’s the trade you chose, and the P&L says it was worth it.' };
+  if (ev.id === 'comp_cut' && r.price > r.comp * 1.05 && r.profit > 60000)
+    return { tone: 'good', text: 'You refused to chase the discount and held your position. You lost a little share but kept your margin — and your competitor is funding their own promotion.' };
+  if ((ev.id === 'boom' || ev.id === 'holiday' || ev.id === 'viral') && r.profit > 140000)
+    return { tone: 'good', text: 'Strong month. You used the demand wave instead of just riding it — this is when pricing power is cheapest to exercise.' };
+  if (r.profit < 0)
+    return { tone: 'bad', text: 'A loss-making month: after fixed costs, this price and volume combination doesn’t cover the business. Something has to give — price, or share expectations.' };
+  if (r.profit > 100000)
+    return { tone: 'good', text: 'Solid month — healthy margin on healthy volume. The boring months are where good pricing quietly compounds.' };
+  return { tone: 'neutral', text: 'The month closed at ' + moneyK(r.profit) + ' profit and ' + (r.share * 100).toFixed(1) + '% share. Steady. Watch the competitor at $' + r.comp.toFixed(2) + '.' };
+}
+
+function nextMonth() {
+  month++;
+  if (month >= 12) return endGame();
+  beginMonth();
+}
+
+function updateKPIs(r) {
+  $('kMonth').textContent = Math.min(month + 1, 12) + '/12';
+  $('kProfit').textContent = moneyK(S.cumProfit);
+  $('kProfit').className = 'val ' + (S.cumProfit >= 0 ? 'up' : 'down');
+  $('kShare').textContent = (S.share * 100).toFixed(1) + '%';
+  $('kTrust').textContent = Math.round(S.trust);
+  $('kCost').textContent = '$' + S.cost.toFixed(2);
+  $('kComp').textContent = '$' + S.comp.toFixed(2);
+  if (r) {
+    $('dProfit').textContent = (r.profit >= 0 ? '+' : '') + moneyK(r.profit) + ' this month';
+    $('dProfit').className = 'delta ' + (r.profit >= 0 ? 'up' : 'down');
+    $('dTrust').textContent = r.dTrust ? (r.dTrust > 0 ? '+' : '') + r.dTrust : '';
+    $('dTrust').className = 'delta ' + (r.dTrust > 0 ? 'up' : r.dTrust < 0 ? 'down' : 'flat');
+  } else { $('dProfit').textContent = ''; $('dTrust').textContent = ''; }
+}
+
+/* ---------------- Chart ---------------- */
+function drawChart() {
+  const cv = $('chart'), ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height, pad = 28;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = '#4a5469'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad, H - pad); ctx.lineTo(W - 8, H - pad); ctx.stroke();
+
+  const h = S.history;
+  const slotW = (W - pad - 16) / 12;
+
+  // profit bars
+  const maxP = Math.max(150000, ...h.map(x => Math.abs(x.profit)));
+  const zeroY = H - pad;
+  h.forEach((x, i) => {
+    const bh = Math.abs(x.profit) / maxP * (H - 2 * pad) * 0.9;
+    ctx.fillStyle = x.profit >= 0 ? 'rgba(25,195,125,.75)' : 'rgba(229,72,77,.75)';
+    ctx.fillRect(pad + i * slotW + slotW * 0.18, x.profit >= 0 ? zeroY - bh : zeroY, slotW * 0.42, Math.max(bh, 1));
+  });
+
+  // share line (0–100% mapped to plot height)
+  if (h.length) {
+    ctx.strokeStyle = '#2f9bff'; ctx.lineWidth = 2.5; ctx.beginPath();
+    h.forEach((x, i) => {
+      const px = pad + i * slotW + slotW * 0.5;
+      const py = (H - pad) - x.share * (H - 2 * pad);
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    });
+    ctx.stroke();
+
+    // price line (mapped $6–$18)
+    ctx.strokeStyle = '#ff6500'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath();
+    h.forEach((x, i) => {
+      const px = pad + i * slotW + slotW * 0.5;
+      const py = (H - pad) - (x.price - 6) / 12 * (H - 2 * pad);
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // month ticks
+  ctx.fillStyle = '#c6cdda'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  for (let i = 0; i < 12; i++) ctx.fillText(i + 1, pad + i * slotW + slotW * 0.5, H - pad + 14);
+}
+
+/* ---------------- End screen ---------------- */
+function endGame() {
+  $('game').classList.add('hidden');
+  $('end').classList.remove('hidden');
+
+  const ratio = S.cumProfit / benchmark;
+  let title;
+  if (S.cumProfit <= 0)          title = 'Pricing Intern — the year ended in the red.';
+  else if (ratio < 1.0)          title = 'Pricing Analyst — the autopilot beat you.';
+  else if (ratio < 1.15)         title = 'Pricing Manager — you beat the autopilot.';
+  else if (ratio < 1.4)          title = 'Head of Pricing — clearly better than autopilot.';
+  else                           title = 'Chief Pricing Officer — an outstanding year.';
+  $('endTitle').textContent = title;
+  $('endScore').innerHTML =
+    'Your full-year profit: <strong style="color:var(--text)">' + money(S.cumProfit) + '</strong> · ' +
+    'Autopilot (never touched the price): <strong style="color:var(--text)">' + money(benchmark) + '</strong> · ' +
+    'Final share ' + (S.share * 100).toFixed(1) + '% · Trust ' + Math.round(S.trust) + '/100';
+
+  const L = [];
+  if (S.flags.passedCost) L.push('You passed cost inflation through instead of absorbing it — the single most valuable pricing habit in an inflationary market.');
+  if (S.flags.caughtBoom) L.push('You monetised the demand boom. Booms are when price increases are cheapest — you used yours.');
+  if (S.flags.gouged) L.push('You raised prices during the shortage. It paid once and taxed you for months — trust is a balance sheet item.');
+  if (S.flags.belowCost) L.push('You priced below cost at least once. Volume is vanity, margin is sanity.');
+  if (!S.flags.gouged && S.trust >= 75) L.push('You ended the year with high customer trust — next year’s price increases just got easier.');
+  if (!L.length) L.push('A steady hand: no disasters, no fireworks. In pricing, that is often the winning strategy.');
+  L.push('The real version of this game runs inside companies every day — with more zeros. That’s the job.');
+  $('endLessons').innerHTML = L.map(x => '<li>' + x + '</li>').join('');
+}
+</script>
+</body>
+</html>
