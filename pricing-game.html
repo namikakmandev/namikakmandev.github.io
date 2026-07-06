@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Pricing Game — Can You Run Pricing for a Year?</title>
-  <meta name="description" content="An interactive pricing simulation: 12 months, real market events, one decision per month — your price. Built by Namık Akman." />
+  <meta name="description" content="An interactive pricing simulation: 12 months, a 4-brand market, real events, price + one strategic move per month. Built by Namık Akman." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Namık Akman" />
   <meta property="og:title" content="The Pricing Game — Can You Run Pricing for a Year?" />
-  <meta property="og:description" content="Cost spikes, competitor price cuts, demand booms. 12 months, one decision per month: your price. Beat the autopilot." />
+  <meta property="og:description" content="Cost spikes, price wars, a discounter entering your market. 12 months, three rivals, one price and one strategic move per month. Beat the autopilot." />
   <meta property="og:url" content="https://namikakmandev.github.io/pricing-game.html" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
@@ -44,6 +44,18 @@
     .card h2 { font-size: 1.15rem; margin-bottom: 8px; }
     .muted { color: var(--text-dim); font-size: .92rem; line-height: 1.55; }
 
+    /* ---------- Market board ---------- */
+    #marketCard { padding: 14px 20px; }
+    .mrow { display: grid; grid-template-columns: 130px 60px 1fr 52px; gap: 10px; align-items: center; padding: 5px 0; font-size: .85rem; }
+    .mrow .mname { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mrow.you .mname { color: var(--blue); }
+    .mrow .mprice { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+    .mbar { height: 10px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+    .mbar i { display: block; height: 100%; background: var(--border); border-radius: 5px; transition: width .5s; }
+    .mrow.you .mbar i { background: var(--blue); }
+    .mrow .mpct { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+    .mrow.you .mpct { color: var(--text); font-weight: 700; }
+
     .event-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
     .event-icon { font-size: 1.9rem; }
     .event-month { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--orange); font-weight: 700; }
@@ -55,6 +67,16 @@
     .chip.bad  { color: #ff9d9f; border-color: rgba(229,72,77,.5); }
     .chip.good { color: var(--green); border-color: rgba(25,195,125,.5); }
     .chip.warn { color: #ffb27a; border-color: rgba(255,101,0,.5); }
+
+    /* ---------- Strategic move options ---------- */
+    .opts-title { margin: 18px 0 8px; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; }
+    .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .opt { text-align: left; background: var(--surface-2); border: 2px solid var(--border); border-radius: 10px;
+           padding: 10px 12px; cursor: pointer; color: var(--text); font-family: var(--font); }
+    .opt:hover { border-color: var(--blue); }
+    .opt.sel { border-color: var(--blue); background: rgba(47,155,255,.12); }
+    .opt .ol { font-weight: 700; font-size: .87rem; }
+    .opt .od { font-size: .76rem; color: var(--text-dim); margin-top: 3px; line-height: 1.4; }
 
     /* the numbers you price against — always visible while deciding */
     .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
@@ -71,7 +93,7 @@
                 color: var(--text); font-size: 1rem; font-weight: 700; cursor: pointer; }
     .step-btn:hover { border-color: var(--blue); }
 
-    /* price zones under the slider: red = below cost, marker = competitor */
+    /* price zones under the slider: red = below cost, markers = rivals */
     .zone-wrap { position: relative; margin: 2px 2px 26px; }
     .zone-bar { height: 6px; border-radius: 3px; overflow: hidden; display: flex; }
     .zone-loss { background: rgba(229,72,77,.65); }
@@ -93,6 +115,7 @@
     .res { background: var(--surface-2); border-radius: 10px; padding: 10px; text-align: center; }
     .res .lbl { font-size: .68rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: .04em; }
     .res .val { font-size: 1.15rem; font-weight: 700; margin-top: 3px; }
+
     /* month P&L: where the money actually went */
     .pl { margin: 4px 0 14px; background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: .88rem; }
     .pl-row { display: flex; justify-content: space-between; padding: 3px 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
@@ -107,6 +130,8 @@
     .bestline { margin-top: 10px; padding: 12px 14px; border-radius: 8px; background: rgba(255,101,0,.08);
                 border-left: 3px solid var(--orange); font-size: .92rem; line-height: 1.5; }
     .bestline .grade { font-weight: 800; font-size: 1.05rem; }
+    .moveline { margin-top: 10px; padding: 12px 14px; border-radius: 8px; background: rgba(47,155,255,.08);
+                border-left: 3px solid var(--blue); font-size: .92rem; line-height: 1.5; }
     #recap h2 { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 6px; }
     #recap h2 small { font-size: .78rem; color: var(--text-dim); font-weight: 400; }
 
@@ -116,7 +141,7 @@
 
     /* ---------- End screen ---------- */
     .final-title { font-size: 1.7rem; font-weight: 800; margin: 6px 0; }
-    .final-score { font-size: 1rem; color: var(--text-dim); }
+    .final-score { font-size: 1rem; color: var(--text-dim); line-height: 1.6; }
     .lessons { margin: 14px 0 6px; padding-left: 20px; font-size: .92rem; line-height: 1.7; color: var(--text-dim); }
     .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: .78rem; font-weight: 700;
              background: rgba(47,155,255,.15); color: var(--blue); border: 1px solid rgba(47,155,255,.4); margin-bottom: 8px; }
@@ -132,6 +157,8 @@
       .kpis { grid-template-columns: repeat(3, 1fr); }
       .results-grid { grid-template-columns: repeat(2, 1fr); }
       .price-big { font-size: 2rem; }
+      .opts { grid-template-columns: 1fr; }
+      .mrow { grid-template-columns: 96px 52px 1fr 46px; gap: 6px; font-size: .78rem; }
     }
   </style>
 </head>
@@ -149,22 +176,33 @@
     <p class="muted" style="margin-top:8px">
       You are the new Pricing Manager of <strong style="color:var(--text)">Atlas Coffee Co.</strong>
       Your product: a premium 1&nbsp;kg coffee bag. Unit cost <strong style="color:var(--text)">$6.00</strong>,
-      current shelf price <strong style="color:var(--text)">$10.00</strong>, main competitor at
-      <strong style="color:var(--text)">$10.50</strong>.
+      shelf price <strong style="color:var(--text)">$10.00</strong>. You share the market with
+      <strong style="color:var(--text)">BrewCo</strong> ($10.50, mainstream — and it fights back),
+      <strong style="color:var(--text)">Velvet Roast</strong> ($13.50, premium) — and rumor says a discounter is coming.
     </p>
     <p class="muted" style="margin-top:8px">
-      You have <strong style="color:var(--text)">12 months</strong>. Each month the market throws something at you —
-      cost spikes, competitor price cuts, demand booms — and you make exactly one decision: <strong style="color:var(--text)">your price</strong>.
+      You have <strong style="color:var(--text)">12 months</strong>. Each month the market throws something at you,
+      and you make two decisions: <strong style="color:var(--text)">your price</strong> and
+      <strong style="color:var(--text)">one strategic move</strong> (how to respond to the situation —
+      each option has real effects on demand, trust and cash, and earns points).
     </p>
     <p class="muted" style="margin-top:8px">
-      Price too high and you lose customers. Too low and you burn margin — and start price wars.
-      Raise prices at the wrong moment and customers stop trusting you.
-      At the end, your result is compared to the <em>autopilot</em> — a manager who never touches the price.
+      Market share is fought over by all four brands. Price too high and shoppers drift to BrewCo. Chase the discounter
+      and you burn margin. Raise prices at the wrong moment and customers stop trusting you. At year-end you are scored
+      against the <em>autopilot</em> — a manager who never touches the price and always picks the safe move.
     </p>
-    <div style="margin-top:18px"><button class="btn" onclick="startGame()">Start the year &rarr;</button></div>
+    <div style="margin-top:18px"><button class="btn" onclick="startGame()">Start the year &rarr;</button>
+      <span class="muted" style="font-size:.78rem; margin-left:10px">or press Enter</span></div>
     <details>
       <summary>How the simulation works</summary>
-      <p>Market share follows relative price through a logistic response curve — undercut the competitor and share drifts toward you, with a one-month lag (customers don't all switch at once). Total category demand has mild price elasticity, and a <em>customer trust</em> index (0–100) scales your demand: sharp price hikes hurt it, hikes during a shortage hurt it badly, and stable pricing slowly rebuilds it. The competitor reacts to you — undercut them hard and they cut back next month. Profit = (price − unit cost) × volume − $120k fixed costs. The autopilot benchmark plays the identical year at a frozen $10.00.</p>
+      <p>Each brand gets an attractiveness score from its brand strength minus a price-sensitivity penalty, and market
+      share is split between the four brands with a logit (softmax) choice model — with a one-month lag, because
+      customers don't all switch at once. A <em>customer trust</em> index (0–100) scales your demand: sharp hikes hurt
+      it, hikes during a shortage hurt it badly, stable pricing rebuilds it. Your strategic moves change trust, brand
+      strength, demand or cash directly. BrewCo reacts to being undercut; a recession makes everyone more
+      price-sensitive. Profit = (price − unit cost) × volume − $120k fixed costs ± one-off campaign costs. The
+      autopilot benchmark plays the identical year at a frozen $10.00 with the neutral move every month. The 🎯 coach
+      judges your price on a 4-month view, so it never rewards unsustainable gouging.</p>
     </details>
   </div>
 
@@ -176,7 +214,12 @@
       <div class="kpi"><div class="lbl">Market share</div><div class="val" id="kShare">–</div><div class="delta" id="dShare"></div></div>
       <div class="kpi"><div class="lbl">Trust</div><div class="val" id="kTrust">70</div><div class="delta" id="dTrust"></div></div>
       <div class="kpi"><div class="lbl">Unit cost</div><div class="val" id="kCost">$6.00</div><div class="delta" id="dCost"></div></div>
-      <div class="kpi"><div class="lbl">Competitor</div><div class="val" id="kComp">$10.50</div><div class="delta" id="dComp"></div></div>
+      <div class="kpi"><div class="lbl">Move points</div><div class="val" id="kPts">0</div><div class="delta" id="dPts"></div></div>
+    </div>
+
+    <div class="card" id="marketCard">
+      <h2 style="font-size:.95rem; margin-bottom:6px">The market</h2>
+      <div id="marketRows"></div>
     </div>
 
     <div class="card hidden" id="recap">
@@ -191,9 +234,11 @@
         <div class="pl-row"><span id="plRevL">Revenue</span><span id="plRev"></span></div>
         <div class="pl-row"><span id="plVarL">Variable costs</span><span id="plVar"></span></div>
         <div class="pl-row"><span>Fixed costs (rent, salaries, roastery)</span><span id="plFix"></span></div>
+        <div class="pl-row" id="plCashRow"><span>Campaigns &amp; one-offs</span><span id="plCash"></span></div>
         <div class="pl-row total"><span>Month profit</span><span id="plProfit"></span></div>
       </div>
       <div class="commentary" id="rComment"></div>
+      <div class="moveline" id="moveLine"></div>
       <div class="bestline" id="bestLine"></div>
     </div>
 
@@ -210,10 +255,13 @@
       <div class="chips" id="evChips"></div>
 
       <div id="decision">
+        <div class="opts-title">Your strategic move — choose one</div>
+        <div class="opts" id="optList"></div>
+
         <div class="facts">
           <div class="fact"><div class="lbl">Your unit cost</div><div class="val" id="fCost">$6.00 / bag</div></div>
           <div class="fact"><div class="lbl">Fixed costs</div><div class="val">$120k / month</div></div>
-          <div class="fact"><div class="lbl">Competitor price</div><div class="val" id="fComp">$10.50</div></div>
+          <div class="fact"><div class="lbl">Rival prices</div><div class="val" id="fComp">$10.50 · $13.50</div></div>
         </div>
         <div class="price-row">
           <div class="price-big">$<span id="priceVal">10.00</span><small> / bag</small></div>
@@ -225,10 +273,10 @@
         <div class="zone-wrap">
           <div class="zone-bar"><div class="zone-loss" id="zoneLoss"></div><div class="zone-ok"></div></div>
           <div class="zone-mark cost" id="markCost">loss below</div>
-          <div class="zone-mark comp" id="markComp">competitor</div>
+          <div class="zone-mark comp" id="markComp">cheapest rival</div>
         </div>
         <div class="margin-note" id="marginNote"></div>
-        <button class="btn" id="lockBtn" onclick="lockPrice()">Lock price &amp; close the month</button>
+        <button class="btn" id="lockBtn" onclick="lockPrice()">Lock the month</button>
         <span class="muted" style="font-size:.78rem; margin-left:10px">or press Enter</span>
       </div>
     </div>
@@ -268,117 +316,220 @@
 <script>
 'use strict';
 
-/* ---------------- Events: a curated 12-month story arc ---------------- */
+/* ---------------- Events: a curated 12-month story arc.
+   Each event offers 3 strategic moves; `neutral` marks the safe default
+   (also what the autopilot benchmark plays). fx = effects:
+   cash (one-off $), trust (points), eq (brand strength), costMult,
+   demand (this month's demand multiplier), hikeGrace (no trust penalty
+   for a ≤20% hike this month), kaffaEq (hits the discounter). ---------------- */
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 const EVENTS = [
-  { id:'calm', icon:'☕', title:'A quiet start',
-    text:'Your first month on the job. No surprises — the market is stable, the competitor holds at $10.50.',
-    hint:'A safe month to feel out the demand curve. Small moves teach you a lot.' },
-  { id:'cost_spike', icon:'📈', title:'Bean prices jump 15%',
+  { id:'calm', icon:'☕', title:'A quiet start', neutral:2,
+    text:'Your first month on the job. The market is stable: BrewCo holds at $10.50, Velvet Roast at $13.50.',
+    hint:'A safe month to feel out the demand curve. Small moves teach you a lot.',
+    choices:[
+      { label:'Launch a loyalty card', note:'Costs $20k, but regulars feel valued — trust up.', pts:14, fx:{ cash:-20000, trust:3 } },
+      { label:'Small ad campaign', note:'$15k of local ads to sharpen the brand.', pts:12, fx:{ cash:-15000, eq:0.04 } },
+      { label:'Just watch the market', note:'Learn before you spend.', pts:10, fx:{} } ] },
+  { id:'cost_spike', icon:'📈', title:'Bean prices jump 15%', neutral:2,
     text:'A poor harvest in Brazil pushes green coffee up. Your unit cost rises 15% this month — and stays there.',
     hint:'Classic dilemma: pass the cost through to protect margin, or hold price to protect share?',
-    apply: s => { s.cost *= 1.15; } },
-  { id:'comp_cut', icon:'⚔️', title:'Competitor cuts price 10%',
-    text:'Your main rival drops to a promotional price. Shoppers are noticing.',
+    apply: s => { s.cost *= 1.15; },
+    choices:[
+      { label:'Shrink the bag quietly', note:'Cut contents 5% — cost per unit falls, but customers notice these things.', pts:5, fx:{ costMult:0.95, trust:-6 } },
+      { label:'Explain the increase publicly', note:'$10k on an honest letter to customers — a hike this month won’t damage trust.', pts:20, fx:{ cash:-10000, trust:4, hikeGrace:true } },
+      { label:'Say nothing', note:'Absorb or pass through silently.', pts:10, fx:{} } ] },
+  { id:'comp_cut', icon:'⚔️', title:'BrewCo cuts price 10%', neutral:2,
+    text:'BrewCo drops to a promotional price. Shoppers are noticing.',
     hint:'Matching a cut is easy — un-matching it later is the hard part. Chase, hold, or go premium?',
-    apply: s => { s.comp *= 0.90; } },
-  { id:'boom', icon:'🌤️', title:'Demand boom',
+    apply: s => { s.rivals[0].price *= 0.90; },
+    choices:[
+      { label:'Attack ads vs BrewCo', note:'$25k comparing prices head-on. Risky tone for a premium brand.', pts:8, fx:{ cash:-25000, eq:0.04 } },
+      { label:'Tell your quality story', note:'$15k reminding people why Atlas costs more.', pts:18, fx:{ cash:-15000, trust:3, eq:0.05 } },
+      { label:'Do nothing', note:'Promotions end. Panic doesn’t.', pts:12, fx:{} } ] },
+  { id:'boom', icon:'🌤️', title:'Demand boom', neutral:1,
     text:'A cold snap plus work-from-home week: category demand jumps about 30% this month.',
     hint:'More demand means less price sensitivity — booms are when pricing power is cheapest to use.',
-    demandMult: 1.30 },
-  { id:'entrant', icon:'🆕', title:'A discounter enters',
-    text:'A no-name brand launches at $7.90. It nibbles at the value end of the market — permanently.',
+    demandMult: 1.30,
+    choices:[
+      { label:'Rent extra roasting capacity', note:'$30k to serve the wave fully — sell more while it lasts.', pts:18, fx:{ cash:-30000, demand:1.08 } },
+      { label:'Serve it as it comes', note:'Steady hands, no extra spend.', pts:11, fx:{} },
+      { label:'Cut the ad budget', note:'Demand is free this month — save $15k, lose a little presence.', pts:6, fx:{ cash:15000, eq:-0.04 } } ] },
+  { id:'entrant', icon:'🆕', title:'Kaffa Basic enters at $7.90', neutral:1,
+    text:'A no-name discounter launches nationwide at $7.90 — and it is now a permanent fourth player in your market.',
     hint:'You can’t out-cheap a discounter. The question is which customers you want to keep.',
-    apply: s => { s.marketBase *= 0.94; s.k = 7; } },
-  { id:'shortage', icon:'🚢', title:'Supply shortage',
-    text:'A shipping disruption cuts category supply. Shelves are emptier — customers will pay more, this month.',
+    apply: s => { s.rivals[2].active = true; },
+    choices:[
+      { label:'Launch a fighter product', note:'$40k to launch "Atlas Daily" — a simpler bag that blunts Kaffa’s attack.', pts:17, fx:{ cash:-40000, kaffaEq:-0.18 } },
+      { label:'Hold the premium ground', note:'Let Kaffa take the bargain hunters; keep your customers.', pts:13, fx:{} },
+      { label:'Cut costs to fight on price', note:'Cheaper beans save 3% cost — but the cup tastes like it.', pts:6, fx:{ costMult:0.97, trust:-3 } } ] },
+  { id:'shortage', icon:'🚢', title:'Supply shortage', neutral:0,
+    text:'A shipping disruption cuts category supply. Shelves are emptier — customers would pay more, this month.',
     hint:'You could raise price sharply and it would sell. But customers remember who gouged them.',
-    demandMult: 0.85, shortage: true },
-  { id:'viral', icon:'📱', title:'You went viral',
+    demandMult: 0.85, shortage: true,
+    choices:[
+      { label:'Ration fairly & communicate', note:'Everyone gets some; you explain why. Trust grows in hard months.', pts:20, fx:{ trust:5, demand:0.95 } },
+      { label:'Prioritize big retail chains', note:'They pay a $10k bonus for guaranteed supply — small shops go empty.', pts:8, fx:{ cash:10000, trust:-4 } },
+      { label:'Buy emergency stock', note:'$35k for airfreighted beans — you sell while others can’t.', pts:13, fx:{ cash:-35000, demand:1.05 } } ] },
+  { id:'viral', icon:'📱', title:'You went viral', neutral:1,
     text:'A barista’s video with your bag hits 4M views. New customers are trying Atlas this month (+25% demand).',
     hint:'New customers have no loyalty yet — first impressions on price stick.',
-    demandMult: 1.25 },
-  { id:'recession', icon:'📉', title:'Recession bites',
-    text:'Consumer confidence drops. The whole category shrinks ~15% and shoppers compare prices harder.',
+    demandMult: 1.25,
+    choices:[
+      { label:'Boost the video with ads', note:'$25k to ride the wave — bigger reach, stronger brand.', pts:18, fx:{ cash:-25000, demand:1.08, eq:0.05 } },
+      { label:'Enjoy the free fame', note:'Viral moments don’t need help.', pts:12, fx:{} },
+      { label:'Rush out merchandise', note:'$10k on mugs and totes. Fun, small trust bump.', pts:9, fx:{ cash:-10000, trust:2 } } ] },
+  { id:'recession', icon:'📉', title:'Recession bites', neutral:2,
+    text:'Consumer confidence drops. The whole category shrinks ~15% and shoppers compare prices harder — everyone’s customers are up for grabs.',
     hint:'In a downturn, relative price matters more than absolute price.',
-    demandMult: 0.85, apply: s => { s.k = Math.max(s.k, 8); } },
-  { id:'comp_stockout', icon:'📦', title:'Competitor stockout',
-    text:'Your rival has a production problem and raises price 15% to slow their own sales.',
-    hint:'Their customers are shopping around this month. What’s the offer that keeps them afterwards?',
-    apply: s => { s.comp *= 1.15; } },
-  { id:'cost_relief', icon:'🌱', title:'Costs ease 8%',
+    demandMult: 0.85, apply: s => { s.PSENS = 5.0; },
+    choices:[
+      { label:'Launch a value pack', note:'A bigger family bag with thinner margin — stays in baskets through hard times.', pts:18, fx:{ costMult:1.02, demand:1.06 } },
+      { label:'Cut the ad budget', note:'Save $20k now, fade a little from memory.', pts:7, fx:{ cash:20000, eq:-0.06 } },
+      { label:'Hold course', note:'Recessions end. Brands that vanish don’t come back cheap.', pts:12, fx:{} } ] },
+  { id:'comp_stockout', icon:'📦', title:'BrewCo stockout', neutral:2,
+    text:'BrewCo has a production problem and raises price 15% to slow its own sales. Its customers are shopping around.',
+    hint:'Their customers are in play this month. What’s the offer that keeps them afterwards?',
+    apply: s => { s.rivals[0].price *= 1.15; },
+    choices:[
+      { label:'Big push to win them over', note:'$30k on shelf space and sampling where BrewCo is missing.', pts:20, fx:{ cash:-30000, eq:0.08 } },
+      { label:'Poach with coupons', note:'$20k of discount coupons — works fast, cheapens the brand a touch.', pts:11, fx:{ cash:-20000, eq:0.03, trust:-1 } },
+      { label:'Do nothing', note:'Some will wander over anyway.', pts:9, fx:{} } ] },
+  { id:'cost_relief', icon:'🌱', title:'Costs ease 8%', neutral:0,
     text:'New harvest arrives; your unit cost falls 8%. Nobody outside the company knows.',
     hint:'Cost down, price unchanged is pure margin. Cost down, price down is a share play. Your call.',
-    apply: s => { s.cost *= 0.92; } },
-  { id:'award', icon:'🏆', title:'"Best coffee 2026" award',
-    text:'A respected magazine ranks Atlas #1. Trust jumps — your brand can carry more premium than yesterday.',
+    apply: s => { s.cost *= 0.92; },
+    choices:[
+      { label:'Bank the savings', note:'Quietly wider margin. This is how pricing pros retire early.', pts:14, fx:{} },
+      { label:'Invest in bean quality', note:'$20k into better sourcing — the cup improves, so does trust.', pts:18, fx:{ cash:-20000, trust:4, eq:0.05 } },
+      { label:'Announce "prices held!"', note:'Make generosity loud. Modest goodwill.', pts:10, fx:{ trust:2 } } ] },
+  { id:'award', icon:'🏆', title:'"Best coffee 2026" award', neutral:2,
+    text:'A respected magazine ranks Atlas #1. Your brand can carry more premium than yesterday.',
     hint:'Awards fade. Pricing power is only real while people remember why you earned it.',
-    apply: s => { s.trust = Math.min(100, s.trust + 10); } },
-  { id:'holiday', icon:'🎄', title:'Holiday season',
+    apply: s => { s.trust = Math.min(100, s.trust + 10); },
+    choices:[
+      { label:'PR campaign on the award', note:'$20k to put "Best coffee 2026" on every shelf and feed.', pts:18, fx:{ cash:-20000, eq:0.09 } },
+      { label:'Thank-you giveaway day', note:'$15k of free coffee for loyal customers.', pts:13, fx:{ cash:-15000, trust:4 } },
+      { label:'Stay humble', note:'Let the award speak quietly.', pts:8, fx:{} } ] },
+  { id:'holiday', icon:'🎄', title:'Holiday season', neutral:2,
     text:'December: gift boxes, office orders, family visits. Demand +35%, and price tags matter a little less.',
     hint:'Your last month. Finish the year — the board is watching the full-year number.',
-    demandMult: 1.35 },
+    demandMult: 1.35,
+    choices:[
+      { label:'Launch gift bundles', note:'$15k on festive packaging — gifts sell at happy margins.', pts:18, fx:{ cash:-15000, demand:1.08 } },
+      { label:'Extra ad blast', note:'$25k to end the year loud.', pts:11, fx:{ cash:-25000, eq:0.05 } },
+      { label:'Keep it simple', note:'The shelves are full, the tills are ringing.', pts:10, fx:{} } ] },
 ];
 
-/* ---------------- Simulation core (shared by player and autopilot) ---------------- */
+const NO_CHOICE = { fx: {} };
+
+/* ---------------- Simulation core (shared by player, coach and autopilot) ---------------- */
 function initState() {
-  return { cost: 6.0, comp: 10.5, share: 0.50, trust: 70, marketBase: 100000, k: 6,
-           lastPrice: 10.0, cumProfit: 0, flags: {}, history: [] };
+  return {
+    cost: 6.0, eq: 0.00, trust: 70, share: 0.425, marketBase: 100000, PSENS: 4.0,
+    rivals: [
+      { name: 'BrewCo',       price: 10.5, eq: 0.20,  active: true  },
+      { name: 'Velvet Roast', price: 13.5, eq: 0.35,  active: true  },
+      { name: 'Kaffa Basic',  price: 7.9,  eq: -1.20, active: false } ],
+    rivalShares: [0.425, 0.15, 0],
+    lastPrice: 10.0, cumProfit: 0, pts: 0, maxPts: 0, flags: {}, history: []
+  };
 }
 
 const FIXED = 120000;
+const clampT = v => Math.max(0, Math.min(100, v));
+const attract = (eq, price, PSENS) => eq - PSENS * (price / 10);
 
-function runMonth(s, ev, price) {
+function runMonth(s, ev, price, choice) {
+  const fx = (choice || NO_CHOICE).fx;
   const out = {};
-  const change = (price - s.lastPrice) / s.lastPrice;
+
+  // strategic move lands first
+  if (fx.trust)    s.trust = clampT(s.trust + fx.trust);
+  if (fx.eq)       s.eq += fx.eq;
+  if (fx.costMult) s.cost *= fx.costMult;
+  if (fx.kaffaEq)  s.rivals[2].eq += fx.kaffaEq;
 
   // trust reaction to the price move
+  const change = (price - s.lastPrice) / s.lastPrice;
   let dTrust = 0;
-  if (ev.shortage && change > 0.05)      { dTrust = -15; out.gouged = true; }
-  else if (change > 0.12)                { dTrust = -8;  out.sharpHike = true; }
-  else if (Math.abs(change) <= 0.04)     { dTrust = +2; }
-  s.trust = Math.max(0, Math.min(100, s.trust + dTrust));
-  out.dTrust = dTrust;
+  const grace = fx.hikeGrace && change <= 0.20;
+  if (ev.shortage && change > 0.05)              { dTrust = -15; out.gouged = true; }
+  else if (change > 0.12 && !grace)              { dTrust = -8;  out.sharpHike = true; }
+  else if (Math.abs(change) <= 0.04)             { dTrust = +2; }
+  s.trust = clampT(s.trust + dTrust);
+  out.dTrust = dTrust + (fx.trust || 0);
 
-  // share follows relative price with a lag
-  const rel = price / s.comp;
-  const target = 1 / (1 + Math.exp(s.k * (rel - 1)));
+  // four-brand logit share, with a one-month lag
+  const trustBonus = (s.trust - 70) * 0.006;
+  const wUs = Math.exp(attract(s.eq + trustBonus, price, s.PSENS));
+  const act = s.rivals.filter(r => r.active);
+  const wR = act.map(r => Math.exp(attract(r.eq, r.price, s.PSENS)));
+  const target = wUs / (wUs + wR.reduce((a, b) => a + b, 0));
   s.share += (target - s.share) * 0.45;
-  s.share = Math.max(0.05, Math.min(0.92, s.share));
+  s.share = Math.max(0.03, Math.min(0.92, s.share));
+  const rem = 1 - s.share, wSum = wR.reduce((a, b) => a + b, 0);
+  s.rivalShares = s.rivals.map(r => {
+    if (!r.active) return 0;
+    return rem * wR[act.indexOf(r)] / wSum;
+  });
 
-  // volume
-  const demandMult = ev.demandMult || 1;
+  // volume & money
+  const demandMult = (ev.demandMult || 1) * (fx.demand || 1);
   const trustFactor = 0.7 + 0.006 * s.trust;           // 0.7 … 1.3
   const elasticity = Math.pow(price / 10, -0.25);      // mild category elasticity
   const volume = s.marketBase * demandMult * trustFactor * s.share * elasticity;
-
   const revenue = price * volume;
-  const profit = (price - s.cost) * volume - FIXED;
+  const cash = fx.cash || 0;
+  const profit = (price - s.cost) * volume - FIXED + cash;
   s.cumProfit += profit;
 
-  // competitor reacts next month
-  if (price < s.comp * 0.93) { s.comp *= 0.96; out.compReacts = 'cut'; }
-  else if (price > s.comp * 1.10) { s.comp *= 1.02; out.compReacts = 'raise'; }
+  // BrewCo reacts next month
+  const brew = s.rivals[0];
+  if (price < brew.price * 0.93) { brew.price *= 0.96; out.compReacts = 'cut'; }
+  else if (price > brew.price * 1.10) { brew.price *= 1.02; out.compReacts = 'raise'; }
 
   if (price < s.cost) out.belowCost = true;
 
   s.lastPrice = price;
-  Object.assign(out, { price, volume, revenue, profit, share: s.share, trust: s.trust,
-                       cost: s.cost, comp: s.comp });
+  Object.assign(out, { price, volume, revenue, profit, cash, share: s.share, trust: s.trust,
+                       cost: s.cost, rivalPrices: s.rivals.map(r => r.price),
+                       rivalShares: s.rivalShares.slice(), active: s.rivals.map(r => r.active) });
   s.history.push(out);
   return out;
 }
 
-/* ---------------- Autopilot benchmark: frozen $10.00 all year ---------------- */
+/* ---------------- Autopilot benchmark: frozen $10.00, neutral move, all year ---------------- */
 function runAutopilot(events) {
   const s = initState();
-  events.forEach(ev => { if (ev.apply) ev.apply(s); runMonth(s, ev, 10.0); });
+  events.forEach(ev => { if (ev.apply) ev.apply(s); runMonth(s, ev, 10.0, ev.choices[ev.neutral]); });
   return s.cumProfit;
 }
 
+/* ---------------- The coach: replay this month at every possible price on a copy
+   of the market. Judged over a 4-month view (this month + three quiet months at the
+   same price), so the delayed share loss and price-war reactions count — a pure
+   one-month view would always say "charge the maximum", the wrong lesson. ---------------- */
+const NEUTRAL_MONTH = { id: 'neutral' };
+function horizonProfit(baseJson, ev, p, choice) {
+  const sim = JSON.parse(baseJson);
+  let total = runMonth(sim, ev, p, choice).profit;
+  for (let i = 0; i < 3; i++) total += runMonth(sim, NEUTRAL_MONTH, p, NO_CHOICE).profit;
+  return total;
+}
+function bestMoveThisMonth(ev, choice) {
+  const base = JSON.stringify(S);
+  let bestP = 6, bestProfit = -Infinity;
+  for (let p = 6; p <= 18.001; p += 0.1) {
+    const t = horizonProfit(base, ev, p, choice);
+    if (t > bestProfit) { bestProfit = t; bestP = p; }
+  }
+  return { bestP, bestProfit };
+}
+
 /* ---------------- Game flow ---------------- */
-let S, month, events, benchmark;
+let S, month, events, benchmark, chosenOpt;
 const $ = id => document.getElementById(id);
 const money = v => (v < 0 ? '-$' : '$') + Math.abs(Math.round(v)).toLocaleString('en-US');
 const moneyK = v => (v < 0 ? '-$' : '$') + Math.abs(v / 1000).toFixed(0) + 'k';
@@ -395,8 +546,8 @@ function startGame() {
 
 function beginMonth() {
   const ev = events[month];
-  const pre = { cost: S.cost, comp: S.comp, trust: S.trust };
-  if (ev.apply) ev.apply(S);            // event hits the market before you price
+  const pre = { cost: S.cost, trust: S.trust, rivals: S.rivals.map(r => ({ price: r.price, active: r.active })) };
+  if (ev.apply) ev.apply(S);            // event hits the market before you decide
 
   $('evMonth').textContent = 'Month ' + (month + 1) + ' · ' + MONTHS[month];
   $('evIcon').textContent = ev.icon;
@@ -408,31 +559,56 @@ function beginMonth() {
   const chips = [];
   if (S.cost !== pre.cost)
     chips.push({ t: 'Your unit cost: $' + pre.cost.toFixed(2) + ' → $' + S.cost.toFixed(2), c: S.cost > pre.cost ? 'bad' : 'good' });
-  if (S.comp !== pre.comp)
-    chips.push({ t: 'Competitor price: $' + pre.comp.toFixed(2) + ' → $' + S.comp.toFixed(2), c: 'warn' });
+  S.rivals.forEach((r, i) => {
+    if (r.active && !pre.rivals[i].active)
+      chips.push({ t: 'New rival: ' + r.name + ' at $' + r.price.toFixed(2), c: 'bad' });
+    else if (r.price !== pre.rivals[i].price)
+      chips.push({ t: r.name + ': $' + pre.rivals[i].price.toFixed(2) + ' → $' + r.price.toFixed(2), c: 'warn' });
+  });
   if (S.trust !== pre.trust)
     chips.push({ t: 'Trust: ' + Math.round(pre.trust) + ' → ' + Math.round(S.trust), c: 'good' });
   if (ev.demandMult && ev.demandMult !== 1) {
     const pct = Math.round((ev.demandMult - 1) * 100);
     chips.push({ t: 'Demand this month: ' + (pct > 0 ? '+' : '') + pct + '%', c: pct > 0 ? 'good' : 'bad' });
   }
+  if (ev.id === 'recession') chips.push({ t: 'Shoppers more price-sensitive', c: 'bad' });
   if (!chips.length) chips.push({ t: 'No market changes this month', c: '' });
   $('evChips').innerHTML = chips.map(x => '<span class="chip ' + x.c + '">' + x.t + '</span>').join('');
-  kpiDeltas(pre);
+
+  // cost KPI delta from the event
+  const dc = $('dCost');
+  if (S.cost !== pre.cost) {
+    const p = Math.round((S.cost / pre.cost - 1) * 100);
+    dc.textContent = (p > 0 ? '+' : '') + p + '%';
+    dc.className = 'delta ' + (p > 0 ? 'down' : 'up');   // cost up = bad for you
+  } else { dc.textContent = ''; }
+
+  // strategic move options (safe default pre-selected, so Enter still works)
+  chosenOpt = ev.neutral;
+  $('optList').innerHTML = ev.choices.map((c, i) =>
+    '<button type="button" class="opt' + (i === chosenOpt ? ' sel' : '') + '" onclick="pickOpt(' + i + ')">' +
+    '<div class="ol">' + c.label + '</div><div class="od">' + c.note + '</div></button>').join('');
 
   // decision facts + slider zones
   $('fCost').textContent = '$' + S.cost.toFixed(2) + ' / bag';
-  $('fComp').textContent = '$' + S.comp.toFixed(2);
+  const actR = S.rivals.filter(r => r.active);
+  $('fComp').textContent = actR.map(r => '$' + r.price.toFixed(2)).join(' · ');
   const pct = v => Math.max(0, Math.min(100, (v - 6) / 12 * 100));
   $('zoneLoss').style.width = pct(S.cost) + '%';
   $('markCost').style.left = pct(S.cost) + '%';
-  $('markComp').style.left = pct(S.comp) + '%';
+  $('markComp').style.left = pct(Math.min(...actR.map(r => r.price))) + '%';
 
   const slider = $('priceSlider');
   slider.value = S.lastPrice.toFixed(1);
   onSlide();
   updateKPIs(S.history[S.history.length - 1] || null);   // keep last month's deltas visible
+  updateMarket();
   drawChart('chart');
+}
+
+function pickOpt(i) {
+  chosenOpt = i;
+  [...document.querySelectorAll('.opt')].forEach((el, j) => el.classList.toggle('sel', j === i));
 }
 
 function stepPrice(d) {
@@ -441,64 +617,37 @@ function stepPrice(d) {
   onSlide();
 }
 
-// show event-driven moves on the KPI bar (player-driven deltas are set in updateKPIs)
-function kpiDeltas(pre) {
-  const dc = $('dCost'), dp = $('dComp');
-  if (S.cost !== pre.cost) {
-    const p = Math.round((S.cost / pre.cost - 1) * 100);
-    dc.textContent = (p > 0 ? '+' : '') + p + '%';
-    dc.className = 'delta ' + (p > 0 ? 'down' : 'up');   // cost up = bad
-  } else { dc.textContent = ''; }
-  if (S.comp !== pre.comp) {
-    const p = Math.round((S.comp / pre.comp - 1) * 100);
-    dp.textContent = (p > 0 ? '+' : '') + p + '%';
-    dp.className = 'delta ' + (p > 0 ? 'up' : 'down');   // competitor up = good for you
-  } else { dp.textContent = ''; }
-}
-
 function onSlide() {
   const p = parseFloat($('priceSlider').value);
   $('priceVal').textContent = p.toFixed(2);
   const m = p - S.cost;
   const mPct = (m / p * 100).toFixed(0);
   const note = $('marginNote');
+  const cheapest = Math.min(...S.rivals.filter(r => r.active).map(r => r.price));
   if (m <= 0) {
     note.innerHTML = '<span class="down">Selling below cost: you lose ' + money(-m) + ' on every bag.</span>';
   } else {
-    const vsComp = p > S.comp ? ((p / S.comp - 1) * 100).toFixed(0) + '% above competitor'
-                              : (p < S.comp ? ((1 - p / S.comp) * 100).toFixed(0) + '% below competitor' : 'at competitor parity');
-    note.innerHTML = 'Margin <strong>' + money(m) + '/bag (' + mPct + '%)</strong> · ' + vsComp + ' ($' + S.comp.toFixed(2) + ')';
+    const vsComp = p > cheapest ? ((p / cheapest - 1) * 100).toFixed(0) + '% above the cheapest rival'
+                                : (p < cheapest ? ((1 - p / cheapest) * 100).toFixed(0) + '% below the cheapest rival' : 'level with the cheapest rival');
+    note.innerHTML = 'Margin <strong>' + money(m) + '/bag (' + mPct + '%)</strong> · ' + vsComp + ' ($' + cheapest.toFixed(2) + ')';
   }
-}
-
-// The coach: replay this month at every possible price on a copy of the market.
-// Judged over a 4-month view (this month + three quiet months at the same price),
-// so the delayed share loss and price-war reactions count — a pure one-month view
-// would always say "charge the maximum", which is exactly the wrong lesson.
-const NEUTRAL_MONTH = { id: 'neutral' };
-function horizonProfit(baseJson, ev, p) {
-  const sim = JSON.parse(baseJson);
-  let total = runMonth(sim, ev, p).profit;
-  for (let i = 0; i < 3; i++) total += runMonth(sim, NEUTRAL_MONTH, p).profit;
-  return total;
-}
-function bestMoveThisMonth(ev) {
-  const base = JSON.stringify(S);
-  let bestP = 6, bestProfit = -Infinity;
-  for (let p = 6; p <= 18.001; p += 0.1) {
-    const t = horizonProfit(base, ev, p);
-    if (t > bestProfit) { bestProfit = t; bestP = p; }
-  }
-  return { bestP, bestProfit };
 }
 
 function lockPrice() {
   const ev = events[month];
   const price = parseFloat($('priceSlider').value);
-  const prev = { share: S.share, trust: S.trust, cost: S.cost, comp: S.comp };
-  const best = bestMoveThisMonth(ev);
-  const playerHorizon = horizonProfit(JSON.stringify(S), ev, price);
-  const r = runMonth(S, ev, price);
+  const choice = ev.choices[chosenOpt];
+  const prev = { share: S.share, trust: S.trust, cost: S.cost };
+  const best = bestMoveThisMonth(ev, choice);
+  const playerHorizon = horizonProfit(JSON.stringify(S), ev, price, choice);
+  const r = runMonth(S, ev, price, choice);
+
+  // move points
+  const bestChoice = ev.choices.reduce((a, b) => a.pts >= b.pts ? a : b);
+  S.pts += choice.pts;
+  S.maxPts += bestChoice.pts;
+  $('dPts').textContent = '+' + choice.pts;
+  $('dPts').className = 'delta ' + (choice.pts >= bestChoice.pts ? 'up' : choice.pts >= bestChoice.pts * 0.6 ? 'flat' : 'down');
 
   $('rVol').textContent = Math.round(r.volume).toLocaleString('en-US') + ' bags';
   $('rRev').textContent = moneyK(r.revenue);
@@ -512,6 +661,8 @@ function lockPrice() {
   $('plVarL').textContent = 'Variable costs (' + vol + ' bags × $' + r.cost.toFixed(2) + ')';
   $('plVar').textContent = '−' + money(r.cost * r.volume);
   $('plFix').textContent = '−' + money(FIXED);
+  $('plCashRow').style.display = r.cash ? '' : 'none';
+  $('plCash').textContent = (r.cash > 0 ? '+' : '−') + money(Math.abs(r.cash)).slice(0);
   $('plProfit').textContent = money(r.profit);
   $('plProfit').className = r.profit >= 0 ? 'up' : 'down';
 
@@ -520,8 +671,15 @@ function lockPrice() {
   c.textContent = msg.text;
   c.className = 'commentary ' + msg.tone;
 
+  // the move, judged
+  const ml = $('moveLine');
+  const isBest = choice.pts >= bestChoice.pts;
+  ml.innerHTML = '🧭 <strong>Your move:</strong> ' + choice.label + ' — <strong>+' + choice.pts + ' pts</strong>' +
+    (isBest ? ' (the best move this month).'
+            : ' (best was "' + bestChoice.label + '", worth +' + bestChoice.pts + ').');
+
   if (r.gouged) S.flags.gouged = true;
-  if (ev.id === 'cost_spike' && price >= prev.cost * 1.15 + 3.4) S.flags.passedCost = true;
+  if (ev.id === 'cost_spike' && price >= prev.cost + 3.5) S.flags.passedCost = true;
   if (ev.id === 'boom' && r.profit > 150000) S.flags.caughtBoom = true;
   if (r.belowCost) S.flags.belowCost = true;
 
@@ -547,6 +705,7 @@ function lockPrice() {
   $('recapSub').textContent = 'Month ' + (month + 1) + ' of 12';
   $('recap').classList.remove('hidden');
   updateKPIs(r);
+  updateMarket();
   drawChart('chart');
   month++;
   if (month < 12) {
@@ -558,31 +717,25 @@ function lockPrice() {
 }
 
 function commentary(ev, r, prev) {
+  const brewPrice = r.rivalPrices[0];
   if (r.gouged)
-    return { tone: 'bad', text: 'Ouch. "Atlas Coffee hikes prices during shortage" is trending. It sold this month — but trust dropped ' + (-r.dTrust) + ' points, and that costs you demand every month from now on.' };
+    return { tone: 'bad', text: 'Ouch. "Atlas Coffee hikes prices during shortage" is trending. It sold this month — but trust dropped, and that costs you demand every month from now on.' };
   if (r.belowCost)
-    return { tone: 'bad', text: 'You sold below cost. Volume looks great, but every bag burned money — and the competitor is now cutting too. Price wars have no winners, only survivors.' };
+    return { tone: 'bad', text: 'You sold below cost. Volume looks great, but every bag burned money — and BrewCo is cutting too. Price wars have no winners, only survivors.' };
   if (r.sharpHike)
-    return { tone: 'bad', text: 'A ' + Math.round((r.price / (S.history.length > 1 ? S.history[S.history.length - 2].price : 10) - 1) * 100) + '% jump in one month — customers noticed. Trust slipped. Big moves are cheaper when made in steps.' };
+    return { tone: 'bad', text: 'A sharp jump in one month — customers noticed and trust slipped. Big moves are cheaper when made in steps (or explained honestly).' };
   if (ev.id === 'cost_spike' && r.price > prev.cost + 3.5 && r.profit > 0)
     return { tone: 'good', text: 'You passed the cost increase through and protected your margin. Share dipped slightly — that’s the trade you chose, and the P&L says it was worth it.' };
-  if (ev.id === 'comp_cut' && r.price > r.comp * 1.05 && r.profit > 60000)
-    return { tone: 'good', text: 'You refused to chase the discount and held your position. You lost a little share but kept your margin — and your competitor is funding their own promotion.' };
+  if (ev.id === 'comp_cut' && r.price > brewPrice * 1.05 && r.profit > 40000)
+    return { tone: 'good', text: 'You refused to chase BrewCo’s discount and held your position. You lost a little share but kept your margin — they are funding their own promotion.' };
   if ((ev.id === 'boom' || ev.id === 'holiday' || ev.id === 'viral') && r.profit > 140000)
     return { tone: 'good', text: 'Strong month. You used the demand wave instead of just riding it — this is when pricing power is cheapest to exercise.' };
   if (r.profit < 0)
-    return { tone: 'bad', text: 'A loss-making month: after fixed costs, this price and volume combination doesn’t cover the business. Something has to give — price, or share expectations.' };
+    return { tone: 'bad', text: 'A loss-making month: after fixed costs, this price, move and volume combination doesn’t cover the business. Something has to give.' };
   if (r.profit > 100000)
     return { tone: 'good', text: 'Solid month — healthy margin on healthy volume. The boring months are where good pricing quietly compounds.' };
-  return { tone: 'neutral', text: 'The month closed at ' + moneyK(r.profit) + ' profit and ' + (r.share * 100).toFixed(1) + '% share. Steady. Watch the competitor at $' + r.comp.toFixed(2) + '.' };
+  return { tone: 'neutral', text: 'The month closed at ' + moneyK(r.profit) + ' profit and ' + (r.share * 100).toFixed(1) + '% share. Steady. Watch BrewCo at $' + brewPrice.toFixed(2) + '.' };
 }
-
-// keyboard flow: Enter starts the year / locks the month
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter' || e.repeat) return;
-  if (!$('intro').classList.contains('hidden')) startGame();
-  else if (!$('game').classList.contains('hidden')) lockPrice();
-});
 
 function updateKPIs(r) {
   $('kMonth').textContent = Math.min(month + 1, 12) + '/12';
@@ -591,17 +744,29 @@ function updateKPIs(r) {
   $('kShare').textContent = (S.share * 100).toFixed(1) + '%';
   $('kTrust').textContent = Math.round(S.trust);
   $('kCost').textContent = '$' + S.cost.toFixed(2);
-  $('kComp').textContent = '$' + S.comp.toFixed(2);
+  $('kPts').textContent = S.pts;
   if (r) {
     $('dProfit').textContent = (r.profit >= 0 ? '+' : '') + moneyK(r.profit) + ' this month';
     $('dProfit').className = 'delta ' + (r.profit >= 0 ? 'up' : 'down');
     $('dTrust').textContent = r.dTrust ? (r.dTrust > 0 ? '+' : '') + r.dTrust : '';
     $('dTrust').className = 'delta ' + (r.dTrust > 0 ? 'up' : r.dTrust < 0 ? 'down' : 'flat');
-    const prevShare = S.history.length > 1 ? S.history[S.history.length - 2].share : 0.5;
+    const prevShare = S.history.length > 1 ? S.history[S.history.length - 2].share : 0.425;
     const ds = (r.share - prevShare) * 100;
     $('dShare').textContent = (ds >= 0 ? '+' : '') + ds.toFixed(1) + ' pts';
     $('dShare').className = 'delta ' + (ds >= 0.05 ? 'up' : ds <= -0.05 ? 'down' : 'flat');
   } else { $('dProfit').textContent = ''; $('dTrust').textContent = ''; $('dShare').textContent = ''; }
+}
+
+function updateMarket() {
+  const rows = [{ name: 'Atlas (you)', price: S.lastPrice, share: S.share, you: true }];
+  S.rivals.forEach((r, i) => { if (r.active) rows.push({ name: r.name, price: r.price, share: S.rivalShares[i] }); });
+  rows.sort((a, b) => b.share - a.share);
+  $('marketRows').innerHTML = rows.map(x =>
+    '<div class="mrow' + (x.you ? ' you' : '') + '">' +
+    '<span class="mname">' + x.name + '</span>' +
+    '<span class="mprice">$' + x.price.toFixed(2) + '</span>' +
+    '<span class="mbar"><i style="width:' + (x.share * 100).toFixed(1) + '%"></i></span>' +
+    '<span class="mpct">' + (x.share * 100).toFixed(1) + '%</span></div>').join('');
 }
 
 /* ---------------- Chart ---------------- */
@@ -668,7 +833,8 @@ function endGame() {
   $('endTitle').textContent = title;
   $('endScore').innerHTML =
     'Your full-year profit: <strong style="color:var(--text)">' + money(S.cumProfit) + '</strong> · ' +
-    'Autopilot (never touched the price): <strong style="color:var(--text)">' + money(benchmark) + '</strong> · ' +
+    'Autopilot (frozen price, safe moves): <strong style="color:var(--text)">' + money(benchmark) + '</strong><br>' +
+    'Strategic moves: <strong style="color:var(--text)">' + S.pts + ' / ' + S.maxPts + ' points</strong> · ' +
     'Final share ' + (S.share * 100).toFixed(1) + '% · Trust ' + Math.round(S.trust) + '/100';
 
   const L = [];
@@ -678,15 +844,24 @@ function endGame() {
            '% of each month’s best possible profit' +
            (avg >= 90 ? ' — excellent instincts.' : avg >= 75 ? ' — solid; the coach lines show where the rest went.' : ' — replay and watch the 🎯 coach line each month.'));
   }
+  const movePct = S.maxPts ? Math.round(S.pts / S.maxPts * 100) : 0;
+  L.push('Strategic moves: you scored ' + movePct + '% of the available points' +
+         (movePct >= 85 ? ' — you read the situations very well.' : movePct >= 65 ? ' — decent instincts; the 🧭 lines show the moves you missed.' : ' — replay and study the 🧭 lines; the moves matter as much as the price.'));
   if (S.flags.passedCost) L.push('You passed cost inflation through instead of absorbing it — the single most valuable pricing habit in an inflationary market.');
   if (S.flags.caughtBoom) L.push('You monetised the demand boom. Booms are when price increases are cheapest — you used yours.');
   if (S.flags.gouged) L.push('You raised prices during the shortage. It paid once and taxed you for months — trust is a balance sheet item.');
   if (S.flags.belowCost) L.push('You priced below cost at least once. Volume is vanity, margin is sanity.');
   if (!S.flags.gouged && S.trust >= 75) L.push('You ended the year with high customer trust — next year’s price increases just got easier.');
-  if (!L.length) L.push('A steady hand: no disasters, no fireworks. In pricing, that is often the winning strategy.');
   L.push('The real version of this game runs inside companies every day — with more zeros. That’s the job.');
   $('endLessons').innerHTML = L.map(x => '<li>' + x + '</li>').join('');
 }
+
+// keyboard flow: Enter starts the year / locks the month
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.repeat) return;
+  if (!$('intro').classList.contains('hidden')) startGame();
+  else if (!$('game').classList.contains('hidden')) lockPrice();
+});
 </script>
 </body>
 </html>
