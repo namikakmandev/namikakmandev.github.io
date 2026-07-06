@@ -50,11 +50,37 @@
     .event-title { font-size: 1.2rem; font-weight: 700; }
     .event-hint { margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-left: 3px solid var(--blue); border-radius: 6px; font-size: .88rem; color: var(--text-dim); }
 
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .chip { font-size: .78rem; font-weight: 700; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); }
+    .chip.bad  { color: #ff9d9f; border-color: rgba(229,72,77,.5); }
+    .chip.good { color: var(--green); border-color: rgba(25,195,125,.5); }
+    .chip.warn { color: #ffb27a; border-color: rgba(255,101,0,.5); }
+
+    /* the numbers you price against — always visible while deciding */
+    .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+    .fact { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; text-align: center; }
+    .fact .lbl { font-size: .66rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+    .fact .val { font-size: 1rem; font-weight: 700; margin-top: 2px; }
+
     /* ---------- Price control ---------- */
     .price-row { display: flex; align-items: center; gap: 16px; margin: 18px 0 6px; flex-wrap: wrap; }
     .price-big { font-size: 2.4rem; font-weight: 800; min-width: 140px; font-variant-numeric: tabular-nums; }
     .price-big small { font-size: 1rem; color: var(--text-dim); font-weight: 400; }
     input[type=range] { flex: 1; min-width: 200px; accent-color: var(--blue); height: 34px; cursor: pointer; }
+    .step-btn { width: 44px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2);
+                color: var(--text); font-size: 1rem; font-weight: 700; cursor: pointer; }
+    .step-btn:hover { border-color: var(--blue); }
+
+    /* price zones under the slider: red = below cost, marker = competitor */
+    .zone-wrap { position: relative; margin: 2px 2px 26px; }
+    .zone-bar { height: 6px; border-radius: 3px; overflow: hidden; display: flex; }
+    .zone-loss { background: rgba(229,72,77,.65); }
+    .zone-ok   { background: rgba(74,84,105,.9); flex: 1; }
+    .zone-mark { position: absolute; top: 8px; transform: translateX(-50%); font-size: .66rem; color: var(--text-dim); white-space: nowrap; }
+    .zone-mark::before { content: "▲"; display: block; text-align: center; font-size: .6rem; }
+    .zone-mark.cost::before { color: var(--loss); }
+    .zone-mark.comp::before { color: var(--orange); }
+
     .margin-note { font-size: .85rem; margin: 4px 0 14px; min-height: 1.2em; }
     .btn { display: inline-block; background: var(--blue); color: #fff; border: none; border-radius: 10px;
            padding: 13px 26px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
@@ -67,6 +93,11 @@
     .res { background: var(--surface-2); border-radius: 10px; padding: 10px; text-align: center; }
     .res .lbl { font-size: .68rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: .04em; }
     .res .val { font-size: 1.15rem; font-weight: 700; margin-top: 3px; }
+    /* month P&L: where the money actually went */
+    .pl { margin: 4px 0 14px; background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: .88rem; }
+    .pl-row { display: flex; justify-content: space-between; padding: 3px 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+    .pl-row.total { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 7px; color: var(--text); font-weight: 700; }
+
     .commentary { padding: 12px 14px; border-radius: 8px; background: var(--surface-2); font-size: .92rem; line-height: 1.5; }
     .commentary.good { border-left: 3px solid var(--green); }
     .commentary.bad { border-left: 3px solid var(--loss); }
@@ -151,12 +182,25 @@
       </div>
       <p class="muted" id="evText"></p>
       <div class="event-hint" id="evHint"></div>
+      <div class="chips" id="evChips"></div>
 
       <div id="decision">
+        <div class="facts">
+          <div class="fact"><div class="lbl">Your unit cost</div><div class="val" id="fCost">$6.00 / bag</div></div>
+          <div class="fact"><div class="lbl">Fixed costs</div><div class="val">$120k / month</div></div>
+          <div class="fact"><div class="lbl">Competitor price</div><div class="val" id="fComp">$10.50</div></div>
+        </div>
         <div class="price-row">
           <div class="price-big">$<span id="priceVal">10.00</span><small> / bag</small></div>
+          <button class="step-btn" onclick="stepPrice(-0.1)" aria-label="10 cents lower">&minus;</button>
           <input type="range" id="priceSlider" min="6" max="18" step="0.1" value="10"
                  oninput="onSlide()" aria-label="Your price" />
+          <button class="step-btn" onclick="stepPrice(0.1)" aria-label="10 cents higher">+</button>
+        </div>
+        <div class="zone-wrap">
+          <div class="zone-bar"><div class="zone-loss" id="zoneLoss"></div><div class="zone-ok"></div></div>
+          <div class="zone-mark cost" id="markCost">loss below</div>
+          <div class="zone-mark comp" id="markComp">competitor</div>
         </div>
         <div class="margin-note" id="marginNote"></div>
         <button class="btn" onclick="lockPrice()">Lock price &amp; run the month</button>
@@ -168,6 +212,12 @@
           <div class="res"><div class="lbl">Revenue</div><div class="val" id="rRev"></div></div>
           <div class="res"><div class="lbl">Month profit</div><div class="val" id="rProfit"></div></div>
           <div class="res"><div class="lbl">Share</div><div class="val" id="rShare"></div></div>
+        </div>
+        <div class="pl">
+          <div class="pl-row"><span id="plRevL">Revenue</span><span id="plRev"></span></div>
+          <div class="pl-row"><span id="plVarL">Variable costs</span><span id="plVar"></span></div>
+          <div class="pl-row"><span>Fixed costs (rent, salaries, roastery)</span><span id="plFix"></span></div>
+          <div class="pl-row total"><span>Month profit</span><span id="plProfit"></span></div>
         </div>
         <div class="commentary" id="rComment"></div>
         <div style="margin-top:14px"><button class="btn green" id="nextBtn" onclick="nextMonth()">Next month &rarr;</button></div>
@@ -190,6 +240,12 @@
     <span class="badge">Year complete</span>
     <div class="final-title" id="endTitle"></div>
     <div class="final-score" id="endScore"></div>
+    <canvas id="endChart" width="820" height="190"></canvas>
+    <div class="legend">
+      <span><i style="background:var(--green)"></i>Monthly profit</span>
+      <span><i style="background:var(--blue)"></i>Market share</span>
+      <span><i style="background:var(--orange)"></i>Your price</span>
+    </div>
     <ul class="lessons" id="endLessons"></ul>
     <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
       <button class="btn" onclick="location.reload()">Play again</button>
@@ -330,6 +386,7 @@ function startGame() {
 
 function beginMonth() {
   const ev = events[month];
+  const pre = { cost: S.cost, comp: S.comp, trust: S.trust };
   if (ev.apply) ev.apply(S);            // event hits the market before you price
 
   $('evMonth').textContent = 'Month ' + (month + 1) + ' · ' + MONTHS[month];
@@ -338,6 +395,30 @@ function beginMonth() {
   $('evText').textContent = ev.text;
   $('evHint').textContent = '💡 ' + ev.hint;
 
+  // what just changed in the market, as explicit numbers
+  const chips = [];
+  if (S.cost !== pre.cost)
+    chips.push({ t: 'Your unit cost: $' + pre.cost.toFixed(2) + ' → $' + S.cost.toFixed(2), c: S.cost > pre.cost ? 'bad' : 'good' });
+  if (S.comp !== pre.comp)
+    chips.push({ t: 'Competitor price: $' + pre.comp.toFixed(2) + ' → $' + S.comp.toFixed(2), c: 'warn' });
+  if (S.trust !== pre.trust)
+    chips.push({ t: 'Trust: ' + Math.round(pre.trust) + ' → ' + Math.round(S.trust), c: 'good' });
+  if (ev.demandMult && ev.demandMult !== 1) {
+    const pct = Math.round((ev.demandMult - 1) * 100);
+    chips.push({ t: 'Demand this month: ' + (pct > 0 ? '+' : '') + pct + '%', c: pct > 0 ? 'good' : 'bad' });
+  }
+  if (!chips.length) chips.push({ t: 'No market changes this month', c: '' });
+  $('evChips').innerHTML = chips.map(x => '<span class="chip ' + x.c + '">' + x.t + '</span>').join('');
+  kpiDeltas(pre);
+
+  // decision facts + slider zones
+  $('fCost').textContent = '$' + S.cost.toFixed(2) + ' / bag';
+  $('fComp').textContent = '$' + S.comp.toFixed(2);
+  const pct = v => Math.max(0, Math.min(100, (v - 6) / 12 * 100));
+  $('zoneLoss').style.width = pct(S.cost) + '%';
+  $('markCost').style.left = pct(S.cost) + '%';
+  $('markComp').style.left = pct(S.comp) + '%';
+
   $('decision').classList.remove('hidden');
   $('results').classList.add('hidden');
 
@@ -345,7 +426,28 @@ function beginMonth() {
   slider.value = S.lastPrice.toFixed(1);
   onSlide();
   updateKPIs(null);
-  drawChart();
+  drawChart('chart');
+}
+
+function stepPrice(d) {
+  const slider = $('priceSlider');
+  slider.value = (parseFloat(slider.value) + d).toFixed(1);
+  onSlide();
+}
+
+// show event-driven moves on the KPI bar (player-driven deltas are set in updateKPIs)
+function kpiDeltas(pre) {
+  const dc = $('dCost'), dp = $('dComp');
+  if (S.cost !== pre.cost) {
+    const p = Math.round((S.cost / pre.cost - 1) * 100);
+    dc.textContent = (p > 0 ? '+' : '') + p + '%';
+    dc.className = 'delta ' + (p > 0 ? 'down' : 'up');   // cost up = bad
+  } else { dc.textContent = ''; }
+  if (S.comp !== pre.comp) {
+    const p = Math.round((S.comp / pre.comp - 1) * 100);
+    dp.textContent = (p > 0 ? '+' : '') + p + '%';
+    dp.className = 'delta ' + (p > 0 ? 'up' : 'down');   // competitor up = good for you
+  } else { dp.textContent = ''; }
 }
 
 function onSlide() {
@@ -375,6 +477,15 @@ function lockPrice() {
   $('rProfit').className = 'val ' + (r.profit >= 0 ? 'up' : 'down');
   $('rShare').textContent = (r.share * 100).toFixed(1) + '%';
 
+  const vol = Math.round(r.volume).toLocaleString('en-US');
+  $('plRevL').textContent = 'Revenue (' + vol + ' bags × $' + price.toFixed(2) + ')';
+  $('plRev').textContent = money(r.revenue);
+  $('plVarL').textContent = 'Variable costs (' + vol + ' bags × $' + r.cost.toFixed(2) + ')';
+  $('plVar').textContent = '−' + money(r.cost * r.volume);
+  $('plFix').textContent = '−' + money(FIXED);
+  $('plProfit').textContent = money(r.profit);
+  $('plProfit').className = r.profit >= 0 ? 'up' : 'down';
+
   const c = $('rComment');
   const msg = commentary(ev, r, prev);
   c.textContent = msg.text;
@@ -389,7 +500,7 @@ function lockPrice() {
   $('results').classList.remove('hidden');
   $('nextBtn').textContent = month === 11 ? 'See your year-end review →' : 'Next month →';
   updateKPIs(r);
-  drawChart();
+  drawChart('chart');
 }
 
 function commentary(ev, r, prev) {
@@ -431,12 +542,16 @@ function updateKPIs(r) {
     $('dProfit').className = 'delta ' + (r.profit >= 0 ? 'up' : 'down');
     $('dTrust').textContent = r.dTrust ? (r.dTrust > 0 ? '+' : '') + r.dTrust : '';
     $('dTrust').className = 'delta ' + (r.dTrust > 0 ? 'up' : r.dTrust < 0 ? 'down' : 'flat');
-  } else { $('dProfit').textContent = ''; $('dTrust').textContent = ''; }
+    const prevShare = S.history.length > 1 ? S.history[S.history.length - 2].share : 0.5;
+    const ds = (r.share - prevShare) * 100;
+    $('dShare').textContent = (ds >= 0 ? '+' : '') + ds.toFixed(1) + ' pts';
+    $('dShare').className = 'delta ' + (ds >= 0.05 ? 'up' : ds <= -0.05 ? 'down' : 'flat');
+  } else { $('dProfit').textContent = ''; $('dTrust').textContent = ''; $('dShare').textContent = ''; }
 }
 
 /* ---------------- Chart ---------------- */
-function drawChart() {
-  const cv = $('chart'), ctx = cv.getContext('2d');
+function drawChart(canvasId) {
+  const cv = $(canvasId), ctx = cv.getContext('2d');
   const W = cv.width, H = cv.height, pad = 28;
   ctx.clearRect(0, 0, W, H);
   ctx.strokeStyle = '#4a5469'; ctx.lineWidth = 1;
@@ -483,6 +598,7 @@ function drawChart() {
 function endGame() {
   $('game').classList.add('hidden');
   $('end').classList.remove('hidden');
+  drawChart('endChart');
 
   const ratio = S.cumProfit / benchmark;
   let title;
