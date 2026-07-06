@@ -150,6 +150,18 @@
     .intro-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
     .ichip { font-size: .8rem; font-weight: 700; padding: 6px 13px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
 
+    /* ---------- Character select ---------- */
+    .chars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+    .char { text-align: left; background: var(--surface-2); border: 2px solid var(--border); border-radius: 12px;
+            padding: 12px 14px; cursor: pointer; color: var(--text); font-family: var(--font); }
+    .char:hover, .char.sel { border-color: var(--blue); background: rgba(47,155,255,.12); }
+    .char .ci { font-size: 1.7rem; }
+    .char .cn { font-weight: 800; font-size: .98rem; margin-top: 2px; }
+    .char .ct { font-size: .78rem; color: var(--text-dim); font-style: italic; margin-bottom: 6px; }
+    .char .cstats { display: flex; flex-wrap: wrap; gap: 5px; }
+    .char .cs { font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); }
+    .char .cs.good { color: var(--green); } .char .cs.bad { color: #ff9d9f; } .char .cs.info { color: var(--blue); }
+
     details.how { margin-top: 12px; }
     details.how summary { cursor: pointer; color: var(--text-dim); font-size: .85rem; }
     details.how p { margin: 8px 0; font-size: .84rem; color: var(--text-dim); line-height: 1.5; }
@@ -184,6 +196,8 @@
       .price-row { margin: 8px 0 4px; gap: 8px; }
       .zone-wrap { margin-bottom: 18px; }
       .margin-note { margin-bottom: 8px; }
+      .chars { grid-template-columns: 1fr; gap: 7px; }
+      .char { padding: 9px 12px; }
     }
   </style>
 </head>
@@ -209,7 +223,7 @@
       <span class="ichip">📊 Budget +10%</span>
       <span class="ichip">🎯 Coach grades every month</span>
     </div>
-    <div style="margin-top:14px"><button class="btn" onclick="startGame()">Start the year &rarr;</button>
+    <div style="margin-top:14px"><button class="btn" onclick="showChars()">Choose your manager &rarr;</button>
       <span class="keyhint">or press Enter</span></div>
     <details class="how">
       <summary>The full story &amp; how the simulation works</summary>
@@ -226,6 +240,14 @@
       the identical year at a frozen $10.00 with the neutral move every month. The 🎯 coach judges your price on a
       4-month view, so it never rewards unsustainable gouging.</p>
     </details>
+  </div>
+
+  <!-- ============ CHARACTER SELECT ============ -->
+  <div id="charSel" class="card screen hidden">
+    <span class="badge">Choose your manager</span>
+    <h2 style="font-size:1.25rem">Who takes the job?</h2>
+    <p class="muted" style="margin-top:2px; font-size:.82rem">Same year, different strengths — tap one to start.</p>
+    <div class="chars" id="charList"></div>
   </div>
 
   <!-- ============ GAME ============ -->
@@ -274,6 +296,7 @@
         <div class="zone-mark comp" id="markComp">cheapest rival</div>
       </div>
       <div class="margin-note" id="marginNote"></div>
+      <div class="margin-note hidden" id="preHint" style="color:var(--orange)"></div>
       <button class="btn" id="lockBtn" onclick="lockPrice()">Lock the month</button>
       <span class="keyhint">Enter</span>
     </div>
@@ -448,15 +471,34 @@ const EVENTS = [
 
 const NO_CHOICE = { fx: {} };
 
+/* ---------------- Characters: same year, different strengths.
+   mod() adjusts the starting state; campDisc discounts campaign spend;
+   preHint shows the coach's best price BEFORE locking (guided mode). ---------------- */
+const CHARACTERS = [
+  { id:'brand', icon:'🎩', name:'The Brand Builder', tag:'"Premium is a promise."',
+    stats:[{t:'Trust 78',c:'good'},{t:'Brand +8%',c:'good'},{t:'Cost $6.40',c:'bad'}],
+    mod: s => { s.trust = 78; s.eq += 0.08; s.cost = 6.4; } },
+  { id:'operator', icon:'🔧', name:'The Operator', tag:'"Costs win wars."',
+    stats:[{t:'Cost $5.60',c:'good'},{t:'Trust 64',c:'bad'},{t:'Brand −6%',c:'bad'}],
+    mod: s => { s.trust = 64; s.eq -= 0.06; s.cost = 5.6; } },
+  { id:'marketer', icon:'📣', name:'The Marketer', tag:'"Attention is cheap fuel."',
+    stats:[{t:'Campaigns −40% cost',c:'good'},{t:'Brand +4%',c:'good'}],
+    mod: s => { s.eq += 0.04; s.campDisc = 0.6; } },
+  { id:'analyst', icon:'🧠', name:'The Analyst', tag:'"Numbers first." (guided mode)',
+    stats:[{t:'Coach hints BEFORE you lock',c:'info'},{t:'No stat bonuses',c:'bad'}],
+    mod: s => {}, preHint: true },
+];
+let CHAR = CHARACTERS[0], selChar = 0;
+
 /* ---------------- Last year & budget: the FP&A yardstick. ---------------- */
 const LY_PROFIT = [38, 36, 40, 52, 34, 30, 44, 30, 38, 50, 55, 73].map(v => v * 1000);   // = $520k
 const BUDGET    = LY_PROFIT.map(v => Math.round(v * 1.10));                              // = $572k
 const sumTo = (arr, n) => arr.slice(0, n).reduce((a, b) => a + b, 0);
 
 /* ---------------- Simulation core (shared by player, coach and autopilot) ---------------- */
-function initState() {
-  return {
-    cost: 6.0, eq: 0.00, trust: 70, share: 0.425, marketBase: 100000, PSENS: 4.0,
+function initState(char) {
+  const s = {
+    cost: 6.0, eq: 0.00, trust: 70, share: 0.425, marketBase: 100000, PSENS: 4.0, campDisc: 0,
     rivals: [
       { name: 'BrewCo',       price: 10.5, eq: 0.20,  active: true  },
       { name: 'Velvet Roast', price: 13.5, eq: 0.35,  active: true  },
@@ -464,6 +506,8 @@ function initState() {
     rivalShares: [0.425, 0.15, 0],
     lastPrice: 10.0, cumProfit: 0, pts: 0, maxPts: 0, flags: {}, history: []
   };
+  if (char) char.mod(s);
+  return s;
 }
 
 const FIXED = 120000;
@@ -510,7 +554,8 @@ function runMonth(s, ev, price, choice) {
   const elasticity = Math.pow(price / 10, -0.25);      // mild category elasticity
   const volume = s.marketBase * demandMult * trustFactor * s.share * elasticity;
   const revenue = price * volume;
-  const cash = fx.cash || 0;
+  let cash = fx.cash || 0;
+  if (cash < 0 && s.campDisc) cash = Math.round(cash * s.campDisc);   // the Marketer spends less
   const profit = (price - s.cost) * volume - FIXED + cash;
   s.cumProfit += profit;
 
@@ -529,9 +574,9 @@ function runMonth(s, ev, price, choice) {
   return out;
 }
 
-/* ---------------- Autopilot benchmark: frozen $10.00, neutral move, all year ---------------- */
-function runAutopilot(events) {
-  const s = initState();
+/* ---------------- Autopilot benchmark: frozen $10.00, neutral move, same character ---------------- */
+function runAutopilot(events, char) {
+  const s = initState(char);
   events.forEach(ev => { if (ev.apply) ev.apply(s); runMonth(s, ev, 10.0, ev.choices[ev.neutral]); });
   return s.cumProfit;
 }
@@ -561,12 +606,23 @@ const $ = id => document.getElementById(id);
 const money = v => (v < 0 ? '-$' : '$') + Math.abs(Math.round(v)).toLocaleString('en-US');
 const moneyK = v => (v < 0 ? '-$' : '$') + Math.abs(v / 1000).toFixed(0) + 'k';
 
-function startGame() {
+function showChars() {
+  $('intro').classList.add('hidden');
+  $('charSel').classList.remove('hidden');
+  $('charList').innerHTML = CHARACTERS.map((c, i) =>
+    '<button type="button" class="char' + (i === selChar ? ' sel' : '') + '" onclick="startGame(' + i + ')">' +
+    '<span class="ci">' + c.icon + '</span><div class="cn">' + c.name + '</div><div class="ct">' + c.tag + '</div>' +
+    '<div class="cstats">' + c.stats.map(s => '<span class="cs ' + s.c + '">' + s.t + '</span>').join('') + '</div></button>').join('');
+}
+
+function startGame(charIdx) {
+  CHAR = CHARACTERS[charIdx == null ? selChar : charIdx];
   events = EVENTS.slice(0, 12);
-  benchmark = runAutopilot(events);
-  S = initState();
+  benchmark = runAutopilot(events, CHAR);
+  S = initState(CHAR);
   month = 0;
   $('intro').classList.add('hidden');
+  $('charSel').classList.add('hidden');
   $('game').classList.remove('hidden');
   document.body.classList.add('playing');
   beginMonth();
@@ -584,7 +640,7 @@ function beginMonth() {
   const pre = { cost: S.cost, trust: S.trust, rivals: S.rivals.map(r => ({ price: r.price, active: r.active })) };
   if (ev.apply) ev.apply(S);            // event hits the market before you decide
 
-  $('evMonth').textContent = 'Month ' + (month + 1) + ' · ' + MONTHS[month];
+  $('evMonth').textContent = CHAR.icon + ' ' + CHAR.name + ' · Month ' + (month + 1) + ' · ' + MONTHS[month];
   $('evIcon').textContent = ev.icon;
   $('evTitle').textContent = ev.title;
   $('evText').textContent = ev.text;
@@ -636,13 +692,24 @@ function beginMonth() {
   const slider = $('priceSlider');
   slider.value = S.lastPrice.toFixed(1);
   onSlide();
+  updatePreHint();
   updateKPIs(S.history[S.history.length - 1] || null);
   showScreen('decide');
+}
+
+// the Analyst hears the coach before locking
+function updatePreHint() {
+  const ph = $('preHint');
+  if (!CHAR.preHint) { ph.classList.add('hidden'); return; }
+  const best = bestMoveThisMonth(events[month], events[month].choices[chosenOpt]);
+  ph.textContent = '🎯 Coach whispers: best price is around $' + best.bestP.toFixed(2);
+  ph.classList.remove('hidden');
 }
 
 function pickOpt(i) {
   chosenOpt = i;
   [...document.querySelectorAll('.opt')].forEach((el, j) => el.classList.toggle('sel', j === i));
+  updatePreHint();
 }
 
 function stepPrice(d) {
@@ -894,8 +961,9 @@ function endGame() {
   const totBud = sumTo(BUDGET, 12), totLY = sumTo(LY_PROFIT, 12);
   const vBud = S.cumProfit - totBud, vLY = S.cumProfit - totLY;
   $('endScore').innerHTML =
+    'Played as <strong style="color:var(--text)">' + CHAR.icon + ' ' + CHAR.name + '</strong><br>' +
     'Full-year profit: <strong style="color:var(--text)">' + money(S.cumProfit) + '</strong> · ' +
-    'Autopilot: <strong style="color:var(--text)">' + money(benchmark) + '</strong><br>' +
+    'Autopilot (same manager): <strong style="color:var(--text)">' + money(benchmark) + '</strong><br>' +
     '<strong>Budget ' + money(totBud) + ':</strong> ' + (vBud >= 0
       ? '<span class="up">✓ BEAT by ' + money(vBud) + '</span>'
       : '<span class="down">✗ missed by ' + money(-vBud) + '</span>') +
@@ -926,10 +994,11 @@ function endGame() {
   $('endLessons').innerHTML = L.map(x => '<li>' + x + '</li>').join('');
 }
 
-// keyboard flow: Enter = start / lock / next
+// keyboard flow: Enter = choose manager / start / lock / next
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' || e.repeat) return;
-  if (!$('intro').classList.contains('hidden')) startGame();
+  if (!$('intro').classList.contains('hidden')) showChars();
+  else if (!$('charSel').classList.contains('hidden')) startGame(selChar);
   else if (!$('game').classList.contains('hidden')) {
     if (phase === 'decide') lockPrice();
     else nextScreen();
