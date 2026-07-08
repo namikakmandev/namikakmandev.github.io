@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Report → Dashboard — Namık Akman</title>
+  <meta name="description" content="Photograph a one-page report and turn it into a live dashboard — KPIs, charts and AI-written insights. OCR runs in your browser; only the extracted text is sent for structuring." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    /* ---- input stage ---- */
+    .rd-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    @media (max-width: 860px) { .rd-inputs { grid-template-columns: 1fr; } }
+    .rd-in {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; text-align: center;
+      cursor: pointer; transition: border-color .15s, transform .15s;
+    }
+    .rd-in:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .rd-in .big { font-size: 2rem; display: block; margin-bottom: 10px; }
+    .rd-in h3 { font-size: 1.02rem; margin-bottom: 6px; }
+    .rd-in p { color: var(--text-dim); font-size: 0.88rem; }
+    .rd-note { margin-top: 18px; font-size: 0.82rem; color: var(--text-dim); }
+
+    /* paste panel */
+    #pastePanel { margin-top: 18px; display: none; }
+    #pastePanel textarea {
+      width: 100%; min-height: 180px; resize: vertical; padding: 12px;
+      font: inherit; font-size: 0.9rem; color: var(--text);
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    }
+    #pastePanel .row { display: flex; gap: 10px; margin-top: 10px; }
+
+    /* ---- progress ---- */
+    #progress { display: none; margin-top: 26px; }
+    .steps-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .stepchip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 8px 16px; font-size: 0.88rem; color: var(--text-dim);
+    }
+    .stepchip.on { border-color: var(--accent); color: var(--text); }
+    .stepchip.done { border-color: var(--accent-2); color: var(--text); }
+    .stepchip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
+    .stepchip.on .dot { background: var(--accent); animation: rdpulse 1s infinite; }
+    .stepchip.done .dot { background: var(--accent-2); }
+    @keyframes rdpulse { 50% { opacity: 0.35; } }
+    #progMsg { margin-top: 10px; font-size: 0.85rem; color: var(--text-dim); }
+    #errBox {
+      display: none; margin-top: 14px; padding: 14px 16px; border-radius: 10px;
+      border: 1px solid var(--loss); background: rgba(229,72,77,0.1);
+      color: var(--text); font-size: 0.9rem;
+    }
+
+    /* ---- dashboard ---- */
+    #dash { display: none; }
+    .dash-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+    .dash-head h2 { font-size: 1.5rem; letter-spacing: -0.01em; }
+    .dash-head .per { color: var(--text-dim); font-size: 0.92rem; }
+    .dash-actions { display: flex; gap: 8px; }
+    .dash-actions button {
+      font: inherit; font-size: 0.84rem; font-weight: 600; cursor: pointer;
+      padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text);
+    }
+    .dash-actions button:hover { border-color: var(--accent); }
+
+    .rd-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .rd-kpi {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px;
+    }
+    .rd-kpi .l { font-size: 0.76rem; color: var(--text-dim); letter-spacing: 0.03em; }
+    .rd-kpi .v { font-size: 1.65rem; font-weight: 650; margin-top: 4px; }
+    .rd-kpi .d { font-size: 0.82rem; font-weight: 600; margin-top: 3px; }
+    .rd-kpi .d.up-good, .rd-kpi .d.down-good { color: var(--accent-2); }
+    .rd-kpi .d.up-bad, .rd-kpi .d.down-bad { color: var(--loss); }
+    .rd-kpi .d.flat { color: var(--text-dim); }
+
+    .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 18px; }
+    .chart-card {
+      position: relative; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 18px 12px;
+    }
+    .chart-card h3 { font-size: 0.95rem; margin-bottom: 2px; }
+    .chart-card .unit { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 10px; }
+    .chart-card svg { width: 100%; height: auto; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-dim); }
+    .legend i { display: inline-block; border-radius: 2px; }
+    .legend i.rect { width: 10px; height: 10px; }
+    .legend i.line { width: 14px; height: 3px; border-radius: 2px; }
+
+    .rd-tip {
+      position: absolute; pointer-events: none; z-index: 5; display: none;
+      background: #1b2230; border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 11px; font-size: 0.8rem; color: var(--text);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35); max-width: 240px;
+    }
+    .rd-tip .t { color: var(--text-dim); font-size: 0.72rem; margin-bottom: 3px; }
+    .rd-tip .r { display: flex; align-items: center; gap: 7px; }
+    .rd-tip .r i { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+    .rd-tip .r b { font-weight: 650; }
+    .rd-tip .r span { color: var(--text-dim); }
+
+    .rd-insights {
+      margin-top: 20px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px;
+    }
+    .rd-insights h3 { font-size: 0.95rem; margin-bottom: 10px; }
+    .rd-insights ul { list-style: none; }
+    .rd-insights li {
+      position: relative; padding: 6px 0 6px 22px; color: var(--text-dim); font-size: 0.92rem;
+    }
+    .rd-insights li::before {
+      content: ""; position: absolute; left: 4px; top: 14px;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    }
+    .dash-src { margin-top: 14px; font-size: 0.78rem; color: var(--text-dim); }
+
+    /* edit-data drawer */
+    #editWrap { display: none; margin-top: 16px; }
+    #editWrap textarea {
+      width: 100%; min-height: 220px; resize: vertical; padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem;
+      color: var(--text); background: #1b2230; border: 1px solid var(--border); border-radius: 10px;
+    }
+
+    /* print = light one-pager */
+    @media print {
+      body { background: #fff; }
+      .site-header, .site-footer, .rd-intro, #inputStage, #progress,
+      .dash-actions, #editWrap, .cta-band-wrap { display: none !important; }
+      #dash { display: block !important; }
+      :root {
+        --bg: #ffffff; --surface: #ffffff; --surface-2: #f2f4f8;
+        --text: #1f2430; --text-dim: #5b6472; --border: #d6dce4;
+      }
+      .chart-card, .rd-kpi, .rd-insights { break-inside: avoid; box-shadow: none; }
+      .rd-tip { display: none !important; }
+      @page { size: A4; margin: 12mm; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="commercial-suite.html">Commercial Suite</a></li>
+        <li><a href="how-i-work.html">How I Work</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="section rd-intro">
+      <div class="container">
+        <h2 class="section-title">Report → Dashboard</h2>
+        <p class="section-sub" style="max-width:720px">
+          Take a photo of any one-page report — a monthly review, a printed P&amp;L, a
+          board pack page — and watch it become a live dashboard: KPI tiles, charts
+          and plain-language insights. The photo never leaves your browser; text is
+          read locally (OCR) and only that text goes to the AI to be structured.
+        </p>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0" id="inputStage">
+      <div class="container">
+        <div class="rd-inputs">
+          <div class="rd-in" id="btnPhoto" role="button" tabindex="0">
+            <span class="big" aria-hidden="true">📷</span>
+            <h3>Photograph a page</h3>
+            <p>Use your phone camera or upload an image of a one-page report.</p>
+            <input type="file" id="fileInput" accept="image/*" capture="environment" hidden />
+          </div>
+          <div class="rd-in" id="btnPaste" role="button" tabindex="0">
+            <span class="big" aria-hidden="true">📋</span>
+            <h3>Paste the text</h3>
+            <p>Copy the report text from a PDF or email and paste it instead.</p>
+          </div>
+          <div class="rd-in" id="btnDemo" role="button" tabindex="0">
+            <span class="big" aria-hidden="true">▶</span>
+            <h3>See a sample</h3>
+            <p>No report at hand? Render the built-in sample instantly — no AI call.</p>
+          </div>
+        </div>
+
+        <div id="pastePanel">
+          <textarea id="pasteBox" placeholder="Paste the report text here — headings, KPIs, tables, anything. Turkish or English."></textarea>
+          <div class="row">
+            <button class="btn btn-primary" id="btnPasteGo" type="button">Build the dashboard</button>
+            <button class="btn btn-ghost" id="btnPasteCancel" type="button">Cancel</button>
+          </div>
+        </div>
+
+        <p class="rd-note">
+          Best photos: page flat, good light, straight-on. Numbers with labels
+          ("Revenue: 4.2M") extract best. Works in Turkish and English.
+        </p>
+
+        <div id="progress">
+          <div class="steps-row">
+            <span class="stepchip" id="st1"><span class="dot"></span>Reading the photo</span>
+            <span class="stepchip" id="st2"><span class="dot"></span>Understanding the numbers</span>
+            <span class="stepchip" id="st3"><span class="dot"></span>Building the dashboard</span>
+          </div>
+          <p id="progMsg"></p>
+        </div>
+        <div id="errBox"></div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container" id="dash">
+        <div class="dash-head">
+          <div>
+            <h2 id="dTitle"></h2>
+            <span class="per" id="dPeriod"></span>
+          </div>
+          <div class="dash-actions">
+            <button type="button" id="btnPrint">🖨 Print / PDF</button>
+            <button type="button" id="btnEdit">✎ Edit data</button>
+            <button type="button" id="btnReset">↺ Start over</button>
+          </div>
+        </div>
+        <div class="rd-kpis" id="dKpis"></div>
+        <div class="charts" id="dCharts"></div>
+        <div class="rd-insights" id="dInsights" hidden>
+          <h3>What the numbers say</h3>
+          <ul id="dInsightList"></ul>
+        </div>
+        <p class="dash-src" id="dSrc"></p>
+        <div id="editWrap">
+          <textarea id="editBox" spellcheck="false"></textarea>
+          <div style="display:flex;gap:10px;margin-top:10px">
+            <button class="btn btn-primary" id="btnRerender" type="button">Re-render</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta-band-wrap" style="padding-top:0">
+      <div class="container">
+        <div class="cta-band">
+          <h2>This took your report thirty seconds.</h2>
+          <p>Imagine the same treatment on a full monthly pack — automated, on your
+          own data, rerun every month. That's the kind of thing I like building.</p>
+          <div class="cta-actions">
+            <a class="btn btn-primary" href="how-i-work.html">See how I work</a>
+            <a class="btn btn-ghost" href="contact.html">Get in touch</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Built with plain HTML, CSS &amp; JavaScript</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=28"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    /* Shared Anthropic proxy — same worker the dealer demo & FiloDesk use */
+    var AI_PROXY_URL = "https://assetix-ai.akmannamik83.workers.dev";
+    var AI_SYSTEM =
+      "You convert the OCR text of a one-page business report into strict JSON for a dashboard. " +
+      "Reply with ONLY a JSON object — no markdown, no commentary. Schema: " +
+      '{"title":string,"period":string,"kpis":[{"label":string,"value":number,"unit":string,"delta":string,"dir":"up"|"down"|"flat","good":boolean}],' +
+      '"charts":[{"type":"bar"|"line"|"donut","title":string,"unit":string,"labels":[string],"series":[{"name":string,"values":[number]}]}],' +
+      '"insights":[string]} ' +
+      "Rules: use ONLY numbers present in the text — never invent data; max 6 kpis, max 4 charts, max 4 series per chart, max 6 donut segments; " +
+      "unit is a short suffix/prefix like '₺', '$', '%', 'M' (empty string if none); delta is a short signed change like '+6.2% vs May' when the text supports it, else empty; " +
+      "'good' says whether the change is commercially good; keep all labels and insights in the language of the report; " +
+      "2-4 insights, each under 140 characters, concrete and tied to the actual numbers; " +
+      "only include a chart when the text really contains that series of numbers.";
+
+    /* Chart palette — brand-adjacent, validated for the dark surface
+       (lightness band, chroma, CVD separation, contrast). Fixed order. */
+    var PAL = ["#1F84E0", "#E05A00", "#12A76A", "#9B7DE8"];
+    var OTHER = "#77809a"; // muted slate for "Other" — the label carries identity
+    var SURFACE = "#2d3547";
+
+    var SAMPLE = {
+      title: "Northwind Foods — Monthly Business Review",
+      period: "June 2026 · sample data",
+      kpis: [
+        { label: "Net revenue", value: 4280000, unit: "$", delta: "+6.2% vs May", dir: "up", good: true },
+        { label: "Gross margin", value: 31.4, unit: "%", delta: "−1.8 pt vs May", dir: "down", good: false },
+        { label: "Cash position", value: 812000, unit: "$", delta: "+3.1% vs May", dir: "up", good: true },
+        { label: "Overdue receivables", value: 264000, unit: "$", delta: "+12% vs May", dir: "up", good: false },
+        { label: "Units sold", value: 118400, unit: "", delta: "+4.9% vs May", dir: "up", good: true },
+        { label: "Avg. selling price", value: 36.2, unit: "$", delta: "+1.2% vs May", dir: "up", good: true }
+      ],
+      charts: [
+        { type: "line", title: "Net revenue by month", unit: "$", labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+          series: [{ name: "Net revenue", values: [3620000, 3480000, 3810000, 3950000, 4030000, 4280000] }] },
+        { type: "bar", title: "Revenue by region", unit: "$", labels: ["Marmara", "Ege", "İç Anadolu", "Akdeniz", "Karadeniz"],
+          series: [{ name: "Revenue", values: [1710000, 940000, 730000, 540000, 360000] }] },
+        { type: "donut", title: "Cost structure (% of revenue)", unit: "%", labels: ["COGS", "Logistics", "Marketing", "G&A", "Other"],
+          series: [{ name: "Share", values: [58, 12, 9, 13, 8] }] },
+        { type: "bar", title: "Gross margin % by channel", unit: "%", labels: ["Retail", "Wholesale", "Export", "Online"],
+          series: [
+            { name: "May", values: [34.1, 27.2, 30.8, 41.0] },
+            { name: "Jun", values: [32.6, 25.9, 30.1, 42.3] }
+          ] }
+      ],
+      insights: [
+        "Revenue grew 6.2% but gross margin fell 1.8 pt — growth is coming from lower-margin wholesale volume.",
+        "Overdue receivables rose 12% to $264K while cash grew only 3.1%; collections are lagging the sales growth.",
+        "Online is the only channel expanding margin (+1.3 pt to 42.3%) — the mix shift worth accelerating."
+      ]
+    };
+
+    /* ---------- helpers ---------- */
+    var $ = function (id) { return document.getElementById(id); };
+    var SVGNS = "http://www.w3.org/2000/svg";
+    function sv(tag, attrs, parent) {
+      var e = document.createElementNS(SVGNS, tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(e);
+      return e;
+    }
+    function div(cls, parent) {
+      var e = document.createElement("div");
+      if (cls) e.className = cls;
+      if (parent) parent.appendChild(e);
+      return e;
+    }
+    function num(v) { // tolerate "4.280.000", "4,2M", "%31,4" strings from the AI
+      if (typeof v === "number") return v;
+      if (typeof v !== "string") return NaN;
+      var s = v.replace(/[^\d.,\-]/g, "");
+      if (/,\d{1,2}$/.test(s)) s = s.replace(/\./g, "").replace(",", ".");
+      else s = s.replace(/,/g, "");
+      var f = parseFloat(s);
+      if (/[mM]\b/.test(v)) f *= 1e6;
+      else if (/[kK]\b/.test(v)) f *= 1e3;
+      return f;
+    }
+    function fmt(v, unit) {
+      if (!isFinite(v)) return "—";
+      var a = Math.abs(v), s;
+      if (a >= 1e9) s = (v / 1e9).toFixed(1).replace(/\.0$/, "") + "B";
+      else if (a >= 1e6) s = (v / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+      else if (a >= 1e4) s = (v / 1e3).toFixed(0) + "K";
+      else s = (Math.round(v * 10) / 10).toLocaleString("en-US");
+      if (unit === "%") return s + "%";
+      if (unit && unit.length <= 2) return unit + s;
+      return s + (unit ? " " + unit : "");
+    }
+    function niceTicks(max) {
+      if (max <= 0) max = 1;
+      var raw = max / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+      var step = [1, 2, 2.5, 5, 10].map(function (m) { return m * mag; })
+        .filter(function (s) { return s >= raw; })[0] || 10 * mag;
+      var ticks = [0], t = 0;
+      while (t < max - 1e-9) { t += step; ticks.push(t); } // top tick always ≥ max
+      return ticks;
+    }
+
+    /* one shared tooltip per chart card */
+    function makeTip(card) {
+      var tip = div("rd-tip", card);
+      return {
+        show: function (title, rows, x, y) {
+          tip.textContent = "";
+          if (title) { var t = div("t", tip); t.textContent = title; }
+          rows.forEach(function (r) {
+            var row = div("r", tip);
+            if (r.color) { var i = document.createElement("i"); i.style.background = r.color; row.appendChild(i); }
+            var b = document.createElement("b"); b.textContent = r.value; row.appendChild(b);
+            if (r.label) { var s = document.createElement("span"); s.textContent = r.label; row.appendChild(s); }
+          });
+          tip.style.display = "block";
+          var cw = card.clientWidth, tw = tip.offsetWidth;
+          tip.style.left = Math.max(6, Math.min(cw - tw - 6, x - tw / 2)) + "px";
+          tip.style.top = Math.max(6, y - tip.offsetHeight - 14) + "px";
+        },
+        hide: function () { tip.style.display = "none"; }
+      };
+    }
+    function legend(card, entries, kind) {
+      var lg = div("legend", card);
+      entries.forEach(function (e) {
+        var s = document.createElement("span");
+        var i = document.createElement("i");
+        i.className = kind === "line" ? "line" : "rect";
+        i.style.background = e.color;
+        s.appendChild(i);
+        s.appendChild(document.createTextNode(e.label));
+        lg.appendChild(s);
+      });
+    }
+
+    /* rounded data-end, square baseline */
+    function barPath(x, y, w, h, r, up) {
+      r = Math.min(r, w / 2, Math.abs(h));
+      if (h <= 0) return "";
+      if (up) return "M" + x + " " + (y + h) + " v" + (-(h - r)) + " q0 " + (-r) + " " + r + " " + (-r) +
+        " h" + (w - 2 * r) + " q" + r + " 0 " + r + " " + r + " v" + (h - r) + " z";
+      return "M" + x + " " + y + " v" + (h - r) + " q0 " + r + " " + r + " " + r +
+        " h" + (w - 2 * r) + " q" + r + " 0 " + r + " " + (-r) + " v" + (-(h - r)) + " z";
+    }
+
+    /* ---------- chart renderers (600×300 viewBox) ---------- */
+    var W = 600, H = 300, ML = 52, MR = 14, MT = 14, MB = 34;
+
+    function frame(svg, ticks, unit) {
+      var max = ticks[ticks.length - 1];
+      ticks.forEach(function (t) {
+        var y = MT + (H - MT - MB) * (1 - t / max);
+        sv("line", { x1: ML, x2: W - MR, y1: y, y2: y, stroke: "#3a4358", "stroke-width": 1 }, svg);
+        sv("text", { x: ML - 8, y: y + 4, "text-anchor": "end", fill: "#8b94a7", "font-size": 12 }, svg)
+          .textContent = fmt(t, unit === "%" ? "%" : "");
+      });
+      return function (v) { return MT + (H - MT - MB) * (1 - v / max); };
+    }
+
+    function renderBar(card, c, tip) {
+      var svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img" });
+      var nS = c.series.length, nL = c.labels.length;
+      var max = Math.max.apply(null, c.series.map(function (s) { return Math.max.apply(null, s.values); }));
+      var Y = frame(svg, niceTicks(max), c.unit);
+      var plotW = W - ML - MR, band = plotW / nL;
+      var barW = Math.min(24, (band - 8 - 2 * (nS - 1)) / nS);
+      var groupW = barW * nS + 2 * (nS - 1);
+      var single = nS === 1;
+
+      c.labels.forEach(function (lab, i) {
+        var gx = ML + band * i + (band - groupW) / 2;
+        c.series.forEach(function (s, si) {
+          var v = s.values[i]; if (!isFinite(v)) return;
+          var y = Y(v), h = H - MB - y;
+          var p = sv("path", { d: barPath(gx + si * (barW + 2), y, barW, h, 4, true), fill: PAL[si] }, svg);
+          var hit = sv("rect", { x: gx + si * (barW + 2) - 3, y: MT, width: barW + 6, height: H - MT - MB, fill: "transparent" }, svg);
+          hit.addEventListener("pointermove", function (ev) {
+            p.setAttribute("opacity", "0.8");
+            var r = card.getBoundingClientRect();
+            tip.show(lab, [{ color: PAL[si], value: fmt(v, c.unit), label: single ? "" : s.name }], ev.clientX - r.left, ev.clientY - r.top);
+          });
+          hit.addEventListener("pointerleave", function () { p.removeAttribute("opacity"); tip.hide(); });
+          if (single && nL <= 8) {
+            sv("text", { x: gx + barW / 2, y: y - 6, "text-anchor": "middle", fill: "#e6e8ee", "font-size": 12, "font-weight": 600 }, svg)
+              .textContent = fmt(v, c.unit);
+          }
+        });
+        if (nL <= 10 || i % Math.ceil(nL / 10) === 0) {
+          var t = sv("text", { x: ML + band * i + band / 2, y: H - MB + 18, "text-anchor": "middle", fill: "#8b94a7", "font-size": 12 }, svg);
+          t.textContent = lab.length > 12 ? lab.slice(0, 11) + "…" : lab;
+        }
+      });
+      sv("line", { x1: ML, x2: W - MR, y1: H - MB, y2: H - MB, stroke: "#4a5469", "stroke-width": 1 }, svg);
+      card.appendChild(svg);
+      if (!single) legend(card, c.series.map(function (s, i) { return { label: s.name, color: PAL[i] }; }), "rect");
+    }
+
+    function renderLine(card, c, tip) {
+      var svg = sv("svg", { viewBox: "0 0 " + W + " " + H, role: "img" });
+      var max = Math.max.apply(null, c.series.map(function (s) { return Math.max.apply(null, s.values); }));
+      var Y = frame(svg, niceTicks(max), c.unit);
+      var n = c.labels.length, single = c.series.length === 1;
+      var X = function (i) { return ML + (W - ML - MR) * (n === 1 ? 0.5 : i / (n - 1)); };
+
+      c.series.forEach(function (s, si) {
+        if (single) {
+          var area = s.values.map(function (v, i) { return (i ? "L" : "M") + X(i) + " " + Y(v); }).join(" ") +
+            " L" + X(n - 1) + " " + (H - MB) + " L" + X(0) + " " + (H - MB) + " Z";
+          sv("path", { d: area, fill: PAL[si], opacity: 0.1 }, svg);
+        }
+        var d = s.values.map(function (v, i) { return (i ? "L" : "M") + X(i) + " " + Y(v); }).join(" ");
+        sv("path", { d: d, fill: "none", stroke: PAL[si], "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+        sv("circle", { cx: X(n - 1), cy: Y(s.values[n - 1]), r: 4, fill: PAL[si], stroke: SURFACE, "stroke-width": 2 }, svg);
+        if (single) {
+          sv("text", { x: X(n - 1) - 6, y: Y(s.values[n - 1]) - 10, "text-anchor": "end", fill: "#e6e8ee", "font-size": 12, "font-weight": 600 }, svg)
+            .textContent = fmt(s.values[n - 1], c.unit);
+        }
+      });
+      c.labels.forEach(function (lab, i) {
+        if (n <= 10 || i % Math.ceil(n / 10) === 0) {
+          var t = sv("text", { x: X(i), y: H - MB + 18, "text-anchor": "middle", fill: "#8b94a7", "font-size": 12 }, svg);
+          t.textContent = lab.length > 12 ? lab.slice(0, 11) + "…" : lab;
+        }
+      });
+      sv("line", { x1: ML, x2: W - MR, y1: H - MB, y2: H - MB, stroke: "#4a5469", "stroke-width": 1 }, svg);
+
+      /* crosshair + all-series tooltip */
+      var hair = sv("line", { y1: MT, y2: H - MB, stroke: "#8b94a7", "stroke-width": 1, opacity: 0 }, svg);
+      var dots = c.series.map(function (s, si) {
+        return sv("circle", { r: 4, fill: PAL[si], stroke: SURFACE, "stroke-width": 2, opacity: 0 }, svg);
+      });
+      var overlay = sv("rect", { x: ML, y: MT, width: W - ML - MR, height: H - MT - MB, fill: "transparent" }, svg);
+      overlay.addEventListener("pointermove", function (ev) {
+        var r = svg.getBoundingClientRect();
+        var px = (ev.clientX - r.left) / r.width * W;
+        var i = Math.max(0, Math.min(n - 1, Math.round((px - ML) / ((W - ML - MR) / Math.max(1, n - 1)))));
+        hair.setAttribute("x1", X(i)); hair.setAttribute("x2", X(i)); hair.setAttribute("opacity", 0.5);
+        c.series.forEach(function (s, si) {
+          dots[si].setAttribute("cx", X(i)); dots[si].setAttribute("cy", Y(s.values[i])); dots[si].setAttribute("opacity", 1);
+        });
+        var cr = card.getBoundingClientRect();
+        tip.show(c.labels[i], c.series.map(function (s, si) {
+          return { color: PAL[si], value: fmt(s.values[i], c.unit), label: single ? "" : s.name };
+        }), ev.clientX - cr.left, ev.clientY - cr.top);
+      });
+      overlay.addEventListener("pointerleave", function () {
+        hair.setAttribute("opacity", 0);
+        dots.forEach(function (d) { d.setAttribute("opacity", 0); });
+        tip.hide();
+      });
+      card.appendChild(svg);
+      if (!single) legend(card, c.series.map(function (s, i) { return { label: s.name, color: PAL[i] }; }), "line");
+    }
+
+    function renderDonut(card, c, tip) {
+      var vals = c.series[0].values.slice(), labs = c.labels.slice();
+      if (vals.length > 6) { // fold the tail into Other
+        var head = labs.slice(0, 5), hv = vals.slice(0, 5);
+        hv.push(vals.slice(5).reduce(function (a, b) { return a + b; }, 0));
+        head.push("Other"); labs = head; vals = hv;
+      }
+      var total = vals.reduce(function (a, b) { return a + b; }, 0) || 1;
+      var size = 300, cx = 150, cy = 150, R = 108, r0 = 68;
+      var svg = sv("svg", { viewBox: "0 0 " + size + " " + size, role: "img", style: "max-width:280px;margin:0 auto" });
+      var a0 = -Math.PI / 2, GAP = 0.024; // ≈2px angular surface gap at mid-radius
+      var colors = labs.map(function (l, i) { return l === "Other" ? OTHER : PAL[i % PAL.length]; });
+      vals.forEach(function (v, i) {
+        var frac = v / total, a1 = a0 + frac * 2 * Math.PI;
+        var s = a0 + GAP / 2, e = Math.max(s, a1 - GAP / 2);
+        var large = (e - s) > Math.PI ? 1 : 0;
+        var d = "M" + (cx + R * Math.cos(s)) + " " + (cy + R * Math.sin(s)) +
+          " A" + R + " " + R + " 0 " + large + " 1 " + (cx + R * Math.cos(e)) + " " + (cy + R * Math.sin(e)) +
+          " L" + (cx + r0 * Math.cos(e)) + " " + (cy + r0 * Math.sin(e)) +
+          " A" + r0 + " " + r0 + " 0 " + large + " 0 " + (cx + r0 * Math.cos(s)) + " " + (cy + r0 * Math.sin(s)) + " Z";
+        var p = sv("path", { d: d, fill: colors[i] }, svg);
+        p.addEventListener("pointermove", function (ev) {
+          p.setAttribute("opacity", "0.8");
+          var cr = card.getBoundingClientRect();
+          tip.show(labs[i], [{ color: colors[i], value: fmt(v, c.unit), label: Math.round(v / total * 100) + "%" }], ev.clientX - cr.left, ev.clientY - cr.top);
+        });
+        p.addEventListener("pointerleave", function () { p.removeAttribute("opacity"); tip.hide(); });
+        a0 = a1;
+      });
+      sv("text", { x: cx, y: cy - 2, "text-anchor": "middle", fill: "#e6e8ee", "font-size": 26, "font-weight": 700 }, svg)
+        .textContent = c.unit === "%" ? Math.round(total) + "%" : fmt(total, c.unit);
+      sv("text", { x: cx, y: cy + 20, "text-anchor": "middle", fill: "#8b94a7", "font-size": 12 }, svg)
+        .textContent = "total";
+      card.appendChild(svg);
+      legend(card, labs.map(function (l, i) { return { label: l + " · " + Math.round(vals[i] / total * 100) + "%", color: colors[i] }; }), "rect");
+    }
+
+    /* ---------- dashboard assembly ---------- */
+    var current = null;
+
+    function renderDash(data, srcNote) {
+      current = data;
+      $("dTitle").textContent = data.title || "Your report";
+      $("dPeriod").textContent = data.period || "";
+      var kp = $("dKpis"); kp.textContent = "";
+      (data.kpis || []).slice(0, 6).forEach(function (k) {
+        var t = div("rd-kpi", kp);
+        var l = div("l", t); l.textContent = k.label || "";
+        var v = div("v", t); v.textContent = fmt(num(k.value), k.unit || "");
+        if (k.delta) {
+          var d = div("d", t);
+          var dir = k.dir === "down" ? "down" : k.dir === "up" ? "up" : "flat";
+          d.className = "d " + (dir === "flat" ? "flat" : dir + "-" + (k.good ? "good" : "bad"));
+          d.textContent = (dir === "up" ? "▲ " : dir === "down" ? "▼ " : "· ") + k.delta;
+        }
+      });
+      var ch = $("dCharts"); ch.textContent = "";
+      (data.charts || []).slice(0, 4).forEach(function (c) {
+        if (!c || !c.labels || !c.labels.length || !c.series || !c.series.length) return;
+        c.series = c.series.slice(0, 4).map(function (s) {
+          return { name: String(s.name || ""), values: c.labels.map(function (_, i) { return num(s.values && s.values[i]); }) };
+        });
+        // a "chart" with a single value is a number, not a chart — skip (KPIs carry it)
+        if (c.labels.length < 2) return;
+        var card = div("chart-card", ch);
+        var h = document.createElement("h3"); h.textContent = c.title || ""; card.appendChild(h);
+        var u = div("unit", card); u.textContent = c.unit && c.unit !== "%" ? "in " + c.unit : (c.unit === "%" ? "percent" : "");
+        var tip = makeTip(card);
+        try {
+          if (c.type === "line") renderLine(card, c, tip);
+          else if (c.type === "donut" && c.series.length === 1 && c.labels.length <= 8) renderDonut(card, c, tip);
+          else renderBar(card, c, tip);
+        } catch (e) { card.remove(); }
+      });
+      var ins = (data.insights || []).filter(Boolean);
+      $("dInsights").hidden = !ins.length;
+      var ul = $("dInsightList"); ul.textContent = "";
+      ins.slice(0, 4).forEach(function (s) {
+        var li = document.createElement("li"); li.textContent = s; ul.appendChild(li);
+      });
+      $("dSrc").textContent = srcNote;
+      $("editBox").value = JSON.stringify(data, null, 2);
+      $("dash").style.display = "block";
+      $("dash").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    /* ---------- pipeline ---------- */
+    function setStep(n, state, msg) {
+      var el = $("st" + n);
+      if (el) el.className = "stepchip" + (state ? " " + state : "");
+      if (msg !== undefined) $("progMsg").textContent = msg;
+    }
+    function resetSteps(skipOcr) {
+      $("progress").style.display = "block";
+      $("errBox").style.display = "none";
+      $("st1").style.display = skipOcr ? "none" : "";
+      ["st1", "st2", "st3"].forEach(function (id) { $(id).className = "stepchip"; });
+      $("progMsg").textContent = "";
+    }
+    function fail(msg) {
+      $("progress").style.display = "none";
+      var e = $("errBox");
+      e.textContent = "⚠ " + msg + " You can still try \"Paste the text\" or the built-in sample.";
+      e.style.display = "block";
+    }
+
+    function askAI(text) {
+      setStep(2, "on", "Sending the extracted text to the AI to structure…");
+      var prompt = "OCR TEXT OF THE REPORT PAGE:\n\n" + text.slice(0, 12000) +
+        "\n\nConvert this to the dashboard JSON now. Reply with only the JSON object.";
+      return fetch(AI_PROXY_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt: prompt, system: AI_SYSTEM })
+      }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok || !j.text) throw new Error(j.error || "AI service error (" + r.status + ")");
+        return j.text;
+      }); });
+    }
+    function parseAI(text) {
+      var a = text.indexOf("{"), b = text.lastIndexOf("}");
+      if (a < 0 || b <= a) throw new Error("The AI reply contained no JSON.");
+      return JSON.parse(text.slice(a, b + 1));
+    }
+
+    function runFromText(text, srcNote) {
+      if (!text || text.replace(/\s/g, "").length < 30) { fail("Not enough readable text was found."); return; }
+      askAI(text).then(function (reply) {
+        setStep(2, "done");
+        setStep(3, "on", "Rendering…");
+        var data = parseAI(reply);
+        setStep(3, "done", "");
+        $("progress").style.display = "none";
+        renderDash(data, srcNote);
+      }).catch(function (e) { fail(e.message || "Something went wrong."); });
+    }
+
+    var tessReady = null;
+    function loadTesseract() {
+      if (tessReady) return tessReady;
+      tessReady = new Promise(function (res, rej) {
+        var s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+        s.onload = function () { res(window.Tesseract); };
+        s.onerror = function () { rej(new Error("Could not load the OCR library.")); };
+        document.head.appendChild(s);
+      });
+      return tessReady;
+    }
+
+    function runFromPhoto(file) {
+      resetSteps(false);
+      setStep(1, "on", "Loading the OCR engine…");
+      loadTesseract().then(function (T) {
+        return T.recognize(file, "eng+tur", {
+          logger: function (m) {
+            if (m.status === "recognizing text") {
+              setStep(1, "on", "Reading the photo — " + Math.round(m.progress * 100) + "% (all in your browser)");
+            }
+          }
+        });
+      }).then(function (out) {
+        setStep(1, "done");
+        runFromText(out.data.text, "Built from a photographed page — OCR ran locally in this browser; only the extracted text was sent to the AI.");
+      }).catch(function (e) { fail(e.message || "OCR failed."); });
+    }
+
+    /* ---------- wiring ---------- */
+    $("btnPhoto").addEventListener("click", function () { $("fileInput").click(); });
+    $("btnPhoto").addEventListener("keydown", function (e) { if (e.key === "Enter") $("fileInput").click(); });
+    $("fileInput").addEventListener("change", function () {
+      if (this.files && this.files[0]) runFromPhoto(this.files[0]);
+      this.value = "";
+    });
+    $("btnPaste").addEventListener("click", function () {
+      $("pastePanel").style.display = "block";
+      $("pasteBox").focus();
+    });
+    $("btnPasteCancel").addEventListener("click", function () { $("pastePanel").style.display = "none"; });
+    $("btnPasteGo").addEventListener("click", function () {
+      resetSteps(true);
+      runFromText($("pasteBox").value, "Built from pasted report text — sent to the AI for structuring only.");
+    });
+    $("btnDemo").addEventListener("click", function () {
+      $("progress").style.display = "none"; $("errBox").style.display = "none";
+      renderDash(JSON.parse(JSON.stringify(SAMPLE)), "Sample data — rendered entirely in the browser, no AI call.");
+    });
+    $("btnPrint").addEventListener("click", function () { window.print(); });
+    $("btnEdit").addEventListener("click", function () {
+      var w = $("editWrap");
+      w.style.display = w.style.display === "block" ? "none" : "block";
+    });
+    $("btnRerender").addEventListener("click", function () {
+      try { renderDash(JSON.parse($("editBox").value), $("dSrc").textContent); }
+      catch (e) { alert("That JSON doesn't parse: " + e.message); }
+    });
+    $("btnReset").addEventListener("click", function () {
+      $("dash").style.display = "none"; $("editWrap").style.display = "none";
+      $("pastePanel").style.display = "none";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  })();
+  </script>
+</body>
+</html>
