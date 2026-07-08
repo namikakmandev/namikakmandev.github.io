@@ -127,12 +127,54 @@
       color: var(--text); background: #1b2230; border: 1px solid var(--border); border-radius: 10px;
     }
 
+    /* language toggle */
+    .lang-toggle { display: inline-flex; gap: 0; margin-left: 14px; vertical-align: middle;
+      border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+    .lang-toggle button {
+      font: inherit; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
+      padding: 4px 12px; border: 0; cursor: pointer;
+      background: transparent; color: var(--text-dim);
+    }
+    .lang-toggle button.on { background: var(--accent); color: #fff; }
+
+    /* restore-last-dashboard bar */
+    #restoreBar {
+      display: none; margin-top: 18px; padding: 12px 16px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      font-size: 0.9rem; color: var(--text-dim);
+    }
+    #restoreBar button { font: inherit; cursor: pointer; border: 0; background: none;
+      color: var(--accent); font-weight: 600; padding: 0 4px; }
+
+    /* charts & KPIs draw in one by one */
+    @keyframes rdrise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    .rd-kpi, .chart-card, .rd-insights { animation: rdrise 0.45s ease both; }
+    @media (prefers-reduced-motion: reduce) { .rd-kpi, .chart-card, .rd-insights { animation: none; } }
+
+    /* print-only branding */
+    .print-brand, .print-foot { display: none; }
+
     /* print = light one-pager */
     @media print {
       body { background: #fff; }
       .site-header, .site-footer, .rd-intro, #inputStage, #progress,
-      .dash-actions, #editWrap, .cta-band-wrap { display: none !important; }
+      .dash-actions, #editWrap, .cta-band-wrap, #restoreBar { display: none !important; }
       #dash { display: block !important; }
+      .rd-kpi, .chart-card, .rd-insights { animation: none !important; }
+      /* direct value labels are light-on-dark on screen — darken for paper */
+      svg text[fill="#e6e8ee"] { fill: #1f2430 !important; }
+      .print-brand {
+        display: flex; justify-content: space-between; align-items: baseline;
+        border-bottom: 3px solid #2F9BFF; padding-bottom: 10px; margin-bottom: 18px;
+        font-size: 0.85rem; color: #5b6472;
+      }
+      .print-brand b { font-size: 1.05rem; color: #1f2430; }
+      .print-brand b span { color: #2F9BFF; }
+      .print-foot {
+        margin-top: 18px; border-top: 1px solid #d6dce4; padding-top: 10px;
+        display: flex; justify-content: space-between;
+        font-size: 0.75rem; color: #5b6472;
+      }
       :root {
         --bg: #ffffff; --surface: #ffffff; --surface-2: #f2f4f8;
         --text: #1f2430; --text-dim: #5b6472; --border: #d6dce4;
@@ -162,13 +204,13 @@
   <main>
     <section class="section rd-intro">
       <div class="container">
-        <h2 class="section-title">Report → Dashboard</h2>
-        <p class="section-sub" style="max-width:720px">
-          Take a photo of any one-page report — a monthly review, a printed P&amp;L, a
-          board pack page — and watch it become a live dashboard: KPI tiles, charts
-          and plain-language insights. The photo never leaves your browser; text is
-          read locally (OCR) and only that text goes to the AI to be structured.
-        </p>
+        <h2 class="section-title">Report → Dashboard
+          <span class="lang-toggle" role="group" aria-label="Language">
+            <button type="button" id="langEN">EN</button>
+            <button type="button" id="langTR">TR</button>
+          </span>
+        </h2>
+        <p class="section-sub" style="max-width:720px" data-i18n="intro"></p>
       </div>
     </section>
 
@@ -177,40 +219,38 @@
         <div class="rd-inputs">
           <div class="rd-in" id="btnPhoto" role="button" tabindex="0">
             <span class="big" aria-hidden="true">📷</span>
-            <h3>Photograph a page</h3>
-            <p>Use your phone camera or upload an image of a one-page report.</p>
+            <h3 data-i18n="photoH"></h3>
+            <p data-i18n="photoP"></p>
             <input type="file" id="fileInput" accept="image/*" capture="environment" hidden />
           </div>
           <div class="rd-in" id="btnPaste" role="button" tabindex="0">
             <span class="big" aria-hidden="true">📋</span>
-            <h3>Paste the text</h3>
-            <p>Copy the report text from a PDF or email and paste it instead.</p>
+            <h3 data-i18n="pasteH"></h3>
+            <p data-i18n="pasteP"></p>
           </div>
           <div class="rd-in" id="btnDemo" role="button" tabindex="0">
             <span class="big" aria-hidden="true">▶</span>
-            <h3>See a sample</h3>
-            <p>No report at hand? Render the built-in sample instantly — no AI call.</p>
+            <h3 data-i18n="demoH"></h3>
+            <p data-i18n="demoP"></p>
           </div>
         </div>
 
         <div id="pastePanel">
-          <textarea id="pasteBox" placeholder="Paste the report text here — headings, KPIs, tables, anything. Turkish or English."></textarea>
+          <textarea id="pasteBox"></textarea>
           <div class="row">
-            <button class="btn btn-primary" id="btnPasteGo" type="button">Build the dashboard</button>
-            <button class="btn btn-ghost" id="btnPasteCancel" type="button">Cancel</button>
+            <button class="btn btn-primary" id="btnPasteGo" type="button" data-i18n="pasteGo"></button>
+            <button class="btn btn-ghost" id="btnPasteCancel" type="button" data-i18n="cancel"></button>
           </div>
         </div>
 
-        <p class="rd-note">
-          Best photos: page flat, good light, straight-on. Numbers with labels
-          ("Revenue: 4.2M") extract best. Works in Turkish and English.
-        </p>
+        <p class="rd-note" data-i18n="note"></p>
+        <div id="restoreBar"></div>
 
         <div id="progress">
           <div class="steps-row">
-            <span class="stepchip" id="st1"><span class="dot"></span>Reading the photo</span>
-            <span class="stepchip" id="st2"><span class="dot"></span>Understanding the numbers</span>
-            <span class="stepchip" id="st3"><span class="dot"></span>Building the dashboard</span>
+            <span class="stepchip" id="st1"><span class="dot"></span><span data-i18n="st1"></span></span>
+            <span class="stepchip" id="st2"><span class="dot"></span><span data-i18n="st2"></span></span>
+            <span class="stepchip" id="st3"><span class="dot"></span><span data-i18n="st3"></span></span>
           </div>
           <p id="progMsg"></p>
         </div>
@@ -220,24 +260,32 @@
 
     <section class="section" style="padding-top:0">
       <div class="container" id="dash">
+        <div class="print-brand">
+          <b>Namık<span> Akman</span></b>
+          <span data-i18n="printBrand"></span>
+        </div>
         <div class="dash-head">
           <div>
             <h2 id="dTitle"></h2>
             <span class="per" id="dPeriod"></span>
           </div>
           <div class="dash-actions">
-            <button type="button" id="btnPrint">🖨 Print / PDF</button>
-            <button type="button" id="btnEdit">✎ Edit data</button>
-            <button type="button" id="btnReset">↺ Start over</button>
+            <button type="button" id="btnPrint" data-i18n="actPrint"></button>
+            <button type="button" id="btnEdit" data-i18n="actEdit"></button>
+            <button type="button" id="btnReset" data-i18n="actReset"></button>
           </div>
         </div>
         <div class="rd-kpis" id="dKpis"></div>
         <div class="charts" id="dCharts"></div>
         <div class="rd-insights" id="dInsights" hidden>
-          <h3>What the numbers say</h3>
+          <h3 data-i18n="insightsH"></h3>
           <ul id="dInsightList"></ul>
         </div>
         <p class="dash-src" id="dSrc"></p>
+        <div class="print-foot">
+          <span data-i18n="printFoot"></span>
+          <span id="printDate"></span>
+        </div>
         <div id="editWrap">
           <textarea id="editBox" spellcheck="false"></textarea>
           <div style="display:flex;gap:10px;margin-top:10px">
@@ -250,12 +298,11 @@
     <section class="section cta-band-wrap" style="padding-top:0">
       <div class="container">
         <div class="cta-band">
-          <h2>This took your report thirty seconds.</h2>
-          <p>Imagine the same treatment on a full monthly pack — automated, on your
-          own data, rerun every month. That's the kind of thing I like building.</p>
+          <h2 data-i18n="ctaH"></h2>
+          <p data-i18n="ctaP"></p>
           <div class="cta-actions">
-            <a class="btn btn-primary" href="how-i-work.html">See how I work</a>
-            <a class="btn btn-ghost" href="contact.html">Get in touch</a>
+            <a class="btn btn-primary" href="how-i-work.html" data-i18n="ctaA1"></a>
+            <a class="btn btn-ghost" href="contact.html" data-i18n="ctaA2"></a>
           </div>
         </div>
       </div>
@@ -295,6 +342,101 @@
     var PAL = ["#1F84E0", "#E05A00", "#12A76A", "#9B7DE8"];
     var OTHER = "#77809a"; // muted slate for "Other" — the label carries identity
     var SURFACE = "#2d3547";
+
+    /* ---------- UI language (EN/TR) ---------- */
+    var I18N = {
+      en: {
+        intro: "Take a photo of any one-page report — a monthly review, a printed P&L, a board pack page — and watch it become a live dashboard: KPI tiles, charts and plain-language insights.",
+        photoH: "Photograph a page", photoP: "Use your phone camera or upload an image of a one-page report.",
+        pasteH: "Paste the text", pasteP: "Copy the report text from a PDF or email and paste it instead.",
+        demoH: "See a sample", demoP: "No report at hand? Render the built-in sample instantly — no AI call.",
+        pastePh: "Paste the report text here — headings, KPIs, tables, anything. Turkish or English.",
+        pasteGo: "Build the dashboard", cancel: "Cancel",
+        note: "Best photos: page flat, good light, straight-on. Numbers with labels (\"Revenue: 4.2M\") extract best. Works in Turkish and English.",
+        st1: "Reading the photo", st2: "Understanding the numbers", st3: "Building the dashboard",
+        actPrint: "🖨 Print / PDF", actEdit: "✎ Edit data", actReset: "↺ Start over",
+        insightsH: "What the numbers say",
+        ctaH: "This took your report thirty seconds.",
+        ctaP: "Imagine the same treatment on a full monthly pack — automated, on your own data, rerun every month. That's the kind of thing I like building.",
+        ctaA1: "See how I work", ctaA2: "Get in touch",
+        printBrand: "Report → Dashboard · namikakmandev.github.io",
+        printFoot: "Generated from a photographed report page in under a minute.",
+        restore: "Your last dashboard is still here:",
+        restoreBtn: "↩ Restore", dismiss: "✕",
+        msgPrep: "Preparing the photo…",
+        msgVision: "Sending the photo to the AI to read directly…",
+        msgOcrLoad: "Loading the OCR engine…",
+        msgOcr: "Reading the photo — {p}% (all in your browser)",
+        msgAI: "Sending the extracted text to the AI to structure…",
+        msgRetry: "The first reply wasn't clean — asking once more…",
+        msgRender: "Rendering…",
+        errSuffix: " You can still try \"Paste the text\" or the built-in sample.",
+        errNoText: "Not enough readable text was found.",
+        errNoJSON: "The AI reply could not be read as dashboard data. It started with: ",
+        srcVision: "Built from a photographed page — read directly by the AI (vision).",
+        srcOcr: "Built from a photographed page — OCR ran locally in this browser; only the extracted text was sent to the AI.",
+        srcPaste: "Built from pasted report text — sent to the AI for structuring only.",
+        srcSample: "Sample data — rendered entirely in the browser, no AI call.",
+        unitIn: "in ", unitPct: "percent", total: "total",
+        editErr: "That JSON doesn't parse: "
+      },
+      tr: {
+        intro: "Tek sayfalık herhangi bir raporun fotoğrafını çekin — aylık rapor, basılı bir gelir tablosu, yönetim sunumu sayfası — canlı bir gösterge paneline dönüşsün: KPI kartları, grafikler ve sade dille yazılmış içgörüler.",
+        photoH: "Sayfayı fotoğrafla", photoP: "Telefon kameranızı kullanın veya tek sayfalık raporun görselini yükleyin.",
+        pasteH: "Metni yapıştır", pasteP: "Rapor metnini PDF'ten veya e-postadan kopyalayıp buraya yapıştırın.",
+        demoH: "Örneği gör", demoP: "Elinizde rapor yok mu? Yerleşik örneği anında görüntüleyin — AI çağrısı yok.",
+        pastePh: "Rapor metnini buraya yapıştırın — başlıklar, KPI'lar, tablolar. Türkçe veya İngilizce.",
+        pasteGo: "Paneli oluştur", cancel: "Vazgeç",
+        note: "En iyi sonuç: sayfa düz, ışık iyi, tam karşıdan. Etiketli sayılar (\"Ciro: 4,2M\") en iyi şekilde okunur. Türkçe ve İngilizce çalışır.",
+        st1: "Fotoğraf okunuyor", st2: "Sayılar anlaşılıyor", st3: "Panel oluşturuluyor",
+        actPrint: "🖨 Yazdır / PDF", actEdit: "✎ Veriyi düzenle", actReset: "↺ Baştan başla",
+        insightsH: "Sayılar ne söylüyor",
+        ctaH: "Raporunuz otuz saniyede panele dönüştü.",
+        ctaP: "Aynı işlemi tüm aylık rapor setinize uygulandığını düşünün — otomatik, kendi verinizle, her ay yeniden. Ben tam olarak bunları kuruyorum.",
+        ctaA1: "Nasıl çalışıyorum", ctaA2: "İletişime geçin",
+        printBrand: "Rapor → Panel · namikakmandev.github.io",
+        printFoot: "Fotoğraflanmış bir rapor sayfasından bir dakikadan kısa sürede oluşturuldu.",
+        restore: "Son paneliniz duruyor:",
+        restoreBtn: "↩ Geri getir", dismiss: "✕",
+        msgPrep: "Fotoğraf hazırlanıyor…",
+        msgVision: "Fotoğraf doğrudan okunması için AI'a gönderiliyor…",
+        msgOcrLoad: "OCR motoru yükleniyor…",
+        msgOcr: "Fotoğraf okunuyor — %{p} (tamamı tarayıcınızda)",
+        msgAI: "Çıkarılan metin yapılandırılması için AI'a gönderiliyor…",
+        msgRetry: "İlk yanıt temiz değildi — bir kez daha soruluyor…",
+        msgRender: "Çiziliyor…",
+        errSuffix: " \"Metni yapıştır\" seçeneğini veya yerleşik örneği deneyebilirsiniz.",
+        errNoText: "Yeterince okunabilir metin bulunamadı.",
+        errNoJSON: "AI yanıtı panel verisi olarak okunamadı. Şöyle başlıyordu: ",
+        srcVision: "Fotoğraflanan sayfadan oluşturuldu — AI tarafından doğrudan okundu (görü).",
+        srcOcr: "Fotoğraflanan sayfadan oluşturuldu — OCR bu tarayıcıda çalıştı; AI'a yalnızca çıkarılan metin gönderildi.",
+        srcPaste: "Yapıştırılan rapor metninden oluşturuldu — yalnızca yapılandırma için AI'a gönderildi.",
+        srcSample: "Örnek veri — tamamen tarayıcıda çizildi, AI çağrısı yok.",
+        unitIn: "", unitPct: "yüzde", total: "toplam",
+        editErr: "Bu JSON çözümlenemedi: "
+      }
+    };
+    var LANG = (function () {
+      try {
+        var saved = localStorage.getItem("rd-lang");
+        if (saved === "tr" || saved === "en") return saved;
+      } catch (e) {}
+      return (navigator.language || "").toLowerCase().indexOf("tr") === 0 ? "tr" : "en";
+    })();
+    function T(key) { return (I18N[LANG] && I18N[LANG][key]) || I18N.en[key] || key; }
+    function applyLang() {
+      document.querySelectorAll("[data-i18n]").forEach(function (el) {
+        el.textContent = T(el.getAttribute("data-i18n"));
+      });
+      document.getElementById("pasteBox").placeholder = T("pastePh");
+      document.getElementById("langEN").className = LANG === "en" ? "on" : "";
+      document.getElementById("langTR").className = LANG === "tr" ? "on" : "";
+    }
+    function setLang(l) {
+      LANG = l;
+      try { localStorage.setItem("rd-lang", l); } catch (e) {}
+      applyLang();
+    }
 
     var SAMPLE = {
       title: "Northwind Foods — Monthly Business Review",
@@ -559,7 +701,7 @@
       sv("text", { x: cx, y: cy - 2, "text-anchor": "middle", fill: "#e6e8ee", "font-size": 26, "font-weight": 700 }, svg)
         .textContent = c.unit === "%" ? Math.round(total) + "%" : fmt(total, c.unit);
       sv("text", { x: cx, y: cy + 20, "text-anchor": "middle", fill: "#8b94a7", "font-size": 12 }, svg)
-        .textContent = "total";
+        .textContent = T("total");
       card.appendChild(svg);
       legend(card, labs.map(function (l, i) { return { label: l + " · " + Math.round(vals[i] / total * 100) + "%", color: colors[i] }; }), "rect");
     }
@@ -569,11 +711,19 @@
 
     function renderDash(data, srcNote) {
       current = data;
+      try { // survive an accidental reload mid-meeting
+        localStorage.setItem("rd-last", JSON.stringify({ data: data, src: srcNote }));
+      } catch (e) {}
       $("dTitle").textContent = data.title || "Your report";
       $("dPeriod").textContent = data.period || "";
+      $("printDate").textContent = new Date().toLocaleDateString(LANG === "tr" ? "tr-TR" : "en-GB",
+        { year: "numeric", month: "long", day: "numeric" });
+      var delay = 0;
+      function stagger(el) { el.style.animationDelay = delay + "ms"; delay += 70; }
       var kp = $("dKpis"); kp.textContent = "";
       (data.kpis || []).slice(0, 6).forEach(function (k) {
         var t = div("rd-kpi", kp);
+        stagger(t);
         var l = div("l", t); l.textContent = k.label || "";
         var v = div("v", t); v.textContent = fmt(num(k.value), k.unit || "");
         if (k.delta) {
@@ -592,8 +742,9 @@
         // a "chart" with a single value is a number, not a chart — skip (KPIs carry it)
         if (c.labels.length < 2) return;
         var card = div("chart-card", ch);
+        stagger(card);
         var h = document.createElement("h3"); h.textContent = c.title || ""; card.appendChild(h);
-        var u = div("unit", card); u.textContent = c.unit && c.unit !== "%" ? "in " + c.unit : (c.unit === "%" ? "percent" : "");
+        var u = div("unit", card); u.textContent = c.unit && c.unit !== "%" ? T("unitIn") + c.unit : (c.unit === "%" ? T("unitPct") : "");
         var tip = makeTip(card);
         try {
           if (c.type === "line") renderLine(card, c, tip);
@@ -602,7 +753,10 @@
         } catch (e) { card.remove(); }
       });
       var ins = (data.insights || []).filter(Boolean);
-      $("dInsights").hidden = !ins.length;
+      var insEl = $("dInsights");
+      insEl.hidden = !ins.length;
+      insEl.style.animation = "none"; void insEl.offsetWidth; insEl.style.animation = "";
+      insEl.style.animationDelay = delay + "ms";
       var ul = $("dInsightList"); ul.textContent = "";
       ins.slice(0, 4).forEach(function (s) {
         var li = document.createElement("li"); li.textContent = s; ul.appendChild(li);
@@ -629,25 +783,30 @@
     function fail(msg) {
       $("progress").style.display = "none";
       var e = $("errBox");
-      e.textContent = "⚠ " + msg + " You can still try \"Paste the text\" or the built-in sample.";
+      e.textContent = "⚠ " + msg + T("errSuffix");
       e.style.display = "block";
     }
 
-    function askAI(text, extra) {
-      setStep(2, "on", "Sending the extracted text to the AI to structure…");
+    /* opts: {text} for OCR/paste, {image} (data URL) for vision — or both on retry */
+    function askAI(opts, extra) {
+      setStep(2, "on", opts.image ? T("msgVision") : T("msgAI"));
       /* The full instruction rides in the prompt too, in case the proxy
          drops or overrides the system field. */
       var prompt = "TASK: " + AI_SYSTEM +
-        "\n\nOCR TEXT OF THE REPORT PAGE:\n\n" + text.slice(0, 9000) +
+        (opts.image
+          ? "\n\nTHE REPORT PAGE IS ATTACHED AS AN IMAGE. Read every number and label directly from the image."
+          : "\n\nOCR TEXT OF THE REPORT PAGE:\n\n" + String(opts.text || "").slice(0, 9000)) +
         "\n\nConvert this to the dashboard JSON now. Reply with only the compact single-line JSON object — no other words." +
         (extra ? "\n\n" + extra : "");
+      var body = { prompt: prompt, system: AI_SYSTEM };
+      if (opts.image) body.image = opts.image;
       return fetch(AI_PROXY_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt: prompt, system: AI_SYSTEM })
+        body: JSON.stringify(body)
       }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok || !j.text) throw new Error(j.error || "AI service error (" + r.status + ")");
-        return j.text;
+        return j; // {text, vision?}
       }); });
     }
 
@@ -705,31 +864,36 @@
       throw new Error("The AI reply was not valid JSON.");
     }
 
-    function runFromText(text, srcNote) {
-      if (!text || text.replace(/\s/g, "").length < 30) { fail("Not enough readable text was found."); return; }
+    /* Ask → parse; on a dirty reply, retry once with a smaller-output request. */
+    function askAndRender(opts, srcNote) {
       function finish(data) {
         setStep(2, "done");
-        setStep(3, "on", "Rendering…");
+        setStep(3, "on", T("msgRender"));
         setStep(3, "done", "");
         $("progress").style.display = "none";
         renderDash(data, srcNote);
       }
-      askAI(text).then(function (reply) {
-        try { finish(parseAI(reply)); }
+      return askAI(opts).then(function (j) {
+        try { finish(parseAI(j.text)); }
         catch (e) {
-          console.error("Report→Dashboard: unparseable AI reply, retrying once.", reply);
-          setStep(2, "on", "The first reply wasn't clean — asking once more…");
-          return askAI(text,
+          console.error("Report→Dashboard: unparseable AI reply, retrying once.", j.text);
+          setStep(2, "on", T("msgRetry"));
+          return askAI(opts,
             "IMPORTANT: your previous reply was cut off or not valid JSON. Reply again with ONLY complete, compact, single-line JSON. Limit yourself to at most 4 kpis, 2 charts and 2 insights so the reply stays short.")
-            .then(function (r2) {
-              try { finish(parseAI(r2)); }
+            .then(function (j2) {
+              try { finish(parseAI(j2.text)); }
               catch (e2) {
-                fail("(v3) The AI reply could not be read as dashboard data. It started with: “" +
-                  String(r2).slice(0, 220) + "”");
+                fail("(v4) " + T("errNoJSON") + "“" + String(j2.text).slice(0, 220) + "”");
               }
             });
         }
-      }).catch(function (e) { fail("(v3) " + (e.message || "Something went wrong.")); });
+      });
+    }
+
+    function runFromText(text, srcNote) {
+      if (!text || text.replace(/\s/g, "").length < 30) { fail(T("errNoText")); return; }
+      askAndRender({ text: text }, srcNote)
+        .catch(function (e) { fail("(v4) " + (e.message || "Something went wrong.")); });
     }
 
     var tessReady = null;
@@ -745,21 +909,73 @@
       return tessReady;
     }
 
-    function runFromPhoto(file) {
-      resetSteps(false);
-      setStep(1, "on", "Loading the OCR engine…");
-      loadTesseract().then(function (T) {
-        return T.recognize(file, "eng+tur", {
+    /* Downscale to ≤1800px long edge, re-encode as JPEG data URL for the vision path. */
+    function fileToDataURL(file) {
+      return new Promise(function (res, rej) {
+        var url = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var max = 1800, w = img.naturalWidth, h = img.naturalHeight;
+            var k = Math.min(1, max / Math.max(w, h));
+            var cv = document.createElement("canvas");
+            cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+            cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+            URL.revokeObjectURL(url);
+            res(cv.toDataURL("image/jpeg", 0.85));
+          } catch (e) { rej(e); }
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); rej(new Error("Could not read the image.")); };
+        img.src = url;
+      });
+    }
+
+    function runOcrPath(file) {
+      setStep(1, "on", T("msgOcrLoad"));
+      loadTesseract().then(function (Tess) {
+        return Tess.recognize(file, "eng+tur", {
           logger: function (m) {
             if (m.status === "recognizing text") {
-              setStep(1, "on", "Reading the photo — " + Math.round(m.progress * 100) + "% (all in your browser)");
+              setStep(1, "on", T("msgOcr").replace("{p}", Math.round(m.progress * 100)));
             }
           }
         });
       }).then(function (out) {
         setStep(1, "done");
-        runFromText(out.data.text, "Built from a photographed page — OCR ran locally in this browser; only the extracted text was sent to the AI.");
+        runFromText(out.data.text, T("srcOcr"));
       }).catch(function (e) { fail(e.message || "OCR failed."); });
+    }
+
+    /* Photo pipeline: try the AI's vision first (much more accurate on tables
+       and Turkish number formats). The upgraded worker replies with vision:true;
+       if the worker doesn't support images yet, fall back to local OCR. */
+    function runFromPhoto(file) {
+      resetSteps(false);
+      setStep(1, "on", T("msgPrep"));
+      fileToDataURL(file).then(function (dataURL) {
+        setStep(1, "done");
+        return askAI({ image: dataURL }).then(function (j) {
+          if (!j.vision) throw { fallback: true }; // old worker — it never saw the image
+          // vision reply in hand: parse (with the standard one-retry salvage)
+          function finish(data) {
+            setStep(2, "done"); setStep(3, "on", T("msgRender")); setStep(3, "done", "");
+            $("progress").style.display = "none";
+            renderDash(data, T("srcVision"));
+          }
+          try { finish(parseAI(j.text)); }
+          catch (e) {
+            setStep(2, "on", T("msgRetry"));
+            return askAI({ image: dataURL },
+              "IMPORTANT: your previous reply was cut off or not valid JSON. Reply again with ONLY complete, compact, single-line JSON. Limit yourself to at most 4 kpis, 2 charts and 2 insights so the reply stays short.")
+              .then(function (j2) { finish(parseAI(j2.text)); });
+          }
+        });
+      }).catch(function (e) {
+        if (e && e.fallback) { console.info("Report→Dashboard: worker has no vision support — using local OCR."); }
+        else { console.warn("Report→Dashboard: vision path failed — using local OCR.", e); }
+        resetSteps(false);
+        runOcrPath(file);
+      });
     }
 
     /* ---------- wiring ---------- */
@@ -776,11 +992,11 @@
     $("btnPasteCancel").addEventListener("click", function () { $("pastePanel").style.display = "none"; });
     $("btnPasteGo").addEventListener("click", function () {
       resetSteps(true);
-      runFromText($("pasteBox").value, "Built from pasted report text — sent to the AI for structuring only.");
+      runFromText($("pasteBox").value, T("srcPaste"));
     });
     $("btnDemo").addEventListener("click", function () {
       $("progress").style.display = "none"; $("errBox").style.display = "none";
-      renderDash(JSON.parse(JSON.stringify(SAMPLE)), "Sample data — rendered entirely in the browser, no AI call.");
+      renderDash(JSON.parse(JSON.stringify(SAMPLE)), T("srcSample"));
     });
     $("btnPrint").addEventListener("click", function () { window.print(); });
     $("btnEdit").addEventListener("click", function () {
@@ -789,13 +1005,40 @@
     });
     $("btnRerender").addEventListener("click", function () {
       try { renderDash(JSON.parse($("editBox").value), $("dSrc").textContent); }
-      catch (e) { alert("That JSON doesn't parse: " + e.message); }
+      catch (e) { alert(T("editErr") + e.message); }
     });
     $("btnReset").addEventListener("click", function () {
       $("dash").style.display = "none"; $("editWrap").style.display = "none";
       $("pastePanel").style.display = "none";
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
+
+    /* language */
+    $("langEN").addEventListener("click", function () { setLang("en"); });
+    $("langTR").addEventListener("click", function () { setLang("tr"); });
+    applyLang();
+
+    /* offer to restore the last dashboard after an accidental reload */
+    (function () {
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem("rd-last") || "null"); } catch (e) {}
+      if (!saved || !saved.data) return;
+      var bar = $("restoreBar");
+      bar.textContent = "";
+      bar.appendChild(document.createTextNode(T("restore") + " "));
+      var b = document.createElement("button"); b.type = "button";
+      b.textContent = T("restoreBtn") + " — " + (saved.data.title || "");
+      b.addEventListener("click", function () { renderDash(saved.data, saved.src || ""); });
+      bar.appendChild(b);
+      var x = document.createElement("button"); x.type = "button"; x.textContent = T("dismiss");
+      x.setAttribute("aria-label", "Dismiss");
+      x.addEventListener("click", function () {
+        bar.style.display = "none";
+        try { localStorage.removeItem("rd-last"); } catch (e) {}
+      });
+      bar.appendChild(x);
+      bar.style.display = "block";
+    })();
   })();
   </script>
 </body>
