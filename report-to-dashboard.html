@@ -282,11 +282,13 @@
       '{"title":string,"period":string,"kpis":[{"label":string,"value":number,"unit":string,"delta":string,"dir":"up"|"down"|"flat","good":boolean}],' +
       '"charts":[{"type":"bar"|"line"|"donut","title":string,"unit":string,"labels":[string],"series":[{"name":string,"values":[number]}]}],' +
       '"insights":[string]} ' +
-      "Rules: use ONLY numbers present in the text — never invent data; max 6 kpis, max 4 charts, max 4 series per chart, max 6 donut segments; " +
+      "Rules: use ONLY numbers present in the text — never invent data; max 5 kpis, max 3 charts, max 3 series per chart, max 6 donut segments; " +
       "unit is a short suffix/prefix like '₺', '$', '%', 'M' (empty string if none); delta is a short signed change like '+6.2% vs May' when the text supports it, else empty; " +
       "'good' says whether the change is commercially good; keep all labels and insights in the language of the report; " +
-      "2-4 insights, each under 140 characters, concrete and tied to the actual numbers; " +
-      "only include a chart when the text really contains that series of numbers.";
+      "2-3 insights, each under 120 characters, concrete and tied to the actual numbers; " +
+      "only include a chart when the text really contains that series of numbers. " +
+      "Return COMPACT JSON on a single line with no extra whitespace. Your reply must be complete valid JSON — " +
+      "if the report is dense, include fewer charts rather than risk a cut-off reply.";
 
     /* Chart palette — brand-adjacent, validated for the dark surface
        (lightness band, chroma, CVD separation, contrast). Fixed order. */
@@ -631,10 +633,11 @@
       e.style.display = "block";
     }
 
-    function askAI(text) {
+    function askAI(text, extra) {
       setStep(2, "on", "Sending the extracted text to the AI to structure…");
-      var prompt = "OCR TEXT OF THE REPORT PAGE:\n\n" + text.slice(0, 12000) +
-        "\n\nConvert this to the dashboard JSON now. Reply with only the JSON object.";
+      var prompt = "OCR TEXT OF THE REPORT PAGE:\n\n" + text.slice(0, 9000) +
+        "\n\nConvert this to the dashboard JSON now. Reply with only the compact single-line JSON object." +
+        (extra ? "\n\n" + extra : "");
       return fetch(AI_PROXY_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -644,21 +647,79 @@
         return j.text;
       }); });
     }
+
+    /* Tolerant JSON extraction: strips fences/commentary, finds the first
+       balanced object, and repairs replies that were cut off mid-way
+       (the proxy caps response length) by closing whatever is still open. */
+    function tryParse(s) { try { return JSON.parse(s); } catch (e) { return null; } }
+    function scanOpen(s) {
+      var stack = [], inStr = false, esc = false;
+      for (var i = 0; i < s.length; i++) {
+        var ch = s[i];
+        if (inStr) {
+          if (esc) esc = false;
+          else if (ch === "\\") esc = true;
+          else if (ch === '"') inStr = false;
+        } else if (ch === '"') inStr = true;
+        else if (ch === "{" || ch === "[") stack.push(ch);
+        else if (ch === "}" || ch === "]") stack.pop();
+      }
+      return { stack: stack, inStr: inStr };
+    }
     function parseAI(text) {
-      var a = text.indexOf("{"), b = text.lastIndexOf("}");
-      if (a < 0 || b <= a) throw new Error("The AI reply contained no JSON.");
-      return JSON.parse(text.slice(a, b + 1));
+      text = String(text).replace(/```[a-z]*/gi, "");
+      var a = text.indexOf("{");
+      if (a < 0) throw new Error("The AI reply contained no JSON.");
+      var s = text.slice(a);
+      // exact balanced object first
+      var depth = 0, inStr = false, esc = false, end = -1;
+      for (var i = 0; i < s.length; i++) {
+        var ch = s[i];
+        if (inStr) {
+          if (esc) esc = false;
+          else if (ch === "\\") esc = true;
+          else if (ch === '"') inStr = false;
+          continue;
+        }
+        if (ch === '"') inStr = true;
+        else if (ch === "{" || ch === "[") depth++;
+        else if (ch === "}" || ch === "]") { depth--; if (depth === 0) { end = i; break; } }
+      }
+      if (end >= 0) {
+        var d = tryParse(s.slice(0, end + 1));
+        if (d) return d;
+      }
+      // truncated / dirty — cut back from the end and close what's open
+      for (var cut = s.length; cut > 20; cut--) {
+        if (!/[\d"\}\]el]/.test(s[cut - 1])) continue; // plausible value endings only
+        var head = s.slice(0, cut);
+        var open = scanOpen(head);
+        if (open.inStr) continue;
+        var closers = open.stack.slice().reverse().map(function (c) { return c === "{" ? "}" : "]"; }).join("");
+        var fixed = tryParse(head.replace(/[,\s]+$/, "") + closers);
+        if (fixed) return fixed;
+      }
+      throw new Error("The AI reply was not valid JSON.");
     }
 
     function runFromText(text, srcNote) {
       if (!text || text.replace(/\s/g, "").length < 30) { fail("Not enough readable text was found."); return; }
-      askAI(text).then(function (reply) {
+      function finish(data) {
         setStep(2, "done");
         setStep(3, "on", "Rendering…");
-        var data = parseAI(reply);
         setStep(3, "done", "");
         $("progress").style.display = "none";
         renderDash(data, srcNote);
+      }
+      askAI(text).then(function (reply) {
+        try { finish(parseAI(reply)); }
+        catch (e) {
+          console.error("Report→Dashboard: unparseable AI reply, retrying once.", reply);
+          setStep(2, "on", "The first reply wasn't clean — asking once more…");
+          return askAI(text,
+            "IMPORTANT: your previous reply was cut off or not valid JSON. Reply again with ONLY complete, compact, single-line JSON. Limit yourself to at most 4 kpis, 2 charts and 2 insights so the reply stays short.")
+            .then(function (r2) { finish(parseAI(r2)); });
+        }
       }).catch(function (e) { fail(e.message || "Something went wrong."); });
     }
 
