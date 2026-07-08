@@ -635,8 +635,11 @@
 
     function askAI(text, extra) {
       setStep(2, "on", "Sending the extracted text to the AI to structure…");
-      var prompt = "OCR TEXT OF THE REPORT PAGE:\n\n" + text.slice(0, 9000) +
-        "\n\nConvert this to the dashboard JSON now. Reply with only the compact single-line JSON object." +
+      /* The full instruction rides in the prompt too, in case the proxy
+         drops or overrides the system field. */
+      var prompt = "TASK: " + AI_SYSTEM +
+        "\n\nOCR TEXT OF THE REPORT PAGE:\n\n" + text.slice(0, 9000) +
+        "\n\nConvert this to the dashboard JSON now. Reply with only the compact single-line JSON object — no other words." +
         (extra ? "\n\n" + extra : "");
       return fetch(AI_PROXY_URL, {
         method: "POST",
@@ -718,9 +721,15 @@
           setStep(2, "on", "The first reply wasn't clean — asking once more…");
           return askAI(text,
             "IMPORTANT: your previous reply was cut off or not valid JSON. Reply again with ONLY complete, compact, single-line JSON. Limit yourself to at most 4 kpis, 2 charts and 2 insights so the reply stays short.")
-            .then(function (r2) { finish(parseAI(r2)); });
+            .then(function (r2) {
+              try { finish(parseAI(r2)); }
+              catch (e2) {
+                fail("(v3) The AI reply could not be read as dashboard data. It started with: “" +
+                  String(r2).slice(0, 220) + "”");
+              }
+            });
         }
-      }).catch(function (e) { fail(e.message || "Something went wrong."); });
+      }).catch(function (e) { fail("(v3) " + (e.message || "Something went wrong.")); });
     }
 
     var tessReady = null;
