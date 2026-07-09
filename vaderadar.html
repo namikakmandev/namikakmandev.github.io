@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VadeRadar — Vade &amp; Tahsilat Maliyeti</title>
+  <meta name="description" content="Geç tahsilat, kimsenin onaylamadığı bir iskontodur. VadeRadar bugünkü TCMB faizleriyle vadenin gerçek maliyetini ve müşteri bazında gerçek kârlılığı gösterir. Veriler tarayıcıdan çıkmaz." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .vr-sub { max-width: 760px; }
+    .vr-rates { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .vr-rate {
+      display: inline-flex; align-items: baseline; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+      padding: 8px 16px; font-size: 0.85rem; color: var(--text-dim);
+    }
+    .vr-rate b { color: var(--accent-2); font-size: 1rem; }
+    .vr-live { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent-2); margin-right: 2px; animation: vrpulse 1.6s infinite; }
+    @keyframes vrpulse { 50% { opacity: 0.3; } }
+
+    /* quick (meeting) mode — big type, readable across a table */
+    .vr-quick {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px;
+    }
+    .vr-inputs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    @media (max-width: 900px) { .vr-inputs { grid-template-columns: repeat(2, 1fr); } }
+    .vr-inputs label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px; }
+    .vr-inputs input {
+      width: 100%; padding: 12px 14px; font: inherit; font-size: 1.25rem; font-weight: 600;
+      color: var(--text); background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 10px;
+    }
+    .vr-inputs input:focus { outline: none; border-color: var(--accent); }
+    .vr-inputs .hint { font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; }
+    .vr-out { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px; }
+    @media (max-width: 900px) { .vr-out { grid-template-columns: 1fr; } }
+    .vr-big {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 22px;
+    }
+    .vr-big .l { font-size: 0.8rem; color: var(--text-dim); }
+    .vr-big .v { font-size: 2.2rem; font-weight: 750; letter-spacing: -0.02em; margin-top: 6px; }
+    .vr-big .d { font-size: 0.82rem; color: var(--text-dim); margin-top: 4px; }
+    .vr-big.hot { border-color: var(--loss); }
+    .vr-big.hot .v { color: var(--loss); }
+    .vr-punch {
+      margin-top: 22px; padding: 18px 22px; border-radius: 12px;
+      background: rgba(229, 72, 77, 0.1); border: 1px solid var(--loss);
+      font-size: 1.15rem; font-weight: 650;
+    }
+    .vr-punch small { display: block; font-weight: 400; font-size: 0.85rem; color: var(--text-dim); margin-top: 6px; }
+
+    /* customer mode */
+    #custPaste {
+      width: 100%; min-height: 150px; resize: vertical; padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem;
+      color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    }
+    .vr-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    #custErr { display: none; margin-top: 12px; padding: 12px 16px; border-radius: 10px;
+      border: 1px solid var(--loss); background: rgba(229,72,77,0.1); font-size: 0.9rem; }
+
+    #results { display: none; }
+    .vr-insights {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 22px; margin-bottom: 20px;
+    }
+    .vr-insights h3 { font-size: 0.95rem; margin-bottom: 10px; }
+    .vr-insights li { position: relative; list-style: none; padding: 6px 0 6px 22px;
+      color: var(--text-dim); font-size: 0.94rem; }
+    .vr-insights li::before { content: ""; position: absolute; left: 4px; top: 14px;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--accent-3); }
+
+    .chart-card { position: relative; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 18px 12px; margin-bottom: 20px; }
+    .chart-card h3 { font-size: 0.95rem; margin-bottom: 2px; }
+    .chart-card .unit { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 10px; }
+    .chart-card svg { width: 100%; height: auto; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-dim); }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+    .vr-tip { position: absolute; pointer-events: none; z-index: 5; display: none;
+      background: #1b2230; border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 11px; font-size: 0.8rem; color: var(--text);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+
+    .vr-tablewrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); }
+    table.vr { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 0.86rem; }
+    table.vr th, table.vr td { padding: 10px 14px; text-align: right; white-space: nowrap; }
+    table.vr th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--text-dim); border-bottom: 1px solid var(--border); font-weight: 600; }
+    table.vr td:first-child, table.vr th:first-child { text-align: left; }
+    table.vr tbody tr { border-bottom: 1px solid rgba(74,84,105,0.4); }
+    table.vr tbody tr:last-child { border-bottom: 0; }
+    table.vr td { font-variant-numeric: tabular-nums; }
+    .neg { color: var(--loss); font-weight: 650; }
+    .pos { color: var(--accent-2); }
+    .shift-down { color: var(--loss); font-weight: 700; }
+    .shift-up { color: var(--accent-2); font-weight: 700; }
+    .dash-actions { display: flex; gap: 8px; margin: 18px 0 0; }
+    .dash-actions button { font: inherit; font-size: 0.84rem; font-weight: 600; cursor: pointer;
+      padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); }
+    .dash-actions button:hover { border-color: var(--accent); }
+    .vr-note { font-size: 0.78rem; color: var(--text-dim); margin-top: 14px; }
+
+    .print-brand, .print-foot { display: none; }
+    @media print {
+      body { background: #fff; }
+      :root { --bg:#fff; --surface:#fff; --surface-2:#f2f4f8; --text:#1f2430; --text-dim:#5b6472; --border:#d6dce4; }
+      .site-header, .site-footer, .vr-intro, #quickSec .vr-inputs, #custSec, .dash-actions, .cta-band-wrap { display: none !important; }
+      svg text[fill="#e6e8ee"] { fill: #1f2430 !important; }
+      .print-brand { display: flex; justify-content: space-between; align-items: baseline;
+        border-bottom: 3px solid #2F9BFF; padding-bottom: 10px; margin-bottom: 18px;
+        font-size: 0.85rem; color: #5b6472; }
+      .print-brand b { font-size: 1.05rem; color: #1f2430; }
+      .print-brand b span { color: #2F9BFF; }
+      .print-foot { display: flex; justify-content: space-between; margin-top: 18px;
+        border-top: 1px solid #d6dce4; padding-top: 10px; font-size: 0.75rem; color: #5b6472; }
+      .chart-card, .vr-insights, .vr-tablewrap, .vr-quick { break-inside: avoid; }
+      @page { size: A4 landscape; margin: 12mm; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="commercial-suite.html">Commercial Suite</a></li>
+        <li><a href="how-i-work.html">How I Work</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="section vr-intro">
+      <div class="container">
+        <h2 class="section-title">VadeRadar — Vade &amp; Tahsilat Maliyeti</h2>
+        <p class="section-sub vr-sub">
+          Tahsil edemediğiniz alacağı kimse tahsil edemez — ama bugünün faizinde
+          <strong>geç ödeme, kimsenin onaylamadığı bir iskontodur</strong> ve bir sonraki
+          satışta fiyatlanabilir. VadeRadar, vadenin gerçek maliyetini ve müşteri bazında
+          <strong>gerçek kârlılığı</strong> gösterir. Verileriniz tarayıcınızdan çıkmaz.
+        </p>
+        <div class="vr-rates" id="rateChips">
+          <span class="vr-rate"><span class="vr-live"></span>TL Mevduat: <b id="rDep">—</b></span>
+          <span class="vr-rate"><span class="vr-live"></span>Ticari Kredi: <b id="rLoan">—</b></span>
+          <span class="vr-rate">Kaynak: TCMB · günlük otomatik</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0" id="quickSec">
+      <div class="container">
+        <div class="vr-quick">
+          <h3 style="margin-bottom:14px">Hızlı hesap — üç soru yeter</h3>
+          <div class="vr-inputs">
+            <div>
+              <label for="qSales">Aylık satış (₺)</label>
+              <input id="qSales" inputmode="numeric" value="20.000.000" />
+            </div>
+            <div>
+              <label for="qAgreed">Anlaşılan vade (gün)</label>
+              <input id="qAgreed" inputmode="numeric" value="60" />
+            </div>
+            <div>
+              <label for="qActual">Fiili tahsilat (gün)</label>
+              <input id="qActual" inputmode="numeric" value="100" />
+            </div>
+            <div>
+              <label for="qRate">Finansman oranı (% yıllık)</label>
+              <input id="qRate" inputmode="decimal" value="50" />
+              <div class="hint" id="rateHint">TCMB ticari kredi oranından önerildi — değiştirebilirsiniz.</div>
+            </div>
+          </div>
+          <div class="vr-out">
+            <div class="vr-big">
+              <span class="l">Müşterilerin cebinde bekleyen nakit</span>
+              <div class="v" id="oCash">—</div>
+              <span class="d" id="oCashD"></span>
+            </div>
+            <div class="vr-big hot">
+              <span class="l">Vadenin yıllık finansman maliyeti</span>
+              <div class="v" id="oCost">—</div>
+              <span class="d" id="oCostD"></span>
+            </div>
+            <div class="vr-big hot">
+              <span class="l">Görünmez iskonto (her faturada)</span>
+              <div class="v" id="oDisc">—</div>
+              <span class="d" id="oDiscD"></span>
+            </div>
+          </div>
+          <div class="vr-punch" id="punch"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0" id="custSec">
+      <div class="container">
+        <h2 class="section-title">Müşteri bazında gerçek kârlılık</h2>
+        <p class="section-sub vr-sub">
+          Excel'den kopyalayıp yapıştırın — sütunlar: <strong>Müşteri; Yıllık Satış (₺);
+          Brüt Marj %; Anlaşılan Vade (gün); Fiili Ödeme (gün)</strong>.
+          Nakit maliyeti düşüldüğünde "en büyük" müşterinizin kaçıncı sıraya düştüğünü görün.
+        </p>
+        <textarea id="custPaste" spellcheck="false" placeholder="Müşteri	Yıllık Satış	Marj %	Vade	Fiili
+Anadolu Gıda A.Ş.	85.000.000	22	60	118
+Marmara Dağıtım	64.000.000	18	45	52"></textarea>
+        <div class="vr-row">
+          <button class="btn btn-primary" id="btnCalc" type="button">Gerçek kârlılığı hesapla</button>
+          <button class="btn btn-ghost" id="btnSample" type="button">Örnek veriyle dene</button>
+        </div>
+        <div id="custErr"></div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container" id="results">
+        <div class="print-brand">
+          <b>Namık<span> Akman</span></b>
+          <span>VadeRadar · Vade &amp; Tahsilat Maliyeti · namikakmandev.github.io</span>
+        </div>
+        <div class="vr-insights">
+          <h3>Sayılar ne söylüyor</h3>
+          <ul id="insList"></ul>
+        </div>
+        <div class="chart-card" id="chartCard">
+          <h3>Nominal kâr vs vade maliyeti düşülmüş gerçek kâr</h3>
+          <div class="unit">₺ / yıl · ilk 8 müşteri (nominal kâra göre)</div>
+        </div>
+        <div class="vr-tablewrap">
+          <table class="vr">
+            <thead>
+              <tr>
+                <th>Müşteri</th><th>Yıllık Satış</th><th>Nominal Kâr</th>
+                <th>Vade Maliyeti</th><th>Gerçek Kâr</th><th>Gerçek Marj</th>
+                <th>Görünmez İskonto</th><th>Sıra</th><th>Önerilen Vade Farkı</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="dash-actions">
+          <button type="button" id="btnPrint">🖨 Yazdır / PDF</button>
+        </div>
+        <p class="vr-note">
+          Vade maliyeti = satış × oran × fiili gün ÷ 365. Görünmez iskonto, fiili ödeme süresinin
+          bugünkü finansman oranıyla fatura değerine oranıdır. Önerilen vade farkı, marjı korumak
+          için fiyata yansıtılması gereken orandır. Tüm hesaplar tarayıcınızda yapılır; hiçbir
+          veri gönderilmez. Karar amaçlı gösterge niteliğindedir, mali müşavirlik değildir.
+        </p>
+        <div class="print-foot">
+          <span>Namık Akman · Commercial Operations &amp; Pricing · namikakmandev.github.io</span>
+          <span id="printDate"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta-band-wrap" style="padding-top:0">
+      <div class="container">
+        <div class="cta-band">
+          <h2>Eski alacak batıktır. Yenisi bir tercihtir.</h2>
+          <p>Satış ve yaşlandırma verinizle iki haftada: hangi müşteri gerçekte zarar ettiriyor,
+          kimin fiyatına ne kadar vade farkı girmeli, hangi kurallar bunu tekrarlatmaz —
+          sabit fiyat, sabit tarih.</p>
+          <div class="cta-actions">
+            <a class="btn btn-primary" href="how-i-work.html">Nasıl çalışıyorum</a>
+            <a class="btn btn-ghost" href="contact.html">İletişime geçin</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Built with plain HTML, CSS &amp; JavaScript</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=28"></script>
+  <script>
+  (function () {
+    "use strict";
+    var $ = function (id) { return document.getElementById(id); };
+    var trN = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 });
+    var trN1 = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 1 });
+
+    function money(v) {
+      var a = Math.abs(v);
+      if (a >= 1e9) return "₺" + trN1.format(v / 1e9) + " mlr";
+      if (a >= 1e6) return "₺" + trN1.format(v / 1e6) + " mn";
+      if (a >= 1e3) return "₺" + trN.format(Math.round(v / 1e3)) + " bin";
+      return "₺" + trN.format(Math.round(v));
+    }
+    function pct(v) { return "%" + trN1.format(v); }
+    // "1.234.567,8" → 1234567.8 ; "22" → 22 ; "1,5" → 1.5
+    function trNum(s) {
+      s = String(s == null ? "" : s).trim().replace(/[₺%\s]/g, "");
+      if (!s) return NaN;
+      if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", ".");
+      else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+      return parseFloat(s);
+    }
+
+    /* ---- live rates ---- */
+    var RATE = 50; // fallback if rates.json unreachable
+    fetch("rates.json").then(function (r) { return r.json(); }).then(function (j) {
+      var dep = j.market && j.market.deposit && j.market.deposit.value;
+      var loan = j.market && j.market.loan_comm && j.market.loan_comm.value;
+      if (dep) $("rDep").textContent = pct(dep);
+      if (loan) {
+        $("rLoan").textContent = pct(loan);
+        RATE = loan;
+        $("qRate").value = trN1.format(loan);
+        $("rateHint").textContent = "TCMB ticari kredi oranından önerildi (" + pct(loan) + ") — değiştirebilirsiniz.";
+      }
+      quick();
+    }).catch(function () { quick(); });
+
+    /* ---- quick (meeting) mode ---- */
+    function quick() {
+      var m = trNum($("qSales").value), a = trNum($("qAgreed").value),
+          f = trNum($("qActual").value), r = trNum($("qRate").value) / 100;
+      if (!isFinite(m) || !isFinite(a) || !isFinite(f) || !isFinite(r) || m <= 0 || f <= 0) return;
+      var Y = m * 12;
+      var cash = m * f / 30;
+      var extraCash = Math.max(0, m * (f - a) / 30);
+      var cost = Y * r * f / 365;
+      var extraCost = Math.max(0, Y * r * (f - a) / 365);
+      var disc = r * f / 365 * 100;
+      var extraDisc = Math.max(0, r * (f - a) / 365 * 100);
+
+      $("oCash").textContent = money(cash);
+      $("oCashD").textContent = "Bunun " + money(extraCash) + " kadarı anlaşılan vadenin ÜZERİNDE bekliyor.";
+      $("oCost").textContent = money(cost) + "/yıl";
+      $("oCostD").textContent = "Sadece geciken kısım: " + money(extraCost) + "/yıl.";
+      $("oDisc").textContent = pct(disc);
+      $("oDiscD").textContent = "Anlaşılan vadeye ek, onaysız kısım: " + pct(extraDisc) + ".";
+      var p = $("punch");
+      p.textContent = "Her faturada " + pct(extraDisc) + " ek iskonto veriyorsunuz — üstelik kimse istemeden. Bu iskontoyu kim onayladı?";
+      var s = document.createElement("small");
+      s.textContent = "Satış ekibi %5 iskonto için onay alıyor; " + Math.round(f - a) + " gün geç ödeyen müşteri " + pct(extraDisc) + " iskontoyu kendi kendine aldı.";
+      p.appendChild(s);
+    }
+    ["qSales", "qAgreed", "qActual", "qRate"].forEach(function (id) {
+      $(id).addEventListener("input", quick);
+    });
+
+    /* ---- customer mode ---- */
+    var SAMPLE =
+      "Anadolu Gıda A.Ş.\t85.000.000\t22\t60\t118\n" +
+      "Marmara Dağıtım Ltd.\t64.000.000\t18\t45\t52\n" +
+      "Ege Perakende A.Ş.\t51.000.000\t25\t60\t95\n" +
+      "Karadeniz Toptan\t38.000.000\t15\t30\t88\n" +
+      "Akdeniz Market Zinciri\t33.000.000\t27\t90\t92\n" +
+      "İç Anadolu Koop.\t24.000.000\t20\t45\t130\n" +
+      "Trakya Gıda Pazarlama\t18.000.000\t24\t30\t34\n" +
+      "Doğu Bölge Bayii\t12.000.000\t19\t60\t145\n" +
+      "Başkent HoReCa\t9.000.000\t31\t30\t41\n" +
+      "Online Kanal\t6.000.000\t35\t0\t3";
+
+    function parseCust(text) {
+      var rows = [];
+      text.split(/\r?\n/).forEach(function (line) {
+        if (!line.trim()) return;
+        var parts = line.split(/\t|;/);
+        if (parts.length < 5) { var mch = line.match(/^(.*?)[,](.*)$/); if (mch) parts = [mch[1]].concat(mch[2].split(",")); }
+        if (parts.length < 5) return;
+        var name = parts[0].trim();
+        var sales = trNum(parts[1]), mg = trNum(parts[2]), a = trNum(parts[3]), f = trNum(parts[4]);
+        if (!name || !isFinite(sales) || !isFinite(mg) || !isFinite(a) || !isFinite(f)) return;
+        if (/müşteri|musteri|customer/i.test(name)) return; // header row
+        rows.push({ name: name, sales: sales, mg: mg / 100, agreed: a, actual: f });
+      });
+      return rows;
+    }
+
+    var PAL = { nominal: "#1F84E0", real: "#E05A00" };
+    var tipEl = null;
+    function calc(rows) {
+      var r = trNum($("qRate").value) / 100;
+      if (!isFinite(r) || r <= 0) r = RATE / 100;
+      rows.forEach(function (c) {
+        c.nominal = c.sales * c.mg;
+        c.cashCost = c.sales * r * c.actual / 365;
+        c.real = c.nominal - c.cashCost;
+        c.realMg = c.real / c.sales * 100;
+        c.disc = r * c.actual / 365 * 100;
+        c.vadeFarki = c.disc; // price uplift that fully funds the terms
+      });
+      var byNominal = rows.slice().sort(function (x, y) { return y.nominal - x.nominal; });
+      var byReal = rows.slice().sort(function (x, y) { return y.real - x.real; });
+      rows.forEach(function (c) {
+        c.rankN = byNominal.indexOf(c) + 1;
+        c.rankR = byReal.indexOf(c) + 1;
+      });
+
+      /* insights */
+      var ins = [];
+      var top = byNominal[0];
+      if (top && top.rankR !== 1) {
+        ins.push("Ciroda 1 numaralı müşteriniz " + top.name + ", vade maliyeti düşüldüğünde gerçek kârlılıkta " + top.rankR + ". sıraya düşüyor.");
+      }
+      var losers = rows.filter(function (c) { return c.real < 0; });
+      if (losers.length) {
+        ins.push(losers.length + " müşteri, vade maliyeti dahil edildiğinde ZARAR ettiriyor: " +
+          losers.map(function (c) { return c.name; }).join(", ") + ".");
+      }
+      var totCost = rows.reduce(function (s, c) { return s + c.cashCost; }, 0);
+      var totSales = rows.reduce(function (s, c) { return s + c.sales; }, 0);
+      ins.push("Bu portföyün vadesi yılda " + money(totCost) + " finansman maliyeti taşıyor — ciroya oranı " + pct(totCost / totSales * 100) + ".");
+      var worst = rows.slice().sort(function (x, y) { return y.disc - x.disc; })[0];
+      if (worst) ins.push("En yüksek görünmez iskonto " + worst.name + " üzerinde: her faturada " + pct(worst.disc) + ".");
+      var ul = $("insList"); ul.textContent = "";
+      ins.forEach(function (s) { var li = document.createElement("li"); li.textContent = s; ul.appendChild(li); });
+
+      /* chart — grouped bars, nominal vs real, negatives below baseline */
+      drawChart(byNominal.slice(0, 8));
+
+      /* table — ordered by real profit */
+      var tb = $("tbody"); tb.textContent = "";
+      byReal.forEach(function (c) {
+        var tr = document.createElement("tr");
+        function td(text, cls) { var d = document.createElement("td"); d.textContent = text; if (cls) d.className = cls; tr.appendChild(d); }
+        td(c.name);
+        td(money(c.sales));
+        td(money(c.nominal));
+        td("−" + money(c.cashCost).replace("₺", "₺"));
+        td(money(c.real), c.real < 0 ? "neg" : "pos");
+        td(pct(c.realMg), c.realMg < 0 ? "neg" : "");
+        td(pct(c.disc));
+        var shift = c.rankN - c.rankR;
+        td(c.rankN + " → " + c.rankR + (shift < 0 ? " ▼" : shift > 0 ? " ▲" : ""),
+           shift < 0 ? "shift-down" : shift > 0 ? "shift-up" : "");
+        td("fiyat +" + pct(c.vadeFarki));
+        tb.appendChild(tr);
+      });
+
+      $("printDate").textContent = new Date().toLocaleDateString("tr-TR", { year: "numeric", month: "long", day: "numeric" });
+      $("results").style.display = "block";
+      $("results").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function drawChart(rows) {
+      var card = $("chartCard");
+      card.querySelectorAll("svg,.legend,.vr-tip").forEach(function (n) { n.remove(); });
+      var NS = "http://www.w3.org/2000/svg";
+      function sv(tag, at, par) { var e = document.createElementNS(NS, tag); for (var k in at) e.setAttribute(k, at[k]); (par || svg).appendChild(e); return e; }
+      var W = 640, H = 320, ML = 60, MR = 12, MT = 14, MB = 46;
+      var svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+      var vals = [];
+      rows.forEach(function (c) { vals.push(c.nominal, c.real); });
+      var max = Math.max.apply(null, vals.concat([1]));
+      var min = Math.min.apply(null, vals.concat([0]));
+      var span = max - min || 1;
+      function Y(v) { return MT + (H - MT - MB) * (1 - (v - min) / span); }
+      // gridlines at nice steps
+      var step = Math.pow(10, Math.floor(Math.log10(span / 4)));
+      [1, 2, 2.5, 5, 10].some(function (m) { if (m * step >= span / 4) { step = m * step; return true; } return false; });
+      for (var t = Math.ceil(min / step) * step; t <= max; t += step) {
+        sv("line", { x1: ML, x2: W - MR, y1: Y(t), y2: Y(t), stroke: "#3a4358", "stroke-width": 1 });
+        sv("text", { x: ML - 8, y: Y(t) + 4, "text-anchor": "end", fill: "#8b94a7", "font-size": 11 })
+          .textContent = money(t).replace("₺", "");
+      }
+      var band = (W - ML - MR) / rows.length;
+      var barW = Math.min(24, (band - 14) / 2);
+      var tip = document.createElement("div"); tip.className = "vr-tip"; card.appendChild(tip);
+      rows.forEach(function (c, i) {
+        var gx = ML + band * i + (band - (2 * barW + 2)) / 2;
+        [["nominal", c.nominal, "Nominal kâr"], ["real", c.real, "Gerçek kâr"]].forEach(function (sdef, si) {
+          var v = sdef[1], y0 = Y(0), y1 = Y(v);
+          var top = Math.min(y0, y1), h = Math.abs(y0 - y1);
+          if (h < 1) h = 1;
+          var rect = sv("rect", {
+            x: gx + si * (barW + 2), y: top, width: barW, height: h,
+            rx: 3, fill: PAL[sdef[0]]
+          });
+          rect.addEventListener("pointermove", function (ev) {
+            rect.setAttribute("opacity", "0.8");
+            var cr = card.getBoundingClientRect();
+            tip.textContent = c.name + " — " + sdef[2] + ": " + money(v);
+            tip.style.display = "block";
+            tip.style.left = Math.max(6, Math.min(cr.width - 180, ev.clientX - cr.left - 60)) + "px";
+            tip.style.top = (ev.clientY - cr.top - 40) + "px";
+          });
+          rect.addEventListener("pointerleave", function () { rect.removeAttribute("opacity"); tip.style.display = "none"; });
+        });
+        var lbl = sv("text", { x: gx + barW + 1, y: H - MB + 16, "text-anchor": "middle", fill: "#8b94a7", "font-size": 10 });
+        lbl.textContent = c.name.length > 14 ? c.name.slice(0, 13) + "…" : c.name;
+      });
+      sv("line", { x1: ML, x2: W - MR, y1: Y(0), y2: Y(0), stroke: "#4a5469", "stroke-width": 1.5 });
+      card.appendChild(svg);
+      var lg = document.createElement("div"); lg.className = "legend";
+      [["Nominal kâr", PAL.nominal], ["Gerçek kâr (vade maliyeti düşülmüş)", PAL.real]].forEach(function (e) {
+        var s = document.createElement("span"); var i = document.createElement("i");
+        i.style.background = e[1]; s.appendChild(i); s.appendChild(document.createTextNode(e[0])); lg.appendChild(s);
+      });
+      card.appendChild(lg);
+    }
+
+    $("btnCalc").addEventListener("click", function () {
+      var rows = parseCust($("custPaste").value);
+      var err = $("custErr");
+      if (rows.length < 2) {
+        err.textContent = "En az 2 müşteri satırı gerekli. Sütun sırası: Müşteri; Yıllık Satış; Marj %; Anlaşılan Vade; Fiili Gün — Excel'den kopyalayıp yapıştırabilirsiniz.";
+        err.style.display = "block";
+        return;
+      }
+      err.style.display = "none";
+      calc(rows);
+    });
+    $("btnSample").addEventListener("click", function () {
+      $("custPaste").value = SAMPLE;
+      $("custErr").style.display = "none";
+      calc(parseCust(SAMPLE));
+    });
+    $("btnPrint").addEventListener("click", function () { window.print(); });
+  })();
+  </script>
+</body>
+</html>
