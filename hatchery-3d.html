@@ -64,6 +64,21 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 .rawPanel .frm b{color:var(--ink);font-family:var(--mono);font-weight:600}
 .rawPanel .close{position:absolute;right:8px;top:6px;background:none;border:0;color:var(--muted);cursor:pointer;font-size:14px}
 @media(max-width:700px){.rawPanel{right:2vw;left:2vw;width:auto;top:auto;bottom:150px;max-height:52vh}}
+#chatFab{position:fixed;right:14px;bottom:215px;z-index:7;width:44px;height:44px;border-radius:50%;background:var(--orange);color:#fff;border:0;font-size:19px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.chatPanel{position:fixed;right:12px;bottom:265px;z-index:8;width:min(320px,92vw);max-height:55vh;background:rgba(22,25,34,.97);border:1px solid var(--line);border-radius:12px;padding:12px;display:none;flex-direction:column;gap:8px}
+.chatPanel.show{display:flex}
+.chatPanel h3{margin:0;font-size:13px;color:var(--orange)}
+#chatMsgs{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:60px;max-height:34vh}
+.msg{font-size:12px;line-height:1.55;padding:7px 10px;border-radius:10px;max-width:92%}
+.msg.me{align-self:flex-end;background:rgba(255,101,0,.18);color:var(--ink)}
+.msg.bot{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+.msg.bot b{color:var(--ink)}
+.chatRow{display:flex;gap:6px}
+.chatRow input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:8px 10px;font-size:12px;outline:none}
+.chatRow input:focus{border-color:var(--orange)}
+.chatRow button{background:var(--orange);color:#fff;border:0;border-radius:9px;padding:8px 12px;font-weight:700;cursor:pointer}
+.chatPanel .close{position:absolute;right:8px;top:6px;background:none;border:0;color:var(--muted);cursor:pointer;font-size:14px}
+@media(max-width:700px){#chatFab{bottom:230px}.chatPanel{bottom:282px}}
 @media(max-width:700px){
   .hint{display:none}
   .stageName{top:100px}.stageName .t{font-size:13px}.stageName .s{font-size:10px}
@@ -87,7 +102,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r16</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r17</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -104,6 +119,14 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
   <h3 id="rawTitle">📄 Ham Veri & Hesaplama</h3>
   <div class="twrap" id="rawTable"></div>
   <div class="frm" id="rawFormulas"></div>
+</div>
+
+<button id="chatFab">💬</button>
+<div class="chatPanel" id="chatPanel">
+  <button class="close" id="chatClose">✕</button>
+  <h3 id="chatTitle">💬 CivBot</h3>
+  <div id="chatMsgs"></div>
+  <div class="chatRow"><input id="chatIn" placeholder=""><button id="chatSend">➤</button></div>
 </div>
 
 <div class="batchCard" id="introCard" style="left:50%;top:50%;transform:translate(-50%,-50%);width:min(340px,88vw);z-index:9;bottom:auto">
@@ -139,6 +162,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
     <div class="chip" id="mTour" style="opacity:.6">▶ Tur (demo)</div>
   </div>
   <div class="chips" id="sLegend" style="display:none;font-family:var(--mono);font-size:10.5px;color:var(--muted)">
+    <div class="chip" id="rawBtn2">📄 Ham veri</div>
     <div class="chip" id="vChip">🔊 Seslendirme: kapalı</div>
     <select id="voiceSel" style="display:none;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--ink);padding:4px 8px;font:600 11px var(--mono);max-width:180px"></select>
     <div class="chip" id="iChip">📈 Endeksler: açık</div>
@@ -541,19 +565,29 @@ function showBatch(x){
 }
 $('bClose').onclick=()=>$('bCard').classList.remove('show');
 
-/* ham veri paneli: rozetlerin arkasındaki gerçek kayıtlar + formüller */
+/* ham veri paneli: 1) 198 aylık TÜİK/TEPGE serisinin tamamı  2) cihazdaki parti kayıtları */
 function buildRaw(){
-  if(!OPS)return;
   const u=T2();
   $('rawTitle').textContent=u.rawTitle;
+  let h='';
+  if(SDATA){
+    h+=`<div style="font-size:11px;color:var(--orange);font-weight:700;margin:2px 0 6px">${u.rawSeries}</div>`;
+    h+=`<div style="max-height:200px;overflow:auto;margin-bottom:6px"><table><thead><tr>${u.serHead.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>`;
+    for(const d of SDATA)
+      h+=`<tr><td>${d[0]}</td><td>${u.dec(d[1].toFixed(2))}</td><td>${u.dec(d[2].toFixed(1))}</td><td>${u.dec(d[3].toFixed(1))}</td></tr>`;
+    h+=`</tbody></table></div><div class="frm" style="border-top:none;padding-top:0;margin-bottom:12px">${u.serFrm}</div>`;
+  }
+  h+=`<div style="font-size:11px;color:var(--orange);font-weight:700;margin:2px 0 6px">${u.rawBatches}</div>`;
   const rows=[];
-  sitesOf(SITE).forEach(s=>(s.batches||[]).forEach(b=>{
-    if(b.st!=='in'&&!inPeriod(b.d,PER))return;
-    rows.push({s:s.name,b});
-  }));
+  if(OPS)OPS.sites.forEach(s=>(s.batches||[]).forEach(b=>rows.push({s:s.name,b})));
+  if(!rows.length){
+    h+=`<div class="frm" style="border-top:none;padding-top:0">${u.noBatch}</div>`;
+    $('rawTable').innerHTML=h;$('rawFormulas').innerHTML='';
+    return;
+  }
   rows.sort((a,c)=>a.b.sd<c.b.sd?1:-1);
   let te=0,tc=0,ts=0,tr=0;
-  const body=rows.slice(0,200).map(({s,b})=>{
+  const body=rows.slice(0,300).map(({s,b})=>{
     const y=b.chicks!=null&&b.eggs?(b.chicks/b.eggs*100).toFixed(1):'—';
     const rev=(b.sold||0)*(b.price||0);
     if(b.st!=='in'){te+=b.eggs||0;tc+=b.chicks||0;ts+=b.sold||0;tr+=rev;}
@@ -561,15 +595,103 @@ function buildRaw(){
     return `<tr><td>${s}</td><td>${b.sd}</td><td>${b.d}</td><td>${fmt(b.eggs||0)}</td><td>${b.chicks!=null?fmt(b.chicks):'—'}</td><td>${y}</td><td>${b.sold!=null?fmt(b.sold):'—'}</td><td>${b.price?'₺'+fmt(b.price):'—'}</td><td>${rev?'₺'+fmt(rev):'—'}</td><td>${st}</td></tr>`;
   }).join('');
   const ty=te?(tc/te*100).toFixed(1):'—';
-  $('rawTable').innerHTML=`<table><thead><tr>${u.rawHead.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody>`+
-    `<tfoot><tr><td>${u.rawTotal}</td><td></td><td></td><td>${fmt(te)}</td><td>${fmt(tc)}</td><td>${ty}</td><td>${fmt(ts)}</td><td></td><td>₺${fmt(tr)}</td><td></td></tr></tfoot></table>`;
+  h+=`<div style="max-height:180px;overflow:auto"><table><thead><tr>${u.rawHead.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${body}</tbody>`+
+    `<tfoot><tr><td>${u.rawTotal}</td><td></td><td></td><td>${fmt(te)}</td><td>${fmt(tc)}</td><td>${ty}</td><td>${fmt(ts)}</td><td></td><td>₺${fmt(tr)}</td><td></td></tr></tfoot></table></div>`;
+  $('rawTable').innerHTML=h;
   $('rawFormulas').innerHTML=u.rawFrm;
 }
-$('rawBtn').onclick=()=>{
+const toggleRaw=()=>{
   const p=$('rawPanel');p.classList.toggle('show');
   if(p.classList.contains('show'))buildRaw();
 };
+$('rawBtn').onclick=toggleRaw;
+$('rawBtn2').onclick=toggleRaw;
 $('rawClose').onclick=()=>$('rawPanel').classList.remove('show');
+
+/* ================= CivBot: veriden hesaplayarak cevap veren sohbet ================= */
+function addMsg(who,html){
+  const d=document.createElement('div');d.className='msg '+who;d.innerHTML=html;
+  $('chatMsgs').appendChild(d);$('chatMsgs').scrollTop=1e9;
+}
+function yearStats(y){
+  const rows=SDATA.filter(d=>d[0].startsWith(y));
+  if(!rows.length)return null;
+  const ps=rows.map(r=>r[1]);
+  return {avg:ps.reduce((a,b)=>a+b,0)/ps.length,
+    min:Math.min(...ps),max:Math.max(...ps),
+    minM:rows[ps.indexOf(Math.min(...ps))][0],maxM:rows[ps.indexOf(Math.max(...ps))][0],
+    inc:INCIDENTS.filter(i=>i.ym.startsWith(y))};
+}
+function botAnswer(q){
+  const u=T2(),en=LNG==='en',D=x=>u.dec(x);
+  q=q.toLowerCase();
+  const par=SDATA.map(d=>d[1]),avg=par.reduce((a,b)=>a+b,0)/par.length;
+  const last=SDATA[SN-1];
+  if(/parite nedir|what is parity|parity mean|ne demek/.test(q))
+    return en?`<b>Parity</b> = how many kg of feed 1 kg of chicken meat buys (chicken price ÷ feed price, TEPGE-anchored). Below <b>3.0</b> margins are squeezed. Latest (${last[0]}): <b>${D(last[1].toFixed(2))}</b>.`
+             :`<b>Parite</b> = 1 kg tavuk etinin kaç kg yem satın aldığı (tavuk fiyatı ÷ yem fiyatı, TEPGE ankrajlı). <b>3,0</b> altı marj sıkışması demek. Son değer (${last[0]}): <b>${D(last[1].toFixed(2))}</b>.`;
+  if(/kaynak|source|nereden|veri nedir/.test(q))
+    return en?`Sources: TÜİK PPI <b>C10.12</b> (chicken meat) & <b>C10.91</b> (feed), anchored with the TEPGE poultry market report. 198 monthly points, 2010-01 → ${last[0]}. Full table: 📄 Ham veri.`
+             :`Kaynaklar: TÜİK Yİ-ÜFE <b>C10.12</b> (tavuk eti) ve <b>C10.91</b> (yem), TEPGE tavuk eti piyasa raporu ile ankrajlı. 198 aylık nokta, 2010-01 → ${last[0]}. Tam tablo: 📄 Ham veri.`;
+  if(/hesap|calculat|formül|formula/.test(q))
+    return en?`<b>Parity</b> = chicken price ÷ feed price. In live data: <b>yield%</b> = chicks ÷ eggs × 100, <b>revenue</b> = sold × unit price, <b>incubation day</b> = today − set date (21-day cycle).`
+             :`<b>Parite</b> = tavuk fiyatı ÷ yem fiyatı. Canlı veride: <b>randıman%</b> = civciv ÷ yumurta × 100, <b>ciro</b> = satılan × birim fiyat, <b>kuluçka günü</b> = bugün − basım tarihi (21 günlük çevrim).`;
+  if(/en düşük|dip|lowest|minimum|min\b/.test(q)){
+    const m=Math.min(...par),i=par.indexOf(m);
+    return en?`Record low: <b>${D(m.toFixed(2))}</b> in <b>${SDATA[i][0]}</b> — ${D((m/avg*100-100).toFixed(0))}% vs the ${D(avg.toFixed(2))} long-run average.`
+             :`Tarihi dip: <b>${SDATA[i][0]}</b> ayında <b>${D(m.toFixed(2))}</b> — ${D(avg.toFixed(2))} uzun dönem ortalamasının %${D(Math.abs(m/avg*100-100).toFixed(0))} altında.`;
+  }
+  if(/en yüksek|zirve|peak|highest|max/.test(q)){
+    const m=Math.max(...par),i=par.indexOf(m);
+    return en?`All-time peak: <b>${D(m.toFixed(2))}</b> in <b>${SDATA[i][0]}</b>.`
+             :`Tarihi zirve: <b>${SDATA[i][0]}</b> ayında <b>${D(m.toFixed(2))}</b>.`;
+  }
+  if(/bugün|güncel|şimdi|son durum|now|today|current/.test(q)){
+    const b12=par.slice(-12).filter(x=>x<SQUEEZE).length;
+    return en?`<b>${last[0]}</b>: parity <b>${D(last[1].toFixed(2))}</b> (16-yr avg ${D(avg.toFixed(2))}). ${b12} of the last 12 months were below 3.0.`
+             :`<b>${last[0]}</b>: parite <b>${D(last[1].toFixed(2))}</b> (16 yıl ort. ${D(avg.toFixed(2))}). Son 12 ayın ${b12}'i 3,0 altındaydı.`;
+  }
+  if(/sıkışma|squeeze|kırmızı|red/.test(q)){
+    const n=par.filter(x=>x<SQUEEZE).length;
+    return en?`<b>Squeeze</b> = parity below 3.0 (red on the chart): feed eats the margin. It happened in <b>${n} of 198 months</b> (${Math.round(n/198*100)}%), worst in 2020–22.`
+             :`<b>Sıkışma</b> = paritenin 3,0 altına inmesi (grafikte kırmızı): yem, marjı yiyor. 198 ayın <b>${n}'inde</b> (%${Math.round(n/198*100)}) yaşandı; en ağırı 2020–22.`;
+  }
+  const ym=q.match(/(20[12]\d)[-\/\.](\d{1,2})/);
+  if(ym){
+    const key=ym[1]+'-'+ym[2].padStart(2,'0'),row=SDATA.find(d=>d[0]===key);
+    if(row)return en?`<b>${key}</b>: parity <b>${D(row[1].toFixed(2))}</b> · chicken index ${D(row[2].toFixed(1))} · feed index ${D(row[3].toFixed(1))}.`
+                    :`<b>${key}</b>: parite <b>${D(row[1].toFixed(2))}</b> · tavuk endeksi ${D(row[2].toFixed(1))} · yem endeksi ${D(row[3].toFixed(1))}.`;
+  }
+  const yr=q.match(/20[12]\d/);
+  if(yr){
+    const s=yearStats(yr[0]);
+    if(s){
+      const inc=s.inc.length?(en?'<br>Event: ':'<br>Olay: ')+s.inc.map(i=>`<b>${i.ym}</b> — ${en?i.txtE:i.txt}`).join(' · '):'';
+      return en?`<b>${yr[0]}</b>: average parity <b>${D(s.avg.toFixed(2))}</b>, range ${D(s.min.toFixed(2))} (${s.minM}) – ${D(s.max.toFixed(2))} (${s.maxM}).${inc}`
+               :`<b>${yr[0]}</b>: ortalama parite <b>${D(s.avg.toFixed(2))}</b>, aralık ${D(s.min.toFixed(2))} (${s.minM}) – ${D(s.max.toFixed(2))} (${s.maxM}).${inc}`;
+    }
+  }
+  if(/ortalama|average|avg/.test(q))
+    return en?`16-year average parity: <b>${D(avg.toFixed(2))}</b> (2010-01 → ${last[0]}). Ask a year (e.g. "2023") for its own average.`
+             :`16 yıllık ortalama parite: <b>${D(avg.toFixed(2))}</b> (2010-01 → ${last[0]}). Bir yıl yaz (ör. "2023"), o yılın ortalamasını vereyim.`;
+  if(/randıman|yield/.test(q))
+    return en?`<b>Yield%</b> = chicks ÷ eggs × 100. It lives in Live Data mode — open 📄 Ham veri there to see per-batch yields from this device's records.`
+             :`<b>Randıman%</b> = civciv ÷ yumurta × 100. Canlı Veri modundaki 📄 Ham veri panelinde bu cihazdaki partilerin tek tek randımanını görebilirsin.`;
+  return u.chatHi;
+}
+$('chatFab').onclick=()=>{
+  const p=$('chatPanel');p.classList.toggle('show');
+  if(p.classList.contains('show')&&!$('chatMsgs').children.length)addMsg('bot',T2().chatHi);
+};
+$('chatClose').onclick=()=>$('chatPanel').classList.remove('show');
+function chatSendNow(){
+  const q=$('chatIn').value.trim();if(!q)return;
+  $('chatIn').value='';
+  addMsg('me',q.replace(/</g,'&lt;'));
+  addMsg('bot',botAnswer(q));
+}
+$('chatSend').onclick=chatSendNow;
+$('chatIn').addEventListener('keydown',e=>{if(e.key==='Enter')chatSendNow();});
 
 /* ================= HİKÂYE MODU (broiler parite serisi 2010–2026) ================= */
 const SDATA=window.BROILER_DATA||null, SN=SDATA?SDATA.length:0;
@@ -604,7 +726,14 @@ const UI={
       introBtn:'▶ Hikâyeyi başlat',
       rawBtn:'📄 Ham veri',rawTitle:'📄 Ham Veri & Hesaplama',
       rawHead:['Tesis','Basım','Çıkım','Yumurta','Civciv','Rand.%','Satılan','Fiyat','Ciro','Durum'],
-      rawDone:'tamam',rawDay:d=>`Gün ${d}/21`,rawTotal:'Toplam (dönem)',
+      rawDone:'tamam',rawDay:d=>`Gün ${d}/21`,rawTotal:'Toplam',
+      rawSeries:'📈 TÜİK/TEPGE serisi · 2010–2026 · 198 ayın tamamı',
+      serHead:['Ay','Parite','Tavuk end.','Yem end.'],
+      serFrm:'<b>Parite</b> = tavuk eti fiyatı ÷ yem fiyatı (TEPGE ankrajlı). Endeksler: TÜİK Yİ-ÜFE <b>C10.12</b> (tavuk eti) ve <b>C10.91</b> (hazır yem) resmi değerleri.',
+      rawBatches:'🥚 Bu cihazdaki parti kayıtları (tüm dönemler)',
+      noBatch:'Bu cihazda parti kaydı yok — masaüstündeki rapordan 💾 yedeğini bu sayfaya yükleyebilirsin.',
+      chatTitle:'💬 CivBot — veriye sor',chatPh:'Sorunu yaz… (ör: parite nedir?)',
+      chatHi:'Merhaba! 🐣 Bu sayfadaki verilerle ilgili soru sorabilirsin. Örnekler: <b>parite nedir</b> · <b>en düşük ne zaman</b> · <b>2022\'de ne oldu</b> · <b>bugün durum ne</b> · <b>nasıl hesaplanıyor</b>',
       rawFrm:'<b>Randıman %</b> = civciv ÷ yumurta × 100 — seçili dönemde tamamlanan partiler üzerinden.<br><b>Ciro</b> = satılan civciv × birim satış fiyatı.<br><b>Kuluçka günü</b> = bugün − basım tarihi (çevrim 21 gün; gün ≥ 18 → ışık kontrolü).<br><b>Kabul rozeti</b> = dönemde basılan parti sayısı ve yumurta toplamı.<br>Kaynak: bu cihazdaki KuluçkaTakip kayıtları — hatchery.html raporuyla birebir aynı yerel veri (anahtar: <b>hatchops.v1</b>).',
       introSpeak:'Bir kilo tavuk eti kaç kilo yem satın alır? Bu orana parite denir. Civcivimiz, 2010\'dan bugüne 198 aylık gerçek veride yürüyor. Başlıyoruz.',
       dec:v=>v.replace('.',','),voice:'tr-TR'},
@@ -621,7 +750,14 @@ const UI={
       introBtn:'▶ Start the story',
       rawBtn:'📄 Raw data',rawTitle:'📄 Raw Data & Calculations',
       rawHead:['Site','Set','Hatch','Eggs','Chicks','Yield%','Sold','Price','Revenue','Status'],
-      rawDone:'done',rawDay:d=>`Day ${d}/21`,rawTotal:'Total (period)',
+      rawDone:'done',rawDay:d=>`Day ${d}/21`,rawTotal:'Total',
+      rawSeries:'📈 TÜİK/TEPGE series · 2010–2026 · all 198 months',
+      serHead:['Month','Parity','Chicken idx','Feed idx'],
+      serFrm:'<b>Parity</b> = chicken-meat price ÷ feed price (TEPGE-anchored). Indices: official TÜİK PPI <b>C10.12</b> (chicken meat) and <b>C10.91</b> (prepared feed) values.',
+      rawBatches:'🥚 Batch records on this device (all periods)',
+      noBatch:'No batch records on this device — load a 💾 backup exported from the desktop report.',
+      chatTitle:'💬 CivBot — ask the data',chatPh:'Type a question… (e.g. what is parity?)',
+      chatHi:'Hi! 🐣 Ask me about the data on this page. Try: <b>what is parity</b> · <b>when was the lowest</b> · <b>what happened in 2022</b> · <b>how is it today</b> · <b>how is it calculated</b>',
       rawFrm:'<b>Yield %</b> = chicks ÷ eggs × 100 — over batches completed in the selected period.<br><b>Revenue</b> = chicks sold × unit sale price.<br><b>Incubation day</b> = today − set date (21-day cycle; day ≥ 18 → candling).<br><b>Intake badge</b> = batches set and total eggs in the period.<br>Source: KuluçkaTakip records on this device — exactly the same local data as the hatchery.html report (key: <b>hatchops.v1</b>).',
       introSpeak:'How many kilos of feed does one kilo of chicken buy? That ratio is called parity. Our chick walks across 198 months of real data, from 2010 to today. Here we go.',
       dec:v=>v,voice:'en-US'},
@@ -916,7 +1052,8 @@ function applyLang(){
   $('introTitle').textContent=u.introTitle;
   $('introBody').innerHTML=u.introBody;
   $('introStart').textContent=u.introBtn;
-  $('rawBtn').textContent=u.rawBtn;
+  $('rawBtn').textContent=u.rawBtn;$('rawBtn2').textContent=u.rawBtn;
+  $('chatTitle').textContent=u.chatTitle;$('chatIn').placeholder=u.chatPh;
   if($('rawPanel').classList.contains('show'))buildRaw();
   fillVoiceSel();
 }
@@ -1043,7 +1180,7 @@ function setMode(m){
   $('liveBar').style.display=m==='live'?'flex':'none';
   $('sLegend').style.display=m==='story'?'flex':'none';
   $('bCard').classList.remove('show');
-  if(m!=='live')$('rawPanel').classList.remove('show');
+  if(m==='tour')$('rawPanel').classList.remove('show');
   hero.cart.visible=(m==='tour');
   liveCarts.forEach(x=>x.c.cart.visible=false);
   if(storyGrp)storyGrp.visible=(m==='story');
