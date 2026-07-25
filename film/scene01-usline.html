@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Parite: Sığır — Sahne: 55 yılın çizgisi</title>
+<style>
+*{margin:0}
+html,body{height:100%;background:#000;overflow:hidden}
+#stage{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+canvas#c{display:block;background:#0b0906}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c" width="1080" height="1920"></canvas></div>
+<script>
+/* ============================================================
+   SAHNE 01 — "55 yılın çizgisi" (ABD: sığır / mısır paritesi)
+   Dikey 1080×1920 · süre 14 sn · deterministik: __seek(t)
+   Renk dünyası: film çekimleriyle aynı (amber / koyu kahve / lacivert)
+   ============================================================ */
+const W=1080,H=1920,DUR=14;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+
+/* çekim setiyle uyumlu palet */
+const COL={
+  bg0:'#0b0906', bg1:'#161009',
+  line:'#ffb056', lineGlow:'rgba(255,176,86,.35)',
+  fill0:'rgba(255,176,86,.16)', fill1:'rgba(255,176,86,0)',
+  dim:'#cbbfa8', dimmer:'#8a7c62', blue:'#8aa0d8',
+  card:'rgba(12,9,5,.78)', cardEdge:'rgba(255,176,86,.4)'
+};
+
+/* -------- veri -------- */
+let ROWS=null;   // [month, cattle, corn, parity]
+fetch('../data/cattle-us.json').then(r=>r.json()).then(j=>{ROWS=j.rows;window.__ready=true;});
+
+/* olay vurguları: [ay-index bulunacak tarih, başlık, alt satır, hiza] */
+const EVENTS=[
+  ['1973-11','1973 · TAHIL ŞOKU','Sovyet alımları mısırı uçurdu — parite dibe',-1],
+  ['2014-11','2014 · ZİRVE','Kuraklık sürüyü 63 yılın dibine indirdi',1],
+  ['2022-05','2022 · YEM ŞOKU','Savaş tahılı vurdu, parite yeniden daraldı',-1],
+  ['2025-12','2026 · REKOR','Sürü hâlâ dipte — parite tüm zamanların tepesinde',1],
+];
+
+/* -------- yerleşim -------- */
+const M={l:120,r:70,t:700,b:420};           // grafik alanı kenarları
+const PW=W-M.l-M.r, PH=H-M.t-M.b;
+const YMIN=0.4,YMAX=3.4;
+
+const X=i=>M.l+PW*(i/(ROWS.length-1));
+const Y=v=>M.t+PH*(1-(v-YMIN)/(YMAX-YMIN));
+
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+
+/* film greni (deterministik: sabit tohum) */
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+const grain=document.createElement('canvas');grain.width=256;grain.height=256;
+{const g=grain.getContext('2d');const im=g.createImageData(256,256);
+ for(let i=0;i<im.data.length;i+=4){const v=rnd()*255;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=22;}
+ g.putImageData(im,0,0);}
+
+function idxOf(month){return ROWS.findIndex(r=>r[0]===month);}
+
+/* -------- çizim -------- */
+function draw(t){
+  if(!ROWS)return;
+  const p=Math.min(1,Math.max(0,t/DUR));
+  /* çizgi ilerlemesi: %6 giriş beklemesi, %78'e kadar çizim, kalanı final vurgusu */
+  const lineP=ease(Math.min(1,Math.max(0,(p-0.05)/0.75)));
+  const n=Math.max(2,Math.floor(ROWS.length*lineP));
+
+  /* zemin: dikey degrade + vinyet */
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,COL.bg1);bg.addColorStop(.5,COL.bg0);bg.addColorStop(1,'#080604');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+  /* başlık bloğu */
+  ctx.textAlign='center';
+  ctx.fillStyle=COL.dimmer;ctx.font='600 34px "IBM Plex Mono",monospace';
+  ctx.globalAlpha=Math.min(1,p*6);
+  ctx.fillText('AMERİKA BİRLEŞİK DEVLETLERİ · 1971–2026',W/2,200);
+  ctx.fillStyle='#f5efe6';ctx.font='700 84px "IBM Plex Sans",sans-serif';
+  ctx.fillText('1 kg sığır kaç kg',W/2,320);
+  ctx.fillText('mısır ediyor?',W/2,420);
+  ctx.globalAlpha=1;
+
+  /* ızgara + eksen */
+  ctx.strokeStyle='rgba(203,191,168,.13)';ctx.lineWidth=2;
+  ctx.fillStyle=COL.dimmer;ctx.font='500 30px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  for(let v=0.5;v<=3.0;v+=0.5){
+    ctx.beginPath();ctx.moveTo(M.l,Y(v));ctx.lineTo(W-M.r,Y(v));ctx.stroke();
+    ctx.fillText(v.toFixed(1)+'×',M.l-18,Y(v)+10);
+  }
+  /* yıl işaretleri */
+  ctx.textAlign='center';
+  for(const yr of [1980,1990,2000,2010,2020]){
+    const i=idxOf(yr+'-01');if(i<0)continue;
+    ctx.fillStyle='rgba(138,124,98,.8)';
+    ctx.fillText(String(yr),X(i),M.t+PH+56);
+  }
+
+  /* alan dolgusu */
+  const fill=ctx.createLinearGradient(0,M.t,0,M.t+PH);
+  fill.addColorStop(0,COL.fill0);fill.addColorStop(1,COL.fill1);
+  ctx.beginPath();ctx.moveTo(X(0),Y(ROWS[0][3]));
+  for(let i=1;i<n;i++)ctx.lineTo(X(i),Y(ROWS[i][3]));
+  ctx.lineTo(X(n-1),M.t+PH);ctx.lineTo(X(0),M.t+PH);ctx.closePath();
+  ctx.fillStyle=fill;ctx.fill();
+
+  /* ana çizgi: dış parlaklık + çekirdek */
+  ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(X(0),Y(ROWS[0][3]));
+  for(let i=1;i<n;i++)ctx.lineTo(X(i),Y(ROWS[i][3]));
+  ctx.strokeStyle=COL.lineGlow;ctx.lineWidth=16;ctx.stroke();
+  ctx.strokeStyle=COL.line;ctx.lineWidth=6;ctx.stroke();
+
+  /* uç nokta + canlı değer */
+  const li=n-1,lx=X(li),ly=Y(ROWS[li][3]);
+  ctx.beginPath();ctx.arc(lx,ly,14,0,7);ctx.fillStyle=COL.line;ctx.fill();
+  ctx.beginPath();ctx.arc(lx,ly,26,0,7);ctx.strokeStyle=COL.lineGlow;ctx.lineWidth=4;ctx.stroke();
+
+  /* başlık altı canlı sayaç: parite + yıl */
+  const [ym,,,pv]=ROWS[li];
+  ctx.textAlign='center';
+  ctx.fillStyle=COL.line;ctx.font='700 140px "IBM Plex Mono",monospace';
+  ctx.fillText(pv.toFixed(2)+'×',W/2,M.t-130);
+  ctx.fillStyle=COL.dim;ctx.font='600 44px "IBM Plex Mono",monospace';
+  ctx.fillText(ym.replace('-',' / '),W/2,M.t-55);
+
+  /* olay kartları: çizgi o aya ulaşınca belirir, bir süre kalır, kaybolur
+     (son olay kalıcı — kapanış mesajı) */
+  ctx.textAlign='left';
+  for(let e=0;e<EVENTS.length;e++){
+    const [mon,title,sub,side]=EVENTS[e];
+    const ei=idxOf(mon);if(ei<0||ei>=n)continue;
+    const age=n-ei;                                 // ay cinsinden yaş
+    const fadeIn=Math.min(1,age/24);
+    const isLast=e===EVENTS.length-1;
+    const fadeOut=isLast?1:Math.max(0,Math.min(1,(140-age)/40));
+    const reveal=fadeIn*fadeOut;
+    if(reveal<=0)continue;
+    const ex=X(ei),ey=Y(ROWS[ei][3]);
+    ctx.globalAlpha=reveal;
+    /* kart: genişlik metne göre, konum ekran içinde kelepçeli */
+    ctx.font='700 40px "IBM Plex Sans",sans-serif';
+    const w1=ctx.measureText(title).width;
+    ctx.font='400 32px "IBM Plex Sans",sans-serif';
+    const w2=ctx.measureText(sub).width;
+    const cw=Math.min(W-M.l-M.r,Math.max(w1,w2)+56),ch=150;
+    let cx=Math.min(W-M.r-cw,Math.max(M.l,ex-cw/2));
+    let cy=side<0?ey+140:ey-140-ch;
+    cy=Math.max(M.t-540,Math.min(H-M.b+120-ch,cy));  // sayaç ve kaynak yazısından uzak dur
+    /* işaret çizgisi: noktadan kartın yakın kenarına */
+    ctx.strokeStyle='rgba(255,176,86,.5)';ctx.lineWidth=3;
+    const tipY=cy<ey?cy+ch:cy;
+    ctx.beginPath();ctx.moveTo(ex,ey+(cy<ey?-24:24));ctx.lineTo(ex,tipY);ctx.stroke();
+    ctx.beginPath();ctx.arc(ex,ey,10,0,7);ctx.fillStyle='#f5efe6';ctx.fill();
+    ctx.fillStyle=COL.card;ctx.strokeStyle=COL.cardEdge;ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(cx,cy,cw,ch,14);ctx.fill();ctx.stroke();
+    ctx.fillStyle=COL.line;ctx.font='700 40px "IBM Plex Sans",sans-serif';
+    ctx.fillText(title,cx+28,cy+58);
+    ctx.fillStyle=COL.dim;ctx.font='400 32px "IBM Plex Sans",sans-serif';
+    ctx.fillText(sub,cx+28,cy+110);
+    ctx.globalAlpha=1;
+  }
+
+  /* final vurgusu: son %15'te uç değer nabız atar */
+  if(p>0.85){
+    const k=(Math.sin((p-0.85)*40)+1)/2;
+    ctx.beginPath();ctx.arc(lx,ly,26+k*18,0,7);
+    ctx.strokeStyle=`rgba(255,176,86,${.5-k*.3})`;ctx.lineWidth=5;ctx.stroke();
+  }
+
+  /* kaynak satırı */
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(138,124,98,.75)';ctx.font='500 26px "IBM Plex Mono",monospace';
+  ctx.fillText('Kaynak: FRED / BLS üretici fiyat endeksleri',W/2,H-170);
+  ctx.fillText('WPU0131 (kasaplık sığır) ÷ WPU012202 (mısır)',W/2,H-128);
+  ctx.fillText('namikakman.dev · Parite: Sığır',W/2,H-80);
+
+  /* vinyet + gren */
+  const vg=ctx.createRadialGradient(W/2,H*0.45,H*0.25,W/2,H*0.5,H*0.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.5)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='overlay';
+  for(let gy=0;gy<H;gy+=256)for(let gx=0;gx<W;gx+=256)ctx.drawImage(grain,gx,gy);
+  ctx.globalCompositeOperation='source-over';
+}
+
+/* -------- zaman kontrolü -------- */
+window.__dur=DUR;
+let manual=false;
+window.__seek=t=>{manual=true;draw(t);};   // render modu: otomatik oynatmayı durdurur
+/* tarayıcıda kendiliğinden oynat */
+let t0=null;
+function loop(ts){
+  if(manual)return;
+  if(t0===null)t0=ts;
+  const t=((ts-t0)/1000)%(DUR+2);          // 2 sn bekleyip başa sar
+  draw(Math.min(t,DUR));
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ölçek: canvas'ı ekrana sığdır */
+function fit(){
+  const s=Math.min(innerWidth/W,innerHeight/H);
+  cv.style.width=(W*s)+'px';cv.style.height=(H*s)+'px';
+}
+addEventListener('resize',fit);fit();
+</script>
+</body>
+</html>
