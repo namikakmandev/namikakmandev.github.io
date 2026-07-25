@@ -51,6 +51,19 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 .noData{position:fixed;left:50%;transform:translateX(-50%);top:110px;z-index:6;background:rgba(22,25,34,.94);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:12px;color:var(--muted);display:none;text-align:center;line-height:1.7}
 .noData.show{display:block}
 .noData label{color:var(--primary);cursor:pointer;text-decoration:underline}
+.rawPanel{position:fixed;right:12px;top:60px;width:min(560px,94vw);max-height:calc(100vh - 230px);background:rgba(22,25,34,.97);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:none;z-index:7;overflow:auto}
+.rawPanel.show{display:block}
+.rawPanel h3{margin:0 0 10px;font-size:13px;color:var(--orange)}
+.rawPanel table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:10.5px;white-space:nowrap}
+.rawPanel th{color:var(--muted);text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);font-size:9px;text-transform:uppercase;position:sticky;top:0;background:rgba(22,25,34,.97)}
+.rawPanel td{padding:4px 6px;text-align:right;border-bottom:1px solid rgba(38,43,54,.5)}
+.rawPanel th:first-child,.rawPanel td:first-child{text-align:left}
+.rawPanel tfoot td{border-top:1px solid var(--line);font-weight:700;color:var(--ink)}
+.rawPanel .twrap{overflow-x:auto;margin-bottom:10px}
+.rawPanel .frm{font-size:11px;color:var(--muted);line-height:1.8;border-top:1px dashed var(--line);padding-top:9px}
+.rawPanel .frm b{color:var(--ink);font-family:var(--mono);font-weight:600}
+.rawPanel .close{position:absolute;right:8px;top:6px;background:none;border:0;color:var(--muted);cursor:pointer;font-size:14px}
+@media(max-width:700px){.rawPanel{right:2vw;left:2vw;width:auto;top:auto;bottom:150px;max-height:52vh}}
 @media(max-width:700px){
   .hint{display:none}
   .stageName{top:100px}.stageName .t{font-size:13px}.stageName .s{font-size:10px}
@@ -74,7 +87,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r14</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r15</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -84,6 +97,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
   <button class="close" id="bClose">✕</button>
   <h3 id="bTitle">Parti</h3>
   <div id="bRows"></div>
+</div>
+
+<div class="rawPanel" id="rawPanel">
+  <button class="close" id="rawClose">✕</button>
+  <h3 id="rawTitle">📄 Ham Veri & Hesaplama</h3>
+  <div class="twrap" id="rawTable"></div>
+  <div class="frm" id="rawFormulas"></div>
 </div>
 
 <div class="batchCard" id="introCard" style="left:50%;top:50%;transform:translate(-50%,-50%);width:min(340px,88vw);z-index:9;bottom:auto">
@@ -137,6 +157,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
     <select id="siteSel"></select>
     <select id="perSel"></select>
     <div class="day" id="liveCount"></div>
+    <button class="ghost" id="rawBtn">📄 Ham veri</button>
     <button class="ghost" id="spinBtn2" title="Otomatik dönüş">🔄</button>
   </div>
 </div>
@@ -486,6 +507,7 @@ function refreshLive(){
   stats.cikim.set(dEggs?`randıman %${(dChicks/dEggs*100).toFixed(1)}`:'veri yok','#19C37D');
   stats.sevk.set(sold?`${fmt(sold)} civciv · ₺${fmt(rev)}`:'satış yok','#E6E8EC');
   $('liveCount').innerHTML=`<b>${act.length}</b> aktif parti`;
+  if($('rawPanel').classList.contains('show'))buildRaw();
   const perTxt=PER==='all'?'tüm zamanlar':PER.slice(2);
   $('stTitle').textContent='Canlı Üretim Görünümü';
   $('stSub').textContent=`rapor verisinden · dönem: ${perTxt} · partiye dokun → detay`;
@@ -519,6 +541,36 @@ function showBatch(x){
 }
 $('bClose').onclick=()=>$('bCard').classList.remove('show');
 
+/* ham veri paneli: rozetlerin arkasındaki gerçek kayıtlar + formüller */
+function buildRaw(){
+  if(!OPS)return;
+  const u=T2();
+  $('rawTitle').textContent=u.rawTitle;
+  const rows=[];
+  sitesOf(SITE).forEach(s=>(s.batches||[]).forEach(b=>{
+    if(b.st!=='in'&&!inPeriod(b.d,PER))return;
+    rows.push({s:s.name,b});
+  }));
+  rows.sort((a,c)=>a.b.sd<c.b.sd?1:-1);
+  let te=0,tc=0,ts=0,tr=0;
+  const body=rows.slice(0,200).map(({s,b})=>{
+    const y=b.chicks!=null&&b.eggs?(b.chicks/b.eggs*100).toFixed(1):'—';
+    const rev=(b.sold||0)*(b.price||0);
+    if(b.st!=='in'){te+=b.eggs||0;tc+=b.chicks||0;ts+=b.sold||0;tr+=rev;}
+    const st=b.st==='in'?u.rawDay(Math.min(dayOf(b),INCUB)):u.rawDone;
+    return `<tr><td>${s}</td><td>${b.sd}</td><td>${b.d}</td><td>${fmt(b.eggs||0)}</td><td>${b.chicks!=null?fmt(b.chicks):'—'}</td><td>${y}</td><td>${b.sold!=null?fmt(b.sold):'—'}</td><td>${b.price?'₺'+fmt(b.price):'—'}</td><td>${rev?'₺'+fmt(rev):'—'}</td><td>${st}</td></tr>`;
+  }).join('');
+  const ty=te?(tc/te*100).toFixed(1):'—';
+  $('rawTable').innerHTML=`<table><thead><tr>${u.rawHead.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody>`+
+    `<tfoot><tr><td>${u.rawTotal}</td><td></td><td></td><td>${fmt(te)}</td><td>${fmt(tc)}</td><td>${ty}</td><td>${fmt(ts)}</td><td></td><td>₺${fmt(tr)}</td><td></td></tr></tfoot></table>`;
+  $('rawFormulas').innerHTML=u.rawFrm;
+}
+$('rawBtn').onclick=()=>{
+  const p=$('rawPanel');p.classList.toggle('show');
+  if(p.classList.contains('show'))buildRaw();
+};
+$('rawClose').onclick=()=>$('rawPanel').classList.remove('show');
+
 /* ================= HİKÂYE MODU (broiler parite serisi 2010–2026) ================= */
 const SDATA=window.BROILER_DATA||null, SN=SDATA?SDATA.length:0;
 let monthF=0, storyGrp=null, storyChick=null, storyMesh=null, storyLine=null, yearLabels=[];
@@ -550,6 +602,10 @@ const UI={
       introTitle:'🐣 Broiler Marj Hikâyesi · 2010–2026',
       introBody:'1 kilo tavuk eti, kaç kilo yem satın alır? Bu orana <b style="color:var(--ink)">parite</b> denir — sektör kârlılığının en yalın göstergesi.<br><br>Civciv, TÜİK &amp; TEPGE\'nin <b style="color:var(--ink)">198 aylık gerçek verisi</b> üzerinde 2010\'dan bugüne yürüyecek: <b style="color:#2F9BFF">mavi</b> dönemler rahat marj, <b style="color:#E5484D">kırmızı</b> dönemler sıkışma (parite &lt; 3,0). Üstteki panel nedenini gösterir: <b style="color:#19C37D">tavuk fiyatı</b> ile <b style="color:#FF6500">yem fiyatı</b>nın yarışı.<br><br>🔊 düğmesiyle civciv hikâyeyi sesli anlatır.',
       introBtn:'▶ Hikâyeyi başlat',
+      rawBtn:'📄 Ham veri',rawTitle:'📄 Ham Veri & Hesaplama',
+      rawHead:['Tesis','Basım','Çıkım','Yumurta','Civciv','Rand.%','Satılan','Fiyat','Ciro','Durum'],
+      rawDone:'tamam',rawDay:d=>`Gün ${d}/21`,rawTotal:'Toplam (dönem)',
+      rawFrm:'<b>Randıman %</b> = civciv ÷ yumurta × 100 — seçili dönemde tamamlanan partiler üzerinden.<br><b>Ciro</b> = satılan civciv × birim satış fiyatı.<br><b>Kuluçka günü</b> = bugün − basım tarihi (çevrim 21 gün; gün ≥ 18 → ışık kontrolü).<br><b>Kabul rozeti</b> = dönemde basılan parti sayısı ve yumurta toplamı.<br>Kaynak: bu cihazdaki KuluçkaTakip kayıtları — hatchery.html raporuyla birebir aynı yerel veri (anahtar: <b>hatchops.v1</b>).',
       introSpeak:'Bir kilo tavuk eti kaç kilo yem satın alır? Bu orana parite denir. Civcivimiz, 2010\'dan bugüne 198 aylık gerçek veride yürüyor. Başlıyoruz.',
       dec:v=>v.replace('.',','),voice:'tr-TR'},
   en:{voiceOff:'🔊 Voice: off',voiceOn:'🔊 Voice: on',idxOn:'📈 Indices: on',idxOff:'📈 Indices: off',
@@ -563,6 +619,10 @@ const UI={
       introTitle:'🐣 The Broiler Margin Story · 2010–2026',
       introBody:'How many kilos of feed does one kilo of chicken buy? That ratio is called <b style="color:var(--ink)">parity</b> — the simplest gauge of the sector\'s profitability.<br><br>The chick will walk across <b style="color:var(--ink)">198 months of real TÜİK &amp; TEPGE data</b>, from 2010 to today: <b style="color:#2F9BFF">blue</b> stretches mean comfortable margins, <b style="color:#E5484D">red</b> means a squeeze (parity &lt; 3.0). The panel above shows the cause: the race between the <b style="color:#19C37D">chicken price</b> and the <b style="color:#FF6500">feed price</b>.<br><br>Tap 🔊 to have the chick narrate aloud.',
       introBtn:'▶ Start the story',
+      rawBtn:'📄 Raw data',rawTitle:'📄 Raw Data & Calculations',
+      rawHead:['Site','Set','Hatch','Eggs','Chicks','Yield%','Sold','Price','Revenue','Status'],
+      rawDone:'done',rawDay:d=>`Day ${d}/21`,rawTotal:'Total (period)',
+      rawFrm:'<b>Yield %</b> = chicks ÷ eggs × 100 — over batches completed in the selected period.<br><b>Revenue</b> = chicks sold × unit sale price.<br><b>Incubation day</b> = today − set date (21-day cycle; day ≥ 18 → candling).<br><b>Intake badge</b> = batches set and total eggs in the period.<br>Source: KuluçkaTakip records on this device — exactly the same local data as the hatchery.html report (key: <b>hatchops.v1</b>).',
       introSpeak:'How many kilos of feed does one kilo of chicken buy? That ratio is called parity. Our chick walks across 198 months of real data, from 2010 to today. Here we go.',
       dec:v=>v,voice:'en-US'},
 };
@@ -827,7 +887,11 @@ $('iChip').onclick=()=>{
   $('iChip').textContent=idxOn?T2().idxOn:T2().idxOff;
 };
 $('endClose').onclick=()=>$('endCard').classList.remove('show');
-$('endLive').onclick=()=>{$('endCard').classList.remove('show');setMode('live');};
+$('endLive').onclick=()=>{
+  $('endCard').classList.remove('show');
+  setMode('live');
+  if(OPS){$('rawPanel').classList.add('show');buildRaw();}   // ham veri + formüllerle karşıla
+};
 function hideIntro(){$('introCard').classList.remove('show');}
 $('introStart').onclick=()=>{
   hideIntro();
@@ -852,6 +916,8 @@ function applyLang(){
   $('introTitle').textContent=u.introTitle;
   $('introBody').innerHTML=u.introBody;
   $('introStart').textContent=u.introBtn;
+  $('rawBtn').textContent=u.rawBtn;
+  if($('rawPanel').classList.contains('show'))buildRaw();
   fillVoiceSel();
 }
 $('langChip').onclick=()=>{
@@ -969,6 +1035,7 @@ function setMode(m){
   $('liveBar').style.display=m==='live'?'flex':'none';
   $('sLegend').style.display=m==='story'?'flex':'none';
   $('bCard').classList.remove('show');
+  if(m!=='live')$('rawPanel').classList.remove('show');
   hero.cart.visible=(m==='tour');
   liveCarts.forEach(x=>x.c.cart.visible=false);
   if(storyGrp)storyGrp.visible=(m==='story');
