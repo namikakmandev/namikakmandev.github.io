@@ -102,11 +102,11 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r19</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r20</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
-<div class="hint">🖱 sürükle → döndür<br>⚲ tekerlek / iki parmak → yakınlaş<br>🥚 partiye dokun → detay</div>
+<div class="hint">🖱 sürükle → döndür<br>⚲ tekerlek → yakınlaş<br>🥚 partiye dokun → detay</div>
 
 <div class="batchCard" id="bCard">
   <button class="close" id="bClose">✕</button>
@@ -1272,7 +1272,10 @@ $('impFile').onchange=function(){
 /* ================= etkileşim ================= */
 let dragging=false,px=0,py=0,pinch=0,lastInteract=0,downXY=null;
 const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();
-canvas.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;downXY=[e.clientX,e.clientY];canvas.classList.add('grabbing');canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointerdown',e=>{
+  dragging=true;px=e.clientX;py=e.clientY;downXY=[e.clientX,e.clientY];
+  if(e.pointerType!=='touch'){canvas.classList.add('grabbing');canvas.setPointerCapture(e.pointerId);}
+});
 addEventListener('pointerup',e=>{
   canvas.classList.remove('grabbing');
   if(dragging&&downXY&&Math.hypot(e.clientX-downXY[0],e.clientY-downXY[1])<6&&MODE==='live'){
@@ -1286,7 +1289,7 @@ addEventListener('pointerup',e=>{
   dragging=false;downXY=null;
 });
 addEventListener('pointermove',e=>{
-  if(!dragging)return;
+  if(!dragging||e.pointerType==='touch')return;   // dokunmatikte tek parmak döndürmez — iki parmak yakınlaştırır
   camTheta+=(e.clientX-px)*.0055;camPhi-=(e.clientY-py)*.0045;
   px=e.clientX;py=e.clientY;lastInteract=perfNow();applyCam();
 });
