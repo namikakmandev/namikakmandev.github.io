@@ -74,7 +74,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r13</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r14</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -84,6 +84,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
   <button class="close" id="bClose">✕</button>
   <h3 id="bTitle">Parti</h3>
   <div id="bRows"></div>
+</div>
+
+<div class="batchCard" id="introCard" style="left:50%;top:50%;transform:translate(-50%,-50%);width:min(340px,88vw);z-index:9;bottom:auto">
+  <h3 id="introTitle" style="font-size:14px">🐣 Broiler Marj Hikâyesi · 2010–2026</h3>
+  <div id="introBody" style="font-size:12px;line-height:1.65;color:var(--muted)"></div>
+  <button id="introStart" style="margin-top:12px;width:100%;background:var(--orange);color:#fff;border:0;border-radius:9px;padding:10px;font:700 13px system-ui;cursor:pointer">▶ Hikâyeyi başlat</button>
 </div>
 
 <div class="batchCard" id="endCard" style="left:50%;top:50%;transform:translate(-50%,-50%);width:280px;z-index:8;bottom:auto">
@@ -383,13 +389,16 @@ function fillChips(items,onClick){
 }
 function fillTourChips(){fillChips(STAGES.map((s,i)=>`${i+1} · ${s[0]} (${s[1]})`),i=>{t=STAGES[i][2];syncScrub();});}
 $('playBtn').onclick=()=>{
-  if(MODE==='story'&&!playing&&monthF>=SN-1)monthF=0;
+  if(MODE==='story'){
+    document.getElementById('introCard').classList.remove('show');
+    if(!playing&&monthF>=SN-1)monthF=0;
+  }
   playing=!playing;$('playBtn').textContent=playing?'⏸ Durdur':'▶ Oynat';
 };
 const toggleSpin=()=>{autoSpin=!autoSpin;$('spinBtn').style.opacity=$('spinBtn2').style.opacity=autoSpin?1:.4;};
 $('spinBtn').onclick=toggleSpin;$('spinBtn2').onclick=toggleSpin;
 $('scrub').oninput=()=>{
-  if(MODE==='story')monthF=$('scrub').value/1000*(SN-1);
+  if(MODE==='story'){monthF=$('scrub').value/1000*(SN-1);document.getElementById('introCard').classList.remove('show');}
   else t=$('scrub').value/1000*T;
 };
 function syncScrub(){$('scrub').value=MODE==='story'?Math.round(monthF/(SN-1)*1000):Math.round(t/T*1000);}
@@ -538,6 +547,10 @@ const UI={
       e12v:m=>m+' ay < 3,0',eAll:"2010'dan beri sıkışma",eAllv:p=>'ayların %'+p+'ı',eAct:'Şu an kuluçkada',
       eActv:n=>n+' parti',eLive:"● Canlı Veri'ye geç",
       eSpeak:(c,a,m)=>`Bugün neredeyiz? Güncel parite ${c}, on altı yıllık ortalama ${a}. Son on iki ayın ${m} ayı sıkışma bölgesindeydi.`,
+      introTitle:'🐣 Broiler Marj Hikâyesi · 2010–2026',
+      introBody:'1 kilo tavuk eti, kaç kilo yem satın alır? Bu orana <b style="color:var(--ink)">parite</b> denir — sektör kârlılığının en yalın göstergesi.<br><br>Civciv, TÜİK &amp; TEPGE\'nin <b style="color:var(--ink)">198 aylık gerçek verisi</b> üzerinde 2010\'dan bugüne yürüyecek: <b style="color:#2F9BFF">mavi</b> dönemler rahat marj, <b style="color:#E5484D">kırmızı</b> dönemler sıkışma (parite &lt; 3,0). Üstteki panel nedenini gösterir: <b style="color:#19C37D">tavuk fiyatı</b> ile <b style="color:#FF6500">yem fiyatı</b>nın yarışı.<br><br>🔊 düğmesiyle civciv hikâyeyi sesli anlatır.',
+      introBtn:'▶ Hikâyeyi başlat',
+      introSpeak:'Bir kilo tavuk eti kaç kilo yem satın alır? Bu orana parite denir. Civcivimiz, 2010\'dan bugüne 198 aylık gerçek veride yürüyor. Başlıyoruz.',
       dec:v=>v.replace('.',','),voice:'tr-TR'},
   en:{voiceOff:'🔊 Voice: off',voiceOn:'🔊 Voice: on',idxOn:'📈 Indices: on',idxOff:'📈 Indices: off',
       par:'parity',thr:'3.0 threshold',pTitle:'Price indices · 2010=100 · log scale',chicken:'Chicken meat',feed:'Feed',
@@ -547,6 +560,10 @@ const UI={
       e12v:m=>m+' months < 3.0',eAll:'Squeeze since 2010',eAllv:p=>p+'% of all months',eAct:'In incubation now',
       eActv:n=>n+' batches',eLive:'● Go to Live Data',
       eSpeak:(c,a,m)=>`Where are we today? Current parity ${c}, sixteen-year average ${a}. ${m} of the last twelve months were in the squeeze zone.`,
+      introTitle:'🐣 The Broiler Margin Story · 2010–2026',
+      introBody:'How many kilos of feed does one kilo of chicken buy? That ratio is called <b style="color:var(--ink)">parity</b> — the simplest gauge of the sector\'s profitability.<br><br>The chick will walk across <b style="color:var(--ink)">198 months of real TÜİK &amp; TEPGE data</b>, from 2010 to today: <b style="color:#2F9BFF">blue</b> stretches mean comfortable margins, <b style="color:#E5484D">red</b> means a squeeze (parity &lt; 3.0). The panel above shows the cause: the race between the <b style="color:#19C37D">chicken price</b> and the <b style="color:#FF6500">feed price</b>.<br><br>Tap 🔊 to have the chick narrate aloud.',
+      introBtn:'▶ Start the story',
+      introSpeak:'How many kilos of feed does one kilo of chicken buy? That ratio is called parity. Our chick walks across 198 months of real data, from 2010 to today. Here we go.',
       dec:v=>v,voice:'en-US'},
 };
 const T2=()=>UI[LNG];
@@ -811,8 +828,14 @@ $('iChip').onclick=()=>{
 };
 $('endClose').onclick=()=>$('endCard').classList.remove('show');
 $('endLive').onclick=()=>{$('endCard').classList.remove('show');setMode('live');};
+function hideIntro(){$('introCard').classList.remove('show');}
+$('introStart').onclick=()=>{
+  hideIntro();
+  playing=true;$('playBtn').textContent='⏸ Durdur';
+  if(voiceOn)speak(T2().introSpeak);
+};
 function fillStoryChips(){
-  fillChips(CH.map(chT),i=>{monthF=CH[i].m;playing=true;$('playBtn').textContent='⏸ Durdur';syncScrub();});
+  fillChips(CH.map(chT),i=>{hideIntro();monthF=CH[i].m;playing=true;$('playBtn').textContent='⏸ Durdur';syncScrub();});
 }
 function applyLang(){
   const u=T2();
@@ -826,6 +849,9 @@ function applyLang(){
   const mc=document.getElementById('mineChip');
   if(mc)mc.innerHTML='<span style="color:#FF6500">▲</span> '+u.mine;
   $('endTitle').textContent=u.endTitle;$('endLive').textContent=u.eLive;
+  $('introTitle').textContent=u.introTitle;
+  $('introBody').innerHTML=u.introBody;
+  $('introStart').textContent=u.introBtn;
   fillVoiceSel();
 }
 $('langChip').onclick=()=>{
@@ -925,9 +951,9 @@ function storyFrame(now,dt){
 function resetDayBadge(){$('dayBadge').innerHTML='Gün <b id="dayNum">0</b>/21';}
 
 /* ================= mod yönetimi ================= */
-/* açılış: aktif parti varsa canlı veri, yoksa hikâye; tur yalnızca elle seçilir */
-let MODE = OPS && OPS.sites.some(s=>(s.batches||[]).some(b=>b.st==='in')) ? 'live'
-         : (SDATA ? 'story' : 'tour');
+/* açılış her zaman hikâye; canlı veri ve tur elle seçilir */
+let MODE = SDATA ? 'story'
+         : (OPS && OPS.sites.some(s=>(s.batches||[]).some(b=>b.st==='in')) ? 'live' : 'tour');
 if(!OPS&&MODE==='tour') $('noData').classList.add('show');
 const stationGroups=[stKabul,stSetter,stKontrol,stCikim,stSevk];
 function setMode(m){
@@ -952,7 +978,7 @@ function setMode(m){
   else if(prev==='story'){
     hushAll();
     lastCh=null;if(bubbleSp)bubbleSp.visible=false;
-    $('endCard').classList.remove('show');
+    $('endCard').classList.remove('show');$('introCard').classList.remove('show');
     camTarget.set(0,1.2,0);camPhi=Math.PI*.36;camR=17;applyCam();
   }
   Object.values(stats).forEach(s=>s.set(''));
@@ -965,6 +991,8 @@ function setMode(m){
     storyGrp.visible=true;monthF=0;prevMonthF=0;
     nextInc=0;endShown=false;$('endCard').classList.remove('show');
     fillStoryChips();
+    playing=false;$('playBtn').textContent='▶ Oynat';   // giriş kartı okunmadan yürüyüş başlamaz
+    $('introCard').classList.add('show');
   }
   else{
     fillTourChips();
@@ -1028,6 +1056,7 @@ window.__dbg={carts:()=>liveCarts.filter(x=>x.c.cart.visible&&x.b).map(x=>{
 })};
 
 /* ================= ana döngü ================= */
+applyLang();
 setMode(MODE);
 let last=perfNow();
 function tick(){
