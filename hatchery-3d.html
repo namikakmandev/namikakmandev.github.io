@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>KuluçkaTakip — 3B Üretim Turu</title>
+<style>
+:root{
+  --bg:#0F1117;--panel:#161922;--panel2:#10131B;--line:#262B36;--ink:#E6E8EC;--muted:#A3A8B5;
+  --primary:#2F9BFF;--green:#19C37D;--orange:#FF6500;--red:#E5484D;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;overflow:hidden}
+.topbar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:relative;z-index:5}
+.logo{font-weight:800;font-size:18px}.logo span{color:var(--orange)}
+.tb-r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tb-r a{background:var(--panel2);border:1px solid var(--line);border-radius:14px;color:var(--muted);padding:6px 12px;font:600 12px system-ui;cursor:pointer;text-decoration:none}
+.tb-r a:hover{color:var(--ink)}
+#stage{position:fixed;inset:0;top:0}
+#c3d{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#c3d.grabbing{cursor:grabbing}
+.hud{position:fixed;left:0;right:0;bottom:0;padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none;z-index:5;
+  background:linear-gradient(to top,rgba(15,17,23,.92),rgba(15,17,23,0))}
+.hud>*{pointer-events:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.chip{font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:12px;white-space:nowrap;cursor:pointer;
+  background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+.chip.on{background:rgba(255,101,0,.15);color:var(--orange);border-color:rgba(255,101,0,.5)}
+.bar{display:flex;gap:10px;align-items:center;width:min(560px,92vw)}
+.bar button{background:var(--orange);color:#fff;border:0;border-radius:9px;padding:8px 16px;font:700 13px system-ui;cursor:pointer;min-width:74px}
+.bar button.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--muted);min-width:0}
+.bar input[type=range]{flex:1;accent-color:var(--orange)}
+.day{font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 10px;white-space:nowrap}
+.day b{color:var(--orange)}
+.stageName{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:5;text-align:center;pointer-events:none}
+.stageName .t{font-size:17px;font-weight:800}
+.stageName .s{font-size:11.5px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.hint{position:fixed;right:14px;top:64px;z-index:5;font-family:var(--mono);font-size:10.5px;color:var(--muted);
+  background:rgba(22,25,34,.8);border:1px solid var(--line);border-radius:10px;padding:7px 10px;line-height:1.6;pointer-events:none}
+@media(max-width:700px){.hint{display:none}.stageName .t{font-size:14px}}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c3d"></canvas></div>
+
+<div class="topbar">
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu</span></div>
+  <div class="tb-r">
+    <a href="hatchery.html">← Rapora dön</a>
+  </div>
+</div>
+
+<div class="stageName"><div class="t" id="stTitle">Yumurta Kabul</div><div class="s" id="stSub">Gün 0 · damızlık yumurta girişi</div></div>
+<div class="hint">🖱 sürükle → döndür<br>⚲ tekerlek / iki parmak → yakınlaş<br>▶ sahne otomatik akar</div>
+
+<div class="hud">
+  <div class="chips" id="chips"></div>
+  <div class="bar">
+    <button id="playBtn">⏸ Durdur</button>
+    <input type="range" id="scrub" min="0" max="1000" value="0">
+    <div class="day">Gün <b id="dayNum">0</b>/21</div>
+    <button class="ghost" id="spinBtn" title="Otomatik dönüş">🔄</button>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"./js/vendor/three.module.min.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ---------- renderer / scene / camera ---------- */
+const canvas=document.getElementById('c3d');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0F1117);
+scene.fog=new THREE.Fog(0x0F1117,26,46);
+
+const camera=new THREE.PerspectiveCamera(46,1,.1,120);
+let camTheta=Math.PI*0.32, camPhi=Math.PI*0.36, camR=17, autoSpin=true;
+const camTarget=new THREE.Vector3(0,1.2,0);
+function applyCam(){
+  camPhi=Math.max(.18,Math.min(Math.PI*.48,camPhi));
+  camR=Math.max(7,Math.min(30,camR));
+  camera.position.set(
+    camTarget.x+camR*Math.sin(camPhi)*Math.cos(camTheta),
+    camTarget.y+camR*Math.cos(camPhi),
+    camTarget.z+camR*Math.sin(camPhi)*Math.sin(camTheta));
+  camera.lookAt(camTarget);
+}
+function resize(){
+  const w=innerWidth,h=innerHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+addEventListener('resize',resize);resize();applyCam();
+
+/* ---------- lights ---------- */
+scene.add(new THREE.AmbientLight(0x9aa3b8,.85));
+const sun=new THREE.DirectionalLight(0xffffff,1.4);
+sun.position.set(8,14,6);scene.add(sun);
+const fill=new THREE.DirectionalLight(0x2F9BFF,.25);
+fill.position.set(-10,6,-8);scene.add(fill);
+
+/* ---------- materials ---------- */
+const M={
+  floor:new THREE.MeshStandardMaterial({color:0x161922,roughness:.95}),
+  machine:new THREE.MeshStandardMaterial({color:0x39415a,roughness:.6,metalness:.3}),
+  machineDark:new THREE.MeshStandardMaterial({color:0x2a3042,roughness:.7,metalness:.2}),
+  accent:new THREE.MeshStandardMaterial({color:0xFF6500,roughness:.5}),
+  blue:new THREE.MeshStandardMaterial({color:0x2F9BFF,roughness:.5}),
+  green:new THREE.MeshStandardMaterial({color:0x19C37D,roughness:.5}),
+  shell:new THREE.MeshStandardMaterial({color:0xE8D8B8,roughness:.55},),
+  tray:new THREE.MeshStandardMaterial({color:0x8a5a2b,roughness:.9}),
+  chick:new THREE.MeshStandardMaterial({color:0xFFD34D,roughness:.8}),
+  beak:new THREE.MeshStandardMaterial({color:0xFF8A00,roughness:.6}),
+  dark:new THREE.MeshStandardMaterial({color:0x151a26,roughness:.9}),
+  glowWarm:new THREE.MeshStandardMaterial({color:0xffb45e,emissive:0xff8a2a,emissiveIntensity:.9}),
+  glowBlue:new THREE.MeshStandardMaterial({color:0x9fd0ff,emissive:0x2F9BFF,emissiveIntensity:.9}),
+};
+
+/* ---------- floor ---------- */
+const floor=new THREE.Mesh(new THREE.CylinderGeometry(13.5,13.5,.3,64),M.floor);
+floor.position.y=-.15;scene.add(floor);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(13.5,.06,10,80),M.machineDark);
+ring.rotation.x=Math.PI/2;ring.position.y=.02;scene.add(ring);
+const grid=new THREE.PolarGridHelper(13,10,6,48,0x262B36,0x1c202b);
+grid.position.y=.01;scene.add(grid);
+
+/* ---------- helpers ---------- */
+function box(w,h,d,mat,x=0,y=0,z=0,parent=scene){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(x,y,z);parent.add(m);return m;
+}
+function label(parent,text,y=3.1,scale=1){
+  const cv=document.createElement('canvas');cv.width=512;cv.height=128;
+  const g=cv.getContext('2d');
+  g.fillStyle='rgba(16,19,27,.85)';g.strokeStyle='#262B36';
+  g.beginPath();g.roundRect(6,18,500,92,22);g.fill();g.stroke();
+  g.fillStyle='#E6E8EC';g.textAlign='center';g.textBaseline='middle';
+  let fs=44;g.font=`700 ${fs}px system-ui`;
+  while(g.measureText(text).width>470&&fs>24){fs-=2;g.font=`700 ${fs}px system-ui`;}
+  g.fillText(text,256,66);
+  const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+  sp.scale.set(3.6*scale,.9*scale,1);sp.position.y=y;parent.add(sp);return sp;
+}
+
+/* ---------- stations laid on a circle ---------- */
+const R=8.2;
+const DEG=d=>d*Math.PI/180;
+const stationAngles=[205,150,95,40,-15].map(DEG); // kabul → setter → kontrol → çıkım → sevkiyat
+const posAt=a=>new THREE.Vector3(R*Math.cos(a),0,-R*Math.sin(a));
+
+function makeStationBase(a){
+  const g=new THREE.Group();
+  const p=posAt(a);g.position.copy(p);
+  g.lookAt(0,0,0); // face center
+  scene.add(g);
+  const pad=new THREE.Mesh(new THREE.CylinderGeometry(2.3,2.3,.12,36),M.machineDark);
+  pad.position.y=.06;g.add(pad);
+  return g;
+}
+
+/* 1 — Yumurta Kabul: masa + yumurta kolileri */
+const stKabul=makeStationBase(stationAngles[0]);
+{
+  box(2.4,.14,1.3,M.machine,0,1.0,0,stKabul);
+  box(.12,1,.12,M.machineDark,-1.05,.5,-.5,stKabul);box(.12,1,.12,M.machineDark,1.05,.5,-.5,stKabul);
+  box(.12,1,.12,M.machineDark,-1.05,.5,.5,stKabul);box(.12,1,.12,M.machineDark,1.05,.5,.5,stKabul);
+  for(let i=0;i<3;i++){
+    const t=box(.9,.1,.62,M.tray,-.6+i*.62,1.14+(i%2)*.02,0,stKabul);
+    t.rotation.y=(i-1)*.14;
+    for(let e=0;e<6;e++){
+      const egg=new THREE.Mesh(new THREE.SphereGeometry(.09,12,10),M.shell);
+      egg.scale.y=1.3;egg.position.set(-.3+(e%3)*.3,.12,e<3?-.14:.14);t.add(egg);
+    }
+  }
+  label(stKabul,'1 · Yumurta Kabul');
+}
+
+/* open-front cabinet machine */
+function cabinet(parent,color,name){
+  box(2.6,2.6,1.8,M.machineDark,0,1.42,-.15,parent);      // body
+  const inner=box(2.3,2.3,1.5,M.dark,0,1.42,.02,parent);  // cavity
+  box(2.8,.16,2.0,M.machine,0,2.85,-.15,parent);          // roof
+  box(2.8,.16,2.0,M.machine,0,.12,-.15,parent);           // base
+  const led=box(1.6,.1,.06,color,0,2.62,.78,parent);      // status LED strip
+  // shelf rails
+  for(let i=0;i<3;i++) box(2.1,.05,1.2,M.machine,0,.85+i*.6,.05,parent);
+  label(parent,name);
+  return led;
+}
+
+/* 2 — Setter (kuluçka makinesi) */
+const stSetter=makeStationBase(stationAngles[1]);
+const setterLed=cabinet(stSetter,M.glowWarm,'2 · Setter · Gün 1–18');
+const setterLight=new THREE.PointLight(0xff9a3a,0,7);setterLight.position.set(0,1.6,.6);stSetter.add(setterLight);
+
+/* 3 — Işık kontrolü + transfer */
+const stKontrol=makeStationBase(stationAngles[2]);
+{
+  const ped=box(.7,1.1,.7,M.machine,0,.55,0,stKontrol);
+  const lamp=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),M.glowBlue);
+  lamp.position.set(0,1.25,0);stKontrol.add(lamp);
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(.6,1.1,24,1,true),
+    new THREE.MeshBasicMaterial({color:0x2F9BFF,transparent:true,opacity:.14,side:THREE.DoubleSide}));
+  cone.position.set(0,1.85,0);stKontrol.add(cone);
+  label(stKontrol,'3 · Işık Kontrolü · Gün 18');
+}
+const kontrolLight=new THREE.PointLight(0x2F9BFF,0,6);kontrolLight.position.set(0,1.6,.4);stKontrol.add(kontrolLight);
+
+/* 4 — Çıkım makinesi (hatcher) */
+const stCikim=makeStationBase(stationAngles[3]);
+const cikimLed=cabinet(stCikim,M.glowWarm,'4 · Çıkım · Gün 19–21');
+const cikimLight=new THREE.PointLight(0xffc14d,0,7);cikimLight.position.set(0,1.6,.6);stCikim.add(cikimLight);
+
+/* 5 — Sevkiyat: kasalar */
+const stSevk=makeStationBase(stationAngles[4]);
+{
+  for(let i=0;i<3;i++){
+    const crate=box(1.05,.5,.75,M.tray,-.9+i*.9,.32+(i===1?.0:0),(i-1)*.1,stSevk);
+    crate.rotation.y=(i-1)*.2;
+    box(.95,.06,.65,M.machineDark,0,.28,0,crate);
+  }
+  label(stSevk,'5 · Sevkiyat · Gün 21');
+}
+
+/* ---------- hero cart: tray + egg + chick ---------- */
+const cart=new THREE.Group();scene.add(cart);
+{
+  box(1.1,.1,.8,M.machine,0,.42,0,cart);
+  box(.9,.34,.6,M.machineDark,0,.2,0,cart);
+  [[-.42,.28],[.42,.28],[-.42,-.28],[.42,-.28]].forEach(([x,z])=>{
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.07,16),M.dark);
+    w.rotation.z=Math.PI/2;w.position.set(x,.11,z);cart.add(w);
+  });
+}
+const eggGrp=new THREE.Group();eggGrp.position.y=.62;cart.add(eggGrp);
+const eggBottom=new THREE.Mesh(new THREE.SphereGeometry(.34,20,16,0,Math.PI*2,Math.PI*.42,Math.PI*.58),M.shell);
+eggBottom.scale.y=1.32;eggBottom.position.y=.2;eggGrp.add(eggBottom);
+const eggTop=new THREE.Group();eggTop.position.y=.2;eggGrp.add(eggTop);
+const eggCap=new THREE.Mesh(new THREE.SphereGeometry(.34,20,16,0,Math.PI*2,0,Math.PI*.42),M.shell);
+eggCap.scale.y=1.32;eggTop.add(eggCap);
+const eggGlow=new THREE.PointLight(0xffb45e,0,2.2);eggGlow.position.y=.25;eggGrp.add(eggGlow);
+
+const chick=new THREE.Group();chick.position.y=.55;chick.scale.setScalar(0.001);cart.add(chick);
+{
+  const body=new THREE.Mesh(new THREE.SphereGeometry(.26,18,14),M.chick);body.position.y=.1;chick.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.17,16,12),M.chick);head.position.set(0,.4,.08);chick.add(head);
+  const beak=new THREE.Mesh(new THREE.ConeGeometry(.05,.12,10),M.beak);
+  beak.rotation.x=Math.PI/2;beak.position.set(0,.38,.26);chick.add(beak);
+  [[-.08],[.08]].forEach(([x])=>{
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.028,8,6),M.dark);
+    eye.position.set(x,.45,.21);chick.add(eye);
+  });
+  const wingG=new THREE.SphereGeometry(.12,10,8);
+  const w1=new THREE.Mesh(wingG,M.chick);w1.scale.set(.5,1,1.4);w1.position.set(-.26,.12,0);chick.add(w1);
+  const w2=w1.clone();w2.position.x=.26;chick.add(w2);
+}
+
+/* ---------- sequence timeline ---------- */
+const T=31; // seconds per loop
+/* segments: [t0,t1,type,angleFrom,angleTo,day0,day1,stageIdx,title,sub] */
+const A=stationAngles;
+const SEG=[
+  [0,  3, 'stay',A[0],A[0], 0, 0, 0,'Yumurta Kabul','Gün 0 · damızlık yumurta girişi & seçim'],
+  [3,  5, 'move',A[0],A[1], 0, 0, 0,'Yumurta Kabul','setter makinesine taşınıyor…'],
+  [5, 13, 'setter',A[1],A[1],1,17,1,'Setter — Kuluçka','37.8°C · %55 nem · saatte bir çevirme'],
+  [13,15, 'move',A[1],A[2],18,18,1,'Setter — Kuluçka','ışık kontrolüne taşınıyor…'],
+  [15,18, 'candle',A[2],A[2],18,18,2,'Işık Kontrolü & Transfer','Gün 18 · embriyo canlılığı doğrulanır'],
+  [18,20, 'move',A[2],A[3],18,18,2,'Işık Kontrolü & Transfer','çıkım makinesine transfer…'],
+  [20,25, 'hatch',A[3],A[3],19,21,3,'Çıkım','Gün 19–21 · kabuk kırılır, civciv çıkar 🐣'],
+  [25,27, 'move',A[3],A[4],21,21,3,'Çıkım','sevkiyata taşınıyor…'],
+  [27,31, 'ship',A[4],A[4],21,21,4,'Sevkiyat','Gün 21 · tasnif, aşılama ve yükleme'],
+];
+const STAGES=[
+  ['Kabul','Gün 0',0],['Setter','Gün 1–18',5],['Kontrol','Gün 18',15],['Çıkım','Gün 19–21',20],['Sevkiyat','Gün 21',27]
+];
+
+const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;
+const lerp=(a,b,x)=>a+(b-a)*x;
+
+let t=0,playing=true;
+const chipsEl=document.getElementById('chips');
+STAGES.forEach((s,i)=>{
+  const c=document.createElement('div');c.className='chip';c.textContent=`${i+1} · ${s[0]} (${s[1]})`;
+  c.onclick=()=>{t=s[2];syncScrub();};
+  chipsEl.appendChild(c);
+});
+const chipNodes=[...chipsEl.children];
+const scrub=document.getElementById('scrub'),dayNum=document.getElementById('dayNum');
+const stTitle=document.getElementById('stTitle'),stSub=document.getElementById('stSub');
+const playBtn=document.getElementById('playBtn'),spinBtn=document.getElementById('spinBtn');
+playBtn.onclick=()=>{playing=!playing;playBtn.textContent=playing?'⏸ Durdur':'▶ Oynat';};
+spinBtn.onclick=()=>{autoSpin=!autoSpin;spinBtn.style.opacity=autoSpin?1:.4;};
+scrub.oninput=()=>{t=scrub.value/1000*T;};
+function syncScrub(){scrub.value=Math.round(t/T*1000);}
+
+function applyTimeline(){
+  const seg=SEG.find(s=>t>=s[0]&&t<s[1])||SEG[SEG.length-1];
+  const [t0,t1,type,a0,a1,d0,d1,stIdx,title,sub]=seg;
+  const u=(t-t0)/(t1-t0);
+  // position along circle
+  const ang=lerp(a0,a1,ease(u));
+  const p=posAt(ang);
+  cart.position.set(p.x,0,p.z);
+  cart.lookAt(0,0,0);cart.rotateY(Math.PI/2); // roll tangentially
+  // pull slightly toward center pad
+  cart.position.multiplyScalar((R-1.1)/R);
+  // day counter
+  dayNum.textContent=Math.round(lerp(d0,d1,u));
+  stTitle.textContent=title;stSub.textContent=sub;
+  chipNodes.forEach((c,i)=>c.classList.toggle('on',i===stIdx));
+
+  // reset per-frame effects
+  setterLight.intensity=0;kontrolLight.intensity=0;cikimLight.intensity=0;
+  eggGlow.intensity=0;
+  let crack=0,chickS=0,hop=0,wobble=0;
+
+  if(type==='setter'){
+    setterLight.intensity=1.6+Math.sin(t*4)*.4;
+    eggGrp.rotation.z=Math.sin(t*1.2)*.28; // turning
+  } else eggGrp.rotation.z*=.9;
+
+  if(type==='candle'){
+    kontrolLight.intensity=2.2;
+    eggGlow.intensity=1.6+Math.sin(t*6)*.4;
+  }
+  if(type==='hatch'){
+    cikimLight.intensity=1.6;
+    if(u<.5){wobble=u/.5;}
+    else{crack=Math.min(1,(u-.5)/.2);chickS=Math.max(0,Math.min(1,(u-.6)/.3));}
+  }
+  if(type==='ship'||(type==='move'&&t>=25)){crack=1;chickS=1;hop=1;}
+
+  eggGrp.rotation.x=wobble?Math.sin(t*22)*.14*wobble:0;
+  eggTop.position.y=.2+crack*.55;
+  eggTop.rotation.z=crack*1.1;
+  eggTop.position.x=crack*.3;
+  eggGrp.visible=chickS<1||crack<1?true:false;
+  eggBottom.visible=true;
+  eggGrp.visible=!(type==='ship');           // shell stays behind at sevkiyat
+  chick.scale.setScalar(Math.max(.001,chickS));
+  chick.position.y=.55+(hop?Math.abs(Math.sin(t*6))*.18:chickS*.1);
+  chick.rotation.y=hop?Math.sin(t*3)*.5:0;
+}
+
+/* ---------- orbit interaction ---------- */
+let dragging=false,px=0,py=0,pinch=0,lastInteract=0;
+canvas.addEventListener('pointerdown',e=>{dragging=true;px=e.clientX;py=e.clientY;canvas.classList.add('grabbing');canvas.setPointerCapture(e.pointerId);});
+addEventListener('pointerup',()=>{dragging=false;canvas.classList.remove('grabbing');});
+addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  camTheta+=(e.clientX-px)*.0055;camPhi-=(e.clientY-py)*.0045;
+  px=e.clientX;py=e.clientY;lastInteract=perfNow();applyCam();
+});
+canvas.addEventListener('wheel',e=>{e.preventDefault();camR+=e.deltaY*.012;lastInteract=perfNow();applyCam();},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch)camR-=(d-pinch)*.03;
+    pinch=d;lastInteract=perfNow();applyCam();
+  }
+},{passive:true});
+canvas.addEventListener('touchend',()=>pinch=0);
+function perfNow(){return performance.now()/1000;}
+
+/* ---------- main loop ---------- */
+let last=perfNow();
+function tick(){
+  requestAnimationFrame(tick);
+  const now=perfNow(),dt=Math.min(.05,now-last);last=now;
+  if(playing){t+=dt;if(t>=T)t=0;syncScrub();}
+  if(autoSpin&&!dragging&&now-lastInteract>2.5){camTheta+=dt*.12;applyCam();}
+  applyTimeline();
+  renderer.render(scene,camera);
+}
+tick();
+</script>
+</body>
+</html>
