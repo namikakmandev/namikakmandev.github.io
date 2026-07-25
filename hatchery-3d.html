@@ -58,7 +58,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r8</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r9</b></span></div>
   <div class="tb-r">
     <a href="hatchery.html">← Rapora dön</a>
   </div>
@@ -80,6 +80,12 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
   <button id="endLive" style="display:none;margin-top:10px;width:100%;background:var(--orange);color:#fff;border:0;border-radius:9px;padding:9px;font:700 13px system-ui;cursor:pointer">● Canlı Veri'ye geç</button>
 </div>
 
+<div class="noData" id="voiceWarn" style="top:150px">
+  ⚠ <b>Bu cihazda Türkçe ses bulunamadı.</b><br>
+  iOS: Ayarlar → Erişilebilirlik → Sesli İçerik → Sesler → Türkçe<br>
+  Android: Ayarlar → Sistem → Metin okuma çıktısı → Türkçe dil paketini yükle
+</div>
+
 <div class="noData" id="noData">
   Bu cihazda kayıtlı üretim verisi yok — <b>Tur modu</b> gösteriliyor.<br>
   Rapordaki 💾 menüsünden aldığın yedeği <label for="impFile">buraya yükleyebilirsin</label>.
@@ -95,6 +101,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
   </div>
   <div class="chips" id="sLegend" style="display:none;font-family:var(--mono);font-size:10.5px;color:var(--muted)">
     <div class="chip" id="vChip">🔊 Seslendirme: kapalı</div>
+    <select id="voiceSel" style="display:none;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--ink);padding:4px 8px;font:600 11px var(--mono);max-width:180px"></select>
     <div class="chip" id="iChip">📈 Endeksler: açık</div>
     <span id="lg1" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#2F9BFF">▮</span> parite (1 kg tavuk kaç kg yem alır)</span>
     <span id="lg2" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#E5484D">▮</span> sıkışma: parite &lt; 3,0</span>
@@ -696,7 +703,33 @@ function buildIndexPanel(){
 /* konuşma balonu + Türkçe seslendirme */
 let voiceOn=false,lastCh=null,bubbleT=0,bubbleSp=null,bubbleCv=null,bubbleTex=null;
 let talkPulse=0,speakTimer=null;
-if(window.speechSynthesis){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{};}
+const voices=()=>window.speechSynthesis?speechSynthesis.getVoices():[];
+function pickVoice(){
+  const pfx=LNG==='en'?'en':'tr', vs=voices();
+  const saved=localStorage.getItem('h3d.voice.'+pfx);
+  return vs.find(v=>v.name===saved)
+    ||vs.find(v=>(v.lang||'').toLowerCase().replace('_','-')===(LNG==='en'?'en-us':'tr-tr'))
+    ||vs.find(v=>(v.lang||'').toLowerCase().startsWith(pfx))
+    ||(LNG!=='en'?vs.find(v=>/t[uü]rk|yelda|filiz/i.test(v.name)):null)
+    ||null;
+}
+function fillVoiceSel(){
+  const sel=$('voiceSel');if(!sel)return;
+  const pfx=LNG==='en'?'en':'tr';
+  let vs=voices().filter(v=>(v.lang||'').toLowerCase().startsWith(pfx));
+  const hasLang=vs.length>0;
+  if(!hasLang)vs=voices();
+  sel.innerHTML=vs.map(v=>`<option value="${v.name.replace(/"/g,'')}">${v.name} · ${v.lang}</option>`).join('')||'<option value="">ses yok / no voice</option>';
+  const saved=localStorage.getItem('h3d.voice.'+pfx);
+  if(saved&&vs.some(v=>v.name===saved))sel.value=saved;
+  sel.style.display=voiceOn?'':'none';
+  $('voiceWarn').classList.toggle('show',voiceOn&&LNG==='tr'&&!hasLang);
+}
+if(window.speechSynthesis){voices();speechSynthesis.onvoiceschanged=fillVoiceSel;}
+$('voiceSel').onchange=()=>{
+  localStorage.setItem('h3d.voice.'+(LNG==='en'?'en':'tr'),$('voiceSel').value);
+  speak(LNG==='en'?'This voice is selected.':'Bu ses seçildi.');
+};
 function speak(txt){
   if(!voiceOn||!window.speechSynthesis)return;
   speechSynthesis.cancel();
@@ -704,9 +737,7 @@ function speak(txt){
   // cancel()+speak() aynı karede bazı tarayıcılarda sesi yutar — kısa gecikmeyle konuş
   speakTimer=setTimeout(()=>{
     const u=new SpeechSynthesisUtterance(txt);u.lang=T2().voice;u.rate=1.03;
-    const pfx=LNG==='en'?'en':'tr';
-    const v=speechSynthesis.getVoices().find(v=>(v.lang||'').toLowerCase().startsWith(pfx));
-    if(v)u.voice=v;
+    const v=pickVoice();if(v)u.voice=v;
     u.onboundary=()=>{talkPulse=1;};    // her kelimede gaga açılır — dile eşzamanlı
     u.onend=()=>{talkPulse=0;};
     speechSynthesis.speak(u);
@@ -746,6 +777,7 @@ $('vChip').onclick=()=>{
     const rest=(MODE==='story'&&lastCh)?chT(lastCh).replace(/^\d+ · /,'')+'. '+chS(lastCh):'';
     speak(hello+rest);
   }else if(window.speechSynthesis){clearTimeout(speakTimer);speechSynthesis.cancel();}
+  fillVoiceSel();
 };
 $('iChip').onclick=()=>{
   idxOn=!idxOn;if(idxGrp)idxGrp.visible=idxOn;
@@ -768,6 +800,7 @@ function applyLang(){
   const mc=document.getElementById('mineChip');
   if(mc)mc.innerHTML='<span style="color:#FF6500">▲</span> '+u.mine;
   $('endTitle').textContent=u.endTitle;$('endLive').textContent=u.eLive;
+  fillVoiceSel();
 }
 $('langChip').onclick=()=>{
   LNG=LNG==='en'?'tr':'en';
