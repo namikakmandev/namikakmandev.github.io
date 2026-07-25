@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Parite: Sığır — kapanış</title>
+<style>*{margin:0}html,body{height:100%;background:#000;overflow:hidden}
+#stage{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+canvas#c{display:block;background:#0b0906}</style>
+</head>
+<body>
+<div id="stage"><canvas id="c" width="1080" height="1920"></canvas></div>
+<script>
+/* Kapanış kartı · 8 sn · deterministik __seek(t) */
+const W=1080,H=1920,DUR=8;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const COL={line:'#ffb056',dim:'#cbbfa8',dimmer:'#8a7c62'};
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+const grain=document.createElement('canvas');grain.width=256;grain.height=256;
+{const g=grain.getContext('2d');const im=g.createImageData(256,256);
+ for(let i=0;i<im.data.length;i+=4){const v=rnd()*255;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=22;}
+ g.putImageData(im,0,0);}
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const fade=(t,a,b)=>Math.min(1,Math.max(0,(t-a)/(b-a)));
+
+function draw(t){
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#161009');bg.addColorStop(.5,'#0b0906');bg.addColorStop(1,'#080604');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';
+
+  ctx.globalAlpha=ease(fade(t,0.3,1.4));
+  ctx.fillStyle='#f5efe6';ctx.font='600 64px "IBM Plex Sans",sans-serif';
+  ctx.fillText('Et fiyatı bir tercih değil,',W/2,H*0.36);
+  ctx.fillStyle=COL.line;
+  ctx.fillText('bir maliyet hikâyesi.',W/2,H*0.36+90);
+
+  ctx.globalAlpha=ease(fade(t,1.8,2.8));
+  ctx.fillStyle=COL.dim;ctx.font='400 44px "IBM Plex Sans",sans-serif';
+  ctx.fillText('Yem pahalanınca sürü küçülür;',W/2,H*0.52);
+  ctx.fillText('sürü küçülünce et — her kıtada — pahalanır.',W/2,H*0.52+64);
+
+  ctx.globalAlpha=ease(fade(t,3.4,4.4));
+  ctx.fillStyle=COL.dimmer;ctx.font='500 34px "IBM Plex Mono",monospace';
+  ctx.fillText('VERİ',W/2,H*0.68);
+  ctx.fillStyle=COL.dim;ctx.font='500 36px "IBM Plex Mono",monospace';
+  ctx.fillText('FRED/BLS · EC Agrifood · TÜİK/EVDS',W/2,H*0.68+60);
+  ctx.fillText('666 ay · üç kıta · tek metodoloji',W/2,H*0.68+116);
+
+  ctx.globalAlpha=ease(fade(t,4.8,5.8));
+  ctx.fillStyle='#f5efe6';ctx.font='700 52px "IBM Plex Sans",sans-serif';
+  ctx.fillText('namikakman.dev',W/2,H*0.82);
+  ctx.fillStyle=COL.dimmer;ctx.font='500 34px "IBM Plex Mono",monospace';
+  ctx.fillText('PARİTE: SIĞIR · BİR VERİ BELGESELİ',W/2,H*0.82+64);
+  ctx.globalAlpha=1;
+
+  const vg=ctx.createRadialGradient(W/2,H*0.45,H*0.25,W/2,H*0.5,H*0.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.5)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='overlay';
+  for(let gy=0;gy<H;gy+=256)for(let gx=0;gx<W;gx+=256)ctx.drawImage(grain,gx,gy);
+  ctx.globalCompositeOperation='source-over';
+}
+window.__dur=DUR;let manual=false;
+window.__seek=t=>{manual=true;draw(t);};
+let t0=null;
+function loop(ts){if(manual)return;if(t0===null)t0=ts;
+  draw(Math.min(((ts-t0)/1000)%(DUR+1.5),DUR));requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+window.__ready=true;
+function fit(){const s=Math.min(innerWidth/W,innerHeight/H);
+  cv.style.width=(W*s)+'px';cv.style.height=(H*s)+'px';}
+addEventListener('resize',fit);fit();
+</script>
+</body>
+</html>
