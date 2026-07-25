@@ -24,8 +24,12 @@
  * reading report pages) — change the constant to switch.
  */
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-opus-4-8";           // default — existing pages keep this
 const MAX_TOKENS = 4096; // dashboard JSON needs room — short caps truncate it
+
+// Optional per-request override: POST {model:"haiku"} switches that call to the
+// cheap tier (used by the hatchery-3d CivBot). Only allowlisted names accepted.
+const MODELS = { haiku: "claude-haiku-4-5", opus: "claude-opus-4-8" };
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -71,7 +75,7 @@ export default {
     content.push({ type: "text", text: prompt.slice(0, 60_000) });
 
     const apiBody = {
-      model: MODEL,
+      model: MODELS[body.model] || MODEL,
       max_tokens: MAX_TOKENS,
       messages: [{ role: "user", content }],
     };
