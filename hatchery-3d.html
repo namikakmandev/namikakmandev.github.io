@@ -58,7 +58,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r9</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r10</b></span></div>
   <div class="tb-r">
     <a href="hatchery.html">← Rapora dön</a>
   </div>
@@ -369,7 +369,13 @@ function fillChips(items,onClick){
 }
 function fillTourChips(){fillChips(STAGES.map((s,i)=>`${i+1} · ${s[0]} (${s[1]})`),i=>{t=STAGES[i][2];syncScrub();});}
 $('playBtn').onclick=()=>{
-  if(MODE==='story'&&stopT>0){stopT=.01;return;}   // olay durağını geç
+  if(MODE==='story'&&stopT>0){                     // olay durağını geç: konuşmayı da kes
+    clearTimeout(speakTimer);
+    if(window.speechSynthesis)speechSynthesis.cancel();
+    speaking=false;stopT=0;
+    $('playBtn').textContent=playing?'⏸ Durdur':'▶ Oynat';
+    return;
+  }
   if(MODE==='story'&&!playing&&monthF>=SN-1)monthF=0;
   playing=!playing;$('playBtn').textContent=playing?'⏸ Durdur':'▶ Oynat';
 };
@@ -702,7 +708,9 @@ function buildIndexPanel(){
 }
 /* konuşma balonu + Türkçe seslendirme */
 let voiceOn=false,lastCh=null,bubbleT=0,bubbleSp=null,bubbleCv=null,bubbleTex=null;
-let talkPulse=0,speakTimer=null;
+let talkPulse=0,speakTimer=null,speaking=false,speakT0=0;
+/* Chrome ~15 sn sonra uzun konuşmayı sessizce duraklatır — periyodik resume ile uyanık tut */
+if(window.speechSynthesis)setInterval(()=>{if(speechSynthesis.speaking)speechSynthesis.resume();},4000);
 const voices=()=>window.speechSynthesis?speechSynthesis.getVoices():[];
 function pickVoice(){
   const pfx=LNG==='en'?'en':'tr', vs=voices();
@@ -738,8 +746,9 @@ function speak(txt){
   speakTimer=setTimeout(()=>{
     const u=new SpeechSynthesisUtterance(txt);u.lang=T2().voice;u.rate=1.03;
     const v=pickVoice();if(v)u.voice=v;
+    u.onstart=()=>{speaking=true;speakT0=performance.now()/1000;};
     u.onboundary=()=>{talkPulse=1;};    // her kelimede gaga açılır — dile eşzamanlı
-    u.onend=()=>{talkPulse=0;};
+    u.onend=u.onerror=()=>{speaking=false;talkPulse=0;};
     speechSynthesis.speak(u);
   },150);
 }
@@ -839,11 +848,18 @@ function storyFrame(now,dt){
   if(Math.abs(monthF-prevMonthF)>3){     // chip/scrub sıçraması: durakları yeniden hizala
     stopT=0;endShown=false;$('endCard').classList.remove('show');
     nextInc=incStops.findIndex(s=>s.i>monthF);if(nextInc<0)nextInc=incStops.length;
+    clearTimeout(speakTimer);            // eski konumun anlatımı yeni konumu beklemesin
+    if(window.speechSynthesis)speechSynthesis.cancel();
+    speaking=false;
   }
+  /* ses bitmeden yeni anlatım tetiklenmesin: konuşma sürerken yürüyüş bekler (20 sn emniyetli) */
+  const talkHold=voiceOn&&speaking&&(now-speakT0<20);
+  if(talkHold)bubbleT=Math.max(bubbleT,.4);
   if(stopT>0){                            // olay durağı: yürüyüş durur, kart anlatır
     stopT-=dt;
-    if(stopT<=0){stopT=0;$('playBtn').textContent=playing?'⏸ Durdur':'▶ Oynat';}
-  }else if(playing){
+    if(stopT<=0&&!talkHold){stopT=0;$('playBtn').textContent=playing?'⏸ Durdur':'▶ Oynat';}
+    if(stopT<=0&&talkHold)stopT=.01;      // konuşma bitene dek durakta kal
+  }else if(playing&&!talkHold){
     monthF+=dt*(bubbleT>0?2:8);          // civciv konuşurken yürüyüş yavaşlar
     if(monthF>=SN-1){monthF=SN-1;playing=false;$('playBtn').textContent='↻ Baştan';showEnd();}
     syncScrub();
