@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Hatchery — Namık Akman</title>
+  <meta name="description" content="A 3D egg incubation demo — setter tray, egg turning, 21-day cycle, pipping and hatch. Pure CSS 3D + vanilla JavaScript." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <style>
+    :root {
+      --bg: #0F1117;
+      --surface: #171A21;
+      --surface2: #1F232D;
+      --text: #E6E8EE;
+      --text-dim: #9AA3B2;
+      --green: #19C37D;
+      --blue: #2F9BFF;
+      --orange: #FF6500;
+      --border: #2A2F3A;
+      --shell1: #F4E9D4;   /* egg cream */
+      --shell2: #D9C9A8;   /* egg shade */
+      --chick: #FFD34D;
+      --chick-d: #E8B325;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: radial-gradient(1200px 700px at 50% -10%, #161B26 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .top {
+      width: 100%; max-width: 1100px;
+      padding: 22px 28px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .top a { color: var(--text-dim); text-decoration: none; font-size: .9rem; transition: color .2s; }
+    .top a:hover { color: var(--blue); }
+    .top .brand { font-weight: 600; color: var(--text); }
+    .top .brand span { color: var(--blue); }
+
+    h1 {
+      font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+      font-weight: 700; text-align: center; margin-top: 6px;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .sub { color: var(--text-dim); text-align: center; margin-top: 8px; font-size: .95rem; padding: 0 16px; }
+
+    /* ---------- digital panel ---------- */
+    .panel {
+      margin-top: 20px;
+      display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    }
+    .gauge {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 16px;
+      text-align: center;
+      min-width: 96px;
+    }
+    .gauge .lab { font-size: .62rem; letter-spacing: .14em; color: var(--text-dim); }
+    .gauge .val { font-size: 1.15rem; font-weight: 700; color: var(--green); margin-top: 2px; }
+    .gauge .val.blue { color: var(--blue); }
+    .gauge .val.orange { color: var(--orange); }
+
+    /* ---------- 3D scene ---------- */
+    .scene {
+      margin-top: 18px;
+      width: min(94vw, 680px);
+      aspect-ratio: 680 / 470;
+      perspective: 1300px;
+      position: relative;
+    }
+    .tiltbox {
+      position: absolute; inset: 0;
+      transform-style: preserve-3d;
+      transform: rotateX(26deg);
+      transition: transform .25s ease-out;
+    }
+    .glow {
+      position: absolute; inset: -8%;
+      background:
+        radial-gradient(50% 50% at 50% 45%, rgba(255,101,0,.07) 0%, transparent 70%),
+        radial-gradient(40% 40% at 25% 30%, rgba(47,155,255,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* tray = a slab with thickness, holds the egg grid; JS rocks it (egg turning) */
+    .trayWrap {
+      position: absolute; left: 50%; top: 52%;
+      width: 88%; aspect-ratio: 88 / 52;
+      transform: translate(-50%, -50%);
+      transform-style: preserve-3d;
+    }
+    .tray3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+    .slab {
+      position: absolute; inset: 0;
+      border-radius: 14px;
+      background: var(--surface2);
+      border: 1px solid #12151C;
+    }
+    .slabTop {
+      background:
+        radial-gradient(120% 90% at 50% 0%, #262B36 0%, var(--surface2) 60%),
+        var(--surface2);
+      border: 1px solid var(--border);
+      box-shadow: inset 0 0 26px rgba(0,0,0,.5);
+    }
+    /* LED strip on the tray edge */
+    .slabTop::after {
+      content: "";
+      position: absolute; left: 3%; right: 3%; bottom: 4.5%;
+      height: 3px; border-radius: 2px;
+      background: linear-gradient(90deg, var(--blue), var(--green), var(--blue));
+      box-shadow: 0 0 10px rgba(47,155,255,.8);
+      opacity: .9;
+    }
+    .eggGrid {
+      position: absolute; inset: 6% 4% 12% 4%;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 2%;
+      transform: translateZ(2px);
+    }
+    .cell { position: relative; transform-style: preserve-3d; }
+    .cell::before {  /* the tray pocket */
+      content: "";
+      position: absolute; left: 8%; right: 8%; top: 20%; bottom: 6%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, #0C0E13 0%, #181C25 70%);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,.8);
+    }
+
+    .egg {
+      position: absolute; left: 16%; right: 16%; top: 2%; bottom: 12%;
+      border-radius: 50% 50% 46% 46% / 62% 62% 40% 40%;
+      background: radial-gradient(circle at 34% 26%, #FBF4E5 0%, var(--shell1) 42%, var(--shell2) 88%, #C0AE8C 100%);
+      box-shadow: 0 5px 8px rgba(0,0,0,.45), inset 0 -4px 8px rgba(0,0,0,.08);
+      transition: filter .6s;
+    }
+    /* pip crack */
+    .egg .pip {
+      display: none;
+      position: absolute; left: 26%; top: 30%;
+      width: 48%; height: 14%;
+      background: #4A3A26;
+      clip-path: polygon(0 55%, 12% 20%, 26% 70%, 40% 10%, 55% 65%, 70% 25%, 84% 75%, 100% 40%, 100% 62%, 84% 95%, 70% 50%, 55% 90%, 40% 40%, 26% 95%, 12% 50%, 0 80%);
+      filter: drop-shadow(0 0 2px rgba(0,0,0,.6));
+    }
+    .egg.pipped .pip { display: block; }
+    .egg.clear { filter: saturate(.35) brightness(.72); }
+
+    /* hatched: shell cup + chick */
+    .hatch { position: absolute; inset: 0; display: none; transform-style: preserve-3d; }
+    .hatch.show { display: block; animation: pop .55s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes pop { 0% { transform: scale(.2); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+    .chickWrap { position: absolute; inset: 0; animation: wiggle 1.6s ease-in-out infinite alternate; }
+    @keyframes wiggle { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+    .chickBody {
+      position: absolute; left: 22%; right: 22%; top: 26%; bottom: 18%;
+      border-radius: 50% 50% 48% 48% / 55% 55% 45% 45%;
+      background: radial-gradient(circle at 35% 28%, #FFE894 0%, var(--chick) 55%, var(--chick-d) 100%);
+      box-shadow: 0 3px 6px rgba(0,0,0,.4);
+    }
+    .eye {
+      position: absolute; top: 34%;
+      width: 9%; aspect-ratio: 1; border-radius: 50%;
+      background: #1B1B1B;
+    }
+    .eye.le { left: 33%; } .eye.re { right: 33%; }
+    .beak {
+      position: absolute; left: 50%; top: 46%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 7px solid var(--orange);
+    }
+    .shellCup {
+      position: absolute; left: 18%; right: 18%; top: 58%; bottom: 8%;
+      background: radial-gradient(circle at 35% 30%, #FBF4E5, var(--shell2));
+      clip-path: polygon(0 30%, 14% 55%, 28% 22%, 42% 58%, 56% 20%, 70% 55%, 85% 25%, 100% 45%, 100% 100%, 0 100%);
+      border-radius: 0 0 45% 45% / 0 0 70% 70%;
+      box-shadow: 0 4px 6px rgba(0,0,0,.45);
+    }
+
+    .floor {
+      width: min(72vw, 480px); height: 36px; margin-top: 20px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, transparent 70%);
+    }
+
+    /* ---------- controls ---------- */
+    .controls { margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 13px; padding-bottom: 60px; }
+    .btnrow { display: flex; gap: 12px; }
+    button {
+      font: inherit; font-weight: 700; letter-spacing: .1em;
+      padding: 13px 34px; border-radius: 999px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s, filter .15s;
+    }
+    #runBtn {
+      color: #05130C;
+      background: linear-gradient(135deg, var(--green), #12A96A);
+      box-shadow: 0 6px 24px rgba(25,195,125,.35);
+    }
+    #runBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(25,195,125,.5); }
+    #runBtn:disabled { filter: grayscale(.55) brightness(.8); cursor: default; transform: none; box-shadow: none; }
+    #resetBtn { color: var(--text); background: var(--surface2); display: none; }
+    #resetBtn:hover { border-color: var(--blue); }
+    .status { color: var(--text-dim); font-size: .9rem; min-height: 1.3em; text-align: center; }
+    .status b { color: var(--green); }
+    .hint { color: var(--text-dim); font-size: .8rem; opacity: .75; text-align: center; max-width: 560px; padding: 0 16px; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <a class="brand" href="index.html">Namık<span> Akman</span></a>
+    <a href="projects.html">← Back to projects</a>
+  </div>
+
+  <h1>3D Hatchery &nbsp;·&nbsp; Kuluçkahane</h1>
+  <p class="sub">A setter tray of 32 eggs running a real 21-day incubation cycle — pure CSS 3D + vanilla JavaScript. Move your mouse to tilt the scene.</p>
+
+  <div class="panel">
+    <div class="gauge"><div class="lab">DAY</div><div class="val" id="gDay">1 / 21</div></div>
+    <div class="gauge"><div class="lab">TEMP</div><div class="val orange" id="gTemp">37.8&nbsp;°C</div></div>
+    <div class="gauge"><div class="lab">HUMIDITY</div><div class="val blue" id="gRH">55% RH</div></div>
+    <div class="gauge"><div class="lab">TURNING</div><div class="val" id="gTurn">ON&nbsp;·&nbsp;±45°/h</div></div>
+    <div class="gauge"><div class="lab">HATCHED</div><div class="val" id="gHatch">0 / 32</div></div>
+  </div>
+
+  <div class="scene" id="scene">
+    <div class="tiltbox" id="tiltbox">
+      <div class="glow"></div>
+      <div class="trayWrap">
+        <div class="tray3d" id="tray"><!-- slabs + egg grid injected by JS --></div>
+      </div>
+    </div>
+  </div>
+  <div class="floor"></div>
+
+  <div class="controls">
+    <div class="btnrow">
+      <button id="runBtn">RUN 21-DAY CYCLE</button>
+      <button id="resetBtn">SET NEW EGGS</button>
+    </div>
+    <div class="status" id="status">Setter running — eggs are turned every hour to keep the embryo centred.</div>
+    <div class="hint">Real numbers: 37.8&nbsp;°C, 21 days, turning stops at day 18 when eggs transfer from setter to hatcher, humidity rises for hatch. Here 1 day ≈ 1.5 seconds.</div>
+  </div>
+
+  <script>
+    (function () {
+      var tray = document.getElementById('tray');
+      var tiltbox = document.getElementById('tiltbox');
+      var scene = document.getElementById('scene');
+      var runBtn = document.getElementById('runBtn');
+      var resetBtn = document.getElementById('resetBtn');
+      var statusEl = document.getElementById('status');
+      var gDay = document.getElementById('gDay');
+      var gRH = document.getElementById('gRH');
+      var gTurn = document.getElementById('gTurn');
+      var gHatch = document.getElementById('gHatch');
+
+      /* --- build tray slab (thickness) --- */
+      var DEPTH = 22, SLABS = 6;
+      for (var i = 0; i < SLABS; i++) {
+        var z = -DEPTH + (DEPTH / (SLABS - 1)) * i;
+        var s = document.createElement('div');
+        s.className = 'slab' + (i === SLABS - 1 ? ' slabTop' : '');
+        s.style.transform = 'translateZ(' + z.toFixed(1) + 'px)';
+        tray.appendChild(s);
+      }
+
+      /* --- build egg grid --- */
+      var COLS = 8, ROWS = 4, TOTAL = COLS * ROWS;
+      var grid = document.createElement('div');
+      grid.className = 'eggGrid';
+      tray.appendChild(grid);
+
+      var eggs = [];
+      for (var e = 0; e < TOTAL; e++) {
+        var cell = document.createElement('div');
+        cell.className = 'cell';
+        var egg = document.createElement('div');
+        egg.className = 'egg';
+        egg.innerHTML = '<div class="pip"></div>';
+        /* small natural variation so the tray doesn't look cloned */
+        egg.style.transform = 'rotate(' + ((Math.random() * 8) - 4).toFixed(1) + 'deg) scale(' + (0.94 + Math.random() * 0.1).toFixed(2) + ')';
+        var hatch = document.createElement('div');
+        hatch.className = 'hatch';
+        hatch.innerHTML =
+          '<div class="chickWrap" style="animation-duration:' + (1.2 + Math.random() * 1.2).toFixed(2) + 's">' +
+            '<div class="chickBody"></div><div class="eye le"></div><div class="eye re"></div><div class="beak"></div>' +
+          '</div><div class="shellCup"></div>';
+        cell.appendChild(egg);
+        cell.appendChild(hatch);
+        grid.appendChild(cell);
+        eggs.push({ el: egg, hatchEl: hatch, pipped: false, hatched: false, pipDay: 0, hatchDay: 0, willHatch: true });
+      }
+
+      /* --- cycle state --- */
+      var DAY_SECONDS = 1.5;      /* 1 incubation day = 1.5 real seconds */
+      var day = 1, running = false, turnAmp = 7, turnTarget = 7;
+      var clock = 0, lastT = null, hatchedCount = 0, doneShown = false;
+
+      function assignFates() {
+        hatchedCount = 0; doneShown = false;
+        var failures = 3;  /* 29/32 = 90.6% hatch of set — realistic */
+        var failIdx = {};
+        while (Object.keys(failIdx).length < failures) failIdx[Math.floor(Math.random() * TOTAL)] = true;
+        eggs.forEach(function (g, idx) {
+          g.willHatch = !failIdx[idx];
+          g.pipDay = 19 + Math.random() * 1.6;          /* pip between day 19.0–20.6 */
+          g.hatchDay = g.pipDay + 0.35 + Math.random() * 0.3;
+          g.pipped = g.hatched = false;
+          g.el.style.display = '';
+          g.el.classList.remove('pipped', 'clear');
+          g.hatchEl.classList.remove('show');
+        });
+        gHatch.textContent = '0 / ' + TOTAL;
+      }
+      assignFates();
+
+      function setStatus(t) { statusEl.innerHTML = t; }
+
+      function frame(t) {
+        if (lastT === null) lastT = t;
+        var dt = Math.min((t - lastT) / 1000, 0.05);
+        lastT = t;
+        clock += dt;
+
+        if (running) {
+          day = Math.min(21, day + dt / DAY_SECONDS);
+          gDay.textContent = Math.floor(day) + ' / 21';
+
+          if (day >= 18 && turnTarget !== 0) {
+            turnTarget = 0;
+            gTurn.textContent = 'OFF';
+            gRH.innerHTML = '65% RH';
+            setStatus('<b>Day 18:</b> transfer to hatcher — turning stops, humidity up.');
+          }
+          eggs.forEach(function (g) {
+            if (!g.willHatch) return;
+            if (!g.pipped && day >= g.pipDay) { g.pipped = true; g.el.classList.add('pipped'); }
+            if (!g.hatched && day >= g.hatchDay) {
+              g.hatched = true;
+              g.el.style.display = 'none';
+              g.hatchEl.classList.add('show');
+              hatchedCount++;
+              gHatch.textContent = hatchedCount + ' / ' + TOTAL;
+            }
+          });
+          if (day >= 19 && day < 21 && hatchedCount === 0) {
+            setStatus('<b>Day 19+:</b> pipping — chicks break the shell with their egg tooth.');
+          }
+          if (day >= 21 && !doneShown) {
+            doneShown = true; running = false;
+            eggs.forEach(function (g) { if (!g.willHatch) g.el.classList.add('clear'); });
+            var rate = (hatchedCount / TOTAL * 100).toFixed(1);
+            setStatus('<b>Hatch complete:</b> ' + hatchedCount + ' of ' + TOTAL + ' — hatch of set <b>' + rate + '%</b>. Dimmed eggs are clears/infertiles.');
+            resetBtn.style.display = 'inline-block';
+          }
+        }
+
+        /* egg turning: slow rocking of the whole tray */
+        turnAmp += (turnTarget - turnAmp) * Math.min(1, dt * 1.5);
+        var rock = Math.sin(clock * (2 * Math.PI / 5)) * turnAmp;
+        tray.style.transform = 'rotateX(' + rock + 'deg)';
+
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+
+      runBtn.addEventListener('click', function () {
+        running = true;
+        runBtn.disabled = true;
+        setStatus('Incubating — 37.8&nbsp;°C, eggs turning…');
+      });
+      resetBtn.addEventListener('click', function () {
+        day = 1; turnTarget = 7;
+        gDay.textContent = '1 / 21';
+        gTurn.innerHTML = 'ON&nbsp;·&nbsp;±45°/h';
+        gRH.innerHTML = '55% RH';
+        assignFates();
+        resetBtn.style.display = 'none';
+        runBtn.disabled = false;
+        setStatus('Fresh eggs set — setter running.');
+      });
+
+      /* --- mouse / touch tilt --- */
+      function applyTilt(x, y) {
+        var r = scene.getBoundingClientRect();
+        var nx = (x - (r.left + r.width / 2)) / (r.width / 2);
+        var ny = (y - (r.top + r.height / 2)) / (r.height / 2);
+        nx = Math.max(-1.6, Math.min(1.6, nx));
+        ny = Math.max(-1.6, Math.min(1.6, ny));
+        tiltbox.style.transform = 'rotateX(' + (26 - ny * 12) + 'deg) rotateY(' + (nx * 12) + 'deg)';
+      }
+      document.addEventListener('mousemove', function (e) { applyTilt(e.clientX, e.clientY); });
+      document.addEventListener('touchmove', function (e) {
+        if (e.touches.length) applyTilt(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+    })();
+  </script>
+</body>
+</html>
