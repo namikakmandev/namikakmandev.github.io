@@ -147,6 +147,41 @@ def build_tr_discovery():
     return {"source": "TCMB EVDS catalog dump: datagroups matching tarım/üretici fiyat/ÜFE",
             "groups": catalog}
 
+def build_tr():
+    """TR monthly PPIs from TCMB EVDS: meat products (T17) vs prepared animal feeds (T25).
+
+    Same Yİ-ÜFE family the broiler story used (C10.91 feeds), so TR methodology
+    matches the US index-ratio approach one-to-one.
+    """
+    import os
+    key = os.environ.get("EVDS_KEY", "").strip()
+    if not key:
+        raise RuntimeError("EVDS_KEY not set")
+    from evds import evdsAPI
+    api = evdsAPI(key)
+    codes = ["TP.TUFE1YI.T17", "TP.TUFE1YI.T25"]
+    df = api.get_data(codes, startdate="01-01-2010", enddate="31-12-2026")
+    cm, cf = [c.replace(".", "_") for c in codes]
+    rows = []
+    for _, r in df.iterrows():
+        t = str(r.get("Tarih", ""))
+        m_, f_ = r.get(cm), r.get(cf)
+        if m_ is None or f_ is None or str(m_) == "nan" or str(f_) == "nan":
+            continue
+        parts = t.replace("/", "-").split("-")
+        if len(parts) < 2:
+            continue
+        ym = f"{parts[0]}-{int(parts[1]):02d}"
+        rows.append([ym, round(float(m_), 2), round(float(f_), 2),
+                     round(float(m_) / float(f_), 4)])
+    if not rows:
+        raise RuntimeError("EVDS returned no rows for T17/T25")
+    return {
+        "source": "TCMB EVDS / TÜİK Yİ-ÜFE: TP.TUFE1YI.T17 (korunmuş et ve et ürünleri), TP.TUFE1YI.T25 (hazır hayvan yemleri)",
+        "columns": ["month", "meat_ppi", "feed_ppi", "parity_meat_over_feed"],
+        "rows": rows,
+    }
+
 def build_merged():
     """Apples-to-apples file: per region, meat & feed indexed to 2015=100 + parity index."""
     def load(path):
@@ -176,6 +211,18 @@ def build_merged():
             "columns": ["month", "meat_idx", "feed_idx", "parity_idx"],
             "rows": [[m, meat[m], feed[m], round(meat[m] / feed[m], 4)]
                      for m in sorted(set(meat) & set(feed))]}
+    try:
+        tr = load("data/cattle-tr.json")["rows"]
+        meat = rebase({r[0]: r[1] for r in tr})
+        feed = rebase({r[0]: r[2] for r in tr})
+        if meat and feed:
+            out["regions"]["TR"] = {
+                "source": "TÜİK Yİ-ÜFE via EVDS: meat products, prepared animal feeds",
+                "columns": ["month", "meat_idx", "feed_idx", "parity_idx"],
+                "rows": [[m, meat[m], feed[m], round(meat[m] / feed[m], 4)]
+                         for m in sorted(set(meat) & set(feed))]}
+    except FileNotFoundError:
+        pass
     with open("data/cattle-parity.json", "w") as f:
         json.dump(out, f, separators=(",", ":"))
     return out
@@ -184,7 +231,7 @@ def main():
     ok, fail = [], []
     for name, fn in [("data/cattle-us.json", build_us),
                      ("data/cattle-eu.json", build_eu),
-                     ("data/tr-series-candidates.json", build_tr_discovery)]:
+                     ("data/cattle-tr.json", build_tr)]:
         try:
             obj = fn()
             with open(name, "w") as f:
