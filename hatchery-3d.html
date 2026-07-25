@@ -109,7 +109,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r22</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r23</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -750,11 +750,11 @@ const CH=[
          te:'2 · Choppy Balance · 2014–17',  se:'Parity ranges 3.0–3.9; currency pressure starts heating up feed costs.'},
   {m:96, t:'3 · Kur Şoku · 2018–19',         s:'Yem endeksi iki yılda ikiye katlanıyor; parite 2,8 sınırına geriliyor.',
          te:'3 · Currency Shock · 2018–19',  se:'The feed index doubles in two years; parity slides toward 2.8.'},
-  {m:120,t:'4 · Pandemi & Yem Şoku · 2020–22',s:'Dip: 2,34 (Ekim 2020). Yem endeksi ~4 kat — tarihin en dar marj dönemi.',
-         te:'4 · Pandemic & Feed Shock · 2020–22',se:'Low: 2.34 (Oct 2020). Feed index ~4× — the tightest margins on record.'},
+  {m:120,t:'4 · Pandemi & Yem Şoku · 2020–22',s:'Parite 2,34 ile dibi gördü (Ekim 2020). Yem endeksi ~4 katına çıktı — tarihin en dar marj dönemi yaşandı.',
+         te:'4 · Pandemic & Feed Shock · 2020–22',se:'Parity bottomed at 2.34 (Oct 2020) as the feed index rose ~4× — the tightest margins on record.'},
   {m:156,t:'5 · Toparlanma · 2023–24',       s:'Fiyat ayarlamalarıyla parite yeniden 4,20 (Nisan 2024) seviyesine.',
          te:'5 · Recovery · 2023–24',        se:'Price adjustments lift parity back to 4.20 (April 2024).'},
-  {m:180,t:'6 · Yeni Sıkışma · 2025–26',     s:'Aralık 2025: 2,67 ile yeni bir dip; 2026\'da kademeli denge ~3,3.',
+  {m:180,t:'6 · Yeni Sıkışma · 2025–26',     s:'Aralık 2025\'te 2,67 ile yeni bir dip yaşandı; 2026\'da parite kademeli olarak ~3,3\'e oturuyor.',
          te:'6 · New Squeeze · 2025–26',     se:'December 2025: a new low at 2.67; gradual rebalancing toward ~3.3 in 2026.'},
 ];
 const chT=c=>LNG==='en'?c.te:c.t, chS=c=>LNG==='en'?c.se:c.s;
@@ -818,37 +818,37 @@ function parityAt(f){
 }
 /* seriden ve bilinen makro olaylardan önemli kırılmalar */
 const INCIDENTS=[
-  {ym:'2010-04',txt:'Zirve: parite 4,55 — bol marj dönemi',
+  {ym:'2010-04',txt:'Parite 4,55 ile zirve yaptı — bol marj dönemi',
    imp:'Marj rahat; sektör kapasite yatırımı yapıyor.',
-   txtE:'Peak: parity 4.55 — the fat-margin era',
+   txtE:'Parity peaked at 4.55 — the fat-margin era',
    impE:'Margins are comfortable; the sector invests in capacity.'},
   {ym:'2018-08',txt:'Kur şoku — yem endeksi 1 yılda %33 arttı',
    imp:'Yem, üretim maliyetinin yaklaşık üçte ikisi: kur artışı doğrudan marjı ezdi.',
    txtE:'Currency shock — feed index +33% in a year',
    impE:'Feed is roughly two-thirds of production cost: the FX surge crushed margins directly.'},
-  {ym:'2019-10',txt:'Maliyet baskısı: parite 2,77',
+  {ym:'2019-10',txt:'Maliyet baskısıyla parite 2,77\'ye geriledi',
    imp:'14 ayda tavuk fiyatı yerinde saydı (-%3), yem +%11 — makas kapandı.',
-   txtE:'Cost squeeze: parity 2.77',
+   txtE:'Cost pressure pushed parity down to 2.77',
    impE:'Over 14 months chicken prices stood still (-3%) while feed rose 11% — the gap closed.'},
   {ym:'2020-03',txt:'COVID-19 pandemisi başlıyor',
    imp:'İlk 6 ayda tavuk endeksi -%11, yem +%15: talep ve maliyet şoku üst üste.',
    txtE:'COVID-19 pandemic begins',
    impE:'In six months the chicken index fell 11% while feed rose 15%: demand and cost shocks at once.'},
-  {ym:'2020-10',txt:'Tarihi dip: parite 2,34',
+  {ym:'2020-10',txt:'Parite 2,34 ile tarihi dibi gördü',
    imp:'Uzun dönem ortalaması 3,23\'ün %28 altında — zarar bölgesi.',
-   txtE:'Record low: parity 2.34',
+   txtE:'Parity hit its record low of 2.34',
    impE:'28% below the long-run average of 3.23 — loss territory.'},
-  {ym:'2022-03',txt:'Küresel tahıl şoku — yem 12 ayda 2,3 katına',
+  {ym:'2022-03',txt:'Küresel tahıl şoku — yem 12 ayda 2,3 katına çıktı',
    imp:'Fiyat ayarlamaları yem enflasyonunu aylarca geriden izledi.',
-   txtE:'Global grain shock — feed 2.3× in 12 months',
+   txtE:'Global grain shock — feed rose 2.3× in 12 months',
    impE:'Price adjustments trailed feed inflation for months.'},
-  {ym:'2024-04',txt:'Toparlanma zirvesi: parite 4,20',
+  {ym:'2024-04',txt:'Toparlanmayla parite 4,20\'ye yükseldi',
    imp:'2010 sonbaharından beri görülmeyen seviye.',
-   txtE:'Recovery peak: parity 4.20',
+   txtE:'Recovery lifted parity back to 4.20',
    impE:'A level unseen since autumn 2010.'},
-  {ym:'2025-12',txt:'Yeni dip: parite 2,67',
+  {ym:'2025-12',txt:'Parite 2,67 ile yeni bir dip yaptı',
    imp:'Aralık 2022\'den beri en düşük — makas yeniden açılıyor.',
-   txtE:'New low: parity 2.67',
+   txtE:'Parity slid to a new low of 2.67',
    impE:'Lowest since December 2022 — the gap is opening again.'},
 ];
 const inT=o=>LNG==='en'?o.txtE:o.txt, inI=o=>LNG==='en'?o.impE:o.imp;
