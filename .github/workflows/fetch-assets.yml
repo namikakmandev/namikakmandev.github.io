@@ -1,0 +1,38 @@
+name: Fetch 3D assets
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find and copy cow models (CC0/CC-BY packs)
+        run: |
+          set -x
+          mkdir -p assets/models
+          git clone --depth 1 https://github.com/pmndrs/market-assets /tmp/market
+          echo "== animal-ish files in market-assets =="
+          find /tmp/market -iname '*.glb' | grep -iE 'cow|bull|ox|cattle|animal|horse|pig|sheep|llama|donkey' || true
+          # copy any cow/bull hits (cap size 15MB each)
+          for f in $(find /tmp/market -iname '*.glb' | grep -iE 'cow|bull'); do
+            sz=$(stat -c%s "$f")
+            if [ "$sz" -lt 15000000 ]; then cp "$f" assets/models/; fi
+          done
+          # fallback candidates worth logging for manual pick
+          echo "== all glb inventory (first 100) =="
+          find /tmp/market -iname '*.glb' | head -100
+          # license file for attribution
+          cp /tmp/market/LICENSE assets/models/MARKET-ASSETS-LICENSE 2>/dev/null || true
+          ls -la assets/models/
+      - name: Commit assets
+        run: |
+          git config user.name "asset-bot"
+          git config user.email "actions@github.com"
+          git add assets/models || true
+          git diff --cached --quiet || git commit -m "assets: add 3D cow models from pmndrs/market-assets [skip ci]"
+          git push
