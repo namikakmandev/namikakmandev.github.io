@@ -27,10 +27,10 @@ STYLE = ("Cinematic documentary footage, shot on ARRI Alexa with 35mm anamorphic
 
 SHOTS = {
  1:"Aerial drone shot slowly pushing forward over a large herd of cattle grazing on a vast dry golden steppe at sunset, long shadows stretching across the land, warm haze on the horizon.",
- 2:"Low tracking shot moving alongside walking beef cattle, backlit dust glowing around their legs, golden rim light on their backs, dry grass in foreground bokeh.",
+ 2:"Low tracking shot moving alongside a single walking cow, backlit dust glowing around its legs, golden rim light on its back, dry grass in foreground bokeh, no other animals.",
  3:"Close-up of a single cow's head in profile at dawn, warm breath visible in cold air, catchlight in the eye, soft focus background of the herd.",
  4:"Vintage 16mm archival film look with scratches and gate weave: 1970s American cattle feedlot, cowboys on horseback in far distance as silhouettes, faded Kodachrome colors, slight flicker.",
- 5:"Cracked dry lakebed earth in extreme foreground, a thin line of cattle walking across shimmering heat haze in the distance, harsh midday sun, bleached colors, slow dolly forward.",
+ 5:"Cracked dry lakebed earth in extreme foreground, a single cow walking slowly across shimmering heat haze in the middle distance, harsh midday sun, bleached colors, slow dolly forward, vast empty landscape.",
  6:"Empty cattle feedlot pens at blue-hour dusk, gates slightly open, dust and straw blowing in wind, one distant silhouetted cow, melancholic mood, static wide shot.",
  7:"Macro slow-motion shot of golden corn kernels pouring and cascading inside a grain silo, individual kernels catching warm light, dust particles floating.",
  8:"Massive bulk cargo ship loaded with grain at an industrial port at sunset, cranes silhouetted, slow aerial orbit, dramatic orange sky with dark clouds gathering.",
