@@ -3,21 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>3D Spinning Wheel — Namık Akman</title>
-  <meta name="description" content="A 3D spinning wheel visual demo built with pure CSS 3D and vanilla JavaScript." />
+  <title>3D Spinning Wheel (Çıkrık) — Namık Akman</title>
+  <meta name="description" content="A traditional wooden spinning wheel (çıkrık) in 3D — pure CSS 3D and vanilla JavaScript." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
   <style>
     :root {
       --bg: #0F1117;
       --surface: #171A21;
-      --surface2: #1F232D;
       --text: #E6E8EE;
       --text-dim: #9AA3B2;
       --green: #19C37D;
       --blue: #2F9BFF;
       --orange: #FF6500;
       --border: #2A2F3A;
+      --wood-d: #4A2E14;   /* dark wood */
+      --wood-m: #7A4A22;   /* mid wood */
+      --wood-l: #A96F3B;   /* light wood */
+      --wood-hl: #C89B6C;  /* highlight */
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { height: 100%; }
@@ -38,12 +41,7 @@
       justify-content: space-between;
       align-items: center;
     }
-    .top a {
-      color: var(--text-dim);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: color .2s;
-    }
+    .top a { color: var(--text-dim); text-decoration: none; font-size: .9rem; transition: color .2s; }
     .top a:hover { color: var(--blue); }
     .top .brand { font-weight: 600; color: var(--text); }
     .top .brand span { color: var(--blue); }
@@ -58,127 +56,173 @@
       background-clip: text;
       -webkit-text-fill-color: transparent;
     }
-    .sub { color: var(--text-dim); text-align: center; margin-top: 8px; font-size: 0.95rem; }
+    .sub { color: var(--text-dim); text-align: center; margin-top: 8px; font-size: .95rem; padding: 0 16px; }
 
     /* ---------- 3D scene ---------- */
     .scene {
-      margin-top: 28px;
-      width: min(78vw, 480px);
-      aspect-ratio: 1;
-      perspective: 1200px;
+      margin-top: 22px;
+      width: min(94vw, 680px);
+      aspect-ratio: 680 / 540;
+      perspective: 1300px;
+      position: relative;
     }
     .tilt {
-      width: 100%; height: 100%;
+      position: absolute; inset: 0;
       transform-style: preserve-3d;
-      transform: rotateX(12deg);
+      transform: rotateX(8deg);
       transition: transform .25s ease-out;
     }
-    .wheel3d {
-      position: absolute; inset: 0;
-      transform-style: preserve-3d;
-    }
-    .layer {
-      position: absolute; inset: 0;
-      border-radius: 50%;
-      background: #10131A;
-      border: 1px solid #060810;
-    }
-    /* colourful face on the front layer */
-    .face {
-      position: absolute; inset: 0;
-      border-radius: 50%;
+    /* warm candle-like glow behind the machine, brand-tinted */
+    .glow {
+      position: absolute; inset: -6%;
       background:
-        conic-gradient(
-          var(--blue)   0deg  30deg,  var(--green) 30deg  60deg,
-          var(--orange) 60deg  90deg, var(--blue)  90deg 120deg,
-          var(--green) 120deg 150deg, var(--orange)150deg 180deg,
-          var(--blue)  180deg 210deg, var(--green) 210deg 240deg,
-          var(--orange)240deg 270deg, var(--blue)  270deg 300deg,
-          var(--green) 300deg 330deg, var(--orange)330deg 360deg
-        );
-      box-shadow: inset 0 0 60px rgba(0,0,0,.45);
-    }
-    /* glossy light sweep on the face */
-    .face::after {
-      content: "";
-      position: absolute; inset: 0;
-      border-radius: 50%;
-      background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.28) 0%, rgba(255,255,255,.06) 34%, rgba(0,0,0,.25) 100%);
+        radial-gradient(45% 45% at 64% 40%, rgba(47,155,255,.10) 0%, transparent 70%),
+        radial-gradient(35% 35% at 20% 45%, rgba(25,195,125,.09) 0%, transparent 70%);
       pointer-events: none;
     }
-    /* metallic outer rim */
-    .rim {
-      position: absolute; inset: -4.5%;
-      border-radius: 50%;
-      background: conic-gradient(#3A414F, #6B7484, #2A2F3A, #767F90, #3A414F, #6B7484, #2A2F3A, #767F90, #3A414F);
-      box-shadow: 0 10px 40px rgba(0,0,0,.6), inset 0 0 12px rgba(0,0,0,.7);
-    }
-    .rim::after {
-      content: "";
-      position: absolute; inset: 4.2%;
-      border-radius: 50%;
-      background: var(--bg);
-    }
-    .led {
-      position: absolute;
-      width: 2.6%; aspect-ratio: 1;
-      border-radius: 50%;
-      background: #FFE9A8;
-      box-shadow: 0 0 8px 2px rgba(255,220,120,.85);
-      transform: translate(-50%, -50%);
-    }
-    .led.dim { background: #57503A; box-shadow: none; }
-    /* centre hub */
-    .hub {
-      position: absolute; inset: 36%;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 30%, #2E3542, #12151C 70%);
-      border: 3px solid #3A414F;
-      box-shadow: 0 6px 18px rgba(0,0,0,.55), inset 0 2px 6px rgba(255,255,255,.12);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .hub b {
-      font-size: clamp(.8rem, 2.4vw, 1.15rem);
-      letter-spacing: .12em;
-      background: linear-gradient(90deg, var(--blue), var(--green));
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    /* pointer */
-    .pointer {
-      position: absolute;
-      top: -7.5%; left: 50%;
-      transform: translateX(-50%) translateZ(60px);
-      width: 0; height: 0;
-      border-left: 16px solid transparent;
-      border-right: 16px solid transparent;
-      border-top: 30px solid var(--orange);
-      filter: drop-shadow(0 4px 8px rgba(255,101,0,.5));
-      z-index: 5;
-      transition: transform .1s;
-    }
-    .pointer.tick { transform: translateX(-50%) translateZ(60px) rotate(14deg); }
 
-    /* floor shadow */
+    .wood {
+      background: linear-gradient(90deg, var(--wood-d), var(--wood-l) 45%, var(--wood-m) 60%, var(--wood-d));
+      border-radius: 6px;
+      box-shadow: inset 0 2px 3px rgba(255,255,255,.14), inset 0 -3px 5px rgba(0,0,0,.45), 0 4px 10px rgba(0,0,0,.35);
+    }
+
+    /* bench + legs + posts (the wooden frame) */
+    .bench  { position: absolute; left: 6%;  top: 84%; width: 88%; height: 4.6%; transform: rotate(-1.2deg); }
+    .leg    { position: absolute; width: 3%; height: 9%; top: 87.5%; }
+    .leg.l1 { left: 12%; transform: rotate(7deg); }
+    .leg.l2 { left: 46%; transform: rotate(-2deg); }
+    .leg.l3 { left: 84%; transform: rotate(-8deg); }
+    .post {
+      position: absolute; left: 64%; top: 38%; width: 3.4%; height: 48%;
+      transform: translateX(-50%) translateZ(-40px);
+      background: linear-gradient(90deg, var(--wood-d), var(--wood-l) 45%, var(--wood-d));
+      border-radius: 8px;
+      box-shadow: inset 0 0 6px rgba(0,0,0,.4);
+    }
+    .spindlePost {
+      position: absolute; left: 17%; top: 46%; width: 2.8%; height: 40%;
+      transform: translateX(-50%) translateZ(-20px);
+      background: linear-gradient(90deg, var(--wood-d), var(--wood-l) 45%, var(--wood-d));
+      border-radius: 8px;
+    }
+
+    /* ---------- the big wheel ---------- */
+    .wheelWrap {
+      position: absolute; left: 64%; top: 40%;
+      width: 56%; aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      transform-style: preserve-3d;
+    }
+    .wheel3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+    /* rim: a wooden ring with a see-through centre */
+    .rimLayer {
+      position: absolute; inset: 0; border-radius: 50%;
+      background: radial-gradient(closest-side,
+        transparent 76.5%,
+        var(--wood-d) 77%, var(--wood-l) 82%, var(--wood-m) 88%, #3A2410 96%, #2A1A0B 100%);
+    }
+    .rimFace::after {  /* soft sheen on the front rim */
+      content: ""; position: absolute; inset: 0; border-radius: 50%;
+      background: radial-gradient(circle at 32% 24%, rgba(255,255,255,.16) 0%, transparent 45%);
+    }
+    .spoke {
+      position: absolute; left: 50%; top: 50%;
+      width: 3.2%; height: 39.5%;
+      transform-origin: 50% 0%;
+      background: linear-gradient(90deg, var(--wood-d), var(--wood-hl) 45%, var(--wood-m) 65%, var(--wood-d));
+      border-radius: 40% / 12%;
+      box-shadow: inset 0 0 4px rgba(0,0,0,.35);
+    }
+    /* a turned "bulge" on each spoke, like hand-carved wood */
+    .spoke::after {
+      content: ""; position: absolute; left: -28%; top: 58%;
+      width: 156%; height: 13%;
+      background: linear-gradient(90deg, var(--wood-d), var(--wood-hl) 45%, var(--wood-d));
+      border-radius: 50%;
+    }
+    .hubLayer {
+      position: absolute; left: 50%; top: 50%;
+      width: 13%; aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 36% 30%, var(--wood-hl), var(--wood-m) 55%, var(--wood-d));
+      box-shadow: 0 3px 10px rgba(0,0,0,.5);
+    }
+    .axle {
+      position: absolute; left: 50%; top: 50%;
+      width: 4.5%; aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #B7BEC9, #3A414F 75%);
+    }
+
+    /* ---------- spindle / bobbin (the small fast wheel) ---------- */
+    .whorl {
+      position: absolute; left: 17%; top: 41%;
+      width: 12.5%; aspect-ratio: 1;
+      transform: translate(-50%, -50%) translateZ(6px);
+      border-radius: 50%;
+      background:
+        conic-gradient(var(--wood-m) 0 30deg, var(--wood-d) 30deg 60deg, var(--wood-m) 60deg 90deg, var(--wood-d) 90deg 120deg,
+                       var(--wood-m) 120deg 150deg, var(--wood-d) 150deg 180deg, var(--wood-m) 180deg 210deg, var(--wood-d) 210deg 240deg,
+                       var(--wood-m) 240deg 270deg, var(--wood-d) 270deg 300deg, var(--wood-m) 300deg 330deg, var(--wood-d) 330deg 360deg);
+      box-shadow: 0 4px 12px rgba(0,0,0,.5), inset 0 0 10px rgba(0,0,0,.4);
+    }
+    .whorl::after {
+      content: ""; position: absolute; inset: 30%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, var(--wood-hl), var(--wood-d) 80%);
+    }
+
+    /* drive band + yarn are positioned by JS (they connect two moving parts) */
+    .band {
+      position: absolute; height: 3px;
+      background: repeating-linear-gradient(90deg, #D8CBB4 0 10px, #8F846F 10px 20px);
+      border-radius: 2px;
+      transform-origin: 0 50%;
+      opacity: .9;
+      box-shadow: 0 1px 3px rgba(0,0,0,.5);
+    }
+    .thread {
+      position: absolute; height: 2px;
+      background: linear-gradient(90deg, #EDE6D6, #CFC5AE);
+      transform-origin: 0 50%;
+      opacity: .85;
+    }
+    .wool {
+      position: absolute; left: 6%; top: 26%;
+      width: 13%; aspect-ratio: 1.15;
+      transform: translate(-50%, -50%);
+      background:
+        radial-gradient(circle at 35% 35%, #F5F0E4 0%, #DDD3BE 55%, transparent 72%),
+        radial-gradient(circle at 65% 55%, #EFE8D8 0%, #D5CAB2 50%, transparent 70%),
+        radial-gradient(circle at 48% 70%, #E9E1CE 0%, transparent 65%);
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.4));
+      border-radius: 50%;
+    }
+
+    /* treadle (foot board) */
+    .treadle {
+      position: absolute; left: 42%; top: 88.5%;
+      width: 26%; height: 3.2%;
+      transform-origin: 8% 50%;
+    }
+
     .floor {
-      width: min(60vw, 380px);
-      height: 34px;
-      margin-top: 46px;
+      width: min(70vw, 460px);
+      height: 36px;
+      margin-top: 30px;
       border-radius: 50%;
       background: radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, transparent 70%);
     }
 
     /* ---------- controls ---------- */
-    .controls { margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 14px; padding-bottom: 60px; }
+    .controls { margin-top: 4px; display: flex; flex-direction: column; align-items: center; gap: 14px; padding-bottom: 60px; }
     #spinBtn {
-      font: inherit;
-      font-weight: 700;
-      letter-spacing: .14em;
-      padding: 14px 54px;
-      border-radius: 999px;
+      font: inherit; font-weight: 700; letter-spacing: .14em;
+      padding: 14px 48px; border-radius: 999px;
       border: 1px solid var(--border);
-      color: #06231733;
       color: #05130C;
       background: linear-gradient(135deg, var(--green), #12A96A);
       cursor: pointer;
@@ -198,79 +242,109 @@
     <a href="projects.html">← Back to projects</a>
   </div>
 
-  <h1>3D Spinning Wheel</h1>
-  <p class="sub">Pure CSS 3D + vanilla JavaScript — no libraries. Move your mouse to tilt it.</p>
+  <h1>3D Spinning Wheel &nbsp;·&nbsp; Çıkrık</h1>
+  <p class="sub">A traditional wooden spinning wheel — pure CSS 3D + vanilla JavaScript, no libraries. Move your mouse to tilt it.</p>
 
   <div class="scene" id="scene">
     <div class="tilt" id="tilt">
-      <div class="wheel3d" id="wheel">
-        <!-- depth layers + face + rim + LEDs injected by JS -->
+      <div class="glow"></div>
+
+      <!-- frame -->
+      <div class="post"></div>
+      <div class="spindlePost"></div>
+      <div class="bench wood"></div>
+      <div class="leg l1 wood"></div>
+      <div class="leg l2 wood"></div>
+      <div class="leg l3 wood"></div>
+      <div class="treadle wood" id="treadle"></div>
+
+      <!-- drive band + yarn (positioned by JS) -->
+      <div class="band" id="band1"></div>
+      <div class="band" id="band2"></div>
+      <div class="thread" id="thread"></div>
+      <div class="wool"></div>
+
+      <!-- spindle whorl (spins fast) -->
+      <div class="whorl" id="whorl"></div>
+
+      <!-- the big wheel -->
+      <div class="wheelWrap">
+        <div class="wheel3d" id="wheel"></div>
       </div>
-      <div class="pointer" id="pointer"></div>
     </div>
   </div>
   <div class="floor"></div>
 
   <div class="controls">
-    <button id="spinBtn">SPIN</button>
+    <button id="spinBtn">SPIN THE WHEEL</button>
     <div class="speed" id="speed"></div>
-    <div class="hint">Tip: spin it and watch the rim lights chase.</div>
+    <div class="hint">The small bobbin turns ~7× faster than the big wheel — just like a real çıkrık.</div>
   </div>
 
   <script>
     (function () {
       var wheel = document.getElementById('wheel');
+      var whorl = document.getElementById('whorl');
       var tilt = document.getElementById('tilt');
       var scene = document.getElementById('scene');
       var btn = document.getElementById('spinBtn');
       var speedEl = document.getElementById('speed');
-      var pointer = document.getElementById('pointer');
+      var treadle = document.getElementById('treadle');
+      var band1 = document.getElementById('band1');
+      var band2 = document.getElementById('band2');
+      var thread = document.getElementById('thread');
 
-      /* --- build the 3D body: stacked layers give the wheel real thickness --- */
-      var DEPTH = 36;          /* total thickness in px */
-      var LAYERS = 12;
-      for (var i = 0; i < LAYERS; i++) {
-        var z = -DEPTH / 2 + (DEPTH / (LAYERS - 1)) * i;
-        var d = document.createElement('div');
-        d.className = 'layer';
-        d.style.transform = 'translateZ(' + z.toFixed(1) + 'px)';
-        wheel.appendChild(d);
+      /* --- build the wheel: rim layers for thickness, spokes, hub --- */
+      var DEPTH = 26, RIM_LAYERS = 8, SPOKES = 12;
+      for (var i = 0; i < RIM_LAYERS; i++) {
+        var z = -DEPTH / 2 + (DEPTH / (RIM_LAYERS - 1)) * i;
+        var r = document.createElement('div');
+        r.className = 'rimLayer' + (i === RIM_LAYERS - 1 ? ' rimFace' : '');
+        r.style.transform = 'translateZ(' + z.toFixed(1) + 'px)';
+        wheel.appendChild(r);
       }
-      /* colourful face sits on the front */
-      var face = document.createElement('div');
-      face.className = 'face';
-      face.style.transform = 'translateZ(' + (DEPTH / 2 + 1) + 'px)';
-      wheel.appendChild(face);
-
-      var hub = document.createElement('div');
-      hub.className = 'hub';
-      hub.innerHTML = '<b>NA</b>';
-      hub.style.transform = 'translateZ(' + (DEPTH / 2 + 14) + 'px)';
-      wheel.appendChild(hub);
-
-      /* rim ring (static, does not spin) with LEDs that chase while spinning */
-      var rim = document.createElement('div');
-      rim.className = 'rim';
-      rim.style.transform = 'translateZ(' + (DEPTH / 2 + 0.5) + 'px)';
-      tilt.insertBefore(rim, wheel);
-
-      var LED_COUNT = 24, leds = [];
-      for (var j = 0; j < LED_COUNT; j++) {
-        var led = document.createElement('div');
-        led.className = 'led';
-        var a = (j / LED_COUNT) * Math.PI * 2;
-        led.style.left = (50 + 49.4 * Math.sin(a)) + '%';
-        led.style.top = (50 - 49.4 * Math.cos(a)) + '%';
-        rim.appendChild(led);
-        leds.push(led);
+      for (var s = 0; s < SPOKES; s++) {
+        var sp = document.createElement('div');
+        sp.className = 'spoke';
+        sp.style.transform = 'translateX(-50%) rotate(' + (s * 360 / SPOKES) + 'deg)';
+        wheel.appendChild(sp);
       }
+      /* hub gets a little thickness too */
+      for (var h = 0; h < 3; h++) {
+        var hb = document.createElement('div');
+        hb.className = 'hubLayer';
+        hb.style.transform = 'translate(-50%,-50%) translateZ(' + (DEPTH / 2 + 2 + h * 4) + 'px)';
+        wheel.appendChild(hb);
+      }
+      var ax = document.createElement('div');
+      ax.className = 'axle';
+      ax.style.transform = 'translate(-50%,-50%) translateZ(' + (DEPTH / 2 + 16) + 'px)';
+      wheel.appendChild(ax);
+
+      /* --- place the drive band + yarn between the moving parts --- */
+      function lineBetween(el, x1, y1, x2, y2) {  /* coords in scene % */
+        var rect = scene.getBoundingClientRect();
+        var ax_ = x1 / 100 * rect.width,  ay = y1 / 100 * rect.height;
+        var bx  = x2 / 100 * rect.width,  by = y2 / 100 * rect.height;
+        var len = Math.hypot(bx - ax_, by - ay);
+        var ang = Math.atan2(by - ay, bx - ax_) * 180 / Math.PI;
+        el.style.left = (x1) + '%';
+        el.style.top = (y1) + '%';
+        el.style.width = len + 'px';
+        el.style.transform = 'rotate(' + ang + 'deg)';
+      }
+      /* wheel centre (64,40) r≈28 of width; whorl centre (17,41) r≈6 */
+      function layoutLines() {
+        lineBetween(band1, 17, 33.2, 40, 20.5);   /* whorl top  -> wheel rim upper-left */
+        lineBetween(band2, 17, 48.8, 40, 59.5);   /* whorl bottom -> wheel rim lower-left */
+        lineBetween(thread, 6.5, 26.5, 16, 39);   /* wool -> whorl (the yarn being spun) */
+      }
+      layoutLines();
+      window.addEventListener('resize', layoutLines);
 
       /* --- spin physics --- */
-      var angle = 0;          /* degrees */
-      var velocity = 6;       /* deg per second — gentle idle rotation */
-      var spinning = false;
-      var lastT = null;
-      var ledPhase = 0;
+      var IDLE = 30;            /* deg/s — the wheel never fully stops */
+      var angle = 0, velocity = IDLE, spinning = false, lastT = null, bandShift = 0;
 
       function frame(t) {
         if (lastT === null) lastT = t;
@@ -278,40 +352,33 @@
         lastT = t;
 
         if (spinning) {
-          velocity *= Math.pow(0.32, dt);           /* exponential friction */
-          if (velocity < 25) {                       /* settle back to idle */
+          velocity = IDLE + (velocity - IDLE) * Math.pow(0.42, dt);  /* friction back to idle */
+          if (velocity - IDLE < 15) {
             spinning = false;
-            velocity = 6;
             btn.disabled = false;
             speedEl.textContent = '';
           } else {
-            speedEl.textContent = Math.round(velocity) + ' deg/s';
+            speedEl.textContent = Math.round(velocity / 6) + ' rpm';
           }
         }
-        angle = (angle + velocity * dt) % 360;
-        wheel.style.transform = 'rotateZ(' + angle + 'deg)';
+        angle += velocity * dt;
 
-        /* pointer flick every time a segment edge passes (every 30°) */
-        var seg = Math.floor(angle / 30);
-        if (seg !== frame.lastSeg && velocity > 40) {
-          pointer.classList.add('tick');
-          setTimeout(function () { pointer.classList.remove('tick'); }, 60);
-        }
-        frame.lastSeg = seg;
-
-        /* chasing LEDs — faster spin, faster chase */
-        ledPhase += dt * (2 + velocity / 60);
-        for (var k = 0; k < leds.length; k++) {
-          var on = ((k + Math.floor(ledPhase * 6)) % 3) === 0;
-          leds[k].className = on ? 'led' : 'led dim';
-        }
+        wheel.style.transform = 'rotateZ(' + (angle % 360) + 'deg)';
+        /* small whorl geared ~7:1, spins the opposite feel of a belt drive */
+        whorl.style.transform = 'translate(-50%,-50%) translateZ(6px) rotateZ(' + ((angle * 7) % 360) + 'deg)';
+        /* treadle pumps once per wheel turn */
+        treadle.style.transform = 'rotate(' + (Math.sin(angle * Math.PI / 180) * 4) + 'deg)';
+        /* the band appears to travel */
+        bandShift += velocity * dt * 0.22;
+        band1.style.backgroundPositionX = (-bandShift) + 'px';
+        band2.style.backgroundPositionX = (bandShift) + 'px';
 
         requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
 
       btn.addEventListener('click', function () {
-        velocity = 1300 + Math.random() * 900;   /* random launch speed */
+        velocity = 700 + Math.random() * 400;
         spinning = true;
         btn.disabled = true;
       });
@@ -323,7 +390,7 @@
         var ny = (y - (r.top + r.height / 2)) / (r.height / 2);
         nx = Math.max(-1.6, Math.min(1.6, nx));
         ny = Math.max(-1.6, Math.min(1.6, ny));
-        tilt.style.transform = 'rotateX(' + (12 - ny * 14) + 'deg) rotateY(' + (nx * 16) + 'deg)';
+        tilt.style.transform = 'rotateX(' + (8 - ny * 10) + 'deg) rotateY(' + (nx * 14) + 'deg)';
       }
       document.addEventListener('mousemove', function (e) { applyTilt(e.clientX, e.clientY); });
       document.addEventListener('touchmove', function (e) {
