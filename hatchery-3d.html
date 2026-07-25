@@ -51,14 +51,28 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 .noData{position:fixed;left:50%;transform:translateX(-50%);top:110px;z-index:6;background:rgba(22,25,34,.94);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:12px;color:var(--muted);display:none;text-align:center;line-height:1.7}
 .noData.show{display:block}
 .noData label{color:var(--primary);cursor:pointer;text-decoration:underline}
-@media(max-width:700px){.hint{display:none}.stageName .t{font-size:14px}.batchCard{top:auto;bottom:150px;left:10px}}
+@media(max-width:700px){
+  .hint{display:none}
+  .stageName{top:100px}.stageName .t{font-size:13px}.stageName .s{font-size:10px}
+  .batchCard{top:auto;bottom:170px;left:10px;width:210px}
+  #endCard{bottom:auto}
+  .hud{padding:6px 0 10px;gap:5px}
+  .chips{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;max-width:100vw;padding:0 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{font-size:10px;padding:4px 8px;flex:0 0 auto}
+  #sLegend span{display:none}          /* bilgi rozetleri mobilde gizli; kontroller kalır */
+  #voiceSel{max-width:130px;font-size:10px}
+  .bar{width:96vw;gap:6px}
+  .bar button{padding:7px 10px;min-width:0;font-size:11.5px;white-space:nowrap}
+  .day{font-size:10px;padding:5px 7px;white-space:nowrap}
+}
 </style>
 </head>
 <body>
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r11</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r12</b></span></div>
   <div class="tb-r">
     <a href="hatchery.html">← Rapora dön</a>
   </div>
@@ -157,9 +171,10 @@ scene.fog=new THREE.Fog(0x0F1117,26,46);
 const camera=new THREE.PerspectiveCamera(46,1,.1,120);
 let camTheta=Math.PI*0.32, camPhi=Math.PI*0.36, camR=17, autoSpin=true;
 const camTarget=new THREE.Vector3(0,1.2,0);
+const isNarrow=()=>innerWidth/innerHeight<0.8;   // dikey telefon: kamera daha geriden bakar
 function applyCam(){
   camPhi=Math.max(.18,Math.min(Math.PI*.48,camPhi));
-  camR=Math.max(7,Math.min(30,camR));
+  camR=Math.max(7,Math.min(40,camR));
   camera.position.set(
     camTarget.x+camR*Math.sin(camPhi)*Math.cos(camTheta),
     camTarget.y+camR*Math.cos(camPhi),
@@ -903,7 +918,8 @@ function storyFrame(now,dt){
     let d=Math.PI/2-camTheta;d=Math.atan2(Math.sin(d),Math.cos(d));
     const cx=Math.max(-4.5,Math.min(4.5,cx0*.6));
     camTarget.lerp(new THREE.Vector3(cx,GY+(idxOn?2.1:1.1),0),.05);
-    camTheta+=d*.04;camPhi=lerp(camPhi,1.25,.04);camR=lerp(camR,idxOn?18:15,.04);
+    camTheta+=d*.04;camPhi=lerp(camPhi,1.25,.04);
+    camR=lerp(camR,(idxOn?18:15)*(isNarrow()?1.8:1),.04);
     applyCam();
   }
 }
@@ -933,7 +949,7 @@ function setMode(m){
   if(storyGrp)storyGrp.visible=(m==='story');
   stationGroups.forEach(g=>g.visible=(m!=='story'));
   floor.visible=grid.visible=(m!=='story');
-  if(m==='story'){lastCh=null;bubbleT=0;camTheta=Math.PI/2;camPhi=1.25;camR=idxOn?18:16;camTarget.set(0,GY+(idxOn?2.1:1.1),0);applyCam();}
+  if(m==='story'){lastCh=null;bubbleT=0;camTheta=Math.PI/2;camPhi=1.25;camR=(idxOn?18:16)*(isNarrow()?1.8:1);camTarget.set(0,GY+(idxOn?2.1:1.1),0);applyCam();}
   else if(prev==='story'){
     hushAll();
     lastCh=null;if(bubbleSp)bubbleSp.visible=false;
