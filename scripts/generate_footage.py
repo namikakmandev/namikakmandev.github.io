@@ -61,20 +61,49 @@ MODEL = os.environ.get("MODEL", "gen3a_turbo")
 DUR = int(os.environ.get("DURATION", "10"))
 COST = {"gen4.5": 0.15, "gen3a_turbo": 0.05}
 
+FALLBACK = os.environ.get("FALLBACK", "1") == "1"
+
+def pick_vertical(vals):
+    """İzin verilen oranlardan dikey (9:16'ya en yakın, en yüksek çözünürlüklü) olanı seç."""
+    best = None
+    for v in vals:
+        try:
+            w, h = map(int, str(v).split(":"))
+        except ValueError:
+            continue
+        if h > w and (best is None or w > best[0]):
+            best = (w, h, v)
+    return best[2] if best else None
+
 def start_task(prompt):
-    """Metinden-videoya: seçilen model, olmazsa gen4.5'e düş."""
-    alt = "gen4.5" if MODEL != "gen4.5" else "gen3a_turbo"
-    attempts = [
-        ("/text_to_video", {"model": MODEL, "promptText": prompt,
-                            "ratio": "720:1280", "duration": DUR}),
-        ("/text_to_video", {"model": alt, "promptText": prompt,
-                            "ratio": "720:1280", "duration": DUR}),
-    ]
-    for path, body in attempts:
-        st, js = call(path, body)
-        print(f"  POST {path} model={body['model']} -> {st}: {json.dumps(js)[:300]}")
+    """Metinden-videoya. 400 dönerse hata mesajındaki izinli değerlere uyum sağlar:
+    oran/süre modele göre düzeltilir; model geçersizse (FALLBACK=1 iken) gen4.5'e düşer."""
+    body = {"model": MODEL, "promptText": prompt, "ratio": "720:1280", "duration": DUR}
+    for _ in range(4):
+        st, js = call("/text_to_video", body)
+        print(f"  POST /text_to_video model={body['model']} ratio={body['ratio']} dur={body['duration']} -> {st}: {json.dumps(js)[:300]}")
         if st in (200, 201) and js.get("id"):
             return js["id"]
+        if st != 400:
+            return None
+        fixed = False
+        for iss in js.get("issues", []):
+            vals = [str(v) for v in (iss.get("values") or [])]
+            if not vals:
+                continue
+            if all(":" in v for v in vals):                     # izinli oran listesi
+                nv = pick_vertical(vals)
+                if nv and body["ratio"] != nv:
+                    body["ratio"] = nv; fixed = True
+            elif all(v.isdigit() for v in vals):                # izinli süre listesi
+                nd = int(min(vals, key=lambda x: abs(int(x) - DUR)))
+                if body["duration"] != nd:
+                    body["duration"] = nd; fixed = True
+            elif body["model"] not in vals:                     # izinli model listesi
+                if FALLBACK and "gen4.5" in vals and body["model"] != "gen4.5":
+                    body["model"] = "gen4.5"; fixed = True
+        if not fixed:
+            return None
     return None
 
 def wait_task(tid, timeout=900):
@@ -101,10 +130,11 @@ def main():
     est = n * DUR * COST.get(MODEL, 0.15)
     print(f"PLAN: {n} üretim × {DUR}sn × {MODEL} ≈ ${est:.2f} tahmini maliyet")
     ok, fail = [], []
+    mtag = "".join(c for c in MODEL if c.isalnum())   # kling3.0_pro -> kling30pro
     for i in ids:
         for t in range(takes):
             tag = chr(ord('a') + t)
-            out = f"footage/shot{i:02d}-{tag}.mp4"
+            out = f"footage/shot{i:02d}-{mtag}-{tag}.mp4"
             if os.path.exists(out):
                 print(f"skip {out} (var)"); continue
             print(f"== SHOT {i} take {tag} ==")
