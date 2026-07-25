@@ -73,16 +73,24 @@ def build_eu():
         raise RuntimeError("EU beef API returned no parsable rows")
     scale = 100 if sum(beef.values()) / len(beef) > 3000 else 1
     beef = {m: v / scale for m, v in beef.items()}
-    # Feed maize, all member states averaged as EU proxy (no EU aggregate on this endpoint).
+    # Feed grain, member states averaged as EU proxy. The portal's parameter names vary
+    # between dataset versions — probe several shapes and keep whichever yields data.
     feed = {}
-    for prod in ("Feed%20maize", "Maize", "Feed%20barley"):
+    probes = [
+        "https://www.ec.europa.eu/agrifood/api/cereal/prices?productCodes=MAI&beginDate=01/01/2010&endDate=31/12/2026",
+        "https://www.ec.europa.eu/agrifood/api/cereal/prices?productCodes=ORG&beginDate=01/01/2010&endDate=31/12/2026",
+        "https://www.ec.europa.eu/agrifood/api/cereal/prices?products=Feed%20maize&beginDate=01/01/2010&endDate=31/12/2026",
+        "https://www.ec.europa.eu/agrifood/api/cereal/prices?productNames=Feed%20maize&beginDate=01/01/2010&endDate=31/12/2026",
+        "https://www.ec.europa.eu/agrifood/api/cereal/prices?beginDate=01/01/2010&endDate=31/12/2026",
+    ]
+    for url in probes:
         try:
-            feed = _agrifood_monthly(
-                "https://www.ec.europa.eu/agrifood/api/cereal/prices"
-                f"?productCodes={prod}&beginDate=01/01/2010&endDate=31/12/2026")
-        except Exception:
+            feed = _agrifood_monthly(url)
+        except Exception as e:
+            print("[eu feed] probe failed:", url.split('?')[1][:40], repr(e))
             feed = {}
         if feed:
+            print("[eu feed] probe OK:", url.split('?')[1][:60], "months:", len(feed))
             fscale = 100 if sum(feed.values()) / len(feed) > 2000 else 1
             feed = {m: v / fscale for m, v in feed.items()}
             break
@@ -107,13 +115,11 @@ def build_tr_discovery():
     from evds import evdsAPI
     api = evdsAPI(key)
     hits = []
-    kw = ("sığır", "sigir", "dana", "kırmızı et", "kirmizi et", "yem", "karkas", "canlı hayvan")
+    kw = ("sığır", "sigir", "dana", "kırmızı et", "kirmizi et", "yem", "karkas",
+          "canlı hayvan", "büyükbaş", "buyukbas", "besi", "et fiyat", "hayvansal", "kesim")
     try:
         mains = api.main_categories
-        for _, mrow in mains.iterrows():
-            name = str(mrow.get("TOPIC_TITLE_TR", ""))
-            if not any(k in name.lower() for k in ("fiyat", "üfe", "ufe", "tarım", "tarim", "enflasyon")):
-                continue
+        for _, mrow in mains.iterrows():   # tüm ana kategorileri tara — filtre yok
             try:
                 subs = api.get_sub_categories(mrow["CATEGORY_ID"])
             except Exception:
