@@ -107,40 +107,45 @@ def build_eu():
     }
 
 def build_tr_discovery():
-    """If EVDS_KEY is present, search TCMB EVDS for candidate TR cattle/feed series."""
+    """Dump the FULL series catalog of agriculture/PPI-flavoured EVDS datagroups.
+
+    Keyword-hunting across all of EVDS proved noisy; instead we list every series
+    of every datagroup whose name mentions agriculture/producer prices, and pick
+    the cattle & feed codes from the catalog by eye.
+    """
     import os
     key = os.environ.get("EVDS_KEY", "").strip()
     if not key:
         raise RuntimeError("EVDS_KEY not set — skipping TR discovery")
     from evds import evdsAPI
     api = evdsAPI(key)
-    hits = []
-    kw = ("sığır", "sigir", "dana", "kırmızı et", "kirmizi et", "yem", "karkas",
-          "canlı hayvan", "büyükbaş", "buyukbas", "besi", "et fiyat", "hayvansal", "kesim")
-    try:
-        mains = api.main_categories
-        for _, mrow in mains.iterrows():   # tüm ana kategorileri tara — filtre yok
-            try:
-                subs = api.get_sub_categories(mrow["CATEGORY_ID"])
-            except Exception:
+    want = ("tarım", "tarim", "üretici fiyat", "uretici fiyat", "üfe", "ufe")
+    catalog = []
+    mains = api.main_categories
+    for _, mrow in mains.iterrows():
+        try:
+            subs = api.get_sub_categories(mrow["CATEGORY_ID"])
+        except Exception:
+            continue
+        for _, srow in subs.iterrows():
+            gname = str(srow.get("DATAGROUP_NAME", ""))
+            if not any(k in gname.lower() for k in want):
                 continue
-            for _, srow in subs.iterrows():
-                code = srow.get("DATAGROUP_CODE")
-                try:
-                    series = api.get_series(code)
-                except Exception:
-                    continue
-                for _, row in series.iterrows():
-                    nm = str(row.get("SERIE_NAME", ""))
-                    if any(k in nm.lower() for k in kw):
-                        hits.append({"code": row.get("SERIE_CODE"), "name": nm,
-                                     "group": str(srow.get("DATAGROUP_NAME", ""))})
-    except Exception as e:
-        raise RuntimeError(f"EVDS discovery failed: {e}")
-    if not hits:
-        raise RuntimeError("EVDS discovery found no matching series")
-    return {"source": "TCMB EVDS series discovery (keywords: sığır/dana/kırmızı et/yem/karkas)",
-            "candidates": hits[:200]}
+            code = srow.get("DATAGROUP_CODE")
+            try:
+                series = api.get_series(code)
+            except Exception as e:
+                catalog.append({"group": gname, "error": repr(e)})
+                continue
+            catalog.append({
+                "group": gname, "group_code": str(code),
+                "series": [{"code": row.get("SERIE_CODE"), "name": str(row.get("SERIE_NAME", ""))}
+                           for _, row in series.iterrows()],
+            })
+    if not catalog:
+        raise RuntimeError("no agriculture/PPI datagroups found")
+    return {"source": "TCMB EVDS catalog dump: datagroups matching tarım/üretici fiyat/ÜFE",
+            "groups": catalog}
 
 def build_merged():
     """Apples-to-apples file: per region, meat & feed indexed to 2015=100 + parity index."""
