@@ -11,28 +11,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Find and copy cow models (CC0/CC-BY packs)
+      - name: Fetch cow model from poly.pizza (CC0) + fallback horse
         run: |
           set -x
           mkdir -p assets/models
-          git clone --depth 1 https://github.com/pmndrs/market-assets /tmp/market
-          echo "== animal-ish files in market-assets =="
-          find /tmp/market -iname '*.glb' | grep -iE 'cow|bull|ox|cattle|animal|horse|pig|sheep|llama|donkey' || true
-          # copy any cow/bull hits (cap size 15MB each)
-          for f in $(find /tmp/market -iname '*.glb' | grep -iE 'cow|bull'); do
-            sz=$(stat -c%s "$f")
-            if [ "$sz" -lt 15000000 ]; then cp "$f" assets/models/; fi
-          done
-          # fallback candidates worth logging for manual pick
-          echo "== all glb inventory (first 100) =="
-          find /tmp/market -iname '*.glb' | head -100
-          # license file for attribution
-          cp /tmp/market/LICENSE assets/models/MARKET-ASSETS-LICENSE 2>/dev/null || true
+          UA="Mozilla/5.0 (asset fetch for namikakman.dev; one-off)"
+          # 1) poly.pizza arama sayfasından model sayfalarını, oradan GLB linkini çıkar
+          curl -sL -A "$UA" "https://poly.pizza/search/cow" -o /tmp/search.html || true
+          grep -oE '/m/[A-Za-z0-9_-]+' /tmp/search.html | sort -u | head -6 > /tmp/pages.txt || true
+          cat /tmp/pages.txt
+          while read -r p; do
+            curl -sL -A "$UA" "https://poly.pizza$p" -o /tmp/model.html || continue
+            url=$(grep -oE 'https://static\.poly\.pizza/[A-Za-z0-9_./-]+\.glb' /tmp/model.html | head -1)
+            name=$(grep -oE '<title>[^<]*' /tmp/model.html | head -1)
+            echo "PAGE $p NAME $name URL $url"
+            if [ -n "$url" ]; then
+              out="assets/models/cow-$(basename $p).glb"
+              curl -sL -A "$UA" "$url" -o "$out" || continue
+              sz=$(stat -c%s "$out"); echo "size $sz"
+              if [ "$sz" -lt 1000 ] || [ "$sz" -gt 20000000 ]; then rm -f "$out"; fi
+            fi
+          done < /tmp/pages.txt
+          # 2) fallback: three.js'in animasyonlu atı (MIT örnek varlığı) — boru hattı sigortası
+          curl -sL -A "$UA" "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Horse.glb" -o assets/models/horse.glb || true
+          sz=$(stat -c%s assets/models/horse.glb || echo 0); [ "$sz" -lt 1000 ] && rm -f assets/models/horse.glb
+          echo "poly.pizza models are CC0/CC-BY per site licensing; horse.glb from three.js examples (MIT)" > assets/models/ATTRIBUTION.txt
           ls -la assets/models/
       - name: Commit assets
         run: |
           git config user.name "asset-bot"
           git config user.email "actions@github.com"
           git add assets/models || true
-          git diff --cached --quiet || git commit -m "assets: add 3D cow models from pmndrs/market-assets [skip ci]"
+          git diff --cached --quiet || git commit -m "assets: add 3D animal models (poly.pizza CC0 / three.js example) [skip ci]"
           git push
