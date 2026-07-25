@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Spinning Wheel — Namık Akman</title>
+  <meta name="description" content="A 3D spinning wheel visual demo built with pure CSS 3D and vanilla JavaScript." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <style>
+    :root {
+      --bg: #0F1117;
+      --surface: #171A21;
+      --surface2: #1F232D;
+      --text: #E6E8EE;
+      --text-dim: #9AA3B2;
+      --green: #19C37D;
+      --blue: #2F9BFF;
+      --orange: #FF6500;
+      --border: #2A2F3A;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: radial-gradient(1200px 700px at 50% -10%, #161B26 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .top {
+      width: 100%;
+      max-width: 1100px;
+      padding: 22px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .top a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color .2s;
+    }
+    .top a:hover { color: var(--blue); }
+    .top .brand { font-weight: 600; color: var(--text); }
+    .top .brand span { color: var(--blue); }
+
+    h1 {
+      font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+      font-weight: 700;
+      text-align: center;
+      margin-top: 6px;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .sub { color: var(--text-dim); text-align: center; margin-top: 8px; font-size: 0.95rem; }
+
+    /* ---------- 3D scene ---------- */
+    .scene {
+      margin-top: 28px;
+      width: min(78vw, 480px);
+      aspect-ratio: 1;
+      perspective: 1200px;
+    }
+    .tilt {
+      width: 100%; height: 100%;
+      transform-style: preserve-3d;
+      transform: rotateX(12deg);
+      transition: transform .25s ease-out;
+    }
+    .wheel3d {
+      position: absolute; inset: 0;
+      transform-style: preserve-3d;
+    }
+    .layer {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      background: #10131A;
+      border: 1px solid #060810;
+    }
+    /* colourful face on the front layer */
+    .face {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      background:
+        conic-gradient(
+          var(--blue)   0deg  30deg,  var(--green) 30deg  60deg,
+          var(--orange) 60deg  90deg, var(--blue)  90deg 120deg,
+          var(--green) 120deg 150deg, var(--orange)150deg 180deg,
+          var(--blue)  180deg 210deg, var(--green) 210deg 240deg,
+          var(--orange)240deg 270deg, var(--blue)  270deg 300deg,
+          var(--green) 300deg 330deg, var(--orange)330deg 360deg
+        );
+      box-shadow: inset 0 0 60px rgba(0,0,0,.45);
+    }
+    /* glossy light sweep on the face */
+    .face::after {
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.28) 0%, rgba(255,255,255,.06) 34%, rgba(0,0,0,.25) 100%);
+      pointer-events: none;
+    }
+    /* metallic outer rim */
+    .rim {
+      position: absolute; inset: -4.5%;
+      border-radius: 50%;
+      background: conic-gradient(#3A414F, #6B7484, #2A2F3A, #767F90, #3A414F, #6B7484, #2A2F3A, #767F90, #3A414F);
+      box-shadow: 0 10px 40px rgba(0,0,0,.6), inset 0 0 12px rgba(0,0,0,.7);
+    }
+    .rim::after {
+      content: "";
+      position: absolute; inset: 4.2%;
+      border-radius: 50%;
+      background: var(--bg);
+    }
+    .led {
+      position: absolute;
+      width: 2.6%; aspect-ratio: 1;
+      border-radius: 50%;
+      background: #FFE9A8;
+      box-shadow: 0 0 8px 2px rgba(255,220,120,.85);
+      transform: translate(-50%, -50%);
+    }
+    .led.dim { background: #57503A; box-shadow: none; }
+    /* centre hub */
+    .hub {
+      position: absolute; inset: 36%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #2E3542, #12151C 70%);
+      border: 3px solid #3A414F;
+      box-shadow: 0 6px 18px rgba(0,0,0,.55), inset 0 2px 6px rgba(255,255,255,.12);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hub b {
+      font-size: clamp(.8rem, 2.4vw, 1.15rem);
+      letter-spacing: .12em;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    /* pointer */
+    .pointer {
+      position: absolute;
+      top: -7.5%; left: 50%;
+      transform: translateX(-50%) translateZ(60px);
+      width: 0; height: 0;
+      border-left: 16px solid transparent;
+      border-right: 16px solid transparent;
+      border-top: 30px solid var(--orange);
+      filter: drop-shadow(0 4px 8px rgba(255,101,0,.5));
+      z-index: 5;
+      transition: transform .1s;
+    }
+    .pointer.tick { transform: translateX(-50%) translateZ(60px) rotate(14deg); }
+
+    /* floor shadow */
+    .floor {
+      width: min(60vw, 380px);
+      height: 34px;
+      margin-top: 46px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, transparent 70%);
+    }
+
+    /* ---------- controls ---------- */
+    .controls { margin-top: 8px; display: flex; flex-direction: column; align-items: center; gap: 14px; padding-bottom: 60px; }
+    #spinBtn {
+      font: inherit;
+      font-weight: 700;
+      letter-spacing: .14em;
+      padding: 14px 54px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: #06231733;
+      color: #05130C;
+      background: linear-gradient(135deg, var(--green), #12A96A);
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(25,195,125,.35);
+      transition: transform .15s, box-shadow .15s, filter .15s;
+    }
+    #spinBtn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(25,195,125,.5); }
+    #spinBtn:active { transform: translateY(0); }
+    #spinBtn:disabled { filter: grayscale(.55) brightness(.8); cursor: default; transform: none; box-shadow: none; }
+    .speed { color: var(--text-dim); font-size: .85rem; font-variant-numeric: tabular-nums; min-height: 1.2em; }
+    .hint { color: var(--text-dim); font-size: .8rem; opacity: .75; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <a class="brand" href="index.html">Namık<span> Akman</span></a>
+    <a href="projects.html">← Back to projects</a>
+  </div>
+
+  <h1>3D Spinning Wheel</h1>
+  <p class="sub">Pure CSS 3D + vanilla JavaScript — no libraries. Move your mouse to tilt it.</p>
+
+  <div class="scene" id="scene">
+    <div class="tilt" id="tilt">
+      <div class="wheel3d" id="wheel">
+        <!-- depth layers + face + rim + LEDs injected by JS -->
+      </div>
+      <div class="pointer" id="pointer"></div>
+    </div>
+  </div>
+  <div class="floor"></div>
+
+  <div class="controls">
+    <button id="spinBtn">SPIN</button>
+    <div class="speed" id="speed"></div>
+    <div class="hint">Tip: spin it and watch the rim lights chase.</div>
+  </div>
+
+  <script>
+    (function () {
+      var wheel = document.getElementById('wheel');
+      var tilt = document.getElementById('tilt');
+      var scene = document.getElementById('scene');
+      var btn = document.getElementById('spinBtn');
+      var speedEl = document.getElementById('speed');
+      var pointer = document.getElementById('pointer');
+
+      /* --- build the 3D body: stacked layers give the wheel real thickness --- */
+      var DEPTH = 36;          /* total thickness in px */
+      var LAYERS = 12;
+      for (var i = 0; i < LAYERS; i++) {
+        var z = -DEPTH / 2 + (DEPTH / (LAYERS - 1)) * i;
+        var d = document.createElement('div');
+        d.className = 'layer';
+        d.style.transform = 'translateZ(' + z.toFixed(1) + 'px)';
+        wheel.appendChild(d);
+      }
+      /* colourful face sits on the front */
+      var face = document.createElement('div');
+      face.className = 'face';
+      face.style.transform = 'translateZ(' + (DEPTH / 2 + 1) + 'px)';
+      wheel.appendChild(face);
+
+      var hub = document.createElement('div');
+      hub.className = 'hub';
+      hub.innerHTML = '<b>NA</b>';
+      hub.style.transform = 'translateZ(' + (DEPTH / 2 + 14) + 'px)';
+      wheel.appendChild(hub);
+
+      /* rim ring (static, does not spin) with LEDs that chase while spinning */
+      var rim = document.createElement('div');
+      rim.className = 'rim';
+      rim.style.transform = 'translateZ(' + (DEPTH / 2 + 0.5) + 'px)';
+      tilt.insertBefore(rim, wheel);
+
+      var LED_COUNT = 24, leds = [];
+      for (var j = 0; j < LED_COUNT; j++) {
+        var led = document.createElement('div');
+        led.className = 'led';
+        var a = (j / LED_COUNT) * Math.PI * 2;
+        led.style.left = (50 + 49.4 * Math.sin(a)) + '%';
+        led.style.top = (50 - 49.4 * Math.cos(a)) + '%';
+        rim.appendChild(led);
+        leds.push(led);
+      }
+
+      /* --- spin physics --- */
+      var angle = 0;          /* degrees */
+      var velocity = 6;       /* deg per second — gentle idle rotation */
+      var spinning = false;
+      var lastT = null;
+      var ledPhase = 0;
+
+      function frame(t) {
+        if (lastT === null) lastT = t;
+        var dt = Math.min((t - lastT) / 1000, 0.05);
+        lastT = t;
+
+        if (spinning) {
+          velocity *= Math.pow(0.32, dt);           /* exponential friction */
+          if (velocity < 25) {                       /* settle back to idle */
+            spinning = false;
+            velocity = 6;
+            btn.disabled = false;
+            speedEl.textContent = '';
+          } else {
+            speedEl.textContent = Math.round(velocity) + ' deg/s';
+          }
+        }
+        angle = (angle + velocity * dt) % 360;
+        wheel.style.transform = 'rotateZ(' + angle + 'deg)';
+
+        /* pointer flick every time a segment edge passes (every 30°) */
+        var seg = Math.floor(angle / 30);
+        if (seg !== frame.lastSeg && velocity > 40) {
+          pointer.classList.add('tick');
+          setTimeout(function () { pointer.classList.remove('tick'); }, 60);
+        }
+        frame.lastSeg = seg;
+
+        /* chasing LEDs — faster spin, faster chase */
+        ledPhase += dt * (2 + velocity / 60);
+        for (var k = 0; k < leds.length; k++) {
+          var on = ((k + Math.floor(ledPhase * 6)) % 3) === 0;
+          leds[k].className = on ? 'led' : 'led dim';
+        }
+
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+
+      btn.addEventListener('click', function () {
+        velocity = 1300 + Math.random() * 900;   /* random launch speed */
+        spinning = true;
+        btn.disabled = true;
+      });
+
+      /* --- mouse / touch tilt for the 3D feel --- */
+      function applyTilt(x, y) {
+        var r = scene.getBoundingClientRect();
+        var nx = (x - (r.left + r.width / 2)) / (r.width / 2);
+        var ny = (y - (r.top + r.height / 2)) / (r.height / 2);
+        nx = Math.max(-1.6, Math.min(1.6, nx));
+        ny = Math.max(-1.6, Math.min(1.6, ny));
+        tilt.style.transform = 'rotateX(' + (12 - ny * 14) + 'deg) rotateY(' + (nx * 16) + 'deg)';
+      }
+      document.addEventListener('mousemove', function (e) { applyTilt(e.clientX, e.clientY); });
+      document.addEventListener('touchmove', function (e) {
+        if (e.touches.length) applyTilt(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+    })();
+  </script>
+</body>
+</html>
