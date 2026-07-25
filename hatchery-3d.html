@@ -486,54 +486,97 @@ const CH=[
   {m:156,t:'5 · Toparlanma · 2023–24',       s:'Fiyat ayarlamalarıyla parite yeniden 4,20 (Nisan 2024) seviyesine.'},
   {m:180,t:'6 · Yeni Sıkışma · 2025–26',     s:'Aralık 2025: 2,67 ile yeni bir dip; 2026\'da kademeli denge ~3,3.'},
 ];
-const SQUEEZE=3.0, yOf=p=>(p-2.2)*1.5+.4;
-function spiralPos(i){
-  const a=Math.PI*0.9-i*(Math.PI*2/24);           // 24 ay = 1 tur
-  const r=1.7+i/(SN-1)*3.5;
-  return new THREE.Vector3(r*Math.cos(a),0,-r*Math.sin(a));
-}
+const SQUEEZE=3.0, X0=-12, XW=24, GY=1.6;     // yatay eksen: 2010 solda → 2026 sağda
+const xOf=i=>X0+i/(SN-1)*XW;
+const yOf=p=>(p-2.0)*1.6;                      // parite 2,0 taban çizgisi (eksen etiketli)
 function parityAt(f){
   const i=Math.min(SN-2,Math.floor(f));
   return lerp(SDATA[i][1],SDATA[i+1][1],f-i);
 }
+/* seriden ve bilinen makro olaylardan önemli kırılmalar */
+const INCIDENTS=[
+  {ym:'2010-04',row:0,txt:'Zirve: parite 4,55 — bol marj dönemi'},
+  {ym:'2018-08',row:0,txt:'Kur şoku — yem endeksi 1 yılda %33 arttı'},
+  {ym:'2019-10',row:1,txt:'Maliyet baskısı: parite 2,77'},
+  {ym:'2020-03',row:0,txt:'COVID-19 pandemisi başlıyor'},
+  {ym:'2020-10',row:1,txt:'Tarihi dip: parite 2,34'},
+  {ym:'2022-03',row:0,txt:'Küresel tahıl şoku — yem 12 ayda 2,3 katına'},
+  {ym:'2024-04',row:0,txt:'Toparlanma zirvesi: parite 4,20'},
+  {ym:'2025-12',row:1,txt:'Yeni dip: parite 2,67'},
+];
+function wideSprite(parent,text,color){
+  const cv=document.createElement('canvas');cv.width=1024;cv.height=110;
+  const g=cv.getContext('2d');
+  g.fillStyle='rgba(16,19,27,.92)';g.strokeStyle='#262B36';
+  g.beginPath();g.roundRect(4,8,1016,94,18);g.fill();g.stroke();
+  g.fillStyle=color||'#E6E8EC';g.textAlign='center';g.textBaseline='middle';
+  let fs=46;g.font=`600 ${fs}px system-ui`;
+  while(g.measureText(text).width>980&&fs>24){fs-=2;g.font=`600 ${fs}px system-ui`;}
+  g.fillText(text,512,56);
+  const tex=new THREE.CanvasTexture(cv);tex.anisotropy=4;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+  sp.scale.set(4.6,.5,1);parent.add(sp);return sp;
+}
 function buildStory(){
-  storyGrp=new THREE.Group();scene.add(storyGrp);
+  storyGrp=new THREE.Group();storyGrp.position.y=GY;scene.add(storyGrp);
   const cBlue=new THREE.Color(0x2F9BFF),cRed=new THREE.Color(0xE5484D);
-  const pos=[],col=[],idx=[],top=[],tcol=[];
+  // hafif alan dolgusu + kalın renkli seri çizgisi
+  const aPos=[],aIdx=[],lPos=[],lCol=[],lIdx=[];
   for(let i=0;i<SN;i++){
-    const p=spiralPos(i),y=yOf(SDATA[i][1]);
+    const x=xOf(i),y=yOf(SDATA[i][1]);
+    aPos.push(x,0,0, x,y,0);
     const c=SDATA[i][1]<SQUEEZE?cRed:cBlue;
-    pos.push(p.x,.03,p.z, p.x,y,p.z);
-    col.push(c.r,c.g,c.b, c.r,c.g,c.b);
-    top.push(p.x,y+.005,p.z);tcol.push(c.r,c.g,c.b);
-    if(i<SN-1){const a=i*2;idx.push(a,a+1,a+2, a+1,a+3,a+2);}
+    lPos.push(x,y-.06,0, x,y+.06,0);
+    lCol.push(c.r,c.g,c.b, c.r,c.g,c.b);
+    if(i<SN-1){const a=i*2;aIdx.push(a,a+1,a+2, a+1,a+3,a+2);lIdx.push(a,a+1,a+2, a+1,a+3,a+2);}
   }
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-  g.setIndex(idx);
-  storyMesh=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.3,side:THREE.DoubleSide,depthWrite:false}));
-  storyGrp.add(storyMesh);
+  const ag=new THREE.BufferGeometry();
+  ag.setAttribute('position',new THREE.Float32BufferAttribute(aPos,3));ag.setIndex(aIdx);
+  storyGrp.add(new THREE.Mesh(ag,new THREE.MeshBasicMaterial({color:0x2F9BFF,transparent:true,opacity:.10,side:THREE.DoubleSide,depthWrite:false})));
   const lg=new THREE.BufferGeometry();
-  lg.setAttribute('position',new THREE.Float32BufferAttribute(top,3));
-  lg.setAttribute('color',new THREE.Float32BufferAttribute(tcol,3));
-  storyLine=new THREE.Line(lg,new THREE.LineBasicMaterial({vertexColors:true}));
-  storyGrp.add(storyLine);
-  // parite 3,0 eşiği
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(5.55,.015,8,90),
-    new THREE.MeshBasicMaterial({color:0xA3A8B5,transparent:true,opacity:.35}));
-  ring.rotation.x=Math.PI/2;ring.position.y=yOf(SQUEEZE);storyGrp.add(ring);
-  const rl=textSprite(storyGrp,yOf(SQUEEZE)+.25,.62,34);rl.set('parite 3,0 eşiği','#A3A8B5');
-  rl.sp.position.x=5.4;
-  // yıl etiketleri (çift yıllar, ocak ayı)
-  for(let y=2010;y<=2026;y+=2){
+  lg.setAttribute('position',new THREE.Float32BufferAttribute(lPos,3));
+  lg.setAttribute('color',new THREE.Float32BufferAttribute(lCol,3));lg.setIndex(lIdx);
+  storyGrp.add(new THREE.Mesh(lg,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide})));
+  // yatay kılavuzlar + sol eksen etiketleri (3,0 = sıkışma eşiği)
+  [[2.5,'2,5'],[3.0,'3,0 eşiği'],[3.5,'3,5'],[4.0,'4,0'],[4.5,'4,5']].forEach(([v,lab])=>{
+    const y=yOf(v);
+    const g2=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(X0,y,0),new THREE.Vector3(X0+XW,y,0)]);
+    storyGrp.add(new THREE.Line(g2,new THREE.LineBasicMaterial({color:v===SQUEEZE?0xE5484D:0x39415a,transparent:true,opacity:v===SQUEEZE?.55:.5})));
+    const s=textSprite(storyGrp,0,.5,40);s.set(lab,v===SQUEEZE?'#E5484D':'#A3A8B5');
+    s.sp.position.set(X0-1.1,y,0);
+  });
+  // taban çizgisi + yıl işaretleri
+  const bl=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(X0,0,0),new THREE.Vector3(X0+XW,0,0)]);
+  storyGrp.add(new THREE.Line(bl,new THREE.LineBasicMaterial({color:0xA3A8B5})));
+  for(let y=2010;y<=2026;y++){
     const i=(y-2010)*12;if(i>=SN)break;
-    const p=spiralPos(i),l=textSprite(storyGrp,0,.55,40);
-    l.set(String(y),'#A3A8B5');
-    l.sp.position.set(p.x,yOf(SDATA[i][1])+.55,p.z);
-    yearLabels.push({i,sp:l.sp});
+    const x=xOf(i);
+    const tg=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,0,0),new THREE.Vector3(x,-.18,0)]);
+    storyGrp.add(new THREE.Line(tg,new THREE.LineBasicMaterial({color:0xA3A8B5,transparent:true,opacity:.6})));
+    if(y%2===0){const s=textSprite(storyGrp,0,.55,40);s.set(String(y),'#A3A8B5');s.sp.position.set(x,-.45,0);}
   }
-  storyChick=makeChick(storyGrp);storyChick.scale.setScalar(.85);
+  // önemli olaylar: 3 sıra halinde, çakışmadan yerleştirilmiş etiket kartları
+  const placed=INCIDENTS
+    .map(inc=>({inc,i:SDATA.findIndex(d=>d[0]===inc.ym)}))
+    .filter(o=>o.i>=0)
+    .sort((a,b)=>a.i-b.i);
+  const rowLastX=[-Infinity,-Infinity,-Infinity],LABW=4.4;
+  placed.forEach((o,k)=>{
+    const row=k%3, x=xOf(o.i), yTop=yOf(SDATA[o.i][1]), yLab=-1.2-row*.62;
+    const red=SDATA[o.i][1]<SQUEEZE;
+    let lx=Math.max(X0+LABW/2,Math.min(X0+XW-LABW/2,x));
+    lx=Math.max(lx,rowLastX[row]+LABW+.2);rowLastX[row]=lx;
+    const col=red?0xE5484D:0x2F9BFF;
+    const cg=new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(x,yTop,0),new THREE.Vector3(x,yLab+.5,0),new THREE.Vector3(lx,yLab+.28,0)]);
+    storyGrp.add(new THREE.Line(cg,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:.45})));
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(.09,10,8),new THREE.MeshBasicMaterial({color:col}));
+    dot.position.set(x,yTop,0);storyGrp.add(dot);
+    const sp=wideSprite(storyGrp,`${o.inc.ym} · ${o.inc.txt}`,red?'#FFB4B6':'#E6E8EC');
+    sp.scale.set(4.2,.46,1);sp.position.set(lx,yLab,0);
+  });
+  storyChick=makeChick(storyGrp);storyChick.scale.setScalar(.8);
+  storyChick.rotation.y=Math.PI/2; // +X yönüne, yılların aktığı yöne bakar
 }
 function storyFrame(now,dt){
   if(playing){
@@ -541,25 +584,19 @@ function storyFrame(now,dt){
     if(monthF>=SN-1){monthF=SN-1;playing=false;$('playBtn').textContent='↻ Baştan';}
     syncScrub();
   }
-  const p=parityAt(monthF),pos=spiralPos(monthF),y=yOf(p);
-  storyMesh.geometry.setDrawRange(0,Math.max(0,Math.floor(monthF))*6);
-  storyLine.geometry.setDrawRange(0,Math.floor(monthF)+1);
-  yearLabels.forEach(l=>l.sp.visible=l.i<=monthF+3);
-  storyChick.position.set(pos.x,y+Math.abs(Math.sin(now*7))*.1,pos.z);
-  const ahead=spiralPos(Math.min(SN-1,monthF+2));ahead.y=y;
-  storyChick.lookAt(ahead);
+  const p=parityAt(monthF);
+  storyChick.position.set(xOf(monthF),yOf(p)+.1+Math.abs(Math.sin(now*7))*.08,0);
   const ym=SDATA[Math.min(SN-1,Math.round(monthF))][0];
   $('dayBadge').innerHTML=`<b>${ym}</b> · parite ${p.toFixed(2).replace('.',',')}`;
   const ch=[...CH].reverse().find(c=>monthF>=c.m)||CH[0];
   $('stTitle').textContent=ch.t.replace(/^\d+ · /,'');$('stSub').textContent=ch.s;
   chipNodes.forEach((c,i)=>c.classList.toggle('on',CH[i]===ch));
-  // kamera takibi
+  // kamera: grafiğe cepheden bakar, civcivle birlikte yumuşakça kayar
   if(!dragging&&now-lastInteract>2.5){
-    const tgt=new THREE.Vector3(pos.x*.55,y*.6+.8,pos.z*.55);
-    camTarget.lerp(tgt,.04);
-    const wantTheta=Math.atan2(pos.z-camTarget.z,pos.x-camTarget.x)+Math.PI*.55;
-    let d=wantTheta-camTheta;d=Math.atan2(Math.sin(d),Math.cos(d));
-    camTheta+=d*.02;camR=lerp(camR,11.5,.03);camPhi=lerp(camPhi,.95,.03);
+    const cx=Math.max(-4.5,Math.min(4.5,xOf(monthF)*.6));
+    camTarget.lerp(new THREE.Vector3(cx,GY+1.1,0),.05);
+    let d=Math.PI/2-camTheta;d=Math.atan2(Math.sin(d),Math.cos(d));camTheta+=d*.04;
+    camPhi=lerp(camPhi,1.25,.04);camR=lerp(camR,15,.04);
     applyCam();
   }
 }
@@ -568,9 +605,11 @@ function resetDayBadge(){$('dayBadge').innerHTML='Gün <b id="dayNum">0</b>/21';
 /* ================= mod yönetimi ================= */
 let MODE = OPS && OPS.sites.some(s=>(s.batches||[]).some(b=>b.st==='in')) ? 'live':'tour';
 if(!OPS) $('noData').classList.add('show');
+const stationGroups=[stKabul,stSetter,stKontrol,stCikim,stSevk];
 function setMode(m){
   if(m==='live'&&!OPS)m='tour';
   if(m==='story'&&!SDATA)m='tour';
+  const prev=MODE;
   MODE=m;
   $('mLive').classList.toggle('blue',m==='live');
   $('mTour').classList.toggle('on',m==='tour');
@@ -583,7 +622,10 @@ function setMode(m){
   hero.cart.visible=(m==='tour');
   liveCarts.forEach(x=>x.c.cart.visible=false);
   if(storyGrp)storyGrp.visible=(m==='story');
-  if(m!=='story'){camTarget.set(0,1.2,0);applyCam();}
+  stationGroups.forEach(g=>g.visible=(m!=='story'));
+  floor.visible=grid.visible=(m!=='story');
+  if(m==='story'){camTheta=Math.PI/2;camPhi=1.25;camR=16;camTarget.set(0,GY+1.1,0);applyCam();}
+  else if(prev==='story'){camTarget.set(0,1.2,0);camPhi=Math.PI*.36;camR=17;applyCam();}
   Object.values(stats).forEach(s=>s.set(''));
   resetDayBadge();
   playing=true;$('playBtn').textContent='⏸ Durdur';
