@@ -1,0 +1,37 @@
+name: Generate AI footage (Runway)
+
+on:
+  workflow_dispatch:
+    inputs:
+      shots:
+        description: "Çekimler: '1' | '1,5,12' | '1-12'"
+        default: "1"
+      takes:
+        description: "Çekim başına deneme sayısı"
+        default: "1"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate shots via Runway API
+        env:
+          RUNWAY_API_KEY: ${{ secrets.RUNWAY_API_KEY }}
+          SHOTS: ${{ inputs.shots }}
+          TAKES: ${{ inputs.takes }}
+        run: python scripts/generate_footage.py
+      - name: Commit footage
+        if: always()
+        run: |
+          git config user.name "footage-bot"
+          git config user.email "actions@github.com"
+          git add footage || true
+          git diff --cached --quiet || git commit -m "footage: AI shots ${{ inputs.shots }} [skip ci]"
+          git push
