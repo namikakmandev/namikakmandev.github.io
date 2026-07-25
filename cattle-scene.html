@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Parite: Sığır — sinematik kalite testi</title>
+<style>
+*{margin:0}html,body{height:100%;overflow:hidden;background:#000}
+canvas{display:block}
+/* film dokusu: vinyet + tane */
+#grade{position:fixed;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(0,0,0,.55) 100%)}
+#grain{position:fixed;inset:0;pointer-events:none;opacity:.06;mix-blend-mode:overlay}
+#title{position:fixed;left:0;right:0;bottom:7vh;text-align:center;pointer-events:none;
+  font-family:"IBM Plex Sans",sans-serif;color:#f5efe6}
+#title .t{font-size:clamp(28px,4.5vw,64px);font-weight:700;letter-spacing:.14em}
+#title .s{font-size:clamp(12px,1.6vw,20px);color:#cbbfa8;margin-top:10px;letter-spacing:.28em}
+#bar{position:fixed;top:12px;right:12px;z-index:5;font:600 12px "IBM Plex Mono",monospace;color:#cbbfa8;
+  background:rgba(0,0,0,.5);padding:6px 10px;border-radius:8px}
+</style>
+</head>
+<body>
+<div id="grade"></div>
+<canvas id="grain"></canvas>
+<div id="title"><div class="t">PARİTE: SIĞIR</div><div class="s">BİR VERİ BELGESELİ</div></div>
+<div id="bar">kalite testi · sürü + altın saat</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"./js/vendor/three.module.min.js",
+  "three/addons/":"./js/vendor/three-addons/"
+}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {BokehPass} from 'three/addons/postprocessing/BokehPass.js';
+import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+
+/* ---------- renderer: sinema ayarları ---------- */
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+document.body.prepend(renderer.domElement);
+
+const scene=new THREE.Scene();
+
+/* ---------- altın saat göğü ---------- */
+const skyGeo=new THREE.SphereGeometry(400,32,16);
+const skyMat=new THREE.ShaderMaterial({
+  side:THREE.BackSide,
+  uniforms:{},
+  vertexShader:`varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`varying vec3 vP;
+    void main(){
+      float h=normalize(vP).y;
+      vec3 zen=vec3(.10,.13,.24);      // koyu lacivert
+      vec3 mid=vec3(.55,.27,.18);      // bakır
+      vec3 hor=vec3(1.0,.62,.26);      // altın ufuk
+      vec3 c=h>0.18?mix(mid,zen,smoothstep(.18,.8,h)):mix(hor,mid,smoothstep(-.05,.18,h));
+      gl_FragColor=vec4(c,1.);
+    }`});
+scene.add(new THREE.Mesh(skyGeo,skyMat));
+scene.fog=new THREE.FogExp2(0xd8a06a,0.011);
+
+/* ---------- ışıklar ---------- */
+const sun=new THREE.DirectionalLight(0xffc98a,3.2);        // alçak altın güneş, kontra
+sun.position.set(-42,10,-38);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-40;sun.shadow.camera.right=40;
+sun.shadow.camera.top=40;sun.shadow.camera.bottom=-40;
+sun.shadow.bias=-0.0004;
+scene.add(sun);
+scene.add(new THREE.HemisphereLight(0x8aa0d8,0x3a2a1a,0.55)); // gök/zemin dolgusu
+const rim=new THREE.DirectionalLight(0xffe0b0,1.1);        // ikinci kontur
+rim.position.set(30,14,-20);scene.add(rim);
+
+/* ---------- arazi: hafif tepeli otlak ---------- */
+const g=new THREE.PlaneGeometry(300,300,120,120);
+g.rotateX(-Math.PI/2);
+const pos=g.attributes.position;
+for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i),z=pos.getZ(i);
+  const h=Math.sin(x*.045)*Math.cos(z*.06)*1.6+Math.sin(x*.011+z*.017)*3.2;
+  pos.setY(i,h-Math.max(0,Math.hypot(x,z)-30)*0.02);
+}
+g.computeVertexNormals();
+const ground=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0x6b5a33,roughness:1}));
+ground.receiveShadow=true;
+scene.add(ground);
+/* kuru ot rengi degrade: vertex renkleri */
+{
+  const c=[];const col1=new THREE.Color(0x7a6636),col2=new THREE.Color(0x4c3f22);
+  for(let i=0;i<pos.count;i++){
+    const t=Math.min(1,Math.max(0,(pos.getY(i)+3)/8));
+    const cc=col2.clone().lerp(col1,t);
+    c.push(cc.r,cc.g,cc.b);
+  }
+  g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));
+  ground.material.vertexColors=true;
+}
+
+/* ---------- toz/ışık huzmesi hissi: sprite'lı sıcak sis bantları ---------- */
+for(let i=0;i<5;i++){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(120,10),
+    new THREE.MeshBasicMaterial({color:0xffb066,transparent:true,opacity:0.05,depthWrite:false}));
+  m.position.set(-10+i*8,2+i*1.4,-30-i*6);
+  m.lookAt(0,3,60);
+  scene.add(m);
+}
+
+/* ---------- kamera ---------- */
+const camera=new THREE.PerspectiveCamera(38,innerWidth/innerHeight,.1,600);
+camera.position.set(9,2.4,26);
+camera.lookAt(-4,2.2,-6);
+
+/* ---------- post: bloom + alan derinliği ---------- */
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.35,0.9,0.85);
+composer.addPass(bloom);
+const bokeh=new BokehPass(scene,camera,{focus:24,aperture:0.00016,maxblur:0.008});
+composer.addPass(bokeh);
+composer.addPass(new OutputPass());
+
+/* ---------- sürü ---------- */
+const loader=new GLTFLoader();
+const mixers=[];
+loader.load('assets/models/horse.glb',gltf=>{
+  const proto=gltf.scene;
+  proto.traverse(o=>{if(o.isMesh){o.castShadow=true;o.material.roughness=.85;}});
+  const N=8;
+  for(let i=0;i<N;i++){
+    const h=(i===0)?proto:proto.clone(true);
+    const s=0.014+Math.random()*0.004;                 // model ~450 birim → gerçek ölçek
+    h.scale.setScalar(s);
+    const a=Math.random()*Math.PI*2, r=(i===0)?0:4+Math.random()*14;
+    h.position.set(Math.cos(a)*r*0.9-2, 0, Math.sin(a)*r*0.6-2);
+    h.rotation.y=Math.PI*0.9+((Math.random()-0.5)*0.8);
+    /* zemine oturt */
+    h.position.y=heightAt(h.position.x,h.position.z);
+    scene.add(h);
+    if(gltf.animations.length){
+      const mx=new THREE.AnimationMixer(h);
+      const act=mx.clipAction(gltf.animations[0]);
+      act.timeScale=0.55+Math.random()*0.2;            // sakin yürüyüş temposu
+      act.startAt(-Math.random()*2).play();
+      mixers.push(mx);
+    }
+  }
+  window.__ready=true;
+});
+function heightAt(x,z){
+  return Math.sin(x*.045)*Math.cos(z*.06)*1.6+Math.sin(x*.011+z*.017)*3.2;
+}
+
+/* ---------- film greni ---------- */
+{
+  const gc=document.getElementById('grain');
+  gc.width=256;gc.height=256;
+  const ctx=gc.getContext('2d');
+  const img=ctx.createImageData(256,256);
+  for(let i=0;i<img.data.length;i+=4){
+    const v=Math.random()*255;img.data[i]=img.data[i+1]=img.data[i+2]=v;img.data[i+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  gc.style.width='100%';gc.style.height='100%';
+}
+
+/* ---------- döngü ---------- */
+const clock=new THREE.Clock();
+let camT=0;
+function tick(){
+  requestAnimationFrame(tick);
+  const dt=clock.getDelta();
+  camT+=dt;
+  camera.position.x=9+Math.sin(camT*.07)*1.2;          // çok yavaş kamera nefesi
+  camera.position.y=2.4+Math.sin(camT*.11)*.2;
+  camera.lookAt(-4,2.2,-6);
+  mixers.forEach(m=>m.update(dt));
+  composer.render();
+}
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);
+});
+tick();
+window.__shot=()=>composer.render();
+</script>
+</body>
+</html>
