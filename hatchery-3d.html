@@ -58,7 +58,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r7</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r8</b></span></div>
   <div class="tb-r">
     <a href="hatchery.html">← Rapora dön</a>
   </div>
@@ -695,14 +695,22 @@ function buildIndexPanel(){
 }
 /* konuşma balonu + Türkçe seslendirme */
 let voiceOn=false,lastCh=null,bubbleT=0,bubbleSp=null,bubbleCv=null,bubbleTex=null;
-let talkPulse=0;
+let talkPulse=0,speakTimer=null;
+if(window.speechSynthesis){speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{};}
 function speak(txt){
   if(!voiceOn||!window.speechSynthesis)return;
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(txt);u.lang=T2().voice;u.rate=1.03;
-  u.onboundary=()=>{talkPulse=1;};      // her kelimede gaga açılır — dile eşzamanlı
-  u.onend=()=>{talkPulse=0;};
-  speechSynthesis.speak(u);
+  clearTimeout(speakTimer);
+  // cancel()+speak() aynı karede bazı tarayıcılarda sesi yutar — kısa gecikmeyle konuş
+  speakTimer=setTimeout(()=>{
+    const u=new SpeechSynthesisUtterance(txt);u.lang=T2().voice;u.rate=1.03;
+    const pfx=LNG==='en'?'en':'tr';
+    const v=speechSynthesis.getVoices().find(v=>(v.lang||'').toLowerCase().startsWith(pfx));
+    if(v)u.voice=v;
+    u.onboundary=()=>{talkPulse=1;};    // her kelimede gaga açılır — dile eşzamanlı
+    u.onend=()=>{talkPulse=0;};
+    speechSynthesis.speak(u);
+  },150);
 }
 function ensureBubble(){
   if(bubbleSp)return;
@@ -733,8 +741,11 @@ function setBubble(title,txt){
 $('vChip').onclick=()=>{
   voiceOn=!voiceOn;
   $('vChip').textContent=voiceOn?T2().voiceOn:T2().voiceOff;
-  if(voiceOn&&MODE==='story'&&lastCh)speak(chT(lastCh).replace(/^\d+ · /,'')+'. '+chS(lastCh));
-  if(!voiceOn&&window.speechSynthesis)speechSynthesis.cancel();
+  if(voiceOn){
+    const hello=LNG==='en'?'Voice on. ':'Seslendirme açık. ';
+    const rest=(MODE==='story'&&lastCh)?chT(lastCh).replace(/^\d+ · /,'')+'. '+chS(lastCh):'';
+    speak(hello+rest);
+  }else if(window.speechSynthesis){clearTimeout(speakTimer);speechSynthesis.cancel();}
 };
 $('iChip').onclick=()=>{
   idxOn=!idxOn;if(idxGrp)idxGrp.visible=idxOn;
@@ -887,6 +898,7 @@ function setMode(m){
   floor.visible=grid.visible=(m!=='story');
   if(m==='story'){lastCh=null;bubbleT=0;camTheta=Math.PI/2;camPhi=1.25;camR=idxOn?18:16;camTarget.set(0,GY+(idxOn?2.1:1.1),0);applyCam();}
   else if(prev==='story'){
+    clearTimeout(speakTimer);
     if(window.speechSynthesis)speechSynthesis.cancel();
     lastCh=null;if(bubbleSp)bubbleSp.visible=false;
     $('endCard').classList.remove('show');
