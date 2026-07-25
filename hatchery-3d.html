@@ -110,7 +110,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r25</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r26</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -447,6 +447,10 @@ $('playBtn').onclick=()=>{
     if(!playing&&monthF>=SN-1)monthF=0;
   }
   playing=!playing;$('playBtn').textContent=playing?'⏸ Durdur':'▶ Oynat';
+  if(MODE==='story'&&window.speechSynthesis){   // Durdur sesi de duraklatır, Oynat kaldığı yerden sürdürür
+    if(!playing)speechSynthesis.pause();
+    else speechSynthesis.resume();
+  }
 };
 const toggleSpin=()=>{autoSpin=!autoSpin;$('spinBtn').style.opacity=$('spinBtn2').style.opacity=autoSpin?1:.4;};
 $('spinBtn').onclick=toggleSpin;$('spinBtn2').onclick=toggleSpin;
@@ -992,8 +996,11 @@ function buildIndexPanel(){
 /* konuşma balonu + Türkçe seslendirme */
 let voiceOn=true,lastCh=null,bubbleT=0,bubbleSp=null,bubbleCv=null,bubbleTex=null; // ses varsayılan açık; kapatmak isteğe bağlı
 let talkPulse=0,speakTimer=null,speaking=false,speakT0=0;
-/* Chrome ~15 sn sonra uzun konuşmayı sessizce duraklatır — periyodik resume ile uyanık tut */
-if(window.speechSynthesis)setInterval(()=>{if(speechSynthesis.speaking)speechSynthesis.resume();},4000);
+/* Chrome ~15 sn sonra uzun konuşmayı sessizce duraklatır — periyodik resume ile uyanık tut
+   (kullanıcı Durdur ile bilerek duraklattıysa karışma) */
+if(window.speechSynthesis)setInterval(()=>{
+  if(speechSynthesis.speaking&&!speechSynthesis.paused)speechSynthesis.resume();
+},4000);
 const voices=()=>window.speechSynthesis?speechSynthesis.getVoices():[];
 function pickVoice(){
   const pfx=LNG==='en'?'en':'tr', vs=voices();
@@ -1203,7 +1210,7 @@ function storyFrame(now,dt){
     setBubble(title,chS(ch));
     speak(title+'. '+chS(ch));
   }
-  bubbleT=Math.max(0,bubbleT-dt);
+  if(!(!playing&&speaking))bubbleT=Math.max(0,bubbleT-dt);  // duraklatıldıysa balon da bekler
   if(bubbleSp){
     bubbleSp.visible=bubbleT>0;
     // balon civcivin tam üstünde; ok tabanın ortasından ona bakar
