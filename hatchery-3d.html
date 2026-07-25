@@ -58,7 +58,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r6</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r7</b></span></div>
   <div class="tb-r">
     <a href="hatchery.html">← Rapora dön</a>
   </div>
@@ -73,6 +73,13 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
   <div id="bRows"></div>
 </div>
 
+<div class="batchCard" id="endCard" style="left:50%;top:50%;transform:translate(-50%,-50%);width:280px;z-index:8;bottom:auto">
+  <button class="close" id="endClose">✕</button>
+  <h3 id="endTitle">📌 Bugün neredeyiz?</h3>
+  <div id="endRows"></div>
+  <button id="endLive" style="display:none;margin-top:10px;width:100%;background:var(--orange);color:#fff;border:0;border-radius:9px;padding:9px;font:700 13px system-ui;cursor:pointer">● Canlı Veri'ye geç</button>
+</div>
+
 <div class="noData" id="noData">
   Bu cihazda kayıtlı üretim verisi yok — <b>Tur modu</b> gösteriliyor.<br>
   Rapordaki 💾 menüsünden aldığın yedeği <label for="impFile">buraya yükleyebilirsin</label>.
@@ -83,14 +90,15 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
   <div class="chips" id="modeChips">
     <div class="chip" id="mStory">📖 Hikâye · 2010–2026</div>
     <div class="chip" id="mLive">● Canlı Veri</div>
+    <div class="chip" id="langChip">🌐 English</div>
     <div class="chip" id="mTour" style="opacity:.6">▶ Tur (demo)</div>
   </div>
   <div class="chips" id="sLegend" style="display:none;font-family:var(--mono);font-size:10.5px;color:var(--muted)">
     <div class="chip" id="vChip">🔊 Seslendirme: kapalı</div>
     <div class="chip" id="iChip">📈 Endeksler: açık</div>
-    <span style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#2F9BFF">▮</span> parite (1 kg tavuk kaç kg yem alır)</span>
-    <span style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#E5484D">▮</span> sıkışma: parite &lt; 3,0</span>
-    <span style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px">Kaynak: TÜİK Yİ-ÜFE C10.12/C10.91 · TEPGE</span>
+    <span id="lg1" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#2F9BFF">▮</span> parite (1 kg tavuk kaç kg yem alır)</span>
+    <span id="lg2" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#E5484D">▮</span> sıkışma: parite &lt; 3,0</span>
+    <span id="lg3" style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px">Kaynak: TÜİK Yİ-ÜFE C10.12/C10.91 · TEPGE</span>
   </div>
   <div class="chips" id="chips"></div>
   <div class="bar" id="tourBar">
@@ -292,8 +300,12 @@ function makeChick(parent){
   const chick=new THREE.Group();parent.add(chick);
   const body=new THREE.Mesh(new THREE.SphereGeometry(.26,18,14),M.chick);body.position.y=.1;chick.add(body);
   const head=new THREE.Mesh(new THREE.SphereGeometry(.17,16,12),M.chick);head.position.set(0,.4,.08);chick.add(head);
-  const beak=new THREE.Mesh(new THREE.ConeGeometry(.05,.12,10),M.beak);
-  beak.rotation.x=Math.PI/2;beak.position.set(0,.38,.26);chick.add(beak);
+  const beakTop=new THREE.Mesh(new THREE.ConeGeometry(.05,.12,10),M.beak);
+  beakTop.rotation.x=Math.PI/2;beakTop.position.set(0,.40,.26);chick.add(beakTop);
+  const jaw=new THREE.Group();jaw.position.set(0,.375,.20);chick.add(jaw);   // konuşurken açılan alt gaga
+  const beakBot=new THREE.Mesh(new THREE.ConeGeometry(.045,.10,10),M.beak);
+  beakBot.rotation.x=Math.PI/2;beakBot.position.set(0,0,.06);jaw.add(beakBot);
+  chick.userData.jaw=jaw;
   [[-.08],[.08]].forEach(([x])=>{
     const eye=new THREE.Mesh(new THREE.SphereGeometry(.028,8,6),M.dark);
     eye.position.set(x,.45,.21);chick.add(eye);
@@ -350,6 +362,7 @@ function fillChips(items,onClick){
 }
 function fillTourChips(){fillChips(STAGES.map((s,i)=>`${i+1} · ${s[0]} (${s[1]})`),i=>{t=STAGES[i][2];syncScrub();});}
 $('playBtn').onclick=()=>{
+  if(MODE==='story'&&stopT>0){stopT=.01;return;}   // olay durağını geç
   if(MODE==='story'&&!playing&&monthF>=SN-1)monthF=0;
   playing=!playing;$('playBtn').textContent=playing?'⏸ Durdur':'▶ Oynat';
 };
@@ -480,14 +493,43 @@ $('bClose').onclick=()=>$('bCard').classList.remove('show');
 /* ================= HİKÂYE MODU (broiler parite serisi 2010–2026) ================= */
 const SDATA=window.BROILER_DATA||null, SN=SDATA?SDATA.length:0;
 let monthF=0, storyGrp=null, storyChick=null, storyMesh=null, storyLine=null, yearLabels=[];
+let LNG='tr';
 const CH=[
-  {m:0,  t:'1 · Bol Marj Yılları · 2010–13', s:'1 kg tavuk, 4 kg yemden fazlasını alıyor — zirve: parite 4,55 (Nisan 2010).'},
-  {m:48, t:'2 · Dalgalı Denge · 2014–17',    s:'Parite 3,0–3,9 bandında; kur baskısı yem maliyetini ısıtmaya başlıyor.'},
-  {m:96, t:'3 · Kur Şoku · 2018–19',         s:'Yem endeksi iki yılda ikiye katlanıyor; parite 2,8 sınırına geriliyor.'},
-  {m:120,t:'4 · Pandemi & Yem Şoku · 2020–22',s:'Dip: 2,34 (Ekim 2020). Yem endeksi ~4 kat — tarihin en dar marj dönemi.'},
-  {m:156,t:'5 · Toparlanma · 2023–24',       s:'Fiyat ayarlamalarıyla parite yeniden 4,20 (Nisan 2024) seviyesine.'},
-  {m:180,t:'6 · Yeni Sıkışma · 2025–26',     s:'Aralık 2025: 2,67 ile yeni bir dip; 2026\'da kademeli denge ~3,3.'},
+  {m:0,  t:'1 · Bol Marj Yılları · 2010–13', s:'1 kg tavuk, 4 kg yemden fazlasını alıyor — zirve: parite 4,55 (Nisan 2010).',
+         te:'1 · Fat-Margin Years · 2010–13', se:'1 kg of chicken buys more than 4 kg of feed — peak parity 4.55 (April 2010).'},
+  {m:48, t:'2 · Dalgalı Denge · 2014–17',    s:'Parite 3,0–3,9 bandında; kur baskısı yem maliyetini ısıtmaya başlıyor.',
+         te:'2 · Choppy Balance · 2014–17',  se:'Parity ranges 3.0–3.9; currency pressure starts heating up feed costs.'},
+  {m:96, t:'3 · Kur Şoku · 2018–19',         s:'Yem endeksi iki yılda ikiye katlanıyor; parite 2,8 sınırına geriliyor.',
+         te:'3 · Currency Shock · 2018–19',  se:'The feed index doubles in two years; parity slides toward 2.8.'},
+  {m:120,t:'4 · Pandemi & Yem Şoku · 2020–22',s:'Dip: 2,34 (Ekim 2020). Yem endeksi ~4 kat — tarihin en dar marj dönemi.',
+         te:'4 · Pandemic & Feed Shock · 2020–22',se:'Low: 2.34 (Oct 2020). Feed index ~4× — the tightest margins on record.'},
+  {m:156,t:'5 · Toparlanma · 2023–24',       s:'Fiyat ayarlamalarıyla parite yeniden 4,20 (Nisan 2024) seviyesine.',
+         te:'5 · Recovery · 2023–24',        se:'Price adjustments lift parity back to 4.20 (April 2024).'},
+  {m:180,t:'6 · Yeni Sıkışma · 2025–26',     s:'Aralık 2025: 2,67 ile yeni bir dip; 2026\'da kademeli denge ~3,3.',
+         te:'6 · New Squeeze · 2025–26',     se:'December 2025: a new low at 2.67; gradual rebalancing toward ~3.3 in 2026.'},
 ];
+const chT=c=>LNG==='en'?c.te:c.t, chS=c=>LNG==='en'?c.se:c.s;
+const UI={
+  tr:{voiceOff:'🔊 Seslendirme: kapalı',voiceOn:'🔊 Seslendirme: açık',idxOn:'📈 Endeksler: açık',idxOff:'📈 Endeksler: kapalı',
+      par:'parite',thr:'3,0 eşiği',pTitle:'Fiyat endeksleri · 2010=100 · log ölçek',chicken:'Tavuk eti',feed:'Yem',
+      lg1:'parite (1 kg tavuk kaç kg yem alır)',lg2:'sıkışma: parite < 3,0',src:'Kaynak: TÜİK Yİ-ÜFE C10.12/C10.91 · TEPGE',
+      mine:'sizin partileriniz',story:'📖 Hikâye · 2010–2026',lang:'🌐 English',
+      endTitle:'📌 Bugün neredeyiz?',eCur:'Güncel parite',eAvg:'16 yıl ortalaması',e12:'Son 12 ayda sıkışma',
+      e12v:m=>m+' ay < 3,0',eAll:"2010'dan beri sıkışma",eAllv:p=>'ayların %'+p+'ı',eAct:'Şu an kuluçkada',
+      eActv:n=>n+' parti',eLive:"● Canlı Veri'ye geç",
+      eSpeak:(c,a,m)=>`Bugün neredeyiz? Güncel parite ${c}, on altı yıllık ortalama ${a}. Son on iki ayın ${m} ayı sıkışma bölgesindeydi.`,
+      dec:v=>v.replace('.',','),voice:'tr-TR'},
+  en:{voiceOff:'🔊 Voice: off',voiceOn:'🔊 Voice: on',idxOn:'📈 Indices: on',idxOff:'📈 Indices: off',
+      par:'parity',thr:'3.0 threshold',pTitle:'Price indices · 2010=100 · log scale',chicken:'Chicken meat',feed:'Feed',
+      lg1:'parity (kg of feed 1 kg of chicken buys)',lg2:'squeeze: parity < 3.0',src:'Source: TÜİK PPI C10.12/C10.91 · TEPGE',
+      mine:'your batches',story:'📖 Story · 2010–2026',lang:'🌐 Türkçe',
+      endTitle:'📌 Where are we today?',eCur:'Current parity',eAvg:'16-year average',e12:'Squeeze, last 12 months',
+      e12v:m=>m+' months < 3.0',eAll:'Squeeze since 2010',eAllv:p=>p+'% of all months',eAct:'In incubation now',
+      eActv:n=>n+' batches',eLive:'● Go to Live Data',
+      eSpeak:(c,a,m)=>`Where are we today? Current parity ${c}, sixteen-year average ${a}. ${m} of the last twelve months were in the squeeze zone.`,
+      dec:v=>v,voice:'en-US'},
+};
+const T2=()=>UI[LNG];
 const SQUEEZE=3.0, X0=-12, XW=24, GY=1.6;     // yatay eksen: 2010 solda → 2026 sağda
 const xOf=i=>X0+i/(SN-1)*XW;
 const yOf=p=>(p-2.0)*1.6;                      // parite 2,0 taban çizgisi (eksen etiketli)
@@ -497,15 +539,41 @@ function parityAt(f){
 }
 /* seriden ve bilinen makro olaylardan önemli kırılmalar */
 const INCIDENTS=[
-  {ym:'2010-04',row:0,txt:'Zirve: parite 4,55 — bol marj dönemi'},
-  {ym:'2018-08',row:0,txt:'Kur şoku — yem endeksi 1 yılda %33 arttı'},
-  {ym:'2019-10',row:1,txt:'Maliyet baskısı: parite 2,77'},
-  {ym:'2020-03',row:0,txt:'COVID-19 pandemisi başlıyor'},
-  {ym:'2020-10',row:1,txt:'Tarihi dip: parite 2,34'},
-  {ym:'2022-03',row:0,txt:'Küresel tahıl şoku — yem 12 ayda 2,3 katına'},
-  {ym:'2024-04',row:0,txt:'Toparlanma zirvesi: parite 4,20'},
-  {ym:'2025-12',row:1,txt:'Yeni dip: parite 2,67'},
+  {ym:'2010-04',txt:'Zirve: parite 4,55 — bol marj dönemi',
+   imp:'Marj rahat; sektör kapasite yatırımı yapıyor.',
+   txtE:'Peak: parity 4.55 — the fat-margin era',
+   impE:'Margins are comfortable; the sector invests in capacity.'},
+  {ym:'2018-08',txt:'Kur şoku — yem endeksi 1 yılda %33 arttı',
+   imp:'Yem, üretim maliyetinin yaklaşık üçte ikisi: kur artışı doğrudan marjı ezdi.',
+   txtE:'Currency shock — feed index +33% in a year',
+   impE:'Feed is roughly two-thirds of production cost: the FX surge crushed margins directly.'},
+  {ym:'2019-10',txt:'Maliyet baskısı: parite 2,77',
+   imp:'14 ayda tavuk fiyatı yerinde saydı (-%3), yem +%11 — makas kapandı.',
+   txtE:'Cost squeeze: parity 2.77',
+   impE:'Over 14 months chicken prices stood still (-3%) while feed rose 11% — the gap closed.'},
+  {ym:'2020-03',txt:'COVID-19 pandemisi başlıyor',
+   imp:'İlk 6 ayda tavuk endeksi -%11, yem +%15: talep ve maliyet şoku üst üste.',
+   txtE:'COVID-19 pandemic begins',
+   impE:'In six months the chicken index fell 11% while feed rose 15%: demand and cost shocks at once.'},
+  {ym:'2020-10',txt:'Tarihi dip: parite 2,34',
+   imp:'Uzun dönem ortalaması 3,23\'ün %28 altında — zarar bölgesi.',
+   txtE:'Record low: parity 2.34',
+   impE:'28% below the long-run average of 3.23 — loss territory.'},
+  {ym:'2022-03',txt:'Küresel tahıl şoku — yem 12 ayda 2,3 katına',
+   imp:'Fiyat ayarlamaları yem enflasyonunu aylarca geriden izledi.',
+   txtE:'Global grain shock — feed 2.3× in 12 months',
+   impE:'Price adjustments trailed feed inflation for months.'},
+  {ym:'2024-04',txt:'Toparlanma zirvesi: parite 4,20',
+   imp:'2010 sonbaharından beri görülmeyen seviye.',
+   txtE:'Recovery peak: parity 4.20',
+   impE:'A level unseen since autumn 2010.'},
+  {ym:'2025-12',txt:'Yeni dip: parite 2,67',
+   imp:'Aralık 2022\'den beri en düşük — makas yeniden açılıyor.',
+   txtE:'New low: parity 2.67',
+   impE:'Lowest since December 2022 — the gap is opening again.'},
 ];
+const inT=o=>LNG==='en'?o.txtE:o.txt, inI=o=>LNG==='en'?o.impE:o.imp;
+let incStops=[];
 function wideSprite(parent,text,color){
   const cv=document.createElement('canvas');cv.width=1024;cv.height=110;
   const g=cv.getContext('2d');
@@ -540,8 +608,8 @@ function buildStory(){
   lg.setAttribute('color',new THREE.Float32BufferAttribute(lCol,3));lg.setIndex(lIdx);
   storyGrp.add(new THREE.Mesh(lg,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide})));
   // yatay kılavuzlar + sol eksen etiketleri (3,0 = sıkışma eşiği)
-  [[2.5,'2,5'],[3.0,'3,0 eşiği'],[3.5,'3,5'],[4.0,'4,0'],[4.5,'4,5']].forEach(([v,lab])=>{
-    const y=yOf(v);
+  [2.5,3.0,3.5,4.0,4.5].forEach(v=>{
+    const y=yOf(v),lab=v===SQUEEZE?T2().thr:T2().dec(v.toFixed(1));
     const g2=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(X0,y,0),new THREE.Vector3(X0+XW,y,0)]);
     storyGrp.add(new THREE.Line(g2,new THREE.LineBasicMaterial({color:v===SQUEEZE?0xE5484D:0x39415a,transparent:true,opacity:v===SQUEEZE?.55:.5})));
     const s=textSprite(storyGrp,0,.5,40);s.set(lab,v===SQUEEZE?'#E5484D':'#A3A8B5');
@@ -574,10 +642,28 @@ function buildStory(){
     storyGrp.add(new THREE.Line(cg,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:.45})));
     const dot=new THREE.Mesh(new THREE.SphereGeometry(.09,10,8),new THREE.MeshBasicMaterial({color:col}));
     dot.position.set(x,yTop,0);storyGrp.add(dot);
-    const sp=wideSprite(storyGrp,`${o.inc.ym} · ${o.inc.txt}`,red?'#FFB4B6':'#E6E8EC');
+    const sp=wideSprite(storyGrp,`${o.inc.ym} · ${inT(o.inc)}`,red?'#FFB4B6':'#E6E8EC');
     sp.scale.set(4.2,.46,1);sp.position.set(lx,yLab,0);
   });
-  storyChick=makeChick(storyGrp);storyChick.scale.setScalar(.8);
+  incStops=placed.map(o=>({i:o.i,inc:o.inc}));
+  // kullanıcının kendi partileri: zaman ekseninde turuncu üçgenler
+  if(OPS){
+    let n=0;
+    OPS.sites.forEach(s=>(s.batches||[]).forEach(b=>{
+      if(n>=40)return;
+      const i=SDATA.findIndex(d=>d[0]===(b.sd||'').slice(0,7));
+      if(i<0)return;
+      const tri=new THREE.Mesh(new THREE.ConeGeometry(.09,.2,4),new THREE.MeshBasicMaterial({color:0xFF6500}));
+      tri.position.set(xOf(i),.14,0);storyGrp.add(tri);n++;
+    }));
+    if(n&&!document.getElementById('mineChip')){
+      const s=document.createElement('span');s.id='mineChip';
+      s.style.cssText='background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px';
+      s.innerHTML='<span style="color:#FF6500">▲</span> '+T2().mine;
+      $('sLegend').appendChild(s);
+    }
+  }
+  storyChick=makeChick(storyGrp);storyChick.scale.setScalar(1.35);
   storyChick.rotation.y=Math.PI/2; // +X yönüne, yılların aktığı yöne bakar
   buildIndexPanel();
 }
@@ -594,24 +680,28 @@ function buildIndexPanel(){
     return pts[pts.length-1];
   };
   const eT=mkLine(2,0x19C37D), eY=mkLine(3,0xFF6500);   // tavuk, yem
-  const lT=textSprite(idxGrp,0,.55,38);lT.set('Tavuk eti','#19C37D');lT.sp.position.set(eT.x+1.5,eT.y+.25,0);
-  const lY=textSprite(idxGrp,0,.55,38);lY.set('Yem','#FF6500');lY.sp.position.set(eY.x+1.1,eY.y-.2,0);
-  [[100,'100'],[300,'300'],[1000,'1.000'],[3000,'3.000']].forEach(([v,lab])=>{
+  const lT=textSprite(idxGrp,0,.55,38);lT.set(T2().chicken,'#19C37D');lT.sp.position.set(eT.x+1.5,eT.y+.25,0);
+  const lY=textSprite(idxGrp,0,.55,38);lY.set(T2().feed,'#FF6500');lY.sp.position.set(eY.x+1.1,eY.y-.2,0);
+  const kSep=LNG==='en'?',':'.';
+  [[100,'100'],[300,'300'],[1000,'1'+kSep+'000'],[3000,'3'+kSep+'000']].forEach(([v,lab])=>{
     const y=iy(v);
     const g2=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(X0,y,0),new THREE.Vector3(X0+XW,y,0)]);
     idxGrp.add(new THREE.Line(g2,new THREE.LineBasicMaterial({color:0x39415a,transparent:true,opacity:.4})));
     const s=textSprite(idxGrp,0,.45,40);s.set(lab,'#A3A8B5');s.sp.position.set(X0-.95,y,0);
   });
   const ttl=textSprite(idxGrp,0,.8,30);
-  ttl.set('Fiyat endeksleri · 2010=100 · log ölçek','#A3A8B5');
+  ttl.set(T2().pTitle,'#A3A8B5');
   ttl.sp.position.set(X0+4.2,IYT+.45,0);
 }
 /* konuşma balonu + Türkçe seslendirme */
 let voiceOn=false,lastCh=null,bubbleT=0,bubbleSp=null,bubbleCv=null,bubbleTex=null;
+let talkPulse=0;
 function speak(txt){
   if(!voiceOn||!window.speechSynthesis)return;
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(txt);u.lang='tr-TR';u.rate=1.03;
+  const u=new SpeechSynthesisUtterance(txt);u.lang=T2().voice;u.rate=1.03;
+  u.onboundary=()=>{talkPulse=1;};      // her kelimede gaga açılır — dile eşzamanlı
+  u.onend=()=>{talkPulse=0;};
   speechSynthesis.speak(u);
 }
 function ensureBubble(){
@@ -642,48 +732,130 @@ function setBubble(title,txt){
 }
 $('vChip').onclick=()=>{
   voiceOn=!voiceOn;
-  $('vChip').textContent=voiceOn?'🔊 Seslendirme: açık':'🔊 Seslendirme: kapalı';
-  if(voiceOn&&MODE==='story'&&lastCh)speak(lastCh.t.replace(/^\d+ · /,'')+'. '+lastCh.s);
+  $('vChip').textContent=voiceOn?T2().voiceOn:T2().voiceOff;
+  if(voiceOn&&MODE==='story'&&lastCh)speak(chT(lastCh).replace(/^\d+ · /,'')+'. '+chS(lastCh));
   if(!voiceOn&&window.speechSynthesis)speechSynthesis.cancel();
 };
 $('iChip').onclick=()=>{
   idxOn=!idxOn;if(idxGrp)idxGrp.visible=idxOn;
-  $('iChip').textContent=idxOn?'📈 Endeksler: açık':'📈 Endeksler: kapalı';
+  $('iChip').textContent=idxOn?T2().idxOn:T2().idxOff;
 };
-function storyFrame(now,dt){
-  if(playing){
-    monthF+=dt*(bubbleT>0?2:8);          // civciv konuşurken yürüyüş yavaşlar
-    if(monthF>=SN-1){monthF=SN-1;playing=false;$('playBtn').textContent='↻ Baştan';}
-    syncScrub();
+$('endClose').onclick=()=>$('endCard').classList.remove('show');
+$('endLive').onclick=()=>{$('endCard').classList.remove('show');setMode('live');};
+function fillStoryChips(){
+  fillChips(CH.map(chT),i=>{monthF=CH[i].m;playing=true;$('playBtn').textContent='⏸ Durdur';syncScrub();});
+}
+function applyLang(){
+  const u=T2();
+  $('langChip').textContent=u.lang;
+  $('mStory').textContent=u.story;
+  $('vChip').textContent=voiceOn?u.voiceOn:u.voiceOff;
+  $('iChip').textContent=idxOn?u.idxOn:u.idxOff;
+  $('lg1').innerHTML='<span style="color:#2F9BFF">▮</span> '+u.lg1;
+  $('lg2').innerHTML='<span style="color:#E5484D">▮</span> '+u.lg2;
+  $('lg3').textContent=u.src;
+  const mc=document.getElementById('mineChip');
+  if(mc)mc.innerHTML='<span style="color:#FF6500">▲</span> '+u.mine;
+  $('endTitle').textContent=u.endTitle;$('endLive').textContent=u.eLive;
+}
+$('langChip').onclick=()=>{
+  LNG=LNG==='en'?'tr':'en';
+  applyLang();
+  if(window.speechSynthesis)speechSynthesis.cancel();
+  if(storyGrp){                          // metin taşıyan 3B öğeleri seçilen dilde yeniden kur
+    scene.remove(storyGrp);storyGrp=null;bubbleSp=null;idxGrp=null;incStops=[];
+    buildStory();storyGrp.visible=(MODE==='story');
+    lastCh=null;stopT=0;endShown=false;$('endCard').classList.remove('show');
+    nextInc=incStops.findIndex(s=>s.i>monthF);if(nextInc<0)nextInc=incStops.length;
   }
+  if(MODE==='story')fillStoryChips();
+};
+let nextInc=0,stopT=0,prevMonthF=0,endShown=false;
+function showEnd(){
+  if(endShown)return;endShown=true;
+  const u=T2();
+  const par=SDATA.map(d=>d[1]),avg=par.reduce((a,b)=>a+b,0)/par.length;
+  const cur=par[par.length-1],ymEnd=SDATA[SN-1][0];
+  const below12=par.slice(-12).filter(x=>x<SQUEEZE).length;
+  const belowAll=Math.round(par.filter(x=>x<SQUEEZE).length/par.length*100);
+  const act=OPS?OPS.sites.reduce((a,s)=>a+(s.batches||[]).filter(b=>b.st==='in').length,0):0;
+  const row=(l,v)=>`<div class="row"><span>${l}</span><b>${v}</b></div>`;
+  const fc=u.dec(cur.toFixed(2)),fa=u.dec(avg.toFixed(2));
+  $('endRows').innerHTML=
+    row(u.eCur+' · '+ymEnd,fc)+
+    row(u.eAvg,fa)+
+    row(u.e12,u.e12v(below12))+
+    row(u.eAll,u.eAllv(belowAll))+
+    (act?row(u.eAct,u.eActv(act)):'');
+  $('endLive').style.display=act?'block':'none';
+  $('endCard').classList.add('show');
+  speak(u.eSpeak(fc,fa,below12));
+}
+function storyFrame(now,dt){
+  if(Math.abs(monthF-prevMonthF)>3){     // chip/scrub sıçraması: durakları yeniden hizala
+    stopT=0;endShown=false;$('endCard').classList.remove('show');
+    nextInc=incStops.findIndex(s=>s.i>monthF);if(nextInc<0)nextInc=incStops.length;
+  }
+  if(stopT>0){                            // olay durağı: yürüyüş durur, kart anlatır
+    stopT-=dt;
+    if(stopT<=0){stopT=0;$('playBtn').textContent=playing?'⏸ Durdur':'▶ Oynat';}
+  }else if(playing){
+    monthF+=dt*(bubbleT>0?2:8);          // civciv konuşurken yürüyüş yavaşlar
+    if(monthF>=SN-1){monthF=SN-1;playing=false;$('playBtn').textContent='↻ Baştan';showEnd();}
+    syncScrub();
+    if(nextInc<incStops.length&&monthF>=incStops[nextInc].i){
+      const st=incStops[nextInc];nextInc++;
+      monthF=st.i;stopT=5;bubbleT=Math.max(bubbleT,5);
+      setBubble(st.inc.ym,inT(st.inc)+'. '+inI(st.inc));
+      speak(inT(st.inc).replace(/—/g,', ')+'. '+inI(st.inc));
+      $('playBtn').textContent=LNG==='en'?'▸ Skip':'▸ Geç';
+    }
+  }
+  prevMonthF=monthF;
   const p=parityAt(monthF),cx0=xOf(monthF),cy0=yOf(p);
   storyChick.position.set(cx0,cy0+.1+Math.abs(Math.sin(now*7))*.08,0);
   const ym=SDATA[Math.min(SN-1,Math.round(monthF))][0];
-  $('dayBadge').innerHTML=`<b>${ym}</b> · parite ${p.toFixed(2).replace('.',',')}`;
+  $('dayBadge').innerHTML=`<b>${ym}</b> · ${T2().par} ${T2().dec(p.toFixed(2))}`;
   const ch=[...CH].reverse().find(c=>monthF>=c.m)||CH[0];
   if(ch!==lastCh){                        // yeni bölüm: civciv seyirciye döner ve anlatır
-    lastCh=ch;bubbleT=7;
-    const title=ch.t.replace(/^\d+ · /,'');
-    setBubble(title,ch.s);
-    speak(title+'. '+ch.s);
+    lastCh=ch;
+    if(stopT<=0){                         // olay durağı sürüyorsa onun kartı önceliklidir
+      bubbleT=7;
+      const title=chT(ch).replace(/^\d+ · /,'');
+      setBubble(title,chS(ch));
+      speak(title+'. '+chS(ch));
+    }
   }
   bubbleT=Math.max(0,bubbleT-dt);
   if(bubbleSp){
     bubbleSp.visible=bubbleT>0;
-    bubbleSp.position.set(Math.max(X0+2.9,Math.min(X0+XW-2.9,cx0+1.2)),cy0+1.75,0);
+    bubbleSp.position.set(Math.max(X0+2.9,Math.min(X0+XW-2.9,cx0+1.4)),Math.min(cy0+2.0,4.4),0);
   }
   if(bubbleT>0||!playing){               // konuşurken / dururken kameraya bakar
     const wy=Math.atan2(camera.position.x-cx0,camera.position.z-(storyChick.position.z));
     storyChick.rotation.y=lerp(storyChick.rotation.y,wy,.15);
   }else storyChick.rotation.y=lerp(storyChick.rotation.y,Math.PI/2,.1);
-  $('stTitle').textContent=ch.t.replace(/^\d+ · /,'');$('stSub').textContent=ch.s;
+  const jaw=storyChick.userData.jaw;      // gaga animasyonu: sesle kelime kelime eşzamanlı
+  if(jaw){
+    let open=0;
+    if(bubbleT>0)open=voiceOn?talkPulse*.7:Math.abs(Math.sin(now*9))*.4;
+    talkPulse=Math.max(0,talkPulse-dt*6);
+    jaw.rotation.x=lerp(jaw.rotation.x,open,.5);
+  }
+  $('stTitle').textContent=chT(ch).replace(/^\d+ · /,'');$('stSub').textContent=chS(ch);
   chipNodes.forEach((c,i)=>c.classList.toggle('on',CH[i]===ch));
-  // kamera: grafiğe cepheden bakar, civcivle birlikte yumuşakça kayar
+  // kamera: normalde cepheden kayar, olay durağında noktaya yaklaşır
   if(!dragging&&now-lastInteract>2.5){
-    const cx=Math.max(-4.5,Math.min(4.5,cx0*.6));
-    camTarget.lerp(new THREE.Vector3(cx,GY+(idxOn?2.1:1.1),0),.05);
-    let d=Math.PI/2-camTheta;d=Math.atan2(Math.sin(d),Math.cos(d));camTheta+=d*.04;
-    camPhi=lerp(camPhi,1.25,.04);camR=lerp(camR,idxOn?18:15,.04);
+    let d=Math.PI/2-camTheta;d=Math.atan2(Math.sin(d),Math.cos(d));
+    if(stopT>0){
+      const sx=Math.max(-6,Math.min(6,cx0*.7));
+      camTarget.lerp(new THREE.Vector3(sx,GY+cy0*.55+.6,0),.06);
+      camTheta+=d*.05;camPhi=lerp(camPhi,1.25,.05);camR=lerp(camR,11.5,.05);
+    }else{
+      const cx=Math.max(-4.5,Math.min(4.5,cx0*.6));
+      camTarget.lerp(new THREE.Vector3(cx,GY+(idxOn?2.1:1.1),0),.05);
+      camTheta+=d*.04;camPhi=lerp(camPhi,1.25,.04);camR=lerp(camR,idxOn?18:15,.04);
+    }
     applyCam();
   }
 }
@@ -717,6 +889,7 @@ function setMode(m){
   else if(prev==='story'){
     if(window.speechSynthesis)speechSynthesis.cancel();
     lastCh=null;if(bubbleSp)bubbleSp.visible=false;
+    $('endCard').classList.remove('show');
     camTarget.set(0,1.2,0);camPhi=Math.PI*.36;camR=17;applyCam();
   }
   Object.values(stats).forEach(s=>s.set(''));
@@ -726,8 +899,9 @@ function setMode(m){
   else if(m==='story'){
     $('noData').classList.remove('show');
     if(!storyGrp)buildStory();
-    storyGrp.visible=true;monthF=0;
-    fillChips(CH.map(c=>c.t),i=>{monthF=CH[i].m;playing=true;$('playBtn').textContent='⏸ Durdur';syncScrub();});
+    storyGrp.visible=true;monthF=0;prevMonthF=0;
+    nextInc=0;stopT=0;endShown=false;$('endCard').classList.remove('show');
+    fillStoryChips();
   }
   else{
     fillTourChips();
