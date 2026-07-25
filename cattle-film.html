@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Parite: Sığır — animatik (WIP)</title>
+<style>
+:root{
+  --bg:#1a1a19;--ink:#ffffff;--muted:#c3c2b7;--line:#33332f;
+  --us:#3987e5;--eu:#d95926;--tr:#199e70;--warn:#e66767;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:#0c0c0b;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;
+  font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif}
+/* 1080×1920 sahne — ekrana sığacak şekilde ölçeklenir */
+#stage{position:relative;width:1080px;height:1920px;background:var(--bg);
+  transform-origin:center;overflow:hidden;flex:none}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* Sahne 1: soğuk açılış */
+#s1{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px}
+#s1 .q{font-size:52px;color:var(--muted);font-weight:400;opacity:0}
+#s1 .big{font-size:230px;font-weight:700;color:var(--ink);opacity:0}
+#s1 .big small{font-size:70px;color:var(--muted);font-weight:400}
+#s1 .sub{font-size:40px;color:var(--muted);opacity:0}
+
+/* Grafik katmanı */
+#chartWrap{position:absolute;left:0;right:0;top:330px;height:1100px;opacity:0}
+#chart{width:100%;height:100%;display:block}
+.axisTxt{font:400 30px "IBM Plex Mono",monospace;fill:var(--muted)}
+.gridLn{stroke:var(--line);stroke-width:2}
+#usPath{stroke:var(--us);stroke-width:7;fill:none;stroke-linejoin:round;stroke-linecap:round}
+#peakDot{fill:var(--us);opacity:0}
+#peakLbl{opacity:0}
+#peakLbl text{font:700 34px "IBM Plex Sans",sans-serif;fill:var(--ink)}
+#peakLbl .s{font:400 28px "IBM Plex Sans",sans-serif;fill:var(--muted)}
+
+/* Üst başlık + alt anlatım bandı */
+#kicker{position:absolute;top:150px;left:80px;right:80px;text-align:center;
+  font-size:44px;font-weight:700;color:var(--ink);opacity:0}
+#kicker .tag{display:block;font-size:30px;font-weight:400;color:var(--muted);margin-top:10px}
+#caption{position:absolute;bottom:70px;left:90px;right:90px;text-align:center;
+  font-size:42px;line-height:1.5;color:var(--ink);opacity:0}
+#counterHud{position:absolute;top:1480px;left:0;right:0;text-align:center;opacity:0}
+#counterHud .v{font-size:120px;font-weight:700;color:var(--us)}
+#counterHud .l{font-size:32px;color:var(--muted);margin-top:6px}
+
+/* kontrol çubuğu (yalnızca geliştirme) */
+#bar{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:9;
+  display:flex;gap:10px;align-items:center;width:min(560px,94vw);
+  background:rgba(20,20,19,.9);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+#bar button{background:#e5a13a;color:#1a1a19;border:0;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer}
+#bar input{flex:1;accent-color:#e5a13a}
+#bar .t{font:600 12px "IBM Plex Mono",monospace;color:var(--muted);min-width:70px;text-align:right}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="kicker">PARİTE: SIĞIR<span class="tag">bir veri belgeseli · 1971–2026</span></div>
+
+  <div id="s1">
+    <div class="q">1 kilo sığır eti…</div>
+    <div class="big mono"><span id="cVal">0,00</span><small> kg yem</small></div>
+    <div class="sub">Bu tek oran, bir sektörün kaderini anlatır.</div>
+  </div>
+
+  <div id="chartWrap">
+    <svg id="chart" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+
+  <div id="counterHud"><div class="v mono" id="hudVal">0,58</div><div class="l" id="hudLbl">parite · Ocak 1971</div></div>
+
+  <div id="caption"></div>
+</div>
+
+<div id="bar">
+  <button id="play">▶</button>
+  <input type="range" id="seek" min="0" max="1000" value="0">
+  <div class="t" id="tLbl">0.0s</div>
+</div>
+
+<script src="js/vendor/gsap.min.js"></script>
+<script>
+/* ============ sahneyi ekrana ölçekle ============ */
+const stage=document.getElementById('stage');
+function fit(){
+  const s=Math.min(innerWidth/1080,(innerHeight-70)/1920);
+  stage.style.transform=`scale(${s})`;
+}
+addEventListener('resize',fit);fit();
+
+/* ============ veri ============ */
+const $=id=>document.getElementById(id);
+const fmt=v=>v.toFixed(2).replace('.',',');
+const MON=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+fetch('data/cattle-us.json').then(r=>r.json()).then(us=>{
+  const rows=us.rows;                       // [ym, cattle, corn, ratio]
+  const N=rows.length;
+  const ratio=rows.map(r=>r[3]);
+  const yMin=0.4,yMax=2.6;
+  /* SVG koordinat sistemi: x 0..1000 (zaman), y 0..1000 */
+  const X=i=>i/(N-1)*1000;
+  const Y=v=>1000-(v-yMin)/(yMax-yMin)*1000;
+  const path=rows.map((r,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(r[3]).toFixed(1)}`).join('');
+  const iPeak14=rows.findIndex(r=>r[0]==='2014-11')>0?rows.findIndex(r=>r[0]==='2014-11'):rows.length-140;
+
+  const svg=$('chart');
+  svg.setAttribute('viewBox','-90 -40 1180 1140');
+  svg.innerHTML=`
+    <g id="grid">
+      ${[0.5,1.0,1.5,2.0,2.5].map(v=>`
+        <line class="gridLn" x1="0" x2="1000" y1="${Y(v)}" y2="${Y(v)}"/>
+        <text class="axisTxt" x="-18" y="${Y(v)+10}" text-anchor="end">${fmt(v)}</text>`).join('')}
+      ${[1971,1980,1990,2000,2010,2020].map(yr=>{
+        const i=rows.findIndex(r=>r[0].startsWith(String(yr)));
+        return i<0?'':`<text class="axisTxt" x="${X(i)}" y="1052" text-anchor="middle">${yr}</text>`;}).join('')}
+    </g>
+    <path id="usPath" d="${path}"/>
+    <circle id="peakDot" r="14" cx="${X(iPeak14)}" cy="${Y(ratio[iPeak14])}"/>
+    <g id="peakLbl" transform="translate(${X(iPeak14)-10},${Y(ratio[iPeak14])-95})">
+      <text>2014 zirvesi</text>
+      <text class="s" y="40">kuraklık sonrası kıtlık</text>
+    </g>`;
+
+  const usPath=$('usPath');
+  const LEN=usPath.getTotalLength();
+  usPath.style.strokeDasharray=LEN;
+  usPath.style.strokeDashoffset=LEN;
+
+  /* çizgi ilerledikçe HUD sayacı çizginin ucunu takip etsin */
+  const prog={p:0};
+  function hud(){
+    const i=Math.min(N-1,Math.round(prog.p*(N-1)));
+    $('hudVal').textContent=fmt(ratio[i]);
+    const [y,m]=rows[i][0].split('-');
+    $('hudLbl').textContent=`parite · ${MON[+m-1]} ${y}`;
+  }
+
+  /* ============ master timeline ============ */
+  const cap=t=>gsap.to('#caption',{opacity:1,duration:.8,onStart:()=>$('caption').textContent=t});
+  const capOut=()=>gsap.to('#caption',{opacity:0,duration:.6});
+  const c1={v:0};
+
+  const tl=gsap.timeline({paused:true,defaults:{ease:'power2.inOut'}});
+
+  /* — Sahne 1 · 0-8 sn: soğuk açılış — */
+  tl.to('#s1 .q',{opacity:1,duration:1.2},0.5)
+    .to('#s1 .big',{opacity:1,duration:1.2},1.4)
+    .to(c1,{v:0.58,duration:3.2,ease:'power1.out',
+        onUpdate:()=>$('cVal').textContent=fmt(c1.v)},1.8)
+    .to('#s1 .sub',{opacity:1,duration:1.0},4.2)
+    .to('#s1',{opacity:0,duration:1.0},7.0)
+    .to('#kicker',{opacity:1,duration:1.0},7.2)
+
+  /* — Sahne 2 · 8-22 sn: 55 yıl tek çizgide — */
+    .to('#chartWrap',{opacity:1,duration:1.0},8.0)
+    .to('#counterHud',{opacity:1,duration:.8},8.6)
+    .add(cap('Amerika, 1971. Çizgi nefes ala vere elli beş yıl yürüyecek.'),8.6)
+    .to(prog,{p:1,duration:11,ease:'power1.inOut',
+        onUpdate:()=>{usPath.style.strokeDashoffset=LEN*(1-prog.p);hud();}},9.0)
+    .add(capOut,13.6)
+    .add(cap('Yetmişlerin emtia şokları… seksenlerin çiftlik krizi…'),14.4)
+    .add(capOut,19.4)
+
+  /* — Sahne 3 · 22-34 sn: 2014 zirvesine zum — */
+    .add(cap('2014: yıllarca süren kuraklık sürüyü küçültmüştü. Az hayvan, pahalı et.'),22.5)
+    .to(svg,{attr:{viewBox:`${X(iPeak14)-260} ${Y(ratio[iPeak14])-200} 560 560`},
+        duration:3.2,ease:'power2.inOut'},22.5)
+    .to('#peakDot',{opacity:1,duration:.5},25.4)
+    .fromTo('#peakDot',{attr:{r:14}},{attr:{r:26},duration:.7,yoyo:true,repeat:3,ease:'sine.inOut'},25.6)
+    .to('#peakLbl',{opacity:1,duration:.8},25.9)
+    .add(capOut,30.0)
+    .to('#peakLbl',{opacity:0,duration:.6},30.6)
+    .to(svg,{attr:{viewBox:'-90 -40 1180 1140'},duration:2.6},31.0)
+    .add(cap('(animatik burada bitiyor — sahne 4-8 sırada)'),33.8);
+
+  /* ============ kontrol çubuğu ============ */
+  const DUR=tl.duration();
+  let playing=false;
+  $('play').onclick=()=>{
+    playing=!playing;
+    $('play').textContent=playing?'⏸':'▶';
+    playing?tl.play():tl.pause();
+    if(playing&&tl.progress()>=1)tl.restart();
+  };
+  $('seek').oninput=e=>{tl.pause();playing=false;$('play').textContent='▶';
+    tl.progress(e.target.value/1000);};
+  gsap.ticker.add(()=>{
+    if(!tl.paused())$('seek').value=Math.round(tl.progress()*1000);
+    $('tLbl').textContent=(tl.time()).toFixed(1)+'s';
+  });
+
+  /* deterministik render için dışa açık kanca */
+  window.__seek=t=>{tl.pause();tl.time(t);};
+  window.__duration=DUR;
+});
+</script>
+</body>
+</html>

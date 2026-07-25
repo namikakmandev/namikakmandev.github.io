@@ -25,7 +25,7 @@ Tipografi: IBM Plex Sans (başlık 700, metin 400), IBM Plex Mono (sayılar)
 - Render: deterministik saat, 60 fps kare-kare Playwright yakalama → ffmpeg H.264 CRF 18
 - Ses: anlatım kaydı senkron noktaları storyboard'daki sn aralıklarına kilitli; müzik -18 LUFS altı
 
-## Açık kararlar (kullanıcıyla)
-- [ ] Film adı: "SÜRÜ" mü, "Parite: Sığır" mı, başka mı?
-- [ ] Anlatım sesi: Namık'ın kendi kaydı mı, tek seferlik profesyonel TTS mi?
-- [ ] Dikey (LinkedIn native) öncelikli mi, yatay (web) mi — ikisi de üretilecek ama hangisi önce?
+## Kararlar (25 Tem)
+- [x] Film adı: **Parite: Sığır** ("Parite" seri markası — broiler'ın devamı)
+- [x] Anlatım sesi: **Namık'ın kendi kaydı** (senaryo netleşince kayıt istenecek)
+- [x] Format: **Dikey 9:16 öncelikli** (LinkedIn native), yatay sonra türetilecek
