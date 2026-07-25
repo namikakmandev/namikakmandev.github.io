@@ -37,6 +37,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
   background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
 .chip.on{background:rgba(255,101,0,.15);color:var(--orange);border-color:rgba(255,101,0,.5)}
 .chip.blue{background:rgba(47,155,255,.12);color:var(--primary);border-color:rgba(47,155,255,.45)}
+#rawBtn2,#rawBtn{color:var(--orange);border-color:rgba(255,101,0,.55);font-weight:700}
 .bar{display:flex;gap:10px;align-items:center;width:min(560px,92vw)}
 .bar button{background:var(--orange);color:#fff;border:0;border-radius:9px;padding:8px 16px;font:700 13px system-ui;cursor:pointer;min-width:74px}
 .bar button.ghost{background:var(--panel2);border:1px solid var(--line);color:var(--muted);min-width:0}
@@ -109,7 +110,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r23</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r24</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -697,7 +698,7 @@ $('chatClose').onclick=()=>$('chatPanel').classList.remove('show');
 const AI_URL='https://assetix-ai.akmannamik83.workers.dev';
 let chatHist=[];
 function aiSystem(){
-  const inc=INCIDENTS.map(i=>`${i.ym}: ${i.txt} (${i.imp})`).join('\n');
+  const inc=INCIDENTS.map(i=>`${i.ym}: ${i.txt} (${i.imp}) ${i.why}`).join('\n');
   const rows=SDATA.map(d=>d.join(',')).join('\n');
   return `Sen CivBot'sun 🐣 — namikakmandev.github.io/hatchery-3d.html sayfasının sevimli civciv anlatıcısı. `+
   `Türkiye broiler (etlik piliç) parite verisi ve bu sayfa hakkında soruları yanıtlarsın. `+
@@ -768,7 +769,7 @@ const UI={
       eActv:n=>n+' parti',eLive:"● Canlı Veri'ye geç",
       eSpeak:(c,a,m)=>`Bugün neredeyiz? Güncel parite ${c}, on altı yıllık ortalama ${a}. Son on iki ayın ${m} ayı sıkışma bölgesindeydi.`,
       introTitle:'🐣 Broiler Marj Hikâyesi · 2010–2026',
-      introBody:'1 kilo tavuk eti, kaç kilo yem satın alır? Bu orana <b style="color:var(--ink)">parite</b> denir — sektör kârlılığının en yalın göstergesi.<br><br>Civciv, TÜİK &amp; TEPGE\'nin <b style="color:var(--ink)">198 aylık gerçek verisi</b> üzerinde 2010\'dan bugüne yürüyecek: <b style="color:#2F9BFF">mavi</b> dönemler rahat marj, <b style="color:#E5484D">kırmızı</b> dönemler sıkışma (parite &lt; 3,0). Üstteki panel nedenini gösterir: <b style="color:#19C37D">tavuk fiyatı</b> ile <b style="color:#FF6500">yem fiyatı</b>nın yarışı.<br><br>🔊 düğmesiyle civciv hikâyeyi sesli anlatır.',
+      introBody:'1 kilo tavuk eti, kaç kilo yem satın alır? Bu orana <b style="color:var(--ink)">parite</b> denir — sektör kârlılığının en yalın göstergesi.<br><br>Civciv, TÜİK &amp; TEPGE\'nin <b style="color:var(--ink)">198 aylık gerçek verisi</b> üzerinde 2010\'dan bugüne yürüyecek: <b style="color:#2F9BFF">mavi</b> dönemler rahat marj, <b style="color:#E5484D">kırmızı</b> dönemler sıkışma (parite &lt; 3,0). Üstteki panel nedenini gösterir: <b style="color:#19C37D">tavuk fiyatı</b> ile <b style="color:#FF6500">yem fiyatı</b>nın yarışı.<br><br>🔊 düğmesiyle civciv hikâyeyi sesli anlatır; <b style="color:var(--orange)">📄 Ham veri</b> düğmesi 198 aylık serinin tamamını ve tüm formülleri açar.',
       introBtn:'▶ Hikâyeyi başlat',
       rawBtn:'📄 Ham veri',rawTitle:'📄 Ham Veri & Hesaplama',
       rawHead:['Tesis','Basım','Çıkım','Yumurta','Civciv','Rand.%','Satılan','Fiyat','Ciro','Durum'],
@@ -792,7 +793,7 @@ const UI={
       eActv:n=>n+' batches',eLive:'● Go to Live Data',
       eSpeak:(c,a,m)=>`Where are we today? Current parity ${c}, sixteen-year average ${a}. ${m} of the last twelve months were in the squeeze zone.`,
       introTitle:'🐣 The Broiler Margin Story · 2010–2026',
-      introBody:'How many kilos of feed does one kilo of chicken buy? That ratio is called <b style="color:var(--ink)">parity</b> — the simplest gauge of the sector\'s profitability.<br><br>The chick will walk across <b style="color:var(--ink)">198 months of real TÜİK &amp; TEPGE data</b>, from 2010 to today: <b style="color:#2F9BFF">blue</b> stretches mean comfortable margins, <b style="color:#E5484D">red</b> means a squeeze (parity &lt; 3.0). The panel above shows the cause: the race between the <b style="color:#19C37D">chicken price</b> and the <b style="color:#FF6500">feed price</b>.<br><br>Tap 🔊 to have the chick narrate aloud.',
+      introBody:'How many kilos of feed does one kilo of chicken buy? That ratio is called <b style="color:var(--ink)">parity</b> — the simplest gauge of the sector\'s profitability.<br><br>The chick will walk across <b style="color:var(--ink)">198 months of real TÜİK &amp; TEPGE data</b>, from 2010 to today: <b style="color:#2F9BFF">blue</b> stretches mean comfortable margins, <b style="color:#E5484D">red</b> means a squeeze (parity &lt; 3.0). The panel above shows the cause: the race between the <b style="color:#19C37D">chicken price</b> and the <b style="color:#FF6500">feed price</b>.<br><br>Tap 🔊 to have the chick narrate aloud; <b style="color:var(--orange)">📄 Raw data</b> opens the full 198-month table and every formula.',
       introBtn:'▶ Start the story',
       rawBtn:'📄 Raw data',rawTitle:'📄 Raw Data & Calculations',
       rawHead:['Site','Set','Hatch','Eggs','Chicks','Yield%','Sold','Price','Revenue','Status'],
@@ -820,38 +821,54 @@ function parityAt(f){
 const INCIDENTS=[
   {ym:'2010-04',txt:'Parite 4,55 ile zirve yaptı — bol marj dönemi',
    imp:'Marj rahat; sektör kapasite yatırımı yapıyor.',
+   why:'Küresel arka plan: 2008-09 krizi sonrası tahıl ucuz, TL güçlüydü. 2010 yazında Rusya\'daki kuraklık ve tahıl ihracat yasağı yem fiyatlarını ateşleyince zirve kalıcı olamadı.',
    txtE:'Parity peaked at 4.55 — the fat-margin era',
-   impE:'Margins are comfortable; the sector invests in capacity.'},
+   impE:'Margins are comfortable; the sector invests in capacity.',
+   whyE:'Global backdrop: grain was cheap after the 2008-09 crisis and the lira was strong. Russia\'s drought and grain-export ban in summer 2010 then set feed prices alight — the peak could not last.'},
   {ym:'2018-08',txt:'Kur şoku — yem endeksi 1 yılda %33 arttı',
    imp:'Yem, üretim maliyetinin yaklaşık üçte ikisi: kur artışı doğrudan marjı ezdi.',
+   why:'Neden: Ağustos 2018\'de TL dolar karşısında sert değer kaybetti; mısır ve soya büyük ölçüde ithal olduğundan yem maliyeti kurla birlikte katlandı.',
    txtE:'Currency shock — feed index +33% in a year',
-   impE:'Feed is roughly two-thirds of production cost: the FX surge crushed margins directly.'},
+   impE:'Feed is roughly two-thirds of production cost: the FX surge crushed margins directly.',
+   whyE:'Why: the lira slumped against the dollar in August 2018; with corn and soy largely imported, feed costs climbed with the exchange rate.'},
   {ym:'2019-10',txt:'Maliyet baskısıyla parite 2,77\'ye geriledi',
    imp:'14 ayda tavuk fiyatı yerinde saydı (-%3), yem +%11 — makas kapandı.',
+   why:'Neden: 2019 daralmasında iç talep zayıftı; tavuk fiyatına zam geçmiyor, dolarize yem maliyeti ise artmaya devam ediyordu.',
    txtE:'Cost pressure pushed parity down to 2.77',
-   impE:'Over 14 months chicken prices stood still (-3%) while feed rose 11% — the gap closed.'},
-  {ym:'2020-03',txt:'COVID-19 pandemisi başlıyor',
+   impE:'Over 14 months chicken prices stood still (-3%) while feed rose 11% — the gap closed.',
+   whyE:'Why: domestic demand was weak in the 2019 downturn; chicken prices could not rise while dollarised feed costs kept climbing.'},
+  {ym:'2020-03',txt:'COVID-19 pandemisi başladı',
    imp:'İlk 6 ayda tavuk endeksi -%11, yem +%15: talep ve maliyet şoku üst üste.',
-   txtE:'COVID-19 pandemic begins',
-   impE:'In six months the chicken index fell 11% while feed rose 15%: demand and cost shocks at once.'},
+   why:'Neden: kapanmalar otel-restoran (HORECA) talebini bir anda kesti; lojistik aksadı, tavuk fiyatları baskılandı.',
+   txtE:'The COVID-19 pandemic began',
+   impE:'In six months the chicken index fell 11% while feed rose 15%: demand and cost shocks at once.',
+   whyE:'Why: lockdowns cut hotel-restaurant (HORECA) demand overnight; logistics faltered and chicken prices were suppressed.'},
   {ym:'2020-10',txt:'Parite 2,34 ile tarihi dibi gördü',
    imp:'Uzun dönem ortalaması 3,23\'ün %28 altında — zarar bölgesi.',
+   why:'Neden: zayıf talebin üzerine küresel tahıl rallisi bindi — Çin\'in rekor mısır alımları, La Niña kuraklığı ve zayıflayan TL aynı anda vurdu.',
    txtE:'Parity hit its record low of 2.34',
-   impE:'28% below the long-run average of 3.23 — loss territory.'},
+   impE:'28% below the long-run average of 3.23 — loss territory.',
+   whyE:'Why: a global grain rally landed on top of weak demand — China\'s record corn buying, La Niña drought and a weakening lira hit at once.'},
   {ym:'2022-03',txt:'Küresel tahıl şoku — yem 12 ayda 2,3 katına çıktı',
    imp:'Fiyat ayarlamaları yem enflasyonunu aylarca geriden izledi.',
+   why:'Neden: Rusya–Ukrayna savaşı, Türkiye\'nin yem hammaddesi ithalatının önemli kaynağı olan Karadeniz tahıl havzasını vurdu; enerji ve navlun şoku da eklendi.',
    txtE:'Global grain shock — feed rose 2.3× in 12 months',
-   impE:'Price adjustments trailed feed inflation for months.'},
+   impE:'Price adjustments trailed feed inflation for months.',
+   whyE:'Why: the Russia–Ukraine war hit the Black Sea grain basin that supplies much of Türkiye\'s feed imports, with energy and freight shocks on top.'},
   {ym:'2024-04',txt:'Toparlanmayla parite 4,20\'ye yükseldi',
    imp:'2010 sonbaharından beri görülmeyen seviye.',
+   why:'Neden: küresel tahıl fiyatları güçlü hasatlar ve tahıl koridoruyla 2022 zirvesinden geriledi; içerideki fiyat ayarlamaları maliyeti nihayet yakaladı.',
    txtE:'Recovery lifted parity back to 4.20',
-   impE:'A level unseen since autumn 2010.'},
+   impE:'A level unseen since autumn 2010.',
+   whyE:'Why: global grain prices retreated from their 2022 peak on strong harvests and the grain corridor, while domestic price adjustments finally caught up with costs.'},
   {ym:'2025-12',txt:'Parite 2,67 ile yeni bir dip yaptı',
    imp:'Aralık 2022\'den beri en düşük — makas yeniden açılıyor.',
+   why:'Neden: yem enflasyonu yeniden tavuk fiyatının önüne geçti; kur kaynaklı girdi maliyeti artarken fiyat ayarlamaları gecikti.',
    txtE:'Parity slid to a new low of 2.67',
-   impE:'Lowest since December 2022 — the gap is opening again.'},
+   impE:'Lowest since December 2022 — the gap is opening again.',
+   whyE:'Why: feed inflation once again outpaced chicken prices; currency-driven input costs rose while price adjustments lagged.'},
 ];
-const inT=o=>LNG==='en'?o.txtE:o.txt, inI=o=>LNG==='en'?o.impE:o.imp;
+const inT=o=>LNG==='en'?o.txtE:o.txt, inI=o=>LNG==='en'?o.impE:o.imp, inW=o=>LNG==='en'?o.whyE:o.why;
 let incStops=[];
 function wideSprite(parent,text,color){
   const cv=document.createElement('canvas');cv.width=1024;cv.height=110;
@@ -1028,30 +1045,39 @@ function hushAll(){
   sQueue=[];speaking=false;clearTimeout(speakTimer);
   if(window.speechSynthesis)speechSynthesis.cancel();
 }
+let bubbleLift=0;   // ok ucunun sprite merkezine göre dünya-birimi ofseti
 function ensureBubble(){
   if(bubbleSp)return;
-  bubbleCv=document.createElement('canvas');bubbleCv.width=1024;bubbleCv.height=300;
+  bubbleCv=document.createElement('canvas');bubbleCv.width=1024;bubbleCv.height=480;
   bubbleTex=new THREE.CanvasTexture(bubbleCv);bubbleTex.anisotropy=4;
   bubbleSp=new THREE.Sprite(new THREE.SpriteMaterial({map:bubbleTex,transparent:true,depthTest:false}));
-  bubbleSp.renderOrder=11;bubbleSp.scale.set(5.6,1.64,1);bubbleSp.visible=false;
+  bubbleSp.renderOrder=11;bubbleSp.scale.set(5.6,2.625,1);bubbleSp.visible=false;
   storyGrp.add(bubbleSp);
 }
 function setBubble(title,txt){
   ensureBubble();
-  const g=bubbleCv.getContext('2d');g.clearRect(0,0,1024,300);
+  const g=bubbleCv.getContext('2d');g.clearRect(0,0,1024,480);
+  // metni sar: kutu yüksekliği satır sayısına göre büyür (en çok 6 satır)
+  g.font='400 40px system-ui';
+  const lines=[];let line='';
+  for(const w of txt.split(' ')){
+    const t=line?line+' '+w:w;
+    if(g.measureText(t).width>944&&line){
+      lines.push(line);line=w;
+      if(lines.length>=6){line+='…';break;}
+    }else line=t;
+  }
+  if(line)lines.push(line);
+  const boxH=96+lines.length*50+10;
   g.fillStyle='rgba(22,25,34,.95)';g.strokeStyle='#FF6500';g.lineWidth=3;
-  g.beginPath();g.roundRect(8,8,1008,248,26);g.fill();g.stroke();
-  g.beginPath();g.moveTo(120,254);g.lineTo(190,254);g.lineTo(95,296);g.closePath();g.fill();
+  g.beginPath();g.roundRect(8,8,1008,boxH,26);g.fill();g.stroke();
+  // ok: tabanın ORTASINDAN aşağı, civcive doğru
+  g.beginPath();g.moveTo(477,boxH+4);g.lineTo(547,boxH+4);g.lineTo(512,boxH+46);g.closePath();g.fill();
   g.fillStyle='#FF6500';g.font='700 44px system-ui';g.textAlign='left';
   g.fillText(title,40,66);
   g.fillStyle='#E6E8EC';g.font='400 40px system-ui';
-  let line='',y=132;
-  for(const w of txt.split(' ')){
-    const t=line?line+' '+w:w;
-    if(g.measureText(t).width>944){g.fillText(line,40,y);y+=52;line=w;if(y>236)break;}
-    else line=t;
-  }
-  if(line&&y<=236)g.fillText(line,40,y);
+  lines.forEach((l,i)=>g.fillText(l,40,130+i*50));
+  bubbleLift=((boxH+46)-240)/480*2.625;
   bubbleTex.needsUpdate=true;
 }
 $('vChip').onclick=()=>{
@@ -1159,8 +1185,8 @@ function storyFrame(now,dt){
     if(nextInc<incStops.length&&monthF>=incStops[nextInc].i){
       const st=incStops[nextInc];nextInc++;   // olay: yürürken anlatılır, durulmaz
       bubbleT=Math.max(bubbleT,6);
-      setBubble(st.inc.ym,inT(st.inc)+'. '+inI(st.inc));
-      speak(inT(st.inc).replace(/—/g,', ')+'. '+inI(st.inc));
+      setBubble(st.inc.ym,inT(st.inc)+'. '+inI(st.inc)+' '+inW(st.inc));
+      speak(inT(st.inc).replace(/—/g,', ')+'. '+inI(st.inc)+' '+inW(st.inc));
     }
   }
   if(voiceOn&&speaking)bubbleT=Math.max(bubbleT,.4);
@@ -1180,7 +1206,10 @@ function storyFrame(now,dt){
   bubbleT=Math.max(0,bubbleT-dt);
   if(bubbleSp){
     bubbleSp.visible=bubbleT>0;
-    bubbleSp.position.set(Math.max(X0+2.9,Math.min(X0+XW-2.9,cx0+1.4)),Math.min(cy0+2.0,4.4),0);
+    // balon civcivin tam üstünde; ok tabanın ortasından ona bakar
+    bubbleSp.position.set(
+      Math.max(X0+2.9,Math.min(X0+XW-2.9,cx0)),
+      Math.min(cy0+.95+bubbleLift,5.3),0);
   }
   if(bubbleT>0||!playing){               // konuşurken / dururken kameraya bakar
     const wy=Math.atan2(camera.position.x-cx0,camera.position.z-(storyChick.position.z));
