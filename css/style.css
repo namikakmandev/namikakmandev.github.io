@@ -619,14 +619,26 @@ a.pulse-chip:hover {
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
 }
 .card-flag {
-  display: inline-block;
+  display: block;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-2);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
+/* Status flag on a project card — sits on its own line above the tech tag */
+.card > .card-flag::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+.card-flag.neutral { color: var(--text-dim); }
 
 /* ---------- About ---------- */
 .about-wrap {
