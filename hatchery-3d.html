@@ -102,7 +102,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r18</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r19</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -715,7 +715,7 @@ async function chatSendNow(){
     const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),25000);
     const r=await fetch(AI_URL,{method:'POST',signal:ctl.signal,
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({prompt,system:aiSystem()})});
+      body:JSON.stringify({prompt,system:aiSystem(),model:'haiku'})});
     clearTimeout(tm);
     const j=await r.json();
     if(r.ok&&j.text)out=j.text.trim();
