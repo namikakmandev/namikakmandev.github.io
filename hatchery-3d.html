@@ -58,7 +58,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r5</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r6</b></span></div>
   <div class="tb-r">
     <a href="hatchery.html">← Rapora dön</a>
   </div>
@@ -86,6 +86,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
     <div class="chip" id="mTour" style="opacity:.6">▶ Tur (demo)</div>
   </div>
   <div class="chips" id="sLegend" style="display:none;font-family:var(--mono);font-size:10.5px;color:var(--muted)">
+    <div class="chip" id="vChip">🔊 Seslendirme: kapalı</div>
+    <div class="chip" id="iChip">📈 Endeksler: açık</div>
     <span style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#2F9BFF">▮</span> parite (1 kg tavuk kaç kg yem alır)</span>
     <span style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#E5484D">▮</span> sıkışma: parite &lt; 3,0</span>
     <span style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px">Kaynak: TÜİK Yİ-ÜFE C10.12/C10.91 · TEPGE</span>
@@ -577,26 +579,111 @@ function buildStory(){
   });
   storyChick=makeChick(storyGrp);storyChick.scale.setScalar(.8);
   storyChick.rotation.y=Math.PI/2; // +X yönüne, yılların aktığı yöne bakar
+  buildIndexPanel();
 }
+/* "Neden?" katmanı: tavuk eti ve yem fiyat endeksleri (2010=100, log ölçek) */
+let idxGrp=null, idxOn=true;
+const IY0=4.7, IYT=6.8;
+function buildIndexPanel(){
+  idxGrp=new THREE.Group();storyGrp.add(idxGrp);idxGrp.visible=idxOn;
+  const iy=v=>IY0+(Math.log10(v)-2)/(3.6-2)*(IYT-IY0);
+  const mkLine=(col,color)=>{
+    const pts=[];
+    for(let i=0;i<SN;i++)pts.push(new THREE.Vector3(xOf(i),iy(SDATA[i][col]/SDATA[0][col]*100),0));
+    idxGrp.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color})));
+    return pts[pts.length-1];
+  };
+  const eT=mkLine(2,0x19C37D), eY=mkLine(3,0xFF6500);   // tavuk, yem
+  const lT=textSprite(idxGrp,0,.55,38);lT.set('Tavuk eti','#19C37D');lT.sp.position.set(eT.x+1.5,eT.y+.25,0);
+  const lY=textSprite(idxGrp,0,.55,38);lY.set('Yem','#FF6500');lY.sp.position.set(eY.x+1.1,eY.y-.2,0);
+  [[100,'100'],[300,'300'],[1000,'1.000'],[3000,'3.000']].forEach(([v,lab])=>{
+    const y=iy(v);
+    const g2=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(X0,y,0),new THREE.Vector3(X0+XW,y,0)]);
+    idxGrp.add(new THREE.Line(g2,new THREE.LineBasicMaterial({color:0x39415a,transparent:true,opacity:.4})));
+    const s=textSprite(idxGrp,0,.45,40);s.set(lab,'#A3A8B5');s.sp.position.set(X0-.95,y,0);
+  });
+  const ttl=textSprite(idxGrp,0,.8,30);
+  ttl.set('Fiyat endeksleri · 2010=100 · log ölçek','#A3A8B5');
+  ttl.sp.position.set(X0+4.2,IYT+.45,0);
+}
+/* konuşma balonu + Türkçe seslendirme */
+let voiceOn=false,lastCh=null,bubbleT=0,bubbleSp=null,bubbleCv=null,bubbleTex=null;
+function speak(txt){
+  if(!voiceOn||!window.speechSynthesis)return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(txt);u.lang='tr-TR';u.rate=1.03;
+  speechSynthesis.speak(u);
+}
+function ensureBubble(){
+  if(bubbleSp)return;
+  bubbleCv=document.createElement('canvas');bubbleCv.width=1024;bubbleCv.height=300;
+  bubbleTex=new THREE.CanvasTexture(bubbleCv);bubbleTex.anisotropy=4;
+  bubbleSp=new THREE.Sprite(new THREE.SpriteMaterial({map:bubbleTex,transparent:true,depthTest:false}));
+  bubbleSp.renderOrder=11;bubbleSp.scale.set(5.6,1.64,1);bubbleSp.visible=false;
+  storyGrp.add(bubbleSp);
+}
+function setBubble(title,txt){
+  ensureBubble();
+  const g=bubbleCv.getContext('2d');g.clearRect(0,0,1024,300);
+  g.fillStyle='rgba(22,25,34,.95)';g.strokeStyle='#FF6500';g.lineWidth=3;
+  g.beginPath();g.roundRect(8,8,1008,248,26);g.fill();g.stroke();
+  g.beginPath();g.moveTo(120,254);g.lineTo(190,254);g.lineTo(95,296);g.closePath();g.fill();
+  g.fillStyle='#FF6500';g.font='700 44px system-ui';g.textAlign='left';
+  g.fillText(title,40,66);
+  g.fillStyle='#E6E8EC';g.font='400 40px system-ui';
+  let line='',y=132;
+  for(const w of txt.split(' ')){
+    const t=line?line+' '+w:w;
+    if(g.measureText(t).width>944){g.fillText(line,40,y);y+=52;line=w;if(y>236)break;}
+    else line=t;
+  }
+  if(line&&y<=236)g.fillText(line,40,y);
+  bubbleTex.needsUpdate=true;
+}
+$('vChip').onclick=()=>{
+  voiceOn=!voiceOn;
+  $('vChip').textContent=voiceOn?'🔊 Seslendirme: açık':'🔊 Seslendirme: kapalı';
+  if(voiceOn&&MODE==='story'&&lastCh)speak(lastCh.t.replace(/^\d+ · /,'')+'. '+lastCh.s);
+  if(!voiceOn&&window.speechSynthesis)speechSynthesis.cancel();
+};
+$('iChip').onclick=()=>{
+  idxOn=!idxOn;if(idxGrp)idxGrp.visible=idxOn;
+  $('iChip').textContent=idxOn?'📈 Endeksler: açık':'📈 Endeksler: kapalı';
+};
 function storyFrame(now,dt){
   if(playing){
-    monthF+=dt*8;
+    monthF+=dt*(bubbleT>0?2:8);          // civciv konuşurken yürüyüş yavaşlar
     if(monthF>=SN-1){monthF=SN-1;playing=false;$('playBtn').textContent='↻ Baştan';}
     syncScrub();
   }
-  const p=parityAt(monthF);
-  storyChick.position.set(xOf(monthF),yOf(p)+.1+Math.abs(Math.sin(now*7))*.08,0);
+  const p=parityAt(monthF),cx0=xOf(monthF),cy0=yOf(p);
+  storyChick.position.set(cx0,cy0+.1+Math.abs(Math.sin(now*7))*.08,0);
   const ym=SDATA[Math.min(SN-1,Math.round(monthF))][0];
   $('dayBadge').innerHTML=`<b>${ym}</b> · parite ${p.toFixed(2).replace('.',',')}`;
   const ch=[...CH].reverse().find(c=>monthF>=c.m)||CH[0];
+  if(ch!==lastCh){                        // yeni bölüm: civciv seyirciye döner ve anlatır
+    lastCh=ch;bubbleT=7;
+    const title=ch.t.replace(/^\d+ · /,'');
+    setBubble(title,ch.s);
+    speak(title+'. '+ch.s);
+  }
+  bubbleT=Math.max(0,bubbleT-dt);
+  if(bubbleSp){
+    bubbleSp.visible=bubbleT>0;
+    bubbleSp.position.set(Math.max(X0+2.9,Math.min(X0+XW-2.9,cx0+1.2)),cy0+1.75,0);
+  }
+  if(bubbleT>0||!playing){               // konuşurken / dururken kameraya bakar
+    const wy=Math.atan2(camera.position.x-cx0,camera.position.z-(storyChick.position.z));
+    storyChick.rotation.y=lerp(storyChick.rotation.y,wy,.15);
+  }else storyChick.rotation.y=lerp(storyChick.rotation.y,Math.PI/2,.1);
   $('stTitle').textContent=ch.t.replace(/^\d+ · /,'');$('stSub').textContent=ch.s;
   chipNodes.forEach((c,i)=>c.classList.toggle('on',CH[i]===ch));
   // kamera: grafiğe cepheden bakar, civcivle birlikte yumuşakça kayar
   if(!dragging&&now-lastInteract>2.5){
-    const cx=Math.max(-4.5,Math.min(4.5,xOf(monthF)*.6));
-    camTarget.lerp(new THREE.Vector3(cx,GY+1.1,0),.05);
+    const cx=Math.max(-4.5,Math.min(4.5,cx0*.6));
+    camTarget.lerp(new THREE.Vector3(cx,GY+(idxOn?2.1:1.1),0),.05);
     let d=Math.PI/2-camTheta;d=Math.atan2(Math.sin(d),Math.cos(d));camTheta+=d*.04;
-    camPhi=lerp(camPhi,1.25,.04);camR=lerp(camR,15,.04);
+    camPhi=lerp(camPhi,1.25,.04);camR=lerp(camR,idxOn?18:15,.04);
     applyCam();
   }
 }
@@ -626,8 +713,12 @@ function setMode(m){
   if(storyGrp)storyGrp.visible=(m==='story');
   stationGroups.forEach(g=>g.visible=(m!=='story'));
   floor.visible=grid.visible=(m!=='story');
-  if(m==='story'){camTheta=Math.PI/2;camPhi=1.25;camR=16;camTarget.set(0,GY+1.1,0);applyCam();}
-  else if(prev==='story'){camTarget.set(0,1.2,0);camPhi=Math.PI*.36;camR=17;applyCam();}
+  if(m==='story'){lastCh=null;bubbleT=0;camTheta=Math.PI/2;camPhi=1.25;camR=idxOn?18:16;camTarget.set(0,GY+(idxOn?2.1:1.1),0);applyCam();}
+  else if(prev==='story'){
+    if(window.speechSynthesis)speechSynthesis.cancel();
+    lastCh=null;if(bubbleSp)bubbleSp.visible=false;
+    camTarget.set(0,1.2,0);camPhi=Math.PI*.36;camR=17;applyCam();
+  }
   Object.values(stats).forEach(s=>s.set(''));
   resetDayBadge();
   playing=true;$('playBtn').textContent='⏸ Durdur';
