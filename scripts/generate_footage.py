@@ -53,13 +53,18 @@ def call(path, body=None, method=None):
     except urllib.error.HTTPError as e:
         return e.code, json.loads(e.read().decode() or "{}")
 
+MODEL = os.environ.get("MODEL", "gen4_turbo")   # taslak: gen4_turbo (~$0.05/sn) · final: gen4.5 (~$0.15/sn)
+DUR = int(os.environ.get("DURATION", "10"))
+COST = {"gen4.5": 0.15, "gen4_turbo": 0.05}
+
 def start_task(prompt):
-    """Metinden-videoya: önce güncel şema, olmazsa eski şema."""
+    """Metinden-videoya: seçilen model, olmazsa alternatif şema."""
+    alt = "gen4_turbo" if MODEL != "gen4_turbo" else "gen4.5"
     attempts = [
-        ("/text_to_video", {"model": "gen4.5", "promptText": prompt,
-                            "ratio": "720:1280", "duration": 10}),
-        ("/text_to_video", {"model": "gen4_turbo", "promptText": prompt,
-                            "ratio": "720:1280", "duration": 10}),
+        ("/text_to_video", {"model": MODEL, "promptText": prompt,
+                            "ratio": "720:1280", "duration": DUR}),
+        ("/text_to_video", {"model": alt, "promptText": prompt,
+                            "ratio": "720:1280", "duration": DUR}),
     ]
     for path, body in attempts:
         st, js = call(path, body)
@@ -88,6 +93,9 @@ def main():
     else:
         ids = [int(x) for x in spec.split(",")]
     os.makedirs("footage", exist_ok=True)
+    n = len(list(ids)) * takes
+    est = n * DUR * COST.get(MODEL, 0.15)
+    print(f"PLAN: {n} üretim × {DUR}sn × {MODEL} ≈ ${est:.2f} tahmini maliyet")
     ok, fail = [], []
     for i in ids:
         for t in range(takes):
