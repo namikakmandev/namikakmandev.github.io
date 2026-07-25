@@ -87,7 +87,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r15</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r16</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -960,9 +960,17 @@ function storyFrame(now,dt){
     hushAll();                            // eski konumun anlatımı yeni konumu beklemesin
   }
   if(playing){
-    /* kesintisiz akış: ses birikirken yürüyüş yavaşlar ama asla durmaz */
+    /* akış: ses birikirken yürüyüş yavaşlar; anlatım bitmeden bir SONRAKİ olaya/bölüme girilmez */
     const backlog=voiceOn&&(speaking||sQueue.length>0);
-    monthF+=dt*(backlog?2.2:(bubbleT>0?4:8));
+    const sp=voiceOn?(backlog?0.8:5):(bubbleT>0?4:8);
+    let mNext=monthF+dt*sp;
+    if(backlog){
+      const nextTrig=Math.min(
+        nextInc<incStops.length?incStops[nextInc].i:1e9,
+        (CH.find(c=>c.m>monthF)||{m:1e9}).m);
+      mNext=Math.min(mNext,Math.max(monthF,nextTrig-.05));
+    }
+    monthF=mNext;
     if(monthF>=SN-1){monthF=SN-1;playing=false;$('playBtn').textContent='↻ Baştan';showEnd();}
     syncScrub();
     if(nextInc<incStops.length&&monthF>=incStops[nextInc].i){
