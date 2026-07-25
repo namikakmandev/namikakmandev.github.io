@@ -102,7 +102,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 <div id="stage"><canvas id="c3d"></canvas></div>
 
 <div class="topbar">
-  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r17</b></span></div>
+  <div class="logo">🐣 Kuluçka<span>Takip</span> <span style="color:var(--muted);font-weight:400;font-size:12px">· 3B Üretim Turu · <b style="color:var(--orange)">r18</b></span></div>
 </div>
 
 <div class="stageName"><div class="t" id="stTitle"></div><div class="s" id="stSub"></div></div>
@@ -684,11 +684,50 @@ $('chatFab').onclick=()=>{
   if(p.classList.contains('show')&&!$('chatMsgs').children.length)addMsg('bot',T2().chatHi);
 };
 $('chatClose').onclick=()=>$('chatPanel').classList.remove('show');
-function chatSendNow(){
+
+/* Claude üzerinden yanıt (assetix-ai worker'ı — diğer projelerle ortak proxy);
+   worker'a ulaşılamazsa yerel kural motoru (botAnswer) devreye girer */
+const AI_URL='https://assetix-ai.akmannamik83.workers.dev';
+let chatHist=[];
+function aiSystem(){
+  const inc=INCIDENTS.map(i=>`${i.ym}: ${i.txt} (${i.imp})`).join('\n');
+  const rows=SDATA.map(d=>d.join(',')).join('\n');
+  return `Sen CivBot'sun 🐣 — namikakmandev.github.io/hatchery-3d.html sayfasının sevimli civciv anlatıcısı. `+
+  `Türkiye broiler (etlik piliç) parite verisi ve bu sayfa hakkında soruları yanıtlarsın. `+
+  `KISA yanıt ver (en çok 3-4 cümle), YALNIZCA aşağıdaki verilere dayan, sayı uydurma. `+
+  `Kullanıcı hangi dilde yazarsa o dilde yanıtla (şu an arayüz: ${LNG==='en'?'English':'Türkçe'}). `+
+  `Sayfa özellikleri: 📖 Hikâye modu (civciv 2010–2026 parite eğrisinde yürür ve anlatır), ● Canlı Veri modu (cihazdaki KuluçkaTakip parti kayıtları), 📄 Ham veri paneli (seri + kayıtlar + formüller), 🔊 sesli anlatım, 🌐 TR/EN.\n`+
+  `Tanımlar: Parite = tavuk eti fiyatı ÷ yem fiyatı (TEPGE ankrajlı; endeksler TÜİK Yİ-ÜFE C10.12 tavuk eti, C10.91 yem). 3,0 altı = marj sıkışması. `+
+  `Uzun dönem ortalama 3,23 · tarihi dip 2,34 (2020-10) · zirve 4,55 (2010-04) · son değer ${SDATA[SN-1][0]}: ${SDATA[SN-1][1]}.\n`+
+  `Önemli olaylar:\n${inc}\n`+
+  `Aylık seri (ay,parite,tavukEndeksi,yemEndeksi):\n${rows}`;
+}
+async function chatSendNow(){
   const q=$('chatIn').value.trim();if(!q)return;
   $('chatIn').value='';
   addMsg('me',q.replace(/</g,'&lt;'));
-  addMsg('bot',botAnswer(q));
+  const wait=document.createElement('div');wait.className='msg bot';wait.textContent='🐣 …';
+  $('chatMsgs').appendChild(wait);$('chatMsgs').scrollTop=1e9;
+  chatHist.push('Soru: '+q);
+  const prompt=chatHist.slice(-7).join('\n')+'\nYanıt:';
+  let out=null;
+  try{
+    const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),25000);
+    const r=await fetch(AI_URL,{method:'POST',signal:ctl.signal,
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({prompt,system:aiSystem()})});
+    clearTimeout(tm);
+    const j=await r.json();
+    if(r.ok&&j.text)out=j.text.trim();
+  }catch(e){}
+  if(out){
+    wait.textContent=out;
+    chatHist.push('Yanıt: '+out);
+  }else{
+    wait.innerHTML=botAnswer(q);              // çevrimdışı / worker hatası: yerel motor
+    chatHist.push('Yanıt: (yerel)');
+  }
+  $('chatMsgs').scrollTop=1e9;
 }
 $('chatSend').onclick=chatSendNow;
 $('chatIn').addEventListener('keydown',e=>{if(e.key==='Enter')chatSendNow();});
