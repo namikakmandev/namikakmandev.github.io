@@ -81,9 +81,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",
 
 <div class="hud">
   <div class="chips" id="modeChips">
-    <div class="chip" id="mLive">● Canlı Veri</div>
-    <div class="chip" id="mTour">▶ Tur Modu</div>
     <div class="chip" id="mStory">📖 Hikâye · 2010–2026</div>
+    <div class="chip" id="mLive">● Canlı Veri</div>
+    <div class="chip" id="mTour" style="opacity:.6">▶ Tur (demo)</div>
   </div>
   <div class="chips" id="sLegend" style="display:none;font-family:var(--mono);font-size:10.5px;color:var(--muted)">
     <span style="background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px 9px"><span style="color:#2F9BFF">▮</span> parite (1 kg tavuk kaç kg yem alır)</span>
@@ -603,8 +603,10 @@ function storyFrame(now,dt){
 function resetDayBadge(){$('dayBadge').innerHTML='Gün <b id="dayNum">0</b>/21';}
 
 /* ================= mod yönetimi ================= */
-let MODE = OPS && OPS.sites.some(s=>(s.batches||[]).some(b=>b.st==='in')) ? 'live':'tour';
-if(!OPS) $('noData').classList.add('show');
+/* açılış: aktif parti varsa canlı veri, yoksa hikâye; tur yalnızca elle seçilir */
+let MODE = OPS && OPS.sites.some(s=>(s.batches||[]).some(b=>b.st==='in')) ? 'live'
+         : (SDATA ? 'story' : 'tour');
+if(!OPS&&MODE==='tour') $('noData').classList.add('show');
 const stationGroups=[stKabul,stSetter,stKontrol,stCikim,stSevk];
 function setMode(m){
   if(m==='live'&&!OPS)m='tour';
