@@ -53,13 +53,17 @@ def call(path, body=None, method=None):
     except urllib.error.HTTPError as e:
         return e.code, json.loads(e.read().decode() or "{}")
 
-MODEL = os.environ.get("MODEL", "gen4_turbo")   # taslak: gen4_turbo (~$0.05/sn) · final: gen4.5 (~$0.15/sn)
+# API'nin kabul ettiği modeller (ilk koşunun 400 yanıtından): gen3a_turbo, gen4.5,
+# kling2.5_turbo_pro, kling3.0_pro/standard/4k, klingO3_pro/standard/4k,
+# seedance2, seedance2_fast, seedance2_mini, happyhorse_1_0.
+# gen4_turbo artık yok → taslak için gen3a_turbo (~$0.05/sn), final gen4.5 (~$0.15/sn).
+MODEL = os.environ.get("MODEL", "gen3a_turbo")
 DUR = int(os.environ.get("DURATION", "10"))
-COST = {"gen4.5": 0.15, "gen4_turbo": 0.05}
+COST = {"gen4.5": 0.15, "gen3a_turbo": 0.05}
 
 def start_task(prompt):
-    """Metinden-videoya: seçilen model, olmazsa alternatif şema."""
-    alt = "gen4_turbo" if MODEL != "gen4_turbo" else "gen4.5"
+    """Metinden-videoya: seçilen model, olmazsa gen4.5'e düş."""
+    alt = "gen4.5" if MODEL != "gen4.5" else "gen3a_turbo"
     attempts = [
         ("/text_to_video", {"model": MODEL, "promptText": prompt,
                             "ratio": "720:1280", "duration": DUR}),
