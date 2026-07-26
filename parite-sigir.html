@@ -107,6 +107,10 @@ const T={
   finSrc:'VERİ: FRED/BLS · EC AGRIFOOD · TÜİK/EVDS — 993 AY · TEK METODOLOJİ<br>namikakman.dev',
   axParite:'parite (sığır ÷ mısır)',axIdx:'endeks (2015=100)',axAy:'dipten sonra geçen ay',axDip:'parite (dip=100)',
   axMaliyet:'maliyet / 100 gelir',geliri:'GELİR = 100',
+  tUS:['GRAFİK 1/4 · ABD, 1971–2026','1 birim sığır kaç birim mısır ediyor? Kaydırdıkça çizgi ilerler.'],
+  tCy:['GRAFİK 2/4 · DÖNGÜ LABORATUVARI','Dört kriz dibi üst üste (dip=100): aynı yörünge.'],
+  tRc:['GRAFİK 3/4 · ÜÇ KITA YARIŞI','ABD · AB · Türkiye — parite endeksi, 2015=100.'],
+  tPn:['GRAFİK 4/4 · BESİCİ KÂR-ZARARI','100 birim gelirde maliyetler; çizgiyi aşan çubuk = zarar.'],
   serUS:'ABD',serEU:'AB',serTR:'TÜRKİYE',
   pnlDana:'dana',pnlYem:'yem',pnlDiger:'diğer',
   pnlS:['Dip','Ortalama','Bugün'],
@@ -133,6 +137,10 @@ const T={
   finSrc:'DATA: FRED/BLS · EC AGRIFOOD · TÜİK/EVDS — 993 MONTHS · ONE METHODOLOGY<br>namikakman.dev',
   axParite:'parity (cattle ÷ corn)',axIdx:'index (2015=100)',axAy:'months after trough',axDip:'parity (trough=100)',
   axMaliyet:'cost per 100 revenue',geliri:'REVENUE = 100',
+  tUS:['CHART 1/4 · US, 1971–2026','How much corn does one unit of cattle buy? The line draws as you scroll.'],
+  tCy:['CHART 2/4 · CYCLE LAB','Four crisis troughs stacked (trough=100): one trajectory.'],
+  tRc:['CHART 3/4 · THREE-CONTINENT RACE','US · EU · Türkiye — parity index, 2015=100.'],
+  tPn:['CHART 4/4 · FEEDER P&L','Costs per 100 revenue; a bar above the line = a loss.'],
   serUS:'US',serEU:'EU',serTR:'TÜRKİYE',
   pnlDana:'calf',pnlYem:'feed',pnlDiger:'other',
   pnlS:['Trough','Average','Today'],
@@ -222,9 +230,17 @@ function series(rows,i0,i1,x0,y0,w,h,ymin,ymax,col,glow,lw){
 }
 
 /* ---------- sahneler ---------- */
+function sceneTitle(pair){
+  ctx.textAlign='center';
+  ctx.fillStyle=COL.amber;ctx.font='700 13px "IBM Plex Mono",monospace';
+  ctx.fillText(pair[0],W/2,54);
+  ctx.fillStyle=COL.dimmer;ctx.font='500 12px "IBM Plex Sans",sans-serif';
+  ctx.fillText(pair[1],W/2,74);
+}
 function scUSline(p){
   const L=T[LANG];
-  const M={l:64,r:26,t:H*0.16,b:H*0.44};
+  sceneTitle(L.tUS);
+  const M={l:64,r:26,t:H*0.18,b:H*0.44};
   const w=W-M.l-M.r,h=H-M.t-M.b;
   const YMIN=0.3,YMAX=2.7;
   grid(M.l,M.t,w,h,0.5,2.5,0.5,'');
@@ -269,7 +285,8 @@ function scUSline(p){
 }
 function scCycle(p){
   const L=T[LANG];
-  const M={l:64,r:26,t:H*0.11,b:H*0.55};
+  sceneTitle(L.tCy);
+  const M={l:64,r:26,t:H*0.13,b:H*0.55};
   const w=W-M.l-M.r,h=H-M.t-M.b;
   const dips=[['1974-12','#8a7c62'],['1996-05',COL.blue],['2011-06','#cbbfa8'],['2021-05',COL.amber]];
   const YMIN=80,YMAX=470;
@@ -299,7 +316,8 @@ function scCycle(p){
 }
 function scRace(p){
   const L=T[LANG];
-  const M={l:64,r:78,t:H*0.11,b:H*0.55};
+  sceneTitle(L.tRc);
+  const M={l:64,r:78,t:H*0.13,b:H*0.55};
   const w=W-M.l-M.r,h=H-M.t-M.b;
   const YMIN=30,YMAX=180;
   grid(M.l,M.t,w,h,60,180,30,'');
@@ -336,7 +354,8 @@ function scRace(p){
 }
 function scPnl(p){
   const L=T[LANG];
-  const M={l:56,r:20,t:H*0.17,b:H*0.44};
+  sceneTitle(L.tPn);
+  const M={l:56,r:20,t:H*0.19,b:H*0.44};
   const w=W-M.l-M.r,h=H-M.t-M.b;
   const mean={US:1.0786,EU:2.2387,TR:1.0426};
   const dip={US:0.5774,EU:1.4191,TR:0.6962};
