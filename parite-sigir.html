@@ -21,7 +21,7 @@ body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-sy
 #story{position:relative;z-index:2}
 .spacer{height:52vh}
 .step{min-height:88vh;display:flex;align-items:flex-end;justify-content:center;padding:0 5vw 9vh}
-.card{max-width:520px;background:var(--card);border:1px solid rgba(255,176,86,.35);
+.card{max-width:520px;transition:opacity .25s;background:var(--card);border:1px solid rgba(255,176,86,.35);
  border-radius:14px;padding:18px 22px;backdrop-filter:blur(3px);box-shadow:0 8px 30px rgba(0,0,0,.45)}
 .card .k{font:600 11px "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:.14em;margin-bottom:6px}
 .card h3{font-size:21px;line-height:1.25;margin-bottom:8px}
@@ -538,8 +538,17 @@ function draw(){
   else scPnl(p);
   ctx.globalAlpha=1;
 }
+function fadeCards(){
+  const mid=innerHeight;
+  document.querySelectorAll('.step .card').forEach(c=>{
+    const r=c.getBoundingClientRect();
+    const cy=(r.top+r.bottom)/2;
+    /* kart merkezi ekranın üst %38'ine çıktıysa (dönemi bitti) söndür */
+    c.style.opacity=(cy<innerHeight*0.38)?0.12:1;
+  });
+}
 let raf=null;
-addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=null;draw();});},{passive:true});
+addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=null;draw();fadeCards();});},{passive:true});
 setInterval(draw,400);   // güvenlik ağı: hızlı kaydırmada bayat kare kalmasın
 buildSteps();fit();
 </script>
