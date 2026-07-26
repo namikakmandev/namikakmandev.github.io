@@ -281,8 +281,8 @@ function scCorr(p){
                EUTR:[L.serEU+' → '+L.serTR,COL.blue,COL.glowB]};
   const prog=ease(Math.min(1,p*1.25));
   /* üçlü ortak nabız kutusu (çizim yarılanınca belirir) */
-  if(prog>0.5&&CORR.pc1){
-    const a=Math.min(1,(prog-0.5)*4);
+  if(prog>0.3&&CORR.pc1){
+    const a=Math.min(1,(prog-0.3)*4);
     ctx.globalAlpha=a;
     const bx=W-M.r-F(268),by=M.t+F(8),bw=F(260),bh=F(64);
     ctx.fillStyle='rgba(12,9,5,.8)';ctx.strokeStyle='rgba(255,176,86,.4)';ctx.lineWidth=1.5;
@@ -312,7 +312,7 @@ function scCorr(p){
     ctx.fillStyle=c;ctx.fillText(lb,M.l+F(8),M.t+F(20)+li*F(19));
     li++;
     /* --- */
-    if(prog>0.96){
+    if(prog>0.85){
       const[bk,bv]=o.best;
       ctx.beginPath();ctx.arc(X(bk),Y(bv),F(5),0,7);ctx.fillStyle=c;ctx.fill();
       ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';ctx.textAlign='center';
