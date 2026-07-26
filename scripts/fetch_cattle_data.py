@@ -227,7 +227,83 @@ def build_merged():
         json.dump(out, f, separators=(",", ":"))
     return out
 
+def build_corn():
+    """Sağlamlık testi verisi: her bölgede payda = MISIR.
+
+    US: cattle-us.json zaten sığır/mısır (kopyalanır).
+    EU: R3 karkas ÷ yemlik mısır (cereal API, productCodes=MAI — açıkça mısır).
+    TR: et ürünleri ÜFE ÷ EVDS mısır serisi (CORN_TR_CODE env ile verilir;
+        kod keşif modunda katalogdan bulunur)."""
+    import os
+    out = {"note": "denominator = maize/corn everywhere (robustness check)", "regions": {}}
+    us = json.load(open("data/cattle-us.json"))["rows"]
+    out["regions"]["US"] = {
+        "source": "FRED/BLS: WPU0131 / WPU012202 (corn)",
+        "columns": ["month", "meat", "corn", "parity"],
+        "rows": [[m, c, k, round(c / k, 4)] for m, c, k, _ in us]}
+    beef = _agrifood_monthly(
+        "https://www.ec.europa.eu/agrifood/api/beef/prices"
+        "?memberStateCodes=EU&categories=young%20bulls&qualities=R3"
+        "&beginDate=01/01/2010&endDate=31/12/2026")
+    scale = 100 if sum(beef.values()) / len(beef) > 3000 else 1
+    beef = {m: v / scale for m, v in beef.items()}
+    mai = _agrifood_monthly(
+        "https://www.ec.europa.eu/agrifood/api/cereal/prices"
+        "?productCodes=MAI&beginDate=01/01/2010&endDate=31/12/2026")
+    ms = 100 if mai and sum(mai.values()) / len(mai) > 2000 else 1
+    mai = {m: v / ms for m, v in mai.items()}
+    months = sorted(set(beef) & set(mai))
+    out["regions"]["EU"] = {
+        "source": "EC agrifood: R3 carcass EUR/100kg / feed maize EUR/t (productCodes=MAI)",
+        "columns": ["month", "meat", "corn", "parity"],
+        "rows": [[m, round(beef[m], 2), round(mai[m], 2), round(beef[m] / mai[m], 4)]
+                 for m in months]}
+    code = os.environ.get("CORN_TR_CODE", "").strip()
+    if code:
+        key = os.environ.get("EVDS_KEY", "").strip()
+        from evds import evdsAPI
+        api = evdsAPI(key)
+        codes = ["TP.TUFE1YI.T17", code]
+        df = api.get_data(codes, startdate="01-01-2010", enddate="31-12-2026")
+        cm, cc = [c.replace(".", "_") for c in codes]
+        rows = []
+        for _, r in df.iterrows():
+            t = str(r.get("Tarih", ""))
+            m_, c_ = r.get(cm), r.get(cc)
+            if m_ is None or c_ is None or str(m_) == "nan" or str(c_) == "nan":
+                continue
+            parts = t.replace("/", "-").split("-")
+            if len(parts) < 2:
+                continue
+            ym = f"{parts[0]}-{int(parts[1]):02d}"
+            rows.append([ym, round(float(m_), 2), round(float(c_), 2),
+                         round(float(m_) / float(c_), 4)])
+        if rows:
+            out["regions"]["TR"] = {
+                "source": f"EVDS: TP.TUFE1YI.T17 / {code} (mısır)",
+                "columns": ["month", "meat", "corn", "parity"],
+                "rows": rows}
+    with open("data/corn-parity.json", "w") as f:
+        json.dump(out, f, separators=(",", ":"))
+    return out
+
 def main():
+    import os
+    mode = os.environ.get("MODE", "").strip()
+    if mode == "discover":
+        cat = build_tr_discovery()
+        for g in cat["groups"]:
+            for s in g.get("series", []):
+                nm = s.get("name", "").lower()
+                if any(k in nm for k in ("mısır", "misir", "maize", "corn")):
+                    print("CORN-CANDIDATE:", s.get("code"), "|", s.get("name"), "| group:", g.get("group"))
+        print("discovery done,", len(cat["groups"]), "groups scanned")
+        return
+    if mode == "corn":
+        obj = build_corn()
+        print("OK corn-parity regions:", ",".join(obj["regions"]),
+              "| rows:", {k: len(v["rows"]) for k, v in obj["regions"].items()})
+        return
     ok, fail = [], []
     for name, fn in [("data/cattle-us.json", build_us),
                      ("data/cattle-eu.json", build_eu),

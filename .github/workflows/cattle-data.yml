@@ -2,6 +2,13 @@ name: Fetch cattle parity data
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "boş=tam çekim | discover=EVDS mısır kataloğu | corn=hepsi-mısır sağlamlık verisi"
+        default: ""
+      corn_tr_code:
+        description: "TR mısır EVDS seri kodu (corn modu için)"
+        default: ""
 
 permissions:
   contents: write
@@ -19,6 +26,8 @@ jobs:
       - name: Fetch series
         env:
           EVDS_KEY: ${{ secrets.EVDS_KEY }}
+          MODE: ${{ inputs.mode }}
+          CORN_TR_CODE: ${{ inputs.corn_tr_code }}
         run: |
           mkdir -p data
           python scripts/fetch_cattle_data.py
@@ -26,6 +35,6 @@ jobs:
         run: |
           git config user.name "cattle-data-bot"
           git config user.email "actions@github.com"
-          git add data/cattle-*.json || true
+          git add data/cattle-*.json data/corn-parity.json 2>/dev/null || true
           git diff --cached --quiet || git commit -m "data: refresh cattle parity series [skip ci]"
           git push
