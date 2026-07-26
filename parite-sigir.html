@@ -697,10 +697,11 @@ function scPnl(p){
   sw(COL.amber,LANG==='en'?'feed (moves with parity)':'yem (pariteyle oynar)');
   sw(cO,LANG==='en'?'other 15 (fixed)':'diğer 15 (sabit)');
   /* çubuklar: her ülke için DİP ve BUGÜN yan yana */
-  const t2=ease(Math.min(1,Math.max(0,(p-0.35)/0.45)));   // BUGÜN çubukları sonradan belirir
+  const t2=1;   // iki çubuk da baştan görünür
   const bw=Math.min(F(64),w/3/3.4);
   const gap=F(14);
-  regs.forEach(([k,lb,c],ri)=>{
+  regs.forEach(([k,lb,_c],ri)=>{
+    const c=COL.amber;   // yem her ülkede aynı renk (lejantla tutarlı)
     const cx=M.l+w*(ri+0.5)/3;
     const scen=[[dip[k],L.pnlS[0],1],[today[k],L.pnlS[2],t2]];
     scen.forEach(([pv,slb,al],si)=>{
@@ -711,15 +712,22 @@ function scPnl(p){
       ctx.globalAlpha=al;
       let acc=0;
       for(const [v,sc] of [[45,cD],[yem,c],[15,cO]]){
+        const yTop=Y(acc+v),hh=Y(acc)-Y(acc+v);
         ctx.fillStyle=sc;ctx.globalAlpha=al*(sc===c?0.95:0.8);
-        ctx.fillRect(bx,Y(acc+v),bw,Y(acc)-Y(acc+v));
+        ctx.fillRect(bx,yTop,bw,hh);
+        if(hh>F(17)){                      // katmanın üstüne rakamı yaz
+          ctx.globalAlpha=al;
+          ctx.fillStyle='#141007';ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';
+          ctx.textAlign='center';
+          ctx.fillText(Math.round(v),bx+bw/2,yTop+hh/2+F(4));
+        }
         acc+=v;
       }
       ctx.globalAlpha=al;
       ctx.textAlign='center';
       ctx.fillStyle=kar>=0?'#7fc97f':COL.red;
-      ctx.font='700 '+F(19)+'px "IBM Plex Mono",monospace';
-      ctx.fillText((kar>=0?'+':'')+kar.toFixed(0),bx+bw/2,Y(acc)-F(10));
+      ctx.font='700 '+F(16)+'px "IBM Plex Mono",monospace';
+      ctx.fillText((kar>=0?'+':'')+kar.toFixed(0)+' '+(kar>=0?(LANG==='en'?'PROFIT':'KÂR'):(LANG==='en'?'LOSS':'ZARAR')),bx+bw/2,Y(acc)-F(10));
       ctx.fillStyle=COL.dimmer;ctx.font='600 '+F(11)+'px "IBM Plex Mono",monospace';
       ctx.fillText(slb.toUpperCase(),bx+bw/2,M.t+h+F(16));
       ctx.globalAlpha=1;
