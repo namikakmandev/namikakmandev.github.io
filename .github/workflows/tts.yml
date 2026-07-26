@@ -1,0 +1,51 @@
+name: Generate narration audio (Piper TTS)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install piper
+        run: pip install piper-tts
+      - name: Download voices
+        run: |
+          mkdir -p voices
+          base=https://huggingface.co/rhasspy/piper-voices/resolve/main
+          curl -L -o voices/tr.onnx      "$base/tr/tr_TR/fahrettin/medium/tr_TR-fahrettin-medium.onnx"
+          curl -L -o voices/tr.onnx.json "$base/tr/tr_TR/fahrettin/medium/tr_TR-fahrettin-medium.onnx.json"
+          curl -L -o voices/en.onnx      "$base/en/en_US/lessac/medium/en_US-lessac-medium.onnx"
+          curl -L -o voices/en.onnx.json "$base/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"
+      - name: Synthesize
+        run: |
+          python - <<'EOF'
+          import json, subprocess, os, wave
+          cfg = json.load(open('film/narration.json', encoding='utf-8'))
+          os.makedirs('film/audio', exist_ok=True)
+          report = {}
+          for lang in ('tr', 'en'):
+              model = f'voices/{lang}.onnx'
+              for key, text in cfg['lines'][lang].items():
+                  out = f'film/audio/{lang}-{key}.wav'
+                  subprocess.run(['piper', '--model', model, '--output_file', out],
+                                 input=text.encode('utf-8'), check=True)
+                  with wave.open(out) as w:
+                      report[f'{lang}-{key}'] = round(w.getnframes() / w.getframerate(), 2)
+          json.dump(report, open('film/audio/durations.json', 'w'), indent=1)
+          print(json.dumps(report, indent=1))
+          EOF
+      - name: Commit audio
+        run: |
+          git config user.name "tts-bot"
+          git config user.email "actions@github.com"
+          git add film/audio
+          git diff --cached --quiet || git commit -m "audio: piper narration TR+EN [skip ci]"
+          git push
