@@ -137,7 +137,7 @@ const T={
           ['2020-03','2022-12','🦠⚔️','Pandemi +','Ukrayna savaşı'],
           ['2023-06','2026-06','🏆🐄','Rekor bölgesi','sürü kıtlığı']],
   tCo:['GRAFİK 2/4 · KİM ÖNDEN GİDİYOR?','Yıllık değişim korelasyonu, ±12 ay kaydırmayla. Tepe = saat farkı.'],
-  tCy:['GRAFİK 3/4 · DÖNGÜ LABORATUVARI','Dört kriz dibi üst üste (dip=100): aynı yörünge.'],
+  tCy:['GRAFİK 3/4 · DÖNGÜ LABORATUVARI (ABD)','Tek seri, dört kriz: ABD’nin 1974, 1996, 2011 ve 2021 dipleri üst üste (dip=100).'],
   tRc:['GRAFİK 3/4 · ÜÇ KITA YARIŞI','ABD · AB · Türkiye — parite endeksi, 2015=100.'],
   tPn:['GRAFİK 4/4 · BESİCİ KÂR-ZARARI','100 birim gelirde maliyetler; çizgiyi aşan çubuk = zarar.'],
   bgLbl:'ARKA PLAN — NE OLDU?',
@@ -185,7 +185,7 @@ const T={
           ['2020-03','2022-12','🦠⚔️','Pandemic +','Ukraine war'],
           ['2023-06','2026-06','🏆🐄','Record zone','herd shortage']],
   tCo:['CHART 2/4 · WHO LEADS?','Annual-change correlation at ±12-month shifts. The peak = the time difference.'],
-  tCy:['CHART 3/4 · CYCLE LAB','Four crisis troughs stacked (trough=100): one trajectory.'],
+  tCy:['CHART 3/4 · CYCLE LAB (US)','One series, four crises: the US troughs of 1974, 1996, 2011 and 2021, stacked (trough=100).'],
   tRc:['CHART 3/4 · THREE-CONTINENT RACE','US · EU · Türkiye — parity index, 2015=100.'],
   tPn:['CHART 4/4 · FEEDER P&L','Costs per 100 revenue; a bar above the line = a loss.'],
   bgLbl:'BACKGROUND — WHAT HAPPENED?',
@@ -555,6 +555,9 @@ function scUSline(p){
 function scCycle(p){
   const L=T[LANG];
   sceneTitle(L.tCy);
+  ctx.textAlign='left';
+  ctx.fillStyle=COL.dim;ctx.font='600 '+F(12)+'px "IBM Plex Mono",monospace';
+  ctx.fillText(LANG==='en'?'ALL LINES = US SERIES · label = trough year':'TÜM ÇİZGİLER = ABD SERİSİ · etiket = dip yılı',F(70),H*0.11+F(20));
   const M={l:64,r:26,t:H*0.13,b:H*0.55};
   const w=W-M.l-M.r,h=H-M.t-M.b;
   const dips=[['1974-12','#8a7c62'],['1996-05',COL.blue],['2011-06','#cbbfa8'],['2021-05',COL.amber]];
