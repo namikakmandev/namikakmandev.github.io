@@ -19,11 +19,8 @@ jobs:
       - name: Download voices
         run: |
           mkdir -p voices
-          base=https://huggingface.co/rhasspy/piper-voices/resolve/main
-          curl -L -o voices/tr.onnx      "$base/tr/tr_TR/fahrettin/medium/tr_TR-fahrettin-medium.onnx"
-          curl -L -o voices/tr.onnx.json "$base/tr/tr_TR/fahrettin/medium/tr_TR-fahrettin-medium.onnx.json"
-          curl -L -o voices/en.onnx      "$base/en/en_US/lessac/medium/en_US-lessac-medium.onnx"
-          curl -L -o voices/en.onnx.json "$base/en/en_US/lessac/medium/en_US-lessac-medium.onnx.json"
+          python -m piper.download_voices tr_TR-fahrettin-medium en_US-lessac-medium --data-dir voices
+          ls -la voices
       - name: Synthesize
         run: |
           python - <<'EOF'
@@ -32,7 +29,8 @@ jobs:
           os.makedirs('film/audio', exist_ok=True)
           report = {}
           for lang in ('tr', 'en'):
-              model = f'voices/{lang}.onnx'
+              name = cfg['voices'][lang]
+              model = f'voices/{name}.onnx'
               for key, text in cfg['lines'][lang].items():
                   out = f'film/audio/{lang}-{key}.wav'
                   subprocess.run(['piper', '--model', model, '--output_file', out],
