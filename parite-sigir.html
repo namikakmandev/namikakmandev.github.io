@@ -671,48 +671,65 @@ function scRace(p){
 function scPnl(p){
   const L=T[LANG];
   sceneTitle(L.tPn);
-  const M={l:56,r:20,t:H*0.19,b:H*0.44};
+  const M={l:56,r:20,t:H*0.20,b:H*0.44};
   const w=W-M.l-M.r,h=H-M.t-M.b;
   const mean={US:1.0786,EU:2.2387,TR:1.0426};
-  const dip={US:0.5774,EU:1.4191,TR:0.6962};
+  const dip={US:0.3957,EU:1.4191,TR:0.6962};   // her serinin tarihî dibi (ABD 1974)
   const today={US:2.4404,EU:2.8241,TR:1.3063};
-  /* p: 0-0.5 dip senaryosu, 0.5-1 bugüne geçiş */
-  const t=ease(Math.min(1,Math.max(0,(p-0.35)/0.5)));
-  const lerp=(a,b)=>a+(b-a)*t;
-  const scen={US:lerp(dip.US,today.US),EU:lerp(dip.EU,today.EU),TR:lerp(dip.TR,today.TR)};
-  const label=t<0.5?L.pnlS[0]:L.pnlS[2];
   const regs=[['US',L.serUS,COL.amber],['EU',L.serEU,COL.blue],['TR',L.serTR,COL.red]];
-  const bw=Math.min(110,w/3-34);
   const ymax=170;
-  const y100=M.t+h*(1-100/ymax);
-  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
-  ctx.fillText(L.axMaliyet,W-M.r,M.t-10);
-  ctx.textAlign='left';
-  ctx.fillStyle=COL.dim;ctx.font='700 '+F(16)+'px "IBM Plex Mono",monospace';
-  ctx.fillText(label.toUpperCase(),M.l,M.t-8);
+  const Y=v=>M.t+h*(1-v/ymax);
+  const y100=Y(100);
+  const cD='#B9AB94',cO='#DDD3C0';
+  /* lejant */
+  ctx.textAlign='left';ctx.font='500 '+F(12)+'px "IBM Plex Sans",sans-serif';
+  let lx=M.l+F(4),ly=M.t-F(4);
+  const sw=(c,txt)=>{ctx.fillStyle=c;ctx.fillRect(lx,ly-F(10),F(13),F(13));
+    ctx.fillStyle=COL.dim;ctx.fillText(txt,lx+F(19),ly+F(1));
+    lx+=ctx.measureText(txt).width+F(46);};
+  sw(cD,LANG==='en'?'calf 45 (fixed)':'dana 45 (sabit)');
+  sw(COL.amber,LANG==='en'?'feed (moves with parity)':'yem (pariteyle oynar)');
+  sw(cO,LANG==='en'?'other 15 (fixed)':'diğer 15 (sabit)');
+  /* çubuklar: her ülke için DİP ve BUGÜN yan yana */
+  const t2=ease(Math.min(1,Math.max(0,(p-0.35)/0.45)));   // BUGÜN çubukları sonradan belirir
+  const bw=Math.min(F(64),w/3/3.4);
+  const gap=F(14);
   regs.forEach(([k,lb,c],ri)=>{
-    const cx=M.l+w*(ri+0.5)/3-bw/2;
-    const yem=35*mean[k]/scen[k];
-    const segs=[[45,'#B9AB94'],[yem,c],[15,'#DDD3C0']];
-    let acc=0;
-    for(const [v,sc] of segs){
-      const y0=M.t+h*(1-(acc+v)/ymax),hh=h*v/ymax;
-      ctx.fillStyle=sc;ctx.globalAlpha=sc===c?0.95:0.8;
-      ctx.fillRect(cx,y0,bw,hh);ctx.globalAlpha=1;
-      acc+=v;
-    }
-    const kar=100-acc;
+    const cx=M.l+w*(ri+0.5)/3;
+    const scen=[[dip[k],L.pnlS[0],1],[today[k],L.pnlS[2],t2]];
+    scen.forEach(([pv,slb,al],si)=>{
+      if(al<=0)return;
+      const bx=cx+(si===0?-bw-gap/2:gap/2);
+      const yem=35*mean[k]/pv;
+      const kar=100-45-15-yem;
+      ctx.globalAlpha=al;
+      let acc=0;
+      for(const [v,sc] of [[45,cD],[yem,c],[15,cO]]){
+        ctx.fillStyle=sc;ctx.globalAlpha=al*(sc===c?0.95:0.8);
+        ctx.fillRect(bx,Y(acc+v),bw,Y(acc)-Y(acc+v));
+        acc+=v;
+      }
+      ctx.globalAlpha=al;
+      ctx.textAlign='center';
+      ctx.fillStyle=kar>=0?'#7fc97f':COL.red;
+      ctx.font='700 '+F(19)+'px "IBM Plex Mono",monospace';
+      ctx.fillText((kar>=0?'+':'')+kar.toFixed(0),bx+bw/2,Y(acc)-F(10));
+      ctx.fillStyle=COL.dimmer;ctx.font='600 '+F(11)+'px "IBM Plex Mono",monospace';
+      ctx.fillText(slb.toUpperCase(),bx+bw/2,M.t+h+F(16));
+      ctx.globalAlpha=1;
+    });
     ctx.textAlign='center';
-    ctx.fillStyle=kar>=0?'#7fc97f':COL.red;
-    ctx.font='700 '+F(20)+'px "IBM Plex Mono",monospace';
-    ctx.fillText((kar>=0?'+':'')+kar.toFixed(0),cx+bw/2,M.t+h*(1-acc/ymax)-10);
-    ctx.fillStyle=COL.dim;ctx.font='600 '+F(13)+'px "IBM Plex Sans",sans-serif';
-    ctx.fillText(lb,cx+bw/2,M.t+h+20);
+    ctx.fillStyle=COL.dim;ctx.font='700 '+F(15)+'px "IBM Plex Sans",sans-serif';
+    ctx.fillText(lb,cx,M.t+h+F(38));
   });
+  /* gelir çizgisi */
   ctx.setLineDash([7,6]);ctx.strokeStyle=COL.ink;ctx.lineWidth=1.6;
   ctx.beginPath();ctx.moveTo(M.l,y100);ctx.lineTo(M.l+w,y100);ctx.stroke();ctx.setLineDash([]);
-  ctx.textAlign='left';ctx.fillStyle=COL.dim;ctx.font='600 '+F(11)+'px "IBM Plex Mono",monospace';
-  ctx.fillText(L.geliri,M.l+4,y100-6);
+  ctx.textAlign='left';ctx.fillStyle=COL.ink;ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';
+  ctx.fillText(L.geliri,M.l+F(4),y100-F(7));
+  ctx.textAlign='right';
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';
+  ctx.fillText(LANG==='en'?'bar above the line = loss · number on top = profit/loss per 100':'çizgiyi aşan çubuk = zarar · üstteki sayı = 100 gelirde kâr/zarar',W-M.r-F(4),y100-F(7));
 }
 
 /* ---------- ana çizim ---------- */
