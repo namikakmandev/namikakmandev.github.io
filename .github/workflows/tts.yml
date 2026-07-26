@@ -19,7 +19,9 @@ jobs:
       - name: Download voices
         run: |
           mkdir -p voices
-          python -m piper.download_voices tr_TR-fahrettin-medium en_US-lessac-medium --data-dir voices
+          python -m piper.download_voices tr_TR-dfki-medium --data-dir voices \
+            || python -m piper.download_voices tr_TR-fgl-medium --data-dir voices
+          python -m piper.download_voices en_US-lessac-medium --data-dir voices
           ls -la voices
       - name: Synthesize
         run: |
@@ -29,8 +31,8 @@ jobs:
           os.makedirs('film/audio', exist_ok=True)
           report = {}
           for lang in ('tr', 'en'):
-              name = cfg['voices'][lang]
-              model = f'voices/{name}.onnx'
+              import glob
+              model = sorted(glob.glob(f'voices/{"tr_TR" if lang=="tr" else "en_US"}-*.onnx'))[0]
               for key, text in cfg['lines'][lang].items():
                   out = f'film/audio/{lang}-{key}.wav'
                   subprocess.run(['piper', '--model', model, '--output_file', out],
