@@ -21,7 +21,10 @@ jobs:
           mkdir -p voices
           python -m piper.download_voices tr_TR-dfki-medium --data-dir voices \
             || python -m piper.download_voices tr_TR-fgl-medium --data-dir voices
-          python -m piper.download_voices en_US-lessac-medium --data-dir voices
+          # İngilizce: en yüksek kalite (high) — yoksa medium'a düş
+          python -m piper.download_voices en_US-ryan-high --data-dir voices \
+            || python -m piper.download_voices en_US-lessac-high --data-dir voices \
+            || python -m piper.download_voices en_US-lessac-medium --data-dir voices
           ls -la voices
       - name: Synthesize
         run: |
@@ -32,7 +35,10 @@ jobs:
           report = {}
           for lang in ('tr', 'en'):
               import glob
-              model = sorted(glob.glob(f'voices/{"tr_TR" if lang=="tr" else "en_US"}-*.onnx'))[0]
+              cands = glob.glob(f'voices/{"tr_TR" if lang=="tr" else "en_US"}-*.onnx')
+              # high > medium tercih et
+              cands.sort(key=lambda c: (0 if '-high' in c else 1, c))
+              model = cands[0]
               for key, text in cfg['lines'][lang].items():
                   out = f'film/audio/{lang}-{key}.wav'
                   subprocess.run(['piper', '--model', model, '--output_file', out],
