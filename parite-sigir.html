@@ -223,7 +223,7 @@ function progress(){
 /* sahne eşlemesi: adım aralığı -> sahne ve sahne-içi ilerleme */
 function sceneOf(idx,f){
   const g=idx+f;                       // 0..12 sürekli konum
-  if(g<6)   return{s:'usline', p:Math.min(1,g/5.6)};
+  if(g<6)   return{s:'usline', p:g};   // usline kart-kilitli: g ham geçer
   if(g<8)   return{s:'cycle',  p:Math.min(1,(g-6)/1.6)};
   if(g<10)  return{s:'race',   p:Math.min(1,(g-8)/1.7)};
   return    {s:'pnl',          p:Math.min(1,(g-10)/1.8)};
@@ -267,7 +267,20 @@ function scUSline(p){
   const w=W-M.l-M.r,h=H-M.t-M.b;
   const YMIN=0.3,YMAX=2.7;
   grid(M.l,M.t,w,h,0.5,2.5,0.5,'');
-  const n=Math.max(2,Math.floor(US.length*ease(p)));
+  /* kart-kilitli ilerleme: her kart ortadayken çizgi o kartın döneminde
+     kartlar: 0→1971 · 1→1974 dibi · 2→1980-2010 döngüleri · 3→2014 · 4→2021 · 5→2025-26 */
+  const iOf=m=>US.findIndex(r=>r[0]===m);
+  const KN=[[0.55,iOf('1971-09')],[1.55,iOf('1974-12')],[2.75,iOf('2010-06')],
+            [3.55,iOf('2014-10')],[4.55,iOf('2021-05')],[5.5,US.length-1]];
+  let n;
+  const g=p;
+  if(g<=KN[0][0])n=Math.max(2,Math.round(2+(KN[0][1]-2)*(g/KN[0][0])));
+  else if(g>=KN[KN.length-1][0])n=US.length;
+  else{for(let k=0;k<KN.length-1;k++){
+    const [g0,i0]=KN[k],[g1,i1]=KN[k+1];
+    if(g>=g0&&g<g1){const t=(g-g0)/(g1-g0);n=Math.round(i0+(i1-i0)*t);break;}
+  }}
+  n=Math.max(2,Math.min(US.length,n));
   const X=i=>M.l+w*(i/(US.length-1));
   const Y=v=>M.t+h*(1-(v-YMIN)/(YMAX-YMIN));
   /* alan + çizgi */
