@@ -51,17 +51,20 @@ body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-sy
 #lang button.on{color:#141007;background:var(--amber);border-color:var(--amber)}
 #tag{position:fixed;top:16px;left:16px;z-index:10;font:600 11px "IBM Plex Mono",monospace;color:var(--dimmer)}
 @media (max-width:640px){.step{align-items:flex-end}.card{max-width:94vw}}
+@media (min-width:900px){.card{max-width:640px;padding:26px 32px}
+ .card .k{font-size:13px}.card h3{font-size:28px}.card p{font-size:18px;line-height:1.55}
+ #tag{font-size:13px}}
 </style>
 </head>
 <body>
 <div id="vis"><canvas id="c"></canvas></div>
 <div id="grade"></div>
-<div id="tag">namikakman.dev · PARİTE: SIĞIR</div>
+<div id="tag" data-i="tag">namikakman.dev · PARİTE: SIĞIR</div>
 <div id="lang"><button id="btr" class="on">TR</button><button id="ben">EN</button></div>
 
 <div id="story">
   <section id="hero">
-    <div class="t1">PARİTE<br><span>SIĞIR</span></div>
+    <div class="t1" data-i="heroT1">PARİTE<br><span>SIĞIR</span></div>
     <div class="t2" data-i="heroSub">BİR VERİ BELGESELİ · ABD · AB · TÜRKİYE</div>
     <div class="q" data-i="heroQ">1 kilo et, kaç kilo yem ediyor?</div>
     <div class="hint" data-i="heroHint">▼ kaydır</div>
@@ -86,9 +89,11 @@ body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-sy
    ============================================================= */
 const $=q=>document.querySelector(q);
 const cv=$('#c'),ctx=cv.getContext('2d');
-let W=0,H=0,DPR=1;
+let W=0,H=0,DPR=1,FS=1;
+const F=n=>Math.round(n*FS);
 function fit(){DPR=Math.min(devicePixelRatio||1,2);
- W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;
+ W=innerWidth;H=innerHeight;FS=Math.max(1,Math.min(2,W/760));
+ cv.width=W*DPR;cv.height=H*DPR;
  ctx.setTransform(DPR,0,0,DPR,0,0);draw();}
 addEventListener('resize',fit);
 
@@ -99,6 +104,8 @@ const COL={amber:'#ffb056',glowA:'rgba(255,176,86,.32)',blue:'#8aa0d8',glowB:'rg
 /* ---------- metinler ---------- */
 const T={
  tr:{
+  tag:'namikakman.dev · PARİTE: SIĞIR',
+  heroT1:'PARİTE<br><span>SIĞIR</span>',
   heroSub:'BİR VERİ BELGESELİ · ABD · AB · TÜRKİYE',
   heroQ:'1 kilo et, kaç kilo yem ediyor?',heroHint:'▼ kaydır',
   finBig:'Et fiyatı bir tercih değil, <span>bir maliyet hikâyesi.</span>',
@@ -129,6 +136,8 @@ const T={
    {k:'VE BUGÜN',h:'Üç kıtada da yeşil',p:'ABD +25, AB +12, TR +12 (100 gelir başına). Tarihin en tatlı pencerelerinden biri — ama <b>döngünün geç fazındayız:</b> geçmişte zirveden ortalamaya dönüş 2–4 yıl sürdü.'},
   ]},
  en:{
+  tag:'namikakman.dev · THE CATTLE PARITY',
+  heroT1:'THE CATTLE<br><span>PARITY</span>',
   heroSub:'A DATA DOCUMENTARY · US · EU · TÜRKİYE',
   heroQ:'How many kilos of feed buys one kilo of beef?',heroHint:'▼ scroll',
   finBig:'Meat prices are not a choice — <span>they are a cost story.</span>',
@@ -210,7 +219,7 @@ function sceneOf(idx,f){
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 function grid(x0,y0,w,h,ymin,ymax,step,unit){
   ctx.strokeStyle=COL.grid;ctx.lineWidth=1;
-  ctx.fillStyle=COL.dimmer;ctx.font='500 11px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
   for(let v=ymin;v<=ymax+1e-9;v+=step){
     const y=y0+h*(1-(v-ymin)/(ymax-ymin));
     ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+w,y);ctx.stroke();
@@ -232,9 +241,9 @@ function series(rows,i0,i1,x0,y0,w,h,ymin,ymax,col,glow,lw){
 /* ---------- sahneler ---------- */
 function sceneTitle(pair){
   ctx.textAlign='center';
-  ctx.fillStyle=COL.amber;ctx.font='700 13px "IBM Plex Mono",monospace';
+  ctx.fillStyle=COL.amber;ctx.font='700 '+F(13)+'px "IBM Plex Mono",monospace';
   ctx.fillText(pair[0],W/2,54);
-  ctx.fillStyle=COL.dimmer;ctx.font='500 12px "IBM Plex Sans",sans-serif';
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(12)+'px "IBM Plex Sans",sans-serif';
   ctx.fillText(pair[1],W/2,74);
 }
 function scUSline(p){
@@ -259,21 +268,21 @@ function scUSline(p){
   const li=n-1,lx=X(li),ly=Y(US[li][3]);
   ctx.beginPath();ctx.arc(lx,ly,6,0,7);ctx.fillStyle=COL.amber;ctx.fill();
   ctx.textAlign='left';
-  ctx.fillStyle=COL.amber;ctx.font='700 44px "IBM Plex Mono",monospace';
+  ctx.fillStyle=COL.amber;ctx.font='700 '+F(44)+'px "IBM Plex Mono",monospace';
   ctx.fillText(US[li][3].toFixed(2)+'×',M.l,M.t-34);
-  ctx.fillStyle=COL.dim;ctx.font='600 15px "IBM Plex Mono",monospace';
+  ctx.fillStyle=COL.dim;ctx.font='600 '+F(15)+'px "IBM Plex Mono",monospace';
   ctx.fillText(US[li][0].replace('-',' / '),M.l,M.t-10);
-  ctx.fillStyle=COL.dimmer;ctx.font='500 11px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
   ctx.fillText(L.axParite,W-M.r,M.t-10);
   /* yıl işaretleri */
-  ctx.textAlign='center';ctx.fillStyle=COL.dimmer;ctx.font='500 11px "IBM Plex Mono",monospace';
+  ctx.textAlign='center';ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';
   for(const yr of [1980,1990,2000,2010,2020]){
     const i=US.findIndex(r=>r[0]===yr+'-01');
     if(i>=0)ctx.fillText(yr,X(i),M.t+h+18);
   }
   /* olay noktaları çizgi ulaştıysa */
   const ev=[['1974-12','0,40'],['1996-05','0,44'],['2014-10','1,87'],['2021-05','0,58'],['2025-08','2,54']];
-  ctx.font='700 12px "IBM Plex Mono",monospace';
+  ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';
   for(const [mm,lb] of ev){
     const i=US.findIndex(r=>r[0]===mm);
     if(i<0||i>=n)continue;
@@ -291,7 +300,7 @@ function scCycle(p){
   const dips=[['1974-12','#8a7c62'],['1996-05',COL.blue],['2011-06','#cbbfa8'],['2021-05',COL.amber]];
   const YMIN=80,YMAX=470;
   grid(M.l,M.t,w,h,100,450,100,'');
-  ctx.fillStyle=COL.dimmer;ctx.font='500 11px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
   ctx.fillText(L.axDip,W-M.r,M.t-10);
   ctx.textAlign='center';
   for(const mo of [12,24,36,48,60])
@@ -310,7 +319,7 @@ function scCycle(p){
     ctx.strokeStyle=c;ctx.lineWidth=dip==='2021-05'?3.4:2;ctx.stroke();
     const kEnd=Math.min(mN-1,60,US.length-1-i0);
     const x=M.l+w*kEnd/60,y=M.t+h*(1-((US[i0+kEnd][3]/base*100)-YMIN)/(YMAX-YMIN));
-    ctx.fillStyle=c;ctx.font='700 12px "IBM Plex Mono",monospace';ctx.textAlign='left';
+    ctx.fillStyle=c;ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';ctx.textAlign='left';
     ctx.fillText(dip.slice(0,4),x+7,y+4);
   }
 }
@@ -321,7 +330,7 @@ function scRace(p){
   const w=W-M.l-M.r,h=H-M.t-M.b;
   const YMIN=30,YMAX=180;
   grid(M.l,M.t,w,h,60,180,30,'');
-  ctx.fillStyle=COL.dimmer;ctx.font='500 11px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
   ctx.fillText(L.axIdx,W-M.r,M.t-10);
   ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(245,239,230,.3)';
   const y100=M.t+h*(1-(100-YMIN)/(YMAX-YMIN));
@@ -347,7 +356,7 @@ function scRace(p){
     const x=M.l+w*(mi(last[0])-t0)/(t1-t0);
     const y=M.t+h*(1-(last[3]*100-YMIN)/(YMAX-YMIN));
     ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();
-    ctx.font='700 12px "IBM Plex Mono",monospace';ctx.textAlign='left';
+    ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';ctx.textAlign='left';
     const v=Math.round(last[3]*100-100);
     ctx.fillText(`${lb} ${v>=0?'+':''}${v}%`,x+8,y+4);
   }
@@ -369,10 +378,10 @@ function scPnl(p){
   const bw=Math.min(110,w/3-34);
   const ymax=170;
   const y100=M.t+h*(1-100/ymax);
-  ctx.fillStyle=COL.dimmer;ctx.font='500 11px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
   ctx.fillText(L.axMaliyet,W-M.r,M.t-10);
   ctx.textAlign='left';
-  ctx.fillStyle=COL.dim;ctx.font='700 16px "IBM Plex Mono",monospace';
+  ctx.fillStyle=COL.dim;ctx.font='700 '+F(16)+'px "IBM Plex Mono",monospace';
   ctx.fillText(label.toUpperCase(),M.l,M.t-8);
   regs.forEach(([k,lb,c],ri)=>{
     const cx=M.l+w*(ri+0.5)/3-bw/2;
@@ -388,14 +397,14 @@ function scPnl(p){
     const kar=100-acc;
     ctx.textAlign='center';
     ctx.fillStyle=kar>=0?'#7fc97f':COL.red;
-    ctx.font='700 20px "IBM Plex Mono",monospace';
+    ctx.font='700 '+F(20)+'px "IBM Plex Mono",monospace';
     ctx.fillText((kar>=0?'+':'')+kar.toFixed(0),cx+bw/2,M.t+h*(1-acc/ymax)-10);
-    ctx.fillStyle=COL.dim;ctx.font='600 13px "IBM Plex Sans",sans-serif';
+    ctx.fillStyle=COL.dim;ctx.font='600 '+F(13)+'px "IBM Plex Sans",sans-serif';
     ctx.fillText(lb,cx+bw/2,M.t+h+20);
   });
   ctx.setLineDash([7,6]);ctx.strokeStyle=COL.ink;ctx.lineWidth=1.6;
   ctx.beginPath();ctx.moveTo(M.l,y100);ctx.lineTo(M.l+w,y100);ctx.stroke();ctx.setLineDash([]);
-  ctx.textAlign='left';ctx.fillStyle=COL.dim;ctx.font='600 11px "IBM Plex Mono",monospace';
+  ctx.textAlign='left';ctx.fillStyle=COL.dim;ctx.font='600 '+F(11)+'px "IBM Plex Mono",monospace';
   ctx.fillText(L.geliri,M.l+4,y100-6);
 }
 
