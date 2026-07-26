@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parite: Sığır · Bölüm 2 — Hayatta Kalma Sanatı</title>
+<meta name="description" content="Sarkaç herkesi sallar — kim nasıl tutunuyor? ABD, AB ve Türkiye'de besicinin risk yönetimi: hedge, yastık, kredi, zincir.">
+<meta property="og:title" content="Parite: Sığır · Bölüm 2 — Hayatta Kalma Sanatı">
+<meta property="og:description" content="Sarkaç herkesi sallar. ABD'li besici −55'lik dipleri nasıl atlatıyor?">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://namikakmandev.github.io/parite-sigir-2.html">
+<meta property="og:image" content="https://namikakmandev.github.io/assets/og-parite-sigir-2.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Parite: Sığır · Bölüm 2 — Hayatta Kalma Sanatı">
+<meta name="twitter:image" content="https://namikakmandev.github.io/assets/og-parite-sigir-2.png">
+<style>
+:root{--bg:#0b0906;--bg2:#161009;--amber:#ffb056;--amberd:#D97E1F;--ink:#f5efe6;
+ --dim:#cbbfa8;--dimmer:#8a7c62;--blue:#8aa0d8;--red:#e2574c;--green:#4CBB3F;--card:rgba(12,9,5,.82)}
+*{margin:0;box-sizing:border-box}
+html{scroll-behavior:auto}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,Segoe UI,sans-serif}
+#vis{position:fixed;inset:0;z-index:0}
+#vis canvas{display:block;width:100vw;height:100vh}
+#grade{position:fixed;inset:0;pointer-events:none;z-index:1;
+ background:radial-gradient(ellipse at 50% 42%,transparent 55%,rgba(0,0,0,.55) 100%)}
+#story{position:relative;z-index:2}
+.step{min-height:112vh;display:block;padding:0 5vw 6vh}
+.step .card{position:sticky;top:67vh;margin:0 auto}
+.card{max-width:520px;transition:opacity .25s;background:var(--card);border:1px solid rgba(255,176,86,.35);
+ border-radius:14px;padding:18px 22px;backdrop-filter:blur(3px)}
+.card .k{font:700 11px "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:.12em;margin-bottom:6px}
+.card h3{font-size:21px;line-height:1.25;margin-bottom:8px}
+.card p{font-size:15px;line-height:1.5;color:var(--dim)}
+.card b{color:var(--ink)}
+.card details{margin-top:10px;border-top:1px solid rgba(255,176,86,.22);padding-top:8px}
+.card summary{cursor:pointer;list-style:none;font:600 11px "IBM Plex Mono",monospace;
+ color:var(--amber);letter-spacing:.08em}
+.card summary::before{content:'▸ ';transition:.15s}
+.card details[open] summary::before{content:'▾ '}
+.card details div{margin-top:7px;font-size:13.5px;line-height:1.5;color:var(--dim)}
+#hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ text-align:center;padding:0 6vw}
+#hero .t0{font:600 clamp(11px,2vw,14px) "IBM Plex Mono",monospace;color:var(--dimmer);letter-spacing:.3em;margin-bottom:14px}
+#hero .t1{font-size:clamp(34px,7.5vw,74px);font-weight:700;letter-spacing:.05em}
+#hero .t1 span{color:var(--amber)}
+#hero .q{font-size:clamp(18px,3.6vw,28px);margin-top:7vh;font-weight:600;max-width:820px}
+#hero .hint{margin-top:9vh;color:var(--dimmer);font:500 13px "IBM Plex Mono",monospace;animation:bob 1.8s infinite}
+@keyframes bob{50%{transform:translateY(7px)}}
+#fin{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ text-align:center;padding:0 7vw;position:relative;z-index:2;background:linear-gradient(transparent,rgba(8,6,4,.94) 22%)}
+#fin .big{font-size:clamp(24px,5vw,40px);font-weight:700;max-width:800px;line-height:1.3}
+#fin .big span{color:var(--amber)}
+#fin .sub{color:var(--dim);margin-top:16px;max-width:620px;font-size:16px;line-height:1.55}
+#fin .links{margin-top:34px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+#fin .links a{color:var(--amber);border:1px solid rgba(255,176,86,.5);border-radius:999px;
+ padding:9px 18px;text-decoration:none;font:600 13px "IBM Plex Mono",monospace}
+#fin .src{margin-top:36px;color:var(--dimmer);font:500 11px "IBM Plex Mono",monospace;line-height:1.8}
+#lang{position:fixed;top:14px;right:14px;z-index:10;display:flex;gap:6px}
+#lang button{background:var(--card);border:1px solid rgba(255,176,86,.4);color:var(--dim);
+ font:600 12px "IBM Plex Mono",monospace;padding:7px 12px;border-radius:999px;cursor:pointer}
+#lang button.on{color:#141007;background:var(--amber);border-color:var(--amber)}
+#tag{position:fixed;top:16px;left:16px;z-index:10;font:600 11px "IBM Plex Mono",monospace;color:var(--dimmer)}
+#play{position:fixed;bottom:20px;right:16px;z-index:10;width:52px;height:52px;border-radius:50%;
+ background:var(--amber);color:#141007;border:none;font-size:20px;cursor:pointer;
+ box-shadow:0 6px 20px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+#play.on{background:var(--card);color:var(--amber);border:1px solid rgba(255,176,86,.5)}
+@media (max-width:640px){.card{max-width:94vw}.step .card{top:63vh}}
+@media (min-width:900px){.card{max-width:620px;padding:24px 30px}.step .card{top:70vh}
+ .card .k{font-size:13px}.card h3{font-size:27px}.card p{font-size:17.5px;line-height:1.55}
+ #tag{font-size:13px}}
+</style>
+</head>
+<body>
+<div id="vis"><canvas id="c"></canvas></div>
+<div id="grade"></div>
+<div id="tag" data-i="tag">namikakman.dev · PARİTE: SIĞIR · BÖLÜM 2</div>
+<div id="lang"><button id="btr" class="on">TR</button><button id="ben">EN</button></div>
+<button id="play" title="Otomatik oynat">▶</button>
+
+<div id="story">
+  <section id="hero">
+    <div class="t0" data-i="heroT0">PARİTE: SIĞIR · BÖLÜM 2</div>
+    <div class="t1" data-i="heroT1">HAYATTA KALMA<br><span>SANATI</span></div>
+    <div class="q" data-i="heroQ">Sarkaç herkesi sallar. Peki −55'lik diplerden kim, nasıl sağ çıkıyor?</div>
+    <div class="hint" data-i="heroHint">▼ kaydır</div>
+  </section>
+  <div id="steps"></div>
+  <section id="fin">
+    <div class="big" data-i="finBig">Dalgayı küçültemezsin — <span>ama fiyatlayabilirsin.</span></div>
+    <div class="sub" data-i="finSub">ABD'de risk büyük, görünür ve sigortalanabilir. Türkiye'de küçük görünür, görünmez kanallarda yaşar ve sigortalanamaz. Fark, dalganın boyunda değil; dalgaya karşı satılan araçlarda.</div>
+    <div class="links">
+      <a href="parite-sigir.html" data-i="lB1">← BÖLÜM 1: PARİTE</a>
+      <a href="film/parite-sigir-v3.mp4" data-i="lFilm">FİLM (2:46)</a>
+    </div>
+    <div class="src" data-i="finSrc">VERİ: FRED/BLS · EC AGRIFOOD · TÜİK/EVDS — BÖLÜM 1 İLE AYNI SERİLER<br>ARAÇLAR: CME VADELİ KONTRATLARI · LRP/LGM SİGORTALARI · FARM CREDIT — KARTLARDA AÇIKLANIR<br>namikakman.dev</div>
+  </section>
+</div>
+
+<script>
+/* =============================================================
+   PARİTE: SIĞIR — BÖLÜM 2: HAYATTA KALMA SANATI
+   Sahneler: risk bandı → marj kilidi → yastık → faiz → zincir → reçete
+   ============================================================= */
+const $=q=>document.querySelector(q);
+const cv=$('#c'),ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1,FS=1;
+const F=n=>Math.round(n*FS);
+function fit(){DPR=Math.min(devicePixelRatio||1,2);
+ W=innerWidth;H=innerHeight;FS=Math.max(1,Math.min(2,W/760));
+ cv.width=W*DPR;cv.height=H*DPR;
+ ctx.setTransform(DPR,0,0,DPR,0,0);draw();}
+addEventListener('resize',fit);
+
+const COL={amber:'#ffb056',glowA:'rgba(255,176,86,.32)',blue:'#8aa0d8',glowB:'rgba(138,160,216,.3)',
+ red:'#e2574c',glowR:'rgba(226,87,76,.3)',green:'#4CBB3F',glowG:'rgba(76,187,63,.3)',
+ ink:'#f5efe6',dim:'#cbbfa8',dimmer:'#8a7c62',grid:'rgba(203,191,168,.12)'};
+
+/* ---------- metinler ---------- */
+const T={
+ tr:{
+  tag:'namikakman.dev · PARİTE: SIĞIR · BÖLÜM 2',
+  heroT0:'PARİTE: SIĞIR · BÖLÜM 2',
+  heroT1:'HAYATTA KALMA<br><span>SANATI</span>',
+  heroQ:'Sarkaç herkesi sallar. Peki −55’lik diplerden kim, nasıl sağ çıkıyor?',
+  heroHint:'▼ kaydır',
+  finBig:'Dalgayı küçültemezsin — <span>ama fiyatlayabilirsin.</span>',
+  finSub:'ABD’de risk büyük, görünür ve sigortalanabilir. Türkiye’de küçük görünür, görünmez kanallarda yaşar ve sigortalanamaz. Fark, dalganın boyunda değil; dalgaya karşı satılan araçlarda.',
+  lB1:'← BÖLÜM 1: PARİTE',lFilm:'FİLM (2:46)',
+  finSrc:'VERİ: FRED/BLS · EC AGRIFOOD · TÜİK/EVDS — BÖLÜM 1 İLE AYNI SERİLER<br>ARAÇLAR: CME VADELİ KONTRATLARI · LRP/LGM SİGORTALARI · FARM CREDIT — KARTLARDA AÇIKLANIR<br>namikakman.dev',
+  tBand:['GRAFİK 1/5 · ÜÇ RİSK BANDI','Her ülkenin paritesi, kendi ortalamasına oranla: bandın genişliği = riskin boyu.'],
+  tHedge:['GRAFİK 2/5 · MARJI KİLİTLEMEK','ABD paritesi 2019–2026. Kesikli çizgi: kontratla kilitlenen seviye.'],
+  tCush:['GRAFİK 3/5 · YASTIK','Model P&L, yıl yıl (ABD, 1971–2026). Yeşil yıllar yastığı doldurur; kırmızılar yastıktan yer.'],
+  tInt:['GRAFİK 4/5 · FAİZ MAKASI','Aynı −55’lik yara, krediyle taşınırsa: %8 ile %50 faizin beş yılı.'],
+  tChain:['GRAFİK 5/5 · RİSKİ ZİNCİRE DAĞITMAK','Amerikan modeli: üç halka, üç bilanço — fiyat riski hayvan sahibinde kalır.'],
+  tRec:['SON DURAK · TÜRKİYE İÇİN REÇETE','Dalgayı fiyatlayacak araç kutusu — dördü de kurulabilir.'],
+  bandMean:'kendi ortalaması = ×1,0',
+  bandAx:'paritenin kendi uzun dönem ortalamasına oranı',
+  bandToday:'bugün',
+  hedgeLock1:'Haz 2020’de kilitleyen',hedgeLock1b:'2021 dibini hiç yaşamadı',
+  hedgeLock2:'Haz 2024’te kilitleyen',hedgeLock2b:'ralliyi kaçırdı — sigorta primi budur',
+  cushCum:'birikim (kümülatif)',cushAx:'model kâr/zarar (100 gelir başına)',
+  intAx:'borç bakiyesi (başlangıç 55)',intYr:'yıl',
+  int8:'%8 · ABD çiftlik kredisi',int50:'%50 · TR besici kredisi',
+  intNote:'3. yılda: 69 vs 186 — yara aynı, kanama farklı',
+  chainA:'COW-CALF',chainAs:'buzağıyı üretir · sürünün sahibi',
+  chainB:'STOCKER',chainBs:'merada büyütür',
+  chainC:'FEEDLOT',chainCs:'yemle bitirir',
+  chainRisk:'FİYAT RİSKİ',
+  chainNote:'Custom feeding: feedlot ÜCRETLE besler, hayvan sahibi riskle kalır. Üç halka, üç ayrı bilanço — tek dalga üçünü birden batıramaz.',
+  recItems:[['📈','Vadeli piyasa','Yem ve karkasa TL bazlı vadeli kontrat + lisanslı depo. Besici, marjı besiye koyduğu gün kilitleyebilmeli.'],
+            ['🛡️','Marj sigortası','ABD’deki LGM’in yerlisi: primi kamu ile paylaşılan, et−yem MAKASINI sigortalayan poliçe.'],
+            ['🤝','Sözleşmeli besicilik','Fiyat formülü baştan yazılır; sanayici ile besici riski bölüşür — süt sektörü bunu kısmen çözdü.'],
+            ['🧭','Öngörülebilirlik','İthalat takvimi ve müdahale kuralı önceden ilan edilir; finansman, döngü ortalamasına göre fiyatlanır.']],
+  steps:[
+   {k:'📏 BANT · RİSKİN BOYU',h:'Üç ülke, üç bant',p:'Her parite kendi ortalamasına bölündü: ABD ×0,4 ile ×2,4 arasında savrulur (tavan/taban <b>6,4 kat</b>); AB <b>2,5</b>, TR <b>2,0</b> katla en dar bantta. <b>En geniş bant Amerika’da.</b>',bg:'Bölüm 1’deki serilerin aynısı; tek fark ölçek. Her ülkenin aylık paritesi kendi uzun dönem ortalamasına bölünür — böylece üç bant elma-elma karşılaştırılır. Bant uçları gerçek aylar: ABD tabanı Ara 1974 (0,40), tavanı Ağu 2025 (2,54).'},
+   {k:'📏 BANT · AMA DİKKAT',h:'Dar bant ≠ az risk',p:'TR’nin bandı dar çünkü fiyat <b>yönetiliyor</b>: ithalat, ESK, müdahale. Risk yok olmadı — kur, faiz ve politika kanalına taşındı. <b>ABD’nin riski görünür; TR’ninki görünmez.</b>',bg:'Ölçtüğümüz oynaklık yalnız fiyat kanalıdır. TR besicisinin bilançosunda ayrıca: %50’li ticari kredi faizi, ithal yem girdisinde kur riski, bir gecede değişebilen ithalat kararları. Bunların hiçbiri parite bandında görünmez; besici bunları hedge edecek vadeli piyasa da bulamaz.'},
+   {k:'🔒 SİGORTA 1 · KİLİT',h:'Marjı borsada kilitle',p:'Chicago’da (CME) canlı sığır, besi danası ve mısır vadelisi var. Besici hayvanı besiye koyduğu gün <b>satış fiyatını ve yem maliyetini kontratla sabitler.</b> Devlet destekli LRP/LGM sigortaları primin bir kısmını da kamuya ödetir.',bg:'Grafikteki iki kilit gerçek aylardan: Haz 2020’de paritesini kilitleyen besici, May 2021’deki 0,58 dibini hiç yaşamadı (yeşil bölge = kurtarılan zarar). Haz 2024’te kilitleyen ise 2025-26 rallisinin bir kısmını kaçırdı (kırmızı taralı = vazgeçilen kâr). Sigortanın bedeli budur ve bilinçli ödenir: amaç zengin olmak değil, oyunda kalmaktır. LGM (Livestock Gross Margin) doğrudan et−yem marjını sigortalar; LRP fiyat tabanı satar — ikisinde de prim sübvansiyonludur.'},
+   {k:'🛏️ SİGORTA 2 · YASTIK',h:'İyi yıl, kötü yılın fonudur',p:'56 yılda 33 yeşil, 23 kırmızı yıl — ama kırmızılar derin. 1971’de başlayan model besicinin birikimi <b>1985’te −121’e battı, ancak 2004’te artıya döndü;</b> bugün <b>+96.</b> Yastığı (ve sabrı) olmayan, o 33 yıllık kışı göremezdi.',bg:'Bölüm 1’in P&L modeli (dana 45 + diğer 15 sabit, yem ortalamada 35’e kalibre) her yılın ortalama paritesine uygulandı; beyaz çizgi birikimli toplam. En kötü yıl 1974 (−32), en iyi 2026 (+23); ortalama yıl neredeyse başabaş (+1,7). Yani bu iş “her yıl kazandıran” bir iş değil — doğru yılda oyunda kalanı ödüllendiren bir iş. ABD’de kültür bu yüzden kurumsallaştı: değişken ödemeli krediler, iyi yılda ek anapara, kötü yılda erteleme; taşıyamayan sürüyü satar. Konsolidasyonun matematiği de budur: her kış, küçükleri eler.'},
+   {k:'🏦 SİGORTA 3 · UCUZ KREDİ',h:'Aynı yara, farklı kan kaybı',p:'−55’lik bir dip yılını krediyle taşımak ABD’de <b>%8</b> ile mümkün; TR’de %50 ile intihar. Beş yılda borç: <b>81’e karşı 418.</b> Sarkaç değil, faiz öldürür.',bg:'ABD’de Farm Credit System kooperatif bankaları + arazi teminatı tek haneli faiz sağlar; arazi değeri onlarca yıldır artarak bilançoyu taşır. Türkiye’de sübvansiyonlu Ziraat kredisi sınırlı; taşan kısım %50+ ticari faize döner. Grafikteki iki eğri bileşik faizle büyüyen aynı 55 birimlik borçtur — üç yıl (tipik dip süresi) sonunda 69’a karşı 186.'},
+   {k:'⛓️ SİGORTA 4 · ZİNCİR',h:'Riski tek sırta yükleme',p:'Amerikan modeli üç halkadır: buzağıyı üreten, otlatan, yemle bitiren — <b>üç ayrı işletme, üç ayrı bilanço.</b> Feedlot çoğu zaman başkasının hayvanını ücretle besler: fiyat riski hayvan sahibinde kalır.',bg:'“Custom feeding”te feedlot yatağını ve yemini satar, hayvana sahip olmaz — oteldir, kumarhane değil. Cow-calf tarafı ise ineğe sahiptir ve kıtlık rantını o toplar (Bölüm 1: bu döngüde kazanan ineğe sahip olandır). TR’de zincir tek işletmede toplanır: aynı besici buzağıyı alır, büyütür, bitirir, kur ve faizi de tek başına taşır.'},
+   {k:'🇹🇷 PEKİ TÜRKİYE?',h:'Dört parçalık araç kutusu',p:'Reçete gizli değil: <b>① TL vadeli kontrat + lisanslı depo ② kamu destekli marj sigortası ③ sözleşmeli besicilik ④ önceden ilan edilmiş ithalat kuralı + döngüye göre finansman.</b> Dördü de kurulabilir — hiçbiri sarkacı durdurmaz, dördü de fiyatlanmasını sağlar.',bg:'Örnekler yerli: VİOP’ta buğday kontratı denendi, lisanslı depoculuk hububatta çalışıyor — karkas ve yeme genişletilebilir. Süt sektörü, sözleşmeli model ve okul sütü alımlarıyla fiyat istikrarını kısmen kurdu. ABD’nin LGM’i birebir kopyalanmak zorunda değil; TARSİM çatısı altında et-yem makası poliçesi tasarlanabilir. En ucuz reform ise öngörülebilirlik: ithalat kararının kural ile — sürpriz ile değil — gelmesi.'},
+  ]},
+ en:{
+  tag:'namikakman.dev · THE CATTLE PARITY · PART 2',
+  heroT0:'THE CATTLE PARITY · PART 2',
+  heroT1:'THE ART OF<br><span>STAYING ALIVE</span>',
+  heroQ:'The pendulum swings everyone. So who survives a −55 trough — and how?',
+  heroHint:'▼ scroll',
+  finBig:'You cannot shrink the wave — <span>but you can price it.</span>',
+  finSub:'In the US, risk is big, visible and insurable. In Türkiye it looks small, lives in invisible channels, and cannot be hedged. The difference is not the size of the wave; it is the tools sold against it.',
+  lB1:'← PART 1: THE PARITY',lFilm:'THE FILM (2:46)',
+  finSrc:'DATA: FRED/BLS · EC AGRIFOOD · TÜİK/EVDS — SAME SERIES AS PART 1<br>TOOLS: CME FUTURES · LRP/LGM INSURANCE · FARM CREDIT — EXPLAINED ON THE CARDS<br>namikakman.dev',
+  tBand:['CHART 1/5 · THREE RISK BANDS','Each parity relative to its own mean: the width of the band is the size of the risk.'],
+  tHedge:['CHART 2/5 · LOCKING THE MARGIN','US parity 2019–2026. Dashed line: the level locked by contract.'],
+  tCush:['CHART 3/5 · THE CUSHION','Model P&L, year by year (US, 1971–2026). Green years fill the cushion; red ones drain it.'],
+  tInt:['CHART 4/5 · THE INTEREST SCISSORS','The same −55 wound, carried on credit: five years at 8% vs 50%.'],
+  tChain:['CHART 5/5 · SPREADING RISK ALONG THE CHAIN','The American model: three links, three balance sheets — price risk stays with the owner.'],
+  tRec:['LAST STOP · A PRESCRIPTION FOR TÜRKİYE','A four-piece toolbox to price the wave — all four are buildable.'],
+  bandMean:'own mean = ×1.0',
+  bandAx:'parity as a ratio of its own long-run mean',
+  bandToday:'today',
+  hedgeLock1:'Locked in Jun 2020',hedgeLock1b:'never lived the 2021 trough',
+  hedgeLock2:'Locked in Jun 2024',hedgeLock2b:'missed the rally — that is the premium',
+  cushCum:'running total',cushAx:'model profit/loss (per 100 revenue)',
+  intAx:'debt balance (starts at 55)',intYr:'year',
+  int8:'8% · US farm credit',int50:'50% · TR commercial loan',
+  intNote:'At year 3: 69 vs 186 — same wound, different bleeding',
+  chainA:'COW-CALF',chainAs:'breeds the calf · owns the herd',
+  chainB:'STOCKER',chainBs:'grows it on pasture',
+  chainC:'FEEDLOT',chainCs:'finishes it on feed',
+  chainRisk:'PRICE RISK',
+  chainNote:'Custom feeding: the feedlot feeds FOR A FEE; the owner keeps the risk. Three links, three balance sheets — one wave cannot sink all three.',
+  recItems:[['📈','Futures market','TL-based futures on feed and carcass + licensed warehouses. A feeder should be able to lock the margin the day cattle enter the lot.'],
+            ['🛡️','Margin insurance','A local LGM: a publicly co-paid policy that insures the meat−feed SPREAD itself.'],
+            ['🤝','Contract feeding','The price formula is written up front; processor and feeder share the risk — dairy has partly solved this.'],
+            ['🧭','Predictability','Import calendars and intervention rules announced in advance; financing priced on the cycle average.']],
+  steps:[
+   {k:'📏 THE BAND · SIZE OF RISK',h:'Three countries, three bands',p:'Each parity divided by its own mean: the US swings between ×0.4 and ×2.4 (ceiling/floor <b>6.4×</b>); the EU spans <b>2.5×</b>, TR just <b>2.0×</b>. <b>The widest band is American.</b>',bg:'Same series as Part 1; only the scale differs. Each country’s monthly parity is divided by its own long-run mean, making the three bands an apples-to-apples comparison. The band edges are real months: the US floor is Dec 1974 (0.40), the ceiling Aug 2025 (2.54).'},
+   {k:'📏 THE BAND · BUT BEWARE',h:'A narrow band ≠ low risk',p:'TR’s band is narrow because the price is <b>managed</b>: imports, state buyer, interventions. The risk did not vanish — it moved into currency, interest and policy. <b>American risk is visible; Turkish risk is not.</b>',bg:'What we measure is only the price channel. A Turkish feeder’s balance sheet also carries: 50%+ commercial interest, currency risk in imported feed inputs, import decisions that can change overnight. None of this shows in the parity band — and there is no futures market to hedge it.'},
+   {k:'🔒 INSURANCE 1 · THE LOCK',h:'Lock the margin at the exchange',p:'Chicago (CME) trades live cattle, feeder cattle and corn futures. A feeder can <b>fix the sale price and the feed cost the day cattle enter the lot.</b> Subsidised LRP/LGM policies even make the state co-pay the premium.',bg:'The two locks on the chart are real months: whoever locked in Jun 2020 never lived the 0.58 trough of May 2021 (green area = loss avoided). Whoever locked in Jun 2024 gave up part of the 2025-26 rally (red hatch = profit foregone). That is the price of insurance, and it is paid knowingly: the goal is not to get rich but to stay in the game. LGM insures the meat−feed margin directly; LRP sells a price floor — both carry premium subsidies.'},
+   {k:'🛏️ INSURANCE 2 · THE CUSHION',h:'A good year funds a bad one',p:'56 years: 33 green, 23 red — but the reds run deep. A model feeder starting in 1971 saw the running total <b>sink to −121 by 1985 and only turn positive in 2004;</b> today it stands at <b>+96.</b> Without a cushion (and patience), no one survives a 33-year winter.',bg:'Part 1’s P&L model (calf 45 + other 15 fixed, feed calibrated to 35 at the mean) applied to each year’s average parity; the white line is the running total. Worst year 1974 (−32), best 2026 (+23); the average year is near break-even (+1.7). This is not a business that pays every year — it rewards whoever is still in the game in the right year. That is why the culture became institutional in the US: flexible-payment loans, extra principal in good years, deferral in bad ones; whoever cannot carry it sells the herd. That is also the arithmetic of consolidation: every winter culls the small.'},
+   {k:'🏦 INSURANCE 3 · CHEAP CREDIT',h:'Same wound, different bleeding',p:'Carrying a −55 trough year on credit is feasible at <b>8%</b> in the US; suicidal at 50% in TR. After five years the debt: <b>81 versus 418.</b> It is not the pendulum that kills — it is the interest.',bg:'In the US, Farm Credit System cooperative banks plus land collateral deliver single-digit rates, and decades of land appreciation carry the balance sheet. In Türkiye subsidised agricultural credit is capped; the overflow rolls at 50%+ commercial rates. The two curves are the same 55-unit debt compounding — after three years (a typical trough) 69 versus 186.'},
+   {k:'⛓️ INSURANCE 4 · THE CHAIN',h:'Never load the risk on one back',p:'The American model has three links: one breeds, one grazes, one finishes — <b>three separate firms, three balance sheets.</b> The feedlot usually feeds someone else’s cattle for a fee: the price risk stays with the owner.',bg:'In custom feeding the feedlot sells pen space and feed but owns no cattle — it is a hotel, not a casino. The cow-calf side owns the herd and collects the scarcity rent (Part 1: in this cycle the winner is whoever owns the cow). In Türkiye the whole chain sits inside one firm: the same feeder buys the calf, grows it, finishes it — and carries currency and interest alone.'},
+   {k:'🇹🇷 AND TÜRKİYE?',h:'A four-piece toolbox',p:'The prescription is no secret: <b>① TL futures + licensed warehouses ② publicly co-paid margin insurance ③ contract feeding ④ pre-announced import rules + cycle-based financing.</b> All four are buildable — none stops the pendulum, all four let it be priced.',bg:'The examples are local: a wheat future was tried on VİOP, licensed warehousing already works for grain — both extendable to carcass and feed. Dairy has partly built price stability through contract models and public purchases. The US LGM need not be copied verbatim; a meat-feed spread policy can be designed under TARSİM. The cheapest reform is predictability: import decisions arriving by rule, not by surprise.'},
+  ]}
+};
+let LANG='tr';
+
+/* ---------- veri ---------- */
+let US=null,EU=null,TRr=null,ready=false;
+Promise.all(['cattle-us','cattle-eu','cattle-tr'].map(n=>
+  fetch('data/'+n+'.json').then(r=>r.json())
+)).then(([a,b,c])=>{US=a.rows;EU=b.rows;TRr=c.rows;ready=true;draw();});
+
+/* istatistikler (bir kez) */
+let ST=null;
+function buildStats(){
+  const st=rows=>{
+    let mn=rows[0][3],mx=rows[0][3],sum=0,mnD='',mxD='';
+    for(const r of rows){sum+=r[3];
+      if(r[3]<mn){mn=r[3];mnD=r[0];}
+      if(r[3]>mx){mx=r[3];mxD=r[0];}}
+    const mean=sum/rows.length;
+    return{mn,mx,mean,mnD,mxD,last:rows[rows.length-1][3]};
+  };
+  ST={US:st(US),EU:st(EU),TR:st(TRr)};
+  /* yıllık model P&L (ABD) */
+  const yr={};
+  for(const r of US){const y=r[0].slice(0,4);(yr[y]=yr[y]||[]).push(r[3]);}
+  ST.years=Object.keys(yr).sort().map(y=>{
+    const m=yr[y].reduce((a,c)=>a+c,0)/yr[y].length;
+    return[+y,100-45-15-35*ST.US.mean/m];
+  });
+}
+
+/* ---------- adım DOM ---------- */
+function buildSteps(){
+  const host=$('#steps');host.innerHTML='';
+  T[LANG].steps.forEach((s,i)=>{
+    const el=document.createElement('section');el.className='step';el.dataset.idx=i;
+    const bg=s.bg?`<details><summary>${LANG==='en'?'BACKGROUND — WHAT HAPPENED?':'ARKA PLAN — NE OLDU?'}</summary><div>${s.bg}</div></details>`:'';
+    el.innerHTML=`<div class="card"><div class="k">${s.k}</div><h3>${s.h}</h3><p>${s.p}</p>${bg}</div>`;
+    host.appendChild(el);
+  });
+  document.querySelectorAll('[data-i]').forEach(el=>{
+    const v=T[LANG][el.dataset.i];if(v!==undefined)el.innerHTML=v;
+  });
+}
+$('#btr').onclick=()=>{LANG='tr';$('#btr').classList.add('on');$('#ben').classList.remove('on');buildSteps();draw();};
+$('#ben').onclick=()=>{LANG='en';$('#ben').classList.add('on');$('#btr').classList.remove('on');buildSteps();draw();};
+
+/* ---------- kaydırma ilerlemesi ---------- */
+function progress(){
+  const steps=[...document.querySelectorAll('.step')];
+  let idx=0,f=0;
+  const mid=innerHeight*0.75;
+  for(let i=0;i<steps.length;i++){
+    const r=steps[i].getBoundingClientRect();
+    if(r.top<mid){idx=i;f=Math.min(1,Math.max(0,(mid-r.top)/(r.height||1)));}
+  }
+  const hr=$('#hero').getBoundingClientRect();
+  const hero=Math.min(1,Math.max(0,1+hr.bottom/innerHeight-0.5));
+  return{idx,f,hero};
+}
+function sceneOf(idx,f){
+  const g=idx+f;
+  if(g<2)return{s:'band',  p:Math.min(1,g/1.2)};
+  if(g<3)return{s:'hedge', p:Math.min(1,(g-2)/0.8)};
+  if(g<4)return{s:'cush',  p:Math.min(1,(g-3)/0.8)};
+  if(g<5)return{s:'int',   p:Math.min(1,(g-4)/0.8)};
+  if(g<6)return{s:'chain', p:Math.min(1,(g-5)/0.8)};
+  return {s:'rec',         p:Math.min(1,(g-6)/0.9)};
+}
+
+/* ---------- çizim yardımcıları ---------- */
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+function sceneTitle(pair){
+  ctx.textAlign='center';
+  ctx.fillStyle=COL.amber;ctx.font='700 '+F(13)+'px "IBM Plex Mono",monospace';
+  ctx.fillText(pair[0],W/2,54);
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(12)+'px "IBM Plex Sans",sans-serif';
+  ctx.fillText(pair[1],W/2,74);
+}
+const fmt=v=>('×'+v.toFixed(1)).replace('.',LANG==='en'?'.':',');
+
+/* ---------- SAHNE 1: risk bantları ---------- */
+function scBand(p){
+  const L=T[LANG];sceneTitle(L.tBand);
+  const M={l:W*0.10,r:W*0.10,t:H*0.20,b:H*0.42};
+  const w=W-M.l-M.r,h=H-M.t-M.b;
+  const X0=0.30,X1=2.55;
+  const X=v=>M.l+w*((v-X0)/(X1-X0));
+  const rowsY=[M.t+h*0.18,M.t+h*0.5,M.t+h*0.82];
+  const packs=[['US',L.tag.includes('PART')?'US':'ABD',COL.amber],['EU','AB'===('AB')&&LANG==='tr'?'AB':'EU',COL.blue],['TR',LANG==='tr'?'TÜRKİYE':'TÜRKİYE',COL.red]];
+  /* ortalama çizgisi ×1 */
+  ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(245,239,230,.35)';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(X(1),M.t-F(6));ctx.lineTo(X(1),M.t+h+F(6));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='center';
+  ctx.fillText(L.bandMean,X(1),M.t-F(14));
+  ctx.fillText(L.bandAx,M.l+w/2,M.t+h+F(40));
+  for(const tv of [0.5,1.5,2.0,2.5]){
+    ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(10)+'px "IBM Plex Mono",monospace';
+    ctx.fillText(fmt(tv),X(tv),M.t+h+F(20));
+  }
+  const pe=ease(p);
+  packs.forEach(([k,lb,c],i)=>{
+    const s=ST[k],y=rowsY[i],bh=F(24);
+    const lo=s.mn/s.mean,hi=s.mx/s.mean,td=s.last/s.mean;
+    /* bant: ortadan iki yana açılır */
+    const lo2=1+(lo-1)*pe,hi2=1+(hi-1)*pe;
+    ctx.fillStyle=c;ctx.globalAlpha=0.25;
+    ctx.fillRect(X(lo2),y-bh/2,X(hi2)-X(lo2),bh);
+    ctx.globalAlpha=1;ctx.strokeStyle=c;ctx.lineWidth=2;
+    ctx.strokeRect(X(lo2),y-bh/2,X(hi2)-X(lo2),bh);
+    /* uç etiketleri */
+    if(p>0.6){
+      ctx.fillStyle=c;ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';
+      ctx.textAlign='right';ctx.fillText(fmt(lo),X(lo)-F(8),y+F(4));
+      ctx.textAlign='left'; ctx.fillText(fmt(hi),X(hi)+F(8),y+F(4));
+      /* bugün noktası */
+      ctx.beginPath();ctx.arc(X(td),y,F(5),0,7);ctx.fill();
+      ctx.font='600 '+F(10)+'px "IBM Plex Mono",monospace';ctx.textAlign='center';
+      ctx.fillText(L.bandToday,X(td),y-bh/2-F(8));
+      /* tavan/taban oranı bant ortasında */
+      ctx.font='800 '+F(15)+'px "IBM Plex Mono",monospace';
+      ctx.fillStyle=COL.ink;
+      ctx.fillText(fmt(s.mx/s.mn),X((lo+hi)/2),y+F(5));
+    }
+    ctx.fillStyle=COL.dim;ctx.font='700 '+F(14)+'px "IBM Plex Sans",sans-serif';
+    ctx.textAlign='left';ctx.fillText(lb,M.l,y-bh/2-F(10));
+  });
+}
+
+/* ---------- SAHNE 2: marj kilidi ---------- */
+function scHedge(p){
+  const L=T[LANG];sceneTitle(L.tHedge);
+  const M={l:W*0.08,r:W*0.07,t:H*0.20,b:H*0.42};
+  const w=W-M.l-M.r,h=H-M.t-M.b;
+  const rows=US.filter(r=>r[0]>='2019-01');
+  const YMIN=0.4,YMAX=2.7;
+  const X=i=>M.l+w*i/(rows.length-1);
+  const Y=v=>M.t+h*(1-(v-YMIN)/(YMAX-YMIN));
+  ctx.strokeStyle=COL.grid;ctx.lineWidth=1;
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  for(let v=0.5;v<=2.5;v+=0.5){
+    ctx.beginPath();ctx.moveTo(M.l,Y(v));ctx.lineTo(M.l+w,Y(v));ctx.stroke();
+    ctx.fillText(v.toFixed(1).replace('.',LANG==='en'?'.':','),M.l-8,Y(v)+4);
+  }
+  ctx.textAlign='center';
+  rows.forEach((r,i)=>{if(r[0].endsWith('-01')&&+r[0].slice(0,4)%2===1)
+    ctx.fillText(r.slice? r[0].slice(0,4):'',X(i),M.t+h+F(20));});
+  const idxOf=m=>rows.findIndex(r=>r[0]===m);
+  const iL1=idxOf('2020-06'),iL1e=idxOf('2021-12');
+  const iL2=idxOf('2024-06'),iL2e=rows.length-1;
+  const v1=rows[iL1][3],v2=rows[iL2][3];
+  const n=Math.max(2,Math.floor(rows.length*ease(Math.min(1,p*1.3))));
+  /* kilit 1: yeşil bölge (kurtarılan zarar) */
+  if(n>iL1){
+    const e1=Math.min(n-1,iL1e);
+    ctx.fillStyle='rgba(76,187,63,.18)';
+    ctx.beginPath();ctx.moveTo(X(iL1),Y(v1));
+    for(let i=iL1;i<=e1;i++)ctx.lineTo(X(i),Y(Math.min(v1,rows[i][3])));
+    ctx.lineTo(X(e1),Y(v1));ctx.closePath();ctx.fill();
+    ctx.setLineDash([7,5]);ctx.strokeStyle=COL.green;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(X(iL1),Y(v1));ctx.lineTo(X(e1),Y(v1));ctx.stroke();ctx.setLineDash([]);
+  }
+  /* kilit 2: kırmızı taralı (kaçan kâr) */
+  if(n>iL2){
+    const e2=Math.min(n-1,iL2e);
+    ctx.fillStyle='rgba(226,87,76,.15)';
+    ctx.beginPath();ctx.moveTo(X(iL2),Y(v2));
+    for(let i=iL2;i<=e2;i++)ctx.lineTo(X(i),Y(Math.max(v2,rows[i][3])));
+    ctx.lineTo(X(e2),Y(v2));ctx.closePath();ctx.fill();
+    ctx.setLineDash([7,5]);ctx.strokeStyle=COL.red;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(X(iL2),Y(v2));ctx.lineTo(X(e2),Y(v2));ctx.stroke();ctx.setLineDash([]);
+  }
+  /* parite çizgisi */
+  ctx.beginPath();
+  for(let i=0;i<n;i++){const y=Y(rows[i][3]);i?ctx.lineTo(X(i),y):ctx.moveTo(X(i),y);}
+  ctx.strokeStyle=COL.glowA;ctx.lineWidth=6;ctx.stroke();
+  ctx.strokeStyle=COL.amber;ctx.lineWidth=2.4;ctx.stroke();
+  /* kilit etiketleri */
+  ctx.textAlign='left';
+  if(n>iL1){
+    ctx.fillStyle=COL.green;ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';
+    ctx.fillText('🔒 '+L.hedgeLock1,X(iL1),Y(v1)-F(26));
+    ctx.font='600 '+F(11)+'px "IBM Plex Sans",sans-serif';
+    ctx.fillText(L.hedgeLock1b,X(iL1),Y(v1)-F(10));
+  }
+  if(n>iL2){
+    ctx.fillStyle=COL.red;ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';
+    ctx.textAlign='right';
+    ctx.fillText('🔒 '+L.hedgeLock2,X(iL2e)-F(4),Y(v2)+F(30));
+    ctx.font='600 '+F(11)+'px "IBM Plex Sans",sans-serif';
+    ctx.fillText(L.hedgeLock2b,X(iL2e)-F(4),Y(v2)+F(46));
+  }
+}
+
+/* ---------- SAHNE 3: yastık ---------- */
+function scCush(p){
+  const L=T[LANG];sceneTitle(L.tCush);
+  const M={l:W*0.09,r:W*0.08,t:H*0.20,b:H*0.42};
+  const w=W-M.l-M.r,h=H-M.t-M.b;
+  const ys=ST.years;
+  const YMIN=-60,YMAX=30;
+  const X=i=>M.l+w*i/(ys.length-1);
+  const Y=v=>M.t+h*(1-(v-YMIN)/(YMAX-YMIN));
+  ctx.strokeStyle=COL.grid;ctx.lineWidth=1;
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  for(const v of [-40,-20,0,20]){
+    ctx.beginPath();ctx.moveTo(M.l,Y(v));ctx.lineTo(M.l+w,Y(v));ctx.stroke();
+    ctx.fillText(v,M.l-8,Y(v)+4);
+  }
+  ctx.textAlign='center';
+  for(const yr of [1980,1990,2000,2010,2020])
+    ctx.fillText(yr,X(ys.findIndex(a=>a[0]===yr)),M.t+h+F(20));
+  ctx.fillText(L.cushAx,M.l+w/2,M.t+h+F(40));
+  const n=Math.max(1,Math.floor(ys.length*ease(Math.min(1,p*1.25))));
+  const bw=Math.max(2,w/ys.length-2);
+  let cum=0;const cums=[];
+  for(let i=0;i<ys.length;i++){cum+=ys[i][1];cums.push(cum);}
+  /* barlar */
+  for(let i=0;i<n;i++){
+    const v=ys[i][1];
+    ctx.fillStyle=v>=0?COL.green:COL.red;
+    ctx.globalAlpha=0.85;
+    ctx.fillRect(X(i)-bw/2,Y(Math.max(0,v)),bw,Math.abs(Y(v)-Y(0)));
+  }
+  ctx.globalAlpha=1;
+  /* kümülatif çizgi (kendi ölçeğinde, üst bölgeye) */
+  const cmin=Math.min(...cums),cmax=Math.max(...cums);
+  const Yc=v=>M.t+h*0.42*(1-(v-cmin)/(cmax-cmin));
+  ctx.beginPath();
+  for(let i=0;i<n;i++){const y=Yc(cums[i]);i?ctx.lineTo(X(i),y):ctx.moveTo(X(i),y);}
+  ctx.strokeStyle='rgba(245,239,230,.8)';ctx.lineWidth=2;ctx.stroke();
+  if(n>3){
+    const i=n-1;
+    ctx.fillStyle=COL.ink;ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';ctx.textAlign='left';
+    ctx.fillText(L.cushCum+': '+(cums[i]>=0?'+':'')+Math.round(cums[i]),Math.min(X(i)+F(8),W-F(190)),Yc(cums[i])-F(8));
+  }
+}
+
+/* ---------- SAHNE 4: faiz makası ---------- */
+function scInt(p){
+  const L=T[LANG];sceneTitle(L.tInt);
+  const M={l:W*0.10,r:W*0.14,t:H*0.20,b:H*0.42};
+  const w=W-M.l-M.r,h=H-M.t-M.b;
+  const YMIN=0,YMAX=450;
+  const X=t=>M.l+w*t/5;
+  const Y=v=>M.t+h*(1-(v-YMIN)/(YMAX-YMIN));
+  ctx.strokeStyle=COL.grid;ctx.lineWidth=1;
+  ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
+  for(const v of [100,200,300,400]){
+    ctx.beginPath();ctx.moveTo(M.l,Y(v));ctx.lineTo(M.l+w,Y(v));ctx.stroke();
+    ctx.fillText(v,M.l-8,Y(v)+4);
+  }
+  ctx.textAlign='center';
+  for(let t=0;t<=5;t++)ctx.fillText(t,X(t),M.t+h+F(20));
+  ctx.fillText(L.intYr,M.l+w/2,M.t+h+F(40));
+  ctx.save();ctx.translate(M.l-F(44),M.t+h/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText(L.intAx,0,0);ctx.restore();
+  const pe=ease(Math.min(1,p*1.2));
+  const tmax=5*pe;
+  const curve=(rate,c,gl,lbl)=>{
+    ctx.beginPath();
+    for(let t=0;t<=tmax+1e-6;t+=0.05){
+      const v=55*Math.pow(1+rate,t);
+      const x=X(t),y=Y(Math.min(v,YMAX));
+      t?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    }
+    ctx.strokeStyle=gl;ctx.lineWidth=6;ctx.stroke();
+    ctx.strokeStyle=c;ctx.lineWidth=2.6;ctx.stroke();
+    const ve=55*Math.pow(1+rate,tmax);
+    ctx.fillStyle=c;ctx.font='700 '+F(13)+'px "IBM Plex Mono",monospace';ctx.textAlign='left';
+    ctx.fillText(Math.round(Math.min(ve,999)),X(tmax)+F(8),Y(Math.min(ve,YMAX))+F(4));
+    if(pe>0.9){ctx.font='600 '+F(12)+'px "IBM Plex Sans",sans-serif';
+      ctx.fillText(lbl,X(2.6),Y(55*Math.pow(1+rate,2.6))-F(12));}
+  };
+  curve(0.08,COL.green,COL.glowG,L.int8);
+  curve(0.50,COL.red,COL.glowR,L.int50);
+  /* 3. yıl işareti */
+  if(pe>0.62){
+    ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(245,239,230,.3)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(X(3),M.t);ctx.lineTo(X(3),M.t+h);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=COL.dim;ctx.font='600 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='center';
+    ctx.fillText(L.intNote,X(3),M.t-F(10));
+  }
+}
+
+/* ---------- SAHNE 5: zincir ---------- */
+function scChain(p){
+  const L=T[LANG];sceneTitle(L.tChain);
+  const cy=H*0.34,bw=Math.min(F(190),W*0.24),bh=F(74);
+  const cxs=[W*0.22,W*0.5,W*0.78];
+  const names=[[L.chainA,L.chainAs],[L.chainB,L.chainBs],[L.chainC,L.chainCs]];
+  const cols=[COL.amber,COL.blue,COL.red];
+  const pe=ease(Math.min(1,p*1.25));
+  const vis=Math.min(3,Math.floor(pe*4.2));
+  for(let i=0;i<3;i++){
+    if(i>=vis&&pe<0.95)continue;
+    const x=cxs[i]-bw/2;
+    ctx.fillStyle='rgba(12,9,5,.85)';ctx.strokeStyle=cols[i];ctx.lineWidth=2;
+    ctx.beginPath();ctx.roundRect(x,cy-bh/2,bw,bh,10);ctx.fill();ctx.stroke();
+    ctx.fillStyle=cols[i];ctx.font='800 '+F(14)+'px "IBM Plex Mono",monospace';ctx.textAlign='center';
+    ctx.fillText(names[i][0],cxs[i],cy-F(6));
+    ctx.fillStyle=COL.dim;ctx.font='500 '+F(11)+'px "IBM Plex Sans",sans-serif';
+    ctx.fillText(names[i][1],cxs[i],cy+F(14));
+    if(i<2&&(i+1<vis||pe>0.95)){
+      ctx.strokeStyle=COL.dimmer;ctx.lineWidth=2;
+      const x1=cxs[i]+bw/2+F(6),x2=cxs[i+1]-bw/2-F(6);
+      ctx.beginPath();ctx.moveTo(x1,cy);ctx.lineTo(x2,cy);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x2,cy);ctx.lineTo(x2-F(9),cy-F(5));ctx.lineTo(x2-F(9),cy+F(5));ctx.closePath();
+      ctx.fillStyle=COL.dimmer;ctx.fill();
+    }
+  }
+  /* risk rozeti: sahibinde kalır */
+  if(pe>0.82){
+    const rx=cxs[0],ry=cy+bh/2+F(38);
+    ctx.fillStyle='rgba(226,87,76,.14)';ctx.strokeStyle=COL.red;ctx.lineWidth=1.6;
+    const rw=F(150),rh=F(30);
+    ctx.beginPath();ctx.roundRect(rx-rw/2,ry-rh/2,rw,rh,999);ctx.fill();ctx.stroke();
+    ctx.fillStyle=COL.red;ctx.font='800 '+F(12)+'px "IBM Plex Mono",monospace';ctx.textAlign='center';
+    ctx.fillText('🔥 '+L.chainRisk,rx,ry+F(4));
+    /* riskin feedlot'a GİTMEDİĞİNİ gösteren ok */
+    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(226,87,76,.5)';
+    ctx.beginPath();ctx.moveTo(rx+rw/2+F(8),ry);ctx.lineTo(cxs[2]-F(30),ry);ctx.stroke();ctx.setLineDash([]);
+    ctx.font='700 '+F(16)+'px "IBM Plex Mono",monospace';
+    ctx.fillText('✕',cxs[2]-F(16),ry+F(5));
+  }
+  if(pe>0.9){
+    ctx.fillStyle=COL.dim;ctx.font='500 '+F(13)+'px "IBM Plex Sans",sans-serif';ctx.textAlign='center';
+    const words=L.chainNote.split(' ');let line='',yy=cy+bh/2+F(86);
+    for(const wd of words){
+      if(ctx.measureText(line+' '+wd).width>Math.min(W*0.8,F(560))){ctx.fillText(line,W/2,yy);yy+=F(20);line=wd;}
+      else line=line?line+' '+wd:wd;
+    }
+    ctx.fillText(line,W/2,yy);
+  }
+}
+
+/* ---------- SAHNE 6: reçete ---------- */
+function scRec(p){
+  const L=T[LANG];sceneTitle(L.tRec);
+  const items=L.recItems;
+  const pe=ease(Math.min(1,p*1.15));
+  const x0=Math.max(W*0.14,(W-F(680))/2),wmax=Math.min(W*0.72,F(680));
+  let y=H*0.20;
+  items.forEach((it,i)=>{
+    const on=pe>(i+1)/(items.length+0.5);
+    ctx.globalAlpha=on?1:0.18;
+    ctx.font='700 '+F(24)+'px "IBM Plex Sans",sans-serif';ctx.textAlign='left';
+    ctx.fillStyle=COL.amber;
+    ctx.fillText(it[0],x0,y+F(8));
+    ctx.fillStyle=on?COL.ink:COL.dimmer;
+    ctx.font='800 '+F(16)+'px "IBM Plex Mono",monospace';
+    ctx.fillText((i+1)+'. '+it[1].toUpperCase(),x0+F(42),y);
+    ctx.fillStyle=COL.dim;ctx.font='500 '+F(13.5)+'px "IBM Plex Sans",sans-serif';
+    const words=it[2].split(' ');let line='',yy=y+F(21);
+    for(const wd of words){
+      if(ctx.measureText(line+' '+wd).width>wmax-F(42)){ctx.fillText(line,x0+F(42),yy);yy+=F(19);line=wd;}
+      else line=line?line+' '+wd:wd;
+    }
+    ctx.fillText(line,x0+F(42),yy);
+    ctx.globalAlpha=1;
+    y=yy+F(38);
+  });
+}
+
+/* ---------- ana çizim ---------- */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  if(!ready)return;
+  if(!ST)buildStats();
+  const{idx,f,hero}=progress();
+  if(hero>0.98)return;
+  const fr=$('#fin').getBoundingClientRect();
+  const finVis=Math.min(1,Math.max(0,1-fr.top/(innerHeight*0.7)));
+  if(finVis>=1)return;
+  const{s,p}=sceneOf(idx,f);
+  ctx.globalAlpha=Math.min(1,(1-hero)*1.6)*(1-finVis);
+  if(s==='band')scBand(p);
+  else if(s==='hedge')scHedge(p);
+  else if(s==='cush')scCush(p);
+  else if(s==='int')scInt(p);
+  else if(s==='chain')scChain(p);
+  else scRec(p);
+  ctx.globalAlpha=1;
+}
+function fadeCards(){
+  document.querySelectorAll('.step .card').forEach(c=>{
+    const r=c.getBoundingClientRect();
+    const cy=r.top+r.height/2;
+    c.style.opacity=(cy<innerHeight*0.45)?0.10:1;
+  });
+}
+let raf=null;
+addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=null;draw();fadeCards();});},{passive:true});
+/* otomatik oynatma */
+const playBtn=$('#play');
+let playing=false,plast=null;
+function ptick(ts){
+  if(!playing)return;
+  if(plast!=null){
+    const dt=(ts-plast)/1000;
+    scrollBy(0,innerHeight*0.055*dt);
+    if(scrollY+innerHeight>=document.body.scrollHeight-4)stopPlay();
+  }
+  plast=ts;requestAnimationFrame(ptick);
+}
+function startPlay(){playing=true;plast=null;playBtn.textContent='⏸';playBtn.classList.add('on');requestAnimationFrame(ptick);}
+function stopPlay(){playing=false;playBtn.textContent='▶';playBtn.classList.remove('on');}
+playBtn.onclick=()=>playing?stopPlay():startPlay();
+for(const evn of ['wheel','touchstart','keydown'])
+  addEventListener(evn,()=>{if(playing)stopPlay();},{passive:true});
+setInterval(draw,400);
+buildSteps();fit();
+</script>
+</body>
+</html>
