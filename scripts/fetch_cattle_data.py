@@ -119,7 +119,10 @@ def build_tr_discovery():
         raise RuntimeError("EVDS_KEY not set — skipping TR discovery")
     from evds import evdsAPI
     api = evdsAPI(key)
-    want = ("tarım", "tarim", "üretici fiyat", "uretici fiyat", "üfe", "ufe")
+    # WIDE=1: anahtar kelime filtresi yok — tüm katalog taranır (mısır avı)
+    wide = os.environ.get("WIDE", "").strip() == "1"
+    want = ("tarım", "tarim", "üretici fiyat", "uretici fiyat", "üfe", "ufe",
+            "fiyat", "emtia", "toptan")
     catalog = []
     mains = api.main_categories
     for _, mrow in mains.iterrows():
@@ -129,7 +132,7 @@ def build_tr_discovery():
             continue
         for _, srow in subs.iterrows():
             gname = str(srow.get("DATAGROUP_NAME", ""))
-            if not any(k in gname.lower() for k in want):
+            if not wide and not any(k in gname.lower() for k in want):
                 continue
             code = srow.get("DATAGROUP_CODE")
             try:

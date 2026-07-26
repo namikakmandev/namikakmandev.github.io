@@ -9,6 +9,9 @@ on:
       corn_tr_code:
         description: "TR mısır EVDS seri kodu (corn modu için)"
         default: ""
+      wide:
+        description: "discover modunda tüm katalogu tara (1/0)"
+        default: "0"
 
 permissions:
   contents: write
@@ -28,6 +31,7 @@ jobs:
           EVDS_KEY: ${{ secrets.EVDS_KEY }}
           MODE: ${{ inputs.mode }}
           CORN_TR_CODE: ${{ inputs.corn_tr_code }}
+          WIDE: ${{ inputs.wide }}
         run: |
           mkdir -p data
           python scripts/fetch_cattle_data.py
