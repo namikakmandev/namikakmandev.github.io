@@ -50,6 +50,10 @@ body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-sy
  font:600 12px "IBM Plex Mono",monospace;padding:7px 12px;border-radius:999px;cursor:pointer}
 #lang button.on{color:#141007;background:var(--amber);border-color:var(--amber)}
 #tag{position:fixed;top:16px;left:16px;z-index:10;font:600 11px "IBM Plex Mono",monospace;color:var(--dimmer)}
+#play{position:fixed;bottom:20px;right:16px;z-index:10;width:52px;height:52px;border-radius:50%;
+ background:var(--amber);color:#141007;border:none;font-size:20px;cursor:pointer;
+ box-shadow:0 6px 20px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+#play.on{background:var(--card);color:var(--amber);border:1px solid rgba(255,176,86,.5)}
 @media (max-width:640px){.step{align-items:flex-end}.card{max-width:94vw}}
 @media (min-width:900px){.card{max-width:640px;padding:26px 32px}
  .card .k{font-size:13px}.card h3{font-size:28px}.card p{font-size:18px;line-height:1.55}
@@ -61,6 +65,7 @@ body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-sy
 <div id="grade"></div>
 <div id="tag" data-i="tag">namikakman.dev · PARİTE: SIĞIR</div>
 <div id="lang"><button id="btr" class="on">TR</button><button id="ben">EN</button></div>
+<button id="play" title="Otomatik oynat">▶</button>
 
 <div id="story">
   <section id="hero">
@@ -132,7 +137,9 @@ const T={
   steps:[
    {k:'🐄 ABD · 1971',h:'55 yıl önce başlıyoruz',p:'Önce sahnede yalnız Amerika var — verisi 1971’e uzanan tek seri. Çizgiyi kaydırarak sen çizeceksin; Türkiye ve AB, verileri başlayınca katılacak.'},
    {k:'🌾 1973–75 · TAHIL ŞOKU',h:'İlk çöküş',p:'Sovyet tahıl alımları + petrol krizi. Sattığın et, yedirdiğin mısırın yarısını karşılamıyor. <b>Serinin dibi hâlâ Aralık 1974.</b>'},
-   {k:'🔁 1980–2010',h:'Döngü çağı',p:'1987 ve 2005 zirveleri; 1996 ve 2008 dipleri. Sarkaç kurulmuş: <b>yem şoku → tasfiye → kıtlık → zirve.</b> Her seferinde.'},
+   {k:'🔁 1976–1986 · SARKAÇ KURULUYOR',h:'Toparlanma ve salınım',p:'Şokun ardından parite ortalamaya döner ve salınmaya başlar. Kural yerleşiyor: <b>yem şoku → tasfiye → kıtlık → zirve.</b>'},
+   {k:'📈 1987 · İLK BÜYÜK ZİRVE',h:'Dip, zirveyi finanse etti',p:'70’lerde kesilen her inek, 80’lerin kıtlığı oldu: parite 1987’de <b>1,75</b> ile o güne dek görülmemiş bir tepeye çıktı. Döngü ilk tam turunu attı.'},
+   {k:'🚀 2005 · REKORDAN ÖNCEKİ REKOR',h:'1996 dibinden 2005 tepesine',p:'1996’da tahıl stok krizi pariteyi 0,44’e ezdi; dokuz yıl sonra sarkaç öbür uca savruldu: <b>2005’te 2,09</b> — o günün tüm zamanlar rekoru. Sonrası tanıdık: sürü büyüdü, 2008 yem krizi tepeyi sildi.'},
    {k:'🇹🇷 2010 · TÜRKİYE KATILIYOR',h:'Kırmızı çizgi sahnede',p:'TÜİK verisi 2010’da başlıyor. İlk yıllar dalgalı bir denge — ama 2018’de başlayacak <b>beş yıllık erozyonun</b> sahnesi kuruldu.'},
    {k:'☀️ 2014 · KURAKLIK',h:'ABD’de zirve sanılan tepe',p:'Büyük Ovalar kuraklığı sürüyü 63 yılın dibine indirdi. Ardından sürü yeniden büyüdü, parite iki yılda %42 düştü.'},
    {k:'🇪🇺 2015 · AB KATILIYOR',h:'Mavi çizgi sahnede — ve taban yılı',p:'EC verisi 2015’te başlıyor; üç seriyi de <b>2015=100</b> kabul ediyoruz. Bu andan sonra üç kıta aynı cetvelle yarışıyor.'},
@@ -172,7 +179,9 @@ const T={
   steps:[
    {k:'🐄 US · 1971',h:'We start 55 years ago',p:'At first, America is alone on stage — the only series reaching back to 1971. You draw the line by scrolling; Türkiye and the EU will join when their data begins.'},
    {k:'🌾 1973–75 · GRAIN SHOCK',h:'First collapse',p:'Soviet grain purchases + the oil crisis. The beef you sell no longer covers half the corn you feed. <b>December 1974 is still the series low.</b>'},
-   {k:'🔁 1980–2010',h:'The cycle era',p:'Peaks in 1987 and 2005; troughs in 1996 and 2008. The pendulum is set: <b>feed shock → liquidation → shortage → peak.</b> Every time.'},
+   {k:'🔁 1976–1986 · THE PENDULUM',h:'Recovery and swing',p:'After the shock, parity reverts and starts to swing. The rule takes hold: <b>feed shock → liquidation → shortage → peak.</b>'},
+   {k:'📈 1987 · THE FIRST GREAT PEAK',h:'The trough financed the peak',p:'Every cow slaughtered in the 70s became the shortage of the 80s: parity climbed to an unprecedented <b>1.75</b> in 1987. The cycle completed its first full turn.'},
+   {k:'🚀 2005 · THE RECORD BEFORE THE RECORD',h:'From the 1996 trough to the 2005 top',p:'In 1996 the grain stock crisis crushed parity to 0.44; nine years later the pendulum swung to the far end: <b>2.09 in 2005</b> — the all-time record of its day. The sequel is familiar: the herd grew, and the 2008 feed crisis erased the top.'},
    {k:'🇹🇷 2010 · TÜRKİYE JOINS',h:'The red line enters',p:'TÜİK data begins in 2010. The early years are a choppy balance — but the stage is set for the <b>five-year erosion</b> that starts in 2018.'},
    {k:'☀️ 2014 · DROUGHT',h:'The US peak that felt final',p:'The Great Plains drought shrank the herd to a 63-year low. Then the herd rebuilt, and parity fell 42% in two years.'},
    {k:'🇪🇺 2015 · THE EU JOINS',h:'The blue line enters — and the base year',p:'EC data begins in 2015; we set all three series to <b>2015=100</b>. From here on, three continents race on the same ruler.'},
@@ -225,9 +234,9 @@ function progress(){
 /* sahne eşlemesi: adım aralığı -> sahne ve sahne-içi ilerleme */
 function sceneOf(idx,f){
   const g=idx+f;                       // 0..12 sürekli konum
-  if(g<8)   return{s:'usline', p:g};   // birleşik ana grafik, kart-kilitli
-  if(g<10)  return{s:'cycle',  p:Math.min(1,(g-8)/1.6)};
-  return    {s:'pnl',          p:Math.min(1,(g-10)/1.8)};
+  if(g<10)  return{s:'usline', p:g};   // birleşik ana grafik, kart-kilitli
+  if(g<12)  return{s:'cycle',  p:Math.min(1,(g-10)/1.6)};
+  return    {s:'pnl',          p:Math.min(1,(g-12)/1.8)};
 }
 
 /* ---------- çizim yardımcıları ---------- */
@@ -285,12 +294,14 @@ function scUSline(p){
   /* plato mantığı: kart görünürken çizgi o dönemde bekler, geçişte sıçrar */
   const KN=[[0.30,'1971-06'],[0.95,'1971-10'],
             [1.30,'1974-12'],[1.95,'1975-04'],
-            [2.15,'1978-01'],[2.95,'2009-09'],
-            [3.25,'2010-02'],[3.95,'2011-06'],
-            [4.30,'2014-10'],[4.95,'2014-12'],
-            [5.25,'2015-11'],[5.95,'2016-09'],
-            [6.30,'2021-05'],[6.60,'2022-06'],[6.95,'2022-10'],
-            [7.45,'2026-07']];
+            [2.15,'1977-01'],[2.95,'1986-03'],
+            [3.30,'1987-08'],[3.95,'1988-03'],
+            [4.15,'1996-05'],[4.50,'2005-10'],[4.95,'2006-04'],
+            [5.25,'2010-02'],[5.95,'2011-06'],
+            [6.30,'2014-10'],[6.95,'2014-12'],
+            [7.25,'2015-11'],[7.95,'2016-09'],
+            [8.30,'2021-05'],[8.60,'2022-06'],[8.95,'2022-10'],
+            [9.45,'2026-07']];
   const g=p;let cm;
   if(g<=KN[0][0])cm=T0+Math.max(1,Math.round((mi(KN[0][1])-T0)*(g/KN[0][0])));
   else if(g>=KN[KN.length-1][0])cm=T1;
@@ -391,7 +402,7 @@ function scUSline(p){
     ctx.globalAlpha=1;
   }
   /* olay noktaları (ABD endeksinde) */
-  const ev=[['1974-12','🌾'],['1996-05','📦'],['2014-10','☀️'],['2021-05','🦠'],['2025-08','🏆']];
+  const ev=[['1974-12','🌾'],['1987-08','📈'],['1996-05','📦'],['2005-10','🚀'],['2014-10','☀️'],['2021-05','🦠'],['2025-08','🏆']];
   for(const [mm,ic] of ev){
     const i=US.findIndex(r=>r[0]===mm);
     if(i<0||i>=nU)continue;
@@ -549,6 +560,23 @@ function fadeCards(){
 }
 let raf=null;
 addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=null;draw();fadeCards();});},{passive:true});
+/* ---- otomatik oynatma: yavaş kaydırma ---- */
+const playBtn=$('#play');
+let playing=false,plast=null;
+function ptick(ts){
+  if(!playing)return;
+  if(plast!=null){
+    const dt=(ts-plast)/1000;
+    scrollBy(0,innerHeight*0.055*dt);            // ~her 18 sn'de bir ekran: çok yavaş
+    if(scrollY+innerHeight>=document.body.scrollHeight-4)stopPlay();
+  }
+  plast=ts;requestAnimationFrame(ptick);
+}
+function startPlay(){playing=true;plast=null;playBtn.textContent='⏸';playBtn.classList.add('on');requestAnimationFrame(ptick);}
+function stopPlay(){playing=false;playBtn.textContent='▶';playBtn.classList.remove('on');}
+playBtn.onclick=()=>playing?stopPlay():startPlay();
+for(const evn of ['wheel','touchstart','keydown'])
+  addEventListener(evn,()=>{if(playing)stopPlay();},{passive:true});
 setInterval(draw,400);   // güvenlik ağı: hızlı kaydırmada bayat kare kalmasın
 buildSteps();fit();
 </script>
