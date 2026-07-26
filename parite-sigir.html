@@ -20,7 +20,8 @@ body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-sy
  background:radial-gradient(ellipse at 50% 42%,transparent 55%,rgba(0,0,0,.55) 100%)}
 #story{position:relative;z-index:2}
 .spacer{height:52vh}
-.step{min-height:88vh;display:flex;align-items:flex-end;justify-content:center;padding:0 5vw 9vh}
+.step{min-height:112vh;display:block;padding:0 5vw 6vh}
+.step .card{position:sticky;top:67vh;margin:0 auto}
 .card{max-width:520px;transition:opacity .25s;background:var(--card);border:1px solid rgba(255,176,86,.35);
  border-radius:14px;padding:18px 22px;backdrop-filter:blur(3px);box-shadow:0 8px 30px rgba(0,0,0,.45)}
 .card .k{font:600 11px "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:.14em;margin-bottom:6px}
@@ -60,8 +61,8 @@ body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-sy
  background:var(--amber);color:#141007;border:none;font-size:20px;cursor:pointer;
  box-shadow:0 6px 20px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
 #play.on{background:var(--card);color:var(--amber);border:1px solid rgba(255,176,86,.5)}
-@media (max-width:640px){.step{align-items:flex-end}.card{max-width:94vw}}
-@media (min-width:900px){.card{max-width:640px;padding:26px 32px}
+@media (max-width:640px){.card{max-width:94vw}.step .card{top:63vh}}
+@media (min-width:900px){.card{max-width:640px;padding:26px 32px}.step .card{top:70vh}
  .card .k{font-size:13px}.card h3{font-size:28px}.card p{font-size:18px;line-height:1.55}
  #tag{font-size:13px}}
 </style>
@@ -288,7 +289,8 @@ function buildSteps(){
   const host=$('#steps');host.innerHTML='';
   T[LANG].steps.forEach((s,i)=>{
     const el=document.createElement('section');el.className='step';el.dataset.idx=i;
-    const bg=s.bg?`<details><summary>${T[LANG].bgLbl}</summary><div>${s.bg}</div></details>`:'';
+    const op=innerWidth>=900?' open':'';
+    const bg=s.bg?`<details${op}><summary>${T[LANG].bgLbl}</summary><div>${s.bg}</div></details>`:'';
     el.innerHTML=`<div class="card"><div class="k">${s.k}</div><h3>${s.h}</h3><p>${s.p}</p>${bg}</div>`;
     host.appendChild(el);
   });
@@ -639,7 +641,7 @@ function fadeCards(){
     const r=c.getBoundingClientRect();
     const cy=(r.top+r.bottom)/2;
     /* kart merkezi ekranın üst %38'ine çıktıysa (dönemi bitti) söndür */
-    c.style.opacity=(cy<innerHeight*0.38)?0.12:1;
+    c.style.opacity=(cy<innerHeight*0.45)?0.10:1;
   });
 }
 let raf=null;
