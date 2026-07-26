@@ -695,7 +695,7 @@ function scPnl(p){
   const YMX=104,YMN=-95;
   const Y=v=>M.t+h*(YMX-v)/(YMX-YMN);
   const y100=Y(100),y0=Y(0);
-  const cD='#B9AB94',cO='#DDD3C0',cP='#5da05d';
+  const cD='#B9AB94',cO='#DDD3C0',cP='#4CBB3F';
   /* lejant */
   ctx.textAlign='left';ctx.font='500 '+F(12)+'px "IBM Plex Sans",sans-serif';
   let lx=M.l+F(4),ly=M.t-F(26);
@@ -726,8 +726,9 @@ function scPnl(p){
       if(kar>0)segs.push([kar,cP]);
       for(const [v,sc] of segs){
         const yT=Y(top),hh=Y(top-v)-yT;
-        ctx.fillStyle=sc;ctx.globalAlpha=sc===c?0.95:(sc===cP?0.9:0.8);
+        ctx.fillStyle=sc;ctx.globalAlpha=sc===c?0.95:(sc===cP?1:0.8);
         ctx.fillRect(bx,yT,bw,hh);
+        if(sc===cP){ctx.strokeStyle='#8dff7e';ctx.lineWidth=1.5;ctx.strokeRect(bx,yT,bw,hh);}
         if(hh>F(17)&&sc!==cP){             // katmanın üstüne rakamı yaz
           ctx.globalAlpha=1;
           ctx.fillStyle='#141007';ctx.font='700 '+F(11)+'px "IBM Plex Mono",monospace';
@@ -744,13 +745,13 @@ function scPnl(p){
       ctx.textAlign='center';
       if(kar>=0){                          // kâr etiketi çizginin ÜSTÜNDE, yeşil bölgenin içinde
         const gh=y0-Y(kar),cyG=(y0+Y(kar))/2;
-        ctx.fillStyle='#0e2010';
-        if(gh>=F(13)){
-          ctx.font='700 '+F(10)+'px "IBM Plex Mono",monospace';
+        ctx.fillStyle='#05230a';
+        if(gh>=F(15)){
+          ctx.font='800 '+F(12)+'px "IBM Plex Mono",monospace';
           ctx.fillText('+'+kar.toFixed(0)+' '+(LANG==='en'?'GAIN':'KÂR'),bx+bw/2,cyG+F(4));
         }else{
-          ctx.font='700 '+F(9)+'px "IBM Plex Mono",monospace';
-          ctx.fillText('+'+kar.toFixed(0),bx+bw/2,cyG+F(3));
+          ctx.font='800 '+F(10)+'px "IBM Plex Mono",monospace';
+          ctx.fillText('+'+kar.toFixed(0)+' '+(LANG==='en'?'GAIN':'KÂR'),bx+bw/2,cyG+F(4));
         }
       }else{                               // zarar etiketi çizginin ALTINDA
         const yEnd=Y(kar);
