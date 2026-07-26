@@ -127,7 +127,7 @@ const T={
   axParite:'parite (sığır ÷ mısır)',axIdx:'endeks (2015=100)',axAy:'dipten sonra geçen ay',axDip:'parite (dip=100)',
   axMaliyet:'maliyet / 100 gelir',geliri:'GELİR = 100',
   axLag:'gecikme (ay) — negatif: ikinci ülke önden gider',axCorr:'yıllık değişim korelasyonu',
-  pulseT:'🌐 ÜÇLÜ ORTAK NABIZ',pulseS:'üç serinin yıllık değişimlerindeki',pulseS2:'oynaklığın tek ortak dalgayla açıklanan payı',
+  pulseT:'🌐 ÜÇLÜ ORTAK NABIZ',pulseS:'üç serinin yıllık değişimlerindeki',pulseS2:'oynaklığın tek ortak dalgayla açıklanan payı',pulseTR:'TR ~ ABD+AB birlikte: R² = %50',pulseTR2:'kalan yarı = kur + yerel politika katmanı',
   tUS:['GRAFİK 1/4 · ÜÇ KITA, 1971–2026','Parite endeksi (2015=100). Her ülke, verisi başladığı anda katılır.'],
   shocks:[['1972-06','1975-06','🌾🛢️','Sovyet tahıl alımları','+ petrol krizi'],
           ['1983-01','1984-06','🌽☀️','ABD ekim kısıtlaması','(PIK) + kuraklık'],
@@ -176,7 +176,7 @@ const T={
   axParite:'parity (cattle ÷ corn)',axIdx:'index (2015=100)',axAy:'months after trough',axDip:'parity (trough=100)',
   axMaliyet:'cost per 100 revenue',geliri:'REVENUE = 100',
   axLag:'lag (months) — negative: second country leads',axCorr:'annual-change correlation',
-  pulseT:'🌐 THREE-WAY COMMON PULSE',pulseS:'share of variance in the three series’',pulseS2:'annual changes explained by one common wave',
+  pulseT:'🌐 THREE-WAY COMMON PULSE',pulseS:'share of variance in the three series’',pulseS2:'annual changes explained by one common wave',pulseTR:'TR ~ US+EU jointly: R² = 50%',pulseTR2:'the other half = currency + local policy layer',
   tUS:['CHART 1/4 · THREE CONTINENTS, 1971–2026','Parity index (2015=100). Each country joins when its data begins.'],
   shocks:[['1972-06','1975-06','🌾🛢️','Soviet grain deals','+ oil crisis'],
           ['1983-01','1984-06','🌽☀️','US acreage set-aside','(PIK) + drought'],
@@ -284,7 +284,7 @@ function scCorr(p){
   if(prog>0.3&&CORR.pc1){
     const a=Math.min(1,(prog-0.3)*4);
     ctx.globalAlpha=a;
-    const bx=W-M.r-F(268),by=M.t+F(8),bw=F(260),bh=F(64);
+    const bx=W-M.r-F(288),by=M.t+F(8),bw=F(280),bh=F(96);
     ctx.fillStyle='rgba(12,9,5,.8)';ctx.strokeStyle='rgba(255,176,86,.4)';ctx.lineWidth=1.5;
     ctx.beginPath();ctx.roundRect(bx,by,bw,bh,10);ctx.fill();ctx.stroke();
     ctx.textAlign='left';
@@ -295,6 +295,12 @@ function scCorr(p){
     ctx.fillStyle=COL.dim;ctx.font='500 '+F(10)+'px "IBM Plex Sans",sans-serif';
     ctx.fillText(L.pulseS,bx+F(64),by+F(38));
     ctx.fillText(L.pulseS2,bx+F(64),by+F(52));
+    ctx.strokeStyle='rgba(255,176,86,.25)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(bx+F(12),by+F(62));ctx.lineTo(bx+bw-F(12),by+F(62));ctx.stroke();
+    ctx.fillStyle=COL.red;ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';
+    ctx.fillText(L.pulseTR,bx+F(12),by+F(80));
+    ctx.fillStyle=COL.dim;ctx.font='500 '+F(10)+'px "IBM Plex Sans",sans-serif';
+    ctx.fillText(L.pulseTR2,bx+F(12),by+F(92));
     ctx.globalAlpha=1;
   }
   let li=0;
