@@ -55,9 +55,12 @@ def parse_file(url):
     name = url.lower()
     if name.endswith(".csv") or ".csv?" in name:
         text = raw.decode("utf-8", "replace")
-        rows = [r for r in text.splitlines() if re.search(r"veterinar", r, re.I)]
-        report["vet_rows"] = rows[:20]
-        print("\n".join(rows[:20]))
+        lines = text.splitlines()
+        report["head"] = lines[:8]
+        rows = [r for r in lines if re.search(r"veterinar", r, re.I)]
+        report["vet_rows"] = rows[:40]
+        print("HEAD:"); print("\n".join(lines[:8]))
+        print("VET ROWS:", len(rows)); print("\n".join(rows[:40]))
         return
     # xls/xlsx
     try:
