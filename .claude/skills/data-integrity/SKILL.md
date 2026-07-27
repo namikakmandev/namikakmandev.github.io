@@ -87,6 +87,52 @@ share_den = (var_den - cov) / (var_num + var_den - 2*cov)
 Five cycles is five observations. "Every one" out of five is a pattern, not a law. Say
 the sample size out loud, and say what would falsify the claim.
 
+## 9. Name the data in the heading, not only in the footnote
+
+A reader should never have to infer which market or which period a number covers. If a
+chart is US-only, the *headline* says so — not the source line in grey capitals at the
+bottom.
+
+Real failures this rule comes from:
+
+- A slide headed "Our customers are at their most profitable point in 55 years" sat above
+  a US-only figure. Only the US has 55 years; the EU record starts in 2015. The claim was
+  true for one market and unsupported for the other two.
+- Two chart slides were built entirely on US data with no "US" anywhere in the title.
+- "0.50 kg" and "2.44 kg" appeared with no country and no date, in a deck whose whole
+  argument was about three different countries.
+
+Apply it mechanically:
+
+- Every headline names the market when the slide is not all markets: "**The US:** a
+  record…", "Five **US** peaks…"
+- Every number carries market **and** date: "US, Jun 2026", not "today"
+- When the scope changes between slides, say so on the slide where it changes
+  ("**Now all three** — each on its own base")
+- Mark the switch from measured to modelled in the heading or the line under it
+
+## 10. Write the sources on the artefact itself
+
+Not in a separate file, not "available on request". Every deck, page, report or post
+carries its own sources where a sceptic will look for them.
+
+Include, for each series: **publisher, exact series or dataset code, unit, span.**
+"BLS producer price indexes WPU0131 (slaughter cattle) ÷ WPU012202 (corn), via FRED,
+1971→" — a reader can verify that. "Source: BLS" is not verifiable.
+
+Alongside the sources, in the same block, list:
+
+- **Deflators used**, named — a money figure without a stated deflator invites the question
+- **Known breaks** — "ERS changed survey basis in 2008, no comparison spans it"
+- **What the series does not measure** — "EU veterinary line covers all livestock, not
+  cattle alone"
+- **What is missing** — "no per-head cost accounts published for Türkiye". An absent
+  market must be declared, never quietly dropped while the title still claims three.
+
+Close with reproducibility: which committed data files every figure comes from, and the
+data cut-off date. If a number in the artefact cannot be recomputed from a file in the
+repository, it should not be in the artefact.
+
 ## Before publishing, confirm
 
 - [ ] Every number has a unit, a market and a date attached
@@ -97,3 +143,6 @@ the sample size out loud, and say what would falsify the claim.
 - [ ] Correlations were checked for common trend and for what drives them
 - [ ] Sample sizes are stated where they are small
 - [ ] Every claim is reproducible from the committed data files
+- [ ] Every heading names the market and period it covers
+- [ ] Sources are printed on the artefact, with publisher, series code, unit and span
+- [ ] Deflators, breaks, exclusions and missing markets are listed alongside the sources
