@@ -17,6 +17,20 @@ h2{font-size:clamp(20px,2.9vw,44px);line-height:1.14;margin-top:1.2vh;font-weigh
 .note{color:var(--dim);font-size:clamp(13px,1.35vw,21px);margin-top:1.4vh;max-width:60ch;line-height:1.45}
 .chart{flex:1;min-height:0;margin-top:2.2vh;position:relative}
 canvas{position:absolute;inset:0;width:100%;height:100%}
+
+.read{color:var(--amber);font:700 clamp(12px,1.25vw,19px) "IBM Plex Sans",sans-serif;margin-top:.9vh;letter-spacing:.005em}
+.read b{color:var(--ink);font-weight:700}
+.def{display:flex;gap:4vw;flex-wrap:wrap;margin-top:auto;margin-bottom:auto;align-items:flex-start}
+.def .box{flex:1 1 240px}
+.def .h{font:700 clamp(11px,1.05vw,15px) "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:.12em;margin-bottom:1.4vh}
+.def .t{color:var(--ink);font-size:clamp(14px,1.5vw,23px);line-height:1.45}
+.def .t span{color:var(--dim);font-size:.86em}
+.eq{font:700 clamp(14px,1.72vw,27px) "IBM Plex Mono",monospace;color:var(--ink);line-height:1.55;white-space:nowrap}
+.eq i{color:var(--amber);font-style:normal}
+.scope{margin-top:2.2vh;display:flex;gap:2.6vw;flex-wrap:wrap}
+.scope div{font:600 clamp(12px,1.25vw,19px) "IBM Plex Mono",monospace;color:var(--dim)}
+.scope b{color:var(--ink)}
+.scope em{color:var(--dimmer);font-style:normal;font-size:.84em}
 .foot{color:var(--dimmer);font:500 clamp(10px,.95vw,14px) "IBM Plex Mono",monospace;margin-top:auto;padding-top:1.8vh;letter-spacing:.04em}
 .big{display:flex;gap:5vw;flex-wrap:wrap;margin-top:auto}
 .big div{flex:1 1 200px}
@@ -39,7 +53,7 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
   html,body{height:auto;overflow:visible;background:#fff;color:#111}
   #nav{display:none}
   .slide{position:relative;inset:auto;display:flex!important;opacity:1!important;
-    height:186mm;break-after:page;padding:6mm 4mm}
+    height:184mm;break-after:page;padding:6mm 4mm}
   .slide:last-child{break-after:auto}
   h1,h2{color:#111}
   .kick{color:#a4600f}
@@ -64,28 +78,58 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 </section>
 
 <section class="slide">
-  <div class="kick">1 &middot; WHERE WE ARE</div>
+  <div class="kick">WHAT YOU ARE LOOKING AT</div>
+  <h2>One ratio: what a kilo of meat buys in feed.</h2>
+  <div class="def">
+    <div class="box">
+      <div class="h">THE MEASURE</div>
+      <div class="eq">PARITY&nbsp;=<br><i>meat&nbsp;price</i>&nbsp;&divide;&nbsp;<i>feed&nbsp;cost</i></div>
+      <div class="t" style="margin-top:1.8vh"><span>Higher = meat outpacing feed &rarr; the producer earns more.<br>Lower = feed eating the margin.</span></div>
+    </div>
+    <div class="box">
+      <div class="h">THE SCALE</div>
+      <div class="t">Each market is indexed to <b>its own 2016 average = 100</b>.<br>
+      <span>So 184 means US producers earn 84% more per kilo of feed than they did in 2016. The three lines are comparable in shape, not in level.</span></div>
+    </div>
+    <div class="box">
+      <div class="h">THE DATA</div>
+      <div class="t"><span>Monthly, from national statistics offices. Nothing modelled, nothing estimated &mdash; these are published price series.</span></div>
+      <div class="scope">
+        <div><b>US</b> 1971&rarr; <em>666 months</em></div>
+        <div><b>T&Uuml;RK&#304;YE</b> 2010&rarr; <em>198 months</em></div>
+        <div><b>EU</b> 2015&rarr; <em>129 months</em></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">SOURCES &middot; US: BLS PPI (WPU0131 &divide; WPU012202) &middot; EU: EUROSTAT BEEF REF. PRICE &divide; COMPOUND FEED &middot; T&Uuml;RK&#304;YE: TURKSTAT PPI (T17 &divide; T25)</div>
+</section>
+
+<section class="slide">
+  <div class="kick">2 &middot; WHERE WE ARE</div>
   <h2>A record &mdash; and it has stopped climbing.</h2>
+  <div class="read">Line = US producer margin ratio, one point per month. <b>Higher is better for the producer.</b></div>
   <div class="chart"><canvas id="c1"></canvas></div>
   <div class="foot">US MEAT-TO-FEED PARITY, MONTHLY, 1971&ndash;2026 &middot; 2016 = 100 &middot; DOTS = PREVIOUS CYCLE PEAKS</div>
 </section>
 
 <section class="slide">
-  <div class="kick">2 &middot; WHAT HAPPENED LAST TIME. EVERY TIME.</div>
+  <div class="kick">3 &middot; WHAT HAPPENED LAST TIME. EVERY TIME.</div>
   <h2>Five peaks. Every one fell 25&ndash;60%.</h2>
+  <div class="read">Bar = how long each peak lasted before it broke. <b>Right = how far the ratio then fell.</b></div>
   <div class="chart"><canvas id="c2"></canvas></div>
   <div class="foot">PLATEAU = MONTHS WITHIN 10% OF PEAK &middot; FALL = PEAK TO NEXT BOTTOM</div>
 </section>
 
 <section class="slide">
-  <div class="kick">3 &middot; WHO IS EXPOSED</div>
+  <div class="kick">4 &middot; WHO IS EXPOSED</div>
   <h2>Three markets. One cycle. At the same time.</h2>
+  <div class="read">Same ratio, three markets, each on its own 2016 = 100 base. <b>Watch the shape, not the gap.</b></div>
   <div class="chart"><canvas id="c3"></canvas></div>
   <div class="foot">EACH MARKET INDEXED TO ITS OWN 2016 AVERAGE = 100 &middot; US&ndash;EU CORRELATION 0.88 AT ZERO LAG</div>
 </section>
 
 <section class="slide">
-  <div class="kick">4 &middot; SO WHAT</div>
+  <div class="kick">5 &middot; SO WHAT</div>
   <h2>We don't know what they cut first.</h2>
   <ul class="pts">
     <li>The window is now<span>Customers have cash today. The conversation is easier while they are profitable.</span></li>
