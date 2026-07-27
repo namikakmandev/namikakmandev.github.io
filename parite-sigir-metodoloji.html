@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Parite: Sığır — Metodoloji Notu</title>
+<meta name="description" content="Veri nereden geldi, parite nasıl hesaplandı, hangi varsayımlar kullanıldı: tek sayfalık metodoloji notu.">
+<meta property="og:title" content="Parite: Sığır — Metodoloji Notu">
+<meta property="og:description" content="Kaynaklar, formüller, varsayımlar, çapraz kontroller ve sınırlar — tek sayfa.">
+<meta property="og:image" content="https://namikakmandev.github.io/assets/og-parite-sigir.png">
+<style>
+:root{--bg:#0b0906;--ink:#f5efe6;--dim:#cbbfa8;--dimmer:#8a7c62;--amber:#ffb056;--red:#e2574c;--blue:#8aa0d8;--line:rgba(203,191,168,.18)}
+*{margin:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,Segoe UI,sans-serif;
+ line-height:1.5;padding:44px 5vw 90px}
+.wrap{max-width:940px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;
+ border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:22px}
+.kick{font:700 11px "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:.14em}
+h1{font-size:clamp(24px,3.6vw,34px);line-height:1.15;margin-top:6px}
+.sub{color:var(--dim);font-size:15px;margin-top:8px;max-width:640px}
+#lang{display:flex;gap:6px}
+#lang button{background:transparent;border:1px solid rgba(255,176,86,.45);color:var(--dim);
+ font:600 12px "IBM Plex Mono",monospace;padding:6px 12px;border-radius:999px;cursor:pointer}
+#lang button.on{background:var(--amber);color:#141007;border-color:var(--amber)}
+h2{font:700 12px "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:.12em;
+ margin:26px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
+p{font-size:14.5px;color:var(--dim);margin-bottom:10px}
+b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 12px}
+th{text-align:left;color:var(--dimmer);font:600 11px "IBM Plex Mono",monospace;
+ letter-spacing:.06em;padding:6px 10px 6px 0;border-bottom:1px solid var(--line);vertical-align:bottom}
+td{padding:8px 10px 8px 0;border-bottom:1px solid rgba(203,191,168,.09);color:var(--dim);vertical-align:top}
+td b{color:var(--ink)}
+code,.mono{font-family:"IBM Plex Mono",monospace;font-size:13px}
+.formula{background:rgba(255,176,86,.08);border:1px solid rgba(255,176,86,.28);border-radius:8px;
+ padding:12px 14px;margin:10px 0 14px;font-family:"IBM Plex Mono",monospace;font-size:13.5px;color:var(--ink)}
+.formula span{color:var(--amber)}
+ul{margin:0 0 12px 18px;font-size:14.5px;color:var(--dim)}
+li{margin-bottom:6px}
+.warn{border-left:3px solid var(--red);padding-left:12px;color:var(--dim);font-size:14px;margin:10px 0 14px}
+.warn b{color:var(--red)}
+a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(255,176,86,.35)}
+footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);
+ color:var(--dimmer);font:500 11.5px "IBM Plex Mono",monospace;line-height:1.8}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 34px}
+@media(max-width:720px){.grid2{grid-template-columns:1fr}}
+@media print{
+  body{background:#fff;color:#111;padding:0;font-size:11px}
+  .wrap{max-width:none}
+  #lang{display:none}
+  h1{font-size:22px}h2{color:#a4600f;border-top-color:#ddd;margin:14px 0 6px;padding-top:8px}
+  p,td,ul{color:#333;font-size:11px}th{color:#666}
+  .formula{background:#faf5ec;border-color:#e2cba0;color:#111}
+  a{color:#111;border:0}
+  footer{color:#666}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <div class="kick" data-i="kick">PARİTE: SIĞIR · METODOLOJİ NOTU</div>
+    <h1 data-i="h1">Veri nereden geldi, parite nasıl hesaplandı?</h1>
+    <div class="sub" data-i="sub">Tek sayfa: kaynaklar, formüller, varsayımlar, çapraz kontroller ve sınırlar. Yazdırmak için Ctrl/Cmd + P.</div>
+  </div>
+  <div id="lang"><button id="btr" class="on">TR</button><button id="ben">EN</button></div>
+</header>
+
+<h2 data-i="s1">1 · KAYNAKLAR VE SERİLER</h2>
+<table>
+<thead><tr><th data-i="t1a">Bölge</th><th data-i="t1b">Pay (et)</th><th data-i="t1c">Payda (yem)</th><th data-i="t1d">Kaynak · Dönem</th></tr></thead>
+<tbody>
+<tr><td><b>ABD</b></td><td data-i="r1a">Kesimlik sığır ÜFE<br><span class="mono">WPU0131</span></td><td data-i="r1b">Mısır ÜFE<br><span class="mono">WPU012202</span></td><td data-i="r1c">FRED / BLS · 1971-01 → 2026-06 · <b>666 ay</b></td></tr>
+<tr><td><b>AB</b></td><td data-i="r2a">Genç boğa karkas R3<br>EUR/100 kg</td><td data-i="r2b">Yem tahılı (mısır)<br>EUR/ton</td><td data-i="r2c">Avrupa Komisyonu Agri-food Data Portal · 2015-11 → 2026-07 · <b>129 ay</b></td></tr>
+<tr><td><b>Türkiye</b></td><td data-i="r3a">Et ve et ürünleri Yİ-ÜFE<br><span class="mono">TP.TUFE1YI.T17</span></td><td data-i="r3b">Hazır hayvan yemleri Yİ-ÜFE<br><span class="mono">TP.TUFE1YI.T25</span></td><td data-i="r3c">TCMB EVDS / TÜİK · 2010-01 → 2026-06 · <b>198 ay</b></td></tr>
+</tbody></table>
+<p data-i="p1">Veri otomatik çekiliyor: GitHub Actions ayda bir kaynakları sorguluyor, sonucu <span class="mono">/data/*.json</span> olarak yazıyor. Sayfa, film ve raporlar aynı dosyayı okuyor — yani üç üründe de tek bir gerçeklik var. AB serisi haftalık kotasyonların aylık ortalamasıdır.</p>
+
+<h2 data-i="s2">2 · PARİTE VE ENDEKS</h2>
+<div class="formula" data-i="f1">parite<sub>ay</sub> = <span>et fiyatı<sub>ay</sub></span> ÷ <span>yem fiyatı<sub>ay</sub></span></div>
+<p data-i="p2">Parite, birimsiz bir orandır: <b>bir birim etin kaç birim yem satın aldığı.</b> Yükselmesi besicinin lehine, düşmesi aleyhinedir. Üç bölgenin ölçü birimleri farklı olduğu için seviyeler doğrudan karşılaştırılamaz; bu yüzden her seri kendi <b>2016 ortalamasına</b> bölünüp 100 kabul edilir:</p>
+<div class="formula" data-i="f2">endeks<sub>ay</sub> = parite<sub>ay</sub> ÷ <span>parite<sub>2016 ortalaması</sub></span> × 100</div>
+<p data-i="p3"><b>Neden 2016?</b> Üç serinin de tam 12 aylık verisinin bulunduğu ilk yıl (AB verisi Kasım 2015'te başlıyor). Ayrıca nötr bir yıl: her serinin kendi uzun dönem ortalamasına yakın (AB 101, TR 104). <b>Taban seçimi sonucu değiştirmiyor</b> — sağlamlık testi:</p>
+<table>
+<thead><tr><th data-i="t2a">Taban</th><th>ABD</th><th>AB</th><th>TR</th></tr></thead>
+<tbody>
+<tr><td data-i="r4a">2016 = 100 <b>(kullanılan)</b></td><td><b>184</b></td><td><b>125</b></td><td><b>121</b></td></tr>
+<tr><td data-i="r5a">2015 = 100</td><td>162</td><td>123</td><td>120</td></tr>
+<tr><td data-i="r6a">Ortak dönem ortalaması (2016-2026)</td><td>187</td><td>126</td><td>127</td></tr>
+</tbody></table>
+
+<h2 data-i="s3">3 · BESİCİ KÂR-ZARAR MODELİ</h2>
+<p data-i="p4">Filmdeki ve sayfadaki P&amp;L sahnesi basit bir maliyet modelidir. 100 birimlik satış geliri üzerinden:</p>
+<div class="formula" data-i="f3">yem gideri = 35 × (<span>uzun dönem ort. parite</span> ÷ <span>o ayki parite</span>)<br>kâr/zarar = 100 − 45 (dana) − 15 (diğer) − yem gideri</div>
+<p data-i="p5"><b>Veri olan kısım:</b> uzun dönem ortalamalar — ABD 1,08 · AB 2,24 · TR 1,04 — ve her ayın paritesi. <b>Varsayım olan kısım:</b> 45 / 35 / 15 payları; sektör fizibilitelerinin tipik aralıklarından alınmış bir kalibrasyondur. Mantık şu: parite ikiye katlanırsa aynı hayvanın parası iki kat yem alır, yani gelir içindeki yem payı yarıya iner.</p>
+<div class="warn" data-i="w1"><b>Modelde olmayanlar:</b> dana alım fiyatının oynaklığı (2025-26'da rekor kırdı), finansman maliyeti, kur riski, destekleme ödemeleri, vergi. Bu yüzden model mutlak kâr rakamı değil, <b>dönemler arası kıyas</b> aracıdır.</div>
+
+<h2 data-i="s4">4 · İSTATİSTİKLER</h2>
+<div class="grid2">
+<div>
+<p data-i="p6"><b>Gecikmeli korelasyon:</b> yıllık değişimler (yıl-üstü-yıl) ±12 ay kaydırılarak hesaplanır; en yüksek korelasyonun oluştuğu gecikme "saat farkı" olarak okunur. ABD–AB için <b>r = 0,88</b>, gecikme <b>0 ay</b>. TR değişimleri ABD'yi 4, AB'yi 3 ay önden yakalar.</p>
+</div>
+<div>
+<p data-i="p7"><b>Ortak nabız:</b> üç serinin standartlaştırılmış yıllık değişimlerine temel bileşen analizi (PC1) uygulanır; ilk bileşenin açıkladığı varyans payı "ortak dalga" olarak raporlanır. Ayrıca TR ~ ABD + AB çoklu regresyonunda <b>R² = 0,50</b>.</p>
+</div>
+</div>
+<p data-i="p8"><b>Oynaklık:</b> son on yılda standart sapmanın ortalamaya oranı — ABD %34, AB %21, TR %19. <b>Döngü hizalama:</b> her ülkenin kendi dip ayı 100 kabul edilip sonraki aylar oranlanır (dip = taban, tavan/taban = katsayı).</p>
+
+<h2 data-i="s5">5 · ÇAPRAZ KONTROL</h2>
+<table>
+<thead><tr><th data-i="t3a">Kontrol</th><th data-i="t3b">Bizim değer</th><th data-i="t3c">Bağımsız kaynak</th></tr></thead>
+<tbody>
+<tr><td data-i="r7a">ABD sığır ÜFE · Şub 2026</td><td>380,22</td><td data-i="r7c">BLS: 380,217 — <b>birebir</b></td></tr>
+<tr><td data-i="r8a">AB genç boğa R3 · May 2026</td><td>661,3 €</td><td data-i="r8c">AB Komisyonu: 661,94 € — <b>%0,1 içinde</b></td></tr>
+<tr><td data-i="r9a">ABD besi kârlılığı · Ara 25–Mar 26</td><td data-i="r9b">Model "+" gösteriyor</td><td data-i="r9c">farmdoc: gerçekte zarar — <b>fark, dana fiyatının modelde sabit olmasından</b></td></tr>
+</tbody></table>
+
+<h2 data-i="s6">6 · SINIRLAR</h2>
+<ul>
+<li data-i="l1"><b>Rasyolar birebir aynı değil:</b> ABD ham mısırı, AB yem tahılını, TR karma yemi ölçer; pay tarafında ABD canlı hayvanı, AB karkası, TR işlenmiş eti ölçer. Bu yüzden <b>seviyeler değil, değişimler</b> karşılaştırılır.</li>
+<li data-i="l2"><b>Seri uzunlukları farklı:</b> ABD 55 yıl, TR 16, AB 11. "Uzun dönem ortalama" her ülkede farklı bir dönemi kapsar; AB ortalaması şok yıllarını orantısız içerir.</li>
+<li data-i="l3"><b>ÜFE endeksi ≠ çiftlik kapısı fiyatı:</b> TR ve ABD serileri endeks; mutlak TL/dolar fiyat değil.</li>
+<li data-i="l4"><b>Kalite ve ağırlık sınıfları sabit varsayılır;</b> zaman içindeki karkas ağırlığı ve ırk kompozisyonu değişimleri modellenmemiştir.</li>
+<li data-i="l5"><b>Nedensellik iddiası yoktur.</b> Gecikmeli korelasyon zamanlama gösterir, sebep göstermez.</li>
+</ul>
+
+<h2 data-i="s7">7 · KAYNAK DOSYALAR</h2>
+<p data-i="p9">Ham veri ve kod herkese açık — sayılar tek tek doğrulanabilir:</p>
+<ul>
+<li><a href="data/cattle-us.json">data/cattle-us.json</a> · <a href="data/cattle-eu.json">data/cattle-eu.json</a> · <a href="data/cattle-tr.json">data/cattle-tr.json</a></li>
+<li data-i="l6">Çekim kodu: <span class="mono">scripts/fetch_cattle_data.py</span> · İş akışı: <span class="mono">.github/workflows/cattle-data.yml</span></li>
+<li data-i="l7">Ürünler: <a href="parite-sigir.html">interaktif sayfa</a> · <a href="film/parite-sigir-tr-altyazi.mp4">film</a></li>
+</ul>
+
+<footer>
+  <span data-i="foot">namikakman.dev · PARİTE: SIĞIR · Son veri: Haz–Tem 2026 · Bu not, sayfa ve filmle aynı veri dosyalarından yazılmıştır.</span>
+</footer>
+</div>
+
+<script>
+const T={
+ tr:{},
+ en:{
+  kick:'THE CATTLE PARITY · METHODOLOGY NOTE',
+  h1:'Where the data comes from and how parity is computed',
+  sub:'One page: sources, formulas, assumptions, cross-checks and limits. Press Ctrl/Cmd + P to print.',
+  s1:'1 · SOURCES AND SERIES',
+  t1a:'Region',t1b:'Numerator (meat)',t1c:'Denominator (feed)',t1d:'Source · Period',
+  r1a:'Slaughter cattle PPI<br><span class="mono">WPU0131</span>',
+  r1b:'Corn PPI<br><span class="mono">WPU012202</span>',
+  r1c:'FRED / BLS · 1971-01 → 2026-06 · <b>666 months</b>',
+  r2a:'Young bull carcass R3<br>EUR/100 kg',
+  r2b:'Feed grain (maize)<br>EUR/tonne',
+  r2c:'European Commission Agri-food Data Portal · 2015-11 → 2026-07 · <b>129 months</b>',
+  r3a:'Meat &amp; meat products PPI<br><span class="mono">TP.TUFE1YI.T17</span>',
+  r3b:'Compound animal feed PPI<br><span class="mono">TP.TUFE1YI.T25</span>',
+  r3c:'CBRT EVDS / TurkStat · 2010-01 → 2026-06 · <b>198 months</b>',
+  p1:'The data is fetched automatically: a GitHub Actions job queries the sources monthly and writes the result to <span class="mono">/data/*.json</span>. The page, the film and the reports all read the same file — one single source of truth across three products. The EU series is a monthly mean of weekly quotations.',
+  s2:'2 · PARITY AND THE INDEX',
+  f1:'parity<sub>month</sub> = <span>meat price<sub>month</sub></span> ÷ <span>feed price<sub>month</sub></span>',
+  p2:'Parity is a unitless ratio: <b>how many units of feed one unit of meat buys.</b> Rising parity favours the feeder, falling parity hurts. Because the three regions use different measurement units, levels are not directly comparable; each series is therefore divided by its own <b>2016 mean</b> and set to 100:',
+  f2:'index<sub>month</sub> = parity<sub>month</sub> ÷ <span>parity<sub>2016 mean</sub></span> × 100',
+  p3:'<b>Why 2016?</b> It is the first year with a full twelve months for all three series (EU data starts in November 2015). It is also a neutral year, close to each series’ own long-run mean (EU 101, TR 104). <b>The base choice does not change the conclusion</b> — robustness check:',
+  t2a:'Base',
+  r4a:'2016 = 100 <b>(used)</b>',r5a:'2015 = 100',r6a:'Common-period mean (2016-2026)',
+  s3:'3 · THE FEEDER P&amp;L MODEL',
+  p4:'The P&amp;L scene in the film and on the page is a simple cost model. Per 100 units of sales revenue:',
+  f3:'feed cost = 35 × (<span>long-run mean parity</span> ÷ <span>parity that month</span>)<br>profit/loss = 100 − 45 (calf) − 15 (other) − feed cost',
+  p5:'<b>What is data:</b> the long-run means — US 1.08 · EU 2.24 · TR 1.04 — and each month’s parity. <b>What is assumption:</b> the 45 / 35 / 15 shares, a calibration taken from typical ranges in sector feasibility studies. The logic: if parity doubles, the same animal’s revenue buys twice the feed, so feed’s share of revenue halves.',
+  w1:'<b>Not in the model:</b> volatility of the replacement-calf price (which hit records in 2025-26), financing costs, currency risk, subsidy payments, taxes. The model is therefore a tool for <b>comparing periods</b>, not an absolute profit figure.',
+  s4:'4 · STATISTICS',
+  p6:'<b>Lagged correlation:</b> year-over-year changes are shifted ±12 months; the lag with the highest correlation is read as the “time difference”. For US–EU, <b>r = 0.88</b> at a lag of <b>0 months</b>. TR changes lead the US by 4 and the EU by 3 months.',
+  p7:'<b>Common pulse:</b> principal component analysis (PC1) is applied to the standardised year-over-year changes of the three series; the variance share explained by the first component is reported as the “common wave”. In addition, a TR ~ US + EU regression gives <b>R² = 0.50</b>.',
+  p8:'<b>Volatility:</b> standard deviation over the mean for the last decade — US 34%, EU 21%, TR 19%. <b>Cycle alignment:</b> each country’s own trough month is set to 100 and subsequent months are expressed as ratios (trough = floor, ceiling ÷ floor = the coefficient).',
+  s5:'5 · CROSS-CHECKS',
+  t3a:'Check',t3b:'Our value',t3c:'Independent source',
+  r7a:'US cattle PPI · Feb 2026',r7c:'BLS: 380.217 — <b>exact match</b>',
+  r8a:'EU young bull R3 · May 2026',r8c:'European Commission: €661.94 — <b>within 0.1%</b>',
+  r9a:'US cattle finishing · Dec 25–Mar 26',r9b:'Model shows a profit',
+  r9c:'farmdoc: actual losses — <b>the gap comes from holding the calf price fixed</b>',
+  s6:'6 · LIMITATIONS',
+  l1:'<b>The ratios are not identical:</b> the US measures raw corn, the EU feed grain, TR compound feed; on the numerator side the US measures live animals, the EU carcasses, TR processed meat. Hence <b>changes are compared, not levels</b>.',
+  l2:'<b>Series lengths differ:</b> US 55 years, TR 16, EU 11. “Long-run mean” therefore covers a different era in each country; the EU mean over-represents shock years.',
+  l3:'<b>A PPI is not a farm-gate price:</b> the TR and US series are indices, not absolute lira or dollar prices.',
+  l4:'<b>Quality and weight classes are held constant;</b> shifts in carcass weight and breed composition over time are not modelled.',
+  l5:'<b>No causal claim is made.</b> Lagged correlation shows timing, not cause.',
+  s7:'7 · SOURCE FILES',
+  p9:'Raw data and code are public — every number can be verified:',
+  l6:'Fetch code: <span class="mono">scripts/fetch_cattle_data.py</span> · Workflow: <span class="mono">.github/workflows/cattle-data.yml</span>',
+  l7:'Products: <a href="parite-sigir.html">interactive page</a> · <a href="film/parite-sigir-tr-altyazi.mp4">the film</a>',
+  foot:'namikakman.dev · THE CATTLE PARITY · Latest data: Jun–Jul 2026 · This note is written from the same data files as the page and the film.'
+ }};
+const orig={};
+document.querySelectorAll('[data-i]').forEach(el=>orig[el.dataset.i]=el.innerHTML);
+function setLang(l){
+  document.querySelectorAll('[data-i]').forEach(el=>{
+    const k=el.dataset.i;
+    el.innerHTML = l==='tr' ? orig[k] : (T.en[k]!==undefined?T.en[k]:orig[k]);
+  });
+  document.documentElement.lang=l;
+  btr.classList.toggle('on',l==='tr');ben.classList.toggle('on',l==='en');
+}
+const btr=document.getElementById('btr'),ben=document.getElementById('ben');
+btr.onclick=()=>setLang('tr');ben.onclick=()=>setLang('en');
+</script>
+</body>
+</html>
