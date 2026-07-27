@@ -129,9 +129,55 @@ def main():
         discover()
     elif mode == "series":
         build_series(url)
+    elif mode == "eaa":
+        eaa_vet()
     else:
         parse_file(url)
     json.dump(report, open("data/vetcost-report.json", "w"), indent=1)
+
+
+
+
+# ---------------------------------------------------------------- EU / TR
+def eaa_vet():
+    """Eurostat Economic Accounts for Agriculture: veterinary expenses by country.
+
+    Item 11500 = 'Veterinary expenses' in the EAA nomenclature. Values are for
+    ALL livestock, not cattle alone — that limitation must travel with the number.
+    """
+    base = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/aact_eaa01"
+            "?format=JSON&lang=EN")
+    # first: what item codes exist, and is TR present?
+    probe = json.loads(get(base + "&geo=EU27_2020&time=2020").decode())
+    dims = probe.get("dimension", {})
+    items = dims.get("itm_newa", {}).get("category", {}).get("label", {})
+    vet = {k: v for k, v in items.items() if "veterinar" in str(v).lower()}
+    geos = dims.get("geo", {}).get("category", {}).get("label", {})
+    report["eaa_probe"] = {"vet_items": vet, "n_items": len(items),
+                           "unit_labels": list(dims.get("unit", {})
+                                               .get("category", {}).get("label", {}).items())[:8]}
+    print("vet item codes:", vet)
+    print("n items:", len(items))
+    out = {}
+    for code in (vet or {"11500": "Veterinary expenses"}):
+        for geo in ("EU27_2020", "TR"):
+            url = f"{base}&itm_newa={code}&geo={geo}&unit=MIO_EUR&indic_ag=PROD_BP"
+            try:
+                j = json.loads(get(url).decode())
+                idx = j["dimension"]["time"]["category"]["index"]
+                inv = {v: k for k, v in idx.items()}
+                vals = {int(inv[int(pos)]): val for pos, val in j.get("value", {}).items()
+                        if inv.get(int(pos)) and val is not None}
+                if vals:
+                    out.setdefault(geo, {}).update(vals)
+                    print(f"  {geo} {code}: {len(vals)} points {min(vals)}..{max(vals)}")
+            except Exception as e:  # noqa: BLE001
+                print(f"  {geo} {code}: {type(e).__name__}: {e}")
+    if out:
+        json.dump({"source": "Eurostat aact_eaa01, veterinary expenses, million EUR, "
+                             "ALL livestock (not cattle only)", "series": out},
+                  open("data/vetcost-eu-tr.json", "w"), separators=(",", ":"))
+    report["eaa_series"] = {k: [min(v), max(v), len(v)] for k, v in out.items()}
 
 
 if __name__ == "__main__":
