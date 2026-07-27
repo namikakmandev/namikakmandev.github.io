@@ -78,6 +78,14 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 <body>
 
 <section class="slide on">
+  <div class="kick">WHAT THIS STUDY IS &middot; JULY 2026</div>
+  <h2 style="margin-top:1.4vh">Three markets, 993 months, one ratio.</h2>
+  <div class="read">Six published price series, consolidated into a single comparable measure of what a livestock producer earns &mdash; then read for its cycle.</div>
+  <div class="chart"><canvas id="c0"></canvas></div>
+  <div class="foot">ALL PRICES AS PUBLISHED BY THE NATIONAL STATISTICS OFFICES &middot; NOTHING ESTIMATED, NOTHING BACKFILLED &middot; DATA THROUGH JUNE 2026</div>
+</section>
+
+<section class="slide">
   <div class="kick">LIVESTOCK CUSTOMER ECONOMICS &middot; JULY 2026</div>
   <h1>Our customers are at their most profitable point in 55&nbsp;years.</h1>
   <div class="big">
@@ -164,25 +172,6 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
   <div class="foot">DIRECTION IS WELL SUPPORTED &middot; THE DATE IS NOT &middot; PARITY IS A RATIO, NOT A MARGIN</div>
 </section>
 
-<section class="slide">
-  <div class="kick">APPENDIX &middot; HOW THE NUMBERS ARE MADE</div>
-  <h2>One month, start to finish.</h2>
-  <div class="read">United States, June 2026 &mdash; every step, from the published price to the profit line.</div>
-  <div class="steps">
-    <div class="st"><div class="sn">1</div><div class="sb"><b>Take two published prices.</b>
-      <span>US producer price index, June 2026 &mdash; slaughter cattle <i>398.12</i>, corn <i>163.14</i>. Both straight from BLS, unadjusted.</span></div></div>
-    <div class="st"><div class="sn">2</div><div class="sb"><b>Divide them &rarr; parity.</b>
-      <span><i>398.12 &divide; 163.14 = 2.44</i> &mdash; one unit of cattle price buys 2.44 units of corn price.</span></div></div>
-    <div class="st"><div class="sn">3</div><div class="sb"><b>Index to 2016 &rarr; comparable across countries.</b>
-      <span>The 2016 average parity was <i>1.32</i>. So <i>2.44 &divide; 1.32 &times; 100 = 184</i>. The same step is done for the EU and T&uuml;rkiye with their own 2016 averages.</span></div></div>
-    <div class="st"><div class="sn">4</div><div class="sb"><b>Count the plateau.</b>
-      <span>Take the twelve-month average. Count the run of months it stays within 10% of its own peak. Currently <i>13</i>; the five previous runs were 10 to 23.</span></div></div>
-    <div class="st"><div class="sn">5</div><div class="sb"><b>Turn it into a P&amp;L.</b>
-      <span>Revenue <i>100</i>. Calf <i>45</i> and other costs <i>15</i> held fixed. Feed <i>= 35 &times; (long-run mean parity 1.08 &divide; this month&rsquo;s 2.44) = 15</i>. Profit <i>= 100 &minus; 45 &minus; 15 &minus; 15 = +25</i>.</span></div></div>
-  </div>
-  <div class="foot">STEPS 1&ndash;4 ARE ARITHMETIC ON PUBLISHED DATA &middot; STEP 5 IS THE ONLY MODELLED PART</div>
-</section>
-
 <div id="nav"><button id="prev">&#8249;</button><span id="pg">1 / 5</span><button id="next">&#8250;</button></div>
 
 <script>
@@ -197,6 +186,61 @@ function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRati
   const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);return [x,cv.width,cv.height,cv.width/900];}
 function mono(x,s,w){x.font=(w||600)+' '+Math.round(s)+'px "IBM Plex Mono",monospace';}
 
+function ch0(){
+  const cv=document.getElementById('c0');const [x,W0,H0,k]=fit(cv);
+  const src=[['US','slaughter cattle \u00f7 corn','BLS \u00b7 1971\u2192','666'],
+             ['T\u00dcRK\u0130YE','meat \u00f7 feed PPI','TurkStat \u00b7 2010\u2192','198'],
+             ['EU','beef ref. \u00f7 compound feed','Eurostat \u00b7 2015\u2192','129']];
+  const M=16*k;
+  const bx=M, bw=W0*0.255, bh=Math.min(88*k,(H0-2*M)/3-16*k), gapY=(H0-2*M-bh*3)/2;
+  const box=(X,Y,W,H,fill,stroke)=>{const r=10*k;
+    x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);
+    x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath();
+    if(fill){x.fillStyle=fill;x.fill();} if(stroke){x.strokeStyle=stroke;x.lineWidth=1.6*k;x.stroke();}};
+  const arrow=(x1,y1,x2,y2)=>{
+    x.strokeStyle='rgba(255,176,86,.45)';x.lineWidth=2*k;
+    x.beginPath();x.moveTo(x1,y1);x.bezierCurveTo(x1+(x2-x1)*0.5,y1,x1+(x2-x1)*0.5,y2,x2,y2);x.stroke();
+    x.fillStyle='rgba(255,176,86,.75)';
+    x.beginPath();x.moveTo(x2,y2);x.lineTo(x2-9*k,y2-5*k);x.lineTo(x2-9*k,y2+5*k);x.closePath();x.fill();};
+  // sources
+  const scy=[];
+  src.forEach((r,i)=>{
+    const Y=M+i*(bh+gapY); scy.push(Y+bh/2);
+    box(bx,Y,bw,bh,'rgba(203,191,168,.07)','rgba(203,191,168,.22)');
+    mono(x,20*k,700);x.textAlign='left';x.fillStyle=C.amber;x.fillText(r[0],bx+16*k,Y+27*k);
+    mono(x,14*k,600);x.fillStyle=C.dimmer;x.textAlign='right';x.fillText(r[3]+' months',bx+bw-16*k,Y+27*k);
+    x.font='600 '+Math.round(15*k)+'px "IBM Plex Sans",sans-serif';x.textAlign='left';
+    x.fillStyle=C.ink;x.fillText(r[1],bx+16*k,Y+52*k);
+    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(r[2],bx+16*k,Y+73*k);});
+  // node 1: parity
+  const n1x=W0*0.345, n1w=W0*0.165, n1h=104*k, n1y=H0/2-n1h/2;
+  box(n1x,n1y,n1w,n1h,'rgba(255,176,86,.12)','rgba(255,176,86,.5)');
+  mono(x,13*k,700);x.textAlign='center';x.fillStyle=C.amber;x.fillText('STEP 1 \u00b7 DIVIDE',n1x+n1w/2,n1y+24*k);
+  mono(x,19*k,700);x.fillStyle=C.ink;x.fillText('PARITY',n1x+n1w/2,n1y+56*k);
+  mono(x,14*k,600);x.fillStyle=C.dim;x.fillText('meat \u00f7 feed',n1x+n1w/2,n1y+80*k);
+  mono(x,12*k,500);x.fillStyle=C.dimmer;x.fillText('398.12 \u00f7 163.14 = 2.44',n1x+n1w/2,n1y+n1h+22*k);
+  scy.forEach(y=>arrow(bx+bw+6*k,y,n1x-8*k,H0/2));
+  // node 2: index
+  const n2x=W0*0.545, n2w=W0*0.165, n2h=104*k, n2y=H0/2-n2h/2;
+  box(n2x,n2y,n2w,n2h,'rgba(255,176,86,.12)','rgba(255,176,86,.5)');
+  mono(x,13*k,700);x.fillStyle=C.amber;x.fillText('STEP 2 \u00b7 INDEX',n2x+n2w/2,n2y+24*k);
+  mono(x,18*k,700);x.fillStyle=C.ink;x.fillText('2016 = 100',n2x+n2w/2,n2y+56*k);
+  mono(x,14*k,600);x.fillStyle=C.dim;x.fillText('each market,',n2x+n2w/2,n2y+78*k);
+  x.fillText('its own base',n2x+n2w/2,n2y+96*k);
+  arrow(n1x+n1w+6*k,H0/2,n2x-8*k,H0/2);
+  // outputs
+  const oX=W0*0.755, oW=W0-oX-M, oH=88*k;
+  const outs=[['STEP 3 \u00b7 THE CYCLE','peaks, plateaus, falls','5 completed US cycles'],
+              ['STEP 4 \u00b7 THE MONEY','feedlot P&L','what the ratio is worth']];
+  outs.forEach((o,i)=>{
+    const Y=H0/2-oH-10*k+i*(oH+20*k);
+    box(oX,Y,oW,oH,'rgba(127,176,105,.10)','rgba(127,176,105,.38)');
+    mono(x,13*k,700);x.textAlign='left';x.fillStyle='#8cc077';x.fillText(o[0],oX+16*k,Y+26*k);
+    x.font='700 '+Math.round(15*k)+'px "IBM Plex Sans",sans-serif';x.fillStyle=C.ink;
+    x.fillText(o[1],oX+16*k,Y+52*k);
+    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(o[2],oX+16*k,Y+72*k);
+    arrow(n2x+n2w+6*k,H0/2,oX-8*k,Y+oH/2);});
+}
 function ch1(){
   const cv=document.getElementById('c1');const [x,W0,H0,k]=fit(cv);
   const L=78*k,R=96*k,T=30*k,B=44*k,W=W0-L-R,H=H0-T-B;
@@ -368,7 +412,7 @@ function ch5(){
   line(LAG.eu,C.blue,'US \u2194 EU');
   line(LAG.tr,C.red,'US \u2194 TR');
 }
-function render(){[ch1,ch2,ch3,ch4,ch5].forEach(f=>{try{f()}catch(e){}});}
+function render(){[ch0,ch1,ch2,ch3,ch4,ch5].forEach(f=>{try{f()}catch(e){}});}
 const S=[...document.querySelectorAll('.slide')];let i=0;
 function go(n){i=Math.max(0,Math.min(S.length-1,n));
   S.forEach((s,j)=>s.classList.toggle('on',j===i));
