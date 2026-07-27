@@ -82,12 +82,53 @@ def parse_file(url):
         print("parse error:", e)
 
 
+def build_series(url):
+    """ERS cow-calf CSV -> data/vetcost-us.json (US total, $/cow) + CPI deflator."""
+    import csv as _csv
+    text = get(url).decode("utf-8", "replace")
+    rdr = _csv.DictReader(io.StringIO(text))
+    want = {"Veterinary and medicine", "Total, operating costs",
+            "Total, costs listed", "Total, allocated overhead"}
+    series = {}
+    for row in rdr:
+        if row.get("Region") != "U.S. total":
+            continue
+        item = (row.get("Item") or "").strip()
+        if item not in want:
+            continue
+        try:
+            series.setdefault(item, {})[int(row["Year"])] = float(row["Value"])
+        except (ValueError, TypeError, KeyError):
+            continue
+    # CPI so we can look at real terms
+    cpi = {}
+    try:
+        raw = get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL").decode()
+        acc = {}
+        for r in _csv.DictReader(io.StringIO(raw)):
+            d = (r.get("DATE") or r.get("observation_date") or "").strip()
+            v = (r.get("CPIAUCSL") or "").strip()
+            if len(d) >= 7 and v not in ("", "."):
+                acc.setdefault(int(d[:4]), []).append(float(v))
+        cpi = {y: sum(v) / len(v) for y, v in acc.items() if len(v) >= 6}
+    except Exception as e:  # noqa: BLE001
+        report["cpi_error"] = str(e)
+    payload = {"source": "USDA ERS commodity costs and returns, cow-calf, U.S. total",
+               "unit": "dollars per cow", "series": series,
+               "cpi": cpi, "cpi_source": "FRED CPIAUCSL annual mean"}
+    json.dump(payload, open("data/vetcost-us.json", "w"), separators=(",", ":"))
+    report["series_items"] = {k: [min(v), max(v), len(v)] for k, v in series.items()}
+    print(json.dumps(report["series_items"], indent=1))
+
+
 def main():
     os.makedirs("data", exist_ok=True)
     mode = os.environ.get("MODE", "").strip()
     url = os.environ.get("ERS_URL", "").strip()
     if mode == "discover" or not url:
         discover()
+    elif mode == "series":
+        build_series(url)
     else:
         parse_file(url)
     json.dump(report, open("data/vetcost-report.json", "w"), indent=1)
