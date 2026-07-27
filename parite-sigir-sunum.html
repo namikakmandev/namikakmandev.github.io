@@ -101,8 +101,8 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
   <div class="kick">LIVESTOCK CUSTOMER ECONOMICS &middot; US &middot; EU &middot; T&Uuml;RK&#304;YE &middot; JULY 2026</div>
   <h1>Cattle producers in all three of our markets are at a cycle peak.</h1>
   <div class="big">
-    <div><div class="n trio">184<span>US</span> <b>125</b><span>EU</span> <b>121</b><span>TR</span></div>
-      <div class="l">meat-to-feed parity today &mdash; each market against its own 2016 average</div></div>
+    <div><div class="n trio">+84%<span>US</span> <b>+25%</b><span>EU</span> <b>+21%</b><span>TR</span></div>
+      <div class="l">more feed a kilo of beef buys today than it did in 2016 &mdash; each market against its own past</div></div>
     <div><div class="n">13</div><div class="l">months the US has already spent at this peak</div></div>
     <div><div class="n r">0</div><div class="l">of the five previous US peaks that held</div></div>
   </div>
@@ -159,7 +159,7 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
   <h2>The same swing, in all three markets.</h2>
   <div class="read">Costs per 100 of revenue &mdash; today vs each market's own worst month. <b>One assumed cost structure, applied identically to all three markets.</b></div>
   <div class="chart"><canvas id="c4"></canvas></div>
-  <div class="caveat"><b>These are modelled levels, not measured margins.</b> Calf 45 and other costs 15 are assumed and held fixed for every market; only feed moves, at 35 &times; (that market&rsquo;s mean parity &divide; that month&rsquo;s parity). US calf prices are at a record today, so the real US margin is thinner than shown. <b>What the data supports is the size of the swing, not the absolute level.</b></div>
+  <div class="caveat"><b>The cost split is approximate &mdash; roughly a feedlot&rsquo;s shape, where the animal is the biggest cost and feed the next.</b> It is held identical for all three markets on purpose, so only the ratio moves. Read the swing, not the level: US calf prices are at a record today, so the real US margin is thinner than shown.</div>
   <div class="foot">REVENUE INDEXED TO 100 &middot; WORST MONTH = WITHIN EACH MARKET&rsquo;S OWN RECORD &middot; US 1971&rarr; &middot; EU 2015&rarr; &middot; TR 2010&rarr;</div>
 </section>
 
@@ -396,22 +396,37 @@ function ch3(){
 function ch4(){
   const cv=document.getElementById('c4');const [x,W0,H0,k]=fit(cv);
   const rows=[
-    {t:'US today',s:'index 184',feed:15,pr:25},
-    {t:'US worst \u00b7 Dec 1974',s:'index 30',feed:95,pr:-55},
-    {t:'EU today',s:'index 125',feed:28,pr:12},
-    {t:'EU worst \u00b7 Jun 2022',s:'index 63',feed:55,pr:-15},
-    {t:'TR today',s:'index 121',feed:28,pr:12},
-    {t:'TR worst \u00b7 Dec 2021',s:'index 64',feed:52,pr:-12}];
-  const L=236*k,R=150*k,T=78*k,B=18*k,W=W0-L-R,H=H0-T-B;
+    {t:'US today',s:'+84% vs 2016',feed:15,pr:25},
+    {t:'US worst \u00b7 Dec 1974',s:'\u221270% vs 2016',feed:95,pr:-55},
+    {t:'EU today',s:'+25% vs 2016',feed:28,pr:12},
+    {t:'EU worst \u00b7 Jun 2022',s:'\u221237% vs 2016',feed:55,pr:-15},
+    {t:'TR today',s:'+21% vs 2016',feed:28,pr:12},
+    {t:'TR worst \u00b7 Dec 2021',s:'\u221236% vs 2016',feed:52,pr:-12}];
+  const AW=104*k;
+  const L=236*k+AW,R=150*k,T=44*k,B=18*k,W=W0-L-R,H=H0-T-B;
   const SC=W/158, X=v=>L+v*SC;
   const n=rows.length,gap=H/n,bh=Math.min(38*k,gap*0.60);
   const CCALF='rgba(203,191,168,.30)',COTH='rgba(203,191,168,.16)',CFEED='#c98a2e',
         CPROF='rgba(127,176,105,.85)';
-  // legend
-  const lg=[[CCALF,'CALF 45'],[COTH,'OTHER 15'],[CFEED,'FEED (moves with the ratio)'],[CPROF,'PROFIT']];
-  let lx=L;mono(x,14*k,700);x.textAlign='left';
-  lg.forEach(([c,t])=>{x.fillStyle=c;x.fillRect(lx,T-68*k,17*k,13*k);
-    x.fillStyle=C.dim;x.fillText(t,lx+24*k,T-57*k);lx+=x.measureText(t).width+58*k;});
+  // the assumed cost structure, as one vertical stack
+  const ax=8*k, aw=64*k, aTop=T+22*k, aH=H-86*k, AS=aH/100;
+  const stack=[[45,CCALF,'CALF 45'],[15,COTH,'OTHER 15'],[35,CFEED,'FEED 35'],[5,CPROF,'PROFIT 5']];
+  let ay=aTop;
+  mono(x,12*k,700);x.textAlign='left';x.fillStyle=C.amber;
+  x.fillText('THE ASSUMED',ax,T-14*k);x.fillText('STRUCTURE',ax,T+2*k);
+  stack.forEach(function(t){
+    var v=t[0],col=t[1],lab=t[2];
+    x.fillStyle=col;x.fillRect(ax,ay,aw,v*AS);
+    mono(x,11*k,700);x.textAlign='left';
+    x.fillStyle=(col===CFEED)?'#1a1206':(col===CPROF?'#0d1408':C.dim);
+    if(v*AS>18*k){x.fillText(lab,ax+6*k,ay+v*AS/2+4*k);}
+    else{x.fillStyle=C.dim;x.fillText(lab,ax+aw+8*k,ay+v*AS/2+4*k);}
+    ay+=v*AS;});
+  x.strokeStyle='rgba(245,239,230,.45)';x.lineWidth=1.4*k;
+  x.beginPath();x.moveTo(ax-4*k,aTop);x.lineTo(ax+aw+6*k,aTop);x.stroke();
+  mono(x,11*k,600);x.fillStyle=C.dimmer;x.textAlign='left';
+  x.fillText('revenue 100',ax,aTop-8*k);
+  x.fillText('at average parity \u00b7 only FEED moves',ax,aTop+aH+20*k);
   // revenue reference
   x.strokeStyle='rgba(245,239,230,.5)';x.lineWidth=1.5*k;x.setLineDash([5*k,5*k]);
   x.beginPath();x.moveTo(X(100),T-20*k);x.lineTo(X(100),T+H-4*k);x.stroke();x.setLineDash([]);
