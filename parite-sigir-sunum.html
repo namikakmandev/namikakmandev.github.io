@@ -27,6 +27,14 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 .def .t span{color:var(--dim);font-size:.86em}
 .eq{font:700 clamp(14px,1.72vw,27px) "IBM Plex Mono",monospace;color:var(--ink);line-height:1.55;white-space:nowrap}
 .eq i{color:var(--amber);font-style:normal}
+.steps{margin-top:auto;margin-bottom:auto;display:grid;grid-template-columns:1fr 1fr;gap:1.6vh 4vw}
+.st{display:flex;gap:1.1vw;align-items:flex-start}
+.steps .st:last-child{grid-column:1/-1}
+.sn{font:700 clamp(15px,1.7vw,26px) "IBM Plex Mono",monospace;color:var(--amber);line-height:1.25;min-width:1.4em}
+.sb{font-size:clamp(13px,1.4vw,21px);line-height:1.35;color:var(--ink)}
+.sb b{display:block;font-weight:700;margin-bottom:.25em}
+.sb span{color:var(--dim);font-size:.86em;line-height:1.45;display:block}
+.sb i{color:var(--amber);font-style:normal;font-family:"IBM Plex Mono",monospace;font-weight:700}
 .pair{margin-bottom:1.5vh;font:600 clamp(12px,1.3vw,20px) "IBM Plex Sans",sans-serif;color:var(--ink);line-height:1.35}
 .pair b{color:var(--amber);font-family:"IBM Plex Mono",monospace;margin-right:.5em}
 .pair em{color:var(--dimmer);font-style:normal;font-size:.8em;font-weight:500}
@@ -130,11 +138,11 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 </section>
 
 <section class="slide">
-  <div class="kick">5 &middot; WHAT IT DOES TO A PRODUCER &middot; US FIGURES</div>
-  <h2>The same farm. Three different businesses.</h2>
-  <div class="read">A US feedlot's costs per 100 of revenue, at three points in the US cycle. <b>Only the feed line moves &mdash; the ratio does the rest.</b></div>
+  <div class="kick">5 &middot; WHAT IT DOES TO A PRODUCER &middot; US &middot; EU &middot; T&Uuml;RK&#304;YE</div>
+  <h2>The same swing, in all three markets.</h2>
+  <div class="read">Costs per 100 of revenue &mdash; today vs each market's own worst month. <b>Same cost structure everywhere, so the swing is comparable.</b></div>
   <div class="chart"><canvas id="c4"></canvas></div>
-  <div class="foot">ILLUSTRATIVE US FEEDLOT MODEL &middot; CALF AND OTHER COSTS HELD FIXED &middot; FEED SCALED BY US PARITY &middot; REVENUE INDEXED TO 100</div>
+  <div class="foot">ILLUSTRATIVE MODEL &middot; FEED = 35 &times; (MARKET&rsquo;S MEAN PARITY &divide; THAT MONTH&rsquo;S PARITY) &middot; WORST MONTH = WITHIN EACH MARKET&rsquo;S OWN RECORD</div>
 </section>
 
 <section class="slide">
@@ -146,6 +154,25 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
     <li>Next step: two to three weeks<span>Map what producers actually cut, in what order, in the last two downturns &mdash; against our portfolio. The macro side is done.</span></li>
   </ul>
   <div class="foot">DIRECTION IS WELL SUPPORTED &middot; THE DATE IS NOT &middot; PARITY IS A RATIO, NOT A MARGIN</div>
+</section>
+
+<section class="slide">
+  <div class="kick">APPENDIX &middot; HOW THE NUMBERS ARE MADE</div>
+  <h2>One month, start to finish.</h2>
+  <div class="read">United States, June 2026 &mdash; every step, from the published price to the profit line.</div>
+  <div class="steps">
+    <div class="st"><div class="sn">1</div><div class="sb"><b>Take two published prices.</b>
+      <span>US producer price index, June 2026 &mdash; slaughter cattle <i>398.12</i>, corn <i>163.14</i>. Both straight from BLS, unadjusted.</span></div></div>
+    <div class="st"><div class="sn">2</div><div class="sb"><b>Divide them &rarr; parity.</b>
+      <span><i>398.12 &divide; 163.14 = 2.44</i> &mdash; one unit of cattle price buys 2.44 units of corn price.</span></div></div>
+    <div class="st"><div class="sn">3</div><div class="sb"><b>Index to 2016 &rarr; comparable across countries.</b>
+      <span>The 2016 average parity was <i>1.32</i>. So <i>2.44 &divide; 1.32 &times; 100 = 184</i>. The same step is done for the EU and T&uuml;rkiye with their own 2016 averages.</span></div></div>
+    <div class="st"><div class="sn">4</div><div class="sb"><b>Count the plateau.</b>
+      <span>Take the twelve-month average. Count the run of months it stays within 10% of its own peak. Currently <i>13</i>; the five previous runs were 10 to 23.</span></div></div>
+    <div class="st"><div class="sn">5</div><div class="sb"><b>Turn it into a P&amp;L.</b>
+      <span>Revenue <i>100</i>. Calf <i>45</i> and other costs <i>15</i> held fixed. Feed <i>= 35 &times; (long-run mean parity 1.08 &divide; this month&rsquo;s 2.44) = 15</i>. Profit <i>= 100 &minus; 45 &minus; 15 &minus; 15 = +25</i>.</span></div></div>
+  </div>
+  <div class="foot">STEPS 1&ndash;4 ARE ARITHMETIC ON PUBLISHED DATA &middot; STEP 5 IS THE ONLY MODELLED PART</div>
 </section>
 
 <div id="nav"><button id="prev">&#8249;</button><span id="pg">1 / 5</span><button id="next">&#8250;</button></div>
@@ -256,49 +283,49 @@ function ch3(){
 function ch4(){
   const cv=document.getElementById('c4');const [x,W0,H0,k]=fit(cv);
   const rows=[
-    {t:'TODAY',s:'parity 184',feed:15,pr:25},
-    {t:'2016',s:'parity 100',feed:29,pr:11},
-    {t:'2008 BOTTOM',s:'parity 53',feed:54,pr:-14}];
-  const L=176*k,R=118*k,T=52*k,B=40*k,W=W0-L-R,H=H0-T-B;
-  const SC=W/118, X=v=>L+v*SC;
-  const n=rows.length,gap=H/n,bh=Math.min(58*k,gap*0.52);
-  // revenue = 100 marker
-  x.strokeStyle='rgba(203,191,168,.45)';x.lineWidth=1.6*k;x.setLineDash([5*k,5*k]);
-  x.beginPath();x.moveTo(X(100),T-16*k);x.lineTo(X(100),T+H-6*k);x.stroke();x.setLineDash([]);
-  mono(x,15*k,700);x.fillStyle=C.dim;x.textAlign='center';
-  x.fillText('REVENUE = 100',X(100),T-26*k);
-  const seg=[['CALF',45,'rgba(203,191,168,.30)'],['OTHER',15,'rgba(203,191,168,.18)']];
+    {t:'US today',s:'index 184',feed:15,pr:25},
+    {t:'US worst \u00b7 Dec 1974',s:'index 30',feed:95,pr:-55},
+    {t:'EU today',s:'index 125',feed:28,pr:12},
+    {t:'EU worst \u00b7 Jun 2022',s:'index 63',feed:55,pr:-15},
+    {t:'TR today',s:'index 121',feed:28,pr:12},
+    {t:'TR worst \u00b7 Dec 2021',s:'index 64',feed:52,pr:-12}];
+  const L=236*k,R=150*k,T=78*k,B=18*k,W=W0-L-R,H=H0-T-B;
+  const SC=W/158, X=v=>L+v*SC;
+  const n=rows.length,gap=H/n,bh=Math.min(38*k,gap*0.60);
+  const CCALF='rgba(203,191,168,.30)',COTH='rgba(203,191,168,.16)',CFEED='#c98a2e',
+        CPROF='rgba(127,176,105,.85)';
+  // legend
+  const lg=[[CCALF,'CALF 45'],[COTH,'OTHER 15'],[CFEED,'FEED (moves with the ratio)'],[CPROF,'PROFIT']];
+  let lx=L;mono(x,14*k,700);x.textAlign='left';
+  lg.forEach(([c,t])=>{x.fillStyle=c;x.fillRect(lx,T-68*k,17*k,13*k);
+    x.fillStyle=C.dim;x.fillText(t,lx+24*k,T-57*k);lx+=x.measureText(t).width+58*k;});
+  // revenue reference
+  x.strokeStyle='rgba(245,239,230,.5)';x.lineWidth=1.5*k;x.setLineDash([5*k,5*k]);
+  x.beginPath();x.moveTo(X(100),T-20*k);x.lineTo(X(100),T+H-4*k);x.stroke();x.setLineDash([]);
+  mono(x,14*k,700);x.fillStyle=C.dim;x.textAlign='center';x.fillText('REVENUE = 100',X(100),T-27*k);
   rows.forEach((r,i)=>{
-    const cy=T+gap*i+gap/2;
-    mono(x,19*k,700);x.textAlign='right';x.fillStyle=i===0?C.amber:(i===2?C.red:C.dim);
-    x.fillText(r.t,L-20*k,cy+2*k);
-    mono(x,14*k,500);x.fillStyle=C.dimmer;x.fillText(r.s,L-20*k,cy+22*k);
-    let cur=0; const labs=[];
-    const put=(w,col,lab,txtcol)=>{
-      x.fillStyle=col;x.fillRect(X(cur),cy-bh/2,w*SC,bh);
-      labs.push({c:cur,w,lab,txtcol,col});cur+=w;};
-    seg.forEach(([lab,w,col])=>put(w,col,lab+' '+w));
-    put(r.feed,'#c98a2e','FEED '+r.feed,'#1a1206');
-    if(r.pr>0){put(r.pr,'rgba(127,176,105,.85)','PROFIT +'+r.pr,'#0d1408');}
-    // labels after every rect in this row, so nothing paints over them
+    const cy=T+gap*i+gap/2, today=i%2===0;
+    if(i&&!today){x.strokeStyle='rgba(203,191,168,.13)';x.lineWidth=1*k;
+      x.beginPath();x.moveTo(24*k,cy-gap/2);x.lineTo(W0-24*k,cy-gap/2);x.stroke();}
+    mono(x,17*k,700);x.textAlign='right';x.fillStyle=today?C.amber:C.red;
+    x.fillText(r.t,L-22*k,cy-1*k);
+    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(r.s,L-22*k,cy+17*k);
+    x.fillStyle=CCALF;x.fillRect(X(0),cy-bh/2,45*SC,bh);
+    x.fillStyle=COTH;x.fillRect(X(45),cy-bh/2,15*SC,bh);
+    x.fillStyle=CFEED;x.fillRect(X(60),cy-bh/2,r.feed*SC,bh);
     mono(x,14*k,700);
-    labs.forEach(o=>{
-      const inside=o.w*SC>x.measureText(o.lab).width+16*k;
-      if(inside){x.textAlign='center';x.fillStyle=o.txtcol||C.ink;
-        x.fillText(o.lab,X(o.c)+o.w*SC/2,cy+5*k);}
-      else if(o.w>0){x.textAlign='center';x.fillStyle=C.dim;
-        x.fillText(o.lab,X(o.c+o.w/2),cy-bh/2-10*k);
-        x.strokeStyle='rgba(203,191,168,.28)';x.lineWidth=1.2*k;
-        x.beginPath();x.moveTo(X(o.c+o.w/2),cy-bh/2-7*k);x.lineTo(X(o.c+o.w/2),cy-bh/2);x.stroke();}
-    });
-    if(r.pr<=0){
+    const fl=''+r.feed;
+    if(r.feed*SC>x.measureText(fl).width+18*k){x.textAlign='center';x.fillStyle='#1a1206';
+      x.fillText(fl,X(60+r.feed/2),cy+5*k);}
+    if(r.pr>0){
+      x.fillStyle=CPROF;x.fillRect(X(60+r.feed),cy-bh/2,r.pr*SC,bh);
+      mono(x,15*k,700);x.textAlign='left';x.fillStyle=PR()?'#3f6b2e':'#8cc077';
+      x.fillText('+'+r.pr,X(100)+14*k,cy+5*k);
+    }else{
       x.fillStyle=PR()?'#b03a2e':C.red;x.fillRect(X(100),cy-bh/2,(-r.pr)*SC,bh);
       mono(x,15*k,700);x.textAlign='left';x.fillStyle=PR()?'#b03a2e':C.red;
-      x.fillText('LOSS '+r.pr,X(100-r.pr)+12*k,cy+5*k);}
+      x.fillText(''+r.pr,X(100-r.pr)+14*k,cy+5*k);}
   });
-  // revenue line on top so it reads as the reference
-  x.strokeStyle='rgba(245,239,230,.55)';x.lineWidth=1.6*k;x.setLineDash([5*k,5*k]);
-  x.beginPath();x.moveTo(X(100),T-16*k);x.lineTo(X(100),T+H-6*k);x.stroke();x.setLineDash([]);
 }
 function render(){[ch1,ch2,ch3,ch4].forEach(f=>{try{f()}catch(e){}});}
 const S=[...document.querySelectorAll('.slide')];let i=0;
