@@ -41,34 +41,36 @@ def try_source(name, fn):
 
 # ---------------------------------------------------------------- FAO via OWID
 def owid_cattle():
-    """Our World in Data mirror of FAOSTAT live-animal stocks -> {country: {year: head}}"""
+    """FAOSTAT cattle stocks via Our World in Data -> {market: {year: head}}.
+
+    The grapher CSV has lowercase headers: entity,code,year,<slug>.
+    """
     raw = get("https://ourworldindata.org/grapher/cattle-livestock-count-heads.csv"
               "?v=1&csvType=full&useColumnShortNames=true").decode()
-    print("[diag] owid first 300 chars:", raw[:300].replace("\n", " | "))
-    ents = sorted({r.split(",")[0] for r in raw.splitlines()[1:] if r})
-    print("[diag] owid entities containing US/Turk/Europ:",
-          [e for e in ents if any(k in e for k in ("United States", "Turk", "Türk", "Europ"))][:12])
-    want = {"United States": "US", "Turkey": "TR", "Türkiye": "TR", "European Union (27)": "EU27"}
-    out = defaultdict(dict)
     rdr = csv.DictReader(io.StringIO(raw))
-    valcol = [c for c in (rdr.fieldnames or []) if c.lower() not in ("entity", "code", "year")]
+    cols = rdr.fieldnames or []
+    valcol = next(c for c in cols if c not in ("entity", "code", "year"))
+    want = {"United States": "US", "Turkey": "TR", "Türkiye": "TR",
+            "European Union (27)": "EU"}
+    out = defaultdict(dict)
     for row in rdr:
-        ent = (row.get("Entity") or "").strip()
-        if ent not in want:
+        key = want.get((row.get("entity") or "").strip())
+        if not key:
             continue
         try:
-            yr = int(row["Year"]);  val = float(row[valcol[0]])
+            out[key][int(row["year"])] = float(row[valcol])
         except (KeyError, ValueError, TypeError):
             continue
-        out[want[ent]][yr] = val
     return {k: v for k, v in out.items() if v}
 
 
 # ---------------------------------------------------------------- Eurostat
 def eurostat_cattle():
     """Eurostat apro_mt_lscatl, total live bovines, EU aggregate -> {year: head}"""
+    # NB: do not filter on `month` — the annual bovine population series returns
+    # an empty month dimension and the query silently yields no values.
     url = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/apro_mt_lscatl"
-           "?format=JSON&lang=EN&animals=A2000&unit=THS_HD&month=M12&geo=EU27_2020")
+           "?format=JSON&lang=EN&animals=A2000&unit=THS_HD&geo=EU27_2020")
     body = get(url).decode()
     print("[diag] eurostat first 300 chars:", body[:300])
     j = json.loads(body)
@@ -112,7 +114,7 @@ def usda_cattle_fred():
 def main():
     owid = try_source("owid_fao_cattle", owid_cattle)
     euro = try_source("eurostat_cattle", eurostat_cattle)
-    usda = try_source("usda_cattle_fred", usda_cattle_fred)
+    usda = {}  # no keyless FRED series for US cattle inventory; FAO/OWID covers the US
 
     series = {}
     if owid.get("US"):
