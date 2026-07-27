@@ -35,6 +35,12 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 .sb b{display:block;font-weight:700;margin-bottom:.25em}
 .sb span{color:var(--dim);font-size:.86em;line-height:1.45;display:block}
 .sb i{color:var(--amber);font-style:normal;font-family:"IBM Plex Mono",monospace;font-weight:700}
+.prices{display:grid;grid-template-columns:repeat(3,1fr);gap:.6vh 2.6vw;margin-top:1.6vh;
+ border-top:1px solid var(--line);padding-top:1.4vh}
+.pr{font:600 clamp(11px,1.15vw,17px) "IBM Plex Sans",sans-serif;color:var(--ink);line-height:1.4}
+.pr b{color:var(--amber);font-family:"IBM Plex Mono",monospace;margin-right:.45em}
+.pr em{display:block;color:var(--dimmer);font-style:normal;font-size:.82em;font-weight:500;font-family:"IBM Plex Mono",monospace}
+.pn{grid-column:1/-1;color:var(--dim);font-size:clamp(11px,1.1vw,16px);line-height:1.4;margin-top:.4vh}
 .pair{margin-bottom:1.5vh;font:600 clamp(12px,1.3vw,20px) "IBM Plex Sans",sans-serif;color:var(--ink);line-height:1.35}
 .pair b{color:var(--amber);font-family:"IBM Plex Mono",monospace;margin-right:.5em}
 .pair em{color:var(--dimmer);font-style:normal;font-size:.8em;font-weight:500}
@@ -98,27 +104,15 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 
 <section class="slide">
   <div class="kick">WHAT YOU ARE LOOKING AT</div>
-  <h2>One ratio: what a kilo of meat buys in feed.</h2>
-  <div class="def">
-    <div class="box">
-      <div class="h">THE MEASURE</div>
-      <div class="eq">PARITY&nbsp;=<br><i>meat&nbsp;price</i>&nbsp;&divide;&nbsp;<i>feed&nbsp;cost</i></div>
-      <div class="t" style="margin-top:1.8vh"><span>Higher = meat outpacing feed &rarr; the producer earns more.<br>Lower = feed eating the margin.</span></div>
-    </div>
-    <div class="box">
-      <div class="h">THE SCALE</div>
-      <div class="t">Each market is indexed to <b>its own 2016 average = 100</b>.<br>
-      <span>So 184 means US producers earn 84% more per kilo of feed than they did in 2016. The three lines are comparable in shape, not in level.</span></div>
-    </div>
-    <div class="box">
-      <div class="h">WHICH PRICES, EXACTLY</div>
-      <div class="pair"><b>US</b> slaughter cattle &divide; corn<br><em>BLS producer prices &middot; 1971&rarr; &middot; 666 months</em></div>
-      <div class="pair"><b>EU</b> beef reference price &divide; compound feed<br><em>Eurostat &middot; 2015&rarr; &middot; 129 months</em></div>
-      <div class="pair"><b>TR</b> meat &divide; feed producer prices<br><em>TurkStat &middot; 2010&rarr; &middot; 198 months</em></div>
-      <div class="t" style="margin-top:1.4vh"><span>Not the same basket in each country &mdash; which is exactly why each series is indexed to its own base, and why we read shape rather than level.</span></div>
-    </div>
+  <h2>One ratio: what a kilo of beef buys in feed.</h2>
+  <div class="read">Higher = meat outpacing feed, the producer earns more. <b>Lower = feed eating the margin.</b></div>
+  <div class="chart"><canvas id="c6"></canvas></div>
+  <div class="prices">
+    <div class="pr"><b>US</b> slaughter cattle &divide; corn <em>BLS &middot; 1971&rarr; &middot; 666 mo</em></div>
+    <div class="pr"><b>EU</b> beef ref. price &divide; compound feed <em>Eurostat &middot; 2015&rarr; &middot; 129 mo</em></div>
+    <div class="pr"><b>TR</b> meat &divide; feed PPI <em>TurkStat &middot; 2010&rarr; &middot; 198 mo</em></div>
+    <div class="pn">Not the same basket in each country &mdash; which is why each series is indexed to its own base, and why we read shape rather than level.</div>
   </div>
-  <div class="foot">SOURCES &middot; US: BLS PPI (WPU0131 &divide; WPU012202) &middot; EU: EUROSTAT BEEF REF. PRICE &divide; COMPOUND FEED &middot; T&Uuml;RK&#304;YE: TURKSTAT PPI (T17 &divide; T25)</div>
 </section>
 
 <section class="slide">
@@ -241,6 +235,63 @@ function ch0(){
     mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(o[2],oX+16*k,Y+72*k);
     arrow(n2x+n2w+6*k,H0/2,oX-8*k,Y+oH/2);});
 }
+function ch6(){
+  const cv=document.getElementById('c6');const [x,W0,H0,k]=fit(cv);
+  const mid=W0*0.545;
+  // ---------- panel A: what one kilo of beef buys ----------
+  mono(x,15*k,700);x.textAlign='left';x.fillStyle=C.dimmer;
+  x.fillText('ONE KILO OF US BEEF BUYS\u2026',0,20*k);
+  const rows=[['1974',0.5,'half a kilo of feed'],['TODAY',2.44,'more than two kilos of feed']];
+  const kper=0.5, kw=34*k, kh=23*k, gapk=10*k;
+  rows.forEach((r,i)=>{
+    const Y=64*k+i*108*k;
+    mono(x,19*k,700);x.textAlign='left';x.fillStyle=i?C.amber:C.dimmer;x.fillText(r[0],0,Y+15*k);
+    // the beef block
+    const bxx=86*k;
+    x.fillStyle=i?'rgba(226,87,76,.85)':'rgba(226,87,76,.45)';
+    x.beginPath();x.roundRect?x.roundRect(bxx,Y-2*k,44*k,26*k,7*k):x.rect(bxx,Y-2*k,44*k,26*k);x.fill();
+    mono(x,12*k,700);x.textAlign='center';x.fillStyle='#1a0d0b';x.fillText('1 kg',bxx+22*k,Y+15*k);
+    mono(x,17*k,700);x.textAlign='center';x.fillStyle=C.dimmer;x.fillText('\u2192',bxx+62*k,Y+16*k);
+    // the feed kernels
+    const n=r[1]/kper, full=Math.floor(n), frac=n-full;
+    let kx=bxx+84*k;
+    for(let j=0;j<full;j++){
+      x.fillStyle=i?'#e2a33e':'rgba(226,163,62,.5)';
+      x.beginPath();x.ellipse(kx+kw/2,Y+11*k,kw/2,kh/2,0,0,7);x.fill();kx+=kw+gapk;}
+    if(frac>0.05){x.save();x.beginPath();x.rect(kx,Y-6*k,kw*frac,34*k);x.clip();
+      x.fillStyle=i?'#e2a33e':'rgba(226,163,62,.5)';
+      x.beginPath();x.ellipse(kx+kw/2,Y+11*k,kw/2,kh/2,0,0,7);x.fill();x.restore();
+      kx+=kw*frac+gapk;}
+    mono(x,17*k,700);x.textAlign='left';x.fillStyle=i?C.amber:C.dim;
+    x.fillText(r[1].toFixed(2).replace('.00','')+' kg',kx+10*k,Y+16*k);
+    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(r[2],86*k,Y+42*k);
+  });
+  mono(x,13*k,500);x.fillStyle=C.dimmer;x.textAlign='left';
+  x.fillText('each oval = 0.5 kg of feed',0,H0-8*k);
+  // divider
+  x.strokeStyle='rgba(203,191,168,.16)';x.lineWidth=1.4*k;
+  x.beginPath();x.moveTo(mid-40*k,6*k);x.lineTo(mid-40*k,H0-24*k);x.stroke();
+  // ---------- panel B: the index ----------
+  const L=mid+62*k, W=W0-L-56*k;
+  mono(x,15*k,700);x.textAlign='left';x.fillStyle=C.dimmer;
+  x.fillText('\u2026INDEXED TO EACH MARKET\u2019S OWN 2016 AVERAGE',mid,20*k);
+  const vmax=200, X=v=>L+W*v/vmax;
+  const bars=[['US',184,C.amber],['EU',125,C.blue],['TR',121,C.red]];
+  const bh2=30*k;
+  bars.forEach((b,i)=>{
+    const Y=62*k+i*54*k;
+    x.fillStyle='rgba(203,191,168,.10)';x.fillRect(L,Y,W,bh2);
+    x.fillStyle=b[2];x.fillRect(L,Y,X(b[1])-L,bh2);
+    mono(x,17*k,700);x.textAlign='right';x.fillStyle=C.dim;x.fillText(b[0],L-14*k,Y+21*k);
+    mono(x,18*k,700);x.textAlign='left';x.fillStyle=b[2];x.fillText(b[1],X(b[1])+12*k,Y+21*k);});
+  // the 100 line
+  x.strokeStyle='rgba(245,239,230,.6)';x.lineWidth=1.6*k;x.setLineDash([5*k,5*k]);
+  x.beginPath();x.moveTo(X(100),50*k);x.lineTo(X(100),62*k+3*54*k-8*k);x.stroke();x.setLineDash([]);
+  mono(x,13*k,700);x.textAlign='center';x.fillStyle=C.dim;x.fillText('2016 = 100',X(100),42*k);
+  mono(x,13*k,500);x.fillStyle=C.dimmer;x.textAlign='left';
+  x.fillText('184 = 84% more feed per kilo of beef than in 2016.',mid,H0-30*k);
+  x.fillText('Levels differ by market \u2014 read the shape, not the gap.',mid,H0-8*k);
+}
 function ch1(){
   const cv=document.getElementById('c1');const [x,W0,H0,k]=fit(cv);
   const L=78*k,R=96*k,T=30*k,B=44*k,W=W0-L-R,H=H0-T-B;
@@ -258,7 +309,7 @@ function ch1(){
   for(let yr=1975;yr<=2025;yr+=10){x.fillStyle=C.dimmer;x.fillText(yr,X(yr*12),T+H+28*k);}
   x.strokeStyle=C.amber;x.lineWidth=2.4*k;x.lineJoin='round';x.beginPath();
   US.forEach((p,i)=>{i?x.lineTo(X(p.t),Y(p.v)):x.moveTo(X(p.t),Y(p.v));});x.stroke();
-  [[1987,3],[1993,1],[2000,12],[2005,6],[2014,12]].forEach(([yy,mm])=>{
+  [[1987,8],[1993,2],[2000,8],[2005,10],[2014,10]].forEach(([yy,mm])=>{
     const t=yy*12+mm-1,p=US.find(q=>q.t===t);if(!p)return;
     x.fillStyle=PR()?'#111':'rgba(11,9,6,.92)';x.strokeStyle=PR()?'#111':C.dim;x.lineWidth=2*k;
     x.beginPath();x.arc(X(t),Y(p.v),6*k,0,7);x.fill();x.stroke();});
@@ -412,7 +463,7 @@ function ch5(){
   line(LAG.eu,C.blue,'US \u2194 EU');
   line(LAG.tr,C.red,'US \u2194 TR');
 }
-function render(){[ch0,ch1,ch2,ch3,ch4,ch5].forEach(f=>{try{f()}catch(e){}});}
+function render(){[ch0,ch1,ch2,ch3,ch4,ch5,ch6].forEach(f=>{try{f()}catch(e){}});}
 const S=[...document.querySelectorAll('.slide')];let i=0;
 function go(n){i=Math.max(0,Math.min(S.length-1,n));
   S.forEach((s,j)=>s.classList.toggle('on',j===i));
