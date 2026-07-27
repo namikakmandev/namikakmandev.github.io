@@ -27,6 +27,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 .def .t span{color:var(--dim);font-size:.86em}
 .eq{font:700 clamp(14px,1.72vw,27px) "IBM Plex Mono",monospace;color:var(--ink);line-height:1.55;white-space:nowrap}
 .eq i{color:var(--amber);font-style:normal}
+.pair{margin-bottom:1.5vh;font:600 clamp(12px,1.3vw,20px) "IBM Plex Sans",sans-serif;color:var(--ink);line-height:1.35}
+.pair b{color:var(--amber);font-family:"IBM Plex Mono",monospace;margin-right:.5em}
+.pair em{color:var(--dimmer);font-style:normal;font-size:.8em;font-weight:500}
 .scope{margin-top:2.2vh;display:flex;gap:2.6vw;flex-wrap:wrap}
 .scope div{font:600 clamp(12px,1.25vw,19px) "IBM Plex Mono",monospace;color:var(--dim)}
 .scope b{color:var(--ink)}
@@ -92,13 +95,11 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
       <span>So 184 means US producers earn 84% more per kilo of feed than they did in 2016. The three lines are comparable in shape, not in level.</span></div>
     </div>
     <div class="box">
-      <div class="h">THE DATA</div>
-      <div class="t"><span>Monthly, from national statistics offices. Nothing modelled, nothing estimated &mdash; these are published price series.</span></div>
-      <div class="scope">
-        <div><b>US</b> 1971&rarr; <em>666 months</em></div>
-        <div><b>T&Uuml;RK&#304;YE</b> 2010&rarr; <em>198 months</em></div>
-        <div><b>EU</b> 2015&rarr; <em>129 months</em></div>
-      </div>
+      <div class="h">WHICH PRICES, EXACTLY</div>
+      <div class="pair"><b>US</b> slaughter cattle &divide; corn<br><em>BLS producer prices &middot; 1971&rarr; &middot; 666 months</em></div>
+      <div class="pair"><b>EU</b> beef reference price &divide; compound feed<br><em>Eurostat &middot; 2015&rarr; &middot; 129 months</em></div>
+      <div class="pair"><b>TR</b> meat &divide; feed producer prices<br><em>TurkStat &middot; 2010&rarr; &middot; 198 months</em></div>
+      <div class="t" style="margin-top:1.4vh"><span>Not the same basket in each country &mdash; which is exactly why each series is indexed to its own base, and why we read shape rather than level.</span></div>
     </div>
   </div>
   <div class="foot">SOURCES &middot; US: BLS PPI (WPU0131 &divide; WPU012202) &middot; EU: EUROSTAT BEEF REF. PRICE &divide; COMPOUND FEED &middot; T&Uuml;RK&#304;YE: TURKSTAT PPI (T17 &divide; T25)</div>
@@ -129,7 +130,15 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 </section>
 
 <section class="slide">
-  <div class="kick">5 &middot; SO WHAT</div>
+  <div class="kick">5 &middot; WHAT IT DOES TO A PRODUCER</div>
+  <h2>The same farm. Three different businesses.</h2>
+  <div class="read">A feedlot's costs per 100 of revenue. <b>Only the feed line moves &mdash; the ratio does the rest.</b></div>
+  <div class="chart"><canvas id="c4"></canvas></div>
+  <div class="foot">ILLUSTRATIVE FEEDLOT MODEL &middot; CALF AND OTHER COSTS HELD FIXED &middot; FEED SCALED BY THE PARITY RATIO &middot; REVENUE INDEXED TO 100</div>
+</section>
+
+<section class="slide">
+  <div class="kick">6 &middot; SO WHAT</div>
   <h2>We don't know what they cut first.</h2>
   <ul class="pts">
     <li>The window is now<span>Customers have cash today. The conversation is easier while they are profitable.</span></li>
@@ -244,7 +253,54 @@ function ch3(){
   ends.forEach(e=>{x.fillStyle=e.col;x.fillText(e.lbl+'  '+e.v,e.x+16*k,e.y+7*k);});
 }
 
-function render(){[ch1,ch2,ch3].forEach(f=>{try{f()}catch(e){}});}
+function ch4(){
+  const cv=document.getElementById('c4');const [x,W0,H0,k]=fit(cv);
+  const rows=[
+    {t:'TODAY',s:'parity 184',feed:15,pr:25},
+    {t:'2016',s:'parity 100',feed:29,pr:11},
+    {t:'2008 BOTTOM',s:'parity 53',feed:54,pr:-14}];
+  const L=176*k,R=118*k,T=52*k,B=40*k,W=W0-L-R,H=H0-T-B;
+  const SC=W/118, X=v=>L+v*SC;
+  const n=rows.length,gap=H/n,bh=Math.min(58*k,gap*0.52);
+  // revenue = 100 marker
+  x.strokeStyle='rgba(203,191,168,.45)';x.lineWidth=1.6*k;x.setLineDash([5*k,5*k]);
+  x.beginPath();x.moveTo(X(100),T-16*k);x.lineTo(X(100),T+H-6*k);x.stroke();x.setLineDash([]);
+  mono(x,15*k,700);x.fillStyle=C.dim;x.textAlign='center';
+  x.fillText('REVENUE = 100',X(100),T-26*k);
+  const seg=[['CALF',45,'rgba(203,191,168,.30)'],['OTHER',15,'rgba(203,191,168,.18)']];
+  rows.forEach((r,i)=>{
+    const cy=T+gap*i+gap/2;
+    mono(x,19*k,700);x.textAlign='right';x.fillStyle=i===0?C.amber:(i===2?C.red:C.dim);
+    x.fillText(r.t,L-20*k,cy+2*k);
+    mono(x,14*k,500);x.fillStyle=C.dimmer;x.fillText(r.s,L-20*k,cy+22*k);
+    let cur=0; const labs=[];
+    const put=(w,col,lab,txtcol)=>{
+      x.fillStyle=col;x.fillRect(X(cur),cy-bh/2,w*SC,bh);
+      labs.push({c:cur,w,lab,txtcol,col});cur+=w;};
+    seg.forEach(([lab,w,col])=>put(w,col,lab+' '+w));
+    put(r.feed,'#c98a2e','FEED '+r.feed,'#1a1206');
+    if(r.pr>0){put(r.pr,'rgba(127,176,105,.85)','PROFIT +'+r.pr,'#0d1408');}
+    // labels after every rect in this row, so nothing paints over them
+    mono(x,14*k,700);
+    labs.forEach(o=>{
+      const inside=o.w*SC>x.measureText(o.lab).width+16*k;
+      if(inside){x.textAlign='center';x.fillStyle=o.txtcol||C.ink;
+        x.fillText(o.lab,X(o.c)+o.w*SC/2,cy+5*k);}
+      else if(o.w>0){x.textAlign='center';x.fillStyle=C.dim;
+        x.fillText(o.lab,X(o.c+o.w/2),cy-bh/2-10*k);
+        x.strokeStyle='rgba(203,191,168,.28)';x.lineWidth=1.2*k;
+        x.beginPath();x.moveTo(X(o.c+o.w/2),cy-bh/2-7*k);x.lineTo(X(o.c+o.w/2),cy-bh/2);x.stroke();}
+    });
+    if(r.pr<=0){
+      x.fillStyle=PR()?'#b03a2e':C.red;x.fillRect(X(100),cy-bh/2,(-r.pr)*SC,bh);
+      mono(x,15*k,700);x.textAlign='left';x.fillStyle=PR()?'#b03a2e':C.red;
+      x.fillText('LOSS '+r.pr,X(100-r.pr)+12*k,cy+5*k);}
+  });
+  // revenue line on top so it reads as the reference
+  x.strokeStyle='rgba(245,239,230,.55)';x.lineWidth=1.6*k;x.setLineDash([5*k,5*k]);
+  x.beginPath();x.moveTo(X(100),T-16*k);x.lineTo(X(100),T+H-6*k);x.stroke();x.setLineDash([]);
+}
+function render(){[ch1,ch2,ch3,ch4].forEach(f=>{try{f()}catch(e){}});}
 const S=[...document.querySelectorAll('.slide')];let i=0;
 function go(n){i=Math.max(0,Math.min(S.length-1,n));
   S.forEach((s,j)=>s.classList.toggle('on',j===i));
