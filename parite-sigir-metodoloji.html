@@ -80,15 +80,17 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);
 
 <h2 data-i="s2">2 · PARİTE VE ENDEKS</h2>
 <div class="formula" data-i="f1">parite<sub>ay</sub> = <span>et fiyatı<sub>ay</sub></span> ÷ <span>yem fiyatı<sub>ay</sub></span></div>
-<p data-i="p2">Parite, birimsiz bir orandır: <b>bir birim etin kaç birim yem satın aldığı.</b> Yükselmesi besicinin lehine, düşmesi aleyhinedir. Üç bölgenin ölçü birimleri farklı olduğu için seviyeler doğrudan karşılaştırılamaz; bu yüzden her seri kendi <b>2016 ortalamasına</b> bölünüp 100 kabul edilir:</p>
+<p data-i="p2">Parite, etin yem karşısındaki <b>satın alma gücünü</b> gösteren birimsiz bir orandır. Yükselmesi besicinin lehine, düşmesi aleyhinedir. Üç bölgenin ölçü birimleri farklı olduğu için seviyeler doğrudan karşılaştırılamaz; bu yüzden her seri kendi <b>2016 ortalamasına</b> bölünüp 100 kabul edilir:</p>
+<div class="warn" data-i="w0"><b>Seviye değil, değişim okunur.</b> ABD serisi iki ÜFE endeksinin oranıdır (her ikisinin de tabanı 1982 = 100). Bu yüzden <b>2,44 gibi bir seviye "bir kilo et 2,44 kilo yem alır" demek değildir</b> — sadece "sığır/mısır göreli fiyatı 1982'dekinin 2,44 katı" demektir. Taban yılı değişirse seviye de değişir. Geçerli olan her şey <b>orandır</b>: iki tarih arasındaki kat farkı, tabana göre yüzde değişim, tepe-dip katsayıları. AB serisi EUR/100 kg ÷ EUR/ton olduğu için ayrıca 10 kat ölçek taşır. Fiziksel bir "kilo yem" rakamı isteniyorsa ABD için USDA NASS'ın yayımladığı <span class="mono">steer-corn price ratio</span> (100 lb sığır = kaç kile mısır) kullanılmalıdır.</div>
 <div class="formula" data-i="f2">endeks<sub>ay</sub> = parite<sub>ay</sub> ÷ <span>parite<sub>2016 ortalaması</sub></span> × 100</div>
-<p data-i="p3"><b>Neden 2016?</b> Üç serinin de tam 12 aylık verisinin bulunduğu ilk yıl (AB verisi Kasım 2015'te başlıyor). Ayrıca nötr bir yıl: her serinin kendi uzun dönem ortalamasına yakın (AB 101, TR 104). <b>Taban seçimi sonucu değiştirmiyor</b> — sağlamlık testi:</p>
+<p data-i="p3"><b>Neden 2016?</b> Üç serinin de tam 12 aylık verisinin bulunduğu ilk yıl (AB verisi Kasım 2015'te başlıyor). Kendi uzun dönem ortalamasına göre AB 101 ve TR 104, yani bu iki seri için nötr; <b>ABD için nötr değil — 2016, ABD'nin 1971-2026 ortalamasının %23 üzerinde güçlü bir yıl</b>, dolayısıyla ABD endeksi bugünkü hareketi olduğundan küçük gösterir. <b>Taban seçimi yönü değiştirmiyor; ABD'de büyüklüğü değiştiriyor (162-226 aralığı)</b> — sağlamlık testi:</p>
 <table>
 <thead><tr><th data-i="t2a">Taban</th><th>ABD</th><th>AB</th><th>TR</th></tr></thead>
 <tbody>
 <tr><td data-i="r4a">2016 = 100 <b>(kullanılan)</b></td><td><b>184</b></td><td><b>125</b></td><td><b>121</b></td></tr>
 <tr><td data-i="r5a">2015 = 100</td><td>162</td><td>123</td><td>120</td></tr>
 <tr><td data-i="r6a">Ortak dönem ortalaması (2016-2026)</td><td>187</td><td>126</td><td>127</td></tr>
+<tr><td data-i="r6b">Serinin tüm dönem ortalaması</td><td><b>226</b></td><td>126</td><td>125</td></tr>
 </tbody></table>
 
 <h2 data-i="s3">3 · BESİCİ KÂR-ZARAR MODELİ</h2>
@@ -98,9 +100,10 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);
 <div class="warn" data-i="w1"><b>Modelde olmayanlar:</b> dana alım fiyatının oynaklığı (2025-26'da rekor kırdı), finansman maliyeti, kur riski, destekleme ödemeleri, vergi. Bu yüzden model mutlak kâr rakamı değil, <b>dönemler arası kıyas</b> aracıdır.</div>
 
 <h2 data-i="s4">4 · İSTATİSTİKLER</h2>
+<p data-i="p5b"><b>Dalgayı kim sürüyor?</b> Paritenin yıllık değişimindeki varyans ayrıştırıldığında <b>%84'ü yem (mısır), %16'sı sığır tarafından</b> geliyor. Yani bu, sığır döngüsünden çok <b>tahıl döngüsünün</b> besici ekonomisine yansımasıdır. Tepe ve dip tanımı: 12 aylık hareketli ortalama üzerinde ±18 ay penceresinde yerel maksimum; plato, tepenin %10'u içinde kalınan ay sayısı; düşüş, tepeden sonraki en düşük noktaya kadar.</p>
 <div class="grid2">
 <div>
-<p data-i="p6"><b>Gecikmeli korelasyon:</b> yıllık değişimler (yıl-üstü-yıl) ±12 ay kaydırılarak hesaplanır; en yüksek korelasyonun oluştuğu gecikme "saat farkı" olarak okunur. ABD–AB için <b>r = 0,88</b>, gecikme <b>0 ay</b>. TR değişimleri ABD'yi 4, AB'yi 3 ay önden yakalar.</p>
+<p data-i="p6"><b>Gecikmeli korelasyon:</b> yıllık değişimler (yıl-üstü-yıl) ±12 ay kaydırılarak hesaplanır; en yüksek korelasyonun oluştuğu gecikme "saat farkı" olarak okunur. ABD–AB için <b>r = 0,88</b>, gecikme <b>0 ay</b>. TR için en yüksek korelasyon −4 ayda (r = 0,60) çıkıyor ama 0 aydaki değer 0,58; bu fark anlamlı bir öncülük sayılmaz — <b>üç pazarda da lider yok</b>. ABD–AB korelasyonunun büyük kısmı ortak paydadan geliyor: ABD mısır ile AB yem tahılı arasında r = 0,81, ABD sığır ile AB sığır eti arasında yalnızca r = 0,60.</p>
 </div>
 <div>
 <p data-i="p7"><b>Ortak nabız:</b> üç serinin standartlaştırılmış yıllık değişimlerine temel bileşen analizi (PC1) uygulanır; ilk bileşenin açıkladığı varyans payı "ortak dalga" olarak raporlanır. Ayrıca TR ~ ABD + AB çoklu regresyonunda <b>R² = 0,50</b>.</p>
@@ -160,18 +163,21 @@ const T={
   p1:'The data is fetched automatically: a GitHub Actions job queries the sources monthly and writes the result to <span class="mono">/data/*.json</span>. The page, the film and the reports all read the same file — one single source of truth across three products. The EU series is a monthly mean of weekly quotations.',
   s2:'2 · PARITY AND THE INDEX',
   f1:'parity<sub>month</sub> = <span>meat price<sub>month</sub></span> ÷ <span>feed price<sub>month</sub></span>',
-  p2:'Parity is a unitless ratio: <b>how many units of feed one unit of meat buys.</b> Rising parity favours the feeder, falling parity hurts. Because the three regions use different measurement units, levels are not directly comparable; each series is therefore divided by its own <b>2016 mean</b> and set to 100:',
+  p2:'Parity is a unitless ratio measuring the <b>purchasing power of meat against feed</b>. Rising parity favours the feeder, falling parity hurts. Because the three regions use different measurement units, levels are not directly comparable; each series is therefore divided by its own <b>2016 mean</b> and set to 100:',
+  w0:'<b>Read the change, never the level.</b> The US series is a ratio of two producer price indexes, both based on 1982 = 100. A level such as 2.44 therefore does <b>not</b> mean "a kilo of meat buys 2.44 kilos of feed" — it means "the cattle-to-corn relative price is 2.44× what it was in 1982". Change the base year and the level changes. What is valid is every <b>ratio</b>: the multiple between two dates, the percent change against the base, the peak-to-trough coefficients. The EU series additionally carries a factor of ten, being EUR/100 kg ÷ EUR/tonne. For a genuine physical figure, use the <span class="mono">steer-corn price ratio</span> published by USDA NASS (bushels of corn equal in value to 100 lb of cattle).',
+  p5b:'<b>What drives the wave?</b> Decomposing the variance of the year-on-year change in parity, <b>84% comes from the feed side (corn) and 16% from cattle</b>. This is a grain cycle transmitted into livestock economics more than it is a cattle cycle. Definitions: a cycle peak is a local maximum over a ±18-month window on the twelve-month moving average; the plateau is the run of months within 10% of that peak; the fall runs from the peak to the next low.',
   f2:'index<sub>month</sub> = parity<sub>month</sub> ÷ <span>parity<sub>2016 mean</sub></span> × 100',
-  p3:'<b>Why 2016?</b> It is the first year with a full twelve months for all three series (EU data starts in November 2015). It is also a neutral year, close to each series’ own long-run mean (EU 101, TR 104). <b>The base choice does not change the conclusion</b> — robustness check:',
+  p3:'<b>Why 2016?</b> It is the first year with a full twelve months for all three series (EU data starts in November 2015). Against each series’ own long-run mean it sits at EU 101 and TR 104 — neutral for those two; <b>it is not neutral for the US, where 2016 was a strong year, 23% above the 1971-2026 mean</b>, so the US index understates the move. <b>The base choice does not change the direction; in the US it changes the magnitude (a 162-226 range)</b> — robustness check:',
   t2a:'Base',
   r4a:'2016 = 100 <b>(used)</b>',r5a:'2015 = 100',r6a:'Common-period mean (2016-2026)',
+  r6b:'Full-sample mean of each series',
   s3:'3 · THE FEEDER P&amp;L MODEL',
   p4:'The P&amp;L scene in the film and on the page is a simple cost model. Per 100 units of sales revenue:',
   f3:'feed cost = 35 × (<span>long-run mean parity</span> ÷ <span>parity that month</span>)<br>profit/loss = 100 − 45 (calf) − 15 (other) − feed cost',
   p5:'<b>What is data:</b> the long-run means — US 1.08 · EU 2.24 · TR 1.04 — and each month’s parity. <b>What is assumption:</b> the 45 / 35 / 15 shares, a calibration taken from typical ranges in sector feasibility studies. The logic: if parity doubles, the same animal’s revenue buys twice the feed, so feed’s share of revenue halves.',
   w1:'<b>Not in the model:</b> volatility of the replacement-calf price (which hit records in 2025-26), financing costs, currency risk, subsidy payments, taxes. The model is therefore a tool for <b>comparing periods</b>, not an absolute profit figure.',
   s4:'4 · STATISTICS',
-  p6:'<b>Lagged correlation:</b> year-over-year changes are shifted ±12 months; the lag with the highest correlation is read as the “time difference”. For US–EU, <b>r = 0.88</b> at a lag of <b>0 months</b>. TR changes lead the US by 4 and the EU by 3 months.',
+  p6:'<b>Lagged correlation:</b> year-over-year changes are shifted ±12 months; the lag with the highest correlation is read as the “time difference”. For US–EU, <b>r = 0.88</b> at a lag of <b>0 months</b>. Türkiye’s highest value falls at −4 months (r = 0.60) but the value at 0 is 0.58 — too small a difference to call a lead. <b>There is no leader among the three.</b> Most of the US–EU correlation comes from the shared denominator: US corn vs EU feed grain r = 0.81, while US cattle vs EU beef is only r = 0.60.',
   p7:'<b>Common pulse:</b> principal component analysis (PC1) is applied to the standardised year-over-year changes of the three series; the variance share explained by the first component is reported as the “common wave”. In addition, a TR ~ US + EU regression gives <b>R² = 0.50</b>.',
   p8:'<b>Volatility:</b> standard deviation over the mean for the last decade — US 34%, EU 21%, TR 19%. <b>Cycle alignment:</b> each country’s own trough month is set to 100 and subsequent months are expressed as ratios (trough = floor, ceiling ÷ floor = the coefficient).',
   s5:'5 · CROSS-CHECKS',

@@ -111,8 +111,8 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 
 <section class="slide">
   <div class="kick">WHAT YOU ARE LOOKING AT</div>
-  <h2>One ratio: what a kilo of beef buys in feed.</h2>
-  <div class="read">Higher = meat outpacing feed, the producer earns more. <b>Lower = feed eating the margin.</b></div>
+  <h2>One ratio: what a kilo of beef is worth in feed.</h2>
+  <div class="read">Higher = meat outpacing feed, the producer earns more. <b>It is a relative measure &mdash; read it against its own past, never as a quantity of feed.</b></div>
   <div class="chart"><canvas id="c6"></canvas></div>
   <div class="prices">
     <div class="pr"><b>US</b> slaughter cattle &divide; corn <em>BLS (US federal statistics office) &middot; 1971&rarr; &middot; 666 mo</em></div>
@@ -127,15 +127,15 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
   <h2>The US: a record &mdash; and it has stopped climbing.</h2>
   <div class="read">US only &mdash; the one market with a 55-year record. <b>Line = producer margin ratio, one point per month; higher is better for the producer.</b></div>
   <div class="chart"><canvas id="c1"></canvas></div>
-  <div class="foot">US MEAT-TO-FEED PARITY, MONTHLY, 1971&ndash;2026 &middot; 2016 = 100 &middot; DOTS = PREVIOUS CYCLE PEAKS</div>
+  <div class="foot">US MEAT-TO-FEED PARITY, MONTHLY, 1971&ndash;2026 &middot; 2016 = 100 &middot; DOTS = PREVIOUS CYCLE PEAKS &middot; 84% OF THE YEAR-ON-YEAR MOVEMENT COMES FROM THE FEED SIDE, 16% FROM CATTLE</div>
 </section>
 
 <section class="slide">
   <div class="kick">3 &middot; WHAT HAPPENED LAST TIME. EVERY TIME. &middot; UNITED STATES</div>
   <h2>Five US peaks. Every one fell 25&ndash;60%.</h2>
-  <div class="read">US cycles, 1971&ndash;2026 &mdash; the only record long enough to count them. <b>Bar = how long each peak lasted; right = how far the ratio then fell.</b></div>
+  <div class="read">US cycles, 1971&ndash;2026 &mdash; the only record long enough to count them. <b>Peaks and falls measured on the twelve-month average, so single-month spikes do not count as cycles.</b></div>
   <div class="chart"><canvas id="c2"></canvas></div>
-  <div class="foot">US MEAT-TO-FEED PARITY &middot; PLATEAU = MONTHS WITHIN 10% OF PEAK &middot; FALL = PEAK TO NEXT BOTTOM</div>
+  <div class="foot">TWELVE-MONTH AVERAGE &middot; PLATEAU = MONTHS WITHIN 10% OF PEAK &middot; FALL = PEAK TO THE NEXT LOW &middot; A CYCLE PEAK IS A LOCAL MAXIMUM OVER &plusmn;18 MONTHS</div>
 </section>
 
 <section class="slide">
@@ -249,14 +249,14 @@ function ch6(){
   const mid=W0*0.545;
   // ---------- panel A: what one kilo of beef buys ----------
   mono(x,15*k,700);x.textAlign='left';x.fillStyle=C.dimmer;
-  x.fillStyle=C.amber;x.fillText('ONE KILO OF US BEEF BUYS\u2026 (UNITED STATES ONLY)',0,20*k);
-  const rows=[['1974',0.5,'United States, Dec 1974'],['TODAY',2.44,'United States, Jun 2026']];
-  const kper=0.5, kw=34*k, kh=23*k, gapk=10*k;
+  x.fillStyle=C.amber;x.fillText('FEED-BUYING POWER OF A KILO OF US BEEF',0,20*k);
+  const rows=[['Dec 1974',1,'the weakest month on record'],['Jun 2026',6.17,'6.2 times stronger']];
+  const kper=1, kw=23*k, kh=17*k, gapk=6*k;
   rows.forEach((r,i)=>{
     const Y=64*k+i*108*k;
     mono(x,19*k,700);x.textAlign='left';x.fillStyle=i?C.amber:C.dimmer;x.fillText(r[0],0,Y+15*k);
     // the beef block
-    const bxx=86*k;
+    const bxx=132*k;
     x.fillStyle=i?'rgba(226,87,76,.85)':'rgba(226,87,76,.45)';
     x.beginPath();x.roundRect?x.roundRect(bxx,Y-2*k,44*k,26*k,7*k):x.rect(bxx,Y-2*k,44*k,26*k);x.fill();
     mono(x,12*k,700);x.textAlign='center';x.fillStyle='#1a0d0b';x.fillText('1 kg',bxx+22*k,Y+15*k);
@@ -272,11 +272,11 @@ function ch6(){
       x.beginPath();x.ellipse(kx+kw/2,Y+11*k,kw/2,kh/2,0,0,7);x.fill();x.restore();
       kx+=kw*frac+gapk;}
     mono(x,17*k,700);x.textAlign='left';x.fillStyle=i?C.amber:C.dim;
-    x.fillText(r[1].toFixed(2)+' kg',kx+12*k,Y+16*k);
-    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(r[2],86*k,Y+42*k);
+    x.fillText('\u00d7'+r[1].toFixed(r[1]<2?0:1),kx+14*k,Y+16*k);
+    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(r[2],132*k,Y+42*k);
   });
   mono(x,13*k,500);x.fillStyle=C.dimmer;x.textAlign='left';
-  x.fillText('each oval = 0.5 kg of feed \u00b7 US meat and corn producer prices',0,H0-8*k);
+  x.fillText('each oval = the Dec 1974 low \u00b7 ratio of US cattle and corn producer price indexes',0,H0-8*k);
   // divider
   x.strokeStyle='rgba(203,191,168,.16)';x.lineWidth=1.4*k;
   x.beginPath();x.moveTo(mid-40*k,6*k);x.lineTo(mid-40*k,H0-24*k);x.stroke();
