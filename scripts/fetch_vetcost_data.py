@@ -125,12 +125,12 @@ def main():
     os.makedirs("data", exist_ok=True)
     mode = os.environ.get("MODE", "").strip()
     url = os.environ.get("ERS_URL", "").strip()
-    if mode == "discover" or not url:
+    if mode == "eaa":
+        eaa_vet()
+    elif mode == "discover" or not url:
         discover()
     elif mode == "series":
         build_series(url)
-    elif mode == "eaa":
-        eaa_vet()
     else:
         parse_file(url)
     json.dump(report, open("data/vetcost-report.json", "w"), indent=1)
