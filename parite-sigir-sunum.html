@@ -48,6 +48,12 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 .scope div{font:600 clamp(12px,1.25vw,19px) "IBM Plex Mono",monospace;color:var(--dim)}
 .scope b{color:var(--ink)}
 .scope em{color:var(--dimmer);font-style:normal;font-size:.84em}
+.srcs{margin-top:auto;padding-top:1vh;border-top:1px solid var(--line)}
+.sh{font:700 clamp(10px,.95vw,14px) "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:.14em;margin-bottom:.9vh}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:0 2.4vw}
+.sg b{display:block;font:700 clamp(11px,1.05vw,16px) "IBM Plex Sans",sans-serif;color:var(--ink);margin-bottom:.25em}
+.sg span{display:block;color:var(--dim);font-size:clamp(9px,.86vw,12.5px);line-height:1.4}
+.sf{margin-top:1vh;color:var(--dimmer);font-size:clamp(9.5px,.9vw,13px);line-height:1.4}
 .caveat{border-left:3px solid var(--red);padding-left:13px;margin-top:1.4vh;
  color:var(--dim);font-size:clamp(11px,1.15vw,17px);line-height:1.42;max-width:118ch}
 .caveat b{color:var(--ink)}
@@ -178,8 +184,26 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
   <h2>Feed was 77% of revenue. Now it is 31%.</h2>
   <div class="read">USDA's own cow-calf accounts, per $100 of gross value. <b>Nothing modelled &mdash; these are surveyed costs. The feed line does the swinging; vet spend barely moves.</b></div>
   <div class="chart"><canvas id="c4"></canvas></div>
-  <div class="caveat"><b>Operating margin only &mdash; this is not profit.</b> It excludes allocated overhead, unpaid family labour and capital recovery, which USDA costs at roughly three quarters of gross value; on a full economic-cost basis cow-calf shows a negative residual in most years. This is a cow-calf (breeding) operation, not a feedlot, so there is no calf-purchase line. Equivalent per-head cost accounts are not published for the EU or T&uuml;rkiye.</div>
-  <div class="foot">USDA ERS COW-CALF ACCOUNTS, US TOTAL &middot; SHARES OF GROSS VALUE &middot; SERIES STARTS 2008: SURVEY BASIS CHANGED</div>
+  <div class="caveat"><b>Operating margin, not profit</b> &mdash; excludes overhead, unpaid family labour and capital recovery (USDA costs these at ~&frac34; of gross value). Cow-calf, not feedlot, so no calf-purchase line.</div>
+  <div class="srcs">
+    <div class="sh">EVERY SOURCE IN THIS DECK</div>
+    <div class="sg">
+      <div><b>Meat &amp; feed prices</b>
+        <span>US: BLS producer price indexes WPU0131 (slaughter cattle) &divide; WPU012202 (corn), via FRED, 1971&rarr;<br>
+        EU: European Commission beef reference price &divide; feed grain, 2015&rarr;<br>
+        T&uuml;rkiye: TurkStat Y&#304;-&Uuml;FE TP.TUFE1YI.T17 &divide; T25, via CBRT EVDS, 2010&rarr;</span></div>
+      <div><b>Cattle numbers</b>
+        <span>FAOSTAT cattle stocks (head), via Our World in Data, 1961&ndash;2024, all three markets<br>
+        <b>Veterinary spend</b><br>
+        US: USDA ERS commodity costs and returns, cow-calf, 1996&rarr;<br>
+        EU: Eurostat Economic Accounts for Agriculture, item AM205000, 2005&rarr;</span></div>
+      <div><b>Deflators</b>
+        <span>US: CPI-U (FRED CPIAUCSL) &middot; Euro area: HICP (FRED CP0000EZ19M086NEST)<br>
+        <b>Breaks &amp; limits</b><br>
+        ERS changed survey basis in 2008 &mdash; no comparison spans it. EU veterinary line covers all livestock, not cattle alone. No per-head cost accounts published for T&uuml;rkiye.</span></div>
+    </div>
+    <div class="sf">All series fetched automatically and committed to the repository &mdash; every figure in this deck is reproducible from <span class="mono">data/*.json</span>. Data through June 2026.</div>
+  </div>
 </section>
 
 <section class="slide">
@@ -446,8 +470,8 @@ function ch4(){
     const cy=T+gap*i+gap/2, good=r.mar>0;
     mono(x,18*k,700);x.textAlign='right';x.fillStyle=good?C.amber:C.red;
     x.fillText(r.t,L-22*k,cy-1*k);
-    mono(x,13*k,500);x.fillStyle=C.dimmer;
-    x.fillText('$'+r.gv+' per cow',L-22*k,cy+18*k);
+    mono(x,12*k,500);x.fillStyle=C.dimmer;
+    x.fillText('$'+r.gv+' per cow',L-22*k,cy+16*k);
     let cur=0;
     [[r.feed,CF],[r.vet,CV],[r.oth,CO]].forEach(function(seg){
       x.fillStyle=seg[1];x.fillRect(X(cur),cy-bh/2,seg[0]*SC,bh);cur+=seg[0];});
