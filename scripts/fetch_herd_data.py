@@ -121,7 +121,7 @@ def main():
         series["US"] = owid["US"]
     if usda:
         series["US_usda"] = usda
-    series["EU"] = euro or owid.get("EU27", {})
+    series["EU"] = euro or owid.get("EU", {})
     if owid.get("TR"):
         series["TR"] = owid["TR"]
 
