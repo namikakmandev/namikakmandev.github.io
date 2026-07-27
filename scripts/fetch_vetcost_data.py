@@ -187,10 +187,28 @@ def eaa_vet():
                           f"last={vals[max(vals)]:.0f} MIO_EUR")
             except Exception as e:  # noqa: BLE001
                 print(f"  {geo}: {type(e).__name__}: {e}")
+    # euro-area consumer prices, so the series can be put in real terms
+    import csv as _csv
+    hicp = {}
+    try:
+        raw = get("https://fred.stlouisfed.org/graph/fredgraph.csv?id=CP0000EZ19M086NEST").decode()
+        acc = {}
+        for r in _csv.DictReader(io.StringIO(raw)):
+            d = (r.get("DATE") or r.get("observation_date") or "").strip()
+            val = (r.get("CP0000EZ19M086NEST") or "").strip()
+            if len(d) >= 7 and val not in ("", "."):
+                acc.setdefault(int(d[:4]), []).append(float(val))
+        hicp = {y: sum(v) / len(v) for y, v in acc.items() if len(v) >= 6}
+        print(f"HICP: {len(hicp)} years {min(hicp)}..{max(hicp)}")
+    except Exception as e:  # noqa: BLE001
+        report["hicp_error"] = str(e)
+        print("HICP failed:", e)
     if out:
         json.dump({"source": "Eurostat aact_eaa01 veterinary expenses, million EUR at current "
                              "prices; ALL livestock, not cattle only",
-                   "series": out}, open("data/vetcost-eu-tr.json", "w"), separators=(",", ":"))
+                   "series": out, "hicp": hicp,
+                   "hicp_source": "FRED CP0000EZ19M086NEST, euro area HICP, annual mean"},
+                  open("data/vetcost-eu-tr.json", "w"), separators=(",", ":"))
     report["eaa_series"] = {k: [min(v), max(v), len(v)] for k, v in out.items()}
 
 
