@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cattle Margin Cycle — 5 slides</title>
+<style>
+:root{--bg:#0b0906;--ink:#f5efe6;--dim:#cbbfa8;--dimmer:#8a7c62;--amber:#ffb056;--red:#e2574c;--blue:#8aa0d8;--line:rgba(203,191,168,.18)}
+*{margin:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,Segoe UI,sans-serif;overflow:hidden}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;padding:4.4vh 5vw 3.4vh;opacity:0;transition:opacity .28s}
+.slide.on{display:flex;opacity:1}
+.kick{font:700 clamp(11px,1.15vw,16px) "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:.16em}
+h1{font-size:clamp(26px,4.4vw,64px);line-height:1.1;margin-top:2.2vh;letter-spacing:-.01em;max-width:20ch}
+h2{font-size:clamp(20px,2.9vw,44px);line-height:1.14;margin-top:1.2vh;font-weight:700;letter-spacing:-.01em}
+.note{color:var(--dim);font-size:clamp(13px,1.35vw,21px);margin-top:1.4vh;max-width:60ch;line-height:1.45}
+.chart{flex:1;min-height:0;margin-top:2.2vh;position:relative}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+.foot{color:var(--dimmer);font:500 clamp(10px,.95vw,14px) "IBM Plex Mono",monospace;margin-top:auto;padding-top:1.8vh;letter-spacing:.04em}
+.big{display:flex;gap:5vw;flex-wrap:wrap;margin-top:auto}
+.big div{flex:1 1 200px}
+.big .n{font:700 clamp(38px,6.4vw,96px)/1 "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:-.02em}
+.big .n.r{color:var(--red)}
+.big .l{color:var(--dim);font-size:clamp(13px,1.3vw,20px);margin-top:1.4vh;line-height:1.4}
+ul.pts{margin-top:auto;margin-bottom:auto;list-style:none}
+ul.pts li{font-size:clamp(17px,2.1vw,32px);line-height:1.35;margin-bottom:2.4vh;padding-left:1.6em;position:relative;color:var(--ink);max-width:34ch}
+ul.pts li:before{content:counter(i);counter-increment:i;position:absolute;left:0;top:.12em;
+ font:700 .68em "IBM Plex Mono",monospace;color:var(--amber)}
+ul.pts{counter-reset:i}
+ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;line-height:1.45;max-width:44ch}
+#nav{position:fixed;right:2.2vw;bottom:2.4vh;display:flex;gap:10px;align-items:center;z-index:9}
+#nav button{background:transparent;border:1px solid rgba(255,176,86,.4);color:var(--dim);
+ font:600 15px "IBM Plex Mono",monospace;width:38px;height:34px;border-radius:8px;cursor:pointer}
+#nav button:hover{background:rgba(255,176,86,.16)}
+#pg{font:600 13px "IBM Plex Mono",monospace;color:var(--dimmer);letter-spacing:.1em}
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  html,body{height:auto;overflow:visible;background:#fff;color:#111}
+  #nav{display:none}
+  .slide{position:relative;inset:auto;display:flex!important;opacity:1!important;
+    height:186mm;break-after:page;padding:6mm 4mm}
+  .slide:last-child{break-after:auto}
+  h1,h2{color:#111}
+  .kick{color:#a4600f}
+  .note,.big .l,ul.pts li span{color:#333}
+  ul.pts li{color:#111}
+  .big .n{color:#a4600f}.big .n.r{color:#b03a2e}
+  .foot{color:#666}
+}
+</style>
+</head>
+<body>
+
+<section class="slide on">
+  <div class="kick">LIVESTOCK CUSTOMER ECONOMICS &middot; JULY 2026</div>
+  <h1>Our customers are at their most profitable point in 55&nbsp;years.</h1>
+  <div class="big">
+    <div><div class="n">184</div><div class="l">US meat-to-feed parity today<br>(2016 average = 100)</div></div>
+    <div><div class="n">13</div><div class="l">months already spent<br>at this peak</div></div>
+    <div><div class="n r">0</div><div class="l">of the five previous peaks<br>that held</div></div>
+  </div>
+  <div class="foot">MEAT PRICE &divide; FEED COST &middot; US, EU, T&Uuml;RK&#304;YE &middot; BLS, EUROSTAT, TURKSTAT</div>
+</section>
+
+<section class="slide">
+  <div class="kick">1 &middot; WHERE WE ARE</div>
+  <h2>A record &mdash; and it has stopped climbing.</h2>
+  <div class="chart"><canvas id="c1"></canvas></div>
+  <div class="foot">US MEAT-TO-FEED PARITY, MONTHLY, 1971&ndash;2026 &middot; 2016 = 100 &middot; DOTS = PREVIOUS CYCLE PEAKS</div>
+</section>
+
+<section class="slide">
+  <div class="kick">2 &middot; WHAT HAPPENED LAST TIME. EVERY TIME.</div>
+  <h2>Five peaks. Every one fell 25&ndash;60%.</h2>
+  <div class="chart"><canvas id="c2"></canvas></div>
+  <div class="foot">PLATEAU = MONTHS WITHIN 10% OF PEAK &middot; FALL = PEAK TO NEXT BOTTOM</div>
+</section>
+
+<section class="slide">
+  <div class="kick">3 &middot; WHO IS EXPOSED</div>
+  <h2>Three markets. One cycle. At the same time.</h2>
+  <div class="chart"><canvas id="c3"></canvas></div>
+  <div class="foot">EACH MARKET INDEXED TO ITS OWN 2016 AVERAGE = 100 &middot; US&ndash;EU CORRELATION 0.88 AT ZERO LAG</div>
+</section>
+
+<section class="slide">
+  <div class="kick">4 &middot; SO WHAT</div>
+  <h2>We don't know what they cut first.</h2>
+  <ul class="pts">
+    <li>The window is now<span>Customers have cash today. The conversation is easier while they are profitable.</span></li>
+    <li>Phasing beats size<span>A price move landing into a downturn behaves differently from one landing into a peak.</span></li>
+    <li>Next step: two to three weeks<span>Map what producers actually cut, in what order, in the last two downturns &mdash; against our portfolio. The macro side is done.</span></li>
+  </ul>
+  <div class="foot">DIRECTION IS WELL SUPPORTED &middot; THE DATE IS NOT &middot; PARITY IS A RATIO, NOT A MARGIN</div>
+</section>
+
+<div id="nav"><button id="prev">&#8249;</button><span id="pg">1 / 5</span><button id="next">&#8250;</button></div>
+
+<script>
+const D={"us":{"m0":"1971-01","v":[53.4,60.0,61.4,64.1,65.2,61.7,65.3,76.5,84.1,87.6,91.6,80.5,85.6,90.5,89.0,85.2,85.0,90.4,90.4,87.0,78.7,86.8,81.0,69.5,75.5,82.2,92.4,84.4,69.9,58.3,67.5,50.4,60.9,53.4,51.1,43.9,50.1,47.4,45.7,49.1,46.7,37.2,39.6,36.1,35.7,30.4,30.0,29.9,31.4,31.9,35.2,42.3,48.3,49.4,46.8,40.3,45.7,47.0,50.0,49.6,45.3,42.6,40.3,48.1,43.5,40.3,37.2,38.6,38.5,44.1,48.0,46.3,44.7,44.5,44.5,46.0,52.2,51.7,57.9,63.8,64.0,67.9,56.5,56.7,57.9,61.3,60.7,60.6,64.9,67.7,70.3,69.3,76.0,76.0,71.0,74.5,79.7,83.9,88.6,88.9,84.3,78.2,66.6,67.1,74.3,72.2,77.1,73.9,78.4,77.2,77.7,72.8,71.7,73.2,65.1,62.5,59.2,58.2,58.1,55.9,52.7,54.1,54.5,55.6,57.7,58.1,57.1,61.7,70.1,69.1,68.1,70.8,67.5,71.9,73.5,75.5,76.3,75.4,73.6,79.1,87.3,86.1,73.8,70.8,70.4,64.4,64.6,62.6,61.3,59.1,56.2,51.2,49.4,50.6,47.6,54.1,56.9,60.5,58.3,54.6,54.2,52.5,55.0,57.2,59.3,63.0,66.5,69.7,66.7,67.1,63.7,61.2,61.0,59.7,58.4,61.9,61.1,76.1,75.0,72.2,69.8,66.6,67.9,64.7,64.2,60.9,81.4,99.9,115.4,120.4,108.9,102.2,113.5,118.1,119.0,117.2,109.7,109.1,117.4,132.4,122.5,115.5,105.6,103.1,106.4,102.1,107.0,109.1,110.1,81.3,68.1,70.1,72.3,72.6,77.8,77.2,74.7,78.3,78.5,82.9,79.2,82.9,81.7,92.4,88.9,90.6,88.8,94.0,95.0,94.5,94.9,87.1,82.8,79.2,79.5,94.0,96.1,101.8,103.3,101.0,98.1,96.7,93.8,92.7,93.2,94.6,96.8,79.4,84.0,84.9,82.7,85.3,83.9,87.1,83.0,86.6,85.1,80.3,88.8,97.3,96.9,103.4,103.4,103.6,106.0,109.1,107.4,101.1,103.1,106.5,93.3,93.5,93.7,84.9,79.8,71.5,69.7,71.7,76.1,80.2,77.5,67.2,82.0,88.8,85.7,90.2,93.6,87.2,89.8,89.9,83.3,76.7,70.6,67.4,63.0,64.0,62.9,59.5,59.6,55.3,51.2,47.9,44.2,38.8,33.5,35.6,34.3,38.0,53.1,65.6,71.8,68.3,67.2,65.5,63.1,65.4,66.9,64.6,68.7,70.4,70.1,67.2,69.7,68.2,67.9,65.0,65.8,75.5,76.1,78.8,75.4,84.4,93.1,84.2,81.9,77.4,82.6,83.2,86.8,87.6,84.4,91.6,108.5,92.8,101.3,113.4,103.1,105.5,100.1,92.3,92.4,98.5,92.7,104.5,118.2,121.5,112.2,105.2,102.0,106.8,103.1,113.2,109.8,113.6,114.8,116.5,102.7,95.3,98.3,101.4,92.2,88.3,93.1,103.4,105.4,100.9,92.1,91.1,80.0,68.0,65.1,73.6,81.4,86.1,94.2,88.7,89.7,90.4,87.1,88.3,97.2,99.6,102.0,139.7,120.4,109.1,84.6,80.8,84.6,80.7,84.7,89.8,98.4,106.3,112.3,133.6,133.3,126.0,131.4,131.7,122.8,133.8,132.4,120.0,109.6,117.0,143.1,157.7,144.8,137.1,131.2,125.5,119.8,105.6,99.6,103.3,96.6,116.3,118.6,89.7,68.4,69.0,72.3,64.3,69.0,79.5,76.0,65.6,76.1,80.4,83.1,81.5,70.0,61.4,51.3,53.5,46.4,43.6,46.0,40.9,45.5,54.4,54.3,64.3,69.4,72.7,66.2,62.6,60.6,65.0,57.3,52.4,66.2,67.0,71.0,63.7,63.2,61.6,66.1,72.0,74.9,80.5,76.9,74.2,74.4,72.5,62.8,53.1,51.8,50.4,51.6,47.5,51.7,47.2,46.3,41.4,44.8,45.6,45.0,51.9,52.8,56.0,53.9,56.6,53.7,54.5,57.1,55.4,44.3,43.7,45.8,47.0,47.8,47.3,46.7,48.6,48.0,53.9,50.8,48.0,49.7,63.3,69.9,84.6,85.9,85.4,92.7,91.5,89.9,83.5,83.5,94.5,120.3,124.4,135.4,141.6,136.8,123.3,124.6,120.3,121.1,124.0,127.6,122.3,104.5,117.1,106.1,103.3,104.8,91.2,106.8,106.3,108.4,106.1,101.2,82.3,100.0,109.1,103.2,90.0,94.5,92.2,96.5,93.5,101.7,101.2,107.4,101.6,90.6,95.9,95.7,99.1,105.6,102.4,99.4,101.5,96.9,90.5,84.5,87.3,96.3,90.4,93.3,92.2,88.9,88.2,94.6,93.3,100.0,97.3,90.6,75.3,71.8,81.1,79.7,78.1,82.9,85.8,85.7,85.9,80.5,95.4,103.2,94.3,88.8,100.2,84.4,79.0,73.5,69.8,58.3,56.9,56.9,57.2,43.6,49.6,52.6,54.0,63.7,65.9,64.2,61.7,60.7,61.4,53.4,50.7,49.7,50.8,55.3,58.1,54.0,57.2,59.9,61.6,62.7,62.5,70.7,72.2,74.1,78.5,91.9,100.8,109.3,109.7,105.1,101.0,107.2,120.0,125.6,126.1,120.3,125.0,143.1,146.3,138.5,143.0,126.7,124.7,125.8,126.3,131.5,129.8,150.3,158.7,170.0,191.6,178.8,180.4,160.4,156.5,168.9,171.3,161.0,170.3,166.3,184.3]},"eu":{"m0":"2015-11","v":[100.5,103.1,103.5,104.5,105.8,102.2,96.1,90.5,91.4,94.4,100.6,103.7,102.6,104.7,101.5,100.3,98.5,97.7,96.9,96.6,97.0,100.1,103.4,108.1,109.8,109.8,108.0,106.8,104.5,101.6,97.7,97.0,95.5,91.8,95.2,99.8,100.1,100.0,97.8,96.8,97.5,96.7,95.9,93.4,90.9,94.4,96.8,100.5,99.9,99.4,98.6,97.0,94.2,90.7,91.6,92.8,90.6,89.6,91.9,89.9,85.6,86.5,80.6,77.6,75.8,75.5,68.8,69.6,68.7,70.6,72.5,72.6,74.3,73.0,75.9,74.9,62.9,64.5,63.2,62.7,64.4,64.8,65.6,66.4,69.0,73.9,74.2,76.2,81.1,83.4,88.7,90.0,88.6,90.3,95.7,102.3,103.3,102.8,107.1,112.4,114.4,111.2,105.5,104.9,104.4,105.3,108.5,111.3,113.2,114.3,114.0,119.6,124.2,128.1,133.5,135.5,132.3,135.5,143.2,150.0,151.2,150.9,153.1,155.0,149.6,142.0,133.4,131.1,124.8]},"tr":{"m0":"2010-01","v":[108.3,113.7,118.1,123.3,119.4,113.6,115.8,117.9,118.5,106.7,102.6,98.5,95.2,93.0,95.3,98.9,98.4,93.8,95.3,99.2,95.8,91.9,91.8,90.3,90.7,95.7,100.8,100.4,97.9,94.3,98.5,95.1,92.9,91.8,89.1,86.9,83.9,87.4,91.1,94.7,94.6,91.5,89.4,91.2,88.9,88.8,87.6,92.5,94.7,98.7,101.5,100.5,97.3,94.8,95.2,99.2,101.3,97.8,95.0,94.2,96.9,98.0,98.0,101.2,102.3,102.6,105.3,106.3,104.1,99.9,96.3,98.7,99.5,96.0,99.3,105.1,108.3,103.5,101.0,97.0,95.5,95.0,99.6,100.2,96.8,95.3,98.5,101.4,105.9,109.5,111.0,108.0,103.6,99.2,93.4,89.5,89.5,91.0,90.0,88.8,89.5,89.7,89.2,88.9,86.1,85.1,84.0,83.4,81.4,81.2,82.9,87.2,90.1,90.5,89.3,84.8,81.7,82.2,85.7,84.6,85.1,84.2,85.8,80.5,79.7,80.9,78.6,75.1,71.5,69.7,71.2,69.6,70.5,73.4,76.0,74.2,71.3,70.6,72.9,73.0,71.6,71.2,69.3,64.3,66.2,67.3,65.3,72.6,75.7,69.6,71.3,70.6,73.6,74.8,71.8,74.5,84.9,87.5,97.6,108.7,112.5,107.6,107.6,108.9,111.0,115.7,118.0,109.6,108.9,113.3,122.8,129.6,127.5,127.9,124.6,122.9,121.6,117.1,117.3,116.2,121.5,120.7,120.4,119.9,115.6,112.4,106.1,112.0,118.8,116.0,110.5,110.0,117.6,121.1,127.2,124.1,121.6,120.6]}};
+const F=(m0,arr)=>{const [y,mo]=m0.split('-').map(Number);return arr.map((v,i)=>({t:y*12+mo-1+i,v}));};
+const US=F(D.us.m0,D.us.v), EU=F(D.eu.m0,D.eu.v), TR=F(D.tr.m0,D.tr.v);
+const C={ink:'#f5efe6',dim:'#cbbfa8',dimmer:'#8a7c62',amber:'#ffb056',red:'#e2574c',blue:'#8aa0d8'};
+const PR=()=>window.matchMedia('print').matches;
+function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);
+  cv.width=Math.max(320,r.width*d);cv.height=Math.max(200,r.height*d);
+  const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);return [x,cv.width,cv.height,cv.width/900];}
+function mono(x,s,w){x.font=(w||600)+' '+Math.round(s)+'px "IBM Plex Mono",monospace';}
+
+function ch1(){
+  const cv=document.getElementById('c1');const [x,W0,H0,k]=fit(cv);
+  const L=78*k,R=96*k,T=30*k,B=44*k,W=W0-L-R,H=H0-T-B;
+  const t0=US[0].t,t1=US[US.length-1].t,vmax=200;
+  const X=t=>L+W*(t-t0)/(t1-t0),Y=v=>T+H*(1-v/vmax);
+  const pa=2025*12+5,pb=2026*12+5;
+  x.fillStyle='rgba(255,176,86,.15)';x.fillRect(X(pa),T,Math.max(3*k,X(pb)-X(pa)),H);
+  x.lineWidth=1.4*k;mono(x,16*k,600);
+  for(let v=0;v<=200;v+=50){
+    x.strokeStyle=v===100?'rgba(203,191,168,.32)':'rgba(203,191,168,.11)';
+    x.beginPath();x.moveTo(L,Y(v));x.lineTo(L+W,Y(v));x.stroke();
+    x.fillStyle=C.dimmer;x.textAlign='right';x.fillText(v,L-11*k,Y(v)+6*k);
+  }
+  x.textAlign='center';
+  for(let yr=1975;yr<=2025;yr+=10){x.fillStyle=C.dimmer;x.fillText(yr,X(yr*12),T+H+28*k);}
+  x.strokeStyle=C.amber;x.lineWidth=2.4*k;x.lineJoin='round';x.beginPath();
+  US.forEach((p,i)=>{i?x.lineTo(X(p.t),Y(p.v)):x.moveTo(X(p.t),Y(p.v));});x.stroke();
+  [[1987,3],[1993,1],[2000,12],[2005,6],[2014,12]].forEach(([yy,mm])=>{
+    const t=yy*12+mm-1,p=US.find(q=>q.t===t);if(!p)return;
+    x.fillStyle=PR()?'#111':'rgba(11,9,6,.92)';x.strokeStyle=PR()?'#111':C.dim;x.lineWidth=2*k;
+    x.beginPath();x.arc(X(t),Y(p.v),6*k,0,7);x.fill();x.stroke();});
+  const e=US[US.length-1];
+  x.fillStyle=C.amber;x.beginPath();x.arc(X(e.t),Y(e.v),7*k,0,7);x.fill();
+  mono(x,26*k,700);x.textAlign='right';x.fillText('184',X(e.t)-13*k,Y(e.v)-14*k);
+  mono(x,17*k,700);x.fillStyle=PR()?'#a4600f':'rgba(255,176,86,.95)';x.textAlign='right';
+  x.fillText('13 MONTHS HERE →',X(pa)-13*k,T+H-30*k);
+}
+
+function ch2(){
+  const cv=document.getElementById('c2');const [x,W0,H0,k]=fit(cv);
+  const rows=[['1987',15,-34,20],['1993',13,-55,38],['2000–01',23,-26,24],['2005',17,-60,35],['2014–15',10,-35,58],['NOW',13,null,null]];
+  const L=118*k,R=196*k,T=40*k,B=34*k,W=W0-L-R,H=H0-T-B;
+  const n=rows.length,bh=Math.min(46*k,H/n*0.56),gap=H/n;
+  const maxP=24;
+  mono(x,17*k,700);
+  rows.forEach((r,i)=>{
+    const cy=T+gap*i+gap/2;
+    x.fillStyle=r[0]==='NOW'?C.amber:C.dim;x.textAlign='right';
+    x.fillText(r[0],L-16*k,cy+6*k);
+    const w=W*0.48*r[1]/maxP;
+    x.fillStyle=r[0]==='NOW'?'rgba(255,176,86,.92)':'rgba(203,191,168,.34)';
+    x.fillRect(L,cy-bh/2,w,bh);
+    mono(x,16*k,700);x.textAlign='left';
+    x.fillStyle=r[0]==='NOW'?'#141007':(PR()?'#333':C.ink);
+    if(w>78*k)x.fillText(r[1]+' mo',L+11*k,cy+6*k);else{x.fillStyle=C.dim;x.fillText(r[1]+' mo',L+w+9*k,cy+6*k);}
+    const RX=W0-18*k;
+    if(r[2]!==null){
+      mono(x,27*k,700);x.textAlign='right';x.fillStyle=PR()?'#b03a2e':C.red;
+      x.fillText(r[2]+'%',RX,cy+2*k);
+      mono(x,15*k,600);x.fillStyle=C.dimmer;
+      x.fillText('over '+r[3]+' months',RX,cy+24*k);
+    }else{
+      mono(x,27*k,700);x.textAlign='right';x.fillStyle=C.amber;
+      x.fillText('?',RX,cy+2*k);
+      mono(x,15*k,600);x.fillStyle=C.dimmer;
+      x.fillText('and counting',RX,cy+24*k);
+    }
+    mono(x,17*k,700);
+  });
+  mono(x,15*k,600);x.textAlign='left';x.fillStyle=C.dimmer;
+  x.fillText('PLATEAU LENGTH',L,T-16*k);
+  x.textAlign='right';x.fillText('THEN FELL BY',W0-18*k,T-16*k);
+}
+
+function ch3(){
+  const cv=document.getElementById('c3');const [x,W0,H0,k]=fit(cv);
+  const L=78*k,R=190*k,T=30*k,B=44*k,W=W0-L-R,H=H0-T-B;
+  const t0=2016*12,t1=US[US.length-1].t,vmin=40,vmax=200;
+  const X=t=>L+W*(t-t0)/(t1-t0),Y=v=>T+H*(1-(v-vmin)/(vmax-vmin));
+  x.lineWidth=1.4*k;mono(x,16*k,600);
+  for(let v=50;v<=200;v+=50){
+    x.strokeStyle=v===100?'rgba(203,191,168,.32)':'rgba(203,191,168,.11)';
+    x.beginPath();x.moveTo(L,Y(v));x.lineTo(L+W,Y(v));x.stroke();
+    x.fillStyle=C.dimmer;x.textAlign='right';x.fillText(v,L-11*k,Y(v)+6*k);
+  }
+  x.textAlign='center';
+  for(let yr=2016;yr<=2026;yr+=2){x.fillStyle=C.dimmer;x.fillText(yr,X(yr*12),T+H+28*k);}
+  const ends=[];
+  const draw=(S,col,lbl)=>{
+    const p=S.filter(q=>q.t>=t0);if(!p.length)return;
+    x.strokeStyle=col;x.lineWidth=2.6*k;x.lineJoin='round';x.beginPath();
+    p.forEach((q,i)=>{i?x.lineTo(X(q.t),Y(q.v)):x.moveTo(X(q.t),Y(q.v));});x.stroke();
+    const e=p[p.length-1];x.fillStyle=col;x.beginPath();x.arc(X(e.t),Y(e.v),6*k,0,7);x.fill();
+    ends.push({x:X(e.t),y:Y(e.v),col,lbl,v:Math.round(e.v)});
+  };
+  draw(TR,C.red,'TR');draw(EU,C.blue,'EU');draw(US,C.amber,'US');
+  ends.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<ends.length;i++){const g=ends[i].y-ends[i-1].y;if(g<30*k)ends[i].y=ends[i-1].y+30*k;}
+  mono(x,22*k,700);x.textAlign='left';
+  ends.forEach(e=>{x.fillStyle=e.col;x.fillText(e.lbl+'  '+e.v,e.x+16*k,e.y+7*k);});
+}
+
+function render(){[ch1,ch2,ch3].forEach(f=>{try{f()}catch(e){}});}
+const S=[...document.querySelectorAll('.slide')];let i=0;
+function go(n){i=Math.max(0,Math.min(S.length-1,n));
+  S.forEach((s,j)=>s.classList.toggle('on',j===i));
+  document.getElementById('pg').textContent=(i+1)+' / '+S.length;
+  requestAnimationFrame(render);}
+document.getElementById('next').onclick=()=>go(i+1);
+document.getElementById('prev').onclick=()=>go(i-1);
+addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(i+1);}
+  if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(i-1);}
+  if(e.key==='Home')go(0); if(e.key==='End')go(S.length-1);});
+addEventListener('resize',()=>requestAnimationFrame(render));
+addEventListener('beforeprint',()=>{S.forEach(s=>s.classList.add('on'));render();});
+addEventListener('afterprint',()=>go(i));
+go(0);
+</script>
+</body>
+</html>
