@@ -66,6 +66,9 @@ ul.pts li:before{content:counter(i);counter-increment:i;position:absolute;left:0
  font:700 .68em "IBM Plex Mono",monospace;color:var(--amber)}
 ul.pts{counter-reset:i}
 ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;line-height:1.45;max-width:44ch}
+ul.pts.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:0 3.2vw;align-items:start}
+ul.pts.cols li{max-width:none;font-size:clamp(15px,1.75vw,26px);margin-bottom:0}
+ul.pts.cols li span{max-width:none;font-size:.72em}
 #nav{position:fixed;right:2.2vw;bottom:2.4vh;display:flex;gap:10px;align-items:center;z-index:9}
 #nav button{background:transparent;border:1px solid rgba(255,176,86,.4);color:var(--dim);
  font:600 15px "IBM Plex Mono",monospace;width:38px;height:34px;border-radius:8px;cursor:pointer}
@@ -91,8 +94,8 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 
 <section class="slide on">
   <div class="kick">WHAT THIS STUDY IS &middot; JULY 2026</div>
-  <h2 style="margin-top:1.4vh">Three markets, 993 months, one ratio.</h2>
-  <div class="read">Six published price series, consolidated into a single comparable measure of what a livestock producer earns &mdash; then read for its cycle.</div>
+  <h2 style="margin-top:1.4vh">55 years of US data. 16 of T&uuml;rkiye. 11 of the EU.</h2>
+  <div class="read">Six published price series &mdash; every monthly observation each country has &mdash; consolidated into one comparable measure of what a livestock producer earns, then read for its cycle.</div>
   <div class="chart"><canvas id="c0"></canvas></div>
   <div class="foot">ALL PRICES AS PUBLISHED BY THE NATIONAL STATISTICS OFFICES &middot; NOTHING ESTIMATED, NOTHING BACKFILLED &middot; DATA THROUGH JUNE 2026</div>
 </section>
@@ -103,8 +106,8 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
   <div class="big">
     <div><div class="n trio">+84%<span>US</span> <b>+25%</b><span>EU</span> <b>+21%</b><span>TR</span></div>
       <div class="l">more feed a kilo of beef buys today than it did in 2016 &mdash; each market against its own past</div></div>
-    <div><div class="n">13</div><div class="l">months the US has already spent at this peak</div></div>
-    <div><div class="n r">0</div><div class="l">of the five previous US peaks that held</div></div>
+    <div><div class="n">13</div><div class="l">months the US has already spent within 10% of its peak</div></div>
+    <div><div class="n r">0</div><div class="l">of the five previous US peaks that lasted &mdash; every one fell back</div></div>
   </div>
   <div class="foot">MEAT PRICE &divide; FEED COST &middot; SOURCES: BLS (US), EUROSTAT (EU), TURKSTAT (T&Uuml;RK&#304;YE) &middot; DATA THROUGH JUNE 2026</div>
 </section>
@@ -124,7 +127,7 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 
 <section class="slide">
   <div class="kick">2 &middot; WHERE WE ARE &middot; UNITED STATES</div>
-  <h2>The US: a record &mdash; and it has stopped climbing.</h2>
+  <h2>The US: a record, and no new high since August 2025.</h2>
   <div class="read">US only &mdash; the one market with a 55-year record. <b>Line = producer margin ratio, one point per month; higher is better for the producer.</b></div>
   <div class="chart"><canvas id="c1"></canvas></div>
   <div class="foot">US MEAT-TO-FEED PARITY, MONTHLY, 1971&ndash;2026 &middot; 2016 = 100 &middot; DOTS = PREVIOUS CYCLE PEAKS &middot; 84% OF THE YEAR-ON-YEAR MOVEMENT COMES FROM THE FEED SIDE, 16% FROM CATTLE</div>
@@ -132,7 +135,7 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 
 <section class="slide">
   <div class="kick">3 &middot; WHAT HAPPENED LAST TIME. EVERY TIME. &middot; UNITED STATES</div>
-  <h2>Five US peaks. Every one fell 25&ndash;60%.</h2>
+  <h2>Five US peaks. Every one fell 25&ndash;60% &mdash; over two to five years.</h2>
   <div class="read">US cycles, 1971&ndash;2026 &mdash; the only record long enough to count them. <b>Peaks and falls measured on the twelve-month average, so single-month spikes do not count as cycles.</b></div>
   <div class="chart"><canvas id="c2"></canvas></div>
   <div class="foot">TWELVE-MONTH AVERAGE &middot; PLATEAU = MONTHS WITHIN 10% OF PEAK &middot; FALL = PEAK TO THE NEXT LOW &middot; A CYCLE PEAK IS A LOCAL MAXIMUM OVER &plusmn;18 MONTHS</div>
@@ -148,10 +151,10 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 
 <section class="slide">
   <div class="kick">5 &middot; ARE THEY REALLY THE SAME CYCLE?</div>
-  <h2>Yes &mdash; and nobody goes first.</h2>
+  <h2>Yes &mdash; and nobody goes first, so there is no early warning.</h2>
   <div class="read">Correlation of year-on-year change, tested at every shift from &minus;12 to +12 months. <b>A market that led would peak clearly off-centre. The EU peaks exactly at zero; T&uuml;rkiye is flat across &minus;4 to 0.</b></div>
   <div class="chart"><canvas id="c5"></canvas></div>
-  <div class="foot">PEARSON CORRELATION ON YEAR-ON-YEAR PARITY CHANGE &middot; US&ndash;EU 116 OVERLAPPING MONTHS &middot; US&ndash;T&Uuml;RK&#304;YE 186</div>
+  <div class="foot">IF ONE MARKET LED, WE COULD WATCH IT AND PREPARE THE OTHERS. IT DOES NOT. &middot; PEARSON CORRELATION ON YEAR-ON-YEAR CHANGE &middot; US&ndash;EU 116 OVERLAPPING MONTHS &middot; US&ndash;T&Uuml;RK&#304;YE 186</div>
 </section>
 
 <section class="slide">
@@ -164,14 +167,15 @@ ul.pts li span{color:var(--dim);font-size:.78em;display:block;margin-top:.5em;li
 </section>
 
 <section class="slide">
-  <div class="kick">7 &middot; SO WHAT</div>
-  <h2>We don't know what they cut first.</h2>
-  <ul class="pts">
-    <li>The window is now<span>Customers have cash today. The conversation is easier while they are profitable.</span></li>
-    <li>Phasing beats size<span>A price move landing into a downturn behaves differently from one landing into a peak.</span></li>
-    <li>Next step: two to three weeks<span>Map what producers actually cut, in what order, in the last two downturns &mdash; against our portfolio. The macro side is done.</span></li>
+  <div class="kick">7 &middot; SO WHAT &mdash; AND WHAT I AM ASKING FOR</div>
+  <h2>The link we have not proven yet.</h2>
+  <div class="read">This shows the cycle in our customers&rsquo; economics. <b>It does not yet show what they do about it &mdash; that is the gap, and it is the work.</b></div>
+  <ul class="pts cols">
+    <li>What we know<span>Producer margins are at a cycle peak in all three markets. Five for five, every previous US peak reversed &mdash; by 25 to 60%, over two to five years.</span></li>
+    <li>What we do not know<span>Whether animal-health spend moves with this ratio at all, and if so what gets cut first. <b>Nothing in this deck evidences that link.</b> It is the assumption the commercial case rests on, and it is testable.</span></li>
+    <li>The ask<span>Two to three weeks with the livestock commercial teams: map our sales through the last two downturns against this ratio, and rank the portfolio by what a producer defers first. <b>What I need from you is an introduction to the livestock lead.</b> The macro side is already done.</span></li>
   </ul>
-  <div class="foot">DIRECTION IS WELL SUPPORTED &middot; THE DATE IS NOT &middot; PARITY IS A RATIO, NOT A MARGIN</div>
+  <div class="foot">DIRECTION WELL SUPPORTED &middot; TIMING NOT &middot; PARITY IS A RATIO OF PRICE INDEXES &mdash; NOT A QUANTITY, NOT A MARGIN</div>
 </section>
 
 <div id="nav"><button id="prev">&#8249;</button><span id="pg">1 / 5</span><button id="next">&#8250;</button></div>
@@ -190,8 +194,8 @@ function mono(x,s,w){x.font=(w||600)+' '+Math.round(s)+'px "IBM Plex Mono",monos
 
 function ch0(){
   const cv=document.getElementById('c0');const [x,W0,H0,k]=fit(cv);
-  const src=[['US','slaughter cattle \u00f7 corn','BLS \u2014 US Bureau of Labor Statistics','1971\u2192','666'],
-             ['T\u00dcRK\u0130YE','meat \u00f7 feed PPI','TurkStat \u2014 Turkish Statistical Inst.','2010\u2192','198'],
+  const src=[['US','slaughter cattle \u00f7 corn price index','BLS \u2014 US Bureau of Labor Statistics','1971\u2192','666'],
+             ['T\u00dcRK\u0130YE','meat \u00f7 feed price index','TurkStat \u2014 Turkish Statistical Inst.','2010\u2192','198'],
              ['EU','beef ref. \u00f7 compound feed','Eurostat \u2014 EU statistical office','2015\u2192','129']];
   const M=16*k;
   const bx=M, bw=W0*0.285, bh=Math.min(104*k,(H0-2*M)/3-14*k), gapY=(H0-2*M-bh*3)/2;
@@ -234,7 +238,7 @@ function ch0(){
   // outputs
   const oX=W0*0.755, oW=W0-oX-M, oH=88*k;
   const outs=[['STEP 3 \u00b7 THE CYCLE','peaks, plateaus, falls','5 completed US cycles'],
-              ['STEP 4 \u00b7 THE MONEY','feedlot P&L','what the ratio is worth']];
+              ['STEP 4 \u00b7 THE MONEY','cattle-fattening P&L','what the ratio is worth']];
   outs.forEach((o,i)=>{
     const Y=H0/2-oH-10*k+i*(oH+20*k);
     box(oX,Y,oW,oH,'rgba(127,176,105,.10)','rgba(127,176,105,.38)');
