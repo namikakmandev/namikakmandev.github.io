@@ -44,6 +44,10 @@ def owid_cattle():
     """Our World in Data mirror of FAOSTAT live-animal stocks -> {country: {year: head}}"""
     raw = get("https://ourworldindata.org/grapher/cattle-livestock-count-heads.csv"
               "?v=1&csvType=full&useColumnShortNames=true").decode()
+    print("[diag] owid first 300 chars:", raw[:300].replace("\n", " | "))
+    ents = sorted({r.split(",")[0] for r in raw.splitlines()[1:] if r})
+    print("[diag] owid entities containing US/Turk/Europ:",
+          [e for e in ents if any(k in e for k in ("United States", "Turk", "Türk", "Europ"))][:12])
     want = {"United States": "US", "Turkey": "TR", "Türkiye": "TR", "European Union (27)": "EU27"}
     out = defaultdict(dict)
     rdr = csv.DictReader(io.StringIO(raw))
@@ -65,7 +69,10 @@ def eurostat_cattle():
     """Eurostat apro_mt_lscatl, total live bovines, EU aggregate -> {year: head}"""
     url = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/apro_mt_lscatl"
            "?format=JSON&lang=EN&animals=A2000&unit=THS_HD&month=M12&geo=EU27_2020")
-    j = json.loads(get(url).decode())
+    body = get(url).decode()
+    print("[diag] eurostat first 300 chars:", body[:300])
+    j = json.loads(body)
+    print("[diag] eurostat top keys:", list(j)[:10], "n values:", len(j.get("value", {})))
     idx = j["dimension"]["time"]["category"]["index"]
     vals = j["value"]
     inv = {v: k for k, v in idx.items()}
@@ -128,9 +135,10 @@ def main():
     json.dump(payload, open("data/herd-cattle.json", "w"), separators=(",", ":"))
     json.dump(report, open("data/herd-report.json", "w"), indent=1)
     print(json.dumps(report, indent=1))
-    print(f"years {years[0]}..{years[-1]}  series {list(series)}")
-    if not series:
-        sys.exit("no herd series retrieved")
+    if years:
+        print(f"years {years[0]}..{years[-1]}  series {list(series)}")
+    else:
+        print("no herd series retrieved — see diagnostics above")
 
 
 if __name__ == "__main__":
