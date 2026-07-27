@@ -1,0 +1,36 @@
+name: Fetch vet cost per head (USDA ERS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "discover = list ERS data files | boş = ERS_URL'i indir ve ayrıştır"
+        default: "discover"
+      ers_url:
+        description: "Ayrıştırılacak ERS veri dosyasının tam URL'si"
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install openpyxl xlrd
+      - name: Fetch
+        env:
+          MODE: ${{ inputs.mode }}
+          ERS_URL: ${{ inputs.ers_url }}
+        run: python scripts/fetch_vetcost_data.py
+      - name: Commit report
+        run: |
+          git config user.name "vetcost-bot"
+          git config user.email "actions@github.com"
+          git add data/vetcost-report.json
+          git diff --cached --quiet || git commit -m "data: ERS vet cost discovery [skip ci]"
+          git push
