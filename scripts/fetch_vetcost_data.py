@@ -148,8 +148,23 @@ def eaa_vet():
     base = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/aact_eaa01"
             "?format=JSON&lang=EN")
     # first: what item codes exist, and is TR present?
-    probe = json.loads(get(base + "&geo=EU27_2020&time=2020").decode())
+    raw = get(base + "&geo=EU27_2020&time=2020").decode()
+    probe = json.loads(raw)
+    report["eaa_raw_head"] = raw[:400]
+    report["eaa_dim_ids"] = probe.get("id")
+    report["eaa_dim_keys"] = list(probe.get("dimension", {}).keys())
+    print("dim ids:", probe.get("id"))
+    print("dim keys:", list(probe.get("dimension", {}).keys()))
+    print("raw head:", raw[:400])
     dims = probe.get("dimension", {})
+    # find whichever dimension carries the item nomenclature
+    for dk, dv in dims.items():
+        labs = dv.get("category", {}).get("label", {})
+        hit = {k: v for k, v in labs.items() if "veterinar" in str(v).lower()}
+        if hit:
+            report["eaa_item_dim"] = dk
+            report.setdefault("eaa_probe", {})["vet_items"] = hit
+            print("ITEM DIMENSION:", dk, hit)
     items = dims.get("itm_newa", {}).get("category", {}).get("label", {})
     vet = {k: v for k, v in items.items() if "veterinar" in str(v).lower()}
     geos = dims.get("geo", {}).get("category", {}).get("label", {})
