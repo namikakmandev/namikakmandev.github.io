@@ -140,58 +140,57 @@ def main():
 
 # ---------------------------------------------------------------- EU / TR
 def eaa_vet():
-    """Eurostat Economic Accounts for Agriculture: veterinary expenses by country.
+    """Eurostat Economic Accounts for Agriculture -> veterinary expenses by country.
 
-    Item 11500 = 'Veterinary expenses' in the EAA nomenclature. Values are for
-    ALL livestock, not cattle alone — that limitation must travel with the number.
+    NOTE: the EAA veterinary line covers ALL livestock, not cattle alone. That
+    limitation must travel with any per-head number derived from it.
     """
     base = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/aact_eaa01"
             "?format=JSON&lang=EN")
-    # first: what item codes exist, and is TR present?
-    raw = get(base + "&geo=EU27_2020&time=2020").decode()
-    probe = json.loads(raw)
-    report["eaa_raw_head"] = raw[:400]
-    report["eaa_dim_ids"] = probe.get("id")
-    report["eaa_dim_keys"] = list(probe.get("dimension", {}).keys())
-    print("dim ids:", probe.get("id"))
-    print("dim keys:", list(probe.get("dimension", {}).keys()))
-    print("raw head:", raw[:400])
+    probe = json.loads(get(base + "&geo=EU27_2020&time=2020").decode())
     dims = probe.get("dimension", {})
-    # find whichever dimension carries the item nomenclature
+    item_dim, vet_codes = None, {}
     for dk, dv in dims.items():
         labs = dv.get("category", {}).get("label", {})
         hit = {k: v for k, v in labs.items() if "veterinar" in str(v).lower()}
         if hit:
-            report["eaa_item_dim"] = dk
-            report.setdefault("eaa_probe", {})["vet_items"] = hit
-            print("ITEM DIMENSION:", dk, hit)
-    items = dims.get("itm_newa", {}).get("category", {}).get("label", {})
-    vet = {k: v for k, v in items.items() if "veterinar" in str(v).lower()}
-    geos = dims.get("geo", {}).get("category", {}).get("label", {})
-    report["eaa_probe"] = {"vet_items": vet, "n_items": len(items),
-                           "unit_labels": list(dims.get("unit", {})
-                                               .get("category", {}).get("label", {}).items())[:8]}
-    print("vet item codes:", vet)
-    print("n items:", len(items))
+            item_dim, vet_codes = dk, hit
+            break
+    units = list(dims.get("unit", {}).get("category", {}).get("label", {}).items())
+    indics = list(dims.get("indic_agr", {}).get("category", {}).get("label", {}).items())
+    report["eaa_probe"] = {"item_dim": item_dim, "vet_codes": vet_codes,
+                           "units": units[:10], "indics": indics[:10]}
+    print("item dim:", item_dim, "vet codes:", vet_codes)
+    print("units:", units[:10])
+    print("indics:", indics[:10])
+    if not item_dim:
+        return
+
     out = {}
-    for code in (vet or {"11500": "Veterinary expenses"}):
-        for geo in ("EU27_2020", "TR"):
-            url = f"{base}&itm_newa={code}&geo={geo}&unit=MIO_EUR&indic_ag=PROD_BP"
+    for code in vet_codes:
+        for geo in ("EU27_2020", "TR", "DE", "FR"):
+            url = f"{base}&{item_dim}={code}&geo={geo}&unit=MIO_EUR"
             try:
                 j = json.loads(get(url).decode())
-                idx = j["dimension"]["time"]["category"]["index"]
-                inv = {v: k for k, v in idx.items()}
-                vals = {int(inv[int(pos)]): val for pos, val in j.get("value", {}).items()
-                        if inv.get(int(pos)) and val is not None}
+                tcat = j["dimension"]["time"]["category"]["index"]
+                inv = {v: k for k, v in tcat.items()}
+                # flat index -> time position depends on remaining dims; when every
+                # other dim is pinned to one value the flat index IS the time index
+                vals = {}
+                for pos, val in (j.get("value") or {}).items():
+                    yr = inv.get(int(pos) % len(tcat))
+                    if yr and val is not None:
+                        vals[int(yr)] = float(val)
                 if vals:
-                    out.setdefault(geo, {}).update(vals)
-                    print(f"  {geo} {code}: {len(vals)} points {min(vals)}..{max(vals)}")
+                    out[geo] = vals
+                    print(f"  {geo}: {len(vals)} pts {min(vals)}..{max(vals)} "
+                          f"last={vals[max(vals)]:.0f} MIO_EUR")
             except Exception as e:  # noqa: BLE001
-                print(f"  {geo} {code}: {type(e).__name__}: {e}")
+                print(f"  {geo}: {type(e).__name__}: {e}")
     if out:
-        json.dump({"source": "Eurostat aact_eaa01, veterinary expenses, million EUR, "
-                             "ALL livestock (not cattle only)", "series": out},
-                  open("data/vetcost-eu-tr.json", "w"), separators=(",", ":"))
+        json.dump({"source": "Eurostat aact_eaa01 veterinary expenses, million EUR at current "
+                             "prices; ALL livestock, not cattle only",
+                   "series": out}, open("data/vetcost-eu-tr.json", "w"), separators=(",", ":"))
     report["eaa_series"] = {k: [min(v), max(v), len(v)] for k, v in out.items()}
 
 
