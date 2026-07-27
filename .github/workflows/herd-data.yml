@@ -1,0 +1,27 @@
+name: Fetch cattle herd inventory
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch herd series
+        run: |
+          mkdir -p data
+          python scripts/fetch_herd_data.py
+      - name: Commit data
+        run: |
+          git config user.name "herd-data-bot"
+          git config user.email "actions@github.com"
+          git add data/herd-*.json
+          git diff --cached --quiet || git commit -m "data: cattle herd inventory [skip ci]"
+          git push
