@@ -1,0 +1,58 @@
+name: Fetch vet-medicine API data
+
+# Finished veterinary/pharmaceutical preparation prices vs active pharmaceutical
+# ingredient prices, US / EU / TR. The dev sandbox cannot reach BLS, FRED, Eurostat
+# or EVDS — this job is the only way these series are fetched.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "discover = dump the sources' real structure, do not parse"
+        default: ""
+      only:
+        description: "Boş = us eu tr. Ya da: us | eu | tr"
+        default: ""
+      eu_dataset:
+        description: "Eurostat dataset (default sts_inpp_a)"
+        default: ""
+      eu_nace:
+        description: 'NACE code map, JSON: {"api_ppi":"C21_1","prep_ppi":"C21_2"}'
+        default: ""
+      us_extra:
+        description: 'Extra FRED ids, JSON: {"vet_ppi":"PCU..."}'
+        default: ""
+  schedule:
+    - cron: "23 5 3 * *"   # her ayın 3'ü
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vetapi-data
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install evds pandas
+      - name: Fetch
+        env:
+          EVDS_KEY: ${{ secrets.EVDS_KEY }}
+          MODE: ${{ inputs.mode }}
+          EU_DATASET: ${{ inputs.eu_dataset }}
+          EU_NACE: ${{ inputs.eu_nace }}
+          US_EXTRA: ${{ inputs.us_extra }}
+        run: python scripts/fetch_vetapi_data.py ${{ inputs.only }}
+      - name: Commit
+        run: |
+          git config user.name "vetapi-data-bot"
+          git config user.email "actions@github.com"
+          git add data/vetapi-*.json 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "data: vet-medicine API series [skip ci]"
+          git push
