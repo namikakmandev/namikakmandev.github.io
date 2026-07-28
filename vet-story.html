@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Cheapest Part of Your Medicine · A scroll-driven story</title>
+<meta name="description" content="The active ingredient in a medicine got 45% cheaper in real terms over 44 years. The medicine got 145% dearer. A scroll-driven story about where pharmaceutical margin actually comes from — US, EU and Türkiye, built from BLS, Eurostat and TÜİK.">
+<meta property="og:title" content="The cheapest part of your medicine is the medicine">
+<meta property="og:description" content="Over 44 years the active ingredient got 45% cheaper in real terms. The finished medicine got 145% dearer. Where that gap comes from, and why it is closing.">
+<style>
+  :root{
+    --bg:#0B1220; --card:rgba(18,27,44,.90); --line:#1E2A40;
+    --ink:#E8EEF7; --ink2:#9FB0C8; --ink3:#64748B;
+    --blue:#2F9BFF; --green:#19C37D; --orange:#FF6500; --red:#F2545B; --violet:#A78BFA;
+  }
+  *{margin:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);
+       font-family:"Segoe UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+  #vis{position:fixed;inset:0;z-index:0}
+  #vis canvas{display:block;width:100vw;height:100vh}
+  #grade{position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(ellipse at 50% 42%,transparent 58%,rgba(0,0,0,.55) 100%)}
+  #story{position:relative;z-index:2}
+  .step{min-height:118vh;padding:0 5vw 6vh}
+  .step .card{position:sticky;top:64vh;margin:0 auto}
+  .card{max-width:540px;background:var(--card);border:1px solid rgba(47,155,255,.28);
+    border-radius:14px;padding:18px 22px;backdrop-filter:blur(6px);
+    box-shadow:0 10px 34px rgba(0,0,0,.5)}
+  .card .k{font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--blue);
+    letter-spacing:.14em;margin-bottom:7px;text-transform:uppercase}
+  .card h3{font-size:22px;line-height:1.25;margin-bottom:9px;letter-spacing:-.01em}
+  .card p{font-size:15.5px;line-height:1.55;color:var(--ink2)}
+  .card p+p{margin-top:9px}
+  .card b{color:var(--ink)}
+  .card .num{color:var(--orange);font-weight:800}
+  .card .numg{color:var(--green);font-weight:800}
+  .card details{margin-top:11px;border-top:1px solid rgba(47,155,255,.20);padding-top:9px}
+  .card summary{cursor:pointer;list-style:none;font:700 11px ui-monospace,monospace;
+    color:var(--blue);letter-spacing:.08em}
+  .card summary::before{content:'▸ '}
+  .card details[open] summary::before{content:'▾ '}
+  .card details div{margin-top:8px;font-size:13.5px;line-height:1.55;color:var(--ink2)}
+  #hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:0 6vw;position:relative;z-index:2}
+  #hero .t1{font-size:clamp(34px,7.2vw,74px);font-weight:800;letter-spacing:-.02em;line-height:1.05;max-width:16ch}
+  #hero .t1 span{color:var(--orange)}
+  #hero .t2{font:700 clamp(10px,2.2vw,13px) ui-monospace,monospace;color:var(--ink3);
+    letter-spacing:.3em;margin-top:20px;text-transform:uppercase}
+  #hero .q{font-size:clamp(16px,2.6vw,21px);margin-top:5vh;color:var(--ink2);max-width:60ch;line-height:1.5}
+  #hero .hint{margin-top:8vh;color:var(--ink3);font:600 12px ui-monospace,monospace;
+    letter-spacing:.1em;animation:bob 1.9s infinite}
+  @keyframes bob{50%{transform:translateY(7px)}}
+  #fin{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:12vh 7vw;position:relative;z-index:2;
+    background:linear-gradient(transparent,rgba(11,18,32,.96) 20%)}
+  #fin .big{font-size:clamp(23px,4.4vw,38px);font-weight:800;max-width:22ch;line-height:1.25;letter-spacing:-.01em}
+  #fin .big span{color:var(--orange)}
+  #fin .sub{color:var(--ink2);margin-top:18px;max-width:62ch;font-size:16px;line-height:1.6}
+  #fin .links{margin-top:32px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  #fin .links a{color:var(--blue);border:1px solid rgba(47,155,255,.5);border-radius:999px;
+    padding:9px 18px;text-decoration:none;font:700 12.5px ui-monospace,monospace}
+  #appx{position:relative;z-index:2;background:#080D16;border-top:1px solid rgba(159,176,200,.14);
+    padding:52px 6vw 80px}
+  #appx .in{max-width:880px;margin:0 auto}
+  #appx .k{font:700 11px ui-monospace,monospace;color:var(--blue);letter-spacing:.14em;text-transform:uppercase}
+  #appx h3{font-size:clamp(19px,3vw,26px);margin:8px 0 18px;letter-spacing:-.01em}
+  #appx .row{display:grid;grid-template-columns:150px 1fr;gap:6px 18px;padding:12px 0;
+    border-top:1px solid rgba(159,176,200,.10);font-size:14px;color:var(--ink2);line-height:1.6}
+  #appx .row b{color:var(--ink)}
+  #appx .lab{font:700 10.5px ui-monospace,monospace;color:var(--ink3);letter-spacing:.08em;padding-top:3px;text-transform:uppercase}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--ink3)}
+  #tag{position:fixed;top:15px;left:16px;z-index:10;font:700 11px ui-monospace,monospace;
+    color:var(--ink3);letter-spacing:.1em}
+  #prog{position:fixed;top:0;left:0;height:2px;background:var(--orange);z-index:11;width:0}
+  @media(max-width:640px){.card{max-width:94vw;padding:15px 17px}.step .card{top:60vh}
+    .card h3{font-size:19px}.card p{font-size:14.5px}}
+  @media(min-width:900px){.card{max-width:600px;padding:24px 30px}.step .card{top:66vh}
+    .card h3{font-size:26px}.card p{font-size:17px}}
+</style>
+</head>
+<body>
+
+<div id="vis"><canvas id="cv"></canvas></div>
+<div id="grade"></div>
+<div id="prog"></div>
+<div id="tag">NAMIK AKMAN · DATA STORY</div>
+
+<section id="hero">
+  <div class="t1">The cheapest part of your medicine is <span>the medicine</span></div>
+  <div class="t2">US · EU · Türkiye · 1982–2026 · public producer prices</div>
+  <div class="q">A veterinary medicine is an active pharmaceutical ingredient that someone has formulated,
+    filled and licensed. So here is a question worth forty-four years of data: does the price of the medicine
+    follow the price of the ingredient inside it?</div>
+  <div class="hint">SCROLL ↓</div>
+</section>
+
+<div id="story">
+
+  <section class="step"><div class="card">
+    <div class="k">01 · United States · 1982–2026</div>
+    <h3>Two lines that were supposed to move together.</h3>
+    <p>The green line is what a kilo of bulk active ingredient costs. The orange line is what the finished
+      pharmaceutical sells for. Both are US producer price indexes, both deflated by CPI, both indexed to
+      June 1982.</p>
+    <p>For the first few years they behave. Then they stop.</p>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">02 · The gap</div>
+    <h3>The ingredient got cheaper. The medicine got dearer.</h3>
+    <p>Across forty-four years, in real terms, the active ingredient <span class="numg">fell 44.8%</span>
+      while the finished dose <span class="num">rose 145.1%</span>.</p>
+    <p><b>The space between those two lines is the entire subject of this story.</b> It opened from the
+      mid-1980s, widened fastest between 2009 and 2019, and has been closing since 2020.</p>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">03 · Which side moves?</div>
+    <h3>Two-thirds of the movement is the ingredient, not the price.</h3>
+    <p>Before calling this a pricing story, it is worth asking which side actually swings. Decompose the
+      variance of the ratio and <span class="num">65.8%</span> of it comes from the ingredient side.</p>
+    <p><b>A manufacturer watching its own selling price is watching the quieter half of its own margin.</b></p>
+    <details><summary>How this is measured</summary><div>Variance decomposition of month-on-month log
+      changes, net of covariance, n = 527 monthly changes. The same method the cattle study used to find that
+      84% of a "cattle cycle" was actually corn.</div></details>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">04 · An interruption</div>
+    <h3>The number I could not give you.</h3>
+    <p>You want a multiple. "Finished medicine costs 4.9× its ingredient." I can compute it. It is meaningless.</p>
+    <p>The two indexes sit on <b>different base months</b> — June 1981 and June 1982. Rebase them to a common
+      date and the same "ratio" becomes 2.57, or 2.39, or 1.77, or 1.08, depending entirely on which date you
+      pick.</p>
+    <p><b>So nothing here is a level. Every figure is a change between two named dates</b> — the only thing
+      that survives a change of base.</p>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">05 · Not one book</div>
+    <h3>The industry runs at two speeds.</h3>
+    <p>Split the finished side into its eight therapeutic classes and the average dissolves. Cardiovascular
+      <span class="num">+130.7%</span> and central nervous system <span class="num">+100.9%</span> roughly
+      doubled in real terms. Respiratory, digestive, skin and vitamins went nowhere or fell.</p>
+    <p>Between the fast group and the slow one there is a cliff: <b>+51.4% down to +5.1%</b>, with nothing
+      in between.</p>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">06 · The antibiotic line</div>
+    <h3>Two true statements pointing opposite ways.</h3>
+    <p>Broad and medium spectrum antibiotics have their own published index. Against its <b>input</b>, it did
+      well: price <span class="num">+12.0%</span> while the ingredient fell <span class="numg">29.3%</span>
+      — a spread of roughly 58%.</p>
+    <p>Against its <b>peers</b>, it did badly: the whole book gained <span class="num">+29.4%</span> on the
+      identical window, and its own parent class gained 26.5%.</p>
+    <p><b>That combination is the signature of harvesting a cheap input, not of holding price.</b> Input
+      deflation is not a durable asset — it stops the day ingredient prices turn.</p>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">07 · The turn</div>
+    <h3>Every class has peaked. Not one is at its high.</h3>
+    <p>This is the finding that outlives any single product line. All eight therapeutic classes reached their
+      real-terms peak and turned — most between January 2017 and May 2020. The aggregate peaked in May 2020
+      and has given back 17.2%.</p>
+    <p><b>A plan that assumes real price recovery is arguing against eight series at once.</b></p>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">08 · Türkiye</div>
+    <h3>Your costs reprice instantly. Your prices do not.</h3>
+    <p>Now move the question to a market that imports its ingredients. When the lira moves,
+      <span class="num">68%</span> of it is in the imported input price <b>within the same calendar month</b>.</p>
+    <p>How much reaches domestic output prices in that month? <span class="numg">17%</span>.</p>
+    <p><b>That gap is not a market fact. It is a process choice</b> — and it is where the margin goes.</p>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">09 · What it costs</div>
+    <h3>0.64% of margin, immediately. 0.87% by the following month.</h3>
+    <p>Per one percent of lira depreciation, measured on the margin ratio — domestic price divided by imported
+      input, so Turkish inflation sits on both sides and cancels.</p>
+    <p>Then the effect fades. But read that carefully: <b>it decays into unmeasurability, not into a proven
+      recovery.</b> By six months the correlation is 0.07, which is indistinguishable from nothing.</p>
+    <p><b>The honest claim is that the cost is front-loaded — not that it is repaid.</b> Which is exactly why
+      the hedging horizon is a quarter, not a year.</p>
+  </div></section>
+
+  <section class="step"><div class="card">
+    <div class="k">10 · The part nobody publishes</div>
+    <h3>None of this is veterinary.</h3>
+    <p>No statistical agency anywhere publishes a veterinary-only price index. Every BLS product line that can
+      be checked is labelled <span class="mono">for Human Use</span>; Eurostat and TÜİK publish no split at all.</p>
+    <p>So this is the cost structure a veterinary manufacturer <b>sits inside</b> — not its own price book.
+      I would rather say that plainly than dress an industry average as an animal-health finding.</p>
+    <p><b>That gap is the open question, and it is the one worth funding.</b></p>
+  </div></section>
+
+</div>
+
+<section id="fin">
+  <div class="big">The margin came from the <span>ingredient getting cheaper</span> — and that is not a
+    strategy, it is a tailwind.</div>
+  <div class="sub">Three things follow. In the US, price off the ingredient cycle rather than a finished-goods
+    benchmark that moves later and less. In the EU, stop looking for a spread — ingredient and finished prices
+    moved within 1.2 points of each other over fourteen years. In Türkiye, hedge the first quarter and move
+    price revision closer to the currency than to the calendar.<br><br>
+    Every number here is recomputed from public data committed in the repository. If one of them is wrong,
+    it is falsifiable — and I have named what would change each conclusion.</div>
+  <div class="links">
+    <a href="vet-api-parity.html">The ingredient and the medicine</a>
+    <a href="vet-pricing-power.html">Where the pricing power is</a>
+    <a href="vet-fx-passthrough.html">Türkiye FX pass-through</a>
+  </div>
+</section>
+
+<section id="appx"><div class="in">
+  <div class="k">Sources &amp; method</div>
+  <h3>Everything behind the story</h3>
+  <div class="row"><div class="lab">United States</div><div>BLS producer price indexes via FRED, monthly.
+    <b>PCU325411325411</b> medicinal &amp; botanical manufacturing (the active-ingredient stage, index Jun 1982=100,
+    1982-06→2026-06) · <b>PCU325412325412</b> pharmaceutical preparation manufacturing (finished dose, index
+    Jun 1981=100) · therapeutic classes <b>WPU063801–WPU063808</b> (index Jun 2001=100) ·
+    <b>WPU06380802</b> broad &amp; medium spectrum antibiotics (index Dec 2009=100) ·
+    <b>PCU325414325414</b> other biological products. Titles read off FRED, never inferred from the id.</div></div>
+  <div class="row"><div class="lab">European Union</div><div>Eurostat <b>sts_inpp_a</b>, geo EU27_2020, unit I15,
+    annual. <b>C211</b> basic pharmaceutical products, <b>C212</b> pharmaceutical preparations. Codes confirmed
+    against the source's own category list. Series ends 2023 — no EU claim is made for 2024–2026.</div></div>
+  <div class="row"><div class="lab">Türkiye</div><div>TÜİK via CBRT EVDS, monthly. <b>TP.TUFE1YI.T60</b>
+    Yİ-ÜFE NACE 21.2 domestic preparations · <b>TP.UFEYD16</b> Yurt Dışı ÜFE NACE 21 imported input ·
+    <b>TP.TUFE1YI.T59</b> used only to establish that no separate domestic ingredient stage is measured.
+    Currency: OECD via FRED <b>CCUSMA02TRM618N</b>, monthly average of daily rates.</div></div>
+  <div class="row"><div class="lab">Deflators</div><div>US CPI-U (<b>CPIAUCSL</b>) · euro area HICP
+    (<b>CP0000EZ19M086NEST</b>). The Turkish margin ratio needs none — both sides are nominal lira and
+    inflation cancels in the ratio.</div></div>
+  <div class="row"><div class="lab">Limits</div><div><b>No veterinary-only price index exists</b> in any of the
+    three markets. These are prices, not volumes, and not net of discount. The US CPI has no October 2025
+    observation, so that month is dropped from deflated series. Cumulative pass-through beyond six months on
+    the nominal Turkish legs exceeds 100% — trend contamination — and is quoted nowhere.</div></div>
+  <div class="row"><div class="lab">Reproducibility</div><div>Fetched by <span class="mono">scripts/fetch.py</span>
+    from <span class="mono">data-sources.json</span>; recomputed by
+    <span class="mono">scripts/analyse_vetapi.py</span>, <span class="mono">analyse_vetprice.py</span> and
+    <span class="mono">analyse_passthrough.py</span>. Data cut-off June 2026 (EU 2023).</div></div>
+</div></section>
+
+<script>
+const D={"us":{"api":{"1982":99.5,"1983":98.13,"1984":89.85,"1985":85.39,"1986":82.06,"1987":79.66,"1988":80.08,"1989":80.84,"1990":77.91,"1991":80.03,"1992":79.15,"1993":81.51,"1994":82.53,"1995":82.23,"1996":80.26,"1997":81.1,"1998":81.09,"1999":83.36,"2000":83.26,"2001":78.5,"2002":73.31,"2003":72.99,"2004":70.05,"2005":66.87,"2006":64.96,"2007":65.11,"2008":69.68,"2009":77.03,"2010":79.16,"2011":76.74,"2012":75.75,"2013":72.61,"2014":72.48,"2015":72.67,"2016":70.67,"2017":68.79,"2018":69.39,"2019":68.14,"2020":67.23,"2021":64.21,"2022":60.48,"2023":58.48,"2024":59.51,"2025":58.68,"2026":55.35},"prep":{"1982":101.72,"1983":107.31,"1984":110.74,"1985":115.66,"1986":122.47,"1987":127.1,"1988":130.83,"1989":135.16,"1990":137.24,"1991":140.56,"1992":145.15,"1993":146.78,"1994":145.37,"1995":144.52,"1996":142.6,"1997":142.19,"1998":156.79,"1999":157.9,"2000":156.85,"2001":156.5,"2002":159.99,"2003":164.39,"2004":167.94,"2005":170.86,"2006":173.93,"2007":175.84,"2008":180.38,"2009":192.65,"2010":200.31,"2011":202.94,"2012":209.87,"2013":218.47,"2014":228.25,"2015":245.62,"2016":262.14,"2017":271.74,"2018":276.06,"2019":279.53,"2020":280.34,"2021":271.28,"2022":259.12,"2023":258.71,"2024":256.81,"2025":250.82,"2026":246.81}},"base":{"1990-01":2.567,"2000-01":2.394,"2010-01":1.767,"2020-01":1.077},"baseraw":4.89,"rank":[{"l":"Cardiovascular","s":"WPU063803","v":130.7,"pk":"2020-05","sp":-20.0},{"l":"Central nervous system & sense organs","s":"WPU063802","v":100.9,"pk":"2020-05","sp":-9.2},{"l":"Neoplasms, endocrine & metabolic","s":"WPU063801","v":69.4,"pk":"2020-05","sp":-18.4},{"l":"All pharmaceutical preparations","s":"WPU0638","v":57.9,"pk":"2020-05","sp":-17.2},{"l":"Parasitic & infective diseases","s":"WPU063808","v":51.4,"pk":"2019-01","sp":-18.6},{"l":"Respiratory","s":"WPU063804","v":5.1,"pk":"2017-01","sp":-35.0},{"l":"Digestive & genito-urinary","s":"WPU063805","v":0.1,"pk":"2018-01","sp":-34.7},{"l":"Skin","s":"WPU063806","v":-0.9,"pk":"2017-07","sp":-29.3},{"l":"Vitamin, nutrient & hematinic","s":"WPU063807","v":-13.8,"pk":"2001-08","sp":-14.4}],"ab":{"s":{"2009":100.0,"2010":100.0,"2011":101.8,"2012":102.2,"2013":101.1,"2014":114.0,"2015":140.3,"2016":141.7,"2017":146.0,"2018":151.1,"2019":153.1,"2020":142.2,"2021":136.0,"2022":126.7,"2023":122.3,"2024":118.8,"2025":115.7,"2026":112.7},"book":{"2009":100.0,"2010":103.5,"2011":104.7,"2012":108.7,"2013":114.1,"2014":120.5,"2015":130.7,"2016":140.4,"2017":146.4,"2018":150.3,"2019":152.8,"2020":154.0,"2021":148.9,"2022":140.2,"2023":138.2,"2024":136.4,"2025":132.5,"2026":130.2},"span":["2009-12","2026-06"],"chg":12.0,"peers":{"Cardiovascular":101.2,"Central nervous system & sense organs":55.7,"All pharmaceutical preparations":29.4,"Parasitic & infective diseases":26.5,"Neoplasms, endocrine & metabolic":25.5,"Vitamin, nutrient & hematinic":-6.8,"Respiratory":-7.5,"Skin":-24.2,"Digestive & genito-urinary":-24.4},"input_chg":-29.3},"tr":{"leg1":0.6842,"leg2":0.1735,"cum":{"0":[-0.638,-0.528],"1":[-0.869,-0.46],"3":[-0.406,-0.161],"6":[-0.234,-0.068],"9":[0.103,0.026],"12":[0.646,0.142]},"n":197,"win":["2010-02","2026-06"]},"trpar":{"2010":100.69,"2011":100.98,"2012":95.5,"2013":61.28,"2014":50.34,"2015":48.58,"2016":47.05,"2017":45.07,"2018":40.06,"2019":37.16,"2020":34.91,"2021":34.99,"2022":29.77,"2023":38.44,"2024":44.32,"2025":45.37,"2026":47.3}};
+const C={ink:'#E8EEF7',ink2:'#9FB0C8',ink3:'#64748B',line:'#1E2A40',
+  blue:'#2F9BFF',green:'#19C37D',orange:'#FF6500',red:'#F2545B',violet:'#A78BFA'};
+const cv=document.getElementById('cv'), x=cv.getContext('2d');
+let W=0,H=0,K=1;
+function resize(){K=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*K;cv.height=H*K;x.setTransform(K,0,0,K,0,0);draw();}
+addEventListener('resize',resize);
+
+const num=o=>Object.keys(o).map(Number).sort((a,b)=>a-b);
+const ease=t=>t<0?0:t>1?1:t*t*(3-2*t);
+const lerp=(a,b,t)=>a+(b-a)*t;
+// layout box for a centred plot that never sits under the sticky card
+function box(){
+  const wide=W>=900, top=H*0.10, bot=H*(wide?0.44:0.40);
+  return {L:W*(wide?0.14:0.11), R:W*(wide?0.86:0.92), T:top, B:bot};
+}
+function grid(b,v0,v1,fmt,n){
+  n=n||4; x.strokeStyle=C.line; x.lineWidth=1; x.font='11px system-ui'; x.textAlign='right';
+  for(let i=0;i<=n;i++){const v=v0+(v1-v0)*i/n, y=b.B-(v-v0)/(v1-v0)*(b.B-b.T);
+    x.beginPath();x.moveTo(b.L,y);x.lineTo(b.R,y);x.stroke();
+    x.fillStyle=C.ink3;x.fillText(fmt?fmt(v):Math.round(v),b.L-9,y+4);}
+}
+function xaxis(b,y0,y1,step){
+  x.fillStyle=C.ink3;x.font='11px system-ui';x.textAlign='center';
+  for(let y=Math.ceil(y0/step)*step;y<=y1;y+=step)
+    x.fillText(y,b.L+(y-y0)/(y1-y0)*(b.R-b.L),b.B+20);
+}
+function fit(t,size,min,max){        // shrink until it fits — titles overflowed on phones
+  let s=size;
+  x.font='700 '+s+'px system-ui';
+  while(s>min && x.measureText(t).width>max){s-=1;x.font='700 '+s+'px system-ui';}
+  return s;
+}
+function title(t,sub){
+  const max=W*0.92;
+  x.textAlign='center';x.fillStyle=C.ink;
+  fit(t,W<700?15:18,10,max);
+  x.fillText(t,W/2,H*0.048);
+  if(sub){
+    let s=W<700?11:12.5; x.font=s+'px system-ui';
+    while(s>8 && x.measureText(sub).width>max){s-=0.5;x.font=s+'px system-ui';}
+    x.fillStyle=C.ink3;x.fillText(sub,W/2,H*0.048+19);
+  }
+}
+
+// ---- scene: the two US lines, revealed left to right
+function sceneDiverge(p,showGap){
+  const b=box(), ys=num(D.us.api), y0=ys[0], y1=ys[ys.length-1];
+  const all=ys.map(y=>D.us.api[y]).concat(ys.map(y=>D.us.prep[y]));
+  const v0=0, v1=Math.max(...all)*1.08;
+  title('US: active ingredient vs finished medicine, real terms',
+        'BLS producer price indexes, CPI-deflated, June 1982 = 100');
+  grid(b,v0,v1,null,4); xaxis(b,y0,y1,10);
+  const cut=y0+(y1-y0)*ease(p);
+  const tx=y=>b.L+(y-y0)/(y1-y0)*(b.R-b.L), ty=v=>b.B-(v-v0)/(v1-v0)*(b.B-b.T);
+  // 100 baseline
+  x.strokeStyle='rgba(159,176,200,.35)';x.setLineDash([4,4]);
+  x.beginPath();x.moveTo(b.L,ty(100));x.lineTo(b.R,ty(100));x.stroke();x.setLineDash([]);
+  if(showGap>0){ // shade the divergence
+    x.globalAlpha=0.13*showGap; x.fillStyle=C.orange; x.beginPath();
+    const vis=ys.filter(y=>y<=cut);
+    vis.forEach((y,i)=>{const X=tx(y),Y=ty(D.us.prep[y]);i?x.lineTo(X,Y):x.moveTo(X,Y);});
+    for(let i=vis.length-1;i>=0;i--){const y=vis[i];x.lineTo(tx(y),ty(D.us.api[y]));}
+    x.closePath();x.fill();x.globalAlpha=1;
+  }
+  [['api',C.green],['prep',C.orange]].forEach(([k,col])=>{
+    x.strokeStyle=col;x.lineWidth=2.8;x.beginPath();
+    let n=0;
+    ys.forEach(y=>{if(y>cut)return;const X=tx(y),Y=ty(D.us[k][y]);n++?x.lineTo(X,Y):x.moveTo(X,Y);});
+    x.stroke();
+    const last=ys.filter(y=>y<=cut).pop();
+    if(last){x.fillStyle=col;x.beginPath();x.arc(tx(last),ty(D.us[k][last]),4,0,7);x.fill();
+      x.textAlign='left';x.font='700 12px system-ui';
+      x.fillText(k==='api'?'ingredient':'finished medicine',tx(last)+9,ty(D.us[k][last])+4);}
+  });
+}
+
+// ---- scene: variance split
+function sceneVariance(p){
+  const b=box(), share=0.658, t=ease(p);
+  title('Which side moves the ratio?','variance of month-on-month log change, net of covariance, n = 527');
+  const y=(b.T+b.B)/2-34, h=68, L=b.L, w=(b.R-b.L)*t;
+  x.fillStyle=C.green;x.fillRect(L,y,w*share,h);
+  x.fillStyle=C.orange;x.fillRect(L+w*share,y,w*(1-share),h);
+  if(t>0.55){
+    x.fillStyle='#0B1220';x.font='800 '+(W<700?15:19)+'px system-ui';x.textAlign='center';
+    x.fillText('65.8%',L+(b.R-b.L)*share/2,y+h/2+7);
+    x.fillText('34.2%',L+(b.R-b.L)*share+(b.R-b.L)*(1-share)/2,y+h/2+7);
+    x.fillStyle=C.ink2;x.font='12.5px system-ui';
+    x.textAlign='left';x.fillText('ingredient side',L,y-14);
+    x.textAlign='right';x.fillText('finished side',b.R,y-14);
+  }
+}
+
+// ---- scene: base sensitivity
+function sceneBase(p){
+  const b=box(), t=ease(p);
+  title('The same "ratio", on five different bases','US finished ÷ ingredient at June 2026');
+  const keys=Object.keys(D.base), vals=keys.map(k=>D.base[k]);
+  const items=keys.map((k,i)=>[k.slice(0,4),vals[i]]).concat([['as published',D.baseraw]]);
+  const maxv=Math.max(...items.map(i=>i[1]))*1.15;
+  const n=items.length, gap=(b.R-b.L)/n;
+  items.forEach((it,i)=>{
+    const cx=b.L+gap*(i+0.5), bw=Math.min(gap*0.55,70);
+    const hgt=(b.B-b.T)*(it[1]/maxv)*t;
+    const isRaw=i===n-1;
+    x.fillStyle=isRaw?'rgba(242,84,91,.85)':'rgba(47,155,255,.75)';
+    x.fillRect(cx-bw/2,b.B-hgt,bw,hgt);
+    if(t>0.5){
+      x.fillStyle=isRaw?C.red:C.ink;x.font='800 '+(W<700?13:16)+'px system-ui';x.textAlign='center';
+      x.fillText(it[1].toFixed(2),cx,b.B-hgt-9);
+      x.fillStyle=C.ink3;x.font='11px system-ui';x.fillText(it[0],cx,b.B+20);
+    }
+  });
+  if(t>0.8){x.fillStyle=C.ink2;x.font='12.5px system-ui';x.textAlign='center';
+    x.fillText('same data · same day · five answers',W/2,b.B+44);}
+}
+
+// short labels — the published class names do not fit a left gutter at any sane width
+const SHORT={WPU063803:'Cardiovascular',WPU063802:'CNS & senses',WPU063801:'Oncology & endocrine',
+  WPU0638:'ALL PREPARATIONS',WPU063808:'Parasitic & infective',WPU063804:'Respiratory',
+  WPU063805:'Digestive & GU',WPU063806:'Skin',WPU063807:'Vitamins'};
+
+/* One horizontal-bar routine for both ranking scenes. Labels live in a gutter OUTSIDE
+   the plot, values sit at the end of each bar — earlier versions drew labels on top of
+   the bars and pushed the values behind the sticky card. */
+function hbars(t,rows,val,colorOf,fmt){
+  const wide=W>=900;
+  const gut=Math.min(W*0.30,wide?250:150);         // label gutter
+  const L=gut+16, R=W-(wide?96:64), T=H*0.115, B=H*(wide?0.46:0.42);
+  const vals=rows.map(val), lo=Math.min(0,...vals), hi=Math.max(0,...vals);
+  const span=(hi-lo)||1, tx=v=>L+(v-lo)/span*(R-L);
+  const rh=(B-T)/rows.length;
+  x.strokeStyle=C.line;x.lineWidth=1;
+  x.beginPath();x.moveTo(tx(0),T);x.lineTo(tx(0),B);x.stroke();
+  rows.forEach((r,i)=>{
+    // all rows are in by t≈0.8 so a reader who stops mid-step still sees the whole chart
+    const local=ease(t*1.7-i*0.055); if(local<=0)return;
+    const y=T+i*rh+rh*0.18, h=rh*0.60, v=val(r);
+    const x0=tx(Math.min(0,v)), x1=tx(Math.max(0,v));
+    x.fillStyle=colorOf(r);
+    const w=(x1-x0)*local;
+    x.fillRect(v<0?x1-w:x0,y,Math.max(1,w),h);
+    const hi2=r.s==='WPU063808';
+    x.fillStyle=hi2?C.ink:C.ink2;x.font=(hi2?'700 ':'')+(wide?12:10.5)+'px system-ui';
+    x.textAlign='right';x.fillText(SHORT[r.s]||r.l,gut,y+h*0.75);
+    if(local>0.85){
+      x.fillStyle=hi2?C.orange:C.ink2;x.font='700 '+(wide?12:10.5)+'px system-ui';
+      x.textAlign='left';
+      // a negative bar's value goes to the RIGHT of the zero line, into the empty half of
+      // its own row — put it on the left and it lands on top of the class name
+      x.fillText(fmt(v), v<0 ? tx(0)+8 : x0+w+7, y+h*0.75);
+    }
+  });
+}
+
+// ---- scene: therapeutic class ranking
+
+// ---- scene: antibiotics vs the book
+function sceneAntibiotic(p){
+  const b=box(), t=ease(p);
+  const ys=num(D.ab.s), y0=ys[0], y1=ys[ys.length-1];
+  const all=ys.map(y=>D.ab.s[y]).concat(ys.map(y=>D.ab.book[y]||100));
+  const v0=Math.min(...all)*0.94, v1=Math.max(...all)*1.06;
+  title('Antibiotics against the whole book','US, real terms, December 2009 = 100');
+  grid(b,v0,v1,null,4); xaxis(b,y0,y1,3);
+  const cut=y0+(y1-y0)*t;
+  const tx=y=>b.L+(y-y0)/(y1-y0)*(b.R-b.L), ty=v=>b.B-(v-v0)/(v1-v0)*(b.B-b.T);
+  [['book',C.blue,'all preparations'],['s',C.orange,'antibiotics']].forEach(([k,col,lab])=>{
+    const src=D.ab[k]; x.strokeStyle=col;x.lineWidth=2.8;x.beginPath();let n=0;
+    ys.forEach(y=>{if(y>cut||src[y]==null)return;const X=tx(y),Y=ty(src[y]);n++?x.lineTo(X,Y):x.moveTo(X,Y);});
+    x.stroke();
+    const last=ys.filter(y=>y<=cut&&src[y]!=null).pop();
+    if(last){x.fillStyle=col;x.beginPath();x.arc(tx(last),ty(src[last]),4,0,7);x.fill();
+      x.textAlign='right';x.font='700 12px system-ui';x.fillText(lab,tx(last)-9,ty(src[last])-9);}
+  });
+}
+
+function sceneClasses(p){
+  title('US therapeutic classes, real price change 2001–2026',
+        'CPI-deflated · the aggregate index shown in grey, not as a ninth class');
+  hbars(ease(p),D.rank,r=>r.v,
+        r=>r.s==='WPU0638'?'rgba(159,176,200,.40)':(r.s==='WPU063808'?C.orange:
+           (r.v>=25?C.blue:'rgba(100,116,139,.8)')),
+        v=>(v>=0?'+':'')+v.toFixed(1)+'%');
+}
+
+function scenePeaked(p){
+  title('Every class has peaked and turned',
+        'real change from each class’s own peak month to June 2026');
+  hbars(ease(p),D.rank,r=>r.sp,
+        r=>r.s==='WPU063808'?C.orange:'rgba(242,84,91,.72)',
+        v=>v.toFixed(1)+'%');
+}
+
+// ---- superseded by hbars(), kept out of the scene list
+
+// ---- scene: Türkiye 68 vs 17
+function sceneTR(p){
+  const b=box(), t=ease(p);
+  title('Türkiye: how much of a lira move lands in the same month',
+        'β from month-on-month log changes, n = 197');
+  const items=[['into your imported input cost',D.tr.leg1,C.orange],
+               ['into your domestic selling price',D.tr.leg2,C.green]];
+  const maxv=0.8;
+  items.forEach((it,i)=>{
+    const y=b.T+(b.B-b.T)*(0.22+i*0.42), h=Math.min(66,(b.B-b.T)*0.20);
+    const w=(b.R-b.L)*(it[1]/maxv)*t;
+    x.fillStyle=it[2];x.fillRect(b.L,y,w,h);
+    x.fillStyle=C.ink2;x.font=(W<700?12:13.5)+'px system-ui';x.textAlign='left';
+    x.fillText(it[0],b.L,y-11);
+    if(t>0.6){x.fillStyle=C.ink;x.font='800 '+(W<700?20:26)+'px system-ui';
+      x.fillText(Math.round(it[1]*100)+'%',b.L+w+12,y+h*0.72);}
+  });
+}
+
+// ---- scene: margin impulse
+function sceneMargin(p){
+  const b=box(), t=ease(p), cum=D.tr.cum;
+  const hs=Object.keys(cum).map(Number).sort((a,b)=>a-b);
+  title('What one percent of lira depreciation does to the margin ratio',
+        'cumulative, by horizon · grey where the correlation is too weak to read');
+  const v0=-1.05, v1=0.85;
+  grid(b,v0,v1,v=>v.toFixed(1),4);
+  const tx=i=>b.L+(b.R-b.L)*i/(hs.length-1), ty=v=>b.B-(v-v0)/(v1-v0)*(b.B-b.T);
+  x.strokeStyle='rgba(159,176,200,.45)';x.setLineDash([4,4]);
+  x.beginPath();x.moveTo(b.L,ty(0));x.lineTo(b.R,ty(0));x.stroke();x.setLineDash([]);
+  const shown=Math.max(1,Math.round(hs.length*t));
+  x.strokeStyle=C.red;x.lineWidth=3;x.beginPath();
+  hs.slice(0,shown).forEach((h,i)=>{const X=tx(i),Y=ty(cum[h][0]);i?x.lineTo(X,Y):x.moveTo(X,Y);});
+  x.stroke();
+  hs.slice(0,shown).forEach((h,i)=>{
+    const X=tx(i),Y=ty(cum[h][0]),weak=Math.abs(cum[h][1])<0.20;
+    x.fillStyle=weak?C.ink3:C.red;x.beginPath();x.arc(X,Y,weak?3.5:5,0,7);x.fill();
+    x.fillStyle=weak?C.ink3:C.ink;x.font=(weak?'':'800 ')+(W<700?11:12.5)+'px system-ui';x.textAlign='center';
+    x.fillText(cum[h][0].toFixed(2),X,Y-13);
+    x.fillStyle=C.ink3;x.font='11px system-ui';x.fillText(h+'m',X,b.B+20);
+  });
+}
+
+// ---- scene: the missing series
+function sceneMissing(p){
+  const b=box(), t=ease(p);
+  title('What none of these series measure','');
+  const cy=(b.T+b.B)/2;
+  x.textAlign='center';
+  x.globalAlpha=Math.min(1,t*1.4);
+  x.fillStyle=C.ink3;x.font='700 '+(W<700?13:16)+'px system-ui';
+  ['BLS  ·  every product line reads "for Human Use"',
+   'Eurostat  ·  no veterinary split published',
+   'TÜİK  ·  no veterinary split published'].forEach((s,i)=>{
+    x.globalAlpha=Math.min(1,Math.max(0,t*3-i*0.7));
+    x.fillText(s,W/2,cy-30+i*30);
+  });
+  x.globalAlpha=Math.min(1,Math.max(0,t*3-2.2));
+  x.fillStyle=C.orange;x.font='800 '+(W<700?16:22)+'px system-ui';
+  x.fillText('a veterinary-only price index does not exist',W/2,cy+72);
+  x.globalAlpha=1;
+}
+
+const SCENES=[
+  {f:(p)=>sceneDiverge(Math.min(1,p*1.2),0)},
+  {f:(p)=>sceneDiverge(1,p)},
+  {f:sceneVariance},
+  {f:sceneBase},
+  {f:sceneClasses},
+  {f:sceneAntibiotic},
+  {f:scenePeaked},
+  {f:sceneTR},
+  {f:sceneMargin},
+  {f:sceneMissing},
+];
+
+function progress(){
+  const steps=[...document.querySelectorAll('.step')];
+  const mid=innerHeight*0.66;
+  let idx=-1,f=0;
+  steps.forEach((s,i)=>{const r=s.getBoundingClientRect();
+    if(r.top<mid){idx=i;f=Math.min(1,Math.max(0,(mid-r.top)/(r.height||1)));}});
+  return {idx,f,n:steps.length};
+}
+function draw(){
+  x.clearRect(0,0,W,H);
+  const {idx,f,n}=progress();
+  if(idx<0){ // hero: hold the opening frame, faintly
+    x.globalAlpha=0.34; sceneDiverge(0.22,0); x.globalAlpha=1;
+  } else {
+    const s=SCENES[Math.min(idx,SCENES.length-1)];
+    if(s) s.f(Math.min(1,f*1.55));
+  }
+  // Fade a card out as it is pushed off the top. Without this two cards are on screen at
+  // once through every hand-off, and the outgoing one sits directly over the chart.
+  const stick=innerHeight*(innerWidth>=900?0.66:innerWidth<=640?0.60:0.64);
+  document.querySelectorAll('.step .card').forEach(c=>{
+    const r=c.getBoundingClientRect();
+    c.style.opacity = r.top < stick-2
+      ? Math.max(0,Math.min(1, r.top/(stick*0.55))).toFixed(3) : 1;
+  });
+  const total=document.body.scrollHeight-innerHeight;
+  document.getElementById('prog').style.width=
+    (Math.max(0,Math.min(1,scrollY/(total||1)))*100)+'%';
+}
+let tick=false;
+addEventListener('scroll',()=>{if(!tick){tick=true;requestAnimationFrame(()=>{draw();tick=false;});}},
+  {passive:true});
+resize();
+</script>
+</body>
+</html>
