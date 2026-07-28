@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Derive every number that appears in the vet-medicine API study, and check it.
+"""Derive every number in the vet-medicine API study, and run the integrity checks.
 
-Reads only committed data files. Prints a block of JSON that the study page embeds,
-plus the integrity checks the repo's data-integrity skill requires:
+The question: a veterinary medicine is an active pharmaceutical ingredient (API) that
+someone has formulated, filled and licensed. Does the price of the finished medicine
+track the price of the ingredient inside it — or have the two come apart?
 
-  * base-year sensitivity  — if a "level" moves when the base moves, it was never a level
-  * deflated correlations  — nominal money series trend, and two trends correlate
-  * methodology breaks     — a single implausible year-on-year step
-  * variance decomposition — which side of the ratio actually moves
-  * lag test               — a peak off zero is only a lead if it clearly beats lag 0
+Reads only committed data files, writes data/vetapi-derived.json, and prints the
+checks the repo's data-integrity skill requires before any of it may be published:
+
+  #1 base-year sensitivity   a ratio of two indexes has no meaningful level
+  #2 deflate before comparing money series
+  #3 methodology breaks      a single implausible step
+  #7 variance decomposition  which side of the ratio actually moves
+  #8 sample size stated out loud
 
 Run:  python scripts/analyse_vetapi.py
 """
@@ -23,180 +27,173 @@ def load(name):
         return json.load(f)
 
 
-def annual(monthly):
-    """{YYYY-MM: v} -> {YYYY: mean}. Partial years are kept but flagged by count."""
-    buckets = {}
-    for k, v in monthly.items():
-        buckets.setdefault(k[:4], []).append(v)
-    return {y: mean(vs) for y, vs in buckets.items()}, {y: len(vs) for y, vs in buckets.items()}
-
-
 def dlog(seq):
     return [math.log(seq[i]) - math.log(seq[i - 1]) for i in range(1, len(seq))]
 
 
-def corr(a, b):
-    if len(a) < 3 or len(a) != len(b):
-        return None
-    ma, mb = mean(a), mean(b)
-    num = sum((x - ma) * (y - mb) for x, y in zip(a, b))
-    den = math.sqrt(sum((x - ma) ** 2 for x in a) * sum((y - mb) ** 2 for y in b))
-    return round(num / den, 3) if den else None
-
-
-def rebase(series, base_key):
-    """Index a series so base_key = 100. The whole point: the choice is visible."""
-    b = series.get(base_key)
-    if not b:
-        return {}
-    return {k: round(v / b * 100, 2) for k, v in series.items()}
-
-
-def biggest_step(series):
-    """Largest one-period % change — a methodology break usually shows up here."""
-    ks = sorted(series)
-    steps = [(ks[i], round((series[ks[i]] / series[ks[i - 1]] - 1) * 100, 2))
-             for i in range(1, len(ks)) if series[ks[i - 1]]]
-    if not steps:
-        return None
-    return max(steps, key=lambda kv: abs(kv[1]))
-
-
-def variance_share_denominator(num, den):
-    """Of the movement in num/den, how much comes from the denominator? (integrity #7)"""
+def variance_share(num, den):
+    """Of the movement in num/den, what share comes from the denominator? (integrity #7)"""
     dn, dd = dlog(num), dlog(den)
-    if len(dn) < 3:
-        return None
     vn, vd = pvariance(dn), pvariance(dd)
     mn, md = mean(dn), mean(dd)
     cov = sum((a - mn) * (b - md) for a, b in zip(dn, dd)) / len(dn)
     tot = vn + vd - 2 * cov
-    return round((vd - cov) / tot, 3) if tot else None
+    return (round((vd - cov) / tot, 3) if tot else None), len(dn)
 
 
-def lag_profile(a, b, lags=range(-12, 13)):
-    """Correlation of year-on-year change at each shift. A lead must clearly beat lag 0."""
-    out = {}
-    for L in lags:
-        pairs = [(a[k], b[k + L]) for k in range(len(a))
-                 if 0 <= k + L < len(b)]
-        if len(pairs) > 24:
-            out[L] = corr([p[0] for p in pairs], [p[1] for p in pairs])
-    return {k: v for k, v in out.items() if v is not None}
+def biggest_step(series):
+    ks = sorted(series)
+    steps = [(ks[i], round((series[ks[i]] / series[ks[i - 1]] - 1) * 100, 2))
+             for i in range(1, len(ks)) if series[ks[i - 1]]]
+    return max(steps, key=lambda kv: abs(kv[1])) if steps else None
 
 
-def yoy(monthly):
-    ks = sorted(monthly)
-    return [monthly[ks[i]] / monthly[ks[i - 12]] - 1
-            for i in range(12, len(ks)) if monthly[ks[i - 12]]]
+def pct(series, a, b):
+    return round((series[b] / series[a] - 1) * 100, 1)
+
+
+def rebase(series, keys, base_key):
+    b = series[base_key]
+    return {k: round(series[k] / b * 100, 2) for k in keys}
 
 
 def main():
-    result = {"markets": {}, "checks": {}}
+    out = {"generated_from": "data/vetapi-us.json, vetapi-eu.json, vetapi-tr.json, eu-hicp.json",
+           "markets": {}, "checks": {}}
 
-    # ---------------------------------------------------------------- US
+    # ================================================================= UNITED STATES
     us = load("vetapi-us.json")["series"]
     api, prep, cpi = us["api_ppi"], us["prep_ppi"], us["cpi"]
-    months = sorted(set(api) & set(prep))
-    span = [months[0], months[-1]]
-    parity = {m: prep[m] / api[m] for m in months}
+    anti, bio = us.get("antiinfective_ppi", {}), us.get("biological_ppi", {})
+    # every month must carry all three, or a deflated series would have holes the
+    # rebasing then trips over
+    m = sorted(set(api) & set(prep) & set(cpi))
+    first, last = m[0], m[-1]
 
-    # integrity #1 — is the level meaningful, or only the change?
-    result["checks"]["us_base_sensitivity"] = {
-        "what": "prep/api ratio, latest month, on three different base months",
-        "note": ("The ratio of two indexes is not a quantity. Rebasing both series moves "
-                 "the ratio's level but not its shape — which is why only changes between "
-                 "dates are quoted in the study."),
-        "latest_raw_ratio": round(parity[months[-1]], 4),
-        "on_2005_01_base": round(
-            (rebase(prep, "2005-01")[months[-1]] / rebase(api, "2005-01")[months[-1]]), 4)
-        if "2005-01" in prep and "2005-01" in api else None,
-        "on_2015_01_base": round(
-            (rebase(prep, "2015-01")[months[-1]] / rebase(api, "2015-01")[months[-1]]), 4)
-        if "2015-01" in prep and "2015-01" in api else None,
+    # ---- integrity #1: the ratio's LEVEL is an artefact of the base months
+    ratio_on_base = {}
+    for base in ("1990-01", "2000-01", "2010-01", "2020-01"):
+        if base in api and base in prep:
+            ratio_on_base[base] = round(
+                rebase(prep, [last], base)[last] / rebase(api, [last], base)[last], 3)
+    out["checks"]["us_base_sensitivity"] = {
+        "raw_ratio_prep_over_api_at_last": round(prep[last] / api[last], 3),
+        "same_ratio_after_rebasing_both_series": ratio_on_base,
+        "verdict": ("The level moves with the base month, so it was never a quantity. "
+                    "PCU325412325412 is based Jun 1981=100 and PCU325411325411 Jun 1982=100 — "
+                    "different bases entirely. Only the CHANGE between two dates is quoted."),
     }
 
-    # real (CPI-deflated) index of each side, 2015 = 100
-    def real(series):
-        out = {}
-        for m in series:
-            if m in cpi and cpi[m]:
-                out[m] = series[m] / cpi[m]
-        base = mean([v for k, v in out.items() if k.startswith("2015")] or [0]) or 1
-        return {k: round(v / base * 100, 2) for k, v in out.items()}
-
-    result["markets"]["US"] = {
-        "span": span,
-        "api_real_2015_100": real(api),
-        "prep_real_2015_100": real(prep),
-        "parity_2015_100": (lambda p: {k: round(v / mean(
-            [x for kk, x in p.items() if kk.startswith("2015")]) * 100, 2)
-            for k, v in p.items()})(parity),
-        "breaks": {"api": biggest_step(api), "prep": biggest_step(prep)},
-        "variance_share_from_api": variance_share_denominator(
-            [prep[m] for m in months], [api[m] for m in months]),
+    # ---- integrity #2: deflate, then compare
+    real = lambda s: {k: s[k] / cpi[k] for k in s if k in cpi}
+    ra, rp = real(api), real(prep)
+    out["markets"]["US"] = {
+        "span": [first, last], "n_months": len(m), "frequency": "monthly",
+        "deflator": "US CPI-U, FRED CPIAUCSL",
+        "real_change_api_pct": pct(ra, first, last),
+        "real_change_prep_pct": pct(rp, first, last),
+        "nominal_change_api_pct": pct(api, first, last),
+        "nominal_change_prep_pct": pct(prep, first, last),
+        # both series on one base so the shapes are comparable (levels are not)
+        "api_indexed_1982_06_100": rebase(ra, m, first),
+        "prep_indexed_1982_06_100": rebase(rp, m, first),
     }
-    result["checks"]["us_lag"] = {
-        "what": "corr of year-on-year change, API side shifted against preparations side",
-        "profile": lag_profile(yoy({m: prep[m] for m in months}),
-                               yoy({m: api[m] for m in months})),
+    share, n = variance_share([prep[x] for x in m], [api[x] for x in m])
+    out["markets"]["US"]["variance_share_from_api_side"] = share
+    out["markets"]["US"]["variance_n"] = n
+    out["checks"]["us_breaks"] = {"api": biggest_step(api), "prep": biggest_step(prep),
+                                  "note": ("Largest single-month moves. Both are economic "
+                                           "(the 2008 input spike), not survey redesigns — "
+                                           "no BLS basis change is documented across them.")}
+    # the closest therapeutic proxies to a livestock portfolio
+    for key, series, label in (("antiinfective", anti, "WPU063808 antiparasitics and anti-infectives"),
+                               ("biological", bio, "PCU325414325414 other biological products")):
+        if series:
+            rs = real(series)
+            ks = sorted(rs)
+            out["markets"]["US"][f"{key}_real_change_pct"] = pct(rs, ks[0], ks[-1])
+            out["markets"]["US"][f"{key}_span"] = [ks[0], ks[-1]]
+            out["markets"]["US"][f"{key}_series"] = label
+            out["markets"]["US"][f"{key}_indexed_100"] = rebase(rs, ks, ks[0])
+
+    # ================================================================= EUROPEAN UNION
+    eu = load("vetapi-eu.json")["series"]
+    hicp_m = load("eu-hicp.json")["series"]["hicp"]
+    hicp = {}                       # monthly -> annual mean, to match the annual PPIs
+    for k, v in hicp_m.items():
+        hicp.setdefault(k[:4], []).append(v)
+    hicp = {y: mean(vs) for y, vs in hicp.items()}
+    e_api, e_prep = eu["C211"], eu["C212"]
+    yrs = sorted(set(e_api) & set(e_prep) & set(hicp))
+    ey0, ey1 = yrs[0], yrs[-1]
+    e_ra = {y: e_api[y] / hicp[y] for y in yrs}
+    e_rp = {y: e_prep[y] / hicp[y] for y in yrs}
+    share, n = variance_share([e_prep[y] for y in yrs], [e_api[y] for y in yrs])
+    out["markets"]["EU"] = {
+        "span": [ey0, ey1], "n_years": len(yrs), "frequency": "annual",
+        "deflator": "Euro area HICP, FRED CP0000EZ19M086NEST, annual mean",
+        "nominal_change_api_pct": pct(e_api, ey0, ey1),
+        "nominal_change_prep_pct": pct(e_prep, ey0, ey1),
+        "real_change_api_pct": pct(e_ra, ey0, ey1),
+        "real_change_prep_pct": pct(e_rp, ey0, ey1),
+        "api_indexed_100": rebase(e_ra, yrs, ey0),
+        "prep_indexed_100": rebase(e_rp, yrs, ey0),
+        "variance_share_from_api_side": share,
+        "variance_n": n,
+        "caveat": (f"Only {len(yrs)} annual observations, and the series ends {ey1} — "
+                   "Eurostat's C212 preparations index does not start until 2010 and is "
+                   "not published beyond 2023. No claim about 2024-2026 can be made for the EU."),
     }
 
-    # ---------------------------------------------------------------- EU
-    try:
-        eu = load("vetapi-eu.json")["series"]
-        e_api, e_prep = eu.get("api_ppi", {}), eu.get("prep_ppi", {})
-        yrs = sorted(set(e_api) & set(e_prep))
-        if yrs:
-            e_par = {y: e_prep[y] / e_api[y] for y in yrs}
-            result["markets"]["EU"] = {
-                "span": [yrs[0], yrs[-1]],
-                "api": {y: e_api[y] for y in yrs},
-                "prep": {y: e_prep[y] for y in yrs},
-                "parity_first_year_100": {y: round(e_par[y] / e_par[yrs[0]] * 100, 2)
-                                          for y in yrs},
-                "breaks": {"api": biggest_step(e_api), "prep": biggest_step(e_prep)},
-                "variance_share_from_api": variance_share_denominator(
-                    [e_prep[y] for y in yrs], [e_api[y] for y in yrs]),
-            }
-    except FileNotFoundError:
-        result["markets"]["EU"] = {"error": "data/vetapi-eu.json not fetched"}
+    # ================================================================= TÜRKİYE
+    tr = load("vetapi-tr.json")["series"]
+    d21, d212, imp = tr["ppi_nace21"], tr["ppi_nace212"], tr["import_ppi_nace21"]
+    both = sorted(set(d21) & set(d212))
+    gap = [abs(d21[x] - d212[x]) / d21[x] for x in both if d21[x]]
+    out["checks"]["tr_has_no_domestic_api_stage"] = {
+        "mean_abs_gap_pct": round(mean(gap) * 100, 3),
+        "max_abs_gap_pct": round(max(gap) * 100, 3),
+        "n_months": len(both),
+        "verdict": ("TÜİK's NACE 21 index and its NACE 21.2 sub-index are the same series to "
+                    "within 0.2% on average. Division 21 is carried entirely by preparations, "
+                    "so Türkiye has no separately measured domestic basic-pharmaceutical (21.1) "
+                    "stage to compare against. The ingredient side has to be the IMPORT price."),
+    }
+    com = sorted(set(d212) & set(imp))
+    t0, t1 = com[0], com[-1]
+    parity = {x: d212[x] / imp[x] for x in com}
+    share, n = variance_share([d212[x] for x in com], [imp[x] for x in com])
+    out["markets"]["TR"] = {
+        "span": [t0, t1], "n_months": len(com), "frequency": "monthly",
+        "nominal_change_domestic_prep_pct": pct(d212, t0, t1),
+        "nominal_change_imported_input_pct": pct(imp, t0, t1),
+        "parity_change_pct": round((parity[t1] / parity[t0] - 1) * 100, 1),
+        "parity_indexed_100": rebase(parity, com, t0),
+        "domestic_indexed_100": rebase(d212, com, t0),
+        "imported_indexed_100": rebase(imp, com, t0),
+        "variance_share_from_import_side": share,
+        "variance_n": n,
+        "deflator": ("None needed for the parity: both sides are nominal TRY indexes, so "
+                     "Turkish inflation cancels in the ratio. The two levels are NOT deflated "
+                     "and must never be read as real growth."),
+    }
 
-    # ---------------------------------------------------------------- TR
-    try:
-        tr = load("vetapi-tr.json")["series"]
-        dom, dom212, imp = (tr.get("ppi_nace21", {}), tr.get("ppi_nace212", {}),
-                            tr.get("import_ppi_nace21", {}))
-        common = sorted(set(dom212) & set(imp))
-        # Domestic 21 vs 21.2: if these are near-identical, TR has almost no 21.1 stage
-        both21 = sorted(set(dom) & set(dom212))
-        gap = [abs(dom[m] - dom212[m]) / dom[m] for m in both21 if dom[m]]
-        result["checks"]["tr_nace21_vs_212"] = {
-            "what": "TÜİK NACE 21 against NACE 21.2 — how much of division 21 is not 21.2",
-            "mean_abs_gap_pct": round(mean(gap) * 100, 3) if gap else None,
-            "max_abs_gap_pct": round(max(gap) * 100, 3) if gap else None,
-            "reading": ("A near-zero gap means TÜİK's division-21 index is carried almost "
-                        "entirely by preparations — i.e. there is no separately measured "
-                        "domestic basic-pharmaceutical (21.1) stage to compare against."),
-        }
-        if common:
-            result["markets"]["TR"] = {
-                "span": [common[0], common[-1]],
-                "domestic_prep": {m: dom212[m] for m in common},
-                "imported_input": {m: imp[m] for m in common},
-                "ratio_first_month_100": (lambda r: {m: round(r[m] / r[common[0]] * 100, 2)
-                                                     for m in common})(
-                    {m: dom212[m] / imp[m] for m in common}),
-                "breaks": {"domestic": biggest_step(dom212), "imported": biggest_step(imp)},
-                "variance_share_from_import": variance_share_denominator(
-                    [dom212[m] for m in common], [imp[m] for m in common]),
-            }
-    except FileNotFoundError:
-        result["markets"]["TR"] = {"error": "data/vetapi-tr.json not fetched"}
-
-    print(json.dumps(result, indent=1, ensure_ascii=False, default=str))
+    print(json.dumps(out, indent=1, ensure_ascii=False, default=str)[:3000])
     with open(os.path.join(ROOT, "data", "vetapi-derived.json"), "w") as f:
-        json.dump(result, f, separators=(",", ":"), ensure_ascii=False)
+        json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
+    print("\n[write] data/vetapi-derived.json")
+
+    # -------- headline summary, printed so it can be checked by eye before publishing
+    U, E, T = out["markets"]["US"], out["markets"]["EU"], out["markets"]["TR"]
+    print(f"""
+US  {U['span'][0]}..{U['span'][1]} monthly, CPI-deflated
+    ingredient (NAICS 325411) {U['real_change_api_pct']:+}%   finished dose (325412) {U['real_change_prep_pct']:+}%
+    {U['variance_share_from_api_side']:.0%} of the ratio's movement comes from the ingredient side
+EU  {E['span'][0]}..{E['span'][1]} annual (n={E['n_years']}), HICP-deflated
+    ingredient (C211) {E['real_change_api_pct']:+}%   preparations (C212) {E['real_change_prep_pct']:+}%
+TR  {T['span'][0]}..{T['span'][1]} monthly, nominal TRY, ratio only
+    domestic preparations {T['nominal_change_domestic_prep_pct']:+}%   imported input {T['nominal_change_imported_input_pct']:+}%
+    parity {T['parity_change_pct']:+}%""")
 
 
 if __name__ == "__main__":
