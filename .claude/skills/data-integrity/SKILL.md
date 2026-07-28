@@ -133,6 +133,41 @@ Close with reproducibility: which committed data files every figure comes from, 
 data cut-off date. If a number in the artefact cannot be recomputed from a file in the
 repository, it should not be in the artefact.
 
+## 11. Land an outcome, or the work is wasted
+
+A study that ends in findings has not finished. The reader cannot act on "parity is at a
+peak" or "spend correlates at 0.70" — those are inputs. **The last thing they see must be
+what to do, per market, per decision.** If nobody can act on it differently on Monday,
+the analysis was an expensive way of being interesting.
+
+The test: could the reader repeat one instruction to their own boss? If the only thing
+they can repeat is a number, the ending failed.
+
+**Findings → outcome, worked example:**
+
+| Finding | Outcome |
+|---|---|
+| US spend tracks margin at r = 0.70; margin at a record | **Time the price move** — phase the increase before the plateau breaks |
+| EU spend per head is flat; herd &minus;1.4%/yr | **Defend the volume** — no cycle upside or downside, the erosion is structural |
+| T&uuml;rkiye herd growing, spend unmeasurable | **Grow, and get visibility** — the only market where head count adds |
+
+Rules for the closing slide or section:
+
+- **One instruction per market or segment**, in the imperative. Not "consider", not
+  "may warrant attention".
+- **Say what is different between them.** "The US is a timing problem, the EU is a volume
+  problem, T&uuml;rkiye is a visibility problem" tells a reader more than three paragraphs.
+- **Attach the decision to a period.** "2027 points up" beats "in the medium term".
+- **Show it, do not write it.** Arrows, gauges, coloured verdict badges. If the closing
+  page is prose, it will be skimmed and forgotten.
+- **An honest null is still an outcome.** "Do not act on this yet, and here is the one
+  thing that would change that" is a decision. Silence is not.
+- **Name what would change the instruction.** An outcome with no falsifier is an opinion.
+
+Do this even when the analysis is inconclusive. Especially then — an inconclusive study
+that names the missing piece and the cost of getting it has produced a decision. One that
+just stops has produced nothing.
+
 ## Before publishing, confirm
 
 - [ ] Every number has a unit, a market and a date attached
@@ -146,3 +181,5 @@ repository, it should not be in the artefact.
 - [ ] Every heading names the market and period it covers
 - [ ] Sources are printed on the artefact, with publisher, series code, unit and span
 - [ ] Deflators, breaks, exclusions and missing markets are listed alongside the sources
+- [ ] The work ends in an instruction per market or segment, not a summary of findings
+- [ ] Each instruction is tied to a period, and states what would change it
