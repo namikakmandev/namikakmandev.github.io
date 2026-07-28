@@ -128,7 +128,7 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
 <section class="slide on">
   <div class="kick">1 &middot; WHAT THIS STUDY IS &middot; JULY 2026</div>
   <h2 style="margin-top:1.4vh">55 years of US data. 16 of T&uuml;rkiye. 11 of the EU.</h2>
-  <div class="read">Six published price series &mdash; every monthly observation each country has &mdash; consolidated into one comparable measure of what a livestock producer earns, then read for its cycle.</div>
+  <div class="read">Six published price series &mdash; every monthly observation each country has &mdash; turned into one comparable measure of what a producer earns, then read for its cycle. A <b>feed price index</b> is an official basket of what farmers pay for feed, published as an index rather than in lira or euros. <b>Compound feed</b> is ready-mixed manufactured feed &mdash; grain, protein and minerals in a finished ration, sold by the tonne.</div>
   <div class="chart"><canvas id="c0"></canvas></div>
   <div class="foot">EVERY FIGURE IS AN OFFICIAL PUBLISHED PRICE &middot; NOTHING ESTIMATED OR FILLED IN BY US &middot; DATA THROUGH JUNE 2026</div>
 </section>
@@ -286,6 +286,11 @@ const LAG={"lags":[-12,-11,-10,-9,-8,-7,-6,-5,-4,-3,-2,-1,0,1,2,3,4,5,6,7,8,9,10
 const F=(m0,arr)=>{const [y,mo]=m0.split('-').map(Number);return arr.map((v,i)=>({t:y*12+mo-1+i,v}));};
 const US=F(D.us.m0,D.us.v), EU=F(D.eu.m0,D.eu.v), TR=F(D.tr.m0,D.tr.v);
 const C={ink:'#f5efe6',dim:'#cbbfa8',dimmer:'#8a7c62',amber:'#ffb056',red:'#e2574c',blue:'#8aa0d8'};
+// The canvases are drawn light-on-dark. On paper the print stylesheet flips the page
+// to white, so the same palette would come out invisible — swap it before every render.
+const SCREEN={ink:'#f5efe6',dim:'#cbbfa8',dimmer:'#8a7c62',amber:'#ffb056',red:'#e2574c',blue:'#8aa0d8'};
+const PAPER ={ink:'#111111',dim:'#444444',dimmer:'#6b6459',amber:'#a4600f',red:'#b03a2e',blue:'#5d74b5'};
+function setPal(){const p=PR()?PAPER:SCREEN;for(const key in p)C[key]=p[key];}
 const PR=()=>window.matchMedia('print').matches;
 function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);
   cv.width=Math.max(320,r.width*d);cv.height=Math.max(200,r.height*d);
@@ -294,11 +299,17 @@ function mono(x,s,w){x.font=(w||600)+' '+Math.round(s)+'px "IBM Plex Mono",monos
 
 function ch0(){
   const cv=document.getElementById('c0');const [x,W0,H0,k]=fit(cv);
-  const src=[['US','slaughter cattle \u00f7 corn price index','BLS \u2014 US Bureau of Labor Statistics','1971\u2192','666'],
-             ['T\u00dcRK\u0130YE','meat \u00f7 feed price index','TurkStat \u2014 Turkish Statistical Inst.','2010\u2192','198'],
-             ['EU','beef ref. \u00f7 compound feed','Eurostat \u2014 EU statistical office','2015\u2192','129']];
+  const src=[['US','slaughter cattle \u00f7 corn price index',
+              'corn price index = the price of corn, published as an index, not in dollars',
+              'BLS \u2014 US Bureau of Labor Statistics \u00b7 1971\u2192','666'],
+             ['T\u00dcRK\u0130YE','meat \u00f7 feed price index',
+              'feed price index = an official basket of what farmers pay for feed',
+              'TurkStat \u2014 Turkish Statistical Inst. \u00b7 2010\u2192','198'],
+             ['EU','beef reference price \u00f7 compound feed',
+              'compound feed = ready-mixed manufactured feed, sold by the tonne',
+              'Eurostat \u2014 EU statistical office \u00b7 2015\u2192','129']];
   const M=16*k;
-  const bx=M, bw=W0*0.285, bh=Math.min(104*k,(H0-2*M)/3-14*k), gapY=(H0-2*M-bh*3)/2;
+  const bx=M, bw=W0*0.30, bh=Math.min(126*k,(H0-2*M)/3-10*k), gapY=(H0-2*M-bh*3)/2;
   const box=(X,Y,W,H,fill,stroke)=>{const r=10*k;
     x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);
     x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath();
@@ -313,12 +324,22 @@ function ch0(){
   src.forEach((r,i)=>{
     const Y=M+i*(bh+gapY); scy.push(Y+bh/2);
     box(bx,Y,bw,bh,'rgba(203,191,168,.07)','rgba(203,191,168,.22)');
-    mono(x,20*k,700);x.textAlign='left';x.fillStyle=C.amber;x.fillText(r[0],bx+16*k,Y+27*k);
-    mono(x,14*k,600);x.fillStyle=C.dimmer;x.textAlign='right';x.fillText(r[4]+' months',bx+bw-16*k,Y+27*k);
-    x.font='600 '+Math.round(15*k)+'px "IBM Plex Sans",sans-serif';x.textAlign='left';
-    x.fillStyle=C.ink;x.fillText(r[1],bx+16*k,Y+52*k);
-    mono(x,10.5*k,500);x.fillStyle=C.dimmer;x.fillText(r[2],bx+14*k,Y+74*k);
-    x.fillText(r[3],bx+14*k,Y+92*k);});
+    // positions are fractions of the box, so the print layout (shorter boxes) keeps every line
+    const q=Math.min(k,bh/122), pad=16*q;
+    mono(x,19*q,700);x.textAlign='left';x.fillStyle=C.amber;x.fillText(r[0],bx+pad,Y+bh*0.21);
+    mono(x,13*q,600);x.fillStyle=C.dimmer;x.textAlign='right';
+    x.fillText(r[4]+' months',bx+bw-pad,Y+bh*0.21);
+    x.font='600 '+Math.round(14*q)+'px "IBM Plex Sans",sans-serif';x.textAlign='left';
+    x.fillStyle=C.ink;x.fillText(r[1],bx+pad,Y+bh*0.41);
+    // plain-English gloss for the jargon in the formula above
+    x.font='500 '+Math.round(11*q)+'px "IBM Plex Sans",sans-serif';x.fillStyle=C.dim;
+    let ly=Y+bh*0.57, line='';
+    r[2].split(' ').forEach(function(w){
+      const t=line?line+' '+w:w;
+      if(x.measureText(t).width>bw-2*pad){x.fillText(line,bx+pad,ly);line=w;ly+=bh*0.125;}
+      else line=t;});
+    if(line)x.fillText(line,bx+pad,ly);
+    mono(x,10*q,500);x.fillStyle=C.dimmer;x.fillText(r[3],bx+pad,Y+bh*0.93);});
   // node 1: parity
   const n1x=W0*0.365, n1w=W0*0.165, n1h=104*k, n1y=H0/2-n1h/2;
   box(n1x,n1y,n1w,n1h,'rgba(255,176,86,.12)','rgba(255,176,86,.5)');
@@ -538,10 +559,12 @@ function ch4(){
   x.fillText('GROSS VALUE = 100',X(100),T-8*k);
   PNL.forEach(function(r,i){
     const cy=T+gap*i+gap/2, good=r.mar>0;
-    mono(x,18*k,700);x.textAlign='right';x.fillStyle=good?C.amber:C.red;
-    x.fillText(r.t,L-22*k,cy-1*k);
-    mono(x,12*k,500);x.fillStyle=C.dimmer;
-    x.fillText('$'+r.gv+' per cow',L-22*k,cy+16*k);
+    // offsets scale with the row, so the short print layout does not stack them
+    const lf=Math.min(18*k,gap*0.30), sf=Math.min(12*k,gap*0.20);
+    mono(x,lf,700);x.textAlign='right';x.fillStyle=good?C.amber:C.red;
+    x.fillText(r.t,L-22*k,cy-gap*0.06);
+    mono(x,sf,500);x.fillStyle=C.dimmer;
+    x.fillText('$'+r.gv+' per cow',L-22*k,cy+gap*0.22);
     let cur=0;
     [[r.feed,CF],[r.vet,CV],[r.oth,CO]].forEach(function(seg){
       x.fillStyle=seg[1];x.fillRect(X(cur),cy-bh/2,seg[0]*SC,bh);cur+=seg[0];});
@@ -848,7 +871,7 @@ function ch10(){
     y+=u;
   });
 }
-function render(){[ch0,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8,ch9,ch10].forEach(f=>{try{f()}catch(e){}});}
+function render(){setPal();[ch0,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8,ch9,ch10].forEach(f=>{try{f()}catch(e){}});}
 const S=[...document.querySelectorAll('.slide')];let i=0;
 function go(n){i=Math.max(0,Math.min(S.length-1,n));
   S.forEach((s,j)=>s.classList.toggle('on',j===i));
