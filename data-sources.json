@@ -53,6 +53,57 @@
       "source": "Euro area HICP via FRED — deflator for any EUR money series"
     },
     {
+      "name": "vetapi-probe",
+      "provider": "probe",
+      "grep": "veterinar|medicinal|botanical|pharmaceutical",
+      "catalogs": {
+        "bls_pc_series": "https://download.bls.gov/pub/time.series/pc/pc.series",
+        "bls_pc_product": "https://download.bls.gov/pub/time.series/pc/pc.product",
+        "bls_wp_item": "https://download.bls.gov/pub/time.series/wp/wp.item"
+      },
+      "fred_ids": [
+        "PCU325411325411", "PCU325412325412", "PCU3254123254121",
+        "PCU3254123254123", "PCU3254123254125", "PCU3254123254127",
+        "PCU3254123254129", "WPU0638", "WPU063807", "CPIAUCSL"
+      ],
+      "source": "Discovery only — BLS's own PPI catalogue plus a FRED id probe",
+      "note": "MODE=discover only. A guessed FRED id returns an HTML error page, not an error — probe before parsing."
+    },
+    {
+      "name": "vetapi-us",
+      "provider": "fred",
+      "series": {
+        "api_ppi": "PCU325411325411",
+        "prep_ppi": "PCU325412325412",
+        "cpi": "CPIAUCSL"
+      },
+      "out": "data/vetapi-us.json",
+      "source": "BLS producer price indexes via FRED: PCU325411325411 (NAICS 325411 medicinal and botanical manufacturing — the bulk active-ingredient stage), PCU325412325412 (NAICS 325412 pharmaceutical preparation manufacturing — finished dose), CPIAUCSL to deflate",
+      "note": "Index numbers (base year = 100), not quantities — only ratios between dates mean anything. Both industries cover human and animal pharma together; no veterinary-only split unless the probe finds one."
+    },
+    {
+      "name": "vetapi-eu",
+      "provider": "eurostat",
+      "dataset": "sts_inpp_a",
+      "params": { "geo": "EU27_2020" },
+      "out": "data/vetapi-eu.json",
+      "source": "Eurostat sts_inpp_a, industrial producer price index, EU27_2020",
+      "note": "NACE 21.1 basic pharmaceutical products is the active-ingredient stage, 21.2 pharmaceutical preparations the finished dose. Run discovery first — the nace_r2 code spelling and which levels are published must be read off the source."
+    },
+    {
+      "name": "vetapi-tr",
+      "provider": "evds",
+      "series": {
+        "ppi_nace21": "TP.TUFE1YI.T59",
+        "ppi_nace212": "TP.TUFE1YI.T60",
+        "import_ppi_nace21": "TP.UFEYD16"
+      },
+      "start": "01-01-2005",
+      "out": "data/vetapi-tr.json",
+      "source": "TÜİK via TCMB EVDS: TP.TUFE1YI.T59 (Yİ-ÜFE, NACE 21 temel eczacılık ürünleri ve müstahzarları), TP.TUFE1YI.T60 (Yİ-ÜFE, NACE 21.2 eczacılık müstahzarları), TP.UFEYD16 (Yurt Dışı ÜFE, NACE 21 — imported pharma input prices)",
+      "note": "TÜİK publishes NO standalone NACE 21.1 index. For TR the ingredient side is proxied by the imported-goods price index for NACE 21 — an import price, not a domestic ingredient price. That limitation travels with every TR number."
+    },
+    {
       "name": "us-cowcalf-costs",
       "provider": "csv",
       "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
