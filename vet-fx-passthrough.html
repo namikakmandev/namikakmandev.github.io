@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Costs Reprice Instantly, Prices Do Not · Türkiye FX pass-through · 2010–2026</title>
+<meta name="description" content="When the lira moves, how fast does it reach a pharmaceutical maker's input cost, and how fast can it be recovered in price? Monthly pass-through estimates for Türkiye, 2010–2026.">
+<style>
+  :root{
+    --bg:#0B1220; --card:#121B2C; --card2:#0F1726; --line:#1E2A40;
+    --ink:#E8EEF7; --ink2:#9FB0C8; --ink3:#64748B;
+    --blue:#2F9BFF; --green:#19C37D; --orange:#FF6500; --red:#F2545B; --violet:#A78BFA;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif;padding:32px 16px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .kicker{color:var(--blue);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  h1{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:6px 0 8px}
+  .sub{color:var(--ink2);max-width:830px}
+  .sub b{color:var(--ink)}
+  .scope{background:rgba(255,101,0,.07);border:1px solid rgba(255,101,0,.35);border-radius:12px;
+         padding:12px 16px;margin:18px 0 0;font-size:13.5px;color:var(--ink2)}
+  .scope b{color:var(--orange)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:22px 0 18px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .tile .lab{font-size:11.5px;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .tile .val{font-size:29px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+  .tile .note{font-size:12.5px;color:var(--ink3);margin-top:3px}
+  .val.blue{color:var(--blue)} .val.green{color:var(--green)} .val.orange{color:var(--orange)}
+  .val.red{color:var(--red)} .val.violet{color:var(--violet)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  .chart-title{font-weight:700;font-size:17px}
+  .chart-sub{color:var(--ink3);font-size:12.5px}
+  .read{color:var(--ink2);font-size:13.5px;margin:6px 0 12px}
+  .read b{color:var(--ink)}
+  canvas{display:block;width:100%;height:auto}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12.5px;color:var(--ink2);margin-top:10px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .foot{color:var(--ink3);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;margin-top:12px;line-height:1.7}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{color:var(--ink3);text-transform:uppercase;font-size:11px;letter-spacing:.08em;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:8px 10px;text-align:right;border-bottom:1px solid rgba(30,42,64,.5);font-variant-numeric:tabular-nums}
+  tr.dim td{color:var(--ink3)}
+  h2{font-size:21px;font-weight:800;letter-spacing:-.01em;margin:34px 0 4px}
+  .h2sub{color:var(--ink2);font-size:13.5px;margin-bottom:14px}
+  .warn{background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--orange);
+        border-radius:10px;padding:14px 16px;font-size:13.5px;color:var(--ink2);margin-top:14px}
+  .warn b{color:var(--ink)}
+  .srcs{font-size:12.5px;color:var(--ink2);line-height:1.75}
+  .srcs b{color:var(--ink)}
+  .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:10px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--ink3)}
+  .outcome{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+  .oc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .oc .mkt{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--ink3)}
+  .oc .act{font-size:18px;font-weight:800;margin:6px 0 6px;letter-spacing:-.01em}
+  .oc .why{font-size:13px;color:var(--ink2)}
+  .oc .fals{font-size:12.5px;color:var(--ink3);margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  .oc.a{border-left:3px solid var(--orange)} .oc.b{border-left:3px solid var(--red)}
+  .oc.c{border-left:3px solid var(--blue)}
+  a{color:var(--blue)}
+  @media(max-width:640px){h1{font-size:24px} .tile .val{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Türkiye · Pharmaceutical producer prices · Monthly · 2010–2026</div>
+  <h1>Your costs reprice instantly. Your prices do not.</h1>
+  <p class="sub">The parity study showed the Turkish margin ratio halved because the imported input outran what
+  a domestic maker can charge. It could not say <b>how fast</b>, or <b>how much of a currency move actually
+  lands on the margin</b>. This measures both, on 197 monthly changes — and it is the number that sets a
+  hedging horizon.</p>
+
+  <div class="scope"><b>Everything here is a month-on-month log change, never a level.</b> USD/TRY, the
+  imported input index and the domestic preparations index all trend steeply in nominal lira, and correlating
+  trends manufactures results. <b>β is the pass-through coefficient</b> — the share of a 1% currency move that
+  shows up in the response. Human and veterinary pharma are measured together; TÜİK publishes no veterinary split.</p>
+
+  <div class="tiles">
+    <div class="tile"><div class="lab">Lira → input cost · same month</div><div class="val orange">68%</div>
+      <div class="note">β = +0.68, r = +0.71, n = 197</div></div>
+    <div class="tile"><div class="lab">Lira → margin · same month</div><div class="val red">−0.64%</div>
+      <div class="note">per 1% depreciation, r = −0.53</div></div>
+    <div class="tile"><div class="lab">Deepest point · one month later</div><div class="val red">−0.87%</div>
+      <div class="note">cumulative, per 1% depreciation</div></div>
+    <div class="tile"><div class="lab">Input → domestic price · same month</div><div class="val green">17%</div>
+      <div class="note">β = +0.17, r = +0.18 — barely anything</div></div>
+  </div>
+
+  <h2>Leg one: the lira reaches your input cost the same month</h2>
+  <div class="h2sub">Correlation of month-on-month log changes, USD/TRY against the imported pharma input index, at every lag from 0 to 12 months.</div>
+
+  <div class="card">
+    <div class="chart-title">USD/TRY → imported pharmaceutical input price, by lag</div>
+    <div class="chart-sub">Türkiye, Feb 2010 – Jun 2026, 197 monthly changes</div>
+    <div class="read">This is as clean as a lag profile gets. <b>The relationship is at its strongest at lag
+    zero (r = +0.71) and collapses immediately after</b> — r = +0.31 at one month and essentially nothing
+    beyond. <b>68% of a lira move is in the input price within the same calendar month.</b> There is no
+    warning period and nothing to watch for: the cost has already changed by the time the month closes.</div>
+    <canvas id="c1"></canvas>
+    <div class="foot">Türkiye only · Pearson r on month-on-month log changes · n = 197 at lag 0 ·
+      a single clean peak at zero, so this is read as contemporaneous, not as a lead</div>
+  </div>
+
+  <h2>Leg two: it does not reach your price at all, quickly</h2>
+  <div class="h2sub">The same test, imported input against domestic preparation prices.</div>
+
+  <div class="card">
+    <div class="chart-title">Imported input → domestic preparations price, by lag</div>
+    <div class="chart-sub">Türkiye, Feb 2010 – Jun 2026, 197 monthly changes</div>
+    <div class="read">Two things are true here, and the second one is a limit rather than a finding.
+    <b>First: the same-month link is weak — r = +0.18, β = +0.17.</b> Domestic prices demonstrably do not
+    move with input costs inside the month, which is the whole problem.
+    <b>Second: this profile is too jagged to name a transmission lag.</b> Its highest point is lag 7
+    (r = 0.311) but lag 2 sits at 0.304 — effectively tied. <b>Anyone quoting "it takes seven months" from
+    this chart would be quoting noise.</b></div>
+    <canvas id="c2"></canvas>
+    <div class="foot">Türkiye only · Pearson r on month-on-month log changes · n = 197 at lag 0 ·
+      peak lag 7 r = 0.311 vs runner-up lag 2 r = 0.304 — gap 0.007, so no single lag is claimed</div>
+  </div>
+
+  <h2>What it costs: the margin ratio</h2>
+  <div class="h2sub">Domestic preparations ÷ imported input. Both sides are nominal lira, so Turkish inflation sits in both and cancels — this is the one measure that survives a long horizon.</div>
+
+  <div class="card">
+    <div class="chart-title">Cumulative effect of a 1% lira depreciation on the margin ratio</div>
+    <div class="chart-sub">Local projection: for each horizon, the ratio's cumulative change regressed on the currency move at month zero</div>
+    <div class="read">The damage is <b>immediate and front-loaded</b>. A 1% depreciation takes
+    <b>0.64% off the margin ratio in the same month</b> and <b>0.87% by the end of the following month</b>,
+    which is the deepest point. After that the effect decays — and, importantly, <b>it decays into
+    unmeasurability rather than into a provable recovery</b>: by three months r is −0.16 and by six it is
+    −0.07, which is indistinguishable from nothing.</div>
+    <canvas id="c3"></canvas>
+    <table style="margin-top:14px">
+      <tr><th>Horizon</th><th>cumulative β</th><th>r</th><th>n</th><th>readable?</th></tr>
+      <tbody id="tb"></tbody>
+    </table>
+    <div class="foot">Türkiye only · β = cumulative change in the margin ratio per 1% lira depreciation ·
+      rows greyed where |r| &lt; 0.20 — the estimate is there but the data does not support leaning on it</div>
+  </div>
+
+  <h2>Before you quote any of this</h2>
+  <div class="card">
+    <div class="read"><b>1 · The recovery is not proven, only the damage is.</b> The margin effect is strongly
+    measured at zero and one month (r ≈ −0.5) and fades to |r| &lt; 0.15 by six months. That is consistent with
+    the squeeze being temporary — but it is equally consistent with the effect simply becoming too small to
+    detect against everything else moving. <b>The honest claim is that the cost is front-loaded, not that it
+    is repaid.</b> The 12-month figure turns positive; at r = +0.14 that is not a finding and it is not used.</div>
+    <div class="read" style="margin-top:18px"><b>2 · The nominal legs cannot be read past six months.</b>
+    Cumulative pass-through on the raw import and domestic series exceeds 100% at longer horizons — up to 208%
+    — which is not a real quantity. That is Turkish inflation running through both series and being picked up
+    by the regression, exactly the trend contamination that makes the margin ratio the right measure. Those
+    numbers are computed and stored so the contamination is visible, and quoted nowhere.</div>
+    <div class="read" style="margin-top:18px"><b>3 · This is all pharma, and it is prices.</b> No veterinary
+    split exists in TÜİK's data, and no volume series is involved. A margin ratio is not a margin: it says
+    nothing about what was actually sold, or at what discount.</div>
+    <div class="warn"><b>What would settle it:</b> your own purchase-order dates and price-list revision dates
+    for one year of one product. The gap between them, measured directly, is the number this page can only
+    approximate from national statistics.</div>
+  </div>
+
+  <h2>So what</h2>
+  <div class="h2sub">Three instructions, each with the thing that would change it.</div>
+
+  <div class="outcome">
+    <div class="oc a">
+      <div class="mkt">Hedging · now</div>
+      <div class="act">Hedge the first quarter, not the year.</div>
+      <div class="why">The measurable damage lands in months zero and one — 0.64% then 0.87% cumulative per 1%
+      of depreciation — and is undetectable by month six. A rolling three-month cover captures nearly all of the
+      exposure the data can actually see, at a fraction of the cost of hedging a full year.</div>
+      <div class="fals">Would change if: the cumulative effect at six months strengthens past |r| = 0.25 in
+      future data, which would mean the squeeze is persistent rather than front-loaded.</div>
+    </div>
+    <div class="oc b">
+      <div class="mkt">Price cadence · next revision</div>
+      <div class="act">Move price revision closer to the currency, not the calendar.</div>
+      <div class="why">Input cost repricing is 68% complete inside the month; domestic price repricing is 17%.
+      That gap is the entire margin story, and it is a process choice, not a market fact. An annual or
+      semi-annual list revision guarantees you absorb every move in between.</div>
+      <div class="fals">Would change if: the same-month input→price coefficient rises above about 0.5,
+      meaning prices already track costs and the cadence is not the binding constraint.</div>
+    </div>
+    <div class="oc c">
+      <div class="mkt">Watching · ongoing</div>
+      <div class="act">Stop waiting for a warning signal. There isn't one.</div>
+      <div class="why">The lira→input relationship peaks at lag zero with no meaningful lead at any horizon.
+      Nothing in the published data gives advance notice of an input cost move — by the time it is observable
+      it has already happened. Monitoring effort belongs on response speed, not on forecasting.</div>
+      <div class="fals">Would change if: any lag beyond zero reaches r above roughly 0.4 and clearly beats both
+      lag zero and its own runner-up — the two tests this study applied and neither leg passed.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="chart-title" style="margin-bottom:10px">Every source on this page</div>
+    <div class="srcs">
+      <div class="sg">
+        <div><b>Prices — Türkiye</b>
+          <span>TÜİK via CBRT EVDS, monthly:<br>
+          <span class="mono">TP.UFEYD16</span> — Yurt Dışı ÜFE, NACE 21 (imported pharmaceutical input
+          prices), 2010-01 → 2026-06.<br>
+          <span class="mono">TP.TUFE1YI.T60</span> — Yİ-ÜFE, NACE 21.2 pharmaceutical preparations
+          (domestic output prices), 2005-01 → 2026-06.<br>
+          Overlapping window used here: Feb 2010 → Jun 2026, 197 monthly changes.</span></div>
+        <div><b>Currency</b>
+          <span>OECD via FRED, <span class="mono">CCUSMA02TRM618N</span> — "Currency Conversions: US Dollar
+          Exchange Rate: Average of Daily Rates: National Currency: USD for Turkey", monthly, 1957-01 →
+          2026-06. Title read off FRED, not inferred from the id. Monthly average of daily rates, so it lines
+          up with monthly-average price indexes rather than an end-of-month snapshot.
+          <br><b>Deflator</b><br>
+          None, deliberately. The margin ratio carries Turkish inflation on both sides, where it cancels.</span></div>
+        <div><b>Method &amp; limits</b>
+          <span>All estimates on month-on-month log changes. β is an OLS slope; r is Pearson.
+          Cumulative effects use local projection — one regression per horizon — because summing
+          lag-by-lag slopes double counts autocorrelated currency moves and produced a 204% pass-through
+          that is not a real number.
+          <br><b>Lead tests</b><br>
+          A peak away from lag zero is only reported as a lead if it beats both lag zero and its own
+          runner-up lag. Neither leg passed, so no transmission lag is claimed anywhere.
+          <br><b>What is missing</b><br>
+          A veterinary-only price series. Volumes. Net prices after discount. Actual contract and
+          revision dates.</span></div>
+      </div>
+      <div class="foot" style="text-transform:none;letter-spacing:0;font-size:12.5px;margin-top:16px">
+        Series fetched by <span class="mono">scripts/fetch.py</span> from
+        <span class="mono">data-sources.json</span> into <span class="mono">data/vetapi-tr.json</span> and
+        <span class="mono">data/vetapi-fx.json</span>; every figure recomputed by
+        <span class="mono">scripts/analyse_passthrough.py</span> into
+        <span class="mono">data/passthrough-derived.json</span>. Data cut-off: June 2026.
+        Companion studies: <a href="vet-api-parity.html">The ingredient and the medicine</a> ·
+        <a href="vet-pricing-power.html">Where the pricing power is</a>.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const D={"leg1":{"prof":{"0":0.713,"1":0.312,"2":-0.076,"3":-0.054,"4":-0.007,"5":0.09,"6":0.016,"7":0.061,"8":0.097,"9":0.06,"10":-0.06,"11":-0.098,"12":-0.088},"b0":0.6842,"r0":0.713},"leg2":{"prof":{"0":0.179,"1":0.152,"2":0.304,"3":0.134,"4":0.067,"5":0.035,"6":0.204,"7":0.311,"8":0.098,"9":0.109,"10":0.121,"11":0.13,"12":0.265},"b0":0.1735,"r0":0.179,"pk":7,"pkr":0.311},"marg":{"cum":{"0":[-0.638,-0.528],"1":[-0.869,-0.46],"3":[-0.406,-0.161],"6":[-0.234,-0.068],"9":[0.103,0.026],"12":[0.646,0.142]},"prof":{"0":-0.528,"1":-0.191,"2":0.234,"3":0.148,"4":0.042,"5":-0.036,"6":0.132,"7":0.192,"8":0.024,"9":0.054,"10":0.142,"11":0.12,"12":0.184},"b0":-0.6384,"r0":-0.528},"n":197,"win":["2010-02","2026-06"]};
+const C={ink:'#E8EEF7',ink2:'#9FB0C8',ink3:'#64748B',line:'#1E2A40',
+         blue:'#2F9BFF',green:'#19C37D',orange:'#FF6500',red:'#F2545B',violet:'#A78BFA'};
+function setup(id,h){
+  const cv=document.getElementById(id); if(!cv) return null;
+  const k=window.devicePixelRatio||1, W=cv.clientWidth||900;
+  cv.width=W*k; cv.height=h*k; cv.style.height=h+'px';
+  const x=cv.getContext('2d'); x.scale(k,k); x.clearRect(0,0,W,h); return {x,W,H:h};
+}
+
+// lag-profile bar chart: r by lag, 0..12
+function lagChart(id,prof,hi,col){
+  const g=setup(id,260); if(!g) return; const {x,W,H}=g;
+  const L=46,R=16,T=16,B=34,pw=W-L-R,ph=H-T-B;
+  const lags=Object.keys(prof).map(Number).sort((a,b)=>a-b);
+  const vals=lags.map(l=>prof[l]);
+  const v1=Math.max(0.8,...vals.map(Math.abs));
+  const ty=v=>T+ph/2-(v/v1)*(ph/2);
+  const bw=pw/lags.length*0.62;
+  x.strokeStyle=C.line;
+  [-0.5,0,0.5].forEach(v=>{const y=ty(v);
+    x.beginPath();x.moveTo(L,y);x.lineTo(L+pw,y);x.stroke();
+    x.fillStyle=C.ink3;x.font='11px system-ui';x.textAlign='right';x.fillText(v.toFixed(1),L-8,y+4);});
+  lags.forEach((l,i)=>{
+    const cx=L+pw*(i+0.5)/lags.length, v=prof[l];
+    x.fillStyle = (l===hi)?col:'rgba(159,176,200,.35)';
+    const y0=ty(0),y1=ty(v);
+    x.fillRect(cx-bw/2,Math.min(y0,y1),bw,Math.abs(y1-y0));
+    x.fillStyle=(l===hi)?C.ink:C.ink3;x.font=(l===hi?'700 ':'')+'11px system-ui';x.textAlign='center';
+    x.fillText(l,cx,H-14);
+    if(l===hi) x.fillText(v.toFixed(2),cx,(v>=0?y1-6:y1+14));
+  });
+  x.fillStyle=C.ink3;x.font='11px system-ui';x.textAlign='center';
+  x.fillText('lag, months',L+pw/2,H-2);
+}
+
+lagChart('c1',D.leg1.prof,0,C.orange);
+lagChart('c2',D.leg2.prof,7,C.violet);
+
+// cumulative margin response
+(function(){
+  const g=setup('c3',280); if(!g) return; const {x,W,H}=g;
+  const cum=D.marg.cum, hs=Object.keys(cum).map(Number).sort((a,b)=>a-b);
+  const L=52,R=20,T=18,B=40,pw=W-L-R,ph=H-T-B;
+  const vals=hs.map(h=>cum[h][0]);
+  const v0=Math.min(-1,...vals), v1=Math.max(0.8,...vals);
+  const tx=i=>L+pw*i/(hs.length-1), ty=v=>T+ph-(v-v0)/(v1-v0)*ph;
+  x.strokeStyle=C.line;
+  for(let k=0;k<5;k++){const v=v0+(v1-v0)*k/4,y=ty(v);
+    x.beginPath();x.moveTo(L,y);x.lineTo(L+pw,y);x.stroke();
+    x.fillStyle=C.ink3;x.font='11px system-ui';x.textAlign='right';x.fillText(v.toFixed(1),L-8,y+4);}
+  const yz=ty(0);
+  x.strokeStyle='rgba(159,176,200,.55)';x.setLineDash([4,4]);
+  x.beginPath();x.moveTo(L,yz);x.lineTo(L+pw,yz);x.stroke();x.setLineDash([]);
+  // shade the horizons where |r| is too weak to read
+  hs.forEach((h,i)=>{ if(Math.abs(cum[h][1])<0.20 && i>0){
+    x.fillStyle='rgba(100,116,139,.10)';
+    const a=tx(i-0.5<0?0:i-0.5), b=Math.min(tx(hs.length-1),tx(i+0.5>hs.length-1?hs.length-1:i+0.5));
+    x.fillRect(a,T,b-a,ph);} });
+  x.strokeStyle=C.red;x.lineWidth=2.8;x.beginPath();
+  hs.forEach((h,i)=>{const X=tx(i),Y=ty(cum[h][0]);i?x.lineTo(X,Y):x.moveTo(X,Y);});x.stroke();
+  hs.forEach((h,i)=>{const X=tx(i),Y=ty(cum[h][0]);
+    const weak=Math.abs(cum[h][1])<0.20;
+    x.fillStyle=weak?C.ink3:C.red;x.beginPath();x.arc(X,Y,weak?3:4.5,0,7);x.fill();
+    x.fillStyle=weak?C.ink3:C.ink;x.font=(weak?'':'700 ')+'11.5px system-ui';x.textAlign='center';
+    x.fillText(cum[h][0].toFixed(2),X,Y-10);
+    x.fillStyle=C.ink3;x.font='11px system-ui';x.fillText(h+'m',X,H-16);});
+  x.fillStyle=C.ink3;x.font='11px system-ui';x.textAlign='center';
+  x.fillText('horizon after the currency move · grey = |r| < 0.20, not readable',L+pw/2,H-2);
+})();
+
+// table
+(function(){
+  const tb=document.getElementById('tb'); if(!tb) return;
+  const cum=D.marg.cum;
+  Object.keys(cum).map(Number).sort((a,b)=>a-b).forEach(h=>{
+    const [b,r]=cum[h], weak=Math.abs(r)<0.20;
+    const tr=document.createElement('tr'); if(weak) tr.className='dim';
+    tr.innerHTML='<td>'+h+' months</td><td>'+(b>=0?'+':'')+b.toFixed(2)+'</td><td>'+
+      (r>=0?'+':'')+r.toFixed(2)+'</td><td>'+D.n+'</td><td>'+(weak?'no':'yes')+'</td>';
+    tb.appendChild(tr);
+  });
+})();
+</script>
+</body>
+</html>
