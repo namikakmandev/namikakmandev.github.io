@@ -48,7 +48,9 @@
     {
       "name": "eu-hicp",
       "provider": "fred",
-      "series": { "hicp": "CP0000EZ19M086NEST" },
+      "series": {
+        "hicp": "CP0000EZ19M086NEST"
+      },
       "out": "data/eu-hicp.json",
       "source": "Euro area HICP via FRED — deflator for any EUR money series"
     },
@@ -56,13 +58,35 @@
       "name": "us-cowcalf-costs",
       "provider": "csv",
       "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
-      "filters": { "Region": "U.S. total" },
+      "filters": {
+        "Region": "U.S. total"
+      },
       "group_col": "Item",
       "key_col": "Year",
       "value_col": "Value",
       "out": "data/us-cowcalf-costs.json",
       "source": "USDA ERS commodity costs and returns, cow-calf",
       "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
+    },
+    {
+      "name": "eu-herd-countries",
+      "provider": "owid",
+      "slug": "cattle-livestock-count-heads",
+      "entities": {
+        "France": "FR",
+        "Germany": "DE",
+        "Ireland": "IE",
+        "Spain": "ES",
+        "Italy": "IT",
+        "Poland": "PL",
+        "Netherlands": "NL",
+        "Romania": "RO",
+        "Belgium": "BE",
+        "Austria": "AT"
+      },
+      "out": "data/herd-eu-countries.json",
+      "source": "FAOSTAT cattle stocks (head) by EU member state, via Our World in Data",
+      "note": "dairy and beef combined, same limitation as the aggregate"
     }
   ]
 }
