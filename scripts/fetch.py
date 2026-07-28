@@ -100,7 +100,11 @@ def eurostat(entry):
     """Any Eurostat dataset. entry['dataset'] + entry['params'] (dict)."""
     base = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
             + entry["dataset"] + "?format=JSON&lang=EN")
-    qs = "".join(f"&{k}={v}" for k, v in entry.get("params", {}).items())
+    # a list value repeats the parameter: am_item=X&am_item=Y. Needed because an
+    # unfiltered aact_eaa01 query is refused with HTTP 413.
+    qs = ""
+    for k, v in entry.get("params", {}).items():
+        qs += "".join(f"&{k}={x}" for x in (v if isinstance(v, list) else [v]))
     j = json.loads(get(base + qs).decode())
     if MODE == "discover":
         # cap high enough to show a full item catalogue: at 40 the EAA input
@@ -111,11 +115,16 @@ def eurostat(entry):
         return {"_discover": {"dimension_ids": j["id"], "sizes": j["size"],
                               "categories": dims}}
     rows = _jsonstat(j)
-    geo_dim = "geo" if "geo" in j["id"] else None
+    # Without split_dim the output is keyed on geo alone, so a query returning
+    # several animal categories or cost items collapses them into one key and
+    # silently overwrites. Name the dimensions that separate the series.
+    split = entry.get("split_dim") or (["geo"] if "geo" in j["id"] else [])
+    if isinstance(split, str):
+        split = [split]
     out = defaultdict(dict)
     for key, val in rows:
         t = key.get("time")
-        g = key.get(geo_dim, "ALL") if geo_dim else "ALL"
+        g = "|".join(key.get(d, "") for d in split) or "ALL"
         if t:
             out[g][t] = val
     return dict(out)

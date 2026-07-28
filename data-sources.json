@@ -69,103 +69,148 @@
       "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
     },
     {
-      "name": "_probes-readme",
+      "name": "_probe-findings",
       "enabled": false,
-      "_probes": [
-        "Everything below is disabled: it does not run in the monthly sweep.",
-        "Name one explicitly to run it:  MODE=discover python scripts/fetch.py probe-...",
-        "A probe answers 'does this series exist, over what span' BEFORE a study is",
-        "designed around it. Candidate ids that turn out not to exist are recorded",
-        "in the report as misses — that is the point, not a failure."
+      "_findings": [
+        "Probed Jul 2026, all verified against real fetches — do not re-test these:",
+        "MISSING on FRED: WPU0135, WPU0136 (poultry farm gate), WPU02830131, CUSR0000SEFC.",
+        "TOO SHORT: WPU0134 poultry farm-gate PPI starts 2021-09 — use PCU311615311615 instead,",
+        "  but that is a PROCESSING index, not farm gate: not the same object as WPU0131.",
+        "MISSING on OWID: pigs-/chickens-/poultry-livestock-count-heads, live-cattle-imports,",
+        "  meat-imports, meat-imports-tonnes, chicken-population, chicken-stocks.",
+        "  Working: pig-livestock-count-heads, livestock-counts, meat-production-tonnes.",
+        "EMPTY for TR: aact_eaa01 (no economic accounts), apro_mt_pann IMP (no trade).",
+        "PRESENT for TR: apro_mt_lscatl 2012-2025 — Eurostat does carry Turkish head counts.",
+        "NO TRADE SERIES anywhere in the proven providers: study of TR import dependence",
+        "  needs UN Comtrade or TurkStat, neither wired up."
       ]
     },
     {
-      "name": "probe-us-species-ppi",
-      "enabled": false,
-      "study": "1 — cross-species parity: is it one grain cycle wearing three costumes?",
+      "name": "us-species-ppi",
       "provider": "fred",
       "series": {
-        "cattle_known_good": "WPU0131",
-        "corn_known_good": "WPU012202",
-        "hogs_a": "WPU0132",
-        "hogs_b": "WPU0133",
-        "poultry_a": "WPU0134",
-        "poultry_b": "WPU0135",
-        "poultry_c": "WPU0136",
-        "eggs_a": "WPU0171",
-        "broiler_processing_industry": "PCU311615311615",
-        "meat_processing_industry": "PCU311611311611",
-        "soybeans": "WPU01830131",
-        "soybean_meal_a": "WPU02830131",
-        "soybean_meal_b": "WPU0181",
-        "feedstuffs_a": "WPU0223",
-        "feedstuffs_b": "WPU02230101",
-        "wheat": "WPU0121"
+        "hogs_ppi": "WPU0132",
+        "hogs_ppi_1971": "WPU0133",
+        "eggs_ppi": "WPU0171",
+        "soybeans_ppi": "WPU01830131",
+        "soybean_meal_ppi": "WPU0181",
+        "feedstuffs_ppi": "WPU0223",
+        "wheat_ppi": "WPU0121",
+        "poultry_processing_ppi": "PCU311615311615",
+        "meat_processing_ppi": "PCU311611311611"
       },
-      "out": "data/probe-us-species-ppi.json",
-      "source": "BLS producer price indexes via FRED — candidate ids, existence unverified",
-      "note": "PROBE. Only WPU0131 and WPU012202 are confirmed; the rest are guesses to be tested."
+      "out": "data/us-species-ppi.json",
+      "source": "BLS producer price indexes via FRED, monthly to Jun 2026",
+      "note": "Farm gate for hogs/eggs/grains. Poultry has NO usable farm-gate PPI: PCU311615311615 is processing-level."
     },
     {
-      "name": "probe-us-rates",
-      "enabled": false,
-      "study": "4 — does the cost of capital set the length of the correction?",
+      "name": "us-retail-meat",
+      "provider": "fred",
+      "series": {
+        "steak_usd_lb": "APU0000703111",
+        "ground_beef_usd_lb": "APU0000703112",
+        "whole_chicken_usd_lb": "APU0000706111",
+        "eggs_usd_dozen": "APU0000708111",
+        "chicken_breast_usd_lb": "APU0000FF1101",
+        "cpi_meat_poultry_fish_eggs": "CUSR0000SAF112",
+        "cpi_food_at_home": "CPIUFDSL",
+        "ppi_processed_meat": "WPU0221",
+        "ppi_beef_veal_processed": "WPU022101"
+      },
+      "out": "data/us-retail-meat.json",
+      "source": "BLS average retail prices (dollars per pound/dozen) and CPI/PPI components via FRED",
+      "note": "APU series are REAL UNITS, not indexes — the one place in this project where a level is meaningful. Do not divide them by the PPI indexes to get a farm share; that needs USDA ERS meat price spreads."
+    },
+    {
+      "name": "us-rates",
       "provider": "fred",
       "series": {
         "fed_funds": "FEDFUNDS",
         "treasury_10y": "GS10",
+        "prime": "MPRIME",
         "tips_10y_real": "DFII10",
-        "breakeven_10y": "T10YIE",
-        "prime": "MPRIME"
+        "breakeven_10y": "T10YIE"
       },
-      "out": "data/probe-us-rates.json",
-      "source": "Federal Reserve H.15 and Treasury series via FRED",
-      "note": "PROBE. Farm-sector lending rates are not on this list — no keyless source found yet."
+      "out": "data/us-rates.json",
+      "source": "Federal Reserve H.15 and Treasury via FRED",
+      "note": "DFII10/T10YIE start 2003 — before that, build ex-post real rates against CPIAUCSL in us-prices."
     },
     {
-      "name": "probe-eu-cattle-survey",
-      "enabled": false,
-      "study": "5 — dairy vs suckler: what is actually disappearing from the EU herd?",
+      "name": "eu-cattle-categories",
       "provider": "eurostat",
       "dataset": "apro_mt_lscatl",
       "params": {
-        "geo": "EU27_2020"
+        "geo": "EU27_2020",
+        "month": "M11_M12"
       },
-      "out": "data/probe-eu-cattle-survey.json",
-      "source": "Eurostat livestock survey, cattle by category (Dec/Jun)",
-      "note": "PROBE. Discovery needed for the animal-category dimension id and its codes."
+      "split_dim": [
+        "animals"
+      ],
+      "out": "data/eu-cattle-categories.json",
+      "source": "Eurostat livestock survey, Nov-Dec count, 23 cattle categories",
+      "note": "A2300F dairy cows / A2300G non-dairy cows; A2220C and A2230C are heifers NOT for slaughter, i.e. the replacement pipeline."
     },
     {
-      "name": "probe-eu-eaa-items",
-      "enabled": false,
-      "study": "2 — which cost lines flex when margin compresses (EU side)",
+      "name": "tr-cattle-categories",
       "provider": "eurostat",
-      "dataset": "aact_eaa01",
+      "dataset": "apro_mt_lscatl",
       "params": {
-        "unit": "MIO_EUR",
-        "geo": "EU27_2020"
+        "geo": "TR",
+        "month": "M11_M12"
       },
-      "out": "data/probe-eu-eaa-items.json",
-      "source": "Eurostat Economic Accounts for Agriculture — full am_item list",
-      "note": "PROBE. Deliberately unfiltered on am_item: the goal is the catalogue of input lines sitting alongside AM205000 (veterinary)."
+      "split_dim": [
+        "animals"
+      ],
+      "out": "data/tr-cattle-categories.json",
+      "source": "Eurostat livestock survey, Türkiye, Nov-Dec count",
+      "note": "Türkiye IS in this dataset, 2012-2025 — more current than FAOSTAT, which stops at 2024."
     },
     {
-      "name": "probe-eu-slaughter",
-      "enabled": false,
-      "study": "1 and 5 — species mix and slaughter volume, EU",
+      "name": "eu-slaughter-species",
       "provider": "eurostat",
       "dataset": "apro_mt_pann",
       "params": {
         "geo": "EU27_2020"
       },
-      "out": "data/probe-eu-slaughter.json",
-      "source": "Eurostat annual slaughter statistics by species",
-      "note": "PROBE. Existence and dimension names unverified."
+      "split_dim": [
+        "meatitem",
+        "meat",
+        "unit"
+      ],
+      "out": "data/eu-slaughter-species.json",
+      "source": "Eurostat annual slaughter and trade by species",
+      "note": "meatitem covers SLAUGHT plus IMP/EXP; meat runs from B1000 bovine down to B7110 broiler. Split on unit too — the dataset carries three."
     },
     {
-      "name": "probe-owid-pig",
-      "enabled": false,
-      "study": "1 — cross-species flock/herd counts",
+      "name": "eu-cost-lines",
+      "provider": "eurostat",
+      "dataset": "aact_eaa01",
+      "params": {
+        "geo": "EU27_2020",
+        "unit": "MIO_EUR",
+        "am_item": [
+          "AM200000",
+          "AM202000",
+          "AM204000",
+          "AM205000",
+          "AM206000",
+          "AM207000",
+          "AM208000",
+          "AM209100",
+          "AM290000",
+          "AM350000"
+        ]
+      },
+      "split_dim": [
+        "am_item",
+        "indic_agr"
+      ],
+      "out": "data/eu-cost-lines.json",
+      "source": "Eurostat Economic Accounts for Agriculture, input lines, EU27 2005-2025",
+      "note": "Feed AM206000, vet AM205000, energy AM202000, maintenance AM207000/AM208000, labour AM290000, interest AM350000. ALL LIVESTOCK/ALL FARMING, never cattle alone. Unfiltered queries are refused with 413."
+    },
+    {
+      "name": "herd-pigs",
       "provider": "owid",
       "slug": "pig-livestock-count-heads",
       "entities": {
@@ -173,250 +218,9 @@
         "European Union (27)": "EU",
         "Turkey": "TR"
       },
-      "out": "data/probe-owid-pig.json",
-      "source": "FAOSTAT via Our World in Data",
-      "note": "PROBE round 2, singular form. Round 1 returned 404 for: pigs-livestock-count-heads, chickens-livestock-count-heads, live-cattle-imports, meat-imports. Do not retry those."
-    },
-    {
-      "name": "probe-owid-chicken",
-      "enabled": false,
-      "study": "1 — cross-species flock/herd counts",
-      "provider": "owid",
-      "slug": "chicken-livestock-count-heads",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/probe-owid-chicken.json",
-      "source": "FAOSTAT via Our World in Data",
-      "note": "PROBE round 2, singular form. Round 1 returned 404 for: pigs-livestock-count-heads, chickens-livestock-count-heads, live-cattle-imports, meat-imports. Do not retry those."
-    },
-    {
-      "name": "probe-owid-poultry",
-      "enabled": false,
-      "study": "1 — cross-species flock/herd counts",
-      "provider": "owid",
-      "slug": "poultry-livestock-count-heads",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/probe-owid-poultry.json",
-      "source": "FAOSTAT via Our World in Data",
-      "note": "PROBE round 2."
-    },
-    {
-      "name": "probe-owid-meat-production",
-      "enabled": false,
-      "study": "1 — species mix by volume",
-      "provider": "owid",
-      "slug": "meat-production-tonnes",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/probe-owid-meat-production.json",
-      "source": "FAOSTAT via Our World in Data",
-      "note": "PROBE round 2."
-    },
-    {
-      "name": "probe-owid-meat-imports-t",
-      "enabled": false,
-      "study": "3 — TR import dependence",
-      "provider": "owid",
-      "slug": "meat-imports-tonnes",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/probe-owid-meat-imports-t.json",
-      "source": "FAOSTAT via Our World in Data",
-      "note": "PROBE round 2. Study 3 has no confirmed trade source yet."
-    },
-    {
-      "name": "probe-owid-livestock-counts",
-      "enabled": false,
-      "study": "1 — single chart carrying several species",
-      "provider": "owid",
-      "slug": "livestock-counts",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/probe-owid-livestock-counts.json",
-      "source": "FAOSTAT via Our World in Data",
-      "note": "PROBE round 2."
-    },
-    {
-      "name": "probe-tr-cattle-survey",
-      "enabled": false,
-      "study": "3 and 5 — does Eurostat carry Türkiye at all?",
-      "provider": "eurostat",
-      "dataset": "apro_mt_lscatl",
-      "params": {
-        "geo": "TR"
-      },
-      "out": "data/probe-tr-cattle-survey.json",
-      "source": "Eurostat",
-      "note": "PROBE round 3. The data-availability skill assumes TR is absent from Eurostat agriculture; this tests that assumption instead of inheriting it."
-    },
-    {
-      "name": "probe-tr-slaughter",
-      "enabled": false,
-      "study": "3 — TR slaughter and trade by species",
-      "provider": "eurostat",
-      "dataset": "apro_mt_pann",
-      "params": {
-        "geo": "TR"
-      },
-      "out": "data/probe-tr-slaughter.json",
-      "source": "Eurostat",
-      "note": "PROBE round 3. apro_mt_pann carries IMP/EXP items, so a TR hit would also give study 3 its missing trade series."
-    },
-    {
-      "name": "probe-tr-eaa",
-      "enabled": false,
-      "study": "2 — TR cost lines, if the accounts exist at all",
-      "provider": "eurostat",
-      "dataset": "aact_eaa01",
-      "params": {
-        "geo": "TR",
-        "unit": "MIO_EUR"
-      },
-      "out": "data/probe-tr-eaa.json",
-      "source": "Eurostat",
-      "note": "PROBE round 3."
-    },
-    {
-      "name": "probe-owid-chicken-pop",
-      "enabled": false,
-      "study": "1 — TR/US/EU flock counts",
-      "provider": "owid",
-      "slug": "chicken-population",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/probe-owid-chicken-pop.json",
-      "source": "FAOSTAT via Our World in Data",
-      "note": "PROBE round 3. chicken- and poultry-livestock-count-heads both 404'd."
-    },
-    {
-      "name": "probe-owid-chicken-stocks",
-      "enabled": false,
-      "study": "1 — TR/US/EU flock counts",
-      "provider": "owid",
-      "slug": "chicken-stocks",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/probe-owid-chicken-stocks.json",
-      "source": "FAOSTAT via Our World in Data",
-      "note": "PROBE round 3. Last slug guess before this is declared unavailable on OWID."
-    },
-    {
-      "name": "probe-tr-dairy-cows",
-      "enabled": false,
-      "study": "5 — dairy vs suckler split, TR",
-      "provider": "eurostat",
-      "dataset": "apro_mt_lscatl",
-      "params": {
-        "geo": "TR",
-        "animals": "A2300F",
-        "month": "M11_M12"
-      },
-      "out": "data/probe-tr-dairy-cows.json",
-      "source": "Eurostat",
-      "note": "PROBE round 4, REAL fetch not discovery: a dimension catalogue lists TR whether or not TR has values in it."
-    },
-    {
-      "name": "probe-eu-dairy-cows",
-      "enabled": false,
-      "study": "5 — dairy vs suckler split, EU",
-      "provider": "eurostat",
-      "dataset": "apro_mt_lscatl",
-      "params": {
-        "geo": "EU27_2020",
-        "animals": "A2300F",
-        "month": "M11_M12"
-      },
-      "out": "data/probe-eu-dairy-cows.json",
-      "source": "Eurostat",
-      "note": "PROBE round 4. A2300G is the non-dairy counterpart; one animal per entry because the parser only splits on geo."
-    },
-    {
-      "name": "probe-tr-bovine-imports",
-      "enabled": false,
-      "study": "3 — is Türkiye's herd growth breeding or buying?",
-      "provider": "eurostat",
-      "dataset": "apro_mt_pann",
-      "params": {
-        "geo": "TR",
-        "meat": "B1000",
-        "meatitem": "IMP"
-      },
-      "out": "data/probe-tr-bovine-imports.json",
-      "source": "Eurostat",
-      "note": "PROBE round 4. The only candidate trade series found so far; OWID has none that resolves."
-    },
-    {
-      "name": "probe-tr-eaa-vet",
-      "enabled": false,
-      "study": "2 — does Türkiye publish agricultural cost accounts after all?",
-      "provider": "eurostat",
-      "dataset": "aact_eaa01",
-      "params": {
-        "geo": "TR",
-        "am_item": "AM205000",
-        "unit": "MIO_NAC"
-      },
-      "out": "data/probe-tr-eaa-vet.json",
-      "source": "Eurostat",
-      "note": "PROBE round 4. Round 3 hit HTTP 413 unfiltered, which is a query-size limit, NOT evidence of absence."
-    },
-    {
-      "name": "probe-eu-feed-cost",
-      "enabled": false,
-      "study": "2 — feed as the non-negotiable line to rank the others against",
-      "provider": "eurostat",
-      "dataset": "aact_eaa01",
-      "params": {
-        "geo": "EU27_2020",
-        "am_item": "AM206000",
-        "unit": "MIO_EUR"
-      },
-      "out": "data/probe-eu-feed-cost.json",
-      "source": "Eurostat",
-      "note": "PROBE round 4."
-    },
-    {
-      "name": "probe-us-retail-meat",
-      "enabled": false,
-      "study": "public — who captured the record? farm gate vs the till",
-      "provider": "fred",
-      "series": {
-        "ground_beef_lb": "APU0000703112",
-        "steak_lb": "APU0000703111",
-        "chicken_breast_lb": "APU0000FF1101",
-        "whole_chicken_lb": "APU0000706111",
-        "eggs_dozen": "APU0000708111",
-        "cpi_meats_poultry_fish_eggs": "CUSR0000SAF112",
-        "cpi_beef_veal": "CUSR0000SEFC",
-        "cpi_food_home": "CPIUFDSL",
-        "ppi_processed_meat": "WPU0221",
-        "ppi_beef_veal_processed": "WPU022101"
-      },
-      "out": "data/probe-us-retail-meat.json",
-      "source": "BLS average retail prices and CPI components via FRED",
-      "note": "PROBE. Retail is the consumer-facing half of the farm-gate/retail spread; ids unverified."
+      "out": "data/herd-pigs.json",
+      "source": "FAOSTAT pig stocks (head) via Our World in Data, 1961-",
+      "note": "annual national totals"
     }
   ]
 }
