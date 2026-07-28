@@ -117,10 +117,19 @@ def _jsonstat(j):
 
 
 def eurostat(entry):
-    """Any Eurostat dataset. entry['dataset'] + entry['params'] (dict)."""
+    """Any Eurostat dataset. entry['dataset'] + entry['params'] (dict).
+
+    A param value may be a list — Eurostat takes the key repeated, which is how you
+    ask for several NACE codes at once. Set entry['key_dim'] to say which dimension
+    separates the returned series (default 'geo'); without it two NACE codes would
+    collapse onto the same key and one would silently overwrite the other.
+    """
     base = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
             + entry["dataset"] + "?format=JSON&lang=EN")
-    qs = "".join(f"&{k}={v}" for k, v in entry.get("params", {}).items())
+    qs = ""
+    for k, v in entry.get("params", {}).items():
+        for one in (v if isinstance(v, list) else [v]):
+            qs += f"&{k}={one}"
     j = json.loads(get(base + qs).decode())
     if MODE == "discover":
         # A head-40 slice hides everything below it: a 359-category nace_r2 dimension
@@ -134,11 +143,11 @@ def eurostat(entry):
         return {"_discover": {"dimension_ids": j["id"], "sizes": j["size"],
                               "categories": dims}}
     rows = _jsonstat(j)
-    geo_dim = "geo" if "geo" in j["id"] else None
+    key_dim = entry.get("key_dim") or ("geo" if "geo" in j["id"] else None)
     out = defaultdict(dict)
     for key, val in rows:
         t = key.get("time")
-        g = key.get(geo_dim, "ALL") if geo_dim else "ALL"
+        g = key.get(key_dim, "ALL") if key_dim else "ALL"
         if t:
             out[g][t] = val
     return dict(out)

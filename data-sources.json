@@ -62,9 +62,10 @@
         "bls_wp_item": "https://download.bls.gov/pub/time.series/wp/wp.item"
       },
       "fred_ids": [
-        "PCU325411325411", "PCU325412325412", "PCU3254123254121",
-        "PCU3254123254127", "WPU0638", "WPU063807", "WPU06380701",
-        "WPU063806", "WPU063805", "CPIAUCSL"
+        "PCU325414325414", "PCU3254143254141", "PCU3254143254143",
+        "PCU3254123254122", "PCU3254123254124", "PCU3254123254126",
+        "PCU3254123254128", "WPU0637", "WPU063701", "WPU063802",
+        "WPU063803", "WPU063804", "WPU063808", "WPU063809"
       ],
       "source": "Discovery only — FRED series headers plus a candidate-id probe",
       "note": "MODE=discover only. A guessed FRED id returns an HTML error page, not an error — probe before parsing, and read the Title off FRED rather than inferring it from the id. The BLS catalogue files return 403 to this fetcher."
@@ -85,11 +86,16 @@
       "name": "vetapi-eu",
       "provider": "eurostat",
       "dataset": "sts_inpp_a",
-      "params": { "geo": "EU27_2020" },
+      "params": {
+        "geo": "EU27_2020",
+        "unit": "I15",
+        "nace_r2": ["C211", "C212", "C21"]
+      },
+      "key_dim": "nace_r2",
       "grep": "^C?21|pharmac|Index,",
       "out": "data/vetapi-eu.json",
-      "source": "Eurostat sts_inpp_a, industrial producer price index, EU27_2020",
-      "note": "NACE 21.1 basic pharmaceutical products is the active-ingredient stage, 21.2 pharmaceutical preparations the finished dose. Run discovery first — the nace_r2 code spelling and which levels are published must be read off the source."
+      "source": "Eurostat sts_inpp_a, industrial domestic producer price index, geo EU27_2020, unit I15 (index, 2015=100), annual; NACE C211 (manufacture of basic pharmaceutical products), C212 (manufacture of pharmaceutical preparations), C21 (both)",
+      "note": "Codes confirmed against the source's own category list, not guessed. C211 is the active-ingredient stage, C212 the finished dose. The unit is pinned to I15 because the dataset also carries 2021=100 and 2010=100 — mixing them would silently blend three different bases. Covers human and veterinary pharma together; Eurostat publishes no veterinary-only split."
     },
     {
       "name": "vetapi-tr",
