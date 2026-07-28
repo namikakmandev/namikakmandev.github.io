@@ -225,7 +225,10 @@ def evds(entry):
         return {"_discover": {"columns": list(df.columns), "rows": len(df),
                               "head": df.head(3).to_dict("records"),
                               "tail": df.tail(3).to_dict("records")}}
-    out = {k: {} for k in codes}
+    # Collect per month, then average. Monthly series have one observation a month so
+    # this is a no-op for them; daily series (FX) become proper monthly means instead of
+    # silently keeping whichever row happened to be parsed last.
+    buckets = {k: defaultdict(list) for k in codes}
     for _, row in df.iterrows():
         parts = str(row.get("Tarih", "")).replace("/", "-").split("-")
         if len(parts) < 2:
@@ -235,8 +238,9 @@ def evds(entry):
             val = row.get(code.replace(".", "_"))
             if val is None or str(val) == "nan":
                 continue
-            out[k][ym] = round(float(val), 3)
-    return out
+            buckets[k][ym].append(float(val))
+    return {k: {m: round(sum(v) / len(v), 4) for m, v in b.items()}
+            for k, b in buckets.items()}
 
 
 def probe(entry):
