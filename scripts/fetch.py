@@ -81,7 +81,10 @@ def eurostat(entry):
     """Any Eurostat dataset. entry['dataset'] + entry['params'] (dict)."""
     base = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
             + entry["dataset"] + "?format=JSON&lang=EN")
-    qs = "".join(f"&{k}={v}" for k, v in entry.get("params", {}).items())
+    qs = ""
+    for k, v in entry.get("params", {}).items():
+        for vi in (v if isinstance(v, list) else [v]):   # repeated params, e.g. several geos
+            qs += f"&{k}={vi}"
     j = json.loads(get(base + qs).decode())
     if MODE == "discover":
         dims = {d: list(j["dimension"][d]["category"]["label"].items())[:40]
