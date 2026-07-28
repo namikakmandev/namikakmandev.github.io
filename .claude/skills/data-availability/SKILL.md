@@ -36,9 +36,28 @@ returned an empty dimension rather than an error.
 | **FAOSTAT via OWID** | any country, any agricultural commodity, 1961→ | annual only; best cross-country coverage |
 | **USDA ERS** | commodity costs and returns, incl. per-head cost lines | file URLs change; scrape the product page for links |
 
-**Türkiye is the usual gap.** It is in FAOSTAT, but *not* in Eurostat's agricultural
-accounts. TurkStat and CBRT/EVDS have their own series; EVDS needs an API key.
-Assume Türkiye needs a separate hunt and say so up front.
+**Türkiye is the usual gap — but check which Eurostat dataset before saying so.**
+Probed July 2026, and the blanket version of this rule was wrong:
+
+| Eurostat dataset | Türkiye? |
+|---|---|
+| `apro_mt_lscatl` livestock survey | **YES** — dairy cows 2012–2025, and 2025 lands before FAOSTAT's 2024 |
+| `apro_mt_pann` slaughter/trade | filter accepted, **zero values** |
+| `aact_eaa01` economic accounts | **no** — confirms the original rule, for this dataset only |
+
+So Türkiye has *head counts* in Eurostat and no *money* accounts. TurkStat and
+CBRT/EVDS have their own series; EVDS needs an API key (already a repo secret).
+The EVDS agriculture catalogue holds an input price index — `TP.TARIMGFE.GK378650496`
+veterinary expenses, `…499` concentrated feed — but those are **price indexes, not
+spend**, and no foreign-trade series appears anywhere in that catalogue.
+
+**A dimension catalogue is not data.** `MODE=discover` on a Eurostat dataset lists
+every category the *dataset* has, including geos with nothing in them. Two probes
+looked like TR coverage in discovery and returned zero rows on a real fetch. Confirm
+availability with a real fetch and a row count, never with the catalogue alone.
+
+**HTTP 413 from Eurostat is a query-size limit, not an absence.** An unfiltered
+`aact_eaa01` probe returned 413; the same query with one `am_item` succeeded.
 
 ## What to report back
 
