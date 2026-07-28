@@ -34,10 +34,20 @@ def get(url, timeout=120):
 
 # ----------------------------------------------------------------- providers
 def fred(entry):
-    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint."""
-    out = {}
+    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint.
+
+    One bad series id must not kill the rest of the entry: a probe listing ten
+    candidate ids is the normal way to find out which of them exist, so failures
+    are recorded per series instead of raised.
+    """
+    out, errors = {}, {}
     for key, sid in entry["series"].items():
-        raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
+        try:
+            raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
+        except Exception as ex:  # noqa: BLE001 — a missing id is a result, not a crash
+            errors[key] = f"{sid}: {type(ex).__name__}: {ex}"
+            out[key] = {}
+            continue
         vals = {}
         for row in csv.DictReader(io.StringIO(raw)):
             date = (row.get("DATE") or row.get("observation_date") or "").strip()
@@ -45,6 +55,15 @@ def fred(entry):
             if len(date) >= 7 and val not in ("", "."):
                 vals[date[:7]] = float(val)
         out[key] = vals
+    if MODE == "discover":
+        return {"_discover": {
+            "ids": entry["series"],
+            "found": {k: {"n": len(v), "span": [min(v), max(v)]}
+                      for k, v in out.items() if v},
+            "missing": sorted(k for k, v in out.items() if not v),
+            "errors": errors}}
+    if errors:
+        report.setdefault("_errors", {})[entry["name"]] = errors
     return out
 
 
@@ -184,8 +203,10 @@ def run(entry):
 def main():
     cfg = json.load(open(CONFIG))
     only = set(sys.argv[1:])
+    # naming an entry runs it even when disabled: `enabled` governs the scheduled
+    # sweep, while a probe is always a deliberate, explicit request
     entries = [e for e in cfg["sources"]
-               if e.get("enabled", True) and (not only or e["name"] in only)]
+               if e["name"] in only or (not only and e.get("enabled", True))]
     if not entries:
         sys.exit(f"no matching sources (asked for {only or 'all'})")
     failed = []

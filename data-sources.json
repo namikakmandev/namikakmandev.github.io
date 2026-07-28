@@ -63,6 +63,138 @@
       "out": "data/us-cowcalf-costs.json",
       "source": "USDA ERS commodity costs and returns, cow-calf",
       "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
+    },
+
+    {
+      "name": "_probes-readme",
+      "enabled": false,
+      "_probes": [
+        "Everything below is disabled: it does not run in the monthly sweep.",
+        "Name one explicitly to run it:  MODE=discover python scripts/fetch.py probe-...",
+        "A probe answers 'does this series exist, over what span' BEFORE a study is",
+        "designed around it. Candidate ids that turn out not to exist are recorded",
+        "in the report as misses — that is the point, not a failure."
+      ]
+    },
+    {
+      "name": "probe-us-species-ppi",
+      "enabled": false,
+      "study": "1 — cross-species parity: is it one grain cycle wearing three costumes?",
+      "provider": "fred",
+      "series": {
+        "cattle_known_good": "WPU0131",
+        "corn_known_good": "WPU012202",
+        "hogs_a": "WPU0132",
+        "hogs_b": "WPU0133",
+        "poultry_a": "WPU0134",
+        "poultry_b": "WPU0135",
+        "poultry_c": "WPU0136",
+        "eggs_a": "WPU0171",
+        "broiler_processing_industry": "PCU311615311615",
+        "meat_processing_industry": "PCU311611311611",
+        "soybeans": "WPU01830131",
+        "soybean_meal_a": "WPU02830131",
+        "soybean_meal_b": "WPU0181",
+        "feedstuffs_a": "WPU0223",
+        "feedstuffs_b": "WPU02230101",
+        "wheat": "WPU0121"
+      },
+      "out": "data/probe-us-species-ppi.json",
+      "source": "BLS producer price indexes via FRED — candidate ids, existence unverified",
+      "note": "PROBE. Only WPU0131 and WPU012202 are confirmed; the rest are guesses to be tested."
+    },
+    {
+      "name": "probe-us-rates",
+      "enabled": false,
+      "study": "4 — does the cost of capital set the length of the correction?",
+      "provider": "fred",
+      "series": {
+        "fed_funds": "FEDFUNDS",
+        "treasury_10y": "GS10",
+        "tips_10y_real": "DFII10",
+        "breakeven_10y": "T10YIE",
+        "prime": "MPRIME"
+      },
+      "out": "data/probe-us-rates.json",
+      "source": "Federal Reserve H.15 and Treasury series via FRED",
+      "note": "PROBE. Farm-sector lending rates are not on this list — no keyless source found yet."
+    },
+    {
+      "name": "probe-eu-cattle-survey",
+      "enabled": false,
+      "study": "5 — dairy vs suckler: what is actually disappearing from the EU herd?",
+      "provider": "eurostat",
+      "dataset": "apro_mt_lscatl",
+      "params": { "geo": "EU27_2020" },
+      "out": "data/probe-eu-cattle-survey.json",
+      "source": "Eurostat livestock survey, cattle by category (Dec/Jun)",
+      "note": "PROBE. Discovery needed for the animal-category dimension id and its codes."
+    },
+    {
+      "name": "probe-eu-eaa-items",
+      "enabled": false,
+      "study": "2 — which cost lines flex when margin compresses (EU side)",
+      "provider": "eurostat",
+      "dataset": "aact_eaa01",
+      "params": { "unit": "MIO_EUR", "geo": "EU27_2020" },
+      "out": "data/probe-eu-eaa-items.json",
+      "source": "Eurostat Economic Accounts for Agriculture — full am_item list",
+      "note": "PROBE. Deliberately unfiltered on am_item: the goal is the catalogue of input lines sitting alongside AM205000 (veterinary)."
+    },
+    {
+      "name": "probe-eu-slaughter",
+      "enabled": false,
+      "study": "1 and 5 — species mix and slaughter volume, EU",
+      "provider": "eurostat",
+      "dataset": "apro_mt_pann",
+      "params": { "geo": "EU27_2020" },
+      "out": "data/probe-eu-slaughter.json",
+      "source": "Eurostat annual slaughter statistics by species",
+      "note": "PROBE. Existence and dimension names unverified."
+    },
+    {
+      "name": "probe-owid-pigs",
+      "enabled": false,
+      "study": "1 — cross-species herd/flock counts",
+      "provider": "owid",
+      "slug": "pigs-livestock-count-heads",
+      "entities": { "United States": "US", "European Union (27)": "EU", "Turkey": "TR" },
+      "out": "data/probe-owid-pigs.json",
+      "source": "FAOSTAT pig stocks via Our World in Data",
+      "note": "PROBE. Slug pattern copied from the working cattle slug."
+    },
+    {
+      "name": "probe-owid-chickens",
+      "enabled": false,
+      "study": "1 — cross-species herd/flock counts",
+      "provider": "owid",
+      "slug": "chickens-livestock-count-heads",
+      "entities": { "United States": "US", "European Union (27)": "EU", "Turkey": "TR" },
+      "out": "data/probe-owid-chickens.json",
+      "source": "FAOSTAT chicken stocks via Our World in Data",
+      "note": "PROBE. Slug unverified."
+    },
+    {
+      "name": "probe-owid-live-cattle-imports",
+      "enabled": false,
+      "study": "3 — is Türkiye's herd growth breeding or buying?",
+      "provider": "owid",
+      "slug": "live-cattle-imports",
+      "entities": { "Turkey": "TR", "United States": "US", "European Union (27)": "EU" },
+      "out": "data/probe-owid-live-cattle-imports.json",
+      "source": "FAOSTAT live cattle trade via Our World in Data",
+      "note": "PROBE. Slug is a guess; the whole of study 3 depends on finding a trade series."
+    },
+    {
+      "name": "probe-owid-meat-imports",
+      "enabled": false,
+      "study": "3 — import dependence, fallback if the live-animal slug does not exist",
+      "provider": "owid",
+      "slug": "meat-imports",
+      "entities": { "Turkey": "TR", "United States": "US", "European Union (27)": "EU" },
+      "out": "data/probe-owid-meat-imports.json",
+      "source": "FAOSTAT meat trade via Our World in Data",
+      "note": "PROBE. Slug unverified."
     }
   ]
 }
