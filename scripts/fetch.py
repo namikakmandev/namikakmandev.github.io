@@ -42,13 +42,13 @@ def fred_meta(sid):
     it measures; this is. Keyless, unlike the BLS catalogue files (which return 403)."""
     txt = get(f"https://fred.stlouisfed.org/data/{sid}.txt", timeout=30).decode(
         "utf-8", "replace")
-    head = []
-    for line in txt.splitlines():
-        if re.match(r"^\s*\d{4}-\d{2}-\d{2}", line):
-            break
-        if line.strip():
-            head.append(line.strip()[:200])
-    return head[:12] or ["<no header lines before first observation>"]
+    title = re.search(r"<title>\s*(?:Table Data - )?(.*?)\s*(?:\| FRED|</title>)", txt, re.S)
+    # the index base period is part of the unit and belongs in the sources block
+    base = re.search(r"Index\s+(?:[A-Z][a-z]{2}\s+)?\d{4}\s*=\s*100", txt)
+    freq = re.search(r"\b(Monthly|Quarterly|Annual|Semiannual)\b", txt)
+    return {"title": title.group(1)[:200] if title else None,
+            "units": base.group(0) if base else None,
+            "frequency": freq.group(1) if freq else None}
 
 
 def _try(fn, arg):
