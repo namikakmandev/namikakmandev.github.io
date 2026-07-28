@@ -269,8 +269,8 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
   <h2>Every herd is shrinking. Only the spending separates them.</h2>
   <div class="read">Per country, two lines on one scale: <b>the herd</b> and <b>real vet+med spend</b>, each indexed to 100 in 2010. The gap between them is spend per head. <b>Fourteen of the fifteen herds are smaller than three years ago &mdash; only Czechia grew</b>, and Hungary, Poland and Czechia did all their ten-year growth before 2020. <b>No volume growth is available anywhere in 2027</b> &mdash; but in six markets the green line still climbs away from the grey.</div>
   <div class="chart"><canvas id="c10"></canvas></div>
-  <div class="askbar"><b>The 2027 price call.</b> Every herd here is contracting, so the increase comes from price and spend per head, not volume. <b>Grow &mdash; Czechia, Portugal, Hungary, Poland, Ireland, Austria, T&uuml;rkiye:</b> real spend rose +18% to +66% while herds tightened. Take the full increase. <b>But size the prize honestly:</b> those six EU markets are <b>19% of EU vet+med spend &mdash; France alone is bigger than all six combined</b>, which is why the EU verdict on slide 12 is still defend. <b>Hold &mdash; Germany, Netherlands, Belgium, Italy, Spain:</b> spend steady, herds not. Price carries the number. <b>Erode &mdash; France, Romania:</b> &minus;23% and &minus;33%. Defend share, do not lead on price. <b>United States (slides 4&ndash;7):</b> record margin absorbs price &mdash; front-load to January, keep 2028 flexible.</div>
-  <div class="foot">HERD: FAOSTAT, ALL CATTLE, DAIRY+BEEF, ANNUAL TO 2024 &middot; SPEND: EUROSTAT EAA &ldquo;VETERINARY EXPENSES&rdquo; = VET SERVICES + MEDICINES, ALL LIVESTOCK NOT CATTLE ALONE, TO 2025 &middot; BOTH LINES INDEXED TO 100 IN 2010 ON ONE SHARED SCALE (60&ndash;170), DOTTED LINE = 100, DOT = LATEST YEAR &middot; SPEND DEFLATED BY EURO-AREA HICP (APPROX. FOR NON-EURO PL/RO/CZ/HU) &middot; HERD 3 YRS = 2021&rarr;2024, SAME SIGN ON A 5-YEAR WINDOW FOR ALL FIFTEEN &middot; A 3-YEAR REAL SPEND FIGURE IS NOT SHOWN: THE 2022&ndash;23 INFLATION SPIKE FLIPS ITS SIGN WITH THE BASE YEAR &middot; SHARE-OF-SPEND WEIGHTS FROM 2025 LEVELS, 13 MEMBER STATES, UK EXCLUDED &middot; *UK SPEND SERIES ENDS 2020 &middot; &dagger;NO SPEND SOURCE FOR T&Uuml;RK&#304;YE &middot; EU ROWS = 90% OF THE EU27 HERD &middot; US IS ON A DIFFERENT SPEND SOURCE (USDA ERS, $/COW) AND IS NOT COMPARABLE HERE</div>
+  <div class="askbar"><b>The 2027 price call.</b> Every herd here is contracting, so the increase comes from price and spend per head, not volume. <b>Grow &mdash; Czechia, Portugal, Hungary, Poland, Ireland, Austria:</b> real spend rose +18% to +66% while herds tightened. Take the full increase. <b>But size the prize honestly:</b> those six are <b>19% of EU vet+med spend &mdash; France alone is bigger than all six combined</b>, which is why the EU verdict on slide 12 is still defend. <b>Hold &mdash; Germany, Netherlands, Belgium, Italy, Spain:</b> spend steady, herds not. Price carries the number. <b>Erode &mdash; France, Romania:</b> &minus;23% and &minus;33%. Defend share, do not lead on price. <b>T&uuml;rkiye is not an EU market</b> and is not in the Eurostat accounts &mdash; largest herd on the page, the only decade of herd growth, no spend series at all. Grow it, and get the visibility. <b>United States (slides 4&ndash;7):</b> record margin absorbs price &mdash; front-load to January, keep 2028 flexible.</div>
+  <div class="foot">HERD: FAOSTAT, ALL CATTLE, DAIRY+BEEF, ANNUAL TO 2024 &middot; SPEND: EUROSTAT EAA &ldquo;VETERINARY EXPENSES&rdquo; = VET SERVICES + MEDICINES, ALL LIVESTOCK NOT CATTLE ALONE, TO 2025 &middot; BOTH LINES INDEXED TO 100 IN 2010; EVERY ROW USES THE SAME INDEX-POINTS-PER-PIXEL (84 POINTS FULL HEIGHT) BUT IS CENTRED ON ITS OWN DATA, SO SLOPES ARE COMPARABLE ACROSS ROWS; DOTTED LINE = 100, DOT = LATEST YEAR; SHADED GAP = REAL SPEND PER HEAD, GREEN WHERE SPEND OUTRUNS THE HERD &middot; SPEND DEFLATED BY EURO-AREA HICP (APPROX. FOR NON-EURO PL/RO/CZ/HU) &middot; HERD 3 YRS = 2021&rarr;2024, SAME SIGN ON A 5-YEAR WINDOW FOR ALL FIFTEEN &middot; A 3-YEAR REAL SPEND FIGURE IS NOT SHOWN: THE 2022&ndash;23 INFLATION SPIKE FLIPS ITS SIGN WITH THE BASE YEAR &middot; SHARE-OF-SPEND WEIGHTS FROM 2025 LEVELS, 13 MEMBER STATES, UK EXCLUDED &middot; *UK SPEND SERIES ENDS 2020 &middot; &dagger;NO SPEND SOURCE FOR T&Uuml;RK&#304;YE &middot; THE 13 EU MEMBER-STATE ROWS = 90% OF THE EU27 HERD; UK AND T&Uuml;RK&#304;YE ARE NOT EU AND ARE EXCLUDED FROM EVERY EU TOTAL &middot; US IS ON A DIFFERENT SPEND SOURCE (USDA ERS, $/COW) AND IS NOT COMPARABLE HERE</div>
 </section>
 
 <div id="nav"><button id="prev">&#8249;</button><span id="pg">1 / 5</span><button id="next">&#8250;</button></div>
@@ -748,7 +748,7 @@ function ch10(){
   const SX0=HX0, SX1=HX1;
   const L=HX1+18*k, R=250*k, W=W0-L-R, maxv=17.5, X=v=>L+W*v/maxv;
   const CH=W0-166*k, CS=W0-74*k, CT=W0-8*k;      // herd 3yr · M€ · spend 10yr
-  const Y0=2010, Y1=2025, IL=60, IH=170;         // shared time and index scale
+  const Y0=2010, Y1=2025;      // shared time axis; index scale is set in band()
   const HU_=0.66, u=H/(15+3*HU_), hu=u*HU_;
   const fs=Math.min(12.5*k,u*0.46), fn=Math.min(13*k,u*0.48);
   const bh=Math.min(17*k,u*0.46), sh=Math.min(30*k,u*0.86);
@@ -763,21 +763,41 @@ function ch10(){
   x.fillText('VET+MED M€',CS,T-9*k);
   x.fillText('SPEND, 10 YRS',CT,T-9*k);
   mono(x,Math.min(9*k,u*0.33),600);x.textAlign='left';x.fillStyle=DMR;
-  x.fillText('BOTH INDEXED, 2010 = 100, ONE SHARED SCALE · DOTTED LINE = 100',HX0,T-21*k);
+  x.fillText('BOTH INDEXED, 2010 = 100 · SAME SCALE IN EVERY ROW · SHADED GAP = SPEND PER HEAD',HX0,T-21*k);
 
-  // one sparkline: values indexed to 100, common year axis, faint 100 baseline
-  function spark(x0,x1,cy,ser,y0,col,alpha,drawBase){
-    const px=y=>x0+(x1-x0)*(y-Y0)/(Y1-Y0), py=v=>cy+sh/2-sh*(v-IL)/(IH-IL);
-    if(drawBase){x.strokeStyle=BASE;x.lineWidth=1*k;x.setLineDash([2*k,3*k]);
-      x.beginPath();x.moveTo(x0,py(100));x.lineTo(x1,py(100));x.stroke();x.setLineDash([]);}
-    if(!ser)return;
-    x.strokeStyle=col;x.globalAlpha=alpha;x.lineWidth=1.5*k;
-    x.beginPath();ser.forEach((v,i)=>{const X_=px(y0+i),Y_=py(v);i?x.lineTo(X_,Y_):x.moveTo(X_,Y_);});
-    x.stroke();
-    x.fillStyle=col;
-    x.beginPath();x.arc(px(y0+ser.length-1),py(ser[ser.length-1]),2.2*k,0,7);x.fill();
-    x.globalAlpha=1;
-    return px;
+  // Each row keeps the SAME units-per-pixel (so slopes stay comparable across
+  // countries) but is centred on its own data, instead of wasting the row on an
+  // axis range no single country uses. Dotted line = 100 in every row.
+  const SPAN=84;
+  function band(x0,x1,cy,hser,sser,s0,gcol,alpha){
+    const all=hser.concat(sser||[]);
+    const c=(Math.min.apply(null,all)+Math.max.apply(null,all))/2, lo=c-SPAN/2;
+    const px=y=>x0+(x1-x0)*(y-Y0)/(Y1-Y0), py=v=>cy+sh/2-sh*(v-lo)/SPAN;
+    x.strokeStyle=BASE;x.lineWidth=1*k;x.setLineDash([2*k,3*k]);
+    x.beginPath();x.moveTo(x0,py(100));x.lineTo(x1,py(100));x.stroke();x.setLineDash([]);
+    if(sser){
+      // fill the gap between the two lines — that area IS spend per head
+      const n=Math.min(hser.length,sser.length-(Y0-s0));
+      for(let i=0;i<n-1;i++){
+        const j=i+(Y0-s0);
+        if(j<0||j+1>=sser.length)continue;
+        const up=sser[j]>=hser[i];
+        x.fillStyle=up?gcol:RED;x.globalAlpha=0.40*alpha;
+        x.beginPath();
+        x.moveTo(px(Y0+i),py(hser[i]));   x.lineTo(px(Y0+i+1),py(hser[i+1]));
+        x.lineTo(px(Y0+i+1),py(sser[j+1]));x.lineTo(px(Y0+i),py(sser[j]));
+        x.closePath();x.fill();
+      }
+      x.globalAlpha=1;
+    }
+    const line=(ser,y0,col,w)=>{
+      x.strokeStyle=col;x.globalAlpha=alpha;x.lineWidth=w*k;
+      x.beginPath();ser.forEach((v,i)=>{const X_=px(y0+i),Y_=py(v);i?x.lineTo(X_,Y_):x.moveTo(X_,Y_);});
+      x.stroke();
+      x.fillStyle=col;x.beginPath();
+      x.arc(px(y0+ser.length-1),py(ser[ser.length-1]),2.2*k,0,7);x.fill();x.globalAlpha=1;};
+    line(hser,Y0,HRD,1.5);
+    if(sser)line(sser,s0,gcol,1.8);
   }
 
   let y=T;
@@ -809,8 +829,7 @@ function ch10(){
     if(ref===2)col=AMB;
     mono(x,fn,700);x.textAlign='right';x.fillStyle=ref===1?DMR:DIM;
     x.fillText(NAMES[cc]||cc,NW,cy+fn*0.34);
-    spark(HX0,HX1,cy,hidx,Y0,HRD,ref===1?0.4:0.95,true);
-    spark(SX0,SX1,cy,sidx,s0,gcol,ref===1?0.4:0.95,false);
+    band(HX0,HX1,cy,hidx,sidx,s0,gcol,ref===1?0.45:1);
     if(!sidx){mono(x,Math.min(9.5*k,u*0.35),600);x.textAlign='right';x.fillStyle=DMR;
       x.fillText('no spend data',HX1,cy+sh*0.48);}
     x.fillStyle=col;x.globalAlpha=ref===1?0.35:0.75;
