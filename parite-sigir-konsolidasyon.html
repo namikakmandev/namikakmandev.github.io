@@ -90,7 +90,7 @@ footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--line);color:v
   <span><i style="background:var(--s2)"></i>Dairy cows</span>
   <span><i style="background:var(--s3)"></i>Milk produced</span>
 </div>
-<figure><svg id="c1" viewBox="0 0 940 330" role="img" aria-label="EU27 cattle, dairy cows and milk production indexed to 2015 equals 100"></svg>
+<figure><svg id="c1" viewBox="0 0 940 384" role="img" aria-label="EU27 cattle, dairy cows and milk production indexed to 2015 equals 100"></svg>
 <figcaption>EU, 27 member states, 2015–2024. Each series indexed to its own 2015 value = 100. Türkiye is excluded here: Eurostat publishes no farm milk series for it.</figcaption></figure>
 <p>Milk per cow is the mechanism, and it is not a rounding effect. In <b>Italy</b> yield per cow rose 34.6%, in <b>Poland</b> 31.9%, in <b>Lithuania</b> 31.6%, in <b>Germany</b> 23.4%. Only Hungary (+0.5%), Bulgaria (+2.8%) and Romania (+5.9%) stood still.</p>
 
@@ -100,7 +100,7 @@ footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--line);color:v
   <span><i style="background:var(--neutral)"></i>2015</span>
   <span><i style="background:var(--s3)"></i>2024</span>
 </div>
-<figure><svg id="c2" viewBox="0 0 940 470" role="img" aria-label="Milk yield per cow by country, 2015 versus 2024"></svg>
+<figure><svg id="c2" viewBox="0 0 940 524" role="img" aria-label="Milk yield per cow by country, 2015 versus 2024"></svg>
 <figcaption>Kilograms of raw cows' milk per dairy cow per year, by member state, 2015 and 2024. Derived as farm milk production ÷ dairy cows — both from the tables named in the sources below.</figcaption></figure>
 
 <h2>3 · WHO IS REBUILDING, WHO IS LIQUIDATING</h2>
@@ -109,7 +109,7 @@ footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--line);color:v
   <span><i style="background:var(--s2)"></i>Pipeline growing</span>
   <span><i style="background:var(--s1)"></i>Pipeline shrinking</span>
 </div>
-<figure><svg id="c3" viewBox="0 0 940 470" role="img" aria-label="Change in replacement ratio by country, 2015 to 2025"></svg>
+<figure><svg id="c3" viewBox="0 0 940 524" role="img" aria-label="Change in replacement ratio by country, 2015 to 2025"></svg>
 <figcaption>Change in the replacement ratio, percentage points, 2015 → 2025. Replacement ratio = (heifers 1–2 years not for slaughter + heifers 2 years and over not for slaughter) ÷ cows × 100. Positive means the breeding pipeline is growing relative to the cow herd. Greece (595,000 head) and Croatia (418,000) top the chart on small bases — read them as direction, not as scale.</figcaption></figure>
 <p><b>Poland is the outlier that matters</b> — Greece and Croatia move more but carry a twelfth of the cattle. Its herd grew 7.4% while its breeding pipeline grew 28.1%, taking its replacement ratio from 40.9 to 57.7 — the highest in the EU. That is a market building capacity while its neighbours run theirs down. The Netherlands (−34.4% breeding heifers) and Denmark (−33.7%) are doing the reverse, and Hungary grew its herd 6.0% while cutting breeding stock 31.5%, which is growth with nothing behind it.</p>
 
@@ -123,7 +123,7 @@ footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--line);color:v
   <span><i style="background:var(--s2)"></i>Value pool grew</span>
   <span><i style="background:var(--s1)"></i>Value pool shrank</span>
 </div>
-<figure><svg id="c4" viewBox="0 0 940 470" role="img" aria-label="Real change in cattle and milk output value by country, 2015 to 2024"></svg>
+<figure><svg id="c4" viewBox="0 0 940 524" role="img" aria-label="Real change in cattle and milk output value by country, 2015 to 2024"></svg>
 <figcaption>Real change in cattle and milk output value, 2015 → 2024, per cent. Computed as (1 + real change in output value per head) × (1 + change in cattle numbers) − 1. Output value is Eurostat EAA items AM111000 live cattle and AM121000 milk, deflated by euro-area HICP (×1.2603 over the period). Türkiye is absent: Eurostat publishes no economic accounts for it.</figcaption></figure>
 
 <h2>6 · PRICING IMPLICATIONS BY MARKET</h2>
@@ -198,10 +198,18 @@ function show(ev,html){tip.innerHTML=html;tip.style.opacity=1;
   tip.style.top=Math.max(ev.clientY-r.height-12,8)+'px'}
 function hide(){tip.style.opacity=0}
 function hov(node,html){node.addEventListener('mousemove',e=>show(e,html));node.addEventListener('mouseleave',hide)}
+/* every chart carries its own heading: a screenshot of the chart alone must still
+   say which market and which period it covers */
+function head(svg,t,sub){
+  el(svg,'text',{x:0,y:16,fill:'#f5efe6',style:'font:600 15px "IBM Plex Sans",sans-serif'}).textContent=t;
+  el(svg,'text',{x:0,y:37,fill:'#8a7c62',style:'font:500 12px "IBM Plex Mono",monospace'}).textContent=sub;
+}
 
 /* 1 — indexed lines */
 (function(){
-  const svg=document.getElementById('c1'),W=940,H=330,L=46,R=178,T=16,B=32;
+  const svg=document.getElementById('c1'),W=940,H=384,L=46,R=178,T=70,B=32;
+  head(svg,'EU: the herd falls, the milk does not',
+        'European Union, 27 member states \u00b7 2015\u20132024 \u00b7 each series indexed to its own 2015 = 100');
   const yr=D.agg.years, idx=a=>a.map(v=>v/a[0]*100);
   const series=[{k:'Cattle, all',c:S1,v:idx(D.agg.cattle)},
                 {k:'Dairy cows',c:S2,v:idx(D.agg.cows)},
@@ -232,9 +240,11 @@ function hov(node,html){node.addEventListener('mousemove',e=>show(e,html));node.
 
 /* 2 — yield dumbbell */
 (function(){
-  const svg=document.getElementById('c2'),W=940,L=118,R=74,T=14;
+  const svg=document.getElementById('c2'),W=940,L=118,R=74,T=68;
+  head(svg,'Milk yield per cow, by member state',
+        'European Union \u00b7 2015 vs 2024 \u00b7 kg of raw cows\u2019 milk per dairy cow per year');
   const rows=D.rows.filter(r=>r.y24).sort((a,b)=>b.y24-a.y24);
-  const rh=(470-T-26)/rows.length;
+  const rh=(524-T-26)/rows.length;
   const hi=Math.ceil(Math.max(...rows.map(r=>r.y24))/1000)*1000;
   const X=v=>L+v/hi*(W-L-R);
   for(let g=0;g<=hi;g+=2000){
@@ -255,10 +265,12 @@ function hov(node,html){node.addEventListener('mousemove',e=>show(e,html));node.
 
 /* 3 — replacement ratio change, diverging */
 (function(){
-  const svg=document.getElementById('c3'),W=940,L=118,R=74,T=14;
+  const svg=document.getElementById('c3'),W=940,L=118,R=74,T=68;
+  head(svg,'Who is rebuilding the herd, who is running it down',
+        'EU and T\u00fcrkiye \u00b7 2015 \u2192 2025 \u00b7 change in breeding heifers per 100 cows, points');
   const rows=D.rows.filter(r=>r.r15&&r.r25).map(r=>({...r,d:+(r.r25-r.r15).toFixed(1)}))
                    .sort((a,b)=>b.d-a.d);
-  const rh=(470-T-26)/rows.length;
+  const rh=(524-T-26)/rows.length;
   const m=Math.ceil(Math.max(...rows.map(r=>Math.abs(r.d)))/5)*5;
   const X=v=>L+(v+m)/(2*m)*(W-L-R);
   for(let g=-m;g<=m;g+=5){
@@ -280,9 +292,11 @@ function hov(node,html){node.addEventListener('mousemove',e=>show(e,html));node.
 
 /* 4 — real value pool, diverging */
 (function(){
-  const svg=document.getElementById('c4'),W=940,L=118,R=84,T=14;
+  const svg=document.getElementById('c4'),W=940,L=118,R=84,T=68;
+  head(svg,'The value pool grew in 24 of 27 markets',
+        'European Union \u00b7 2015 \u2192 2024 \u00b7 real change in cattle + milk output value, constant euro');
   const rows=D.rows.filter(r=>r.pool!=null).sort((a,b)=>b.pool-a.pool);
-  const rh=(470-T-26)/rows.length;
+  const rh=(524-T-26)/rows.length;
   const lo=Math.floor(Math.min(...rows.map(r=>r.pool))/10)*10;
   const hi=Math.ceil(Math.max(...rows.map(r=>r.pool))/10)*10;
   const X=v=>L+(v-lo)/(hi-lo)*(W-L-R);
