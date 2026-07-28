@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Ingredient and the Medicine · US · EU · Türkiye · 1982–2026</title>
+<meta name="description" content="What a finished pharmaceutical sells for, against the price of the active ingredient inside it. Producer price indexes for the US, EU and Türkiye, built from BLS, Eurostat and TÜİK.">
+<style>
+  :root{
+    --bg:#0B1220; --card:#121B2C; --card2:#0F1726; --line:#1E2A40;
+    --ink:#E8EEF7; --ink2:#9FB0C8; --ink3:#64748B;
+    --blue:#2F9BFF; --green:#19C37D; --orange:#FF6500; --red:#F2545B; --violet:#A78BFA;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif;padding:32px 16px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .kicker{color:var(--blue);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  h1{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:6px 0 8px}
+  .sub{color:var(--ink2);max-width:820px}
+  .sub b{color:var(--ink)}
+  .scope{background:rgba(255,101,0,.07);border:1px solid rgba(255,101,0,.35);border-radius:12px;
+         padding:12px 16px;margin:18px 0 0;font-size:13.5px;color:var(--ink2)}
+  .scope b{color:var(--orange)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:22px 0 18px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .tile .lab{font-size:11.5px;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .tile .val{font-size:29px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+  .tile .note{font-size:12.5px;color:var(--ink3);margin-top:3px}
+  .val.blue{color:var(--blue)} .val.green{color:var(--green)} .val.orange{color:var(--orange)}
+  .val.red{color:var(--red)} .val.violet{color:var(--violet)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  .chart-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .chart-title{font-weight:700;font-size:17px}
+  .chart-sub{color:var(--ink3);font-size:12.5px}
+  .read{color:var(--ink2);font-size:13.5px;margin:6px 0 12px}
+  .read b{color:var(--ink)}
+  canvas{display:block;width:100%;height:auto}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12.5px;color:var(--ink2);margin-top:10px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .foot{color:var(--ink3);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;margin-top:12px;line-height:1.7}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{color:var(--ink3);text-transform:uppercase;font-size:11px;letter-spacing:.08em;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:8px 10px;text-align:right;border-bottom:1px solid rgba(30,42,64,.5);font-variant-numeric:tabular-nums}
+  h2{font-size:21px;font-weight:800;letter-spacing:-.01em;margin:34px 0 4px}
+  .h2sub{color:var(--ink2);font-size:13.5px;margin-bottom:14px}
+  .warn{background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--orange);
+        border-radius:10px;padding:14px 16px;font-size:13.5px;color:var(--ink2);margin-top:14px}
+  .warn b{color:var(--ink)}
+  .srcs{font-size:12.5px;color:var(--ink2);line-height:1.75}
+  .srcs b{color:var(--ink)}
+  .sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:10px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--ink3)}
+  .outcome{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+  .oc{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .oc .mkt{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--ink3)}
+  .oc .act{font-size:18px;font-weight:800;margin:6px 0 6px;letter-spacing:-.01em}
+  .oc .why{font-size:13px;color:var(--ink2)}
+  .oc .fals{font-size:12.5px;color:var(--ink3);margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  .oc.us{border-left:3px solid var(--blue)} .oc.eu{border-left:3px solid var(--green)}
+  .oc.tr{border-left:3px solid var(--orange)}
+  a{color:var(--blue)}
+  @media(max-width:640px){h1{font-size:24px} .tile .val{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">United States · European Union · Türkiye · Producer prices</div>
+  <h1>The ingredient and the medicine</h1>
+  <p class="sub">A veterinary medicine is an <b>active pharmaceutical ingredient</b> that someone has
+  formulated, filled and licensed. The farm-side studies on this site ask what a kilo of beef buys in feed.
+  This one asks the same question one link up the chain: <b>what a finished medicine sells for, against the
+  price of the active ingredient inside it</b> — and whether the two have come apart.</p>
+
+  <div class="scope"><b>What this measures, and what it does not.</b> No statistical agency publishes a
+  veterinary-only producer price index. Every BLS product line that could be checked is labelled
+  <span class="mono">for Human Use</span>; Eurostat and TÜİK publish no veterinary split at all. So these are
+  the <b>whole pharmaceutical industry</b> — the cost structure a veterinary manufacturer sits inside, not its
+  own price book. Where a therapeutic class close to a livestock portfolio exists, it is shown separately and
+  labelled as the proxy it is.</div>
+
+  <div class="tiles">
+    <div class="tile"><div class="lab">US · ingredient · 1982→2026</div><div class="val green">−44.8%</div>
+      <div class="note">real, CPI-deflated (NAICS 325411)</div></div>
+    <div class="tile"><div class="lab">US · finished dose · 1982→2026</div><div class="val orange">+145.1%</div>
+      <div class="note">real, CPI-deflated (NAICS 325412)</div></div>
+    <div class="tile"><div class="lab">EU · both sides · 2010→2023</div><div class="val blue">−19%</div>
+      <div class="note">real; ingredient −18.6%, finished −19.8%</div></div>
+    <div class="tile"><div class="lab">Türkiye · parity · 2010→2026</div><div class="val red">−51.3%</div>
+      <div class="note">output price ÷ imported input price</div></div>
+  </div>
+
+  <h2>The United States: the input got cheaper, the output did not</h2>
+  <div class="h2sub">Both series deflated by CPI-U and indexed to June 1982 = 100. Monthly, 528 months.</div>
+
+  <div class="card">
+    <div class="chart-head">
+      <div><div class="chart-title">US: active ingredient vs finished dose, in real terms, 1982–2026</div>
+      <div class="chart-sub">BLS producer price indexes, deflated by CPI-U, both indexed to Jun 1982 = 100</div></div>
+    </div>
+    <div class="read">Over 44 years the price of bulk active ingredient <b>fell 44.8% in real terms</b> while the
+    price of the finished preparation <b>rose 145.1%</b>. <b>The gap between the two lines is the entire story
+    of this study.</b> It opened steadily from the mid-1980s, widened fastest between 2009 and 2019, and has
+    been narrowing since 2020 — the finished index has given back about 12% in real terms since its 2020 peak.</div>
+    <canvas id="c1"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--green)"></i>Active ingredient — medicinal &amp; botanical manufacturing</span>
+      <span><i class="dot" style="background:var(--orange)"></i>Finished dose — pharmaceutical preparation manufacturing</span>
+    </div>
+    <div class="foot">US only · real, CPI-U deflated · Jun 1982 = 100 · annual means of monthly data ·
+      largest single-month moves: ingredient +12.4% Jun 2008, finished +9.8% Mar 1998 — both economic, no BLS survey redesign spans them</div>
+  </div>
+
+  <div class="card">
+    <div class="chart-head">
+      <div><div class="chart-title">US: which side actually moves the ratio?</div>
+      <div class="chart-sub">Variance decomposition of month-on-month log changes, 527 changes</div></div>
+    </div>
+    <div class="read">Before calling this a pricing story, check which side swings. <b>65.8% of the movement in
+    the ratio comes from the ingredient side</b>, not the finished side. The finished index grinds; the
+    ingredient index is where the volatility lives — so a manufacturer watching its own output price is
+    watching the quieter half of its own margin.</div>
+    <canvas id="c2"></canvas>
+    <div class="foot">US only · share of variance in the ratio's log change attributable to each side, net of covariance ·
+      n = 527 monthly changes, Jun 1982 – Jun 2026</div>
+  </div>
+
+  <h2>The closest thing to a livestock portfolio</h2>
+  <div class="h2sub">Antiparasitics, anti-infectives and biologicals dominate what is sold into livestock.
+  These BLS classes still include human products — they are a proxy, not a veterinary index.</div>
+
+  <div class="card">
+    <div class="chart-head">
+      <div><div class="chart-title">US: two therapeutic classes closest to a livestock book, in real terms</div>
+      <div class="chart-sub">Each indexed to 100 at its own first observation — spans differ, so levels are not comparable across lines</div></div>
+    </div>
+    <div class="read">Anti-infectives and antiparasitics rose <b>51.4% in real terms since 2001</b>, peaking in
+    2019 and falling every year since. Biologicals — the vaccine end — are almost <b>flat: +8.9% real across 35
+    years</b>. <b>The pricing power in this industry has never been in the vaccine line.</b></div>
+    <canvas id="c3"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--violet)"></i>Antiparasitics &amp; anti-infectives (WPU063808), 2001→</span>
+      <span><i class="dot" style="background:var(--blue)"></i>Biologicals incl. vaccines (PCU325414325414), 1991→</span>
+    </div>
+    <div class="foot">US only · real, CPI-U deflated · each series = 100 at its own start (2001 and 1991) ·
+      both classes cover human products as well as animal — no veterinary-only series is published</div>
+  </div>
+
+  <h2>All three markets — and they do not tell the same story</h2>
+  <div class="h2sub">Watch the shape, not the level: each market is on its own base and its own span.</div>
+
+  <div class="card">
+    <div class="chart-head">
+      <div><div class="chart-title">Ingredient-to-medicine, three markets on one window, 2010 = 100</div>
+      <div class="chart-sub">The common window all three markets actually cover — the US record runs to 1982, but the EU and Turkish ones do not</div></div>
+    </div>
+    <div class="read">On the same sixteen years, the three markets go three different ways.
+    <b>US +76.2%</b> — the spread kept opening. <b>EU −1.4%</b> — ingredient and preparations moved together,
+    which is no spread at all. <b>Türkiye −53.0%</b> — the imported input ran away from the price a domestic
+    maker can charge. <b>One industry, one period, and the answer reverses depending on where you stand.</b></div>
+    <canvas id="c4"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--blue)"></i>US — finished ÷ ingredient, real</span>
+      <span><i class="dot" style="background:var(--green)"></i>EU — preparations ÷ basic products, real</span>
+      <span><i class="dot" style="background:var(--orange)"></i>Türkiye — domestic preparations ÷ imported input</span>
+    </div>
+    <div class="foot">All three indexed to 2010 = 100 on a common window · US and EU ratios are of real
+      (deflated) series, the Turkish ratio needs no deflator because inflation cancels in it ·
+      EU ends 2023 — Eurostat publishes no C212 beyond it, so no EU claim is made for 2024–2026</div>
+  </div>
+
+  <div class="card">
+    <div class="chart-head">
+      <div><div class="chart-title">Türkiye: the imported input against what a domestic maker can charge</div>
+      <div class="chart-sub">Both nominal TRY indexes, 2010 = 100, log scale — under this much inflation a linear axis shows nothing</div></div>
+    </div>
+    <div class="read">Since 2010 the domestic preparations index rose <b>1,547%</b> and the imported
+    pharmaceutical input index rose <b>3,281%</b>. The squeeze bottomed in <b>2022</b>, at roughly 70% below the
+    2010 parity, and has since clawed back about a quarter of that lost ground. <b>Its largest monthly jumps are
+    lira dates, not pharmaceutical ones</b> — +25.1% Dec 2021, +16.0% Aug 2018, +15.0% Jan 2019.</div>
+    <canvas id="c5"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--blue)"></i>Domestic preparations, TÜİK Yİ-ÜFE NACE 21.2</span>
+      <span><i class="dot" style="background:var(--orange)"></i>Imported pharma input, TÜİK Yurt Dışı ÜFE NACE 21</span>
+    </div>
+    <div class="foot">Türkiye only · nominal TRY, 2010 = 100, log scale · the ratio of the two is inflation-free,
+      the two levels are not and must never be read as real growth</div>
+  </div>
+
+  <h2>Before you quote any of this</h2>
+  <div class="h2sub">Three things that would make a number from this page wrong.</div>
+
+  <div class="card">
+    <div class="read"><b>1 · The ratio has no meaningful level — only changes.</b> The two US series sit on
+    different base months entirely: the finished index is based Jun 1981 = 100, the ingredient index Jun 1982 = 100.
+    Divide them and you get 4.89, which means nothing. Rebase both to a common date and the same "ratio" becomes:</div>
+    <table>
+      <tr><th>Both series rebased to</th><th>1990-01</th><th>2000-01</th><th>2010-01</th><th>2020-01</th><th>raw, as published</th></tr>
+      <tr><td>finished ÷ ingredient, Jun 2026</td><td>2.57</td><td>2.39</td><td>1.77</td><td>1.08</td><td>4.89</td></tr>
+    </table>
+    <div class="warn"><b>So:</b> nothing on this page is quoted as a level, a multiple or a margin. Every figure
+    is a change between two named dates, which is the only thing that survives a change of base.</div>
+
+    <div class="read" style="margin-top:22px"><b>2 · Türkiye has no measured domestic ingredient stage.</b>
+    TÜİK's NACE 21 index and its NACE 21.2 sub-index are the same series to within <b>0.185% on average</b>
+    (maximum 1.26%) across all 258 months. Division 21 is carried entirely by preparations — there is no
+    separately measured Turkish basic-pharmaceutical stage to compare against. That is why the Turkish
+    ingredient side is an <b>import price</b>, and why the Turkish result is partly a currency result.</div>
+
+    <div class="read" style="margin-top:22px"><b>3 · The EU sample is 14 annual observations.</b> Eurostat's
+    C212 preparations index does not begin until 2010 and is not published beyond 2023. Fourteen annual points
+    cannot support a statement about timing, lead or lag, and nothing here claims one. The EU variance
+    decomposition rests on 13 annual changes and is reported only as a direction.</div>
+  </div>
+
+  <h2>So what — three markets, three instructions</h2>
+  <div class="h2sub">The US is a volatility problem. The EU is a volume problem. Türkiye is a currency problem.</div>
+
+  <div class="outcome">
+    <div class="oc us">
+      <div class="mkt">United States · through 2027</div>
+      <div class="act">Price off the ingredient cycle, not the finished index.</div>
+      <div class="why">Two-thirds of the movement in the spread comes from the ingredient side, and the finished
+      index has been falling in real terms since 2020. Build the input cost curve into the price review calendar
+      rather than indexing to a finished-goods benchmark that moves later and less.</div>
+      <div class="fals">Would change if: the ingredient share of ratio variance drops below half over a rolling
+      ten years, or the finished index resumes real growth for eight consecutive quarters.</div>
+    </div>
+    <div class="oc eu">
+      <div class="mkt">European Union · through 2027</div>
+      <div class="act">Defend volume. There is no spread here to find.</div>
+      <div class="why">Ingredient and finished prices fell within 1.2 percentage points of each other in real
+      terms over fourteen years. A margin plan built on European price realisation has no support in the data;
+      one built on units and mix does.</div>
+      <div class="fals">Would change if: Eurostat resumes the C212 series and the two lines diverge by more than
+      5 points over three years. Until the series is republished past 2023, treat any EU pricing claim as unevidenced.</div>
+    </div>
+    <div class="oc tr">
+      <div class="mkt">Türkiye · now</div>
+      <div class="act">Hedge the input or localise it — the exposure is FX, not pharma.</div>
+      <div class="why">The parity halved since 2010 and its worst months are lira dates. With no measured
+      domestic ingredient stage, every unit sold carries an unhedged import cost. The 2022 trough has partly
+      recovered, which makes this the moment to fix terms rather than wait.</div>
+      <div class="fals">Would change if: the parity regains its 2010 level for four consecutive quarters, or
+      TÜİK begins publishing a domestic NACE 21.1 index showing local ingredient supply.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <div class="chart-title" style="margin-bottom:10px">Every source on this page</div>
+    <div class="srcs">
+      <div class="sg">
+        <div><b>United States</b>
+          <span>BLS producer price indexes via FRED, monthly:<br>
+          <span class="mono">PCU325411325411</span> — PPI by Industry: Medicinal and Botanical Manufacturing
+          (NAICS 325411, the bulk active-ingredient stage). Index Jun 1982 = 100. Jun 1982 → Jun 2026.<br>
+          <span class="mono">PCU325412325412</span> — PPI by Industry: Pharmaceutical Preparation Manufacturing
+          (NAICS 325412, finished dose). Index Jun 1981 = 100. Jun 1981 → Jun 2026.<br>
+          <span class="mono">WPU063808</span> — PPI by Commodity: Pharmaceuticals Affecting Parasitic and
+          Infective Diseases. Index Jun 2001 = 100. Jun 2001 → Jun 2026.<br>
+          <span class="mono">PCU325414325414</span> — PPI by Industry: Other Biological Product Manufacturing.
+          Index Jun 1991 = 100. Jun 1991 → Jun 2026.</span></div>
+        <div><b>European Union</b>
+          <span>Eurostat <span class="mono">sts_inpp_a</span>, industrial domestic producer price index,
+          geo EU27_2020, unit I15 (index, 2015 = 100), annual:<br>
+          <span class="mono">C211</span> — Manufacture of basic pharmaceutical products, 2005 → 2023.<br>
+          <span class="mono">C212</span> — Manufacture of pharmaceutical preparations, 2010 → 2023.<br>
+          The unit is pinned to I15 because the dataset also carries 2021 = 100 and 2010 = 100; mixing them
+          would silently blend three bases.
+          <br><b>Türkiye</b><br>
+          TÜİK via CBRT EVDS, monthly: <span class="mono">TP.TUFE1YI.T60</span> — Yİ-ÜFE, NACE 21.2 pharmaceutical
+          preparations, 2005-01 →. <span class="mono">TP.UFEYD16</span> — Yurt Dışı ÜFE, NACE 21, 2010-01 →.
+          <span class="mono">TP.TUFE1YI.T59</span> — Yİ-ÜFE, NACE 21, used only to test whether a separate
+          domestic ingredient stage exists.</span></div>
+        <div><b>Deflators</b>
+          <span>US: CPI-U, FRED <span class="mono">CPIAUCSL</span>. Euro area: HICP, FRED
+          <span class="mono">CP0000EZ19M086NEST</span>, annual mean. Türkiye: none — both Turkish series are
+          nominal TRY and inflation cancels in their ratio, which is the only Turkish figure quoted.
+          <br><b>Breaks &amp; limits</b><br>
+          No survey redesign is documented across any series shown. The US CPI has no observation for
+          October 2025; that month is dropped from the deflated series. EU coverage ends 2023.
+          <br><b>What is missing</b><br>
+          A veterinary-only price index, in every one of the three markets. Volumes — these are prices only,
+          so nothing here says how much was sold.</span></div>
+      </div>
+      <div class="foot" style="text-transform:none;letter-spacing:0;font-size:12.5px;margin-top:16px">
+        All series are fetched by <span class="mono">scripts/fetch.py</span> from
+        <span class="mono">data-sources.json</span> and committed to the repository. Every figure on this page is
+        recomputed by <span class="mono">scripts/analyse_vetapi.py</span> from
+        <span class="mono">data/vetapi-us.json</span>, <span class="mono">data/vetapi-eu.json</span>,
+        <span class="mono">data/vetapi-tr.json</span> and <span class="mono">data/eu-hicp.json</span>, and written to
+        <span class="mono">data/vetapi-derived.json</span>. Data cut-off: June 2026 (EU: 2023).
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const D={"us":{"api":{"1982":99.5,"1983":98.13,"1984":89.85,"1985":85.39,"1986":82.06,"1987":79.66,"1988":80.08,"1989":80.84,"1990":77.91,"1991":80.03,"1992":79.15,"1993":81.51,"1994":82.53,"1995":82.23,"1996":80.26,"1997":81.1,"1998":81.09,"1999":83.36,"2000":83.26,"2001":78.5,"2002":73.31,"2003":72.99,"2004":70.05,"2005":66.87,"2006":64.96,"2007":65.11,"2008":69.68,"2009":77.03,"2010":79.16,"2011":76.74,"2012":75.75,"2013":72.61,"2014":72.48,"2015":72.67,"2016":70.67,"2017":68.79,"2018":69.39,"2019":68.14,"2020":67.23,"2021":64.21,"2022":60.48,"2023":58.48,"2024":59.51,"2025":58.68,"2026":55.35},"prep":{"1982":101.72,"1983":107.31,"1984":110.74,"1985":115.66,"1986":122.47,"1987":127.1,"1988":130.83,"1989":135.16,"1990":137.24,"1991":140.56,"1992":145.15,"1993":146.78,"1994":145.37,"1995":144.52,"1996":142.6,"1997":142.19,"1998":156.79,"1999":157.9,"2000":156.85,"2001":156.5,"2002":159.99,"2003":164.39,"2004":167.94,"2005":170.86,"2006":173.93,"2007":175.84,"2008":180.38,"2009":192.65,"2010":200.31,"2011":202.94,"2012":209.87,"2013":218.47,"2014":228.25,"2015":245.62,"2016":262.14,"2017":271.74,"2018":276.06,"2019":279.53,"2020":280.34,"2021":271.28,"2022":259.12,"2023":258.71,"2024":256.81,"2025":250.82,"2026":246.81},"anti":{"2001":100.41,"2002":103.8,"2003":105.67,"2004":107.99,"2005":109.11,"2006":110.97,"2007":114.03,"2008":115.23,"2009":120.28,"2010":122.07,"2011":124.73,"2012":130.46,"2013":139.26,"2014":149.91,"2015":164.34,"2016":173.71,"2017":180.51,"2018":183.08,"2019":184.15,"2020":182.54,"2021":176.32,"2022":165.74,"2023":162.08,"2024":159.21,"2025":156.12,"2026":152.31},"bio":{"1991":100.13,"1992":101.42,"1993":101.08,"1994":98.44,"1995":98.1,"1996":96.39,"1997":95.11,"1998":97.13,"1999":102.91,"2000":100.7,"2001":105.6,"2002":106.24,"2003":101.52,"2004":102.26,"2005":109.01,"2006":111.18,"2007":111.66,"2008":110.09,"2009":113.35,"2010":113.34,"2011":113.09,"2012":113.55,"2013":106.11,"2014":104.8,"2015":110.04,"2016":113.63,"2017":110.82,"2018":110.34,"2019":114.38,"2020":116.23,"2021":117.15,"2022":112.06,"2023":112.94,"2024":111.49,"2025":111.05,"2026":109.57}},"eu":{"api":{"2010":100.0,"2011":98.24,"2012":97.31,"2013":94.48,"2014":93.69,"2015":95.32,"2016":91.4,"2017":90.01,"2018":89.19,"2019":89.87,"2020":86.46,"2021":82.6,"2022":83.39,"2023":81.36},"prep":{"2010":100.0,"2011":94.06,"2012":91.95,"2013":91.01,"2014":91.18,"2015":92.58,"2016":93.19,"2017":91.96,"2018":89.3,"2019":89.57,"2020":87.5,"2021":85.12,"2022":81.7,"2023":80.22}},"tr":{"par":{"2010":100.69,"2011":100.98,"2012":95.5,"2013":61.28,"2014":50.34,"2015":48.58,"2016":47.05,"2017":45.07,"2018":40.06,"2019":37.16,"2020":34.91,"2021":34.99,"2022":29.77,"2023":38.44,"2024":44.32,"2025":45.37,"2026":47.3},"dom":{"2010":95.36,"2011":91.92,"2012":84.12,"2013":83.04,"2014":83.31,"2015":85.58,"2016":92.34,"2017":103.15,"2018":117.05,"2019":145.23,"2020":167.64,"2021":204.88,"2022":332.13,"2023":643.42,"2024":995.44,"2025":1237.94,"2026":1559.9},"imp":{"2010":94.71,"2011":91.05,"2012":88.63,"2013":136.81,"2014":165.56,"2015":176.63,"2016":196.45,"2017":228.93,"2018":296.41,"2019":390.66,"2020":482.72,"2021":594.3,"2022":1106.53,"2023":1678.89,"2024":2244.59,"2025":2733.45,"2026":3296.49}}};
+const C={ink:'#E8EEF7',ink2:'#9FB0C8',ink3:'#64748B',line:'#1E2A40',
+         blue:'#2F9BFF',green:'#19C37D',orange:'#FF6500',red:'#F2545B',violet:'#A78BFA'};
+
+function setup(id,h){
+  const cv=document.getElementById(id); if(!cv) return null;
+  const k=window.devicePixelRatio||1, W=cv.clientWidth||900;
+  cv.width=W*k; cv.height=h*k; cv.style.height=h+'px';
+  const x=cv.getContext('2d'); x.scale(k,k);
+  x.clearRect(0,0,W,h); return {x,W,H:h};
+}
+const num=(o)=>Object.keys(o).map(Number).sort((a,b)=>a-b);
+
+// generic line chart over {year: value} series
+function lines(id,series,opts){
+  opts=opts||{}; const g=setup(id,opts.h||330); if(!g) return; const {x,W,H}=g;
+  const L=52,R=16,T=16,B=30, pw=W-L-R, ph=H-T-B;
+  let xs=[],vs=[];
+  series.forEach(s=>{const ks=num(s.d); xs=xs.concat(ks); ks.forEach(k=>vs.push(s.d[k]));});
+  const x0=Math.min(...xs), x1=Math.max(...xs);
+  let v0=opts.min!==undefined?opts.min:Math.min(...vs), v1=opts.max!==undefined?opts.max:Math.max(...vs);
+  const log=!!opts.log;
+  const pad=(v1-v0)*0.08; if(!log){v0-=pad;v1+=pad;}
+  const tx=v=>L+(v-x0)/(x1-x0||1)*pw;
+  const ty=v=>log ? T+ph-(Math.log(v)-Math.log(v0))/(Math.log(v1)-Math.log(v0))*ph
+                  : T+ph-(v-v0)/(v1-v0||1)*ph;
+
+  // gridlines
+  x.strokeStyle=C.line; x.fillStyle=C.ink3; x.font='11px system-ui'; x.lineWidth=1;
+  const ticks=opts.ticks||(log?[100,300,1000,3000]:5);
+  const tv=Array.isArray(ticks)?ticks:Array.from({length:ticks},(_,i)=>v0+(v1-v0)*i/(ticks-1));
+  tv.forEach(v=>{ if(v<v0||v>v1) return; const y=ty(v);
+    x.beginPath(); x.moveTo(L,y); x.lineTo(L+pw,y); x.stroke();
+    x.textAlign='right'; x.fillText(opts.fmt?opts.fmt(v):Math.round(v),L-8,y+4); });
+  // baseline at 100 where relevant
+  if(opts.base100 && 100>=v0 && 100<=v1){ const y=ty(100);
+    x.strokeStyle='rgba(159,176,200,.45)'; x.setLineDash([4,4]);
+    x.beginPath(); x.moveTo(L,y); x.lineTo(L+pw,y); x.stroke(); x.setLineDash([]); }
+  // x labels
+  x.fillStyle=C.ink3; x.textAlign='center';
+  const step=Math.max(1,Math.round((x1-x0)/8));
+  for(let y=Math.ceil(x0);y<=x1;y+=step) x.fillText(y,tx(y),H-10);
+
+  series.forEach(s=>{
+    const ks=num(s.d);
+    x.strokeStyle=s.c; x.lineWidth=s.w||2.4; x.beginPath();
+    ks.forEach((k,i)=>{ const X=tx(k),Y=ty(s.d[k]); i?x.lineTo(X,Y):x.moveTo(X,Y); });
+    x.stroke();
+    const last=ks[ks.length-1];
+    x.fillStyle=s.c; x.beginPath(); x.arc(tx(last),ty(s.d[last]),3.5,0,7); x.fill();
+  });
+}
+
+// 1 — US ingredient vs finished, real
+lines('c1',[{d:D.us.api,c:C.green},{d:D.us.prep,c:C.orange}],{base100:true,h:340});
+
+// 2 — variance decomposition, a single stacked bar
+(function(){
+  const g=setup('c2',132); if(!g) return; const {x,W}=g;
+  const L=16,R=16,pw=W-L-R,y=44,h=34, share=0.658;
+  x.fillStyle=C.green; x.fillRect(L,y,pw*share,h);
+  x.fillStyle=C.orange; x.fillRect(L+pw*share,y,pw*(1-share),h);
+  x.fillStyle='#0B1220'; x.font='700 13px system-ui'; x.textAlign='center';
+  x.fillText('65.8%',L+pw*share/2,y+22);
+  x.fillText('34.2%',L+pw*share+pw*(1-share)/2,y+22);
+  x.fillStyle=C.ink2; x.font='12.5px system-ui'; x.textAlign='left';
+  x.fillText('Ingredient side (NAICS 325411)',L,y-12);
+  x.textAlign='right';
+  x.fillText('Finished dose (325412)',L+pw,y-12);
+  x.fillStyle=C.ink3; x.font='11.5px system-ui'; x.textAlign='center';
+  x.fillText('share of the ratio’s month-on-month variance, net of covariance · n = 527',L+pw/2,y+h+24);
+})();
+
+// 3 — therapeutic proxies
+lines('c3',[{d:D.us.anti,c:C.violet},{d:D.us.bio,c:C.blue}],{base100:true,h:300});
+
+// 4 — three markets, finished ÷ ingredient, on the common 2010 window
+(function(){
+  const ratio=(a,b)=>{const o={}; num(a).forEach(y=>{ if(b[y]&&y>=2010) o[y]=a[y]/b[y]; });
+    const ks=num(o), f=o[ks[0]]; const r={}; ks.forEach(y=>r[y]=+(o[y]/f*100).toFixed(2)); return r;};
+  lines('c4',[{d:ratio(D.us.prep,D.us.api),c:C.blue},
+              {d:ratio(D.eu.prep,D.eu.api),c:C.green},
+              {d:ratio(D.tr.dom,D.tr.imp),c:C.orange}],{base100:true,h:330});
+})();
+
+// 5 — Türkiye, log scale
+lines('c5',[{d:D.tr.dom,c:C.blue},{d:D.tr.imp,c:C.orange}],
+      {log:true,h:320,min:80,max:4000,ticks:[100,300,1000,3000],fmt:v=>v});
+</script>
+</body>
+</html>
