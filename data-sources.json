@@ -64,8 +64,8 @@
       "fred_ids": [
         "PCU325414325414", "PCU3254143254141", "PCU3254143254143",
         "PCU3254123254122", "PCU3254123254124", "PCU3254123254126",
-        "WPU063801", "WPU063809", "WPU063810", "WPU063811",
-        "WPU06380801", "WPU06380802", "PCU3254113254111"
+        "WPU06380803", "WPU06380804", "WPU06380805", "WPU06380806",
+        "WPU06380807", "WPU0638080", "WPU06380201", "WPU06380101"
       ],
       "source": "Discovery only — FRED series headers plus a candidate-id probe",
       "note": "MODE=discover only. A guessed FRED id returns an HTML error page, not an error — probe before parsing, and read the Title off FRED rather than inferring it from the id. The BLS catalogue files return 403 to this fetcher."
@@ -83,6 +83,27 @@
       "out": "data/vetapi-us.json",
       "source": "BLS producer price indexes via FRED, titles read off FRED not inferred from the id: PCU325411325411 'PPI by Industry: Medicinal and Botanical Manufacturing' (index Jun 1982=100, monthly, 1982-06→) = the bulk active-ingredient stage; PCU325412325412 'PPI by Industry: Pharmaceutical Preparation Manufacturing' (index Jun 1981=100, monthly, 1981-06→) = the finished dose; WPU063808 'PPI by Commodity: Pharmaceuticals Affecting Parasitic and Infective Diseases' (index Jun 2001=100, monthly, 2001-06→); PCU325414325414 'PPI by Industry: Other Biological Product Manufacturing' (index Jun 1991=100, monthly, 1991-06→) = vaccines and biologicals; CPIAUCSL to deflate",
       "note": "THE TWO SPINE SERIES SIT ON DIFFERENT BASE MONTHS — Jun 1982 and Jun 1981. Their raw ratio therefore has no interpretable level at all; only its change between two dates means anything. BLS publishes NO veterinary-only price index: every product line that could be checked is labelled 'for Human Use'. WPU063808 (antiparasitics and anti-infectives) and PCU325414325414 (biologicals/vaccines) are the closest therapeutic proxies to a livestock portfolio, and they still cover human products too."
+    },
+    {
+      "name": "vetprice-classes",
+      "provider": "fred",
+      "series": {
+        "all_preparations": "WPU0638",
+        "neoplasm_endocrine": "WPU063801",
+        "cns_sense": "WPU063802",
+        "cardiovascular": "WPU063803",
+        "respiratory": "WPU063804",
+        "digestive_gu": "WPU063805",
+        "skin": "WPU063806",
+        "vitamin_nutrient": "WPU063807",
+        "parasitic_infective": "WPU063808",
+        "antibiotics_broad_medium": "WPU06380802",
+        "api_input": "PCU325411325411",
+        "cpi": "CPIAUCSL"
+      },
+      "out": "data/vetprice-classes.json",
+      "source": "BLS producer price indexes by commodity via FRED, monthly, every title read off FRED rather than inferred from the id. WPU0638 pharmaceutical preparations (aggregate) and its eight therapeutic classes WPU063801–WPU063808, all index Jun 2001=100 and running Jun 2001→Jun 2026; WPU06380802 broad and medium spectrum antibiotics, index Dec 2009=100, Dec 2009→Jun 2026; PCU325411325411 medicinal and botanical manufacturing (the active-ingredient input), index Jun 1982=100; CPIAUCSL to deflate",
+      "note": "WPU063801–08 is the COMPLETE set — 063809, 063810 and 063811 were probed and do not exist, so no class is silently dropped. WPU06380802 is a sub-line of 063808 and starts eight years later, so it is never compared to the others over their full span. These are commodity indexes covering human and veterinary products together; BLS publishes no veterinary-only line. Index numbers, not quantities — only changes between dates are meaningful, and the antibiotic line sits on a different base month from the rest."
     },
     {
       "name": "vetapi-eu",
