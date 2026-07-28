@@ -321,6 +321,81 @@
       "out": "data/probe-owid-chicken-stocks.json",
       "source": "FAOSTAT via Our World in Data",
       "note": "PROBE round 3. Last slug guess before this is declared unavailable on OWID."
+    },
+    {
+      "name": "probe-tr-dairy-cows",
+      "enabled": false,
+      "study": "5 — dairy vs suckler split, TR",
+      "provider": "eurostat",
+      "dataset": "apro_mt_lscatl",
+      "params": {
+        "geo": "TR",
+        "animals": "A2300F",
+        "month": "M11_M12"
+      },
+      "out": "data/probe-tr-dairy-cows.json",
+      "source": "Eurostat",
+      "note": "PROBE round 4, REAL fetch not discovery: a dimension catalogue lists TR whether or not TR has values in it."
+    },
+    {
+      "name": "probe-eu-dairy-cows",
+      "enabled": false,
+      "study": "5 — dairy vs suckler split, EU",
+      "provider": "eurostat",
+      "dataset": "apro_mt_lscatl",
+      "params": {
+        "geo": "EU27_2020",
+        "animals": "A2300F",
+        "month": "M11_M12"
+      },
+      "out": "data/probe-eu-dairy-cows.json",
+      "source": "Eurostat",
+      "note": "PROBE round 4. A2300G is the non-dairy counterpart; one animal per entry because the parser only splits on geo."
+    },
+    {
+      "name": "probe-tr-bovine-imports",
+      "enabled": false,
+      "study": "3 — is Türkiye's herd growth breeding or buying?",
+      "provider": "eurostat",
+      "dataset": "apro_mt_pann",
+      "params": {
+        "geo": "TR",
+        "meat": "B1000",
+        "meatitem": "IMP"
+      },
+      "out": "data/probe-tr-bovine-imports.json",
+      "source": "Eurostat",
+      "note": "PROBE round 4. The only candidate trade series found so far; OWID has none that resolves."
+    },
+    {
+      "name": "probe-tr-eaa-vet",
+      "enabled": false,
+      "study": "2 — does Türkiye publish agricultural cost accounts after all?",
+      "provider": "eurostat",
+      "dataset": "aact_eaa01",
+      "params": {
+        "geo": "TR",
+        "am_item": "AM205000",
+        "unit": "MIO_NAC"
+      },
+      "out": "data/probe-tr-eaa-vet.json",
+      "source": "Eurostat",
+      "note": "PROBE round 4. Round 3 hit HTTP 413 unfiltered, which is a query-size limit, NOT evidence of absence."
+    },
+    {
+      "name": "probe-eu-feed-cost",
+      "enabled": false,
+      "study": "2 — feed as the non-negotiable line to rank the others against",
+      "provider": "eurostat",
+      "dataset": "aact_eaa01",
+      "params": {
+        "geo": "EU27_2020",
+        "am_item": "AM206000",
+        "unit": "MIO_EUR"
+      },
+      "out": "data/probe-eu-feed-cost.json",
+      "source": "Eurostat",
+      "note": "PROBE round 4."
     }
   ]
 }
