@@ -207,7 +207,7 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
 </section>
 
 <section class="slide">
-  <div class="kick">9 &middot; SO WHAT &mdash; AND WHAT I AM ASKING FOR</div>
+  <div class="kick">11 &middot; SO WHAT &mdash; AND WHAT I AM ASKING FOR</div>
   <h2>Spend follows the margin. The margin is late in its cycle.</h2>
   <div class="read">The link from producer economics to producer spending is no longer an assumption. <b>It is measured &mdash; and it points at a timing decision.</b></div>
   <ul class="pts cols">
@@ -216,6 +216,14 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
     <li>What is still open, and the ask<span><b>Which products move, and whether our own sales follow the same curve.</b> Two to three weeks with the livestock commercial teams: map our sales through the last two downturns against this ratio, and rank the portfolio by what a producer defers first. <b>What I need from you is an introduction to the livestock lead.</b></span></li>
   </ul>
   <div class="foot">DIRECTION WELL SUPPORTED, TIMING NOT &middot; PARITY IS A RATIO OF INDEXES &mdash; NOT A QUANTITY &middot; US SPEND DATA IS COW-CALF ONLY</div>
+</section>
+
+<section class="slide">
+  <div class="kick">10 &middot; WHAT IT MEANS &middot; MARKET BY MARKET</div>
+  <h2>Three markets. Three different problems.</h2>
+  <div class="read">Same cycle everywhere &mdash; but the herd, the spending behaviour and therefore the commercial risk are not the same. <b>Read each column top to bottom.</b></div>
+  <div class="chart"><canvas id="c9"></canvas></div>
+  <div class="foot">HERD: FAOSTAT &middot; SPEND SENSITIVITY = CORRELATION OF REAL VET SPEND PER HEAD WITH PRODUCER MARGIN &middot; NO PER-HEAD COSTS PUBLISHED FOR TR</div>
 </section>
 
 <div id="nav"><button id="prev">&#8249;</button><span id="pg">1 / 5</span><button id="next">&#8250;</button></div>
@@ -386,6 +394,19 @@ function ch1(){
   mono(x,26*k,700);x.textAlign='right';x.fillText('184',X(e.t)-13*k,Y(e.v)-14*k);
   mono(x,17*k,700);x.fillStyle=PR()?'#a4600f':'rgba(255,176,86,.95)';x.textAlign='right';
   x.fillText('13 MONTHS HERE →',X(pa)-13*k,T+H-30*k);
+  // how the two lines relate, stated on the chart
+  const bx=L+16*k, by=T+44*k, bw=330*k, bh=76*k;
+  x.fillStyle=PR()?'rgba(0,0,0,.04)':'rgba(11,9,6,.82)';
+  x.strokeStyle=PR()?'#bbb':'rgba(245,239,230,.22)';x.lineWidth=1.2*k;
+  x.beginPath();x.rect(bx,by,bw,bh);x.fill();x.stroke();
+  mono(x,12*k,700);x.textAlign='left';x.fillStyle=PR()?'#a4600f':C.amber;
+  x.fillText('MARGIN vs HERD SIZE',bx+12*k,by+20*k);
+  mono(x,14*k,700);x.fillStyle=PR()?'#111':C.ink;
+  x.fillText('\u2212 0.47',bx+12*k,by+43*k);
+  x.fillText('+ 0.31',bx+12*k,by+63*k);
+  mono(x,12*k,500);x.fillStyle=C.dimmer;
+  x.fillText('same year \u00b7 scarcity makes the margin',bx+92*k,by+43*k);
+  x.fillText('after 3 years \u00b7 the herd rebuilds',bx+92*k,by+63*k);
 }
 
 function ch2(){
@@ -590,7 +611,87 @@ function ch8(){
   mono(x,14*k,600);x.fillStyle=C.dimmer;x.textAlign='left';
   x.fillText('2008 = 100',L+6*k,T+18*k);
 }
-function render(){[ch0,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8].forEach(f=>{try{f()}catch(e){}});}
+function ch9(){
+  const cv=document.getElementById('c9');const [x,W0,H0,k]=fit(cv);
+  const cols=[
+    {n:'US',c:C.amber,herd:-34,herdT:'87m',hd:'down',
+     r:0.70,rl:'strongly cyclical',pool:'+4%',poolT:'17-yr real pool',
+     v:'TIME THE PRICE MOVE',vs:'spend moves with the margin \u2014 and the margin is late in its cycle',vc:'#c98a2e'},
+    {n:'EU',c:C.blue,herd:-33,herdT:'72m',hd:'down',
+     r:0.00,rl:'flat, not cyclical',pool:'\u22125%',poolT:'20-yr real pool',
+     v:'DEFEND THE VOLUME',vs:'spend per head ignores the cycle \u2014 the shrinking herd is the whole risk',vc:'#8aa0d8'},
+    {n:'T\u00dcRK\u0130YE',c:C.red,herd:-6,herdT:'17m',hd:'up',
+     r:null,rl:'no published data',pool:'n/a',poolT:'not measurable',
+     v:'THE GROWTH MARKET',vs:'the only herd still growing \u2014 and the only spend we cannot yet see',vc:'#7fb069'}];
+  const M=14*k, gap=18*k, cw=(W0-2*M-2*gap)/3, top=8*k, ch=H0-top-6*k;
+  cols.forEach(function(d,i){
+    const X0=M+i*(cw+gap);
+    // panel
+    x.fillStyle='rgba(203,191,168,.05)';x.strokeStyle='rgba(203,191,168,.16)';x.lineWidth=1.4*k;
+    x.beginPath();x.rect(X0,top,cw,ch);x.fill();x.stroke();
+    // market name
+    mono(x,26*k,700);x.textAlign='left';x.fillStyle=d.c;x.fillText(d.n,X0+18*k,top+38*k);
+    let y=top+64*k;
+    // --- row 1: herd
+    mono(x,12*k,700);x.fillStyle=C.dimmer;x.fillText('HOW MANY ANIMALS',X0+18*k,y);
+    const ay=y+38*k, ax=X0+26*k;
+    x.strokeStyle=d.hd==='up'?'#7fb069':C.red;x.lineWidth=5*k;x.lineCap='round';
+    x.beginPath();
+    if(d.hd==='up'){x.moveTo(ax,ay+18*k);x.lineTo(ax+22*k,ay-16*k);}
+    else{x.moveTo(ax,ay-16*k);x.lineTo(ax+22*k,ay+18*k);}
+    x.stroke();
+    x.beginPath();
+    if(d.hd==='up'){x.moveTo(ax+22*k,ay-16*k);x.lineTo(ax+12*k,ay-14*k);x.lineTo(ax+22*k,ay-4*k);}
+    else{x.moveTo(ax+22*k,ay+18*k);x.lineTo(ax+12*k,ay+16*k);x.lineTo(ax+22*k,ay+6*k);}
+    x.closePath();x.fillStyle=d.hd==='up'?'#7fb069':C.red;x.fill();
+    x.lineCap='butt';
+    mono(x,30*k,700);x.fillStyle=d.hd==='up'?'#8cc077':C.red;x.textAlign='left';
+    x.fillText(d.herd+'%',ax+40*k,ay+10*k);
+    mono(x,13*k,500);x.fillStyle=C.dimmer;
+    x.fillText('vs its own peak \u00b7 now '+d.herdT,X0+18*k,ay+38*k);
+    y=ay+62*k;
+    // --- row 2: spend sensitivity gauge
+    mono(x,12*k,700);x.fillStyle=C.dimmer;x.textAlign='left';
+    x.fillText('SPEND vs MARGIN',X0+18*k,y);
+    const gx=X0+18*k, gw=cw-36*k, gy=y+24*k, gh=12*k;
+    mono(x,12*k,500);x.fillStyle=C.dimmer;x.textAlign='right';x.fillText(d.rl,gx+gw,y);
+    x.fillStyle='rgba(203,191,168,.13)';x.fillRect(gx,gy,gw,gh);
+    if(d.r===null){
+      x.fillStyle='rgba(203,191,168,.10)';x.fillRect(gx,gy,gw,gh);
+    }else{
+      x.fillStyle=d.r>0.4?'#c98a2e':'rgba(203,191,168,.35)';
+      x.fillRect(gx,gy,gw*Math.max(0.02,d.r),gh);
+      mono(x,22*k,700);x.textAlign='left';x.fillStyle=d.r>0.4?C.amber:C.dim;
+      x.fillText('r = '+d.r.toFixed(2),gx,gy+gh+30*k);
+    }
+    y=gy+gh+54*k;
+    // --- row 3: the pool
+    mono(x,12*k,700);x.fillStyle=C.dimmer;x.textAlign='left';
+    x.fillText('THE MONEY IN THE MARKET',X0+18*k,y);
+    mono(x,26*k,700);
+    x.fillStyle=d.pool.charAt(0)==='+'?'#8cc077':(d.pool==='n/a'?C.dimmer:C.red);
+    x.fillText(d.pool,X0+18*k,y+34*k);
+    const pwd=x.measureText(d.pool).width;
+    mono(x,13*k,500);x.fillStyle=C.dimmer;x.textAlign='left';
+    x.fillText(d.poolT,X0+18*k+pwd+14*k,y+34*k);
+    // --- verdict pill at the bottom
+    const py=top+ch-84*k;
+    x.fillStyle=d.vc;x.globalAlpha=0.18;x.fillRect(X0+14*k,py,cw-28*k,34*k);x.globalAlpha=1;
+    x.strokeStyle=d.vc;x.lineWidth=1.6*k;x.strokeRect(X0+14*k,py,cw-28*k,34*k);
+    mono(x,15*k,700);x.textAlign='center';x.fillStyle=d.vc;
+    x.fillText(d.v,X0+cw/2,py+23*k);
+    // verdict explanation, wrapped
+    x.font='500 '+Math.round(13*k)+'px "IBM Plex Sans",sans-serif';
+    x.fillStyle=C.dim;x.textAlign='left';
+    const words=d.vs.split(' ');let line='',ly=py+56*k;
+    words.forEach(function(w){
+      const t=line?line+' '+w:w;
+      if(x.measureText(t).width>cw-36*k){x.fillText(line,X0+18*k,ly);line=w;ly+=17*k;}
+      else line=t;});
+    if(line)x.fillText(line,X0+18*k,ly);
+  });
+}
+function render(){[ch0,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8,ch9].forEach(f=>{try{f()}catch(e){}});}
 const S=[...document.querySelectorAll('.slide')];let i=0;
 function go(n){i=Math.max(0,Math.min(S.length-1,n));
   S.forEach((s,j)=>s.classList.toggle('on',j===i));
