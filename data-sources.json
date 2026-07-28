@@ -282,41 +282,195 @@
       "note": "Key is GEO|ANIMAL. Candidate/EFTA geos are requested too — absent ones simply return no rows. Category start years differ by country; check before comparing endpoints."
     },
     {
-      "name": "probe-milk-pobta",
-      "enabled": false,
-      "provider": "eurostat",
-      "dataset": "apro_mk_pobta",
-      "params": {
-        "geo": "EU27_2020"
-      },
-      "out": "data/probe-milk-pobta.json",
-      "source": "Eurostat",
-      "note": "PROBE. Milk collected/products — dimension names unknown, discovery first."
-    },
-    {
-      "name": "probe-milk-farm",
-      "enabled": false,
+      "name": "milk-by-country",
       "provider": "eurostat",
       "dataset": "apro_mk_farm",
       "params": {
-        "geo": "EU27_2020"
+        "geo": [
+          "BE",
+          "BG",
+          "CZ",
+          "DK",
+          "DE",
+          "EE",
+          "IE",
+          "EL",
+          "ES",
+          "FR",
+          "HR",
+          "IT",
+          "CY",
+          "LV",
+          "LT",
+          "LU",
+          "HU",
+          "MT",
+          "NL",
+          "AT",
+          "PL",
+          "PT",
+          "RO",
+          "SI",
+          "SK",
+          "FI",
+          "SE",
+          "TR"
+        ],
+        "dairyprod": "D1110A",
+        "milkitem": "PRO"
       },
-      "out": "data/probe-milk-farm.json",
-      "source": "Eurostat",
-      "note": "PROBE. Milk production at farm level — alternative to pobta."
+      "split_dim": [
+        "geo"
+      ],
+      "out": "data/milk-by-country.json",
+      "source": "Eurostat apro_mk_farm — raw cows' milk from farm, 1000 t, by country",
+      "note": "Divide by dairy cows A2300F from cattle-by-country to get yield per cow. Milk is 1000 t, cows are 1000 head."
     },
     {
-      "name": "probe-eaa-full-items",
-      "enabled": false,
+      "name": "eaa-inputs-by-country",
       "provider": "eurostat",
       "dataset": "aact_eaa01",
       "params": {
-        "geo": "EU27_2020",
-        "unit": "MIO_EUR"
+        "geo": [
+          "BE",
+          "BG",
+          "CZ",
+          "DK",
+          "DE",
+          "EE",
+          "IE",
+          "EL",
+          "ES",
+          "FR",
+          "HR",
+          "IT",
+          "CY",
+          "LV",
+          "LT",
+          "LU",
+          "HU",
+          "MT",
+          "NL",
+          "AT",
+          "PL",
+          "PT",
+          "RO",
+          "SI",
+          "SK",
+          "FI",
+          "SE",
+          "TR"
+        ],
+        "unit": "MIO_EUR",
+        "am_item": [
+          "AM205000",
+          "AM206000"
+        ]
       },
-      "out": "data/probe-eaa-full-items.json",
-      "source": "Eurostat",
-      "note": "PROBE. Re-dump the full 157-item list with the raised cap, to pick the animal-output codes."
+      "split_dim": [
+        "geo",
+        "am_item",
+        "indic_agr"
+      ],
+      "out": "data/eaa-inputs-by-country.json",
+      "source": "Eurostat EAA — veterinary expenses and feed, by country",
+      "note": "Veterinary covers ALL LIVESTOCK, never cattle alone: a per-cattle-head figure from this is a proxy and must be labelled one. Nominal EUR — deflate with HICP before comparing years."
+    },
+    {
+      "name": "eaa-output-by-country",
+      "provider": "eurostat",
+      "dataset": "aact_eaa01",
+      "params": {
+        "geo": [
+          "BE",
+          "BG",
+          "CZ",
+          "DK",
+          "DE",
+          "EE",
+          "IE",
+          "EL",
+          "ES",
+          "FR",
+          "HR",
+          "IT",
+          "CY",
+          "LV",
+          "LT",
+          "LU",
+          "HU",
+          "MT",
+          "NL",
+          "AT",
+          "PL",
+          "PT",
+          "RO",
+          "SI",
+          "SK",
+          "FI",
+          "SE",
+          "TR"
+        ],
+        "unit": "MIO_EUR",
+        "am_item": [
+          "AM111000",
+          "AM121000"
+        ]
+      },
+      "split_dim": [
+        "geo",
+        "am_item",
+        "indic_agr"
+      ],
+      "out": "data/eaa-output-by-country.json",
+      "source": "Eurostat EAA — live cattle output value and milk output value, by country",
+      "note": "AM111000 IS cattle-specific, unlike the veterinary line. Nominal EUR."
+    },
+    {
+      "name": "slaughter-by-country",
+      "provider": "eurostat",
+      "dataset": "apro_mt_pann",
+      "params": {
+        "geo": [
+          "BE",
+          "BG",
+          "CZ",
+          "DK",
+          "DE",
+          "EE",
+          "IE",
+          "EL",
+          "ES",
+          "FR",
+          "HR",
+          "IT",
+          "CY",
+          "LV",
+          "LT",
+          "LU",
+          "HU",
+          "MT",
+          "NL",
+          "AT",
+          "PL",
+          "PT",
+          "RO",
+          "SI",
+          "SK",
+          "FI",
+          "SE",
+          "TR"
+        ],
+        "meat": "B1000",
+        "meatitem": "SLAUGHT"
+      },
+      "split_dim": [
+        "geo",
+        "unit"
+      ],
+      "out": "data/slaughter-by-country.json",
+      "source": "Eurostat apro_mt_pann — bovine slaughterings by country",
+      "note": "KG_HD is carcass weight per head: the direct efficiency measure. THS_HD head, THS_T tonnes."
     }
   ]
 }
