@@ -40,18 +40,15 @@ def fred_meta(sid):
     """FRED's plain-text export carries the series header — Title, Units, Frequency,
     Seasonal Adjustment — above the observations. A series id is not evidence of what
     it measures; this is. Keyless, unlike the BLS catalogue files (which return 403)."""
-    txt = get(f"https://fred.stlouisfed.org/data/{sid}.txt").decode("utf-8", "replace")
-    meta = {}
+    txt = get(f"https://fred.stlouisfed.org/data/{sid}.txt", timeout=30).decode(
+        "utf-8", "replace")
+    head = []
     for line in txt.splitlines():
         if re.match(r"^\s*\d{4}-\d{2}-\d{2}", line):
             break
-        if ":" in line:
-            k, v = line.split(":", 1)
-            k = k.strip().lower().replace(" ", "_")
-            if k in ("title", "series_id", "source", "release", "units",
-                     "frequency", "seasonal_adjustment", "last_updated"):
-                meta[k] = v.strip()
-    return meta
+        if line.strip():
+            head.append(line.strip()[:200])
+    return head[:12] or ["<no header lines before first observation>"]
 
 
 def _try(fn, arg):
