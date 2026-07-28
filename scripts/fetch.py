@@ -36,6 +36,24 @@ def get(url, timeout=120):
         return r.read()
 
 
+def fred_meta(sid):
+    """FRED's plain-text export carries the series header — Title, Units, Frequency,
+    Seasonal Adjustment — above the observations. A series id is not evidence of what
+    it measures; this is. Keyless, unlike the BLS catalogue files (which return 403)."""
+    txt = get(f"https://fred.stlouisfed.org/data/{sid}.txt").decode("utf-8", "replace")
+    meta = {}
+    for line in txt.splitlines():
+        if re.match(r"^\s*\d{4}-\d{2}-\d{2}", line):
+            break
+        if ":" in line:
+            k, v = line.split(":", 1)
+            k = k.strip().lower().replace(" ", "_")
+            if k in ("title", "series_id", "source", "release", "units",
+                     "frequency", "seasonal_adjustment", "last_updated"):
+                meta[k] = v.strip()
+    return meta
+
+
 def _try(fn, arg):
     """Probe one candidate without letting it kill the run. Reports span, not just ok."""
     try:
@@ -108,8 +126,14 @@ def eurostat(entry):
     qs = "".join(f"&{k}={v}" for k, v in entry.get("params", {}).items())
     j = json.loads(get(base + qs).decode())
     if MODE == "discover":
-        dims = {d: list(j["dimension"][d]["category"]["label"].items())[:40]
-                for d in j["id"]}
+        # A head-40 slice hides everything below it: a 359-category nace_r2 dimension
+        # buries the pharma codes. 'grep' pulls the ones actually being looked for.
+        rx = re.compile(entry.get("grep"), re.I) if entry.get("grep") else None
+        dims = {}
+        for d in j["id"]:
+            items = list(j["dimension"][d]["category"]["label"].items())
+            hits = [kv for kv in items if rx and (rx.search(kv[0]) or rx.search(kv[1]))]
+            dims[d] = {"n": len(items), "head": items[:12], "matches": hits[:40]}
         return {"_discover": {"dimension_ids": j["id"], "sizes": j["size"],
                               "categories": dims}}
     rows = _jsonstat(j)
@@ -218,8 +242,14 @@ def probe(entry):
                                      return the rows matching 'grep' (a regex)
     """
     found = {}
-    if entry.get("fred_ids"):
-        found["fred"] = {sid: _try(_fred_series, sid) for sid in entry["fred_ids"]}
+    for sid in entry.get("fred_ids") or []:
+        row = _try(_fred_series, sid)
+        if row["ok"]:
+            try:
+                row["meta"] = fred_meta(sid)   # what it actually measures, per FRED
+            except Exception as e:  # noqa: BLE001
+                row["meta"] = f"ERROR {type(e).__name__}: {str(e)[:100]}"
+        found.setdefault("fred", {})[sid] = row
     rx = re.compile(entry.get("grep", "."), re.I)
     for name, url in (entry.get("catalogs") or {}).items():
         try:

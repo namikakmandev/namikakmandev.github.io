@@ -63,11 +63,11 @@
       },
       "fred_ids": [
         "PCU325411325411", "PCU325412325412", "PCU3254123254121",
-        "PCU3254123254123", "PCU3254123254125", "PCU3254123254127",
-        "PCU3254123254129", "WPU0638", "WPU063807", "CPIAUCSL"
+        "PCU3254123254127", "WPU0638", "WPU063807", "WPU06380701",
+        "WPU063806", "WPU063805", "CPIAUCSL"
       ],
-      "source": "Discovery only — BLS's own PPI catalogue plus a FRED id probe",
-      "note": "MODE=discover only. A guessed FRED id returns an HTML error page, not an error — probe before parsing."
+      "source": "Discovery only — FRED series headers plus a candidate-id probe",
+      "note": "MODE=discover only. A guessed FRED id returns an HTML error page, not an error — probe before parsing, and read the Title off FRED rather than inferring it from the id. The BLS catalogue files return 403 to this fetcher."
     },
     {
       "name": "vetapi-us",
@@ -86,6 +86,7 @@
       "provider": "eurostat",
       "dataset": "sts_inpp_a",
       "params": { "geo": "EU27_2020" },
+      "grep": "^C?21|pharmac|Index,",
       "out": "data/vetapi-eu.json",
       "source": "Eurostat sts_inpp_a, industrial producer price index, EU27_2020",
       "note": "NACE 21.1 basic pharmaceutical products is the active-ingredient stage, 21.2 pharmaceutical preparations the finished dose. Run discovery first — the nace_r2 code spelling and which levels are published must be read off the source."
