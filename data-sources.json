@@ -48,7 +48,9 @@
     {
       "name": "eu-hicp",
       "provider": "fred",
-      "series": { "hicp": "CP0000EZ19M086NEST" },
+      "series": {
+        "hicp": "CP0000EZ19M086NEST"
+      },
       "out": "data/eu-hicp.json",
       "source": "Euro area HICP via FRED — deflator for any EUR money series"
     },
@@ -56,7 +58,9 @@
       "name": "us-cowcalf-costs",
       "provider": "csv",
       "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
-      "filters": { "Region": "U.S. total" },
+      "filters": {
+        "Region": "U.S. total"
+      },
       "group_col": "Item",
       "key_col": "Year",
       "value_col": "Value",
@@ -64,7 +68,6 @@
       "source": "USDA ERS commodity costs and returns, cow-calf",
       "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
     },
-
     {
       "name": "_probes-readme",
       "enabled": false,
@@ -125,7 +128,9 @@
       "study": "5 — dairy vs suckler: what is actually disappearing from the EU herd?",
       "provider": "eurostat",
       "dataset": "apro_mt_lscatl",
-      "params": { "geo": "EU27_2020" },
+      "params": {
+        "geo": "EU27_2020"
+      },
       "out": "data/probe-eu-cattle-survey.json",
       "source": "Eurostat livestock survey, cattle by category (Dec/Jun)",
       "note": "PROBE. Discovery needed for the animal-category dimension id and its codes."
@@ -136,7 +141,10 @@
       "study": "2 — which cost lines flex when margin compresses (EU side)",
       "provider": "eurostat",
       "dataset": "aact_eaa01",
-      "params": { "unit": "MIO_EUR", "geo": "EU27_2020" },
+      "params": {
+        "unit": "MIO_EUR",
+        "geo": "EU27_2020"
+      },
       "out": "data/probe-eu-eaa-items.json",
       "source": "Eurostat Economic Accounts for Agriculture — full am_item list",
       "note": "PROBE. Deliberately unfiltered on am_item: the goal is the catalogue of input lines sitting alongside AM205000 (veterinary)."
@@ -147,54 +155,102 @@
       "study": "1 and 5 — species mix and slaughter volume, EU",
       "provider": "eurostat",
       "dataset": "apro_mt_pann",
-      "params": { "geo": "EU27_2020" },
+      "params": {
+        "geo": "EU27_2020"
+      },
       "out": "data/probe-eu-slaughter.json",
       "source": "Eurostat annual slaughter statistics by species",
       "note": "PROBE. Existence and dimension names unverified."
     },
     {
-      "name": "probe-owid-pigs",
+      "name": "probe-owid-pig",
       "enabled": false,
-      "study": "1 — cross-species herd/flock counts",
+      "study": "1 — cross-species flock/herd counts",
       "provider": "owid",
-      "slug": "pigs-livestock-count-heads",
-      "entities": { "United States": "US", "European Union (27)": "EU", "Turkey": "TR" },
-      "out": "data/probe-owid-pigs.json",
-      "source": "FAOSTAT pig stocks via Our World in Data",
-      "note": "PROBE. Slug pattern copied from the working cattle slug."
+      "slug": "pig-livestock-count-heads",
+      "entities": {
+        "United States": "US",
+        "European Union (27)": "EU",
+        "Turkey": "TR"
+      },
+      "out": "data/probe-owid-pig.json",
+      "source": "FAOSTAT via Our World in Data",
+      "note": "PROBE round 2, singular form. Round 1 returned 404 for: pigs-livestock-count-heads, chickens-livestock-count-heads, live-cattle-imports, meat-imports. Do not retry those."
     },
     {
-      "name": "probe-owid-chickens",
+      "name": "probe-owid-chicken",
       "enabled": false,
-      "study": "1 — cross-species herd/flock counts",
+      "study": "1 — cross-species flock/herd counts",
       "provider": "owid",
-      "slug": "chickens-livestock-count-heads",
-      "entities": { "United States": "US", "European Union (27)": "EU", "Turkey": "TR" },
-      "out": "data/probe-owid-chickens.json",
-      "source": "FAOSTAT chicken stocks via Our World in Data",
-      "note": "PROBE. Slug unverified."
+      "slug": "chicken-livestock-count-heads",
+      "entities": {
+        "United States": "US",
+        "European Union (27)": "EU",
+        "Turkey": "TR"
+      },
+      "out": "data/probe-owid-chicken.json",
+      "source": "FAOSTAT via Our World in Data",
+      "note": "PROBE round 2, singular form. Round 1 returned 404 for: pigs-livestock-count-heads, chickens-livestock-count-heads, live-cattle-imports, meat-imports. Do not retry those."
     },
     {
-      "name": "probe-owid-live-cattle-imports",
+      "name": "probe-owid-poultry",
       "enabled": false,
-      "study": "3 — is Türkiye's herd growth breeding or buying?",
+      "study": "1 — cross-species flock/herd counts",
       "provider": "owid",
-      "slug": "live-cattle-imports",
-      "entities": { "Turkey": "TR", "United States": "US", "European Union (27)": "EU" },
-      "out": "data/probe-owid-live-cattle-imports.json",
-      "source": "FAOSTAT live cattle trade via Our World in Data",
-      "note": "PROBE. Slug is a guess; the whole of study 3 depends on finding a trade series."
+      "slug": "poultry-livestock-count-heads",
+      "entities": {
+        "United States": "US",
+        "European Union (27)": "EU",
+        "Turkey": "TR"
+      },
+      "out": "data/probe-owid-poultry.json",
+      "source": "FAOSTAT via Our World in Data",
+      "note": "PROBE round 2."
     },
     {
-      "name": "probe-owid-meat-imports",
+      "name": "probe-owid-meat-production",
       "enabled": false,
-      "study": "3 — import dependence, fallback if the live-animal slug does not exist",
+      "study": "1 — species mix by volume",
       "provider": "owid",
-      "slug": "meat-imports",
-      "entities": { "Turkey": "TR", "United States": "US", "European Union (27)": "EU" },
-      "out": "data/probe-owid-meat-imports.json",
-      "source": "FAOSTAT meat trade via Our World in Data",
-      "note": "PROBE. Slug unverified."
+      "slug": "meat-production-tonnes",
+      "entities": {
+        "United States": "US",
+        "European Union (27)": "EU",
+        "Turkey": "TR"
+      },
+      "out": "data/probe-owid-meat-production.json",
+      "source": "FAOSTAT via Our World in Data",
+      "note": "PROBE round 2."
+    },
+    {
+      "name": "probe-owid-meat-imports-t",
+      "enabled": false,
+      "study": "3 — TR import dependence",
+      "provider": "owid",
+      "slug": "meat-imports-tonnes",
+      "entities": {
+        "United States": "US",
+        "European Union (27)": "EU",
+        "Turkey": "TR"
+      },
+      "out": "data/probe-owid-meat-imports-t.json",
+      "source": "FAOSTAT via Our World in Data",
+      "note": "PROBE round 2. Study 3 has no confirmed trade source yet."
+    },
+    {
+      "name": "probe-owid-livestock-counts",
+      "enabled": false,
+      "study": "1 — single chart carrying several species",
+      "provider": "owid",
+      "slug": "livestock-counts",
+      "entities": {
+        "United States": "US",
+        "European Union (27)": "EU",
+        "Turkey": "TR"
+      },
+      "out": "data/probe-owid-livestock-counts.json",
+      "source": "FAOSTAT via Our World in Data",
+      "note": "PROBE round 2."
     }
   ]
 }

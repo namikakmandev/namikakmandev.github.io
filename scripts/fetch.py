@@ -103,7 +103,10 @@ def eurostat(entry):
     qs = "".join(f"&{k}={v}" for k, v in entry.get("params", {}).items())
     j = json.loads(get(base + qs).decode())
     if MODE == "discover":
-        dims = {d: list(j["dimension"][d]["category"]["label"].items())[:40]
+        # cap high enough to show a full item catalogue: at 40 the EAA input
+        # lines (AM2xxxxx) fell off the end and the dump looked like an
+        # output-only dataset
+        dims = {d: list(j["dimension"][d]["category"]["label"].items())[:500]
                 for d in j["id"]}
         return {"_discover": {"dimension_ids": j["id"], "sizes": j["size"],
                               "categories": dims}}
