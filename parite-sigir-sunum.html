@@ -255,7 +255,7 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
   <div class="read">All cattle &mdash; <b>dairy and beef combined</b> &mdash; per member state, 2024, with the ten-year change. <b>The decline is the north-west core; Spain and Poland are growing.</b> France and Ireland are the beef-heavy herds; Germany and the Netherlands are mostly dairy, so their fall is dairy restructuring more than the beef cycle.</div>
   <div class="chart"><canvas id="c10"></canvas></div>
   <div class="askbar"><b>Outcome for the EU plan:</b> the spend map agrees with the herd map &mdash; real vet spend over ten years is <b>up where herds hold or grow</b> (Poland +39%, Ireland +19%, Netherlands +11%, Belgium +10%) and <b>down where they shrink fastest</b> (France &minus;23%, Romania &minus;33%; Germany flat at &minus;4%). So: <b>push price where spend grows &mdash; PL, IE, Benelux; defend share in France; Germany takes price but not volume.</b></div>
-  <div class="foot">HERD: FAOSTAT, DAIRY+BEEF, TO 2024 &middot; SPEND: EUROSTAT EAA, ALL LIVESTOCK, 2025 LEVELS &middot; 10-YR SPEND CHANGE IN REAL TERMS, EURO-AREA HICP (APPROXIMATE FOR NON-EURO PL/RO) &middot; TOP 10 = 85% OF THE EU HERD</div>
+  <div class="foot">HERD: FAOSTAT, DAIRY+BEEF, TO 2024 &middot; SPEND: EUROSTAT EAA &ldquo;VETERINARY EXPENSES&rdquo; = VET SERVICES + MEDICINES COMBINED, ALL LIVESTOCK, 2025 LEVELS &middot; 10-YR CHANGE REAL, EURO-AREA HICP (APPROX. FOR NON-EURO PL/RO) &middot; TOP 10 = 85% OF THE EU HERD</div>
 </section>
 
 <section class="slide">
@@ -725,7 +725,9 @@ function ch9(){
 }
 function ch10(){
   const cv=document.getElementById('c10');const [x,W0,H0,k]=fit(cv);
-  const L=96*k,R=336*k,T=26*k,B=8*k,W=W0-L-R,H=H0-T-B;
+  const NAMES={FR:'France',DE:'Germany',IE:'Ireland',PL:'Poland',ES:'Spain',
+               IT:'Italy',NL:'Netherlands',BE:'Belgium',AT:'Austria',RO:'Romania'};
+  const L=172*k,R=336*k,T=26*k,B=8*k,W=W0-L-R,H=H0-T-B;
   const maxv=17.5, X=v=>L+W*v/maxv;
   const CH=W0-252*k, CS=W0-136*k, CT=W0-24*k;   // herd 10y · spend level · spend 10y
   const n=EUC.length, gap=H/n, bh=Math.min(30*k,gap*0.62);
@@ -733,13 +735,13 @@ function ch10(){
   x.textAlign='left';x.fillText('MILLION HEAD, 2024',L,T-8*k);
   x.textAlign='right';
   x.fillText('HERD 10-YR',CH,T-8*k);
-  x.fillText('VET SPEND M\u20ac',CS,T-8*k);
+  x.fillText('VET+MED M\u20ac',CS,T-8*k);
   x.fillText('SPEND 10-YR',CT,T-8*k);
   EUC.forEach(function(r,i){
     const cc=r[0], v=r[1], c10=r[2], sp=r[3], sp10=r[4], cy=T+gap*i+gap/2;
     const grow=c10>0, col=grow?'#7fb069':C.blue;
-    mono(x,16*k,700);x.textAlign='right';x.fillStyle=C.dim;
-    x.fillText(cc,L-14*k,cy+5*k);
+    mono(x,14*k,700);x.textAlign='right';x.fillStyle=C.dim;
+    x.fillText(NAMES[cc]||cc,L-14*k,cy+5*k);
     x.fillStyle=col;x.globalAlpha=grow?0.9:0.55;
     x.fillRect(L,cy-bh/2,X(v)-L,bh);x.globalAlpha=1;
     mono(x,14*k,700);x.textAlign='left';x.fillStyle=C.ink;
