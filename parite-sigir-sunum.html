@@ -219,9 +219,9 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
 </section>
 
 <section class="slide">
-  <div class="kick">10 &middot; WHAT IT MEANS &middot; MARKET BY MARKET</div>
-  <h2>Three markets. Three different problems.</h2>
-  <div class="read">Same cycle everywhere &mdash; but the herd, the spending behaviour and therefore the commercial risk are not the same. <b>Read each column top to bottom.</b></div>
+  <div class="kick">10 &middot; THE OUTCOME &middot; WHAT TO DO IN EACH MARKET</div>
+  <h2>Three markets. Three different instructions.</h2>
+  <div class="read">Same cycle everywhere, three different consequences. <b>The US is a timing problem. The EU is a volume problem. T&uuml;rkiye is a visibility problem.</b></div>
   <div class="chart"><canvas id="c9"></canvas></div>
   <div class="foot">HERD: FAOSTAT &middot; SPEND SENSITIVITY = CORRELATION OF REAL VET SPEND PER HEAD WITH PRODUCER MARGIN &middot; NO PER-HEAD COSTS PUBLISHED FOR TR</div>
 </section>
@@ -614,15 +614,18 @@ function ch8(){
 function ch9(){
   const cv=document.getElementById('c9');const [x,W0,H0,k]=fit(cv);
   const cols=[
-    {n:'US',c:C.amber,herd:-34,herdT:'87m',hd:'down',
+    {n:'US',c:C.amber,herd:-34,herdT:'87m \u00b7 bottom 2024',hd:'down',
      r:0.70,rl:'cyclical',pool:'+4%',poolT:'17-yr real pool',
-     v:'TIME THE PRICE MOVE',vs:'spend moves with the margin \u2014 and the margin is late in its cycle',vc:'#c98a2e'},
-    {n:'EU',c:C.blue,herd:-33,herdT:'72m',hd:'down',
+     v:'TIME THE PRICE MOVE',
+     vs:'2027 points up: the record margin still feeds spend per head, and the herd is bottoming. Phase the increase before the plateau breaks.',vc:'#c98a2e'},
+    {n:'EU',c:C.blue,herd:-33,herdT:'72m \u00b7 \u22121.4%/yr',hd:'down',
      r:0.00,rl:'flat',pool:'\u22125%',poolT:'20-yr real pool',
-     v:'DEFEND THE VOLUME',vs:'spend per head ignores the cycle \u2014 the shrinking herd is the whole risk',vc:'#8aa0d8'},
-    {n:'T\u00dcRK\u0130YE',c:C.red,herd:-6,herdT:'17m',hd:'up',
+     v:'DEFEND THE VOLUME',
+     vs:'2027 is not a bad year \u2014 it is the same year, ~1.5% smaller. No cycle upside, no cycle hit; the herd erodes regardless.',vc:'#8aa0d8'},
+    {n:'T\u00dcRK\u0130YE',c:C.red,herd:-6,herdT:'17m \u00b7 +2.4% 2024',hd:'up',
      r:null,rl:'no data',pool:'n/a',poolT:'not measurable',
-     v:'THE GROWTH MARKET',vs:'the only herd still growing \u2014 and the only spend we cannot yet see',vc:'#7fb069'}];
+     v:'GROW, AND GET VISIBILITY',
+     vs:'2027 is the only market where head count adds to volume \u2014 and the only one where we cannot see what producers spend.',vc:'#7fb069'}];
   const M=14*k, gap=18*k, cw=(W0-2*M-2*gap)/3, top=6*k, ch=H0-top-4*k;
   const R=f=>top+ch*f;                       // proportional rows, so nothing collides on short screens
   cols.forEach(function(d,i){
@@ -640,7 +643,7 @@ function ch9(){
       :(x.moveTo(ax+22*k,ay+16*k),x.lineTo(ax+12*k,ay+14*k),x.lineTo(ax+22*k,ay+4*k));
     x.closePath();x.fillStyle=up?'#7fb069':C.red;x.fill();x.lineCap='butt';
     mono(x,29*k,700);x.fillStyle=up?'#8cc077':C.red;x.fillText(d.herd+'%',ax+40*k,ay+10*k);
-    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText('vs its own peak \u00b7 now '+d.herdT,PX,R(0.40));
+    mono(x,12*k,500);x.fillStyle=C.dimmer;x.fillText('vs peak \u00b7 now '+d.herdT,PX,R(0.40));
     // --- spend vs margin
     mono(x,12*k,700);x.fillStyle=C.dimmer;x.textAlign='left';x.fillText('SPEND vs MARGIN',PX,R(0.50));
     mono(x,12*k,500);x.textAlign='right';x.fillText(d.rl,PX+cw-36*k,R(0.50));
@@ -655,22 +658,22 @@ function ch9(){
       mono(x,21*k,700);x.textAlign='left';x.fillStyle=C.dimmer;x.fillText('\u2014',gx,R(0.625));
     }
     // --- the money
-    mono(x,12*k,700);x.fillStyle=C.dimmer;x.fillText('THE MONEY IN THE MARKET',PX,R(0.715));
+    mono(x,12*k,700);x.fillStyle=C.dimmer;x.fillText('THE MONEY IN THE MARKET',PX,R(0.70));
     mono(x,25*k,700);
     x.fillStyle=d.pool.charAt(0)==='+'?'#8cc077':(d.pool==='n/a'?C.dimmer:C.red);
-    x.fillText(d.pool,PX,R(0.78));
+    x.fillText(d.pool,PX,R(0.762));
     const pw=x.measureText(d.pool).width;
-    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(d.poolT,PX+pw+14*k,R(0.78));
+    mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(d.poolT,PX+pw+14*k,R(0.762));
     // --- verdict
-    const py=R(0.815), ph=ch*0.058;
+    const py=R(0.795), ph=ch*0.055;
     x.fillStyle=d.vc;x.globalAlpha=0.18;x.fillRect(X0+14*k,py,cw-28*k,ph);x.globalAlpha=1;
     x.strokeStyle=d.vc;x.lineWidth=1.6*k;x.strokeRect(X0+14*k,py,cw-28*k,ph);
     mono(x,15*k,700);x.textAlign='center';x.fillStyle=d.vc;x.fillText(d.v,X0+cw/2,py+ph*0.68);
-    x.font='500 '+Math.round(12.5*k)+'px "IBM Plex Sans",sans-serif';
+    x.font='500 '+Math.round(11.8*k)+'px "IBM Plex Sans",sans-serif';
     x.fillStyle=C.dim;x.textAlign='left';
-    const words=d.vs.split(' ');let line='',ly=R(0.905);
+    const words=d.vs.split(' ');let line='',ly=R(0.885);
     words.forEach(function(w){const t=line?line+' '+w:w;
-      if(x.measureText(t).width>cw-36*k){x.fillText(line,PX,ly);line=w;ly+=ch*0.045;}else line=t;});
+      if(x.measureText(t).width>cw-36*k){x.fillText(line,PX,ly);line=w;ly+=ch*0.042;}else line=t;});
     if(line)x.fillText(line,PX,ly);
   });
 }
