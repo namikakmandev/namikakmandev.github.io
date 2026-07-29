@@ -284,8 +284,16 @@ def edgar(entry):
     MODE=discover: dump which revenue/cost/R&D/SG&A-flavoured concepts each filer
     actually tags, plus fiscal years covered — the parser is written against that.
     """
+    def get_sec(url):
+        # SEC's fair-access policy 403s any request whose User-Agent lacks a contact
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "namikakman-data-study/1.0 (akmannamik83@gmail.com)",
+            "Accept-Encoding": "identity"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return r.read()
+
     tick_map = {str(v["ticker"]).upper(): int(v["cik_str"])
-                for v in json.loads(get("https://www.sec.gov/files/company_tickers.json")
+                for v in json.loads(get_sec("https://www.sec.gov/files/company_tickers.json")
                                     .decode()).values()}
     hunt = re.compile(r"^(Revenue|RevenueFrom|CostOf|ResearchAndDevelopment"
                       r"|SellingGeneralAndAdministrative)", re.I)
@@ -294,7 +302,7 @@ def edgar(entry):
         cik = tick_map.get(tk.upper())
         if cik is None:
             raise RuntimeError(f"{tk}: not in SEC company_tickers.json")
-        facts = json.loads(get(
+        facts = json.loads(get_sec(
             f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json").decode())
         gaap = facts.get("facts", {}).get("us-gaap", {})
         if MODE == "discover":
