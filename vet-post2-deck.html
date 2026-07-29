@@ -81,7 +81,7 @@
       side by side. The answer explains a forty-year price divergence.</div>
   </div>
   <div class="chrome">
-    <div class="basis">BASIS · SEC EDGAR 10-K XBRL, FY2023–25 AVERAGES · HUMAN: PFIZER · LILLY · ABBVIE · BMS — ANIMAL: ZOETIS · ELANCO · PHIBRO · MERCK SHOWN, NOT POOLED</div>
+    <div class="basis">BASIS · SEC EDGAR 10-K XBRL, FY2023–25 AVERAGES · 4 HUMAN-PHARMA FILERS + 3 PURE-PLAY ANIMAL-HEALTH FILERS · ALL NAMED ON THE METHOD PAGE</div>
     <div class="prog"><div class="bar"><i style="width:11.1%"></i></div><div class="pg">1 / 9</div></div>
   </div>
 </div>
@@ -133,7 +133,9 @@
       <div class="t">Two clean groups</div>
       <div class="d"><b>Human:</b> Pfizer, Lilly, AbbVie, Bristol Myers Squibb.
         <b>Animal:</b> Zoetis, Elanco, Phibro — pure-play filers only. Merck (~9% animal
-        health) is shown but <b>pooled with neither group</b>.</div></div>
+        health) is shown but <b>pooled with neither group</b>. Animal-health bars are
+        shown <b>unattributed</b>: the finding is the group contrast, not any one
+        filer&#39;s margin. All figures re-derivable from the filings above.</div></div>
     <div class="cell warn"><div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3.5L22 20H2L12 3.5zM12 10v4.5"/><circle cx="12" cy="17.4" r=".9" fill="currentColor"/></svg></div>
       <div class="t">What COGS is not</div>
       <div class="d"><b>COGS is not the ingredient.</b> No filer splits API out of its
@@ -171,7 +173,7 @@
     repricing looks like in a P&amp;L.</b></div>
   <div class="chartwrap"><canvas id="c5" width="924" height="620"></canvas></div>
   <div class="chrome">
-    <div class="basis">SEC 10-K FILINGS, FY2023–25 AVG · SPREAD INSIDE ANIMAL HEALTH IS REAL: PETCARE-HEAVY ZOETIS 29% VS NUTRITION-HEAVY PHIBRO 69%</div>
+    <div class="basis">SEC 10-K FILINGS, FY2023–25 AVG · SPREAD INSIDE ANIMAL HEALTH IS REAL: 29% TO 69% ACROSS THE THREE FILERS — PETCARE AND NUTRITION ARE DIFFERENT BUSINESSES</div>
     <div class="prog"><div class="bar"><i style="width:55.6%"></i></div><div class="pg">5 / 9</div></div>
   </div>
 </div>
@@ -230,7 +232,7 @@
       <div class="d">10-K figures are worldwide consolidated. Nothing here is a
         US-market cost share.</div></div>
     <div class="cell warn"><div class="t">Heterogeneity is real</div>
-      <div class="d">Inside animal health, COGS runs 29% (Zoetis) to 69% (Phibro) —
+      <div class="d">Inside animal health, COGS runs 29% to 69% across the three filers —
         petcare and nutrition are different businesses sharing a label.</div></div>
     <div class="cell warn"><div class="t">Accounting seams</div>
       <div class="d">Filers switched revenue/R&amp;D tags mid-history (unioned, logged);
@@ -286,6 +288,15 @@ function ctx(id){const c=document.getElementById(id);const x=c.getContext('2d');
 
 const HUMAN=['LILLY','BMS','PFIZER','ABBVIE'], ANIMAL=['ZOETIS','ELANCO','PHIBRO'];
 
+// The three animal-health filers are named on the method and sources pages, but
+// their bars are not attributed: the finding is the group contrast, and a named
+// per-company margin chart is not what this post is for. Letters are assigned by
+// descending revenue, fixed across both charts so the reader can follow one filer
+// between them.
+const ANON={ZOETIS:'Animal filer A',ELANCO:'Animal filer B',PHIBRO:'Animal filer C',
+  BMS:'BMS',ABBVIE:'AbbVie'};
+const label=k=>ANON[k]||k.charAt(0)+k.slice(1).toLowerCase();
+
 // horizontal company bars for one metric; human blue, animal orange, Merck grey
 function companyBars(id, field, order){
   const {x,W,H}=ctx(id);
@@ -300,7 +311,7 @@ function companyBars(id, field, order){
     x.fillStyle=col;x.fillRect(L,y,tx(v)-L,h);
     x.fillStyle=col==='#B9C3D4'?P.ink3:P.ink2;
     x.font=(col==='#B9C3D4'?'600 ':'700 ')+'24px system-ui';x.textAlign='right';
-    x.fillText(k.charAt(0)+k.slice(1).toLowerCase(),gut,y+h*.74);
+    x.fillText(label(k),gut,y+h*.74);
     x.fillStyle=col==='#B9C3D4'?P.ink3:P.ink;x.font='800 25px system-ui';x.textAlign='left';
     x.fillText(v.toFixed(1)+'%',tx(v)+12,y+h*.74);
   });

@@ -154,6 +154,13 @@ medians, and stated.
 
 ## Posting notes
 
+- Post 2's charts show the three animal-health filers **unattributed** (Animal filer
+  A/B/C, letters fixed across both charts). They are still named on the method and
+  sources pages, so every figure remains re-derivable from the filings — but no
+  slide carries a named per-company margin bar. This is deliberate: the author works
+  in animal health, and the finding is the group contrast, not any one filer's P&L.
+  Do not re-attribute the bars.
+
 - Post 1's riskiest misreading ("costs fell → prices should fall") is answered by
   post 2 — keep the gap between posts short (≤1 week).
 - Do not quote employer-specific figures or single out any one company's margin.
