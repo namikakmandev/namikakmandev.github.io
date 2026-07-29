@@ -6,40 +6,39 @@ Every figure reproducible from `data/*.json` in the repository.
 
 ---
 
-## Post 1 — The Input Ledger
+## Post 1 — The Input Ledger (US)
 
 Your most important price is one you don't set.
 
-Every medicine — human or animal — starts as an active pharmaceutical ingredient.
-I pulled 44 years of its price from the US statistical agencies, and 16 years of
-Türkiye's imported-input price, and looked only at the cost side. Deliberately:
-selling prices are shaped by regulators, reference systems and rebates in every
-market, so I measured the one side of the ledger nobody administers.
+Every medicine — human or animal — starts as an active pharmaceutical
+ingredient. I pulled 44 years of its US price from the statistical agencies and
+looked only at the cost side. Deliberately: selling prices are list-basis and
+rebate-shaped, so I measured the one side of the ledger nobody administers.
 
 Three things the data says:
 
-1. The ingredient market is volatile — it moves 1.37× more month-to-month than
+1. The ingredient is a basket — bulk antibiotics, vitamins, hormones, alkaloids —
+   and its market is volatile: it moves 1.37× more month-to-month than
    finished-medicine prices. The swings in this industry live on the cost side.
 
-2. In Türkiye, 68% of a currency move lands in the imported input cost within the
-   same calendar month — and ~100% by the next. There is no warning period. A hedge
-   arranged after the move is a receipt, not a hedge.
+2. Shocks arrive inside a single month — the largest jump was +12.4% in June
+   2008, and nothing in the series gives advance warning. Procurement timing is
+   a margin lever, not admin.
 
-3. Which means cost management in pharma is a discipline, not an afterthought:
-   procurement timing, hedging horizon and price-review cadence are decisions the
-   input data can actually inform.
+3. Which is why cost management in pharma is a discipline: anchor price reviews
+   and purchasing to the input curve, because it moves first and hardest.
 
 But here's the thing: the powder is not the price.
 
 An active ingredient is one line in a P&L that also carries R&D, manufacturing,
-quality, pharmacovigilance and people. So the next post opens the other side of
-the ledger: what does a medicine's price actually pay for — and how differently do
-human and animal pharma companies answer that question? (Preview: one of them
-spends ~a quarter of every revenue dollar on R&D. The other doesn't — and the
-difference explains a 40-year price divergence.)
+quality and people. Next post opens the other side of the ledger: what does a
+medicine's price actually pay for — and how differently do human and animal
+pharma companies answer it? (Preview: one spends ~a fifth of every revenue
+dollar on R&D. The other doesn't — and the difference explains a forty-year
+price divergence.)
 
-All sources on the slides. Built from BLS, TÜİK and OECD series, all public,
-every figure a change between two named dates.
+All sources on the slides — BLS series, public, every figure a change between
+two named dates.
 
 ---
 
