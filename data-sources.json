@@ -179,6 +179,43 @@
       "out": "data/us-cowcalf-costs.json",
       "source": "USDA ERS commodity costs and returns, cow-calf",
       "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
+    },
+    {
+      "name": "pharma-pnl",
+      "provider": "edgar",
+      "tickers": {
+        "PFIZER": "PFE",
+        "MERCK": "MRK",
+        "LILLY": "LLY",
+        "ABBVIE": "ABBV",
+        "BMS": "BMY",
+        "ZOETIS": "ZTS",
+        "ELANCO": "ELAN",
+        "PHIBRO": "PAHC"
+      },
+      "concepts": {
+        "revenue": [
+          "RevenueFromContractWithCustomerExcludingAssessedTax",
+          "Revenues",
+          "SalesRevenueNet",
+          "SalesRevenueGoodsNet"
+        ],
+        "cogs": [
+          "CostOfGoodsAndServicesSold",
+          "CostOfRevenue",
+          "CostOfGoodsSold"
+        ],
+        "rnd": [
+          "ResearchAndDevelopmentExpense",
+          "ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
+        ],
+        "sga": [
+          "SellingGeneralAndAdministrativeExpense"
+        ]
+      },
+      "out": "data/pharma-pnl.json",
+      "source": "SEC EDGAR XBRL company facts (data.sec.gov), annual 10-K FY values. Human pharma: Pfizer, Merck, Lilly, AbbVie, Bristol Myers Squibb. Animal health: Zoetis, Elanco, Phibro. CIKs resolved from SEC's own ticker file at fetch time, concept names chosen from discovery, not guessed.",
+      "note": "Global consolidated figures, not US-only. Merck excluded from the 'pure human' read (~9% animal health) — flag if used. COGS is not API: no filer discloses ingredient share inside COGS. No reliable XBRL headcount tag — employee counts are out of scope."
     }
   ]
 }

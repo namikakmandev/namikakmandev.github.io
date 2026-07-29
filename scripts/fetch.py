@@ -273,8 +273,70 @@ def probe(entry):
     return {"_discover": found}
 
 
+def edgar(entry):
+    """SEC EDGAR XBRL company facts -> annual P&L ratios per company.
+
+    entry['tickers'] = {label: TICKER}. Tickers are resolved to CIKs via SEC's own
+    company_tickers.json — never hardcoded, they drift. entry['concepts'] maps each
+    output field to a list of candidate us-gaap concept names, first present wins
+    (filers tag revenue under different concepts; discovery shows which exist).
+
+    MODE=discover: dump which revenue/cost/R&D/SG&A-flavoured concepts each filer
+    actually tags, plus fiscal years covered — the parser is written against that.
+    """
+    tick_map = {str(v["ticker"]).upper(): int(v["cik_str"])
+                for v in json.loads(get("https://www.sec.gov/files/company_tickers.json")
+                                    .decode()).values()}
+    hunt = re.compile(r"^(Revenue|RevenueFrom|CostOf|ResearchAndDevelopment"
+                      r"|SellingGeneralAndAdministrative)", re.I)
+    out, disc = {}, {}
+    for label, tk in entry["tickers"].items():
+        cik = tick_map.get(tk.upper())
+        if cik is None:
+            raise RuntimeError(f"{tk}: not in SEC company_tickers.json")
+        facts = json.loads(get(
+            f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json").decode())
+        gaap = facts.get("facts", {}).get("us-gaap", {})
+        if MODE == "discover":
+            found = {}
+            for c, meta in gaap.items():
+                if not hunt.match(c):
+                    continue
+                yrs = sorted({d.get("fy") for u in (meta.get("units") or {}).values()
+                              for d in u if d.get("form") == "10-K" and d.get("fp") == "FY"
+                              and d.get("fy")})
+                if yrs:
+                    found[c] = [yrs[0], yrs[-1], len(yrs)]
+            disc[label] = {"cik": cik, "concepts": found}
+            continue
+        row = {}
+        for field, candidates in entry["concepts"].items():
+            for c in candidates:
+                meta = gaap.get(c)
+                if not meta:
+                    continue
+                best = {}
+                for d in (meta.get("units") or {}).get("USD", []):
+                    fy = d.get("fy")
+                    # 10-K FY rows only; a fiscal year appears in several filings —
+                    # keep the observation whose own period end matches its label
+                    if d.get("form") == "10-K" and d.get("fp") == "FY" and fy:
+                        end = d.get("end", "")
+                        cur = best.get(fy)
+                        if cur is None or end > cur[0]:
+                            best[fy] = (end, d["val"])
+                if best:
+                    row[field] = {str(fy): v for fy, (_, v) in sorted(best.items())}
+                    row[field + "_concept"] = c
+                    break
+        out[label] = {"cik": cik, **row}
+    if MODE == "discover":
+        return {"_discover": disc}
+    return out
+
+
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
-             "evds": evds, "probe": probe}
+             "evds": evds, "probe": probe, "edgar": edgar}
 
 
 # ----------------------------------------------------------------- runner
