@@ -319,6 +319,11 @@ def edgar(entry):
             continue
         row = {}
         for field, candidates in entry["concepts"].items():
+            # Filers switch concepts mid-history (Lilly's R&D moves tag in 2023,
+            # Pfizer's recent revenue lives under a different tag than 2018-23).
+            # First-match-wins truncates them — so candidates are UNIONED, earlier
+            # candidates taking priority for any year both carry.
+            merged, used = {}, []
             for c in candidates:
                 meta = gaap.get(c)
                 if not meta:
@@ -326,17 +331,21 @@ def edgar(entry):
                 best = {}
                 for d in (meta.get("units") or {}).get("USD", []):
                     fy = d.get("fy")
-                    # 10-K FY rows only; a fiscal year appears in several filings —
-                    # keep the observation whose own period end matches its label
                     if d.get("form") == "10-K" and d.get("fp") == "FY" and fy:
                         end = d.get("end", "")
                         cur = best.get(fy)
                         if cur is None or end > cur[0]:
                             best[fy] = (end, d["val"])
-                if best:
-                    row[field] = {str(fy): v for fy, (_, v) in sorted(best.items())}
-                    row[field + "_concept"] = c
-                    break
+                added = False
+                for fy, (_, v) in best.items():
+                    if str(fy) not in merged:
+                        merged[str(fy)] = v
+                        added = True
+                if added:
+                    used.append(c)
+            if merged:
+                row[field] = dict(sorted(merged.items()))
+                row[field + "_concept"] = "+".join(used)
         out[label] = {"cik": cik, **row}
     if MODE == "discover":
         return {"_discover": disc}
