@@ -43,30 +43,36 @@ every figure a change between two named dates.
 
 ---
 
-## Post 2 — What a medicine's price pays for  [FILL FROM data/pharma-pnl-derived.json]
+## Post 2 — What a medicine's price pays for
 
 Last week: the ingredient is the cheapest part of the medicine. So what's the
 expensive part?
 
-I took the annual reports of [N] pharmaceutical companies — [human list] on the
-human side, [animal list] in animal health — and read the answer straight from
-their SEC filings.
+I read the answer straight from eight companies' SEC filings — Pfizer, Lilly,
+AbbVie and Bristol Myers Squibb on the human side; Zoetis, Elanco and Phibro in
+animal health (Merck shown separately: ~9% of it is animal health, so it pools
+with neither group). FY2023–25 averages, medians per group.
 
-[HERO NUMBERS — verify before posting:]
-- Human pharma spends ~[X]% of revenue on R&D. Animal health: ~[Y]%.
-- Cost of goods: human ~[A]%, animal health ~[B]%.
-- Same ingredient market feeds both — the anatomy above it is what differs.
+The anatomy of $100 of revenue:
+
+- R&D: human pharma 19.4 — animal health 7.3. A 2.7× gap.
+- Cost of goods: human 29.6 — animal health 44.6. Inverted.
+- What remains after COGS+R&D+SG&A: ~30 vs ~23. Similar discipline,
+  opposite routes to it.
 
 The human medicine's price buys science. The animal medicine's price buys
-manufacturing. Which is exactly why (last post) veterinary prices have tracked
-ingredients for forty years while human pharma repriced far above inflation —
-the cost anatomy predicted the price behaviour.
+manufacturing. And that explains last week's chart: an R&D-built P&L must
+reprice to fund the next molecule (human prices +75% real over the clean
+20-year window) — a manufacturing-built P&L tracks its inputs (veterinary
+prices −4% real, same window, BLS's own veterinary index).
 
-Method notes: 10-K FY figures via SEC EDGAR XBRL, [3-year averages], global
-consolidated (not US-only), COGS ≠ ingredient (no filer splits it), no
-editorial comment on any single company.
+If you benchmark an animal-health company against human-pharma norms, you're
+comparing different animals.
 
----
+Method: SEC EDGAR XBRL, 10-K FY values, global consolidated (not US-only),
+COGS ≠ ingredient (no filer splits it), concept tags recorded per company,
+every figure recomputed from committed data. Small samples — 4 and 3 filers —
+medians, and stated.
 
 ## Posting notes
 
