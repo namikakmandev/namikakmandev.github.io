@@ -48,7 +48,9 @@
     {
       "name": "eu-hicp",
       "provider": "fred",
-      "series": { "hicp": "CP0000EZ19M086NEST" },
+      "series": {
+        "hicp": "CP0000EZ19M086NEST"
+      },
       "out": "data/eu-hicp.json",
       "source": "Euro area HICP via FRED — deflator for any EUR money series"
     },
@@ -62,9 +64,20 @@
         "bls_wp_item": "https://download.bls.gov/pub/time.series/wp/wp.item"
       },
       "fred_ids": [
-        "PCU325414325414", "PCU3254143254141", "PCU3254143254143",
-        "PCU3254123254122", "PCU3254123254124", "PCU3254123254126",
-        "CCUSMA02TRM618N", "EXTUUS", "DEXTUUS", "TRYUSD"
+        "IP3254",
+        "IP32541",
+        "IP325411",
+        "IR12100",
+        "IR121",
+        "IR12110",
+        "WPU0635",
+        "WPU06350",
+        "WPU063501",
+        "WPU06350101",
+        "WPU0634",
+        "WPU0639",
+        "PCU3254113254112",
+        "PCU3254113254118"
       ],
       "source": "Discovery only — FRED series headers plus a candidate-id probe",
       "note": "MODE=discover only. A guessed FRED id returns an HTML error page, not an error — probe before parsing, and read the Title off FRED rather than inferring it from the id. The BLS catalogue files return 403 to this fetcher."
@@ -86,7 +99,9 @@
     {
       "name": "vetapi-fx",
       "provider": "fred",
-      "series": { "usdtry": "CCUSMA02TRM618N" },
+      "series": {
+        "usdtry": "CCUSMA02TRM618N"
+      },
       "out": "data/vetapi-fx.json",
       "source": "OECD via FRED, CCUSMA02TRM618N — 'Currency Conversions: US Dollar Exchange Rate: Average of Daily Rates: National Currency: USD for Turkey', monthly, 1957-01 → 2026-06. Title read off FRED, not inferred.",
       "note": "Turkish lira per US dollar, monthly average of daily rates — so it lines up with monthly average price indexes rather than an end-of-month snapshot. Used only in log changes; the level is never quoted."
@@ -119,7 +134,11 @@
       "params": {
         "geo": "EU27_2020",
         "unit": "I15",
-        "nace_r2": ["C211", "C212", "C21"]
+        "nace_r2": [
+          "C211",
+          "C212",
+          "C21"
+        ]
       },
       "key_dim": "nace_r2",
       "grep": "^C?21|pharmac|Index,",
@@ -144,7 +163,9 @@
       "name": "us-cowcalf-costs",
       "provider": "csv",
       "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
-      "filters": { "Region": "U.S. total" },
+      "filters": {
+        "Region": "U.S. total"
+      },
       "group_col": "Item",
       "key_col": "Year",
       "value_col": "Value",
