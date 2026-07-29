@@ -8,8 +8,11 @@ Every figure reproducible from `data/*.json` in the repository.
 
 ## Post 1 — The Input Ledger (US)
 
-**Use this one.** The hook is the first three lines — LinkedIn cuts the post at
-"…see more" around there, so the paradox has to land before the fold.
+**FINAL — this is the posted text.** The hook is the first three lines, because
+LinkedIn cuts the post at "…see more" around there and the paradox has to land
+before the fold. Upload as a *document* post (not photo) so the PDF renders as a
+swipeable carousel; document title: "The Input Ledger — 44 years of US
+pharmaceutical ingredient prices".
 
 ---
 
@@ -21,25 +24,13 @@ Both numbers are correct. The gap between them is inflation — and it is the
 reason almost nobody in this industry can tell you what their most important
 input actually costs.
 
-Every medicine, human or animal, starts as an active pharmaceutical ingredient.
-I pulled 44 years of its US price from the statistical agencies, deflated it,
-and looked only at the cost side. Deliberately: selling prices are list-basis
-and rebate-shaped, so I measured the one side of the ledger nobody administers.
+So I pulled 44 years of that price from the BLS, deflated it, and looked only at
+the cost side. Deliberately: selling prices are list-basis and rebate-shaped, so
+I measured the one side of the ledger nobody administers. It's all in the
+carousel — including why "the active ingredient" isn't one thing at all, and why
+it swings 1.37× harder than the medicine it becomes.
 
-Three things the data says:
-
-1. The ingredient is a basket — bulk antibiotics, vitamins, hormones, alkaloids —
-   and its market is volatile: it moves 1.37× more month-to-month than
-   finished-medicine prices. The swings in this industry live on the cost side.
-
-2. Shocks arrive inside a single month — the largest jump was +12.4% in June
-   2008, and nothing in the series gives advance warning. Procurement timing is
-   a margin lever, not admin.
-
-3. Which is why cost management in pharma is a discipline: anchor price reviews
-   and purchasing to the input curve, because it moves first and hardest.
-
-**But the powder is not the price.**
+But the powder is not the price.
 
 An active ingredient is one line in a P&L that also carries research, plants,
 quality and people — and the two halves of this industry fill that line in
@@ -48,14 +39,21 @@ R&D. The other spends nearly half of it on making the thing.
 
 Part 2 reads that split straight from eight companies' own SEC filings, human
 pharma and animal health side by side, same method as this one. It is also the
-honest answer to the obvious objection to this post — *if the input got cheaper,
-why didn't the medicine?*
+honest answer to the obvious objection to this post — if the input got cheaper,
+why didn't the medicine? Short version: because the ingredient was never the
+expensive part. The long version, with the numbers, is Part 2.
 
-Before then: which of the two is the R&D-heavy one, and by how much? The
-multiple surprised me. I'll put it on slide 4.
+---
 
-All sources on the slides — BLS series codes, public, every figure a change
-between two named dates.
+Figures in the caption, each traceable: 89% = nominal change in PCU325411325411,
+1982-06→2026-06; 45% = same series deflated by CPI-U (−44.8%); 1.37× = ratio of
+month-to-month standard deviations, ingredient vs PCU325412325412; "a fifth" =
+19.4% median R&D of revenue, 4 human filers FY2023–25; "nearly half" = 44.6%
+median COGS, 3 animal-health filers, same window.
+
+The closing "the ingredient was never the expensive part" is load-bearing, not
+decoration: it answers the misreading inside post 1 rather than leaving it open
+for a week. Do not cut it when trimming for length.
 
 ---
 
