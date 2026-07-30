@@ -58,6 +58,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
  color:var(--dim);font-size:clamp(11px,1.15vw,17px);line-height:1.42;max-width:118ch}
 .caveat b{color:var(--ink)}
 .foot{color:var(--dimmer);font:500 clamp(10px,.95vw,14px) "IBM Plex Mono",monospace;margin-top:auto;padding-top:1.8vh;letter-spacing:.04em}
+.pfoot{display:none}
 .big{display:flex;gap:5vw;flex-wrap:wrap;margin-top:auto}
 .big div{flex:1 1 200px}
 .big .n{font:700 clamp(38px,6.4vw,96px)/1 "IBM Plex Mono",monospace;color:var(--amber);letter-spacing:-.02em}
@@ -109,8 +110,12 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
   .scope div{color:#333}  .scope b{color:#111}  .scope em{color:#3a3a3a}
   .srcs{border-top-color:#ccc}  .sh{color:#a4600f}
   .sg b{color:#111}  .sg span{color:#333}  .sf{color:#3a3a3a}
-  /* last page: the country chart needs the full sheet — drop the boxes under it */
+  /* last page: the country chart needs the full sheet — drop the boxes under it,
+     keep a one-line legend with the * and † marks */
   .slide:last-of-type .askbar,.slide:last-of-type .foot{display:none}
+  .slide:last-of-type .pfoot{display:block;color:#3a3a3a;
+    font:500 clamp(10px,.95vw,14px) "IBM Plex Mono",monospace;
+    padding-top:1vh;letter-spacing:.04em;line-height:1.5}
 }
 </style>
 </head>
@@ -219,6 +224,7 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
   <div class="chart"><canvas id="c10"></canvas></div>
   <div class="askbar"><b>The 2027 price call.</b> Every herd here is contracting, so the increase comes from price and spend per head, not volume. <b>Grow &mdash; Czechia, Portugal, Hungary, Poland, Ireland, Austria:</b> real spend rose +18% to +66% while herds tightened. Take the full increase. <b>But size the prize honestly:</b> those six are <b>19% of EU vet+med spend &mdash; France alone is bigger than all six combined</b>, which is why the EU verdict on slide 9 is still defend. <b>Hold &mdash; Germany, Netherlands, Belgium, Italy, Spain:</b> spend steady, herds not. Price carries the number. <b>Erode &mdash; France, Romania:</b> &minus;23% and &minus;33%. Defend share, do not lead on price. <b>T&uuml;rkiye is not an EU market</b> and is not in the Eurostat accounts &mdash; largest herd on the page, the only decade of herd growth, no spend series at all. Grow it, and get the visibility. <b>United States (slides 2&ndash;5):</b> take the full increase in January and hold it through 2028 &mdash; do not make it flexible. This is the one market where the move is proven to survive the turn: in 2016 the producer margin fell <b>73%</b> and real spend per head still rose <b>+0.3%</b>; the worst year in eighteen is &minus;5.1%. And do not price for volume &mdash; <b>+81% margin bought +2% spend</b>.</div>
   <div class="foot">HERD: FAOSTAT, ALL CATTLE, DAIRY+BEEF, ANNUAL TO 2024 &middot; SPEND: EUROSTAT EAA &ldquo;VETERINARY EXPENSES&rdquo; = VET SERVICES + MEDICINES, ALL LIVESTOCK NOT CATTLE ALONE, TO 2025 &middot; BOTH LINES INDEXED TO 100 IN 2010; EVERY ROW USES THE SAME INDEX-POINTS-PER-PIXEL (84 POINTS FULL HEIGHT) BUT IS CENTRED ON ITS OWN DATA, SO SLOPES ARE COMPARABLE ACROSS ROWS; DOTTED LINE = 100, DOT = LATEST YEAR; SHADED GAP = REAL SPEND PER HEAD, GREEN WHERE SPEND OUTRUNS THE HERD &middot; SPEND DEFLATED BY EURO-AREA HICP (APPROX. FOR NON-EURO PL/RO/CZ/HU) &middot; HERD 3 YRS = 2021&rarr;2024, SAME SIGN ON A 5-YEAR WINDOW FOR ALL FIFTEEN &middot; A 3-YEAR REAL SPEND FIGURE IS NOT SHOWN: THE 2022&ndash;23 INFLATION SPIKE FLIPS ITS SIGN WITH THE BASE YEAR &middot; SHARE-OF-SPEND WEIGHTS FROM 2025 LEVELS, 13 MEMBER STATES, UK EXCLUDED &middot; *UK SPEND SERIES ENDS 2020 &middot; &dagger;NO SPEND SOURCE FOR T&Uuml;RK&#304;YE &middot; THE 13 EU MEMBER-STATE ROWS = 90% OF THE EU27 HERD; UK AND T&Uuml;RK&#304;YE ARE NOT EU AND ARE EXCLUDED FROM EVERY EU TOTAL &middot; US IS ON A DIFFERENT SPEND SOURCE (USDA ERS, $/COW) AND IS NOT COMPARABLE HERE &middot; US FIGURES IN THE PRICE CALL: USDA ERS COW-CALF, US TOTAL, REAL 2025 DOLLARS, 2008&ndash;2025 &middot; MARGIN = GROSS VALUE OF PRODUCTION LESS OPERATING COSTS PER COW ($480 IN 2015 TO $130 IN 2016) &middot; &minus;5.1% IS THE LARGEST SINGLE-YEAR REAL FALL IN SPEND PER HEAD IN THE SERIES (2017) &middot; +81%/+2% IS 2022&ndash;2025</div>
+  <div class="pfoot">* UNITED KINGDOM: SPEND SERIES ENDS 2020, NOT EU &middot; &dagger; T&Uuml;RK&#304;YE: NOT EU, NO PUBLISHED SPEND SERIES &middot; TWO LINES PER ROW: HERD (GREY) vs REAL VET+MED SPEND (COLOUR), BOTH 2010 = 100, DOT = LATEST YEAR &middot; SHADED GAP = SPEND PER HEAD, GREEN WHERE SPEND OUTRUNS THE HERD &middot; HERD: FAOSTAT &middot; SPEND: EUROSTAT EAA, ALL LIVESTOCK, HICP-DEFLATED</div>
 </section>
 
 <div id="nav"><button id="prev">&#8249;</button><span id="pg">1 / 5</span><button id="next">&#8250;</button></div>
