@@ -306,7 +306,7 @@ function ch0(){
   outs.forEach((o,i)=>{
     const Y=H0/2-oH-10*k+i*(oH+20*k);
     box(oX,Y,oW,oH,'rgba(127,176,105,.10)','rgba(127,176,105,.38)');
-    mono(x,13*k,700);x.textAlign='left';x.fillStyle='#8cc077';x.fillText(o[0],oX+16*k,Y+26*k);
+    mono(x,13*k,700);x.textAlign='left';x.fillStyle=PR()?'#3f7a2e':'#8cc077';x.fillText(o[0],oX+16*k,Y+26*k);
     x.font='700 '+Math.round(15*k)+'px "IBM Plex Sans",sans-serif';x.fillStyle=C.ink;
     x.fillText(o[1],oX+16*k,Y+52*k);
     mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(o[2],oX+16*k,Y+72*k);
@@ -453,7 +453,7 @@ function ch4(){
       const lab=seg[0].toFixed(0);
       if(seg[0]*SC>x.measureText(lab).width+14*k){x.textAlign='center';x.fillStyle=seg[2];
         x.fillText(lab,X(st+seg[0]/2),cy+5*k);}});
-    mono(x,16*k,700);x.textAlign='left';x.fillStyle=r.mar>0?'#8cc077':C.red;
+    mono(x,16*k,700);x.textAlign='left';x.fillStyle=r.mar>0?(PR()?'#3f7a2e':'#8cc077'):C.red;
     x.fillText((r.mar>0?'+':'')+r.mar.toFixed(0),X(r.mar>0?100:100-r.mar)+14*k,cy+5*k);
   });
 }
@@ -536,7 +536,7 @@ function ch8(){
     if(v%10===0||v===85){x.fillStyle=C.dimmer;x.textAlign='right';x.fillText(v,L-11*k,Y(v)+6*k);}}
   x.textAlign='center';
   for(let y=2010;y<=2025;y+=5){x.fillStyle=C.dimmer;x.fillText(y,X(y),T+H+28*k);}
-  const defs=[[1,'#8cc077','SPEND PER COW','real, per animal'],
+  const defs=[[1,PR()?'#3f7a2e':'#8cc077','SPEND PER COW','real, per animal'],
               [2,C.blue,'HERD SIZE','how many animals'],
               [3,C.amber,'TOTAL SPEND','the two multiplied']];
   const ends=[];
@@ -562,19 +562,23 @@ function ch8(){
 }
 function ch9(){
   const cv=document.getElementById('c9');const [x,W0,H0,k]=fit(cv);
+  // on white paper the screen accents (light green/blue/amber) wash out — darken them
+  const P=PR();
+  const GRN=P?'#3f7a2e':'#8cc077', GRNv=P?'#3f7a2e':'#7fb069',
+        BLUv=P?'#5d74b5':'#8aa0d8', AMBv=P?'#c07a12':'#c98a2e';
   const cols=[
     {n:'US',c:C.amber,herd:-34,herdT:'87m \u00b7 bottom 2024',hd:'down',
      r:0.70,rl:'cyclical',pool:'+4%',poolT:'17-yr real pool',
      v:'TIME THE PRICE MOVE',
-     vs:'Margin per cow ran $22 to $732 while vet fell to 2.34% of revenue, an 18-year low. The opening is price, not volume.',vc:'#c98a2e'},
+     vs:'Margin per cow ran $22 to $732 while vet fell to 2.34% of revenue, an 18-year low. The opening is price, not volume.',vc:AMBv},
     {n:'EU',c:C.blue,herd:-33,herdT:'72m \u00b7 \u22121.4%/yr',hd:'down',
      r:0.00,rl:'flat',pool:'\u22125%',poolT:'20-yr real pool',
      v:'DEFEND THE VOLUME',
-     vs:'2027 is not a bad year \u2014 it is the same year, ~1.5% smaller. No cycle upside, no cycle hit; the herd erodes regardless.',vc:'#8aa0d8'},
+     vs:'2027 is not a bad year \u2014 it is the same year, ~1.5% smaller. No cycle upside, no cycle hit; the herd erodes regardless.',vc:BLUv},
     {n:'T\u00dcRK\u0130YE',c:C.red,herd:-6,herdT:'17m \u00b7 +2.4% 2024',hd:'up',
      r:null,rl:'no data',pool:'n/a',poolT:'not measurable',
      v:'GROW, AND GET VISIBILITY',
-     vs:'2027 is the only market where head count adds to volume \u2014 and the only one where we cannot see what producers spend.',vc:'#7fb069'}];
+     vs:'2027 is the only market where head count adds to volume \u2014 and the only one where we cannot see what producers spend.',vc:GRNv}];
   const M=14*k, gap=18*k, cw=(W0-2*M-2*gap)/3, top=6*k, ch=H0-top-4*k;
   const R=f=>top+ch*f;                       // proportional rows, so nothing collides on short screens
   cols.forEach(function(d,i){
@@ -585,13 +589,13 @@ function ch9(){
     // --- how many animals
     mono(x,12*k,700);x.fillStyle=C.dimmer;x.fillText('HOW MANY ANIMALS',PX,R(0.17));
     const ay=R(0.29), ax=PX+8*k, up=d.hd==='up';
-    x.strokeStyle=up?'#7fb069':C.red;x.lineWidth=5*k;x.lineCap='round';x.beginPath();
+    x.strokeStyle=up?GRNv:C.red;x.lineWidth=5*k;x.lineCap='round';x.beginPath();
     up?(x.moveTo(ax,ay+16*k),x.lineTo(ax+22*k,ay-14*k)):(x.moveTo(ax,ay-14*k),x.lineTo(ax+22*k,ay+16*k));
     x.stroke();x.beginPath();
     up?(x.moveTo(ax+22*k,ay-14*k),x.lineTo(ax+12*k,ay-12*k),x.lineTo(ax+22*k,ay-2*k))
       :(x.moveTo(ax+22*k,ay+16*k),x.lineTo(ax+12*k,ay+14*k),x.lineTo(ax+22*k,ay+4*k));
-    x.closePath();x.fillStyle=up?'#7fb069':C.red;x.fill();x.lineCap='butt';
-    mono(x,29*k,700);x.fillStyle=up?'#8cc077':C.red;x.fillText(d.herd+'%',ax+40*k,ay+10*k);
+    x.closePath();x.fillStyle=up?GRNv:C.red;x.fill();x.lineCap='butt';
+    mono(x,29*k,700);x.fillStyle=up?GRN:C.red;x.fillText(d.herd+'%',ax+40*k,ay+10*k);
     mono(x,12*k,500);x.fillStyle=C.dimmer;x.fillText('vs peak \u00b7 now '+d.herdT,PX,R(0.40));
     // --- spend vs margin
     mono(x,12*k,700);x.fillStyle=C.dimmer;x.textAlign='left';x.fillText('SPEND vs MARGIN',PX,R(0.50));
@@ -599,7 +603,7 @@ function ch9(){
     const gx=PX, gw=cw-36*k, gy=R(0.545), gh=12*k;
     x.fillStyle='rgba(203,191,168,.13)';x.fillRect(gx,gy,gw,gh);
     if(d.r!==null){
-      x.fillStyle=d.r>0.4?'#c98a2e':'rgba(203,191,168,.35)';
+      x.fillStyle=d.r>0.4?AMBv:'rgba(203,191,168,.35)';
       x.fillRect(gx,gy,gw*Math.max(0.02,d.r),gh);
       mono(x,21*k,700);x.textAlign='left';x.fillStyle=d.r>0.4?C.amber:C.dim;
       x.fillText('r = '+d.r.toFixed(2),gx,R(0.625));
@@ -609,7 +613,7 @@ function ch9(){
     // --- the money
     mono(x,12*k,700);x.fillStyle=C.dimmer;x.fillText('THE MONEY IN THE MARKET',PX,R(0.70));
     mono(x,25*k,700);
-    x.fillStyle=d.pool.charAt(0)==='+'?'#8cc077':(d.pool==='n/a'?C.dimmer:C.red);
+    x.fillStyle=d.pool.charAt(0)==='+'?GRN:(d.pool==='n/a'?C.dimmer:C.red);
     x.fillText(d.pool,PX,R(0.762));
     const pw=x.measureText(d.pool).width;
     mono(x,13*k,500);x.fillStyle=C.dimmer;x.fillText(d.poolT,PX+pw+14*k,R(0.762));
