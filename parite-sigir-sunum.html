@@ -93,19 +93,19 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
   .note,.big .l,ul.pts li span{color:#333}
   ul.pts li{color:#111}
   .big .n{color:#a4600f}.big .n.r{color:#b03a2e}
-  .foot{color:#666}
+  .foot{color:#3a3a3a}
   /* on paper the cream "ink" colour is invisible — re-map every text class */
   .read{color:#a4600f}   .read b{color:#111}
   .askbar{color:#333;border-color:#d0a24e;background:rgba(255,176,86,.10)}
   .askbar b{color:#111}
   .caveat{color:#333;border-left-color:#b03a2e}  .caveat b{color:#111}
-  .def .h{color:#a4600f}  .def .t{color:#111}  .def .t span{color:#555}
+  .def .h{color:#a4600f}  .def .t{color:#111}  .def .t span{color:#333}
   .eq{color:#111}  .eq i{color:#a4600f}
-  .sb{color:#111}  .sb span{color:#555}  .sb i{color:#a4600f}  .sn{color:#a4600f}
-  .pair{color:#111}  .pair b{color:#a4600f}  .pair em{color:#666}
-  .scope div{color:#444}  .scope b{color:#111}  .scope em{color:#666}
+  .sb{color:#111}  .sb span{color:#333}  .sb i{color:#a4600f}  .sn{color:#a4600f}
+  .pair{color:#111}  .pair b{color:#a4600f}  .pair em{color:#3a3a3a}
+  .scope div{color:#333}  .scope b{color:#111}  .scope em{color:#3a3a3a}
   .srcs{border-top-color:#ccc}  .sh{color:#a4600f}
-  .sg b{color:#111}  .sg span{color:#444}  .sf{color:#666}
+  .sg b{color:#111}  .sg span{color:#333}  .sf{color:#3a3a3a}
 }
 </style>
 </head>
@@ -232,7 +232,7 @@ const C={ink:'#f5efe6',dim:'#cbbfa8',dimmer:'#8a7c62',amber:'#ffb056',red:'#e257
 // The canvases are drawn light-on-dark. On paper the print stylesheet flips the page
 // to white, so the same palette would come out invisible — swap it before every render.
 const SCREEN={ink:'#f5efe6',dim:'#cbbfa8',dimmer:'#8a7c62',amber:'#ffb056',red:'#e2574c',blue:'#8aa0d8'};
-const PAPER ={ink:'#111111',dim:'#444444',dimmer:'#6b6459',amber:'#a4600f',red:'#b03a2e',blue:'#5d74b5'};
+const PAPER ={ink:'#111111',dim:'#2f2f2f',dimmer:'#474747',amber:'#8f5205',red:'#a5322a',blue:'#39508f'};
 function setPal(){const p=PR()?PAPER:SCREEN;for(const key in p)C[key]=p[key];}
 const PR=()=>window.matchMedia('print').matches;
 function fit(cv){const r=cv.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);
@@ -637,12 +637,12 @@ function ch10(){
                IT:'Italy',NL:'Netherlands',BE:'Belgium',AT:'Austria',RO:'Romania',
                UK:'United Kingdom*',PT:'Portugal',CZ:'Czechia',HU:'Hungary',TR:'Türkiye†'};
   const GRP={G:['GROW · SPEND UP >15% IN TEN YEARS',P?'#3f7a2e':'#7fb069'],
-             H:['HOLD · SPEND FLAT, −15% TO +15%',P?'#8a7c62':'#cbbfa8'],
-             E:['ERODE · SPEND DOWN >15%',P?'#b03a2e':'#e2574c']};
-  const INK=P?'#111':C.ink, DIM=P?'#444':C.dim, DMR=P?'#8a8378':C.dimmer,
-        GRN=P?'#3f7a2e':'#8cc077', RED=P?'#b03a2e':C.red, AMB=P?'#c07a12':C.amber,
-        FADE=P?'#aaa':'rgba(203,191,168,.55)', CHIP=P?'#fff':'#1a1613',
-        HRD=P?'#9a9186':'rgba(203,191,168,.55)', BASE=P?'#ddd':'rgba(203,191,168,.16)';
+             H:['HOLD · SPEND FLAT, −15% TO +15%',P?'#5f5643':'#cbbfa8'],
+             E:['ERODE · SPEND DOWN >15%',P?'#a5322a':'#e2574c']};
+  const INK=P?'#111':C.ink, DIM=P?'#2f2f2f':C.dim, DMR=P?'#414141':C.dimmer,
+        GRN=P?'#3f7a2e':'#8cc077', RED=P?'#a5322a':C.red, AMB=P?'#8f5205':C.amber,
+        FADE=P?'#7c7c7c':'rgba(203,191,168,.55)', CHIP=P?'#fff':'#1a1613',
+        HRD=P?'#565049':'rgba(203,191,168,.55)', BASE=P?'#cfcfcf':'rgba(203,191,168,.16)';
   const SEQ=[]; let g0=null;
   EUC.forEach(function(r){ if(r[10]!==g0){SEQ.push({h:r[10],n:0});g0=r[10];}
     SEQ.push({r:r}); for(let q=SEQ.length-1;q>=0;q--){if(SEQ[q].h){SEQ[q].n++;break;}} });
@@ -728,7 +728,7 @@ function ch10(){
     const r=e.r, cc=r[0], v=r[1], d3=r[2], sp=r[3], sp10=r[4], ref=r[5],
           hidx=r[7], sidx=r[8], s0=r[9];
     const cy=y+u/2, gcol=GRP[r[10]][1];
-    let col=r[10]==='G'?(P?'#5b9c48':'#7fb069'):(r[10]==='E'?RED:(P?'#5d74b5':C.blue));
+    let col=r[10]==='G'?(P?'#47823a':'#7fb069'):(r[10]==='E'?RED:(P?'#39508f':C.blue));
     if(ref===1)col=FADE;
     if(ref===2)col=AMB;
     mono(x,fn,700);x.textAlign='right';x.fillStyle=ref===1?DMR:DIM;
