@@ -120,8 +120,117 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
 <div class="topbar">
   <div class="logo">Proje<span>Fin</span></div>
   <div class="crumb">Infrastructure Project Finance</div>
+  <button id="tourBtn" type="button" title="Step-by-step guided walkthrough of the model">🧭 Guided tour</button>
+  <a id="ccLink" href="company-check.html" title="Upload a company's balance sheet & P&L — ratios, Z-score, credit verdict"
+     style="margin-left:8px;background:#222834;color:#d3d7df;border:1px solid #2A3040;border-radius:16px;padding:5px 12px;font:600 12px system-ui;text-decoration:none">🏢 Company Check</a>
   <div class="env"><span class="dot"></span><span id="envText">annual model · ₺</span></div>
 </div>
+<style>
+  #tourBtn{margin-left:14px;background:#2F9BFF;color:#fff;border:0;border-radius:16px;padding:5px 13px;font:600 12px system-ui;cursor:pointer}
+  #tourHole{position:fixed;z-index:9995;pointer-events:none;border:2px solid #2F9BFF;border-radius:12px;
+    box-shadow:0 0 0 99999px rgba(5,8,14,.74);transition:all .35s ease;display:none}
+  #tourCard{position:fixed;z-index:9996;width:min(430px,92vw);background:#161922;border:1px solid #2A3040;border-radius:12px;
+    padding:16px 18px;box-shadow:0 16px 50px rgba(0,0,0,.6);display:none;font-family:system-ui,-apple-system,sans-serif}
+  #tourCard .tt{color:#2F9BFF;font-weight:800;font-size:12px;letter-spacing:1.2px;text-transform:uppercase}
+  #tourCard .tb{color:#E6E8EC;font-size:14px;line-height:1.62;margin-top:8px}
+  #tourCard .tb b{color:#fff}
+  #tourCard .row{display:flex;align-items:center;gap:8px;margin-top:14px}
+  #tourCard .n{color:#5B6472;font-size:11.5px;font-family:ui-monospace,monospace;margin-right:auto}
+  #tourCard button{border:0;border-radius:8px;padding:8px 14px;font:600 12.5px system-ui;cursor:pointer}
+  #tourCard .prev{background:#222834;color:#A3A8B5}
+  #tourCard .next{background:#2F9BFF;color:#fff}
+  #tourCard .exit{background:none;color:#5B6472;padding:8px 6px}
+  #tourX{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:#222834;color:#A3A8B5;
+    border:1px solid #3a4150;cursor:pointer;font-size:15px;line-height:1;padding:0}
+  #tourShade{position:fixed;inset:0;z-index:9994;display:none;background:transparent;cursor:pointer}
+</style>
+<div id="tourShade" title="Click to end the tour"></div>
+<div id="tourHole"></div>
+<div id="tourCard">
+  <button id="tourX" aria-label="End tour">×</button>
+  <div class="tt" id="tourTitle"></div>
+  <div class="tb" id="tourBody"></div>
+  <div class="row"><span class="n" id="tourNum"></span>
+    <button class="exit" id="tourExit">End tour</button>
+    <button class="prev" id="tourPrev">← Back</button>
+    <button class="next" id="tourNext">Next →</button></div>
+</div>
+<script>
+(function(){
+  function card(txt){return [].slice.call(document.querySelectorAll('.card')).filter(function(c){var h=c.querySelector('h2');return h&&h.textContent.indexOf(txt)>=0;})[0];}
+  var g=function(id){var e=document.getElementById(id);return e?e.textContent.trim():'—';};
+  // Each step: where to point + what it means, using the LIVE numbers on screen.
+  var STEPS=[
+   {el:function(){return document.querySelector('.kpis');}, t:'The verdict at a glance',
+    d:function(){return 'Eight headline metrics, always live. <b>Project IRR '+g('k-pirr')+'</b> is what the asset earns by itself; <b>Equity IRR '+g('k-eirr')+'</b> is the sponsor’s return after debt — the gap between them is what leverage adds. <b>Min DSCR '+g('k-dscr')+'</b> is the lender’s test: the tightest year’s cash cover of debt service.';}},
+   {el:function(){return document.querySelector('.panel.left');}, t:'Every assumption is a dial',
+    d:'The whole deal is defined here: capex, <b>non-EPC costs</b> (land, fees, advisory), <b>opex during construction</b>, timing, gearing, the ₺ and USD debt tranches, revenue, opex, tax and hurdles. Change any number — every chart and metric recomputes instantly. Note the <b>goal seek</b> hints: max gearing at the DSCR target, and the revenue needed to hit the equity hurdle.'},
+   {el:function(){return document.querySelector('.presets');}, t:'Three ready-made deals',
+    d:'Toll Road, Solar PV, and a Hospital PPP tuned as an <b>FX-risk teaching case</b> — heavy USD debt against lira-capped revenue. Use them as starting points and adjust.'},
+   {el:function(){return card('Milestones');}, t:'Timeline & payment conditions',
+    d:function(){return 'The life of the deal: <b>financial close → construction (blue) → COD → operations (green) → final debt maturity → concession expiry</b>. The note underneath says how the money moves: equity '+g('s-eq')+' and debt are drawn during construction; debt is then repaid from operating cash flow, and equity pays back at '+g('k-pay')+'.';}},
+   {el:function(){return card('Macro Projection');}, t:'The macro engine (OVP)',
+    d:'Türkiye’s official medium-term programme drives the model: inflation, the commercial ₺ rate and USD/TRY flow through <b>every single year</b>. Beyond the official table, USD/TRY is extrapolated by the inflation differential — relative purchasing-power parity, the standard long-run assumption.'},
+   {el:function(){return card('Sources & Uses');}, t:'Sources & Uses — the funding plan',
+    d:function(){return 'The <b>USES</b> — capex, non-EPC, pre-COD opex, construction insurance, financing fees, capitalised interest (IDC), plus an FX-revaluation line when part of the debt is in USD — total '+g('u-tot')+'. They are funded by three <b>SOURCES</b>: a ₺ bank tranche, a USD tranche, and sponsor equity. The bar shows the debt/equity split; the tag confirms the plan balances.';}},
+   {el:function(){return card('Drawdown');}, t:'How the build is paid for',
+    d:'Year by year: how much is drawn, how much interest accrues, and who funds it. IDC is <b>capitalised</b> — rolled into the loan rather than paid in cash — so the debt share of funding climbs each construction year. That is why debt at COD is bigger than the debt share of capex.'},
+   {el:function(){return card('Currency Mismatch');}, t:'The classic infrastructure risk',
+    d:'Lira revenue against USD debt. When the lira weakens, ₺ debt service rises faster than revenue. <b>FX cover</b> — USD-linked revenue ÷ USD debt service — is the test: <b>green bars</b> mean the FX leg funds itself (a natural hedge); <b>red bars</b> mean open exposure that year. Below 1.0× the USD income does not cover the USD debt service.'},
+   {el:function(){return card('DSCR Profile');}, t:'How lenders size the loan',
+    d:function(){return '<b>DSCR = CFADS ÷ DS</b> — cash flow available for debt service divided by debt service. With sculpted repayment, each year’s principal is set so coverage lands on the target; with annuity, coverage floats. Orange bars clear the target, red fall below breakeven. Min here: <b>'+g('k-dscr')+'</b>, average '+g('k-adscr')+'.';}},
+   {el:function(){return card('Cumulative Equity');}, t:'The equity J-curve',
+    d:function(){return 'Sponsor cash, cumulatively: negative through construction as equity goes in, then climbing as distributions flow. It crosses zero at <b>equity payback '+g('k-pay')+'</b>. The end point is total lifetime cash to equity.';}},
+   {el:function(){return card('Sensitivity');}, t:'What moves the answer',
+    d:'Each driver is flexed ±10% — the widest bar is the biggest risk. Flip the toggle to test <b>Min DSCR</b> instead of Equity IRR. Below it, the <b>Downside · Bank Case</b> stacks revenue haircut, capex overrun, higher rates and a lira shock together — the combined stress lenders size debt against.'},
+   {el:function(){return card('Annual Cash Flow');}, t:'Every number is auditable',
+    d:'The full year-by-year engine: revenue, EBITDA, interest, tax, debt service, CFADS, DSCR, debt balance and equity cash flow. Every headline metric above can be traced to a row here.'},
+   {el:function(){return document.querySelector('.kpis');}, t:'Now it’s yours',
+    d:'Toggle <b>₺/USD</b> top-right, ask the <b>✦ Ask AI</b> assistant anything about the mechanics, <b>right-click any section</b> to leave a review note, and use the <b>pen/marker</b> toolbar to draw on the page and save a screenshot. Change an assumption and watch the whole model answer.'}
+  ];
+  var i=-1, hole=document.getElementById('tourHole'), cd=document.getElementById('tourCard'),
+      shade=document.getElementById('tourShade'), tick=null;
+  function place(){
+    if(i<0) return;
+    var el=STEPS[i].el(); if(!el) { next(); return; }
+    var r=el.getBoundingClientRect();
+    hole.style.left=(r.left-6)+'px'; hole.style.top=(r.top-6)+'px';
+    hole.style.width=(r.width+12)+'px'; hole.style.height=(r.height+12)+'px';
+    cd.style.display='block';
+    var ch=cd.offsetHeight, cw=cd.offsetWidth;
+    var below=r.bottom+14, above=r.top-ch-14;
+    var top= below+ch<innerHeight-12 ? below : (above>12 ? above : Math.max(12,(innerHeight-ch)/2));
+    var left=Math.min(Math.max(14, r.left+r.width/2-cw/2), innerWidth-cw-14);
+    // very tall targets (inputs panel): pin card to its right
+    if(r.height>innerHeight*0.8){ top=Math.max(70,(innerHeight-ch)/2); left=Math.min(r.right+16,innerWidth-cw-14); }
+    cd.style.top=top+'px'; cd.style.left=left+'px';
+  }
+  function show(k){
+    i=k; var s=STEPS[i], el=s.el();
+    if(!el){ if(k<STEPS.length-1) return show(k+1); return end(); }
+    document.getElementById('tourTitle').textContent=s.t;
+    document.getElementById('tourBody').innerHTML= typeof s.d==='function'? s.d() : s.d;
+    document.getElementById('tourNum').textContent=(i+1)+' / '+STEPS.length;
+    document.getElementById('tourPrev').style.visibility= i===0?'hidden':'visible';
+    document.getElementById('tourNext').textContent= i===STEPS.length-1 ? 'Finish ✓' : 'Next →';
+    hole.style.display='block'; shade.style.display='block';
+    el.scrollIntoView({behavior:'smooth',block: el.getBoundingClientRect().height>innerHeight*0.8?'start':'center'});
+    place(); if(!tick) tick=setInterval(place,250);   // follow the target while scrolling/animating
+  }
+  function next(){ if(i>=STEPS.length-1) return end(); show(i+1); }
+  function prev(){ if(i>0) show(i-1); }
+  function end(){ i=-1; hole.style.display='none'; cd.style.display='none'; shade.style.display='none'; if(tick){clearInterval(tick);tick=null;} }
+  document.getElementById('tourBtn').onclick=function(){ window.scrollTo({top:0}); setTimeout(function(){show(0);},250); };
+  document.getElementById('tourNext').onclick=next;
+  document.getElementById('tourPrev').onclick=prev;
+  document.getElementById('tourExit').onclick=end;
+  document.getElementById('tourX').onclick=end;
+  shade.onclick=end;   // click anywhere outside the card = exit, at any step
+  addEventListener('scroll',place,{passive:true}); addEventListener('resize',place);
+  document.addEventListener('keydown',function(e){ if(i<0)return;
+    if(e.key==='Escape')end(); else if(e.key==='ArrowRight')next(); else if(e.key==='ArrowLeft')prev(); });
+})();
+</script>
 
 <div class="layout">
   <!-- ===== INPUTS ===== -->
@@ -130,12 +239,16 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
     <div class="presets">
       <button class="preset" data-preset="toll">🛣️ Toll Road</button>
       <button class="preset" data-preset="power">⚡ Solar (PV)</button>
+      <button class="preset" data-preset="hospital">🏥 Hospital · FX risk</button>
     </div>
 
     <div class="grp">
       <div class="grp-t">Project</div>
       <div class="f"><label>Project name</label><div class="wrap"><input type="text" id="name" value="Toll Road Project"></div></div>
       <div class="f"><label>Total investment (Capex)</label><div class="wrap"><input type="text" id="capex" value="5,000,000,000"><span class="suf">₺</span></div></div>
+      <div class="f"><label>Non-EPC costs <small>% of capex · development, land, fees</small></label><div class="wrap"><input type="number" id="nonEpcPct" value="8" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Opex during construction <small>% of capex · pre-COD</small></label><div class="wrap"><input type="number" id="opexConstrPct" value="2" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f" id="f-insc"><label>Insurance · construction <small>CAR/DSU · % of capex</small></label><div class="wrap"><input type="number" id="insConstrPct" value="1" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Construction period</label><div class="wrap"><input type="number" id="constr" value="3" class="has-suf-yil"><span class="suf">yrs</span></div></div>
       <div class="f"><label>Operating period <small>concession/operation</small></label><div class="wrap"><input type="number" id="opyears" value="25" class="has-suf-yil"><span class="suf">yrs</span></div></div>
       <div class="f"><label>Terminal value <small>% of capex</small></label><div class="wrap"><input type="number" id="tv" value="15" class="has-suf"><span class="suf">%</span></div></div>
@@ -145,8 +258,13 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       <div class="grp-t">Financing</div>
       <div class="f"><label>Debt ratio (gearing)</label><div class="wrap"><input type="number" id="gearing" value="70" class="has-suf"><span class="suf">%</span></div></div>
       <div class="gs-hint" title="Goal seek: the largest gearing that still keeps min DSCR at target and fully repays within the tenor."><span class="gs-tag">goal seek</span><span>max at target DSCR:</span> <b id="gs-gearing-v">—</b> <a id="gsApplyG">use this →</a></div>
-      <div class="f"><label>Debt interest rate</label><div class="wrap"><input type="number" id="debtRate" value="9" step="0.1" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Debt interest rate <small>₺ tranche</small></label><div class="wrap"><input type="number" id="debtRate" value="9" step="0.1" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>USD debt share <small>FX tranche of debt</small></label><div class="wrap"><input type="number" id="usdDebtShare" value="50" step="5" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>USD debt rate <small>FX tranche interest</small></label><div class="wrap"><input type="number" id="usdDebtRate" value="8" step="0.1" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Debt tenor <small>operating years</small></label><div class="wrap"><input type="number" id="tenor" value="15" class="has-suf-yil"><span class="suf">yrs</span></div></div>
+      <div class="f" id="f-draworder"><label>Drawdown order <small>construction funding</small></label><select id="drawOrder"><option value="prorata">Pro-rata (debt + equity together)</option><option value="equityfirst">Equity first, then debt</option></select></div>
+      <div class="f" id="f-feearr"><label>Arrangement fee <small>% of facility · at close</small></label><div class="wrap"><input type="number" id="feeArr" value="2" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f" id="f-feecom"><label>Commitment fee <small>% p.a. on undrawn</small></label><div class="wrap"><input type="number" id="feeCommit" value="0.5" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Repayment</label><select id="repay"><option value="sculpt">DSCR-targeted</option><option value="annuity">Annuity (level)</option></select></div>
       <div class="f"><label>Target DSCR</label><div class="wrap"><input type="number" id="dscr" value="1.30" step="0.05"></div></div>
       <div class="f"><label>DSRA <small>reserve, months of debt service</small></label><div class="wrap"><input type="number" id="dsraMonths" value="6" step="1" class="has-suf"><span class="suf">mo</span></div></div>
@@ -169,6 +287,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
 
     <div class="grp">
       <div class="grp-t">Costs &amp; Tax</div>
+      <div class="f" id="f-insop"><label>Insurance · operations <small>% of capex p.a. · escalates</small></label><div class="wrap"><input type="number" id="insOpPct" value="0.4" step="0.1" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Operating cost <small>% of revenue</small></label><div class="wrap"><input type="number" id="opexPct" value="22" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Maintenance capex <small>% of revenue</small></label><div class="wrap"><input type="number" id="maintPct" value="4" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Corporate tax</label><div class="wrap"><input type="number" id="tax" value="25" class="has-suf"><span class="suf">%</span></div></div>
@@ -187,6 +306,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       <div class="f"><label>Downside · revenue <small>haircut</small></label><div class="wrap"><input type="number" id="dsRev" value="15" step="1" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Downside · capex <small>overrun</small></label><div class="wrap"><input type="number" id="dsCapex" value="10" step="1" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Downside · debt rate <small>add to rate</small></label><div class="wrap"><input type="number" id="dsRate" value="2" step="0.25" class="has-suf-yil"><span class="suf">pts</span></div></div>
+      <div class="f"><label>Downside · USD/TRY shock <small>lira devaluation</small></label><div class="wrap"><input type="number" id="dsFx" value="30" step="5" class="has-suf"><span class="suf">%</span></div></div>
     </div>
   </div>
 
@@ -209,6 +329,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
     <div class="card">
       <h2>Milestones <span class="tag">project timeline</span></h2>
       <div id="chart-milestones"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;border-top:1px dashed var(--line);padding-top:9px" id="ms-note"></div>
     </div>
 
     <div class="card">
@@ -229,23 +350,55 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
         <div class="su-col">
           <h4>Uses</h4>
           <div class="su-row"><span>Construction investment (Capex)</span><span class="v" id="u-capex">—</span></div>
+          <div class="su-row"><span>Non-EPC costs <small>land · fees · advisory</small></span><span class="v" id="u-nonepc">—</span></div>
+          <div class="su-row"><span>Opex during construction <small>pre-COD</small></span><span class="v" id="u-opexc">—</span></div>
           <div class="su-row"><span>Interest during construction (IDC)</span><span class="v" id="u-idc">—</span></div>
+          <div class="su-row" id="u-insc-row"><span>Insurance · construction <small>CAR / DSU</small></span><span class="v" id="u-insc">—</span></div>
+          <div class="su-row" id="u-fees-row"><span>Financing fees <small>arrangement + commitment</small></span><span class="v" id="u-fees">—</span></div>
+          <div class="su-row" id="u-fxrev-row" style="display:none"><span>FX revaluation <small>USD tranche · draw → COD</small></span><span class="v" id="u-fxrev">—</span></div>
           <div class="su-row tot"><span>Total uses</span><span class="v" id="u-tot">—</span></div>
         </div>
         <div class="su-col">
           <h4>Sources</h4>
-          <div class="su-row"><span>Bank loan (debt)</span><span class="v" id="s-debt">—</span></div>
+          <div class="su-row"><span>Bank loan · ₺ tranche</span><span class="v" id="s-debt-try">—</span></div>
+          <div class="su-row"><span>Bank loan · USD tranche</span><span class="v" id="s-debt-usd">—</span></div>
           <div class="su-row"><span>Equity (sponsor)</span><span class="v" id="s-eq">—</span></div>
           <div class="su-row tot"><span>Total sources</span><span class="v" id="s-tot">—</span></div>
         </div>
       </div>
       <div class="su-bar"><i id="bar-debt" style="background:var(--primary)"></i><i id="bar-eq" style="background:var(--green)"></i></div>
       <div class="legend"><span><i style="background:var(--primary)"></i>Debt <b id="lg-debt" style="color:var(--ink);margin-left:3px"></b></span><span><i style="background:var(--green)"></i>Equity <b id="lg-eq" style="color:var(--ink);margin-left:3px"></b></span></div>
+      <div id="su-dsra" style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.55;border-top:1px dashed var(--line);padding-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Construction Funding · Drawdown <span class="tag">how the build is paid for</span></h2>
+      <div class="tbl-wrap">
+        <table id="fund-table">
+          <thead><tr>
+            <th>Year</th><th>Construction draw</th><th>IDC &amp; fees</th><th>Total funding</th>
+            <th>Debt-funded</th><th>Equity-funded</th><th>Debt %</th>
+          </tr></thead>
+          <tbody id="fund-body"></tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.55" id="fund-note"></div>
+    </div>
+
+    <div class="card">
+      <h2>Currency Mismatch <span class="tag" id="fx-tag">FX debt</span></h2>
+      <div id="fx-body"></div>
     </div>
 
     <div class="card">
       <h2>DSCR Profile <span class="tag">debt service coverage ratio · operating years</span></h2>
       <div id="chart-dscr"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;border-top:1px dashed var(--line);padding-top:9px">
+        <b style="color:var(--ink);font-family:var(--mono)">DSCR = CFADS ÷ DS.</b>
+        <b style="color:var(--ink)">CFADS</b> = Cash Flow Available for Debt Service (EBITDA − tax − maintenance capex);
+        <b style="color:var(--ink)">DS</b> = Debt Service (interest + scheduled principal).
+        A DSCR of 1.30× means operating cash flow covers that year's debt service 1.3 times over — the cushion lenders size the loan against.
+      </div>
     </div>
 
     <div class="card">
@@ -274,8 +427,22 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       <div style="font-size:11px;color:var(--muted);margin-top:6px" id="ds-note"></div>
     </div>
 
+    <div class="card" id="mc-card">
+      <h2>Monte Carlo <span class="tag">risk simulation · distribution of outcomes</span></h2>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--muted);margin-bottom:6px">
+        <span>Revenue σ <input id="mcRev" type="number" value="12" step="1" class="mc-in"> %</span>
+        <span>Capex overrun max <input id="mcCap" type="number" value="25" step="5" class="mc-in"> %</span>
+        <span>FX shock σ <input id="mcFx" type="number" value="15" step="5" class="mc-in"> %</span>
+        <span>Rate σ <input id="mcRate" type="number" value="1.5" step="0.5" class="mc-in"> pts</span>
+        <span>Runs <input id="mcN" type="number" value="1000" step="500" class="mc-in" style="width:64px"></span>
+        <button id="mcGo" type="button" style="background:var(--primary);color:#fff;border:0;border-radius:8px;padding:7px 15px;font:600 12px system-ui;cursor:pointer">▶ Run simulation</button>
+        <span id="mcStat" style="font-family:var(--mono);font-size:10.5px"></span>
+      </div>
+      <div id="mc-out" style="margin-top:8px"><div style="color:var(--muted);font-size:12px">Each run re-prices the whole model with random revenue, capex, FX and rate draws — press ▶ to see the distribution of Equity IRR and the probability of breaching DSCR 1.00×.</div></div>
+    </div>
+
     <div class="card">
-      <h2>Annual Cash Flow Table</h2>
+      <h2>Annual Cash Flow Table <button id="csvBtn" type="button" title="Download every year as CSV — audit it in Excel" style="margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--muted);padding:5px 12px;font:600 11.5px system-ui;cursor:pointer">⬇ Download CSV</button></h2>
       <div class="tbl-wrap">
         <table id="cf-table">
           <thead><tr>
@@ -292,7 +459,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
 </div>
 
 <div class="note">
-  <b>ProjeFin</b> is an illustrative project finance (PF) model for infrastructure projects. It capitalizes construction-period capex draws and <b>interest during construction (IDC)</b>; in the operating period it models revenue ramp-up/escalation, operating cost, maintenance capex and depreciation-adjusted tax. Debt is repaid either by <b>annuity</b> or <b>sculpted to a target DSCR</b>. Outputs: unlevered <b>Project IRR</b>, levered <b>Equity IRR</b>, NPV, <b>DSCR</b> (min/average) and <b>LLCR</b>. Tax is computed with an interest shield for equity, and without interest for the project (unlevered). All calculations run in the browser, on an annual basis — this is not an official financial model or investment advice.
+  <b>ProjeFin</b> is an illustrative project finance (PF) model for infrastructure projects. It capitalizes construction-period capex draws and <b>interest during construction (IDC)</b>; in the operating period it models revenue ramp-up/escalation, operating cost, maintenance capex and depreciation-adjusted tax. Debt is split into a <b>₺ tranche</b> and a <b>USD tranche</b>: the USD leg accrues at its own rate and is converted to ₺ at each year's USD/TRY, so a falling lira raises ₺ debt service. <b>FX cover</b> (USD-linked revenue ÷ USD debt service) and the open-FX position show the currency mismatch; a <b>USD/TRY shock</b> stresses it in the tornado and downside case. Debt is repaid either by <b>annuity</b> or <b>sculpted to a target DSCR</b>. Outputs: unlevered <b>Project IRR</b>, levered <b>Equity IRR</b>, NPV, <b>DSCR</b> (min/average) and <b>LLCR</b>. Tax is computed with an interest shield for equity, and without interest for the project (unlevered). All calculations run in the browser, on an annual basis — this is not an official financial model or investment advice.
 </div>
 
 <script>
@@ -316,19 +483,23 @@ let CUR='TRY';                                   // ₺ / USD view
 function M(vTRY, fx){ return CUR==='USD' ? shortUSD(vTRY/((fx||0)>0?fx:1)) : shortM(vTRY); }
 
 const PRESETS={
-  toll:{name:'Toll Road Project',capex:5000000000,constr:3,opyears:25,tv:15,gearing:70,debtRate:9,tenor:15,repay:'sculpt',dscr:1.30,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:40,rev0:900000000,ramp:70,esc:6,opexPct:22,maintPct:4,tax:25,depYears:20,disc:10,discE:15,sensRange:10,dsRev:15,dsCapex:10,dsRate:2},
-  power:{name:'Solar Power (PV)',capex:2200000000,constr:2,opyears:30,tv:5,gearing:75,debtRate:8.5,tenor:14,repay:'sculpt',dscr:1.25,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:60,rev0:430000000,ramp:90,esc:4,opexPct:15,maintPct:2,tax:25,depYears:25,disc:9,discE:14,sensRange:10,dsRev:15,dsCapex:10,dsRate:2}
+  toll:{name:'Toll Road Project',capex:5000000000,nonEpcPct:8,opexConstrPct:2,insConstrPct:1,insOpPct:0.4,constr:3,opyears:25,tv:15,gearing:70,debtRate:9,usdDebtShare:50,usdDebtRate:8,tenor:15,drawOrder:'prorata',feeArr:2,feeCommit:0.5,repay:'sculpt',dscr:1.30,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:40,rev0:900000000,ramp:70,esc:6,opexPct:22,maintPct:4,tax:25,depYears:20,disc:10,discE:15,sensRange:10,dsRev:15,dsCapex:10,dsRate:2,dsFx:30},
+  power:{name:'Solar Power (PV)',capex:2200000000,nonEpcPct:6,opexConstrPct:1,insConstrPct:0.8,insOpPct:0.35,constr:2,opyears:30,tv:5,gearing:75,debtRate:8.5,usdDebtShare:60,usdDebtRate:7.5,tenor:14,drawOrder:'prorata',feeArr:2,feeCommit:0.5,repay:'sculpt',dscr:1.25,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:60,rev0:430000000,ramp:90,esc:4,opexPct:15,maintPct:2,tax:25,depYears:25,disc:9,discE:14,sensRange:10,dsRev:15,dsCapex:10,dsRate:2,dsFx:30},
+  // FX-mismatch teaching case: lira-capped revenue against heavy USD debt. Annuity so DSCR
+  // floats and the lira shock visibly bites; downside isolates FX (other stresses 0).
+  hospital:{name:'City Hospital (PPP)',capex:8000000000,nonEpcPct:10,opexConstrPct:3,insConstrPct:1,insOpPct:0.45,constr:3,opyears:25,tv:5,gearing:70,debtRate:9,usdDebtShare:85,usdDebtRate:7.5,tenor:16,drawOrder:'equityfirst',feeArr:2.5,feeCommit:0.5,repay:'annuity',dscr:1.20,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:15,rev0:1700000000,ramp:95,esc:5,opexPct:28,maintPct:4,tax:25,depYears:25,disc:10,discE:15,sensRange:10,dsRev:0,dsCapex:0,dsRate:0,dsFx:30}
 };
 
 const NUMF=['capex','rev0']; // large fields with thousands separators
-const IDS=['name','capex','constr','opyears','tv','gearing','debtRate','tenor','repay','dscr','dsraMonths','startYear','rateMode','fxRevPct','rev0','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE','sensRange','dsRev','dsCapex','dsRate'];
+const IDS=['name','capex','nonEpcPct','opexConstrPct','insConstrPct','insOpPct','constr','opyears','tv','gearing','debtRate','usdDebtShare','usdDebtRate','tenor','drawOrder','feeArr','feeCommit','repay','dscr','dsraMonths','startYear','rateMode','fxRevPct','rev0','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE','sensRange','dsRev','dsCapex','dsRate','dsFx'];
 
 function readState(){
   const s={};
   s.name=$('name').value||'Project';
   s.repay=$('repay').value;
+  s.drawOrder=$('drawOrder').value;
   s.rateMode=$('rateMode').value;
-  ['constr','opyears','tv','gearing','debtRate','tenor','dscr','dsraMonths','startYear','fxRevPct','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE','sensRange','dsRev','dsCapex','dsRate']
+  ['constr','opyears','tv','nonEpcPct','opexConstrPct','insConstrPct','insOpPct','gearing','debtRate','usdDebtShare','usdDebtRate','tenor','feeArr','feeCommit','dscr','dsraMonths','startYear','fxRevPct','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE','sensRange','dsRev','dsCapex','dsRate','dsFx']
     .forEach(k=>s[k]=parseFloat(String($(k).value).replace(',','.'))||0);
   NUMF.forEach(k=>s[k]=parseInt(String($(k).value).replace(/\D/g,''))||0);
   return s;
@@ -370,42 +541,97 @@ function compute(s){
   const tenor=Math.max(1,Math.round(s.tenor)), taxRate=s.tax/100;
   const tgtD=Math.max(1.0,s.dscr), tvPct=s.tv/100;
   const fxRev=Math.min(1,Math.max(0,s.fxRevPct/100));
+  const usdShare=Math.min(1,Math.max(0,(s.usdDebtShare||0)/100));   // FX tranche of debt
   // macro path (by project year)
   const mp=macroPath(s.startYear,N);
   const haveMacro = !!OVP;
-  // each year's debt rate: OVP path or fixed manual
+  // each year's ₺ debt rate: OVP path or fixed manual
   const rateAt=y=>{ // y: project year (1..N)
     const base = (s.rateMode==='ovp' && haveMacro) ? (mp[y-1].rate||0)/100 : s.debtRate/100;
     return base + (s.rateBump||0)/100;   // rateBump (points) lets sensitivity/downside stress any mode
   };
-  const fxAt=y=> haveMacro ? mp[y-1].usdtry : 1;
-  const fxBase = haveMacro ? fxAt(C+1) : 1;   // first operating year USDTRY (base for USD-linked revenue)
+  // USD tranche rate: fixed manual; rateBump stress applies to both legs
+  const usdRateAt=y=> (s.usdDebtRate||0)/100 + (s.rateBump||0)/100;
+  // FX shock: a lira devaluation that hits AFTER the debt is drawn (operating years only).
+  // Applying it to construction too would just re-size the USD loan at the shocked rate and
+  // cancel out — the mismatch only bites when the lira falls relative to the rate the USD
+  // debt was contracted at, i.e. from COD onward.
+  const fxShk=(s.fxShock||0)/100;
+  const fxAt=y=> (haveMacro ? mp[y-1].usdtry : 1) * (y>C ? (1+fxShk) : 1);
+  // Base for USD-linked revenue is the first-operating-year rate BEFORE the shock, so the
+  // shock lifts USD revenue and USD debt service together — the net is the true mismatch.
+  const fxBase = haveMacro ? (mp[Math.min(C,N-1)]?.usdtry||1) : 1;
+  // ---- Development / soft costs funded through construction (Sources & Uses) ----
+  // Beyond the physical build (capex), the funding plan also carries Non-EPC costs
+  // (land, permits, advisory, insurance, financing fees) and pre-COD operating expenses.
+  // Both are drawn evenly across construction and funded at the same gearing as capex,
+  // so they lift the debt/equity envelope and accrue IDC — but they are NOT part of the
+  // depreciable asset base or terminal value (those stay tied to capex).
+  const nonEpc = capex*Math.max(0,s.nonEpcPct||0)/100;
+  const opexC  = capex*Math.max(0,s.opexConstrPct||0)/100;
+  const insC   = capex*Math.max(0,s.insConstrPct||0)/100;   // CAR/EAR + DSU premium, funded like other spend
+  const devCost = nonEpc+opexC+insC;                       // extra uses beyond capex
+  const constrSpend = capex+devCost;                  // total drawn over construction
   const rows=[];
-  // ---- Construction period: capex draws + IDC ----
-  const drawY=C>0?capex/C:0;
-  let debtBal=0, equityTot=0, idcTot=0, debtDrawn=0;
+  // ---- Construction period: capex + dev-cost draws + IDC ----
+  // Debt is carried as two legs: a ₺ balance and a USD balance (held in USD units, so its
+  // ₺ value re-rates with the FX path). IDC accrues on each leg at its own rate.
+  const capexDrawY=C>0?capex/C:0, nonEpcDrawY=C>0?nonEpc/C:0, opexCDrawY=C>0?opexC/C:0, insCDrawY=C>0?insC/C:0;
+  const drawY=capexDrawY+nonEpcDrawY+opexCDrawY+insCDrawY;
+  // Financing fees: arrangement fee (% of the committed facility, paid at close) plus a
+  // commitment fee accruing on the still-undrawn facility each construction year. Both are
+  // funded through the plan like other spend — a levered (financing) cost, so they hit the
+  // funding plan and equity cash flow but NOT the unlevered project cash flow.
+  const feeA=Math.max(0,s.feeArr||0)/100, feeC2=Math.max(0,s.feeCommit||0)/100;
+  const facility=gear*constrSpend;                    // committed senior facility (excl. IDC)
+  const arrFee=facility*feeA;
+  // Drawdown order: pro-rata funds every lira gear/(1-gear); equity-first spends the sponsor
+  // cheque before drawing debt, so debt (and IDC) starts later — Equity IRR drops, IDC shrinks.
+  const eqFirst = s.drawOrder==='equityfirst';
+  const eqTarget=(1-gear)*(constrSpend+arrFee);
+  let balTRY=0, balUSD=0, equityTot=0, idcTot=0, debtDrawn=0, feesTot=0;
+  let capexUSDacc=0, nonEpcUSDacc=0, opexCUSDacc=0, insCUSDacc=0, feesUSDacc=0;   // per-year USD-equivalent
   for(let y=1;y<=C;y++){
-    const r=rateAt(y);
-    const idc=debtBal*r; idcTot+=idc; debtBal+=idc;
-    const dD=drawY*gear, dE=drawY*(1-gear);
-    debtBal+=dD; debtDrawn+=dD; equityTot+=dE;
-    rows.push({year:y,cal:Math.round(s.startYear)+y-1,phase:'Construction',rev:0,ebitda:0,interest:idc,tax:0,ds:0,cfads:0,dscr:null,debtBal:debtBal,rate:r,fx:fxAt(y),projCF:-drawY,eqCF:-dE});
+    const rT=rateAt(y), rU=usdRateAt(y), fx=fxAt(y);
+    const idcT=balTRY*rT, idcU=balUSD*rU;            // idcU in USD units
+    const idcTryEq=idcT+idcU*fx; idcTot+=idcTryEq;
+    balTRY+=idcT; balUSD+=idcU;
+    const commit= feeC2>0? Math.max(0,facility-debtDrawn)*feeC2 : 0;
+    const feeY=(y===1?arrFee:0)+commit;
+    feesTot+=feeY; if(fx>0) feesUSDacc+=feeY/fx;
+    const spendY=drawY+feeY;
+    let dD,dE;
+    if(eqFirst){ dE=Math.min(spendY,Math.max(0,eqTarget-equityTot)); dD=spendY-dE; }
+    else { dD=spendY*gear; dE=spendY*(1-gear); }
+    balTRY+=dD*(1-usdShare); balUSD+=(fx>0? dD*usdShare/fx : 0);
+    debtDrawn+=dD; equityTot+=dE;
+    if(fx>0){ capexUSDacc+=capexDrawY/fx; nonEpcUSDacc+=nonEpcDrawY/fx; opexCUSDacc+=opexCDrawY/fx; insCUSDacc+=insCDrawY/fx; }
+    const balTot=balTRY+balUSD*fx;
+    rows.push({year:y,cal:Math.round(s.startYear)+y-1,phase:'Construction',rev:0,ebitda:0,interest:idcTryEq,tax:0,ds:0,cfads:0,dscr:null,debtBal:balTot,rate:rT,fx:fx,projCF:-drawY,eqCF:-dE,fees:feeY,usdRev:0,dsUSD:0,fxCover:null,openFX:0});
   }
-  const debtCOD=debtBal; // debt at transition to operation, incl. IDC
+  const fxCOD=fxAt(Math.max(1,C));
+  const usdDebtCODunits=balUSD;                       // FX debt outstanding at COD, in USD
+  const debtCOD=balTRY+balUSD*fxCOD;                  // total debt at transition to operation (₺), incl. IDC
   // ---- Operating period ----
   const depYears=Math.max(1,Math.min(Math.round(s.depYears),O));
   const depPerYear=capex/depYears;
-  let bal=debtCOD, minDSCR=Infinity, sumDSCR=0, nDSCR=0, pvCFADS=0, df=1;
+  let minDSCR=Infinity, sumDSCR=0, nDSCR=0, pvCFADS=0, df=1;
+  let minFxCover=Infinity, sumFxCover=0, nFx=0;
   let nolLev=0, nolUnlev=0;   // tax loss carry-forward pools (levered / unlevered)
   for(let k=1;k<=O;k++){
-    const py=C+k, r=rateAt(py), fx=fxAt(py), ramp=(k===1)?s.ramp/100:1;
+    const py=C+k, rT=rateAt(py), rU=usdRateAt(py), fx=fxAt(py), ramp=(k===1)?s.ramp/100:1;
     // revenue: ₺-indexed share escalates; USD-indexed share moves with OVP USD/TRY
     const tryRev=s.rev0*(1-fxRev)*Math.pow(1+s.esc/100,k-1);
     const usdRev=s.rev0*fxRev*(fx/fxBase);
     const rev=(tryRev+usdRev)*ramp;
-    const opex=rev*s.opexPct/100, ebitda=rev-opex, maint=rev*s.maintPct/100;
+    const opIns=capex*Math.max(0,s.insOpPct||0)/100*Math.pow(1+s.esc/100,k-1);   // asset-value based, not revenue based
+    const opex=rev*s.opexPct/100, ebitda=rev-opex-opIns, maint=rev*s.maintPct/100;
     const dep=(k<=depYears)?depPerYear:0;
-    const interest=bal*r;
+    // interest on each leg (USD leg converted to ₺ at this year's rate)
+    const intTRY=balTRY*rT, intUSDtry=balUSD*rU*fx;
+    const interest=intTRY+intUSDtry;
+    const balUSDtry=balUSD*fx, balTot=balTRY+balUSDtry;
+    const rBlend= balTot>0? interest/balTot : rT;     // effective blended cost of debt
     // tax with loss carry-forward: negative taxable income builds a pool that shelters later profits
     let tiL=ebitda-dep-interest, taxLev;
     if(tiL<=0){ nolLev+=-tiL; taxLev=0; } else { const u=Math.min(nolLev,tiL); nolLev-=u; taxLev=(tiL-u)*taxRate; }
@@ -413,23 +639,32 @@ function compute(s){
     if(tiU<=0){ nolUnlev+=-tiU; taxUnlev=0; } else { const u=Math.min(nolUnlev,tiU); nolUnlev-=u; taxUnlev=(tiU-u)*taxRate; }
     const cfads=ebitda-taxLev-maint;
     let ds=0,principal=0;
-    if(k<=tenor && bal>1){
+    if(k<=tenor && balTot>1){
       if(s.repay==='annuity'){
         const rem=tenor-(k-1);
-        const ann=r>0? bal*r*Math.pow(1+r,rem)/(Math.pow(1+r,rem)-1) : bal/rem;
-        principal=Math.min(Math.max(ann-interest,0),bal);
+        const ann=rBlend>0? balTot*rBlend*Math.pow(1+rBlend,rem)/(Math.pow(1+rBlend,rem)-1) : balTot/rem;
+        principal=Math.min(Math.max(ann-interest,0),balTot);
       } else {
         const target=cfads/tgtD;
-        principal=Math.min(Math.max(target-interest,0),bal);
+        principal=Math.min(Math.max(target-interest,0),balTot);
       }
       ds=interest+principal;
     }
-    bal-=principal;
+    // allocate principal across legs pro-rata to current ₺ value
+    const wTRY= balTot>0? balTRY/balTot : 1;
+    const prinTRY=principal*wTRY, prinUSDtry=principal*(1-wTRY);
+    balTRY-=prinTRY; balUSD-=(fx>0? prinUSDtry/fx : 0);
+    const balAfter=balTRY+balUSD*fx;
+    // FX cover: USD-linked revenue vs USD debt service (both ₺); open position = surplus/deficit
+    const dsUSD=intUSDtry+prinUSDtry;
+    const openFX=usdRev-dsUSD;
+    const fxCover= dsUSD>1? usdRev/dsUSD : null;
+    if(fxCover!=null){ if(fxCover<minFxCover)minFxCover=fxCover; sumFxCover+=fxCover; nFx++; }
     const dscr= ds>0? cfads/ds : null;
     if(dscr!=null){ if(dscr<minDSCR)minDSCR=dscr; sumDSCR+=dscr; nDSCR++; }
-    if(k<=tenor){ df/=(1+r); pvCFADS+=cfads*df; }
-    rows.push({year:py,cal:Math.round(s.startYear)+py-1,phase:'Operating',rev,ebitda,interest,tax:taxLev,ds,cfads,dscr,debtBal:bal,rate:r,fx,
-               projCF:ebitda-taxUnlev-maint, eqCF:cfads-ds});
+    if(k<=tenor){ df/=(1+rBlend); pvCFADS+=cfads*df; }
+    rows.push({year:py,cal:Math.round(s.startYear)+py-1,phase:'Operating',rev,ebitda,interest,tax:taxLev,ds,cfads,dscr,debtBal:balAfter,rate:rBlend,fx,
+               projCF:ebitda-taxUnlev-maint, eqCF:cfads-ds, usdRev, dsUSD, fxCover, openFX});
   }
   // ---- Debt Service Reserve Account (cash-funded; affects equity cash-flow timing only) ----
   // Target each operating year = N months of NEXT year's debt service; funding traps equity cash,
@@ -448,7 +683,7 @@ function compute(s){
     }
   }
   // terminal value (added to the last operating year)
-  const tv=capex*tvPct, residDebt=bal;
+  const tv=capex*tvPct, residDebt=balTRY+balUSD*fxAt(N);
   const last=rows[rows.length-1];
   last.projCF+=tv;
   last.eqCF+=Math.max(0,tv-residDebt);
@@ -463,21 +698,27 @@ function compute(s){
   const fx0=fxAt(1);
   const pNPVusd=haveMacro?pNPV/fx0:pNPV, eNPVusd=haveMacro?eNPV/fx0:eNPV;
   const llcr= debtCOD>0? pvCFADS/debtCOD : null;
-  // USD totals (each year at its own USD/TRY)
-  let capexUSD=0,idcUSD=0,equityUSD=0,debtCODusd=0;
+  // USD totals (each year at its own USD/TRY). Capex / Non-EPC / pre-COD opex are accumulated
+  // per-year in the construction loop; IDC, equity and debt come from the row cash flows.
+  const capexUSD=capexUSDacc, nonEpcUSD=nonEpcUSDacc, opexCUSD=opexCUSDacc;
+  let idcUSD=0,equityUSD=0,debtCODusd=0;
   rows.forEach(r=>{ if(r.phase==='Construction'){ const fx=fxOf(r), drawY=-r.projCF, dE=-r.eqCF;
-    capexUSD+=drawY/fx; idcUSD+=r.interest/fx; equityUSD+=dE/fx; debtCODusd+=(drawY-dE+r.interest)/fx; }});
+    idcUSD+=r.interest/fx; equityUSD+=dE/fx; debtCODusd+=(drawY+(r.fees||0)-dE+r.interest)/fx; }});
   // equity payback and project breakeven years — cumulative cash ≥ 0
   const startY=Math.round(s.startYear);
   let cumE=0, ePayPy=null; for(let i=0;i<eqCFs.length;i++){ cumE+=eqCFs[i]; if(ePayPy===null&&cumE>=0) ePayPy=i+1; }
   let cumP=0, pBePy=null; for(let i=0;i<projCFs.length;i++){ cumP+=projCFs[i]; if(pBePy===null&&cumP>=0) pBePy=i+1; }
   return {C,O,N,rows,capex,idcTot,debtCOD,debtDrawn,equityTot,gear,haveMacro,fxRev,rateMode:s.rateMode,startY,
+          usdShare, usdDebtCODunits, usdDebtCOD:usdDebtCODunits*fxCOD, fxShock:s.fxShock||0,
+          minFxCover:isFinite(minFxCover)?minFxCover:null, avgFxCover:nFx?sumFxCover/nFx:null,
           minDSCR:isFinite(minDSCR)?minDSCR:null, avgDSCR:nDSCR?sumDSCR/nDSCR:null,
           pIRR,eIRR,eIRRusd,pNPV,eNPV,pNPVusd,eNPVusd,llcr,tgtD,repay:s.repay,residDebt,tv,dsra,
-          capexUSD,idcUSD,equityTotUSD:equityUSD,debtCODusd, usesUSD:capexUSD+idcUSD, sourcesUSD:debtCODusd+equityUSD,
+          capexUSD,nonEpcUSD,opexCUSD,idcUSD,equityTotUSD:equityUSD,debtCODusd,
+          usesUSD:capexUSD+nonEpcUSD+opexCUSD+insCUSDacc+idcUSD+feesUSDacc, sourcesUSD:debtCODusd+equityUSD,
+          nonEpc,opexC,insC,insCUSD:insCUSDacc,devCost,constrSpend, constrSpendUSD:capexUSD+nonEpcUSD+opexCUSD+insCUSDacc, feesTot, feesUSD:feesUSDacc,
           payback:ePayPy, ePayPy, pBePy, eqPaybackCal:ePayPy!=null?startY+ePayPy-1:null, projBreakevenCal:pBePy!=null?startY+pBePy-1:null,
           fxStart:fxAt(C+1), fxEnd:fxAt(N),
-          uses:capex+idcTot, sources:debtCOD+equityTot};
+          uses:capex+devCost+feesTot+idcTot, sources:debtCOD+equityTot};
 }
 
 /* ---- charts ---- */
@@ -543,11 +784,21 @@ function jCurve(rows,startY,ePayPy){
   g+='<text x="'+(W-padR).toFixed(1)+'" y="'+(H-8)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+calOf(n-1)+'</text>';
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
 }
-function milestones(items,y0,y1){
-  const W=1320,H=140,padL=40,padR=40,iW=W-padL-padR, axisY=72;
+function milestones(items,y0,y1,codY){
+  const W=1320,H=152,padL=40,padR=40,iW=W-padL-padR, axisY=72;
   const span=Math.max(1,y1-y0), xOf=y=>padL+((y-y0)/span)*iW;
   let g='';
+  // thin base axis
   g+='<line x1="'+padL+'" y1="'+axisY+'" x2="'+(W-padR)+'" y2="'+axisY+'" stroke="#2A2F3A" stroke-width="2"/>';
+  // Construction vs Operations phase bands (from the project-finance timeline sketch)
+  if(codY!=null && codY>y0 && codY<y1){
+    const xC=xOf(codY);
+    g+='<rect x="'+padL+'" y="'+(axisY-3)+'" width="'+(xC-padL).toFixed(1)+'" height="6" rx="3" fill="#2F9BFF" opacity="0.55"/>';
+    g+='<rect x="'+xC.toFixed(1)+'" y="'+(axisY-3)+'" width="'+((W-padR)-xC).toFixed(1)+'" height="6" rx="3" fill="#19C37D" opacity="0.55"/>';
+    g+='<line x1="'+xC.toFixed(1)+'" y1="'+(axisY-18)+'" x2="'+xC.toFixed(1)+'" y2="'+(axisY+18)+'" stroke="#5B6472" stroke-width="1" stroke-dasharray="3 3"/>';
+    g+='<text x="'+((padL+xC)/2).toFixed(1)+'" y="'+(H-5)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10.5" font-weight="600" fill="#2F9BFF">CONSTRUCTION PERIOD</text>';
+    g+='<text x="'+((xC+(W-padR))/2).toFixed(1)+'" y="'+(H-5)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10.5" font-weight="600" fill="#19C37D">OPERATIONS PERIOD</text>';
+  }
   g+='<text x="'+padL+'" y="'+(axisY+34)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#5B6472">'+y0+'</text>';
   g+='<text x="'+(W-padR)+'" y="'+(axisY+34)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#5B6472">'+y1+'</text>';
   items.filter(m=>m.year!=null).forEach((m,i)=>{
@@ -557,6 +808,41 @@ function milestones(items,y0,y1){
     g+='<text x="'+x.toFixed(1)+'" y="'+yT+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="12.5" font-weight="600" fill="'+m.color+'">'+m.year+'</text>';
     g+='<text x="'+x.toFixed(1)+'" y="'+(up?yT-15:yT+14)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10.5" fill="#A3A8B5">'+m.label+'</text>';
   });
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
+}
+
+/* ---- currency mismatch ---- */
+function fxStat(label,val,sub,color){
+  const vc=color?(' style="color:var(--'+color+')"'):'';
+  return '<div style="background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:11px 12px">'
+    +'<div style="font-size:10.5px;color:var(--muted)">'+label+'</div>'
+    +'<div style="font-family:var(--mono);font-size:18px;font-weight:600;margin-top:3px"'+vc+'>'+val+'</div>'
+    +'<div style="font-size:10px;color:var(--muted);margin-top:2px;font-family:var(--mono)">'+sub+'</div></div>';
+}
+// Signed bars: USD-linked revenue minus USD debt service, per operating year (green=covered, red=exposed)
+function mismatchChart(rows){
+  const ops=rows.filter(r=>r.phase==='Operating');
+  if(!ops.length) return '';
+  const usd=CUR==='USD';
+  const val=r=> usd? r.openFX/((r.fx||0)>0?r.fx:1) : r.openFX;
+  const fmt=v=> usd? shortUSD(v) : shortM(v);
+  const vals=ops.map(val);
+  const W=1320,H=210,padL=64,padR=20,padT=18,padB=28,iW=W-padL-padR,iH=H-padT-padB;
+  let mx=Math.max(0,...vals), mn=Math.min(0,...vals); const pad=(mx-mn)*0.12||1; mx+=pad; mn-=pad;
+  const n=ops.length, gap=iW/n, bw=Math.min(gap*0.62,46);
+  const yOf=v=>padT+iH-((v-mn)/(mx-mn))*iH, zY=yOf(0);
+  let g='';
+  g+='<line x1="'+padL+'" y1="'+zY.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+zY.toFixed(1)+'" stroke="#5B6472" stroke-width="1"/>';
+  ops.forEach((o,i)=>{
+    const v=val(o), x=padL+i*gap+(gap-bw)/2;
+    const yT=v>=0?yOf(v):zY, h=Math.abs(yOf(v)-zY);
+    const col=v>=0?'#19C37D':'#E5484D';
+    g+='<rect x="'+x.toFixed(1)+'" y="'+yT.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,h).toFixed(1)+'" fill="'+col+'" rx="2"/>';
+    if(i%Math.ceil(n/14)===0||n<=16) g+='<text x="'+(x+bw/2).toFixed(1)+'" y="'+(H-9)+'" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+o.cal+'</text>';
+  });
+  g+='<text x="'+(padL-6)+'" y="'+(yOf(mx)+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+fmt(mx)+'</text>';
+  g+='<text x="'+(padL-6)+'" y="'+(zY+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">0</text>';
+  g+='<text x="'+(padL-6)+'" y="'+(yOf(mn)+3).toFixed(1)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#A3A8B5">'+fmt(mn)+'</text>';
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
 }
 
@@ -571,6 +857,7 @@ function tornadoData(s,range,metric){
     {name:'Capex',     lo:c=>c.capex*=(1-f),   hi:c=>c.capex*=(1+f)},
     {name:'Operating cost', lo:c=>c.opexPct*=(1-f), hi:c=>c.opexPct*=(1+f)},
     {name:'Debt rate', lo:c=>c.rateBump=-rb,   hi:c=>c.rateBump=rb},
+    {name:'USD/TRY',   lo:c=>c.fxShock=-range, hi:c=>c.fxShock=range},
     {name:'Gearing',   lo:c=>c.gearing*=(1-f), hi:c=>c.gearing*=(1+f)}
   ];
   const base=metricVal(compute(s),metric);
@@ -605,6 +892,7 @@ function downsideState(s){
   c.rev0  = s.rev0 *(1-(s.dsRev||0)/100);
   c.capex = s.capex*(1+(s.dsCapex||0)/100);
   c.rateBump = (s.rateBump||0)+(s.dsRate||0);
+  c.fxShock = (s.fxShock||0)+(s.dsFx||0);   // lira devaluation stress
   return c;
 }
 function solveMaxGearing(s){
@@ -650,17 +938,64 @@ function render(){
     + (r.projBreakevenCal!=null?(' · project breakeven '+r.projBreakevenCal):'');
   // Sources & Uses
   $('u-capex').textContent=isU?shortUSD(r.capexUSD):shortM(r.capex);
+  $('u-nonepc').textContent=isU?shortUSD(r.nonEpcUSD):shortM(r.nonEpc);
+  $('u-opexc').textContent=isU?shortUSD(r.opexCUSD):shortM(r.opexC);
   $('u-idc').textContent=isU?shortUSD(r.idcUSD):shortM(r.idcTot);
-  $('u-tot').textContent=isU?shortUSD(r.usesUSD):shortM(r.uses);
-  $('s-debt').textContent=isU?shortUSD(r.debtCODusd):shortM(r.debtCOD);
+  $('u-insc-row').style.display = (r.insC||0)>1 ? '' : 'none';
+  $('u-insc').textContent=isU?shortUSD(r.insCUSD):shortM(r.insC);
+  $('u-fees-row').style.display = (r.feesTot||0)>1 ? '' : 'none';
+  $('u-fees').textContent=isU?shortUSD(r.feesUSD):shortM(r.feesTot);
+  // FX revaluation reconciling line: the USD tranche is drawn at each year's rate but carried
+  // at the COD rate, so in ₺ the funding plan balances only with this revaluation shown.
+  // (The USD view is naturally consistent — each flow at its own rate — so the line hides there.)
+  const gapFx = isU ? 0 : r.debtCOD-(r.debtDrawn+r.idcTot);
+  $('u-fxrev-row').style.display = Math.abs(gapFx)>1 ? '' : 'none';
+  $('u-fxrev').textContent = shortM(gapFx);
+  $('u-tot').textContent=isU?shortUSD(r.usesUSD):shortM(r.uses+gapFx);
+  // debt split into ₺ tranche and USD tranche; the two lines sum exactly to total debt in each view
+  $('s-debt-try').textContent=isU?shortUSD(r.debtCODusd-r.usdDebtCODunits):shortM(r.debtCOD-r.usdDebtCOD);
+  $('s-debt-usd').textContent=isU?shortUSD(r.usdDebtCODunits):shortM(r.usdDebtCOD);
   $('s-eq').textContent=isU?shortUSD(r.equityTotUSD):shortM(r.equityTot);
   $('s-tot').textContent=isU?shortUSD(r.sourcesUSD):shortM(r.sources);
   const dShare=r.sources>0?r.debtCOD/r.sources*100:0;
   $('bar-debt').style.width=dShare.toFixed(1)+'%'; $('bar-eq').style.width=(100-dShare).toFixed(1)+'%';
   $('lg-debt').textContent=trN.format(dShare)+'%'; $('lg-eq').textContent=trN.format(100-dShare)+'%';
-  const bal=Math.abs(r.uses-r.sources)<1;
+  const bal= isU ? Math.abs(r.usesUSD-r.sourcesUSD)<1 : Math.abs(r.uses+gapFx-r.sources)<1;
   $('su-bal').textContent = bal?'✓ balanced':'≠ unbalanced';
   $('su-bal').style.color = bal?'var(--green)':'var(--red)';
+  $('su-dsra').innerHTML = r.dsra>1
+    ? 'Memo · DSRA (debt service reserve): <b style="color:var(--ink);font-family:var(--mono)">'+(isU?shortUSD(r.dsra/r.fxStart):shortM(r.dsra))+'</b> — funded from operating cash flow over the tenor, not at financial close, so it sits outside the funding plan above.'
+    : '';
+  // Construction funding drawdown — per year, capex+IDC split into debt- vs equity-funded.
+  // Debt here is at DRAWDOWN value (dD + capitalised IDC), so the table balances exactly;
+  // the USD tranche later revalues to the COD balance (the FX gap noted in Sources & Uses).
+  (function(){
+    const cons=r.rows.filter(x=>x.phase==='Construction');
+    const conv=(v,fx)=> isU ? ((fx||0)>0? v/fx : v) : v;
+    const fm=v=> isU ? shortUSD(v) : shortM(v);
+    let html='';
+    cons.forEach(row=>{
+      const fx=row.fx||1, draw=-row.projCF, idc=row.interest+(row.fees||0), eq=-row.eqCF;
+      const debt=(draw-eq)+idc, total=draw+idc, dpct= total>0? debt/total*100 : 0;
+      html+='<tr><td>'+row.cal+'</td><td>'+fm(conv(draw,fx))+'</td><td>'+fm(conv(idc,fx))+'</td><td>'+fm(conv(total,fx))
+        +'</td><td>'+fm(conv(debt,fx))+'</td><td>'+fm(conv(eq,fx))+'</td><td>'+trN.format(dpct)+'%</td></tr>';
+    });
+    const tDebt=r.debtDrawn+r.idcTot, tDpct= r.uses>0? tDebt/r.uses*100 : 0;
+    html+='<tr style="font-weight:600;border-top:2px solid var(--line)"><td>Total</td>'
+      +'<td>'+(isU?shortUSD(r.constrSpendUSD):shortM(r.constrSpend))+'</td>'
+      +'<td>'+(isU?shortUSD(r.idcUSD+r.feesUSD):shortM(r.idcTot+r.feesTot))+'</td>'
+      +'<td>'+(isU?shortUSD(r.usesUSD):shortM(r.uses))+'</td>'
+      +'<td>'+(isU?shortUSD(r.debtCODusd):shortM(tDebt))+'</td>'
+      +'<td>'+(isU?shortUSD(r.equityTotUSD):shortM(r.equityTot))+'</td>'
+      +'<td>'+trN.format(tDpct)+'%</td></tr>';
+    $('fund-body').innerHTML=html;
+    const gap=r.debtCOD-tDebt;
+    $('fund-note').innerHTML='Construction spend — capex plus Non-EPC costs, pre-COD opex and financing fees — is drawn evenly across construction'
+      +(s.drawOrder==='equityfirst' ? ', with <b style="color:var(--ink)">equity injected first</b> — the sponsor cheque is fully spent before the bank facility draws, so IDC starts later and is smaller.'
+                                    : ', funded <b style="color:var(--ink)">'+trN.format(r.gear*100)+'% debt / '+trN.format((1-r.gear)*100)+'% equity</b> pro-rata.')
+      +' Interest during construction (IDC) is rolled into the loan (100% debt), so the debt share of funding climbs each year. Equity is fully drawn during construction.'
+      +(gap>1?' Debt is shown here at <b style="color:var(--ink)">drawdown value</b>; the USD tranche revalues to '+(isU?shortUSD(r.debtCODusd):shortM(r.debtCOD))+' at COD — the '+shortM(gap)+' FX difference flagged in Sources &amp; Uses.':'');
+  }());
   // Macro projection card (OVP)
   if(OVP){
     $('ovp-src').textContent = OVP.source || 'Medium-Term Program';
@@ -688,16 +1023,56 @@ function render(){
   const dc=r.rows.find(x=>x.phase==='Operating'&&x.debtBal<=1);
   const endY=r.startY+r.N-1;
   const ms=[
-    {year:r.startY, label:'Construction start', color:'#A3A8B5'},
+    {year:r.startY, label:'Financial close · Sources & Uses', color:'#A3A8B5'},
     {year:r.startY+r.C, label:'Commercial operation (COD)', color:'#2F9BFF'},
     {year:r.eqPaybackCal, label:'Equity payback', color:'#19C37D'},
-    {year:dc?dc.cal:null, label:'Debt close', color:'#FF6500'},
-    {year:endY, label:'End of operation', color:'#7C5CFF'}
+    {year:dc?dc.cal:null, label:'Final maturity · senior debt', color:'#FF6500'},
+    {year:endY, label:'Concession expiry', color:'#7C5CFF'}
   ].filter(m=>m.year!=null).sort((a,b)=>a.year-b.year);
-  $('chart-milestones').innerHTML=milestones(ms, r.startY, endY);
+  $('chart-milestones').innerHTML=milestones(ms, r.startY, endY, r.startY+r.C);
+  // Payment conditions — how much equity/debt goes in, and when it is repaid
+  (function(){
+    const eqTxt = isU?shortUSD(r.equityTotUSD):shortM(r.equityTot);
+    const debtTxt = isU?shortUSD(r.debtCODusd):shortM(r.debtCOD);
+    const eqPct = trN.format(100-dShare), dbPct = trN.format(dShare);
+    const cy0=r.startY, cy1=r.startY+r.C-1;   // construction calendar span
+    const payTxt = r.eqPaybackCal!=null? r.eqPaybackCal : 'not within tenor';
+    $('ms-note').innerHTML =
+      '<b style="color:var(--ink)">Money in (construction '+cy0+(r.C>1?('–'+cy1):'')+'):</b> Equity <b style="color:var(--green)">'+eqTxt+'</b> ('+eqPct+'%) '
+      + 'and senior debt <b style="color:var(--primary)">'+debtTxt+'</b> ('+dbPct+'%, incl. capitalised IDC) are drawn down. Equity is fully funded during construction; debt is drawn alongside capex. '
+      + '<b style="color:var(--ink)">Money out (operations):</b> debt is serviced from CFADS and '
+      + (dc? ('amortises to zero by <b style="color:var(--ink)">'+dc.cal+'</b> (final maturity)')
+            : ('runs to tenor end with a balloon of <b style="color:var(--ink)">'+(isU?shortUSD(r.residDebt):shortM(r.residDebt))+'</b> covered by terminal value'))
+      + '; sponsor equity turns cash-positive at payback <b style="color:var(--green)">'+payTxt+'</b>. '
+      + 'The DSRA is funded from operating cash flow (not at close), sized to '+trN.format(s.dsraMonths||0)+' months of debt service.';
+  }());
   // charts
   $('chart-dscr').innerHTML=dscrChart(r.rows,r.tgtD);
   $('chart-jcurve').innerHTML=jCurve(r.rows, r.startY, r.ePayPy);
+  // Currency mismatch card
+  {
+    const share=s.usdDebtShare||0;
+    $('fx-tag').textContent = share>0 ? trN.format(share)+'% of debt in USD' : 'no FX debt';
+    if(share<=0){
+      $('fx-body').innerHTML='<div style="color:var(--muted);font-size:12.5px;line-height:1.65">No foreign-currency debt. Set <b style="color:var(--ink)">USD debt share</b> above 0% in Financing to model the classic infrastructure risk — <b style="color:var(--ink)">₺ revenue against USD debt</b>. When the lira falls, ₺ revenue lags but USD debt service rises in ₺ terms, and DSCR drops.</div>';
+    } else {
+      const ops=r.rows.filter(x=>x.phase==='Operating');
+      const worst=ops.reduce((a,x)=> (a==null||x.openFX<a.openFX)?x:a, null);
+      const mn=r.minFxCover, av=r.avgFxCover, exposed=(mn!=null&&mn<1);
+      const cov=c=> c==null?'—':trN2.format(c)+'×';
+      const woTry=worst?worst.openFX:0, woUsd=worst&&worst.fx>0?worst.openFX/worst.fx:0;
+      const woVal=isU?shortUSD(woUsd):shortM(woTry);
+      $('fx-body').innerHTML =
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">'
+        + fxStat('USD debt at COD', shortUSD(r.usdDebtCODunits), shortM(r.usdDebtCOD)+' ₺-eq.')
+        + fxStat('Min FX cover', cov(mn), 'USD rev ÷ USD debt svc', exposed?'red':'green')
+        + fxStat('Avg FX cover', cov(av), 'tenor average')
+        + fxStat('Worst open FX', woVal, worst?('in '+worst.cal):'—', woTry<0?'red':'green')
+        + '</div>'
+        + mismatchChart(r.rows)
+        + '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">Bars = USD-linked revenue − USD debt service each year. <b style="color:var(--green)">Green</b> = the FX leg is self-funding (natural hedge); <b style="color:var(--red)">red</b> = open exposure, where a weaker lira lifts ₺ debt service faster than revenue. <b style="color:var(--ink)">FX cover below 1.0×</b> means USD income does not cover USD debt service that year.</div>';
+    }
+  }
   // Goal seek — shown inline under the matching input
   LAST_GMAX=solveMaxGearing(s);
   $('gs-gearing-v').textContent = LAST_GMAX!=null ? trN1.format(LAST_GMAX)+'%' : 'none at target DSCR';
@@ -714,7 +1089,8 @@ function render(){
     + (sm==='dscr'?' Note: with DSCR-targeted sculpting the min DSCR is pinned to the target, so it barely moves — switch Repayment to Annuity to see DSCR sensitivity.':'');
   // Downside / bank case
   const r2 = compute(downsideState(s));
-  $('ds-tag').textContent = 'rev −'+trN1.format(s.dsRev||0)+'% · capex +'+trN1.format(s.dsCapex||0)+'% · rate +'+trN1.format(s.dsRate||0)+'pts';
+  $('ds-tag').textContent = 'rev −'+trN1.format(s.dsRev||0)+'% · capex +'+trN1.format(s.dsCapex||0)+'% · rate +'+trN1.format(s.dsRate||0)+'pts'
+    + ((s.dsFx||0)>0?' · USD/TRY +'+trN1.format(s.dsFx)+'%':'');
   const dsRow=(label,bv,dv,fmt,lowerWorse)=>{
     let worse=false;
     if(dv==null && bv!=null) worse=true;
@@ -727,6 +1103,7 @@ function render(){
     + dsRow('Project IRR', r.pIRR, r2.pIRR, fI, true)
     + dsRow('Min DSCR', r.minDSCR, r2.minDSCR, fX, true)
     + dsRow('Average DSCR', r.avgDSCR, r2.avgDSCR, fX, true)
+    + ((s.usdDebtShare||0)>0 ? dsRow('Min FX cover', r.minFxCover, r2.minFxCover, fX, true) : '')
     + dsRow('Equity NPV', r.eNPV, r2.eNPV, fMo, true)
     + dsRow('Equity payback (yr)', r.eqPaybackCal, r2.eqPaybackCal, fY, false)
     + dsRow('Residual debt', r.residDebt, r2.residDebt, fMo, false);
@@ -769,6 +1146,7 @@ function render(){
     +(okDSCR?'Debt service holds the target coverage every year. ':'<b>DSCR falls below target</b> — lower the gearing, extend the tenor, or revisit revenue. ')
     +(okIRR?'Equity return exceeds the hurdle rate.':'<b>Equity IRR is below the hurdle rate</b> — test the leverage, revenue, or capex assumptions.')
     +(r.haveMacro?' <b>OVP macro:</b> USD/TRY '+trN2.format(r.fxStart)+'→'+trN2.format(r.fxEnd)+', '+trN.format(r.fxRev*100)+'% of revenue is USD-linked. ₺ equity IRR '+(r.eIRR!=null?pct(r.eIRR*100):'—')+', <b>USD-equivalent '+(r.eIRRusd!=null?pct(r.eIRRusd*100):'—')+'</b> — the gap is the nominal uplift from TRY depreciation.':'')
+    +(r.usdShare>0?' <b>FX mismatch:</b> '+trN.format(r.usdShare*100)+'% of debt is USD-denominated; at its tightest, USD-linked revenue covers '+(r.minFxCover!=null?'<b>'+trN2.format(r.minFxCover)+'×</b>':'—')+' of USD debt service'+(r.avgFxCover!=null?' ('+trN2.format(r.avgFxCover)+'× average)':'')+'. '+(r.minFxCover!=null&&r.minFxCover<1?'<b>Below 1.0× the FX leg is not self-funding — a falling lira directly erodes DSCR.</b> Test the USD/TRY shock in the downside case.':'The FX leg is broadly self-hedged by USD revenue.'):'')
     +(r.residDebt>1?' <b>Note:</b> '+(isU?shortUSD(r.residDebt/r.fxEnd):shortM(r.residDebt))+' of debt remains at maturity (balloon); the terminal value is used to repay it.':'')
     +(r.dsra>1?' A debt service reserve (DSRA) of ~'+(isU?shortUSD(r.dsra/r.fxStart):shortM(r.dsra))+' (≈'+trN1.format(s.dsraMonths)+' months of debt service) is cash-funded and released over the tenor.':'');
   // expose live state for the AI assistant (pf-ai.js)
@@ -807,10 +1185,29 @@ fmtNum();
 render();
 
 // Load the OVP macro projection (rates.json-like; editable)
-fetch('ovp.json?v='+Date.now(),{cache:'no-store'})
-  .then(r=>r.ok?r.json():Promise.reject())
-  .then(j=>{ if(j&&j.years&&j.years.length){ OVP=j; $('envText').textContent='OVP loaded · '+(j.source||'Medium-Term Program'); render(); } })
-  .catch(()=>{ $('envText').textContent='OVP not loaded — fixed rate/₺'; render(); });
+// Embedded OVP macro so this page works self-contained; a served ovp.json overrides it.
+const OVP_EMBEDDED = {
+  "source": "OVP 2026-2028 (Medium-Term Program, SBB · Sep 2025)",
+  "status": "CPI & USD/TRY official OVP · commercial rate is a derived estimate",
+  "note": "Year-end CPI (%) and year-average USD/TRY are official OVP 2026-2028 figures. The OVP does not publish a commercial lending rate; the rate column is an estimate derived to be consistent with the disinflation path, and is editable by hand.",
+  "base_year": 2025,
+  "us_inflation": 2.5,
+  "terminal": { "infl": 8.0, "rate": 14.0 },
+  "years": [
+    { "y": 2025, "infl": 28.5, "rate": 46.0, "usdtry": 39.63 },
+    { "y": 2026, "infl": 16.0, "rate": 30.0, "usdtry": 46.60 },
+    { "y": 2027, "infl":  9.0, "rate": 19.0, "usdtry": 50.71 },
+    { "y": 2028, "infl":  8.0, "rate": 15.0, "usdtry": 53.76 }
+  ]
+};
+(function(){
+  if(OVP_EMBEDDED&&OVP_EMBEDDED.years&&OVP_EMBEDDED.years.length){
+    OVP=OVP_EMBEDDED; $('envText').textContent='OVP loaded · '+(OVP.source||'Medium-Term Program'); render();
+  }
+  fetch('ovp.json?v='+Date.now(),{cache:'no-store'})
+    .then(r=>r.ok?r.json():Promise.reject())
+    .then(j=>{ if(j&&j.years&&j.years.length){ OVP=j; render(); } }).catch(()=>{});
+})();
 </script>
 
 <!-- ===== AI assistant ===== -->
@@ -826,6 +1223,692 @@ fetch('ovp.json?v='+Date.now(),{cache:'no-store'})
     <button id="aiChatSend" type="button">Send</button>
   </div>
 </div>
-<script src="pf-ai.js"></script>
+<script>
+/* ==== inlined pf-ai.js ==== */
+// ProjeFin assistant — explains how this infrastructure project-finance model
+// works and what the on-screen numbers mean. Uses the same shared Anthropic
+// proxy as the other tools. Everything is computed in the browser from the
+// scenario on screen; no data is stored or sent anywhere except the question.
+
+(function () {
+  var AI_PROXY_URL = "https://assetix-ai.akmannamik83.workers.dev";
+  var AI_SYSTEM =
+    "You are the assistant for ProjeFin, an illustrative infrastructure PROJECT FINANCE model. " +
+    "The user wants to understand HOW the model works and what the on-screen numbers mean. Explain the project-finance logic clearly and concisely in plain English. " +
+    "Key mechanics: during the construction period, capex is drawn down and interest during construction (IDC) is capitalized into the debt balance; in the operating period, revenue (with a year-1 ramp-up and annual escalation, part ₺-indexed and part USD-linked) less operating cost, maintenance capex and tax produces the cash flow. " +
+    "Debt is repaid either by a level ANNUITY or SCULPTED to a target DSCR (each year's principal is set so cash flow available for debt service ÷ debt service = the target). " +
+    "Outputs: unlevered PROJECT IRR (the asset's own return, ignoring financing), levered EQUITY IRR (the sponsor's return after debt), NPV, DSCR (min and average), and LLCR (loan-life coverage). Tax uses an interest shield for equity, and no interest deduction for the unlevered project. " +
+    "The OVP (Orta Vadeli Program — Turkey's official medium-term economic program) drives the inflation, interest-rate and USD/TRY path; for years beyond the OVP table, USD/TRY is extrapolated by the inflation differential (relative purchasing-power parity). Keep the abbreviation 'OVP' — do not translate it. " +
+    "If the question is about the current scenario, use the 'CURRENT SCENARIO' figures you are given and answer with concrete numbers. Do NOT invent a number you were not given; if unsure, say you don't have it. " +
+    "Keep answers short, clear and well structured. If the user asks in another language, reply in that language; otherwise reply in English. " +
+    "This is an illustrative model, not official financial, accounting or investment advice — remind the user gently when relevant.";
+
+  function askAI(prompt, system) {
+    return fetch(AI_PROXY_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt: prompt, system: system })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) return { error: (j.error || ("AI error (" + r.status + ")")) + (j.detail ? " — " + j.detail : "") };
+        return { text: j.text || "" };
+      });
+    }).catch(function () { return { error: "Connection error — could not reach the AI service." }; });
+  }
+
+  var nf = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+  var nf1 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+  var nf2 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+  function money(v) {            // mirror the page's shortM (₺ bn/mn/k)
+    var a = Math.abs(v || 0), s = v < 0 ? "−" : "";
+    if (a >= 1e9) return s + "₺" + nf2.format(a / 1e9) + " bn";
+    if (a >= 1e6) return s + "₺" + nf1.format(a / 1e6) + " mn";
+    if (a >= 1e3) return s + "₺" + nf.format(a / 1e3) + " k";
+    return s + "₺" + nf.format(a);
+  }
+  function pct(v) { return nf1.format(v) + "%"; }        // v already a percent (e.g. 25)
+  function pctF(v) { return nf1.format(v * 100) + "%"; }  // v a fraction (e.g. 0.25)
+  function xx(v) { return v != null ? nf2.format(v) + "x" : "—"; }
+
+  function pfContext() {
+    var d = window.__PF;
+    if (!d || !d.r || !d.s) return "No calculation has been run yet.";
+    var s = d.s, r = d.r;
+    var dShare = r.sources > 0 ? r.debtCOD / r.sources * 100 : 0;
+    var repayTxt = r.repay === "sculpt" ? "DSCR-targeted (sculpt)" : "annuity (level)";
+
+    return "OPEN TOOL: ProjeFin — Infrastructure Project Finance (illustrative model, annual basis, base currency ₺).\n" +
+      "Display currency currently: " + (d.cur === "USD" ? "USD ($)" : "TRY (₺)") + " — but the figures below are given in ₺.\n\n" +
+      "CURRENT SCENARIO\n" +
+      "- Project: " + s.name + " · capex " + money(r.capex) + " · " + r.C + "y construction + " + r.O + "y operation (" + r.startY + "–" + (r.startY + r.N - 1) + ") · terminal value " + pct(s.tv) + " of capex (= " + money(r.tv) + ")\n" +
+      "- Financing: gearing " + pct(s.gearing) + " · debt rate " + (r.rateMode === "ovp" ? "OVP path" : "fixed " + pct(s.debtRate)) + " · tenor " + s.tenor + "y operating · repayment " + repayTxt + " · target DSCR " + xx(r.tgtD) + "\n" +
+      "- Revenue: full-capacity " + money(s.rev0) + "/y · year-1 ramp " + pct(s.ramp) + " · ₺-escalation " + pct(s.esc) + " · USD-linked share " + pct(r.fxRev * 100) + "\n" +
+      "- Costs & tax: opex " + pct(s.opexPct) + " of revenue · operating insurance " + pct(s.insOpPct) + " of capex p.a. · maintenance capex " + pct(s.maintPct) + " · corporate tax " + pct(s.tax) + " · depreciation " + s.depYears + "y\n" +
+      "- Discount rates: project " + pct(s.disc) + " (unlevered NPV) · equity hurdle " + pct(s.discE) + " (levered NPV)\n\n" +
+      "KEY RESULTS\n" +
+      "- Project IRR (unlevered, the asset's return): " + (r.pIRR != null ? pctF(r.pIRR) : "—") + "\n" +
+      "- Equity IRR (levered, sponsor return): " + (r.eIRR != null ? pctF(r.eIRR) : "—") + (r.eIRRusd != null ? "  (USD-equivalent " + pctF(r.eIRRusd) + ")" : "") + "  [hurdle " + pct(s.discE) + "]\n" +
+      "- Min DSCR " + xx(r.minDSCR) + " / average " + xx(r.avgDSCR) + " (target " + xx(r.tgtD) + ") · LLCR " + xx(r.llcr) + "\n" +
+      "- Project NPV: " + money(r.pNPV) + " (at " + pct(s.disc) + ") · Equity NPV: " + money(r.eNPV) + " (at " + pct(s.discE) + ")\n" +
+      "- Equity payback year: " + (r.eqPaybackCal != null ? r.eqPaybackCal : "not within tenor") + " · Project breakeven year: " + (r.projBreakevenCal != null ? r.projBreakevenCal : "not within horizon") + "\n\n" +
+      "SOURCES & USES (at construction completion / COD)\n" +
+      "- Uses: capex " + money(r.capex) + " + Non-EPC costs " + money(r.nonEpc) + " + opex during construction " + money(r.opexC) + " + construction insurance " + money(r.insC || 0) + " + financing fees " + money(r.feesTot || 0) + " + IDC (interest during construction) " + money(r.idcTot) + " = " + money(r.uses) + "\n" +
+      "- Sources: debt " + money(r.debtCOD) + " (" + nf.format(dShare) + "%) + equity " + money(r.equityTot) + " (" + nf.format(100 - dShare) + "%) = " + money(r.sources) + "\n" +
+      (r.residDebt > 1 ? "- Residual (balloon) debt at maturity: " + money(r.residDebt) + " — covered by the terminal value.\n" : "") +
+      "\nMACRO (OVP)\n" +
+      (r.haveMacro
+        ? "- OVP loaded. USD/TRY runs " + nf2.format(r.fxStart) + " (first operating year) → " + nf2.format(r.fxEnd) + " (end). " + pct(r.fxRev * 100) + " of revenue is USD-linked, so it tracks USD/TRY; the rest is ₺-indexed and escalates at " + pct(s.esc) + ".\n" +
+          "- Beyond the OVP table, USD/TRY is extrapolated by the inflation differential (terminal inflation − US inflation), i.e. relative PPP — the lira depreciates by roughly that gap each year.\n"
+        : "- OVP not loaded — a fixed debt rate and ₺ revenue are used (no FX path).\n") +
+      "\nMETHOD NOTES (use if asked how something is computed)\n" +
+      "- IDC: during construction, interest accrues on the drawn debt and is capitalized (added to the debt balance) rather than paid in cash — so the debt at COD exceeds the pure debt portion of capex.\n" +
+      "- Sculpt vs annuity: 'sculpt' sizes each year's principal so DSCR hits the target every year (principal = CFADS/target − interest); 'annuity' keeps a level total payment. Sculpting keeps coverage flat; annuity lets DSCR drift.\n" +
+      "- DSCR = CFADS (cash flow available for debt service) ÷ debt service (interest + principal). LLCR = PV of future CFADS over the loan life ÷ debt outstanding.\n" +
+      "- Project (unlevered) IRR uses pre-financing cash flow (EBITDA − unlevered tax − maintenance, plus terminal value); Equity (levered) IRR uses cash flow after debt service. The gap between them is the value added by leverage.\n" +
+      "- Tax: equity case deducts interest (interest shield); the unlevered project case does not. Depreciation is straight-line over the depreciation period.\n" +
+      "- USD-equivalent equity IRR converts each year's ₺ cash flow at that year's USD/TRY; it is lower than the ₺ IRR because part of the ₺ return is just nominal inflation from lira depreciation.\n" +
+      "- Tax loss carry-forward: a loss-making year builds a pool that shelters later profits, so the interest/depreciation shield is never wasted.\n" +
+      (r.dsra > 1 ? "- DSRA (debt service reserve account) of ~" + money(r.dsra) + " (≈" + nf.format(s.dsraMonths) + " months of debt service) is cash-funded and released over the tenor; it slightly lowers and delays equity cash flow but protects coverage.\n" : "") +
+      "- The page also shows: a SENSITIVITY tornado (which driver — revenue, capex, opex, debt rate, gearing — moves the return most) and a DOWNSIDE 'bank case' (combined stress lenders size debt against). It has inline GOAL-SEEK hints: under the Gearing input it shows the maximum debt at the target DSCR, and under the Annual revenue input it shows the revenue needed to hit the equity hurdle — each with a 'use this' link that fills in the value.\n" +
+      "- Everything is computed in the browser from the scenario on screen; no figures are stored or sent anywhere.";
+  }
+
+  var fab = document.getElementById("aiFab"),
+      panel = document.getElementById("aiChat"),
+      msgs = document.getElementById("aiChatMsgs"),
+      input = document.getElementById("aiChatInput"),
+      sendBtn = document.getElementById("aiChatSend"),
+      closeBtn = document.getElementById("aiChatClose");
+  if (!fab || !panel) return;
+
+  var history = [], greeted = false, retryBtn = null;
+  function bubble(role, text) {
+    var me = role === "user", w = document.createElement("div");
+    w.style.cssText = "max-width:86%;padding:9px 12px;border-radius:12px;white-space:pre-wrap;" +
+      (me ? "align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px"
+          : "align-self:flex-start;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:4px");
+    w.textContent = text; msgs.appendChild(w); msgs.scrollTop = msgs.scrollHeight; return w;
+  }
+  function openPanel() {
+    panel.style.display = "flex";
+    if (!greeted) {
+      greeted = true;
+      bubble("ai", "Hi — I'm the ProjeFin assistant. Ask me how this model works or what the numbers mean. For example:\n• How is the Equity IRR different from the Project IRR?\n• What is IDC and why is it capitalized?\n• What does DSCR-targeted (sculpt) repayment do?\n• How is USD/TRY projected after the OVP table?");
+    }
+    setTimeout(function () { input.focus(); }, 50);
+  }
+  function closePanel() { panel.style.display = "none"; }
+  fab.addEventListener("click", function () { panel.style.display === "flex" ? closePanel() : openPanel(); });
+  closeBtn.addEventListener("click", closePanel);
+
+  function addRetry() {
+    if (retryBtn) { retryBtn.remove(); retryBtn = null; }
+    var r = document.createElement("button");
+    r.type = "button"; r.textContent = "↻ Try again";
+    r.style.cssText = "align-self:flex-start;margin:-4px 0 0 2px;background:none;border:0;color:var(--primary);font-size:12px;cursor:pointer;padding:2px 4px";
+    r.addEventListener("click", retry);
+    msgs.appendChild(r); msgs.scrollTop = msgs.scrollHeight;
+    retryBtn = r;
+  }
+
+  function callAI() {
+    if (retryBtn) { retryBtn.remove(); retryBtn = null; }
+    var typing = bubble("ai", "…"); sendBtn.disabled = true;
+    var convo = history.slice(-6).join("\n");
+    // Put the conversation first so the user's latest question isn't lost in the larger context block.
+    var prompt =
+      "CONVERSATION (the user's current question is the last \"User:\" line — answer THAT):\n" +
+      convo +
+      "\n\nUse the current state of this tool as reference:\n\n" +
+      pfContext() +
+      "\n\nNow answer the user's last question in the context of this scenario — short, clear, in English unless they used another language.";
+    askAI(prompt, AI_SYSTEM).then(function (res) {
+      typing.textContent = res.error ? "⚠ " + res.error : res.text;
+      if (!res.error) history.push("Assistant: " + res.text);
+      sendBtn.disabled = false;
+      addRetry();
+      setTimeout(function () { input.focus(); }, 50);
+    });
+  }
+
+  function send() {
+    if (sendBtn.disabled) return;             // a request is already in flight
+    var q = (input.value || "").trim(); if (!q) return;
+    input.value = ""; bubble("user", q); history.push("User: " + q);
+    callAI();
+  }
+
+  function retry() {
+    if (sendBtn.disabled) return;
+    if (history.length && history[history.length - 1].indexOf("Assistant: ") === 0) history.pop();
+    callAI();
+  }
+
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); send(); } });
+})();
+
+</script>
+
+<!-- ===== Review mode: right-click any section to leave a note ===== -->
+<style>
+  .card,.kpis,.panel.left,.panel.left .grp{position:relative}
+  .rv-badge{position:absolute;top:8px;right:8px;background:#FF6500;color:#fff;font:700 10px var(--mono,monospace);
+    padding:2px 8px;border-radius:11px;cursor:pointer;z-index:35;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  #rvBtn{position:fixed;left:18px;bottom:18px;z-index:9990;background:#FF6500;color:#fff;border:0;border-radius:22px;
+    padding:10px 15px;font:600 13px system-ui;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+  #rvPop,#rvPanel{position:fixed;z-index:9999;background:#161922;border:1px solid #2A3040;border-radius:10px;
+    box-shadow:0 14px 44px rgba(0,0,0,.55);color:#E6E8EC}
+  #rvPop{width:300px;padding:12px}
+  #rvPop .t{font:600 11px system-ui;color:#8B93A1;margin-bottom:7px}
+  #rvPop textarea{width:100%;height:92px;background:#0F1117;color:#E6E8EC;border:1px solid #2A3040;border-radius:7px;
+    padding:8px;font:13px system-ui;resize:vertical;outline:none}
+  #rvPop textarea:focus{border-color:#FF6500}
+  #rvPop .r{display:flex;gap:8px;margin-top:9px;justify-content:flex-end}
+  #rvPop button,#rvPanel button{border:0;border-radius:7px;padding:7px 12px;font:600 12px system-ui;cursor:pointer}
+  .rv-save{background:#2F9BFF;color:#fff}.rv-del{background:#3a2020;color:#E5484D}.rv-cx{background:#222834;color:#A3A8B5}
+  #rvPanel{left:18px;bottom:70px;width:360px;max-height:72vh;overflow:auto;padding:14px}
+  #rvPanel h3{margin:0 0 4px;font-size:14px}
+  #rvPanel .hint{color:#8B93A1;font-size:11px;margin:0 0 10px}
+  .rv-item{border-top:1px solid #262B36;padding:9px 0}
+  .rv-item b{color:#2F9BFF;font-size:12px}
+  .rv-item p{margin:3px 0 0;font-size:12.5px;white-space:pre-wrap;line-height:1.5}
+  #rvPanel .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+</style>
+<script>
+(function(){
+  var KEY='projefin_review_notes';
+  function load(){try{return JSON.parse(localStorage.getItem(KEY))||{};}catch(e){return {};}}
+  function persist(){try{localStorage.setItem(KEY,JSON.stringify(notes));}catch(e){}}
+  var notes=load(), pop=null, panel=null, btn=null;
+  var esc=function(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});};
+  // Input groups (Project / Financing / Macro / Revenue / …) are separate note targets.
+  function secOf(el){return el.closest ? el.closest('.panel.left .grp,.card,.kpis,.panel.left') : null;}
+  function keyOf(sec){
+    if(sec.classList.contains('kpis')) return 'Key metrics (KPIs)';
+    if(sec.classList.contains('grp')){
+      var t=sec.querySelector('.grp-t');
+      if(t){ var n=t.childNodes[0]; var s=((n&&n.nodeValue)||t.textContent).trim().replace(/\s+/g,' ');
+        return 'Inputs · '+s.slice(0,50); }
+    }
+    var h=sec.querySelector('h2,h3');
+    return h ? h.textContent.trim().replace(/\s+/g,' ').slice(0,60) : 'Section';
+  }
+  function refresh(){
+    var seen={};
+    Array.prototype.forEach.call(document.querySelectorAll('.panel.left .grp,.card,.kpis,.panel.left'),function(sec){
+      var k=keyOf(sec); seen[k]=1;
+      var b=sec.querySelector(':scope > .rv-badge');
+      if(notes[k]){
+        if(!b){ b=document.createElement('div'); b.className='rv-badge'; sec.appendChild(b);
+          b.addEventListener('click',function(e){e.stopPropagation();var r=b.getBoundingClientRect();openPop(sec,r.left,r.bottom);}); }
+        b.textContent='📝 note';
+      } else if(b){ b.remove(); }
+    });
+    if(btn) btn.innerHTML='📝 Review notes ('+Object.keys(notes).length+') <span style="font-weight:400;opacity:.85">· right-click any section to comment</span>';
+  }
+  function closePop(){ if(pop){pop.remove();pop=null;} }
+  function openPop(sec,x,y){
+    closePop(); var k=keyOf(sec);
+    pop=document.createElement('div'); pop.id='rvPop';
+    pop.innerHTML='<div class="t">Note on: <b style="color:#E6E8EC">'+esc(k)+'</b></div>'+
+      '<textarea placeholder="Write your note for this section…"></textarea>'+
+      '<div class="r"><button class="rv-cx">Cancel</button><button class="rv-del">Delete</button><button class="rv-save">Save</button></div>';
+    document.body.appendChild(pop);
+    var ta=pop.querySelector('textarea'); ta.value=notes[k]||'';
+    pop.style.left=Math.max(12,Math.min(x,innerWidth-pop.offsetWidth-12))+'px';
+    pop.style.top=Math.max(12,Math.min(y+6,innerHeight-pop.offsetHeight-12))+'px';
+    ta.focus();
+    pop.querySelector('.rv-save').onclick=function(){var v=ta.value.trim(); if(v)notes[k]=v; else delete notes[k]; persist(); closePop(); refresh(); if(panel){panel.remove();panel=null;}};
+    pop.querySelector('.rv-del').onclick=function(){delete notes[k]; persist(); closePop(); refresh();};
+    pop.querySelector('.rv-cx').onclick=closePop;
+  }
+  document.addEventListener('contextmenu',function(e){
+    var t=e.target;
+    if(t.closest && t.closest('#rvPop,#rvPanel,#aiChat')) return;
+    if(/^(INPUT|SELECT|TEXTAREA|BUTTON|A)$/.test(t.tagName)) return; // keep native menu on controls
+    var sec=secOf(t); if(!sec) return;
+    e.preventDefault(); openPop(sec,e.clientX,e.clientY);
+  });
+  document.addEventListener('click',function(e){ if(pop && !pop.contains(e.target) && !(e.target.className==='rv-badge')) closePop(); });
+  function exportText(){
+    var ks=Object.keys(notes); if(!ks.length) return 'ProjeFin — review notes\n\n(none yet)';
+    var s='ProjeFin — review notes\n'+'='.repeat(28)+'\n\n';
+    ks.forEach(function(k){ s+='• '+k+'\n  '+notes[k].replace(/\n/g,'\n  ')+'\n\n'; });
+    return s;
+  }
+  function openPanel(){
+    panel=document.createElement('div'); panel.id='rvPanel';
+    var ks=Object.keys(notes);
+    var items= ks.length? ks.map(function(k){return '<div class="rv-item"><b>'+esc(k)+'</b><p>'+esc(notes[k])+'</p></div>';}).join('')
+      : '<div style="color:#8B93A1;font-size:12.5px">No notes yet.</div>';
+    panel.innerHTML='<h3>Review notes ('+ks.length+')</h3><p class="hint">Right-click any section (or its 📝 badge) to add / edit a note.</p>'+items+
+      '<div class="row"><button class="rv-save" id="rvCopy">Copy all</button><button class="rv-cx" id="rvDl">Download .txt</button><button class="rv-del" id="rvClr">Clear all</button></div>';
+    document.body.appendChild(panel);
+    panel.querySelector('#rvCopy').onclick=function(){ var t=exportText();
+      if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){panel.querySelector('#rvCopy').textContent='Copied ✓';});
+      else { var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); panel.querySelector('#rvCopy').textContent='Copied ✓'; } };
+    panel.querySelector('#rvDl').onclick=function(){ var b=new Blob([exportText()],{type:'text/plain'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='projefin-review-notes.txt'; a.click(); };
+    panel.querySelector('#rvClr').onclick=function(){ if(confirm('Delete all review notes?')){ notes={}; persist(); panel.remove(); panel=null; refresh(); } };
+  }
+  function start(){
+    btn=document.createElement('button'); btn.id='rvBtn'; document.body.appendChild(btn);
+    btn.onclick=function(){ if(panel){panel.remove();panel=null;return;} openPanel(); };
+    refresh();
+  }
+  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded',start);
+})();
+</script>
+
+<!-- ===== Markup mode: pen / marker / eraser + save image ===== -->
+<style>
+  #dwCanvas{position:absolute;top:0;left:0;z-index:9980;pointer-events:none;touch-action:none}
+  #dwBar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9992;display:flex;gap:5px;align-items:center;
+    background:#161922;border:1px solid #2A3040;border-radius:12px;padding:7px 9px;box-shadow:0 8px 28px rgba(0,0,0,.55)}
+  #dwBar button{border:0;background:#222834;color:#d3d7df;border-radius:8px;padding:7px 10px;font:600 12px system-ui;cursor:pointer;line-height:1}
+  #dwBar button.on{background:#FF6500;color:#fff}
+  #dwBar .sw{width:19px;height:19px;border-radius:50%;border:2px solid #0F1117;cursor:pointer;padding:0}
+  #dwBar .sw.on{outline:2px solid #fff;outline-offset:1px}
+  #dwBar .sep{width:1px;height:22px;background:#2A3040;margin:0 3px}
+  body.dw-active{cursor:crosshair}
+</style>
+<script>
+(function(){
+  var cv=document.createElement('canvas'); cv.id='dwCanvas';
+  var ctx=cv.getContext('2d');
+  var mode='off', color='#FF3B30', strokes=[], cur=null, dpr=window.devicePixelRatio||1;
+  var SIZE={pen:3, marker:16, eraser:26};
+  function docSize(){return [Math.max(document.documentElement.scrollWidth,innerWidth),
+                             Math.max(document.documentElement.scrollHeight,innerHeight)];}
+  function resize(){
+    var s=docSize(); dpr=window.devicePixelRatio||1;
+    cv.width=s[0]*dpr; cv.height=s[1]*dpr; cv.style.width=s[0]+'px'; cv.style.height=s[1]+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0); redraw();
+  }
+  function styleFor(st){
+    ctx.lineJoin=ctx.lineCap='round'; ctx.lineWidth=st.size;
+    if(st.tool==='eraser'){ctx.globalCompositeOperation='destination-out'; ctx.globalAlpha=1; ctx.strokeStyle='#000';}
+    else{ctx.globalCompositeOperation='source-over'; ctx.strokeStyle=st.color; ctx.globalAlpha=st.tool==='marker'?0.4:1;}
+  }
+  function drawStroke(st){
+    if(st.pts.length<1) return; styleFor(st); ctx.beginPath();
+    ctx.moveTo(st.pts[0].x,st.pts[0].y);
+    for(var i=1;i<st.pts.length;i++) ctx.lineTo(st.pts[i].x,st.pts[i].y);
+    if(st.pts.length===1) ctx.lineTo(st.pts[0].x+0.1,st.pts[0].y+0.1);
+    ctx.stroke(); ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+  }
+  function redraw(){ ctx.clearRect(0,0,cv.width,cv.height); strokes.forEach(drawStroke); }
+  function pt(e){ return {x:e.clientX+(window.scrollX||0), y:e.clientY+(window.scrollY||0)}; }
+  cv.addEventListener('pointerdown',function(e){ if(mode==='off')return; e.preventDefault();
+    cur={tool:mode,color:color,size:SIZE[mode],pts:[pt(e)]}; strokes.push(cur); cv.setPointerCapture&&cv.setPointerCapture(e.pointerId); drawStroke(cur); });
+  cv.addEventListener('pointermove',function(e){ if(!cur)return; var p=pt(e), a=cur.pts[cur.pts.length-1];
+    cur.pts.push(p); styleFor(cur); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+    ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1; });
+  function end(){ cur=null; }
+  cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
+  window.addEventListener('resize',resize);
+  // toolbar
+  var bar=document.createElement('div'); bar.id='dwBar';
+  function mk(html,title){var b=document.createElement('button'); b.innerHTML=html; if(title)b.title=title; bar.appendChild(b); return b;}
+  var bPen=mk('✏️ Pen'), bMark=mk('🖍 Marker'), bErase=mk('⌫ Eraser');
+  var sep1=document.createElement('span'); sep1.className='sep'; bar.appendChild(sep1);
+  var COLORS=['#FF3B30','#FF9500','#FFE64D','#19C37D','#2F9BFF','#FFFFFF'], sws=[];
+  COLORS.forEach(function(c){var s=document.createElement('button'); s.className='sw'; s.style.background=c; s.title=c;
+    s.onclick=function(){color=c; sws.forEach(function(x){x.classList.remove('on');}); s.classList.add('on'); if(mode==='off')setMode('pen');}; bar.appendChild(s); sws.push(s);});
+  sws[0].classList.add('on');
+  var sep2=document.createElement('span'); sep2.className='sep'; bar.appendChild(sep2);
+  var bUndo=mk('↶','Undo'), bClear=mk('🗑','Clear all'), bSave=mk('📷 Save','Save image (choose “This tab”)'), bDone=mk('✓ Done','Exit markup — page clickable again');
+  document.body.appendChild(bar);
+  function setMode(m){ mode=m; cv.style.pointerEvents = m==='off'?'none':'auto';
+    document.body.classList.toggle('dw-active', m!=='off');
+    [ [bPen,'pen'],[bMark,'marker'],[bErase,'eraser'] ].forEach(function(p){p[0].classList.toggle('on',mode===p[1]);}); }
+  bPen.onclick=function(){setMode(mode==='pen'?'off':'pen');};
+  bMark.onclick=function(){setMode(mode==='marker'?'off':'marker');};
+  bErase.onclick=function(){setMode(mode==='eraser'?'off':'eraser');};
+  bUndo.onclick=function(){strokes.pop(); redraw();};
+  bClear.onclick=function(){ if(strokes.length&&confirm('Clear all drawings?')){strokes=[];redraw();} };
+  bDone.onclick=function(){setMode('off');};
+  bSave.onclick=async function(){
+    var chrome=[bar, document.getElementById('rvBtn'), document.getElementById('rvPanel'), document.getElementById('aiFab'), document.getElementById('aiChat')];
+    try{
+      var stream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser'},preferCurrentTab:true,selfBrowserSurface:'include'});
+      var v=document.createElement('video'); v.srcObject=stream; await v.play(); await new Promise(function(r){setTimeout(r,250);});
+      chrome.forEach(function(el){if(el)el.dataset.dwHid=el.style.display,el.style.display='none';});
+      await new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(r);});});
+      var c=document.createElement('canvas'); c.width=v.videoWidth; c.height=v.videoHeight; c.getContext('2d').drawImage(v,0,0);
+      chrome.forEach(function(el){if(el)el.style.display=el.dataset.dwHid||'';});
+      stream.getTracks().forEach(function(t){t.stop();});
+      var a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download='projefin-markup.png'; a.click();
+    }catch(err){ chrome.forEach(function(el){if(el&&el.dataset.dwHid!=null)el.style.display=el.dataset.dwHid;});
+      alert('To save an image, allow screen share and pick “This tab”. If your browser blocks it, use your system screenshot — the pen/marker drawings are part of the page.'); }
+  };
+  if(document.readyState!=='loading'){ document.body.appendChild(cv); resize(); }
+  else document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(cv); resize(); });
+})();
+</script>
+
+<!-- ===== "What's new" markers — orange highlight on this round's additions ===== -->
+<style>
+  body:not(.hide-new) .f:has(#nonEpcPct), body:not(.hide-new) .f:has(#opexConstrPct),
+  body:not(.hide-new) #f-draworder, body:not(.hide-new) #f-feearr, body:not(.hide-new) #f-feecom,
+  body:not(.hide-new) #f-insc, body:not(.hide-new) #f-insop, body:not(.hide-new) #u-insc-row,
+  body:not(.hide-new) #u-fees-row, body:not(.hide-new) #csvBtn,
+  body:not(.hide-new) .su-row:has(#u-nonepc), body:not(.hide-new) .su-row:has(#u-opexc){
+    position:relative;outline:2px solid #FF6500;outline-offset:2px;border-radius:8px;background:rgba(255,101,0,.10)}
+  body:not(.hide-new) .card:has(#chart-milestones), body:not(.hide-new) #chart-dscr + div{
+    position:relative;outline:2px solid #FF6500;outline-offset:3px;border-radius:10px}
+  body:not(.hide-new) #chart-dscr + div{background:rgba(255,101,0,.06)}
+  body:not(.hide-new) .f:has(#nonEpcPct)::after, body:not(.hide-new) .f:has(#opexConstrPct)::after,
+  body:not(.hide-new) #f-draworder::after, body:not(.hide-new) #f-feearr::after, body:not(.hide-new) #f-feecom::after,
+  body:not(.hide-new) #f-insc::after, body:not(.hide-new) #f-insop::after, body:not(.hide-new) #u-insc-row::after,
+  body:not(.hide-new) #u-fees-row::after, body:not(.hide-new) #csvBtn::after,
+  body:not(.hide-new) .su-row:has(#u-nonepc)::after, body:not(.hide-new) .su-row:has(#u-opexc)::after{
+    content:'NEW';position:absolute;right:6px;top:-9px;background:#FF6500;color:#fff;font:700 9px system-ui;padding:2px 6px;border-radius:6px;z-index:30}
+  body:not(.hide-new) .card:has(#chart-milestones)::after{content:'NEW · phase bands';position:absolute;left:150px;top:22px;background:#FF6500;color:#fff;font:700 9px system-ui;padding:2px 7px;border-radius:6px;z-index:30}
+  body:not(.hide-new) #ccLink{position:relative}
+  body:not(.hide-new) #ccLink::after{content:'NEW';position:absolute;right:-6px;top:-9px;background:#FF6500;color:#fff;font:700 8.5px system-ui;padding:1.5px 5px;border-radius:6px;z-index:40}
+  body:not(.hide-new) #chart-dscr + div::after{content:'NEW · formula';position:absolute;right:10px;top:-9px;background:#FF6500;color:#fff;font:700 9px system-ui;padding:2px 7px;border-radius:6px;z-index:30}
+  #newToggle{margin-left:8px;background:#FF6500;color:#fff;border:0;
+    border-radius:16px;padding:5px 13px;font:600 11.5px system-ui;cursor:pointer}
+  body.hide-new #newToggle{background:#222834;color:#A3A8B5}
+</style>
+<script>
+(function(){
+  function start(){
+    var t=document.createElement('button'); t.id='newToggle';
+    function lbl(){ t.textContent = document.body.classList.contains('hide-new') ? '✨ Show what we added' : '✨ What we added (20 spots) · hide'; }
+    t.onclick=function(){ document.body.classList.toggle('hide-new'); lbl(); };
+    var tb=document.querySelector('.topbar'), env=document.querySelector('.env');
+    if(tb&&env) tb.insertBefore(t,env); else document.body.appendChild(t);
+    lbl();
+  }
+  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded',start);
+})();
+</script>
+
+<!-- ===== Fresh additions: scenario link · base-case compare · break-even ===== -->
+<style>
+  #shareBtn,#baseBtn,#verBtn{position:relative;margin-left:8px;background:#222834;color:#d3d7df;border:1px solid #2A3040;
+    border-radius:16px;padding:5px 12px;font:600 12px system-ui;cursor:pointer}
+  #verPanel{position:fixed;top:52px;right:24px;z-index:9993;width:min(480px,94vw);max-height:70vh;overflow:auto;
+    background:#161922;border:1px solid #2A3040;border-radius:12px;padding:14px;box-shadow:0 16px 50px rgba(0,0,0,.6);display:none;
+    font-family:system-ui,-apple-system,sans-serif}
+  #verPanel h3{margin:0 0 3px;font-size:14px;color:#E6E8EC}
+  #verPanel .hint{color:#8B93A1;font-size:11px;margin:0 0 10px}
+  .ver-item{border-top:1px solid #262B36;padding:9px 0;display:flex;align-items:center;gap:10px}
+  .ver-item .vi{flex:1;min-width:0}
+  .ver-item .vn{color:#E6E8EC;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ver-item .vm{color:#8B93A1;font-size:10.5px;font-family:ui-monospace,monospace;margin-top:2px}
+  .ver-item button{border:0;border-radius:7px;padding:6px 10px;font:600 11px system-ui;cursor:pointer}
+  .ver-load{background:#2F9BFF;color:#fff}.ver-copy{background:#222834;color:#A3A8B5;border:1px solid #2A3040!important}
+  .ver-del{background:none;color:#5B6472}
+  #cmpStrip,#ds-break{position:relative}
+  body:not(.hide-new) .freshTag::after{content:'NEW';position:absolute;right:-6px;top:-9px;background:#FF6500;color:#fff;
+    font:700 8.5px system-ui;padding:1.5px 5px;border-radius:6px;z-index:40}
+  #cmpStrip{display:none;background:var(--panel);border:1px solid #2A3040;border-left:3px solid #FF6500;border-radius:10px;
+    padding:10px 40px 10px 14px;margin:0 0 16px;font-size:12px;color:#A3A8B5;line-height:1.8}
+  #cmpStrip b{font-family:var(--mono)}
+  #cmpStrip .cx{position:absolute;right:8px;top:7px;background:none;border:0;color:#5B6472;cursor:pointer;font-size:15px}
+</style>
+<script>
+(function(){
+  function start(){
+    // --- UI: two topbar buttons, a compare strip under the KPIs, a break-even line in Downside ---
+    var topbar=document.querySelector('.topbar'), env=document.querySelector('.env');
+    var share=document.createElement('button'); share.id='shareBtn'; share.className='freshTag'; share.textContent='🔗 Copy scenario link';
+    var baseB=document.createElement('button'); baseB.id='baseBtn'; baseB.className='freshTag'; baseB.textContent='📌 Set base case';
+    topbar.insertBefore(share,env); topbar.insertBefore(baseB,env);
+    var kp=document.querySelector('.kpis');
+    var strip=document.createElement('div'); strip.id='cmpStrip'; strip.className='freshTag';
+    kp.parentNode.insertBefore(strip,kp.nextSibling);
+    var brk=document.createElement('div'); brk.id='ds-break'; brk.className='freshTag';
+    brk.style.cssText='font-size:11px;color:var(--muted);margin-top:8px;line-height:1.65;border-top:1px dashed var(--line);padding-top:8px';
+    var dsn=document.getElementById('ds-note'); if(dsn) dsn.parentNode.appendChild(brk);
+
+    // --- 1) Scenario link: all inputs packed into the URL hash (survives the password gate) ---
+    function packState(){ var o={cur:(typeof CUR!=='undefined'?CUR:'TRY')}; IDS.forEach(function(k){var e=$(k); if(e)o[k]=e.value;}); return o; }
+    function enc(o){ return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/,''); }
+    function dec(s){ try{ return JSON.parse(decodeURIComponent(escape(atob(s)))); }catch(e){ return null; } }
+    function linkFor(o){ return location.origin+location.pathname+location.search+'#s='+enc(o); }
+    function applyScenario(o){
+      IDS.forEach(function(k){ var e=$(k); if(e && o[k]!=null) e.value=o[k]; });
+      if(typeof fmtNum==='function') fmtNum();
+      if(o.cur && typeof setCur==='function') setCur(o.cur); else render();
+      if(typeof saveState==='function') saveState();
+    }
+    function copyText(txt,done){
+      if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done,function(){prompt('Copy this link:',txt);done();});
+      else { prompt('Copy this link:',txt); done(); }
+    }
+    share.onclick=function(){
+      var o=packState(); saveVersion(o);   // copying a link also files it under 🕘 Versions
+      copyText(linkFor(o),function(){ share.textContent='Copied ✓ — saved to Versions too'; setTimeout(function(){share.textContent='🔗 Copy scenario link';},2800); });
+    };
+    (function applyHash(){
+      var m=location.hash.match(/[#&]s=([A-Za-z0-9+\/]+)/); if(!m) return;
+      var o=dec(m[1]); if(o) applyScenario(o);
+    })();
+
+    // --- 1b) Version history: every copied link is kept here; load any of them back in one click ---
+    var KEYV='projefin_versions';
+    var verBtn=document.createElement('button'); verBtn.id='verBtn'; verBtn.className='freshTag';
+    topbar.insertBefore(verBtn,env);
+    var verPanel=document.createElement('div'); verPanel.id='verPanel'; document.body.appendChild(verPanel);
+    function versions(){ try{ return JSON.parse(localStorage.getItem(KEYV))||[]; }catch(e){ return []; } }
+    function setVersions(v){ try{ localStorage.setItem(KEYV,JSON.stringify(v.slice(0,30))); }catch(e){} verLabel(); }
+    function verLabel(){ verBtn.textContent='🕘 Versions ('+versions().length+')'; }
+    function saveVersion(o){
+      var r=compute(readState());
+      var v=versions();
+      v.unshift({n:(o.name||'Scenario'), t:new Date().toISOString().slice(0,16).replace('T',' '),
+                 o:o, eirr:(r.eIRR!=null?(r.eIRR*100).toFixed(1)+'%':'—'), dscr:(r.minDSCR!=null?r.minDSCR.toFixed(2)+'x':'—')});
+      setVersions(v);
+      if(verPanel.style.display==='block') renderVers();
+    }
+    function esc2(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+    function renderVers(){
+      var v=versions();
+      var rows= v.length? v.map(function(x,idx){
+        return '<div class="ver-item"><div class="vi"><div class="vn">'+esc2(x.n)+'</div>'
+          +'<div class="vm">'+x.t+' · Equity IRR '+x.eirr+' · min DSCR '+x.dscr+'</div></div>'
+          +'<button class="ver-load" data-i="'+idx+'">Load</button>'
+          +'<button class="ver-copy" data-i="'+idx+'">Copy link</button>'
+          +'<button class="ver-del" data-i="'+idx+'" title="Delete">✕</button></div>';
+      }).join('') : '<div style="color:#8B93A1;font-size:12px">No versions yet — click “🔗 Copy scenario link” to save one.</div>';
+      verPanel.innerHTML='<h3>Scenario versions</h3><p class="hint">Every copied link is saved here (this browser). Load one to go back to it exactly.</p>'+rows;
+      verPanel.querySelectorAll('.ver-load').forEach(function(b){ b.onclick=function(){ applyScenario(versions()[+b.dataset.i].o); verPanel.style.display='none'; }; });
+      verPanel.querySelectorAll('.ver-copy').forEach(function(b){ b.onclick=function(){ copyText(linkFor(versions()[+b.dataset.i].o),function(){ b.textContent='Copied ✓'; setTimeout(function(){b.textContent='Copy link';},1600); }); }; });
+      verPanel.querySelectorAll('.ver-del').forEach(function(b){ b.onclick=function(){ var v=versions(); v.splice(+b.dataset.i,1); setVersions(v); renderVers(); }; });
+    }
+    verBtn.onclick=function(){
+      if(verPanel.style.display==='block'){ verPanel.style.display='none'; return; }
+      renderVers(); verPanel.style.display='block';
+    };
+    document.addEventListener('click',function(e){
+      if(verPanel.style.display==='block' && !verPanel.contains(e.target) && e.target!==verBtn) verPanel.style.display='none';
+    });
+    verLabel();
+
+    // --- 2) Base-case compare: pin today's answer, see every change as a delta ---
+    var KEYB='projefin_base_case';
+    function metrics(){ var r=compute(readState()); return {pIRR:r.pIRR,eIRR:r.eIRR,minDSCR:r.minDSCR,eNPV:r.eNPV}; }
+    function updStrip(){
+      var raw=null; try{raw=JSON.parse(localStorage.getItem(KEYB));}catch(e){}
+      if(!raw){ strip.style.display='none'; return; }
+      var c=metrics();
+      var p=function(v){return (v*100).toFixed(1)+'%';}, xx=function(v){return v.toFixed(2)+'x';};
+      function cell(lbl,b,n,fmt){
+        if(b==null||n==null) return '';
+        var d=n-b, col= Math.abs(d)<1e-9 ? '#A3A8B5' : (d>0?'var(--green)':'var(--red)');
+        return '<span style="margin-right:18px">'+lbl+' <b style="color:var(--ink)">'+fmt(b)+'</b> → <b style="color:'+col+'">'+fmt(n)+'</b></span>';
+      }
+      strip.innerHTML='<button class="cx" title="Clear base case">✕</button>'
+        +'<b style="color:#FF6500">vs base case</b> · '
+        +cell('Project IRR',raw.pIRR,c.pIRR,p)+cell('Equity IRR',raw.eIRR,c.eIRR,p)
+        +cell('Min DSCR',raw.minDSCR,c.minDSCR,xx)+cell('Equity NPV',raw.eNPV,c.eNPV,shortM);
+      strip.querySelector('.cx').onclick=function(){ try{localStorage.removeItem(KEYB);}catch(e){} updStrip(); };
+      strip.style.display='block';
+    }
+    baseB.onclick=function(){ try{localStorage.setItem(KEYB,JSON.stringify(metrics()));}catch(e){}
+      baseB.textContent='📌 Base saved ✓'; setTimeout(function(){baseB.textContent='📌 Set base case';},2000); updStrip(); };
+
+    // --- 3) Break-even: how far revenue can fall before DSCR 1.00x / equity NPV 0 ---
+    function updBreak(){
+      var s=readState();
+      var f_dscr=function(h){ var r=flexCompute(s,function(c){c.rev0=s.rev0*(1-h);}); return r.minDSCR!=null?r.minDSCR:99; };
+      var f_npv =function(h){ return flexCompute(s,function(c){c.rev0=s.rev0*(1-h);}).eNPV; };
+      function solve(f,target){                    // f decreasing in h; find f(h)=target
+        var lo=0,hi=0.95;
+        if(f(lo)<=target) return 0;
+        if(f(hi)>target) return null;              // even −95% stays above target
+        for(var i=0;i<26;i++){ var m2=(lo+hi)/2; if(f(m2)>target)lo=m2; else hi=m2; } return (lo+hi)/2;
+      }
+      var hD=solve(f_dscr,1.0), hN=solve(f_npv,0);
+      var t='<b style="color:var(--ink)">Break-even · revenue:</b> ';
+      t+= hD===0? 'min DSCR is already below <b>1.00×</b> in the base case. '
+        : hD==null? 'even a 95% revenue drop keeps min DSCR above <b>1.00×</b>. '
+        : 'revenue can fall <b style="color:var(--orange)">'+(hD*100).toFixed(0)+'%</b> before min DSCR breaches <b>1.00×</b> (default). ';
+      t+= hN===0? 'Equity NPV is already negative at the '+trN1.format(s.discE)+'% hurdle.'
+        : hN==null? ''
+        : 'It can fall <b style="color:var(--orange)">'+(hN*100).toFixed(0)+'%</b> before equity NPV (at the '+trN1.format(s.discE)+'% hurdle) turns negative.';
+      brk.innerHTML=t;
+    }
+
+    // refresh the strip + break-even every time the model re-renders (KPI text changes)
+    var probe=document.getElementById('k-eirr');
+    if(probe) new MutationObserver(function(){ updStrip(); updBreak(); }).observe(probe,{childList:true,characterData:true,subtree:true});
+    updStrip(); updBreak();
+  }
+  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded',start);
+})();
+</script>
+
+<!-- ===== Monte Carlo risk simulation ===== -->
+<script>
+(function(){
+  function start(){
+    var css=document.createElement('style');
+    css.textContent='.mc-in{width:52px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:4px 6px;font:11.5px var(--mono);text-align:right}'
+      +'body:not(.hide-new) #mc-card{outline:2px solid #FF6500;outline-offset:3px;border-radius:10px;position:relative}'
+      +'body:not(.hide-new) #mc-card::after{content:"NEW · monte carlo";position:absolute;right:12px;top:10px;background:#FF6500;color:#fff;font:700 9px system-ui;padding:2px 7px;border-radius:6px;z-index:30}';
+    document.head.appendChild(css);
+    var $id=function(x){return document.getElementById(x);};
+    function randn(){ var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+    function tri(min,mode,max){ var u=Math.random(), f=(mode-min)/(max-min);
+      return u<f? min+Math.sqrt(u*(max-min)*(mode-min)) : max-Math.sqrt((1-u)*(max-min)*(max-mode)); }
+    var clamp=function(v,a,b){return Math.min(b,Math.max(a,v));};
+    function q(arr,p){ if(!arr.length)return null; var a=arr.slice().sort(function(x,y){return x-y;});
+      return a[Math.min(a.length-1,Math.round((a.length-1)*p))]; }
+
+    $id('mcGo').onclick=function(){
+      var s=readState();
+      var sig=(+$id('mcRev').value||0)/100, capM=(+$id('mcCap').value||0)/100,
+          fxS=+$id('mcFx').value||0, rS=+$id('mcRate').value||0;
+      var N=clamp(Math.round(+$id('mcN').value)||1000,100,5000);
+      $id('mcStat').textContent='running…'; $id('mcGo').disabled=true;
+      var irrs=[],dscrs=[],npvs=[],noIRR=0,i=0,t0=performance.now();
+      function batch(){
+        var end=Math.min(i+250,N);
+        for(;i<end;i++){
+          var r=flexCompute(s,function(c){
+            c.rev0 = s.rev0*Math.max(0.4, 1+randn()*sig);                 // demand / price level
+            c.capex = s.capex*(1+tri(-0.05,0.05,Math.max(0.06,capM)));    // overrun-skewed build cost
+            c.fxShock = clamp(randn()*fxS,-30,80);                        // post-COD lira shock, ±
+            c.rateBump = clamp(randn()*rS,-4,6);                          // funding-cost surprise
+          });
+          if(r.eIRR==null) noIRR++; else irrs.push(r.eIRR*100);
+          if(r.minDSCR!=null) dscrs.push(r.minDSCR);
+          npvs.push(r.eNPV);
+        }
+        if(i<N){ $id('mcStat').textContent='running… '+i+'/'+N; setTimeout(batch,0); }
+        else finish();
+      }
+      function finish(){
+        var ms=Math.round(performance.now()-t0);
+        $id('mcGo').disabled=false; $id('mcStat').textContent=N+' runs · '+ms+' ms';
+        var hurdle=s.discE, tgt=s.dscr;
+        var p10=q(irrs,0.10),p50=q(irrs,0.50),p90=q(irrs,0.90);
+        var nAll=irrs.length+noIRR;
+        var pHur=100*irrs.filter(function(v){return v>=hurdle;}).length/nAll;
+        var pD1=dscrs.length?100*dscrs.filter(function(v){return v<1;}).length/dscrs.length:0;
+        var pDt=dscrs.length?100*dscrs.filter(function(v){return v<tgt;}).length/dscrs.length:0;
+        var pNeg=npvs.length?100*npvs.filter(function(v){return v<0;}).length/npvs.length:0;
+        var f1=function(v){return v==null?'—':trN1.format(v)+'%';};
+        var cHur=pHur>=75?'green':(pHur>=50?'orange':'red');
+        var cD1=pD1<5?'green':(pD1<15?'orange':'red');
+        var cNeg=pNeg<25?'green':(pNeg<50?'orange':'red');
+        var tiles='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">'
+          + fxStat('Equity IRR · P50 (median)', f1(p50), 'P10 '+f1(p10)+' · P90 '+f1(p90), null)
+          + fxStat('P(IRR ≥ hurdle '+trN1.format(hurdle)+'%)', f1(pHur), 'chance the sponsor clears its hurdle', cHur)
+          + fxStat('P(min DSCR < 1.00×)', f1(pD1), 'default-risk years · <5% comfortable', cD1)
+          + fxStat('P(equity NPV < 0)', f1(pNeg), 'value-destroying share of futures', cNeg)
+          + '</div>';
+        // histogram
+        var svg='';
+        if(irrs.length>10){
+          var lo=Math.min.apply(null,irrs), hi=Math.max.apply(null,irrs);
+          if(hi-lo<1){lo-=1;hi+=1;}
+          var B=26, bins=new Array(B).fill(0);
+          irrs.forEach(function(v){ bins[Math.min(B-1,Math.floor((v-lo)/(hi-lo)*B))]++; });
+          var W=1320,H=210,padL=20,padR=20,padT=16,padB=30,iW=W-padL-padR,iH=H-padT-padB;
+          var maxB=Math.max.apply(null,bins), gap=iW/B, bw=gap*0.8;
+          var xOf=function(v){return padL+(v-lo)/(hi-lo)*iW;};
+          var g='';
+          bins.forEach(function(b,k){
+            var h2=b/maxB*iH, x=padL+k*gap+(gap-bw)/2, lo2=lo+(hi-lo)*k/B, hi2=lo+(hi-lo)*(k+1)/B;
+            g+='<rect x="'+x.toFixed(1)+'" y="'+(padT+iH-h2).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(0.5,h2).toFixed(1)+'" fill="#2F9BFF" rx="2" opacity="0.85"><title>'+trN1.format(lo2)+'–'+trN1.format(hi2)+'%: '+b+' runs</title></rect>';
+          });
+          [[hurdle,'#FF6500','hurdle '+trN1.format(hurdle)+'%'],[p50,'#19C37D','P50 '+trN1.format(p50)+'%']].forEach(function(L){
+            if(L[0]==null||L[0]<lo||L[0]>hi) return;
+            var x=xOf(L[0]);
+            g+='<line x1="'+x.toFixed(1)+'" y1="'+padT+'" x2="'+x.toFixed(1)+'" y2="'+(padT+iH)+'" stroke="'+L[1]+'" stroke-width="1.4" stroke-dasharray="5 4"/>';
+            g+='<text x="'+(x+4).toFixed(1)+'" y="'+(padT+10)+'" font-family="IBM Plex Mono,monospace" font-size="10.5" font-weight="600" fill="'+L[1]+'">'+L[2]+'</text>';
+          });
+          g+='<text x="'+padL+'" y="'+(H-8)+'" font-family="IBM Plex Mono,monospace" font-size="10" fill="#5B6472">'+trN1.format(lo)+'%</text>';
+          g+='<text x="'+(W-padR)+'" y="'+(H-8)+'" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="10" fill="#5B6472">'+trN1.format(hi)+'%</text>';
+          g+='<text x="'+(W/2)+'" y="'+(H-8)+'" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="10" fill="#5B6472">Equity IRR distribution · '+irrs.length+' runs'+(noIRR?(' · '+noIRR+' with no payback (counted below hurdle)'):'')+'</text>';
+          svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+g+'</svg>';
+        }
+        var note='<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6;border-top:1px dashed var(--line);padding-top:8px">'
+          +'<b style="color:var(--ink)">Draws per run:</b> revenue level ~ Normal(0, '+trN1.format(sig*100)+'%); capex ~ Triangular(−5%, +5%, +'+trN1.format(capM*100)+'%) — overrun-skewed; '
+          +'post-COD USD/TRY shock ~ Normal(0, '+trN1.format(fxS)+'%); debt-rate surprise ~ Normal(0, '+trN1.format(rS)+' pts). Draws are independent — real crises correlate them, so tail risk here is, if anything, understated. '
+          +'P(min DSCR &lt; target '+trN2.format(tgt)+'×): <b style="color:var(--ink)">'+f1(pDt)+'</b>.</div>';
+        $id('mc-out').innerHTML=tiles+svg+note;
+      }
+      setTimeout(batch,20);
+    };
+  }
+  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded',start);
+})();
+</script>
+
+<!-- ===== CSV export of the annual cash flow ===== -->
+<script>
+(function(){
+  function start(){
+    var b=document.getElementById('csvBtn'); if(!b) return;
+    b.onclick=function(){
+      var s=readState(), r=compute(s);
+      var n=function(v){ return v==null? '' : Math.round(v); };
+      var f2=function(v){ return v==null? '' : (Math.round(v*100)/100); };
+      var L=[];
+      L.push('sep=;');
+      L.push('ProjeFin — annual cash flow;'+String(s.name).replace(/;/g,','));
+      L.push('Assumptions;capex='+n(s.capex)+';gearing='+s.gearing+'%;tenor='+s.tenor+'y;repay='+s.repay+';drawdown='+(s.drawOrder||'prorata')+';target DSCR='+s.dscr+';USD debt share='+s.usdDebtShare+'%;arr fee='+s.feeArr+'%;commit fee='+s.feeCommit+'%');
+      L.push('Results;Project IRR='+(r.pIRR!=null?f2(r.pIRR*100)+'%':'n/a')+';Equity IRR='+(r.eIRR!=null?f2(r.eIRR*100)+'%':'n/a')+';min DSCR='+(r.minDSCR!=null?f2(r.minDSCR):'n/a')+';uses='+n(r.uses)+';debt at COD='+n(r.debtCOD)+';equity='+n(r.equityTot));
+      L.push('');
+      L.push(['year','calendar','phase','rate','usdtry','revenue','ebitda','interest','tax','debt_service','cfads','dscr','debt_balance','fees','project_cf','equity_cf'].join(';'));
+      r.rows.forEach(function(x){
+        L.push([x.year,x.cal,x.phase,f2((x.rate||0)*100),f2(x.fx),n(x.rev),n(x.ebitda),n(x.interest),n(x.tax),n(x.ds),n(x.cfads),(x.dscr!=null?f2(x.dscr):''),n(x.debtBal),n(x.fees||0),n(x.projCF),n(x.eqCF)].join(';'));
+      });
+      var blob=new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'});
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+      a.download=(String(s.name).replace(/[^\w\-]+/g,'_')||'projefin')+'-cashflow.csv'; a.click();
+      b.textContent='Downloaded ✓'; setTimeout(function(){b.textContent='⬇ Download CSV';},2000);
+    };
+  }
+  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded',start);
+})();
+</script>
 </body>
 </html>
