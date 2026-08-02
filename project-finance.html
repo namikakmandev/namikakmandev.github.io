@@ -1587,45 +1587,6 @@ const OVP_EMBEDDED = {
 })();
 </script>
 
-<!-- ===== "What's new" markers — orange highlight on this round's additions ===== -->
-<style>
-  body:not(.hide-new) .f:has(#nonEpcPct), body:not(.hide-new) .f:has(#opexConstrPct),
-  body:not(.hide-new) #f-draworder, body:not(.hide-new) #f-feearr, body:not(.hide-new) #f-feecom,
-  body:not(.hide-new) #f-insc, body:not(.hide-new) #f-insop, body:not(.hide-new) #u-insc-row,
-  body:not(.hide-new) #u-fees-row, body:not(.hide-new) #csvBtn,
-  body:not(.hide-new) .su-row:has(#u-nonepc), body:not(.hide-new) .su-row:has(#u-opexc){
-    position:relative;outline:2px solid #FF6500;outline-offset:2px;border-radius:8px;background:rgba(255,101,0,.10)}
-  body:not(.hide-new) .card:has(#chart-milestones), body:not(.hide-new) #chart-dscr + div{
-    position:relative;outline:2px solid #FF6500;outline-offset:3px;border-radius:10px}
-  body:not(.hide-new) #chart-dscr + div{background:rgba(255,101,0,.06)}
-  body:not(.hide-new) .f:has(#nonEpcPct)::after, body:not(.hide-new) .f:has(#opexConstrPct)::after,
-  body:not(.hide-new) #f-draworder::after, body:not(.hide-new) #f-feearr::after, body:not(.hide-new) #f-feecom::after,
-  body:not(.hide-new) #f-insc::after, body:not(.hide-new) #f-insop::after, body:not(.hide-new) #u-insc-row::after,
-  body:not(.hide-new) #u-fees-row::after, body:not(.hide-new) #csvBtn::after,
-  body:not(.hide-new) .su-row:has(#u-nonepc)::after, body:not(.hide-new) .su-row:has(#u-opexc)::after{
-    content:'NEW';position:absolute;right:6px;top:-9px;background:#FF6500;color:#fff;font:700 9px system-ui;padding:2px 6px;border-radius:6px;z-index:30}
-  body:not(.hide-new) .card:has(#chart-milestones)::after{content:'NEW · phase bands';position:absolute;left:150px;top:22px;background:#FF6500;color:#fff;font:700 9px system-ui;padding:2px 7px;border-radius:6px;z-index:30}
-  body:not(.hide-new) #ccLink{position:relative}
-  body:not(.hide-new) #ccLink::after{content:'NEW';position:absolute;right:-6px;top:-9px;background:#FF6500;color:#fff;font:700 8.5px system-ui;padding:1.5px 5px;border-radius:6px;z-index:40}
-  body:not(.hide-new) #chart-dscr + div::after{content:'NEW · formula';position:absolute;right:10px;top:-9px;background:#FF6500;color:#fff;font:700 9px system-ui;padding:2px 7px;border-radius:6px;z-index:30}
-  #newToggle{margin-left:8px;background:#FF6500;color:#fff;border:0;
-    border-radius:16px;padding:5px 13px;font:600 11.5px system-ui;cursor:pointer}
-  body.hide-new #newToggle{background:#222834;color:#A3A8B5}
-</style>
-<script>
-(function(){
-  function start(){
-    var t=document.createElement('button'); t.id='newToggle';
-    function lbl(){ t.textContent = document.body.classList.contains('hide-new') ? '✨ Show what we added' : '✨ What we added (20 spots) · hide'; }
-    t.onclick=function(){ document.body.classList.toggle('hide-new'); lbl(); };
-    var tb=document.querySelector('.topbar'), env=document.querySelector('.env');
-    if(tb&&env) tb.insertBefore(t,env); else document.body.appendChild(t);
-    lbl();
-  }
-  if(document.readyState!=='loading') start(); else document.addEventListener('DOMContentLoaded',start);
-})();
-</script>
-
 <!-- ===== Fresh additions: scenario link · base-case compare · break-even ===== -->
 <style>
   #shareBtn,#baseBtn,#verBtn{position:relative;margin-left:8px;background:#222834;color:#d3d7df;border:1px solid #2A3040;
@@ -1643,8 +1604,6 @@ const OVP_EMBEDDED = {
   .ver-load{background:#2F9BFF;color:#fff}.ver-copy{background:#222834;color:#A3A8B5;border:1px solid #2A3040!important}
   .ver-del{background:none;color:#5B6472}
   #cmpStrip,#ds-break{position:relative}
-  body:not(.hide-new) .freshTag::after{content:'NEW';position:absolute;right:-6px;top:-9px;background:#FF6500;color:#fff;
-    font:700 8.5px system-ui;padding:1.5px 5px;border-radius:6px;z-index:40}
   #cmpStrip{display:none;background:var(--panel);border:1px solid #2A3040;border-left:3px solid #FF6500;border-radius:10px;
     padding:10px 40px 10px 14px;margin:0 0 16px;font-size:12px;color:#A3A8B5;line-height:1.8}
   #cmpStrip b{font-family:var(--mono)}
@@ -1655,13 +1614,13 @@ const OVP_EMBEDDED = {
   function start(){
     // --- UI: two topbar buttons, a compare strip under the KPIs, a break-even line in Downside ---
     var topbar=document.querySelector('.topbar'), env=document.querySelector('.env');
-    var share=document.createElement('button'); share.id='shareBtn'; share.className='freshTag'; share.textContent='🔗 Copy scenario link';
-    var baseB=document.createElement('button'); baseB.id='baseBtn'; baseB.className='freshTag'; baseB.textContent='📌 Set base case';
+    var share=document.createElement('button'); share.id='shareBtn'; share.textContent='🔗 Copy scenario link';
+    var baseB=document.createElement('button'); baseB.id='baseBtn'; baseB.textContent='📌 Set base case';
     topbar.insertBefore(share,env); topbar.insertBefore(baseB,env);
     var kp=document.querySelector('.kpis');
-    var strip=document.createElement('div'); strip.id='cmpStrip'; strip.className='freshTag';
+    var strip=document.createElement('div'); strip.id='cmpStrip';
     kp.parentNode.insertBefore(strip,kp.nextSibling);
-    var brk=document.createElement('div'); brk.id='ds-break'; brk.className='freshTag';
+    var brk=document.createElement('div'); brk.id='ds-break';
     brk.style.cssText='font-size:11px;color:var(--muted);margin-top:8px;line-height:1.65;border-top:1px dashed var(--line);padding-top:8px';
     var dsn=document.getElementById('ds-note'); if(dsn) dsn.parentNode.appendChild(brk);
 
@@ -1691,7 +1650,7 @@ const OVP_EMBEDDED = {
 
     // --- 1b) Version history: every copied link is kept here; load any of them back in one click ---
     var KEYV='projefin_versions';
-    var verBtn=document.createElement('button'); verBtn.id='verBtn'; verBtn.className='freshTag';
+    var verBtn=document.createElement('button'); verBtn.id='verBtn';
     topbar.insertBefore(verBtn,env);
     var verPanel=document.createElement('div'); verPanel.id='verPanel'; document.body.appendChild(verPanel);
     function versions(){ try{ return JSON.parse(localStorage.getItem(KEYV))||[]; }catch(e){ return []; } }
@@ -1788,9 +1747,7 @@ const OVP_EMBEDDED = {
 (function(){
   function start(){
     var css=document.createElement('style');
-    css.textContent='.mc-in{width:52px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:4px 6px;font:11.5px var(--mono);text-align:right}'
-      +'body:not(.hide-new) #mc-card{outline:2px solid #FF6500;outline-offset:3px;border-radius:10px;position:relative}'
-      +'body:not(.hide-new) #mc-card::after{content:"NEW · monte carlo";position:absolute;right:12px;top:10px;background:#FF6500;color:#fff;font:700 9px system-ui;padding:2px 7px;border-radius:6px;z-index:30}';
+    css.textContent='.mc-in{width:52px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:4px 6px;font:11.5px var(--mono);text-align:right}';
     document.head.appendChild(css);
     var $id=function(x){return document.getElementById(x);};
     function randn(){ var u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
