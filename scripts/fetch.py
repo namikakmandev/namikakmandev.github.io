@@ -168,7 +168,43 @@ def csv_source(entry):
     return dict(out)
 
 
-PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source}
+def json_source(entry):
+    """Any JSON API returning a list of records (e.g. EC agri-food portal).
+    entry['url'] + 'key_col'/'value_col', optional 'record_path' (dot path to
+    the list), 'group_col', 'filters', and key_fmt='dmy' for dd/mm/yyyy keys."""
+    j = json.loads(get(entry["url"]).decode("utf-8", "replace"))
+    recs = j
+    for part in entry.get("record_path", "").split("."):
+        if part:
+            recs = recs[part]
+    if MODE == "discover":
+        is_list = isinstance(recs, list)
+        return {"_discover": {"n_records": len(recs) if is_list else None,
+                              "sample": recs[:3] if is_list else recs}}
+    filters = entry.get("filters", {})
+    num = re.compile(r"[-+]?\d+(?:\.\d+)?")
+    out = defaultdict(dict)
+    for r in recs:
+        if any(str(r.get(c, "")).strip() != v for c, v in filters.items()):
+            continue
+        k = str(r.get(entry["key_col"], "")).strip()
+        if entry.get("key_fmt") == "dmy" and k.count("/") == 2:
+            dd, mm, yy = k.split("/")
+            k = f"{yy}-{mm}-{dd}"
+        v = r.get(entry["value_col"])
+        if isinstance(v, str):  # e.g. "€187.50" — strip currency, thousands sep
+            m = num.search(v.replace("€", "").replace(",", ""))
+            v = m.group() if m else None
+        try:
+            g = str(r.get(entry.get("group_col"), "ALL")) if entry.get("group_col") else "ALL"
+            out[g][k] = float(v)
+        except (ValueError, TypeError):
+            continue
+    return dict(out)
+
+
+PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
+             "json": json_source}
 
 
 # ----------------------------------------------------------------- runner
