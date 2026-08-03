@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Antibiotic Gap — Europe's farm antibiotic use</title>
+<style>
+  :root{
+    --surface:#1a1a19;
+    --page:#0d0d0d;
+    --ink:#ffffff;
+    --ink-2:#c3c2b7;
+    --muted:#898781;
+    --grid:#2c2c2a;
+    --baseline:#383835;
+    --low:#1baf7a;          /* aqua — low use */
+    --avg:#3987e5;          /* blue — EU average */
+    --high:#e66767;         /* red — high use */
+    --accent:#eda100;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--page);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:var(--ink);
+    display:flex;justify-content:center;padding:24px 8px;
+  }
+  /* 4:5 portrait card — screenshot this card for LinkedIn (1080×1350) */
+  .card{
+    width:1080px;max-width:100%;
+    background:var(--surface);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:8px;
+    padding:56px 64px 40px;
+  }
+  .kicker{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:46px;font-weight:800;line-height:1.08;margin:10px 0 6px}
+  h1 .dim{color:var(--ink-2);font-weight:600}
+  .sub{font-size:19px;color:var(--ink-2);max-width:880px;line-height:1.45}
+  .hero-row{display:flex;gap:44px;align-items:baseline;margin:26px 0 10px}
+  .hero .v{font-size:52px;font-weight:800}
+  .hero .l{font-size:14px;color:var(--muted);margin-top:2px;max-width:240px;line-height:1.35}
+  .hero .v.good{color:#0ca30c}
+
+  .legend{display:flex;gap:22px;margin:14px 0 2px;font-size:14px;color:var(--ink-2);flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+  .chart-title{font-size:15px;color:var(--ink-2);margin:14px 0 2px;font-weight:600}
+  .chart{margin-top:6px;position:relative}
+  .row{
+    display:grid;
+    grid-template-columns:230px 1fr 150px;
+    align-items:center;
+    height:44px;
+    position:relative;
+  }
+  .who{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600}
+  .who .flag{font-size:22px;width:28px;text-align:center}
+  .who small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+  .track{position:relative;height:24px}
+  .zero{position:absolute;top:-10px;bottom:-10px;left:0;width:1px;background:var(--baseline)}
+  .row:first-of-type .zero{top:-22px}
+  .bar{position:absolute;left:0;top:0;height:24px;border-radius:0 4px 4px 0}
+  .bar.band{opacity:.45;outline:1px dashed rgba(230,103,103,.6);outline-offset:-1px}
+  .val{font-size:18px;font-weight:700;padding-left:14px;white-space:nowrap}
+  .val small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+  .row.avg .who,.row.avg .val{color:var(--ink-2)}
+  .axis{display:grid;grid-template-columns:230px 1fr 150px;font-size:12px;color:var(--muted);margin-top:6px}
+  .axis .ticks{position:relative;height:16px}
+  .axis .t{position:absolute;transform:translateX(-50%)}
+
+  .verdict{
+    margin-top:24px;padding:18px 22px;border-radius:8px;
+    background:rgba(27,175,122,.09);border:1px solid rgba(27,175,122,.38);
+    font-size:17px;line-height:1.5;color:var(--ink);
+  }
+  .verdict b{color:#3fd0a0}
+  .src{
+    margin-top:22px;padding-top:16px;border-top:1px solid var(--grid);
+    font-size:11.5px;line-height:1.55;color:var(--muted);
+  }
+  .brand{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:13px;color:var(--ink-2)}
+  .brand b{color:var(--ink)}
+  .tip{
+    position:fixed;pointer-events:none;z-index:9;display:none;
+    background:#0d0d0d;border:1px solid rgba(255,255,255,.18);border-radius:6px;
+    padding:10px 12px;font-size:13px;line-height:1.5;color:var(--ink-2);max-width:300px;
+  }
+  .tip b{color:var(--ink)}
+  @media (max-width:760px){
+    .card{padding:28px 20px}
+    h1{font-size:30px}
+    .row{grid-template-columns:130px 1fr 96px}
+    .who{font-size:14px} .val{font-size:14px}
+    .hero .v{font-size:34px}
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="kicker">The Antibiotic Gap · Europe</div>
+  <h1>Europe halved the antibiotics it gives farm animals.<br><span class="dim">Then why do some countries still use 100× others?</span></h1>
+  <p class="sub">Sales of veterinary antimicrobials for food-producing animals, milligrams per kilogram of animal biomass (mg/PCU) — the one number that makes 31 countries comparable.</p>
+
+  <div class="hero-row">
+    <div class="hero"><div class="v good">−53%</div><div class="l">European average, 2011→2022 — one of the fastest public-health turnarounds on record</div></div>
+    <div class="hero"><div class="v">84.8</div><div class="l">EU-27 aggregate, mg/PCU (2022)</div></div>
+    <div class="hero"><div class="v" style="color:var(--high)">~100×</div><div class="l">gap between the lowest- and highest-selling country</div></div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--low)"></i>Lowest-selling countries</span>
+    <span><i style="background:var(--avg)"></i>EU-27 aggregate</span>
+    <span><i style="background:var(--high)"></i>Highest-selling countries</span>
+  </div>
+
+  <div class="chart-title">Veterinary antimicrobial sales, mg/PCU — 2022</div>
+  <div class="chart" id="chart"></div>
+  <div class="axis">
+    <div></div>
+    <div class="ticks" id="ticks"></div>
+    <div></div>
+  </div>
+
+  <div class="verdict">
+    <b>The gap is not biology — it is practice.</b> Norwegian and Swedish animals are not healthier by luck: vaccination, herd health planning, husbandry and prescribing discipline replaced routine antibiotics. Every country at the top of this chart has a working example of the alternative sitting inside the same single market.
+  </div>
+
+  <div class="src">
+    <b>Sources &amp; method</b> · European Medicines Agency, ESVAC — European Surveillance of Veterinary Antimicrobial Consumption, 13th and final report (published Nov 2023, 2022 data; the programme now continues under the EU Antimicrobial Sales &amp; Use platform). Unit: mg of active substance per kg of estimated live biomass (PCU, Population Correction Unit) — a denominator that adjusts for each country's animal population and species mix, so it compares intensity of use, not market size. Sales data, not administered dose: it does not capture how many animals were treated, and species mix (poultry/pig-heavy countries sit structurally higher). <b>Verify before posting:</b> the individual high-use country values below the EU line were taken from secondary summaries — confirm each against the ESVAC report table, and confirm all values share the same reporting year.
+  </div>
+  <div class="brand"><span><b>Namik Akman</b> · namikakmandev.github.io</span><span>Where the data tells the strategy</span></div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+// mg/PCU. Values marked verify:true need confirmation against the ESVAC table before publishing.
+const ROWS = [
+  {c:"Norway",   f:"🇳🇴", v:2.1,   grp:"low",  note:"2022, −8.4% vs 2021"},
+  {c:"Iceland",  f:"🇮🇸", v:5,     grp:"low",  verify:true},
+  {c:"Sweden",   f:"🇸🇪", v:13,    grp:"low",  verify:true},
+  {c:"EU-27",    f:"🇪🇺", v:84.8,  grp:"avg",  note:"aggregate of 27 member states"},
+  {c:"Poland",   f:"🇵🇱", v:154.3, grp:"high", verify:true},
+  {c:"Italy",    f:"🇮🇹", v:180,   grp:"high", verify:true},
+  {c:"Cyprus",   f:"🇨🇾", v:393.9, grp:"high", verify:true, note:"highest in Europe"},
+];
+const MAX=400;
+const x = v => v/MAX*100;
+const COL = {low:"var(--low)", avg:"var(--avg)", high:"var(--high)"};
+const chart = document.getElementById('chart');
+chart.innerHTML = ROWS.map(r=>`
+  <div class="row${r.grp==='avg'?' avg':''}" data-c="${r.c}">
+    <div class="who"><span class="flag">${r.f}</span><span>${r.c}${r.grp==='avg'?'<small>aggregate</small>':(r.note?`<small>${r.note}</small>`:'')}</span></div>
+    <div class="track">
+      <span class="zero"></span>
+      <span class="bar${r.verify?' band':''}" style="width:${Math.max(x(r.v),0.35)}%;background:${COL[r.grp]}"></span>
+    </div>
+    <div class="val">${r.v}<small>mg/PCU</small></div>
+  </div>`).join('');
+document.getElementById('ticks').innerHTML =
+  [0,100,200,300,400].map(t=>`<span class="t" style="left:${x(t)}%">${t}</span>`).join('');
+
+const tip = document.getElementById('tip');
+chart.addEventListener('mousemove', e=>{
+  const row = e.target.closest('.row'); if(!row){tip.style.display='none';return;}
+  const r = ROWS.find(d=>d.c===row.dataset.c);
+  const ratio = (r.v/ROWS[0].v).toFixed(0);
+  tip.innerHTML = `<b>${r.f} ${r.c}</b><br>${r.v} mg/PCU${r.note?` · ${r.note}`:''}<br>${r.c==='Norway'?'the European benchmark':`${ratio}× Norway's level`}${r.verify?'<br><span style="color:#e66767">value needs verification vs ESVAC table</span>':''}`;
+  tip.style.display='block';
+  tip.style.left = Math.min(e.clientX+14, innerWidth-320)+'px';
+  tip.style.top  = (e.clientY+14)+'px';
+});
+chart.addEventListener('mouseleave', ()=>tip.style.display='none');
+</script>
+</body>
+</html>
