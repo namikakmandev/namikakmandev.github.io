@@ -123,57 +123,69 @@
   {
    "name": "broiler-price-fao",
    "provider": "csv",
-   "url": "https://faostatservices.fao.org/api/v1/en/data/PP?area=59,103,112,118,121,173,179,194,221,223,225&element=5532&item=1058&year=1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025&show_codes=true&show_unit=true&null_values=false&output_type=csv",
+   "url": "https://bulks-faostat.fao.org/production/Prices_E_All_Data_(Normalized).zip",
    "group_col": "Area",
    "key_col": "Year",
    "value_col": "Value",
    "out": "data/broiler-price-fao.json",
-   "source": "FAOSTAT producer prices, meat of chickens, USD/tonne",
-   "note": "annual; farm-gate producer price; coverage varies by country"
+   "source": "FAOSTAT bulk producer prices, meat of chickens, USD/tonne (element 5532)",
+   "note": "query API is 401; bulk zip is public. All countries kept — coverage check",
+   "filters": {
+    "Item Code": "1058",
+    "Element Code": "5532"
+   }
   },
   {
    "name": "feed-maize-fao",
    "provider": "csv",
-   "url": "https://faostatservices.fao.org/api/v1/en/data/PP?area=59,103,112,118,121,173,179,194,221,223,225&element=5532&item=56&year=1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025&show_codes=true&show_unit=true&null_values=false&output_type=csv",
+   "url": "https://bulks-faostat.fao.org/production/Prices_E_All_Data_(Normalized).zip",
    "group_col": "Area",
    "key_col": "Year",
    "value_col": "Value",
    "out": "data/feed-maize-fao.json",
-   "source": "FAOSTAT producer prices, maize (corn), USD/tonne",
-   "note": "proxy for feed cost; Gulf states import feed so producer price may not exist"
+   "source": "FAOSTAT bulk producer prices, maize (corn), USD/tonne (element 5532)",
+   "note": "query API is 401; bulk zip is public. All countries kept — coverage check",
+   "filters": {
+    "Item Code": "56",
+    "Element Code": "5532"
+   }
   },
   {
    "name": "feed-wheat-fao",
    "provider": "csv",
-   "url": "https://faostatservices.fao.org/api/v1/en/data/PP?area=59,103,112,118,121,173,179,194,221,223,225&element=5532&item=15&year=1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025&show_codes=true&show_unit=true&null_values=false&output_type=csv",
+   "url": "https://bulks-faostat.fao.org/production/Prices_E_All_Data_(Normalized).zip",
    "group_col": "Area",
    "key_col": "Year",
    "value_col": "Value",
    "out": "data/feed-wheat-fao.json",
-   "source": "FAOSTAT producer prices, wheat, USD/tonne",
-   "note": "backup feed proxy where maize is missing"
+   "source": "FAOSTAT bulk producer prices, wheat, USD/tonne (element 5532)",
+   "note": "query API is 401; bulk zip is public. All countries kept — coverage check",
+   "filters": {
+    "Item Code": "15",
+    "Element Code": "5532"
+   }
   },
   {
    "name": "pl-agri-out-idx",
    "provider": "eurostat",
-   "dataset": "apri_pi20_outm",
+   "dataset": "apri_pi20_outq",
    "params": {
     "geo": "PL"
    },
    "out": "data/pl-agri-out-idx.json",
-   "source": "Eurostat monthly agricultural output price index, Poland",
-   "note": "discover first: need the poultry product code"
+   "source": "Eurostat quarterly agricultural output price index (2020=100), Poland",
+   "note": "monthly does not exist - quarterly is the finest Eurostat offers; discover for poultry product code"
   },
   {
    "name": "pl-agri-in-idx",
    "provider": "eurostat",
-   "dataset": "apri_pi20_inm",
+   "dataset": "apri_pi20_inq",
    "params": {
     "geo": "PL"
    },
    "out": "data/pl-agri-in-idx.json",
-   "source": "Eurostat monthly agricultural input price index, Poland",
-   "note": "discover first: need the feedingstuffs product code"
+   "source": "Eurostat quarterly agricultural input price index (2020=100), Poland",
+   "note": "discover for feedingstuffs product code"
   }
  ]
 }

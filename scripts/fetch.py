@@ -132,13 +132,27 @@ def owid(entry):
 
 
 def csv_source(entry):
-    """Any plain CSV. entry['url'] + optional 'filters' (col->value) and 'pivot'."""
-    text = get(entry["url"]).decode("utf-8", "replace")
-    rdr = csv.DictReader(io.StringIO(text))
+    """Any plain CSV. entry['url'] + optional 'filters' (col->value) and 'pivot'.
+    Zipped CSVs work too: a .zip url (or 'zip_member') reads one member from the
+    archive — needed for FAOSTAT, whose query API went 401 but whose bulk files
+    are public."""
+    raw = get(entry["url"])
+    members = None
+    if entry.get("zip_member") or entry["url"].lower().split("?")[0].endswith(".zip"):
+        import zipfile
+        zf = zipfile.ZipFile(io.BytesIO(raw))
+        members = zf.namelist()
+        name = entry.get("zip_member") or next(
+            (m for m in members if m.lower().endswith(".csv")), members[0])
+        fh = io.TextIOWrapper(zf.open(name), encoding="utf-8", errors="replace")
+        rdr = csv.DictReader(fh)
+    else:
+        rdr = csv.DictReader(io.StringIO(raw.decode("utf-8", "replace")))
     cols = rdr.fieldnames or []
     if MODE == "discover":
-        rows = list(rdr)[:5]
-        return {"_discover": {"columns": cols, "sample": rows}}
+        rows = list(rdr)[:5] if members is None else [next(rdr, None) for _ in range(5)]
+        return {"_discover": {"columns": cols, "sample": rows,
+                              **({"zip_members": members} if members else {})}}
     filters = entry.get("filters", {})
     kcol, vcol = entry["key_col"], entry["value_col"]
     group = entry.get("group_col")
