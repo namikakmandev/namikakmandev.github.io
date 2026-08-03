@@ -64,6 +64,27 @@ for key, (area, meat, basis) in REGIONS.items():
             "movement only, and verify levels against TurkStat/EVDS before "
             "publishing them")
 
+# Poland weekly, current to within a week: EC agri-food portal. Broiler is a
+# carcass selling price in EUR/100kg -> x10 for EUR/t; feed grains are EUR/t.
+# Both parities kept: wheat is the Polish ration's base grain, maize matches
+# the denominator used in the annual FAOSTAT series.
+try:
+    plb = series("pl-broiler-weekly.json")["Whole broiler (65%)"]
+    plf = series("pl-feed-weekly.json")
+    fw, fm = plf["Feed wheat"], plf["Feed maize"]
+    weeks = sorted(set(plb) & set(fw) & set(fm))
+    out["regions"]["PL-weekly"] = {
+        "source": "EC agri-food data portal (weekly, EUR)",
+        "meat_basis": "carcass selling price, whole broiler 65%",
+        "columns": ["week", "broiler_eur_t", "feed_wheat_eur_t", "feed_maize_eur_t",
+                    "parity_wheat", "parity_maize"],
+        "rows": [[wk, round(plb[wk] * 10, 1), round(fw[wk], 1), round(fm[wk], 1),
+                  round(plb[wk] * 10 / fw[wk], 3), round(plb[wk] * 10 / fm[wk], 3)]
+                 for wk in weeks if fw[wk] and fm[wk]],
+    }
+except (FileNotFoundError, KeyError):
+    pass  # weekly PL sources not fetched yet
+
 # IMF poultry on FRED is an INDEX (2016=100), not USD/tonne, so the world
 # parity can only be an index: rebase corn to 2016=100 and take the ratio.
 pm, pc = world["poultry"], world["corn"]
