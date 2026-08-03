@@ -216,7 +216,12 @@ def evds(entry):
     hdr = {"key": key}
     if entry.get("url"):
         j = json.loads(get(entry["url"], headers=hdr).decode("utf-8", "replace"))
-        return {"_discover": {"sample": j[:80] if isinstance(j, list) else j}}
+        if isinstance(j, list):  # catalogue endpoints: keep code/name fields only
+            slim = [{k: v for k, v in r.items()
+                     if any(w in k.upper() for w in ("CODE", "NAME", "ADI"))}
+                    for r in j]
+            return {"_discover": {"n": len(j), "sample": slim}}
+        return {"_discover": {"sample": j}}
     out = {}
     for k, code in entry["series"].items():
         url = (f"https://evds2.tcmb.gov.tr/service/evds/series={code}"
