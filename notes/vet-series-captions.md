@@ -152,6 +152,25 @@ COGS ≠ ingredient (no filer splits it), concept tags recorded per company,
 every figure recomputed from committed data. Small samples — 4 and 3 filers —
 medians, and stated.
 
+## Shelved: balance-sheet post 3 (analysed, not published)
+
+`scripts/analyse_bs.py` → `data/pharma-bs-derived.json`, same 8 filers, FY-end values.
+Analysed in full and shelved for lack of a strong conclusion:
+
+1. **"No cash hoard — all 8 are net debtors" is true but not news** to a
+   finance-literate feed; post-M&A leverage in big pharma is well known.
+2. **The anatomy story breaks inside its own sample.** Lilly — the most
+   R&D-intensive filer (24.1%) — has the LOWEST goodwill+intangibles share
+   (~11% of assets), because internally developed science is expensed, never
+   capitalised. The 54% human median measures serial acquisition, not science.
+   The balance sheet cannot see homegrown R&D — accounting artifact, not anatomy.
+3. **No clean time trend** 2009→2025 (Pfizer drifts up, Merck falls, BMS spikes
+   with Celgene then amortises down) — nothing to narrate.
+
+What survives, as comment ammunition for post 2: if anyone claims pharma "sits on
+billions", the filings say otherwise — every one of the eight is net-debt-negative;
+human-side median net debt ≈ 82% of revenue, FY2023–25. Use in replies, not as a post.
+
 ## Posting notes
 
 - Post 2's charts show the three animal-health filers **unattributed** (Animal filer
