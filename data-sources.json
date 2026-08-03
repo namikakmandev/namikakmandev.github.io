@@ -387,7 +387,7 @@
   {
    "name": "tr-evds-catalog",
    "provider": "evds",
-   "url": "https://evds2.tcmb.gov.tr/service/evds/datagroups/mode=0&type=json",
+   "url": "https://evds2.tcmb.gov.tr/service/evds/datagroups/key={KEY}&mode=0&type=json",
    "out": "data/tr-evds-catalog.json",
    "source": "EVDS category catalogue (discovery only)",
    "note": "all EVDS datagroups; looking for CPI item average prices (tavuk eti) and detailed Tarim-UFE",
@@ -397,9 +397,20 @@
    "name": "tr-evds-categories",
    "provider": "evds",
    "enabled": true,
-   "url": "https://evds2.tcmb.gov.tr/service/evds/categories/type=json",
+   "url": "https://evds2.tcmb.gov.tr/service/evds/categories/key={KEY}&type=json",
    "out": "data/tr-evds-categories.json",
    "source": "EVDS category list (discovery only)"
+  },
+  {
+   "name": "tr-meat-feed-ppi",
+   "provider": "evds",
+   "series": {
+    "meat_ppi": "TP.TUFE1YI.T17",
+    "feed_ppi": "TP.TUFE1YI.T25"
+   },
+   "out": "data/tr-meat-feed-ppi.json",
+   "source": "TCMB EVDS / TUIK Yi-UFE: meat products PPI (T17), prepared animal feeds PPI (T25)",
+   "note": "monthly, current; same pair the cattle study used - meat side is ALL meat, not broiler-specific"
   }
  ]
 }

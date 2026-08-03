@@ -215,7 +215,9 @@ def evds(entry):
         raise RuntimeError("EVDS_KEY env missing - add the repo Actions secret")
     hdr = {"key": key}
     if entry.get("url"):
-        raw = get(entry["url"], headers=hdr).decode("utf-8", "replace")
+        # catalogue endpoints ignore the header and want key in the path:
+        # .../categories/key=XXX&type=json  — hence the {KEY} placeholder
+        raw = get(entry["url"].replace("{KEY}", key), headers=hdr).decode("utf-8", "replace")
         try:
             j = json.loads(raw)
         except json.JSONDecodeError:  # show what actually came back
