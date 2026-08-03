@@ -295,8 +295,11 @@ def edgar(entry):
     tick_map = {str(v["ticker"]).upper(): int(v["cik_str"])
                 for v in json.loads(get_sec("https://www.sec.gov/files/company_tickers.json")
                                     .decode()).values()}
-    hunt = re.compile(r"^(Revenue|RevenueFrom|CostOf|ResearchAndDevelopment"
-                      r"|SellingGeneralAndAdministrative)", re.I)
+    # Discovery pattern is P&L-flavoured by default; balance-sheet entries carry
+    # their own via entry["hunt"] (cash/debt/inventory tags live under other stems).
+    hunt = re.compile(entry.get("hunt",
+                      r"^(Revenue|RevenueFrom|CostOf|ResearchAndDevelopment"
+                      r"|SellingGeneralAndAdministrative)"), re.I)
     out, disc = {}, {}
     for label, tk in entry["tickers"].items():
         cik = tick_map.get(tk.upper())

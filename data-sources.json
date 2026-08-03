@@ -1,221 +1,274 @@
 {
-  "_readme": [
-    "Add a series by adding an entry here — no new script needed.",
-    "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
-    "Then:            python scripts/fetch.py NAME",
-    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL)",
-    "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
-  ],
-  "sources": [
-    {
-      "name": "cattle-herd",
-      "provider": "owid",
-      "slug": "cattle-livestock-count-heads",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/herd-cattle.json",
-      "source": "FAOSTAT cattle stocks (head), via Our World in Data",
-      "note": "annual; national totals, all cattle"
-    },
-    {
-      "name": "us-prices",
-      "provider": "fred",
-      "series": {
-        "cattle_ppi": "WPU0131",
-        "corn_ppi": "WPU012202",
-        "cpi": "CPIAUCSL"
-      },
-      "out": "data/us-prices.json",
-      "source": "BLS producer price indexes via FRED, plus CPI for deflating",
-      "note": "PPI levels are index numbers (1982=100) — ratios only, never quantities"
-    },
-    {
-      "name": "eu-vet-expenses",
-      "provider": "eurostat",
-      "dataset": "aact_eaa01",
-      "params": {
-        "am_item": "AM205000",
-        "unit": "MIO_EUR",
-        "geo": "EU27_2020"
-      },
-      "out": "data/eu-vet-expenses.json",
-      "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
-      "note": "ALL livestock, not cattle only — do not present as a per-cattle figure without saying so"
-    },
-    {
-      "name": "eu-hicp",
-      "provider": "fred",
-      "series": {
-        "hicp": "CP0000EZ19M086NEST"
-      },
-      "out": "data/eu-hicp.json",
-      "source": "Euro area HICP via FRED — deflator for any EUR money series"
-    },
-    {
-      "name": "vetapi-probe",
-      "provider": "probe",
-      "grep": "veterinar|medicinal|botanical|pharmaceutical",
-      "catalogs": {
-        "bls_pc_series": "https://download.bls.gov/pub/time.series/pc/pc.series",
-        "bls_pc_product": "https://download.bls.gov/pub/time.series/pc/pc.product",
-        "bls_wp_item": "https://download.bls.gov/pub/time.series/wp/wp.item"
-      },
-      "fred_ids": [
-        "WPU06340",
-        "WPU063401",
-        "WPU063402",
-        "WPU063403",
-        "WPU063404",
-        "WPU063405",
-        "WPU06340101",
-        "WPU06340102",
-        "WPU06340103",
-        "WPU06340104"
-      ],
-      "source": "Discovery only — FRED series headers plus a candidate-id probe",
-      "note": "MODE=discover only. A guessed FRED id returns an HTML error page, not an error — probe before parsing, and read the Title off FRED rather than inferring it from the id. The BLS catalogue files return 403 to this fetcher."
-    },
-    {
-      "name": "vetapi-us",
-      "provider": "fred",
-      "series": {
-        "api_ppi": "PCU325411325411",
-        "prep_ppi": "PCU325412325412",
-        "antiinfective_ppi": "WPU063808",
-        "biological_ppi": "PCU325414325414",
-        "cpi": "CPIAUCSL"
-      },
-      "out": "data/vetapi-us.json",
-      "source": "BLS producer price indexes via FRED, titles read off FRED not inferred from the id: PCU325411325411 'PPI by Industry: Medicinal and Botanical Manufacturing' (index Jun 1982=100, monthly, 1982-06→) = the bulk active-ingredient stage; PCU325412325412 'PPI by Industry: Pharmaceutical Preparation Manufacturing' (index Jun 1981=100, monthly, 1981-06→) = the finished dose; WPU063808 'PPI by Commodity: Pharmaceuticals Affecting Parasitic and Infective Diseases' (index Jun 2001=100, monthly, 2001-06→); PCU325414325414 'PPI by Industry: Other Biological Product Manufacturing' (index Jun 1991=100, monthly, 1991-06→) = vaccines and biologicals; CPIAUCSL to deflate",
-      "note": "THE TWO SPINE SERIES SIT ON DIFFERENT BASE MONTHS — Jun 1982 and Jun 1981. Their raw ratio therefore has no interpretable level at all; only its change between two dates means anything. BLS publishes NO veterinary-only price index: every product line that could be checked is labelled 'for Human Use'. WPU063808 (antiparasitics and anti-infectives) and PCU325414325414 (biologicals/vaccines) are the closest therapeutic proxies to a livestock portfolio, and they still cover human products too."
-    },
-    {
-      "name": "vetapi-fx",
-      "provider": "fred",
-      "series": {
-        "usdtry": "CCUSMA02TRM618N"
-      },
-      "out": "data/vetapi-fx.json",
-      "source": "OECD via FRED, CCUSMA02TRM618N — 'Currency Conversions: US Dollar Exchange Rate: Average of Daily Rates: National Currency: USD for Turkey', monthly, 1957-01 → 2026-06. Title read off FRED, not inferred.",
-      "note": "Turkish lira per US dollar, monthly average of daily rates — so it lines up with monthly average price indexes rather than an end-of-month snapshot. Used only in log changes; the level is never quoted."
-    },
-    {
-      "name": "vetapi-vet",
-      "provider": "fred",
-      "series": {
-        "vet_prep_ppi": "WPU0634",
-        "vet_pharma_ppi": "WPU063403"
-      },
-      "out": "data/vetapi-vet.json",
-      "source": "BLS producer price index by commodity via FRED, title read off FRED: WPU0634 'PPI by Commodity: Chemicals and Allied Products: Veterinary Pharmaceutical Preparations', index 1982=100, monthly, Jun 1981 → May 2026 ; WPU063403 'PPI by Commodity: Pharmaceuticals for Veterinary Use', monthly, Dec 1987 → May 2026",
-      "note": "THE veterinary-only price index this project previously said did not exist. It sits outside the WPU0638 (human-side) preparations group, which is why the earlier probe of 0638 subclasses missed it. Finished preparations, list-basis; the ingredient stage still has no veterinary split."
-    },
-    {
-      "name": "vetprice-classes",
-      "provider": "fred",
-      "series": {
-        "all_preparations": "WPU0638",
-        "neoplasm_endocrine": "WPU063801",
-        "cns_sense": "WPU063802",
-        "cardiovascular": "WPU063803",
-        "respiratory": "WPU063804",
-        "digestive_gu": "WPU063805",
-        "skin": "WPU063806",
-        "vitamin_nutrient": "WPU063807",
-        "parasitic_infective": "WPU063808",
-        "antibiotics_broad_medium": "WPU06380802",
-        "api_input": "PCU325411325411",
-        "cpi": "CPIAUCSL"
-      },
-      "out": "data/vetprice-classes.json",
-      "source": "BLS producer price indexes by commodity via FRED, monthly, every title read off FRED rather than inferred from the id. WPU0638 pharmaceutical preparations (aggregate) and its eight therapeutic classes WPU063801–WPU063808, all index Jun 2001=100 and running Jun 2001→Jun 2026; WPU06380802 broad and medium spectrum antibiotics, index Dec 2009=100, Dec 2009→Jun 2026; PCU325411325411 medicinal and botanical manufacturing (the active-ingredient input), index Jun 1982=100; CPIAUCSL to deflate",
-      "note": "WPU063801–08 is the COMPLETE set — 063809, 063810 and 063811 were probed and do not exist, so no class is silently dropped. WPU06380802 is a sub-line of 063808 and starts eight years later, so it is never compared to the others over their full span. These are commodity indexes covering human and veterinary products together; BLS publishes no veterinary-only line. Index numbers, not quantities — only changes between dates are meaningful, and the antibiotic line sits on a different base month from the rest."
-    },
-    {
-      "name": "vetapi-eu",
-      "provider": "eurostat",
-      "dataset": "sts_inpp_a",
-      "params": {
-        "geo": "EU27_2020",
-        "unit": "I15",
-        "nace_r2": [
-          "C211",
-          "C212",
-          "C21"
-        ]
-      },
-      "key_dim": "nace_r2",
-      "grep": "^C?21|pharmac|Index,",
-      "out": "data/vetapi-eu.json",
-      "source": "Eurostat sts_inpp_a, industrial domestic producer price index, geo EU27_2020, unit I15 (index, 2015=100), annual; NACE C211 (manufacture of basic pharmaceutical products), C212 (manufacture of pharmaceutical preparations), C21 (both)",
-      "note": "Codes confirmed against the source's own category list, not guessed. C211 is the active-ingredient stage, C212 the finished dose. The unit is pinned to I15 because the dataset also carries 2021=100 and 2010=100 — mixing them would silently blend three different bases. Covers human and veterinary pharma together; Eurostat publishes no veterinary-only split."
-    },
-    {
-      "name": "vetapi-tr",
-      "provider": "evds",
-      "series": {
-        "ppi_nace21": "TP.TUFE1YI.T59",
-        "ppi_nace212": "TP.TUFE1YI.T60",
-        "import_ppi_nace21": "TP.UFEYD16"
-      },
-      "start": "01-01-2005",
-      "out": "data/vetapi-tr.json",
-      "source": "TÜİK via TCMB EVDS: TP.TUFE1YI.T59 (Yİ-ÜFE, NACE 21 temel eczacılık ürünleri ve müstahzarları), TP.TUFE1YI.T60 (Yİ-ÜFE, NACE 21.2 eczacılık müstahzarları), TP.UFEYD16 (Yurt Dışı ÜFE, NACE 21 — imported pharma input prices)",
-      "note": "TÜİK publishes NO standalone NACE 21.1 index. For TR the ingredient side is proxied by the imported-goods price index for NACE 21 — an import price, not a domestic ingredient price. That limitation travels with every TR number."
-    },
-    {
-      "name": "us-cowcalf-costs",
-      "provider": "csv",
-      "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
-      "filters": {
-        "Region": "U.S. total"
-      },
-      "group_col": "Item",
-      "key_col": "Year",
-      "value_col": "Value",
-      "out": "data/us-cowcalf-costs.json",
-      "source": "USDA ERS commodity costs and returns, cow-calf",
-      "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
-    },
-    {
-      "name": "pharma-pnl",
-      "provider": "edgar",
-      "tickers": {
-        "PFIZER": "PFE",
-        "MERCK": "MRK",
-        "LILLY": "LLY",
-        "ABBVIE": "ABBV",
-        "BMS": "BMY",
-        "ZOETIS": "ZTS",
-        "ELANCO": "ELAN",
-        "PHIBRO": "PAHC"
-      },
-      "concepts": {
-        "revenue": [
-          "Revenues",
-          "RevenueFromContractWithCustomerExcludingAssessedTax",
-          "SalesRevenueNet",
-          "SalesRevenueGoodsNet"
-        ],
-        "cogs": [
-          "CostOfGoodsAndServicesSold",
-          "CostOfRevenue",
-          "CostOfGoodsSold"
-        ],
-        "rnd": [
-          "ResearchAndDevelopmentExpense",
-          "ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
-        ],
-        "sga": [
-          "SellingGeneralAndAdministrativeExpense"
-        ]
-      },
-      "out": "data/pharma-pnl.json",
-      "source": "SEC EDGAR XBRL company facts (data.sec.gov), annual 10-K FY values. Human pharma: Pfizer, Merck, Lilly, AbbVie, Bristol Myers Squibb. Animal health: Zoetis, Elanco, Phibro. CIKs resolved from SEC's own ticker file at fetch time, concept names chosen from discovery, not guessed.",
-      "note": "Global consolidated figures, not US-only. Merck excluded from the 'pure human' read (~9% animal health) — flag if used. COGS is not API: no filer discloses ingredient share inside COGS. No reliable XBRL headcount tag — employee counts are out of scope. R&D concept unions plain and excluding-IPR&D variants across years where filers switched tags — a small definitional seam, flagged in the method note."
-    }
-  ]
+ "_readme": [
+  "Add a series by adding an entry here — no new script needed.",
+  "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
+  "Then:            python scripts/fetch.py NAME",
+  "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL)",
+  "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
+ ],
+ "sources": [
+  {
+   "name": "cattle-herd",
+   "provider": "owid",
+   "slug": "cattle-livestock-count-heads",
+   "entities": {
+    "United States": "US",
+    "European Union (27)": "EU",
+    "Turkey": "TR"
+   },
+   "out": "data/herd-cattle.json",
+   "source": "FAOSTAT cattle stocks (head), via Our World in Data",
+   "note": "annual; national totals, all cattle"
+  },
+  {
+   "name": "us-prices",
+   "provider": "fred",
+   "series": {
+    "cattle_ppi": "WPU0131",
+    "corn_ppi": "WPU012202",
+    "cpi": "CPIAUCSL"
+   },
+   "out": "data/us-prices.json",
+   "source": "BLS producer price indexes via FRED, plus CPI for deflating",
+   "note": "PPI levels are index numbers (1982=100) — ratios only, never quantities"
+  },
+  {
+   "name": "eu-vet-expenses",
+   "provider": "eurostat",
+   "dataset": "aact_eaa01",
+   "params": {
+    "am_item": "AM205000",
+    "unit": "MIO_EUR",
+    "geo": "EU27_2020"
+   },
+   "out": "data/eu-vet-expenses.json",
+   "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
+   "note": "ALL livestock, not cattle only — do not present as a per-cattle figure without saying so"
+  },
+  {
+   "name": "eu-hicp",
+   "provider": "fred",
+   "series": {
+    "hicp": "CP0000EZ19M086NEST"
+   },
+   "out": "data/eu-hicp.json",
+   "source": "Euro area HICP via FRED — deflator for any EUR money series"
+  },
+  {
+   "name": "vetapi-probe",
+   "provider": "probe",
+   "grep": "veterinar|medicinal|botanical|pharmaceutical",
+   "catalogs": {
+    "bls_pc_series": "https://download.bls.gov/pub/time.series/pc/pc.series",
+    "bls_pc_product": "https://download.bls.gov/pub/time.series/pc/pc.product",
+    "bls_wp_item": "https://download.bls.gov/pub/time.series/wp/wp.item"
+   },
+   "fred_ids": [
+    "WPU06340",
+    "WPU063401",
+    "WPU063402",
+    "WPU063403",
+    "WPU063404",
+    "WPU063405",
+    "WPU06340101",
+    "WPU06340102",
+    "WPU06340103",
+    "WPU06340104"
+   ],
+   "source": "Discovery only — FRED series headers plus a candidate-id probe",
+   "note": "MODE=discover only. A guessed FRED id returns an HTML error page, not an error — probe before parsing, and read the Title off FRED rather than inferring it from the id. The BLS catalogue files return 403 to this fetcher."
+  },
+  {
+   "name": "vetapi-us",
+   "provider": "fred",
+   "series": {
+    "api_ppi": "PCU325411325411",
+    "prep_ppi": "PCU325412325412",
+    "antiinfective_ppi": "WPU063808",
+    "biological_ppi": "PCU325414325414",
+    "cpi": "CPIAUCSL"
+   },
+   "out": "data/vetapi-us.json",
+   "source": "BLS producer price indexes via FRED, titles read off FRED not inferred from the id: PCU325411325411 'PPI by Industry: Medicinal and Botanical Manufacturing' (index Jun 1982=100, monthly, 1982-06→) = the bulk active-ingredient stage; PCU325412325412 'PPI by Industry: Pharmaceutical Preparation Manufacturing' (index Jun 1981=100, monthly, 1981-06→) = the finished dose; WPU063808 'PPI by Commodity: Pharmaceuticals Affecting Parasitic and Infective Diseases' (index Jun 2001=100, monthly, 2001-06→); PCU325414325414 'PPI by Industry: Other Biological Product Manufacturing' (index Jun 1991=100, monthly, 1991-06→) = vaccines and biologicals; CPIAUCSL to deflate",
+   "note": "THE TWO SPINE SERIES SIT ON DIFFERENT BASE MONTHS — Jun 1982 and Jun 1981. Their raw ratio therefore has no interpretable level at all; only its change between two dates means anything. BLS publishes NO veterinary-only price index: every product line that could be checked is labelled 'for Human Use'. WPU063808 (antiparasitics and anti-infectives) and PCU325414325414 (biologicals/vaccines) are the closest therapeutic proxies to a livestock portfolio, and they still cover human products too."
+  },
+  {
+   "name": "vetapi-fx",
+   "provider": "fred",
+   "series": {
+    "usdtry": "CCUSMA02TRM618N"
+   },
+   "out": "data/vetapi-fx.json",
+   "source": "OECD via FRED, CCUSMA02TRM618N — 'Currency Conversions: US Dollar Exchange Rate: Average of Daily Rates: National Currency: USD for Turkey', monthly, 1957-01 → 2026-06. Title read off FRED, not inferred.",
+   "note": "Turkish lira per US dollar, monthly average of daily rates — so it lines up with monthly average price indexes rather than an end-of-month snapshot. Used only in log changes; the level is never quoted."
+  },
+  {
+   "name": "vetapi-vet",
+   "provider": "fred",
+   "series": {
+    "vet_prep_ppi": "WPU0634",
+    "vet_pharma_ppi": "WPU063403"
+   },
+   "out": "data/vetapi-vet.json",
+   "source": "BLS producer price index by commodity via FRED, title read off FRED: WPU0634 'PPI by Commodity: Chemicals and Allied Products: Veterinary Pharmaceutical Preparations', index 1982=100, monthly, Jun 1981 → May 2026 ; WPU063403 'PPI by Commodity: Pharmaceuticals for Veterinary Use', monthly, Dec 1987 → May 2026",
+   "note": "THE veterinary-only price index this project previously said did not exist. It sits outside the WPU0638 (human-side) preparations group, which is why the earlier probe of 0638 subclasses missed it. Finished preparations, list-basis; the ingredient stage still has no veterinary split."
+  },
+  {
+   "name": "vetprice-classes",
+   "provider": "fred",
+   "series": {
+    "all_preparations": "WPU0638",
+    "neoplasm_endocrine": "WPU063801",
+    "cns_sense": "WPU063802",
+    "cardiovascular": "WPU063803",
+    "respiratory": "WPU063804",
+    "digestive_gu": "WPU063805",
+    "skin": "WPU063806",
+    "vitamin_nutrient": "WPU063807",
+    "parasitic_infective": "WPU063808",
+    "antibiotics_broad_medium": "WPU06380802",
+    "api_input": "PCU325411325411",
+    "cpi": "CPIAUCSL"
+   },
+   "out": "data/vetprice-classes.json",
+   "source": "BLS producer price indexes by commodity via FRED, monthly, every title read off FRED rather than inferred from the id. WPU0638 pharmaceutical preparations (aggregate) and its eight therapeutic classes WPU063801–WPU063808, all index Jun 2001=100 and running Jun 2001→Jun 2026; WPU06380802 broad and medium spectrum antibiotics, index Dec 2009=100, Dec 2009→Jun 2026; PCU325411325411 medicinal and botanical manufacturing (the active-ingredient input), index Jun 1982=100; CPIAUCSL to deflate",
+   "note": "WPU063801–08 is the COMPLETE set — 063809, 063810 and 063811 were probed and do not exist, so no class is silently dropped. WPU06380802 is a sub-line of 063808 and starts eight years later, so it is never compared to the others over their full span. These are commodity indexes covering human and veterinary products together; BLS publishes no veterinary-only line. Index numbers, not quantities — only changes between dates are meaningful, and the antibiotic line sits on a different base month from the rest."
+  },
+  {
+   "name": "vetapi-eu",
+   "provider": "eurostat",
+   "dataset": "sts_inpp_a",
+   "params": {
+    "geo": "EU27_2020",
+    "unit": "I15",
+    "nace_r2": [
+     "C211",
+     "C212",
+     "C21"
+    ]
+   },
+   "key_dim": "nace_r2",
+   "grep": "^C?21|pharmac|Index,",
+   "out": "data/vetapi-eu.json",
+   "source": "Eurostat sts_inpp_a, industrial domestic producer price index, geo EU27_2020, unit I15 (index, 2015=100), annual; NACE C211 (manufacture of basic pharmaceutical products), C212 (manufacture of pharmaceutical preparations), C21 (both)",
+   "note": "Codes confirmed against the source's own category list, not guessed. C211 is the active-ingredient stage, C212 the finished dose. The unit is pinned to I15 because the dataset also carries 2021=100 and 2010=100 — mixing them would silently blend three different bases. Covers human and veterinary pharma together; Eurostat publishes no veterinary-only split."
+  },
+  {
+   "name": "vetapi-tr",
+   "provider": "evds",
+   "series": {
+    "ppi_nace21": "TP.TUFE1YI.T59",
+    "ppi_nace212": "TP.TUFE1YI.T60",
+    "import_ppi_nace21": "TP.UFEYD16"
+   },
+   "start": "01-01-2005",
+   "out": "data/vetapi-tr.json",
+   "source": "TÜİK via TCMB EVDS: TP.TUFE1YI.T59 (Yİ-ÜFE, NACE 21 temel eczacılık ürünleri ve müstahzarları), TP.TUFE1YI.T60 (Yİ-ÜFE, NACE 21.2 eczacılık müstahzarları), TP.UFEYD16 (Yurt Dışı ÜFE, NACE 21 — imported pharma input prices)",
+   "note": "TÜİK publishes NO standalone NACE 21.1 index. For TR the ingredient side is proxied by the imported-goods price index for NACE 21 — an import price, not a domestic ingredient price. That limitation travels with every TR number."
+  },
+  {
+   "name": "us-cowcalf-costs",
+   "provider": "csv",
+   "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
+   "filters": {
+    "Region": "U.S. total"
+   },
+   "group_col": "Item",
+   "key_col": "Year",
+   "value_col": "Value",
+   "out": "data/us-cowcalf-costs.json",
+   "source": "USDA ERS commodity costs and returns, cow-calf",
+   "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
+  },
+  {
+   "name": "pharma-pnl",
+   "provider": "edgar",
+   "tickers": {
+    "PFIZER": "PFE",
+    "MERCK": "MRK",
+    "LILLY": "LLY",
+    "ABBVIE": "ABBV",
+    "BMS": "BMY",
+    "ZOETIS": "ZTS",
+    "ELANCO": "ELAN",
+    "PHIBRO": "PAHC"
+   },
+   "concepts": {
+    "revenue": [
+     "Revenues",
+     "RevenueFromContractWithCustomerExcludingAssessedTax",
+     "SalesRevenueNet",
+     "SalesRevenueGoodsNet"
+    ],
+    "cogs": [
+     "CostOfGoodsAndServicesSold",
+     "CostOfRevenue",
+     "CostOfGoodsSold"
+    ],
+    "rnd": [
+     "ResearchAndDevelopmentExpense",
+     "ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
+    ],
+    "sga": [
+     "SellingGeneralAndAdministrativeExpense"
+    ]
+   },
+   "out": "data/pharma-pnl.json",
+   "source": "SEC EDGAR XBRL company facts (data.sec.gov), annual 10-K FY values. Human pharma: Pfizer, Merck, Lilly, AbbVie, Bristol Myers Squibb. Animal health: Zoetis, Elanco, Phibro. CIKs resolved from SEC's own ticker file at fetch time, concept names chosen from discovery, not guessed.",
+   "note": "Global consolidated figures, not US-only. Merck excluded from the 'pure human' read (~9% animal health) — flag if used. COGS is not API: no filer discloses ingredient share inside COGS. No reliable XBRL headcount tag — employee counts are out of scope. R&D concept unions plain and excluding-IPR&D variants across years where filers switched tags — a small definitional seam, flagged in the method note."
+  },
+  {
+   "name": "pharma-bs",
+   "provider": "edgar",
+   "tickers": {
+    "PFIZER": "PFE",
+    "MERCK": "MRK",
+    "LILLY": "LLY",
+    "ABBVIE": "ABBV",
+    "BMS": "BMY",
+    "ZOETIS": "ZTS",
+    "ELANCO": "ELAN",
+    "PHIBRO": "PAHC"
+   },
+   "hunt": "^(CashAndCashEquivalents|ShortTermInvestments|MarketableSecurities|AvailableForSaleSecurities|LongTermDebt|DebtCurrent|ShortTermBorrowings|CommercialPaper|InventoryNet|PropertyPlantAndEquipment|Goodwill|IntangibleAssets|FiniteLivedIntangibleAssets|Assets$|StockholdersEquity$)",
+   "concepts": {
+    "cash": [
+     "CashAndCashEquivalentsAtCarryingValue"
+    ],
+    "sti": [
+     "ShortTermInvestments",
+     "MarketableSecuritiesCurrent",
+     "AvailableForSaleSecuritiesDebtSecuritiesCurrent"
+    ],
+    "debt_lt": [
+     "LongTermDebtNoncurrent",
+     "LongTermDebt"
+    ],
+    "debt_st": [
+     "LongTermDebtCurrent",
+     "DebtCurrent",
+     "ShortTermBorrowings"
+    ],
+    "inventory": [
+     "InventoryNet"
+    ],
+    "ppe": [
+     "PropertyPlantAndEquipmentNet"
+    ],
+    "goodwill": [
+     "Goodwill"
+    ],
+    "intangibles": [
+     "IntangibleAssetsNetExcludingGoodwill",
+     "FiniteLivedIntangibleAssetsNet"
+    ],
+    "assets": [
+     "Assets"
+    ]
+   },
+   "out": "data/pharma-bs.json",
+   "source": "SEC EDGAR XBRL company facts (data.sec.gov), 10-K fiscal-year-end balance-sheet values, same eight filers as pharma-pnl.",
+   "note": "CANDIDATE concepts pending MODE=discover — balance-sheet tag variance is high (short-term investments and debt especially). Finalise against data/_fetch-report.json before analysing. Instant facts at FY end pass the same form=10-K/fp=FY filter as flows."
+  }
+ ]
 }
