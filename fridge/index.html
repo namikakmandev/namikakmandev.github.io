@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Fridge Tracker — when to replenish</title>
+<meta name="description" content="Private, offline fridge inventory and replenishment tracker for a family of three. Tracks stock, predicts run-out dates, watches expiry and builds the shopping list." />
+<meta name="robots" content="noindex" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#242b3a" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Fridge" />
+<style>
+  /* mirrors css/tokens.css — inlined so the app is one self-contained file offline */
+  :root{
+    --bg:#242b3a; --surface:#2d3547; --surface-2:#384156;
+    --text:#f5f7fb; --text-dim:#c6cdda;
+    --accent:#2f9bff; --accent-2:#19c37d; --accent-3:#ff6500; --loss:#e5484d;
+    --border:#4a5469; --radius:14px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  button,.chip,.tab,.qty button{touch-action:manipulation}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);background:var(--bg);color:var(--text);
+    -webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom);
+  }
+  h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  .wrap{max-width:760px;margin:0 auto;padding:0 14px 96px}
+
+  /* ---------- header ---------- */
+  .top{
+    position:sticky;top:0;z-index:20;background:var(--bg);
+    padding:calc(10px + env(safe-area-inset-top)) 0 0;
+    border-bottom:1px solid var(--border);
+  }
+  .top-in{max-width:760px;margin:0 auto;padding:0 14px}
+  .title-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .title-row h1{font-size:19px;flex:1;display:flex;align-items:center;gap:8px}
+  .title-row h1 span.em{font-size:20px}
+  .lang{
+    border:1px solid var(--border);background:var(--surface);border-radius:999px;
+    padding:5px 11px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--text-dim);
+  }
+  .lang:hover{color:var(--text)}
+  .tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    flex:1 0 auto;background:none;border:0;border-bottom:2px solid transparent;
+    padding:10px 12px;font-size:13.5px;font-weight:600;color:var(--text-dim);white-space:nowrap;
+  }
+  .tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+  .tab .pill{
+    display:inline-block;min-width:18px;padding:1px 5px;margin-left:5px;border-radius:999px;
+    background:var(--accent-3);color:#1b1200;font-size:11px;font-weight:800;vertical-align:1px;
+  }
+  .tab .pill.zero{display:none}
+
+  /* ---------- generic ---------- */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:12px}
+  .muted{color:var(--text-dim);font-size:13px;line-height:1.55}
+  .row{display:flex;align-items:center;gap:10px}
+  .spread{justify-content:space-between}
+  .btn{
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+    border-radius:10px;padding:9px 13px;font-size:13.5px;font-weight:600;
+  }
+  .btn:hover{border-color:var(--text-dim)}
+  .btn.pri{background:var(--accent);border-color:var(--accent);color:#04121f}
+  .btn.ok{background:var(--accent-2);border-color:var(--accent-2);color:#04180f}
+  .btn.warn{background:var(--accent-3);border-color:var(--accent-3);color:#1b1200}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:6px 10px;font-size:12.5px;border-radius:9px}
+  .btn.block{display:block;width:100%;text-align:center}
+  .btn:disabled{opacity:.45;cursor:default}
+
+  /* ---------- summary strip ---------- */
+  .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .stat{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:10px 8px;text-align:center;
+  }
+  .stat b{display:block;font-size:21px;line-height:1.1;font-variant-numeric:tabular-nums}
+  .stat small{display:block;margin-top:3px;font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em}
+  .stat.out b{color:var(--loss)} .stat.low b{color:var(--accent-3)}
+  .stat.exp b{color:#c084fc} .stat.ok b{color:var(--accent-2)}
+
+  /* ---------- filters ---------- */
+  .filters{display:flex;gap:6px;overflow-x:auto;margin-top:12px;padding-bottom:2px;scrollbar-width:none}
+  .filters::-webkit-scrollbar{display:none}
+  .chip{
+    flex:0 0 auto;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);
+    border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:600;
+  }
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#04121f}
+  .search{
+    width:100%;margin-top:10px;background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:10px 12px;font-size:14px;
+  }
+
+  /* ---------- item list ---------- */
+  .group-h{
+    display:flex;align-items:baseline;gap:8px;margin:18px 2px 6px;
+    font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);
+  }
+  .group-h em{font-style:normal;font-weight:600;letter-spacing:0;text-transform:none;font-size:12px;opacity:.75}
+  .item{
+    display:flex;align-items:center;gap:10px;background:var(--surface);
+    border:1px solid var(--border);border-left-width:4px;border-radius:12px;padding:10px 10px 10px 11px;margin-top:7px;
+  }
+  .item.s-ok{border-left-color:var(--accent-2)}
+  .item.s-low{border-left-color:var(--accent-3)}
+  .item.s-out{border-left-color:var(--loss)}
+  .item.s-exp{border-left-color:#c084fc}
+  .item .main{flex:1;min-width:0}
+  .item .nm{font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .item .sub{font-size:11.5px;color:var(--text-dim);margin-top:3px;line-height:1.45}
+  .tag{
+    font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+    padding:2px 6px;border-radius:5px;background:var(--surface-2);color:var(--text-dim);
+  }
+  .tag.out{background:rgba(229,72,77,.16);color:#ff8f92}
+  .tag.low{background:rgba(255,101,0,.16);color:#ffa257}
+  .tag.exp{background:rgba(192,132,252,.16);color:#d3adff}
+  .tag.expd{background:rgba(229,72,77,.16);color:#ff8f92}
+  .qty{display:flex;align-items:center;gap:2px}
+  .qty button{
+    width:34px;height:34px;border-radius:9px;border:1px solid var(--border);
+    background:var(--surface-2);font-size:17px;font-weight:700;line-height:1;
+  }
+  .qty button:active{background:var(--accent);color:#04121f}
+  .qty .val{min-width:56px;text-align:center;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+  .qty .val small{display:block;font-size:10px;font-weight:600;color:var(--text-dim)}
+  .edit{
+    border:0;background:none;color:var(--text-dim);font-size:16px;padding:6px 2px 6px 4px;
+  }
+  .empty{text-align:center;color:var(--text-dim);font-size:13.5px;padding:26px 10px}
+
+  /* ---------- shopping list ---------- */
+  .li{
+    display:flex;align-items:flex-start;gap:11px;padding:11px 4px;border-bottom:1px solid var(--border);
+  }
+  .li:last-child{border-bottom:0}
+  .li input[type=checkbox]{width:21px;height:21px;margin:1px 0 0;accent-color:var(--accent-2);flex:0 0 auto}
+  .li .t{flex:1;font-size:14.5px;line-height:1.35}
+  .li .t small{display:block;color:var(--text-dim);font-size:11.5px;margin-top:2px}
+  .li.done .t{text-decoration:line-through;opacity:.45}
+  .li .x{border:0;background:none;color:var(--text-dim);font-size:15px;padding:0 4px}
+  .addrow{display:flex;gap:8px;margin-top:10px}
+  .addrow input{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px}
+
+  /* ---------- timeline ---------- */
+  .day{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .day:last-child{border-bottom:0}
+  .day .d{flex:0 0 62px;font-size:12px;font-weight:700;color:var(--text-dim);padding-top:2px;line-height:1.4}
+  .day .d b{display:block;font-size:15px;color:var(--text)}
+  .day.shop{background:linear-gradient(90deg,rgba(47,155,255,.10),transparent);border-radius:10px;padding-left:8px;margin-left:-8px}
+  .ev{font-size:13.5px;line-height:1.5}
+  .ev .k{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-right:6px}
+  .ev.run .k{color:var(--accent-3)} .ev.exp .k{color:#c084fc} .ev.shopping .k{color:var(--accent)}
+  .bar{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;border-radius:99px}
+  .cov{padding:11px 0;border-bottom:1px solid var(--border)}
+  .cov:last-child{border-bottom:0}
+  .cov .r{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600}
+  .cov .r span{color:var(--text-dim);font-weight:600;font-size:12.5px}
+
+  /* ---------- settings ---------- */
+  .field{margin-top:13px}
+  .field label{display:block;font-size:12.5px;font-weight:650;color:var(--text-dim);margin-bottom:5px}
+  .field input,.field select,.field textarea{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);
+    border-radius:10px;padding:10px 12px;font-size:14px;
+  }
+  .field textarea{min-height:110px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sw{display:flex;align-items:center;gap:10px;margin-top:13px;font-size:13.5px}
+  .sw input{width:19px;height:19px;accent-color:var(--accent)}
+
+  /* ---------- modal ---------- */
+  .modal{
+    position:fixed;inset:0;z-index:60;background:rgba(10,13,20,.62);
+    display:flex;align-items:flex-end;justify-content:center;padding:0;
+  }
+  .modal[hidden]{display:none}
+  .sheet{
+    width:100%;max-width:520px;max-height:92vh;overflow:auto;background:var(--surface);
+    border:1px solid var(--border);border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));
+  }
+  @media(min-width:560px){
+    .modal{align-items:center;padding:20px}
+    .sheet{border-radius:18px}
+  }
+  .sheet h3{font-size:16px;margin-bottom:4px}
+  .sheet-actions{display:flex;gap:8px;margin-top:18px}
+  .sheet-actions .btn{flex:1}
+  .toast{
+    position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    background:var(--surface-2);border:1px solid var(--border);border-radius:999px;
+    padding:9px 16px;font-size:13px;font-weight:600;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.35);
+  }
+  .toast[hidden]{display:none}
+  .fab{
+    position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:30;
+    width:52px;height:52px;border-radius:50%;border:0;background:var(--accent);color:#04121f;
+    font-size:26px;line-height:1;font-weight:600;box-shadow:0 8px 22px rgba(0,0,0,.4);
+  }
+  [hidden]{display:none !important}
+  @media print{
+    .top,.fab,.filters,.search,.strip,.no-print{display:none !important}
+    body{background:#fff;color:#000}
+    .card{border-color:#bbb;background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="title-row">
+      <h1><span class="em">🧊</span> <span data-t="appTitle"></span></h1>
+      <button class="lang" id="langBtn">TR</button>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-view="fridge" aria-selected="true"><span data-t="tabFridge"></span></button>
+      <button class="tab" role="tab" data-view="list" aria-selected="false"><span data-t="tabList"></span><span class="pill zero" id="listCount">0</span></button>
+      <button class="tab" role="tab" data-view="plan" aria-selected="false"><span data-t="tabPlan"></span></button>
+      <button class="tab" role="tab" data-view="settings" aria-selected="false"><span data-t="tabSettings"></span></button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ FRIDGE ============ -->
+  <section id="v-fridge">
+    <div class="strip">
+      <div class="stat out"><b id="s-out">0</b><small data-t="sOut"></small></div>
+      <div class="stat low"><b id="s-low">0</b><small data-t="sLow"></small></div>
+      <div class="stat exp"><b id="s-exp">0</b><small data-t="sExp"></small></div>
+      <div class="stat ok"><b id="s-days">–</b><small data-t="sDays"></small></div>
+    </div>
+
+    <div class="card" id="nextShopCard">
+      <div class="row spread">
+        <div>
+          <div style="font-size:13px;font-weight:700" data-t="nextShop"></div>
+          <div class="muted" id="nextShopTxt" style="margin-top:2px"></div>
+        </div>
+        <button class="btn sm pri" id="goList" data-t="seeList"></button>
+      </div>
+    </div>
+
+    <div class="filters" id="filters"></div>
+    <input class="search" id="search" type="search" data-tph="searchPh" />
+    <div id="itemList"></div>
+  </section>
+
+  <!-- ============ SHOPPING LIST ============ -->
+  <section id="v-list" hidden>
+    <div class="card">
+      <div class="row spread">
+        <h2 style="font-size:15px" data-t="listTitle"></h2>
+        <span class="muted" id="listMeta"></span>
+      </div>
+      <p class="muted" style="margin:6px 0 0" data-t="listHelp"></p>
+      <div id="listBody"></div>
+      <div class="addrow no-print">
+        <input id="extraIn" data-tph="addExtraPh" />
+        <button class="btn" id="extraAdd">+</button>
+      </div>
+    </div>
+    <div class="card no-print">
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <button class="btn ok" id="btnBought" data-t="markBought"></button>
+        <button class="btn" id="btnCopy" data-t="copy"></button>
+        <button class="btn" id="btnShare" data-t="share"></button>
+        <button class="btn ghost" id="btnPrint" data-t="print"></button>
+      </div>
+      <p class="muted" style="margin:10px 0 0" data-t="boughtHelp"></p>
+    </div>
+  </section>
+
+  <!-- ============ PLAN / TIMELINE ============ -->
+  <section id="v-plan" hidden>
+    <div class="card">
+      <h2 style="font-size:15px" data-t="coverTitle"></h2>
+      <p class="muted" style="margin:4px 0 8px" data-t="coverHelp"></p>
+      <div id="coverBody"></div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:15px" data-t="timelineTitle"></h2>
+      <p class="muted" style="margin:4px 0 4px" data-t="timelineHelp"></p>
+      <div id="timelineBody"></div>
+    </div>
+    <div class="card">
+      <h2 style="font-size:15px" data-t="useFirstTitle"></h2>
+      <div id="useFirstBody"></div>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="v-settings" hidden>
+    <div class="card" id="installCard">
+      <h2 style="font-size:15px" data-t="install"></h2>
+      <p class="muted" style="margin:4px 0 0" id="installTxt"></p>
+      <button class="btn pri block" id="btnInstall" style="margin-top:11px" data-t="installBtn" hidden></button>
+      <p class="muted" style="margin:10px 0 0;font-size:12px" id="offlineTxt"></p>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px" data-t="household"></h2>
+      <p class="muted" style="margin:4px 0 0" data-t="householdHelp"></p>
+      <div class="grid2">
+        <div class="field"><label data-t="adults"></label><input type="number" id="cf-adults" min="0" max="8" step="1" /></div>
+        <div class="field"><label data-t="kids"></label><input type="number" id="cf-kids" min="0" max="8" step="1" /></div>
+      </div>
+      <div class="field">
+        <label data-t="activity"></label>
+        <select id="cf-activity">
+          <option value="0.9" data-t="actLow"></option>
+          <option value="1" data-t="actMid"></option>
+          <option value="1.15" data-t="actHigh"></option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px" data-t="shopping"></h2>
+      <div class="field">
+        <label data-t="shopDay"></label>
+        <select id="cf-shopday"></select>
+      </div>
+      <div class="field">
+        <label data-t="cover"></label>
+        <select id="cf-cover">
+          <option value="7">7</option><option value="10">10</option><option value="14">14</option>
+        </select>
+      </div>
+      <div class="sw"><input type="checkbox" id="cf-learn" /><label for="cf-learn" data-t="learn"></label></div>
+    </div>
+
+    <div class="card">
+      <h2 style="font-size:15px" data-t="data"></h2>
+      <p class="muted" style="margin:4px 0 0" data-t="dataHelp"></p>
+      <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px">
+        <button class="btn" id="btnExport" data-t="exportBtn"></button>
+        <button class="btn" id="btnImport" data-t="importBtn"></button>
+        <button class="btn ghost" id="btnReset" data-t="resetBtn"></button>
+      </div>
+      <div class="field" id="importWrap" hidden>
+        <label data-t="pasteJson"></label>
+        <textarea id="importTa" spellcheck="false"></textarea>
+        <button class="btn pri sm" id="importGo" style="margin-top:8px" data-t="load"></button>
+      </div>
+    </div>
+
+    <p class="muted" style="text-align:center;margin:18px 0 0">
+      <span data-t="footer"></span>
+    </p>
+  </section>
+</main>
+
+<button class="fab" id="fab" title="+">+</button>
+
+<!-- ============ ITEM EDITOR ============ -->
+<div class="modal" id="modal" hidden>
+  <div class="sheet" role="dialog" aria-modal="true">
+    <h3 id="m-title"></h3>
+    <div class="field"><label data-t="fName"></label><input id="m-name" /></div>
+    <div class="grid2">
+      <div class="field"><label data-t="fCat"></label><select id="m-cat"></select></div>
+      <div class="field"><label data-t="fUnit"></label><select id="m-unit"></select></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label data-t="fQty"></label><input type="number" id="m-qty" step="0.5" min="0" /></div>
+      <div class="field"><label data-t="fPar"></label><input type="number" id="m-par" step="0.5" min="0" /></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label data-t="fRate"></label><input type="number" id="m-rate" step="0.5" min="0" /></div>
+      <div class="field"><label data-t="fPack"></label><input type="number" id="m-pack" step="0.5" min="0" /></div>
+    </div>
+    <div class="field"><label data-t="fExp"></label><input type="date" id="m-exp" /></div>
+    <div class="field"><label data-t="fNote"></label><input id="m-note" /></div>
+    <div class="sheet-actions">
+      <button class="btn pri" id="m-save" data-t="save"></button>
+      <button class="btn ghost" id="m-cancel" data-t="cancel"></button>
+    </div>
+    <button class="btn ghost block" id="m-del" style="margin-top:8px;color:var(--loss)" data-t="delete"></button>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================================
+   1. i18n
+   ========================================================================= */
+const T = {
+  en:{
+    appTitle:"Fridge Tracker", tabFridge:"Fridge", tabList:"Shopping", tabPlan:"Plan", tabSettings:"Setup",
+    sOut:"Out", sLow:"Low", sExp:"Expiring", sDays:"Cover",
+    nextShop:"Next shopping run", seeList:"Shopping list",
+    searchPh:"Search an item…",
+    fAll:"All", fBuy:"To buy", fSoon:"Use first",
+    listTitle:"Shopping list", listHelp:"Auto-filled from anything that is out, below its minimum, or that runs out before the shop after next. Add extras at the bottom.",
+    addExtraPh:"Add something else…", markBought:"✓ Bought — restock", copy:"Copy", share:"Share", print:"Print",
+    boughtHelp:"“Bought” refills every ticked line up to its target and clears the ticks.",
+    listMetaFmt:"{n} items · covers to {d}",
+    coverTitle:"Days of cover by category", coverHelp:"How long the current stock lasts at your usual pace.",
+    timelineTitle:"Next 14 days", timelineHelp:"Predicted run-out dates and expiry dates.",
+    useFirstTitle:"Use first (expiring)",
+    household:"Household", householdHelp:"Consumption is scaled from this. Defaults: 2 active adults + 1 preschooler.",
+    adults:"Adults", kids:"Children (under 10)", activity:"Activity level",
+    actLow:"Light", actMid:"Active", actHigh:"Very active / training",
+    shopping:"Shopping rhythm", shopDay:"Main shopping day", cover:"Buy enough for (days)",
+    learn:"Learn my real pace from restocks",
+    install:"Put it on your phone", installBtn:"Install app",
+    installIOS:"Safari → Share (□↑) → Add to Home Screen. It then opens full-screen, with its own icon.",
+    installAndroid:"Chrome → ⋮ menu → Install app / Add to Home screen. It then opens full-screen, with its own icon.",
+    installDone:"Installed — you are running the app version. Its data is separate from the browser tab, so keep using this one.",
+    offlineReady:"Saved for offline use — it opens in the kitchen with no signal.",
+    offlineNo:"Offline mode not active yet. Reload once while online.",
+    noStore:"⚠︎ This browser is blocking storage (private mode?). Nothing will be remembered.",
+    data:"Your data", dataHelp:"Everything stays in this browser (localStorage). Nothing is uploaded. Export a backup before switching phones.",
+    exportBtn:"Export JSON", importBtn:"Import", resetBtn:"Reset to fridge photo", pasteJson:"Paste exported JSON", load:"Load",
+    footer:"Private &amp; offline · data never leaves this device",
+    fName:"Name", fCat:"Category", fUnit:"Unit", fQty:"In fridge now", fPar:"Minimum (buy below this)",
+    fRate:"Used per week", fPack:"Usual pack size", fExp:"Expiry / use-by", fNote:"Note",
+    save:"Save", cancel:"Cancel", delete:"Delete item", newItem:"New item", editItem:"Edit item",
+    outT:"Out", lowT:"Low", expT:"Soon", expdT:"Expired",
+    runsOut:"runs out {d}", lasts:"lasts ~{n} d", noRate:"no usage set",
+    today:"today", tomorrow:"tomorrow", inDays:"in {n} d", daysAgo:"{n} d ago",
+    expOn:"use by {d}", nothing:"Nothing here 🎉", allGood:"Fridge is stocked — nothing to buy.",
+    shopIn:"{day} · {rel}", buyBecause:{out:"out of stock",low:"below minimum",soon:"runs out {d}",exp:"expiring"},
+    toastSaved:"Saved", toastRestocked:"Restocked {n} items", toastCopied:"Copied", toastReset:"Reset to the photo inventory",
+    confirmReset:"Replace everything with the starting inventory from the fridge photo?",
+    confirmDel:"Delete this item?", importOk:"Imported", importBad:"That JSON could not be read",
+    evRun:"Runs out", evExp:"Use by", evShop:"Shopping day", noEvents:"Nothing runs out or expires in the next 14 days.",
+    covDays:"{n} days", covDay:"1 day", covInf:"plenty", covNow:"now",
+    days:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+    mons:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+    units:{pcs:"pcs",kg:"kg",L:"L",pack:"pack",jar:"jar",bottle:"bottle",tub:"tub",bunch:"bunch"},
+    cats:{dairy:"Dairy & eggs",protein:"Meat & fish",produce:"Vegetables & fruit",kid:"Kid (4y)",
+          carbs:"Bread & carbs",jars:"Jars & sauces",drinks:"Drinks",leftover:"Leftovers & cooked"}
+  },
+  tr:{
+    appTitle:"Buzdolabı Takip", tabFridge:"Dolap", tabList:"Alışveriş", tabPlan:"Plan", tabSettings:"Ayarlar",
+    sOut:"Bitti", sLow:"Azaldı", sExp:"Tarihi yakın", sDays:"Yeter",
+    nextShop:"Sıradaki alışveriş", seeList:"Alışveriş listesi",
+    searchPh:"Ürün ara…",
+    fAll:"Tümü", fBuy:"Alınacak", fSoon:"Önce bunlar",
+    listTitle:"Alışveriş listesi", listHelp:"Biten, alt sınırın altına düşen ve bir sonraki alışverişe kadar yetmeyecek ürünler otomatik eklenir. Altta kendin de ekleyebilirsin.",
+    addExtraPh:"Başka bir şey ekle…", markBought:"✓ Aldım — stoğu yenile", copy:"Kopyala", share:"Paylaş", print:"Yazdır",
+    boughtHelp:"“Aldım” işaretli satırları hedef miktara tamamlar ve işaretleri temizler.",
+    listMetaFmt:"{n} ürün · {d} tarihine kadar",
+    coverTitle:"Kategoriye göre kaç gün yeter", coverHelp:"Mevcut stok, normal tüketim hızınızla ne kadar dayanır.",
+    timelineTitle:"Önümüzdeki 14 gün", timelineHelp:"Tahmini bitiş ve son kullanma tarihleri.",
+    useFirstTitle:"Önce bunları bitir",
+    household:"Hane", householdHelp:"Tüketim buradan ölçeklenir. Varsayılan: 2 aktif yetişkin + 1 okul öncesi çocuk.",
+    adults:"Yetişkin", kids:"Çocuk (10 yaş altı)", activity:"Aktivite düzeyi",
+    actLow:"Hafif", actMid:"Aktif", actHigh:"Çok aktif / spor",
+    shopping:"Alışveriş düzeni", shopDay:"Ana alışveriş günü", cover:"Kaç günlük alınsın",
+    learn:"Gerçek hızımı stok yenilemelerinden öğren",
+    install:"Telefona kur", installBtn:"Uygulamayı kur",
+    installIOS:"Safari → Paylaş (□↑) → Ana Ekrana Ekle. Sonra kendi simgesiyle tam ekran açılır.",
+    installAndroid:"Chrome → ⋮ menü → Uygulamayı yükle / Ana ekrana ekle. Sonra kendi simgesiyle tam ekran açılır.",
+    installDone:"Kuruldu — uygulama sürümünü kullanıyorsun. Verisi tarayıcı sekmesinden ayrıdır, bunu kullanmaya devam et.",
+    offlineReady:"Çevrimdışı kullanıma hazır — mutfakta sinyal olmadan da açılır.",
+    offlineNo:"Çevrimdışı mod henüz aktif değil. İnternet varken bir kez yenile.",
+    noStore:"⚠︎ Bu tarayıcı depolamayı engelliyor (gizli mod?). Hiçbir şey hatırlanmaz.",
+    data:"Verilerin", dataHelp:"Her şey bu tarayıcıda kalır (localStorage). Hiçbir şey yüklenmez. Telefon değiştirmeden önce yedek al.",
+    exportBtn:"JSON dışa aktar", importBtn:"İçe aktar", resetBtn:"Fotoğraftaki hâle döndür", pasteJson:"Dışa aktarılan JSON’u yapıştır", load:"Yükle",
+    footer:"Özel &amp; çevrimdışı · veri cihazdan çıkmaz",
+    fName:"Ürün", fCat:"Kategori", fUnit:"Birim", fQty:"Şu an dolapta", fPar:"Alt sınır (altına düşerse al)",
+    fRate:"Haftalık tüketim", fPack:"Normal alım miktarı", fExp:"Son kullanma", fNote:"Not",
+    save:"Kaydet", cancel:"Vazgeç", delete:"Ürünü sil", newItem:"Yeni ürün", editItem:"Ürünü düzenle",
+    outT:"Bitti", lowT:"Az", expT:"Yakın", expdT:"Geçti",
+    runsOut:"{d} biter", lasts:"~{n} gün yeter", noRate:"tüketim girilmedi",
+    today:"bugün", tomorrow:"yarın", inDays:"{n} gün sonra", daysAgo:"{n} gün önce",
+    expOn:"SKT {d}", nothing:"Burada bir şey yok 🎉", allGood:"Dolap dolu — alınacak bir şey yok.",
+    shopIn:"{day} · {rel}", buyBecause:{out:"bitti",low:"alt sınırın altında",soon:"{d} biter",exp:"tarihi yaklaşıyor"},
+    toastSaved:"Kaydedildi", toastRestocked:"{n} ürün yenilendi", toastCopied:"Kopyalandı", toastReset:"Fotoğraftaki stoğa döndürüldü",
+    confirmReset:"Her şey fotoğraftaki başlangıç stoğuyla değiştirilsin mi?",
+    confirmDel:"Bu ürün silinsin mi?", importOk:"İçe aktarıldı", importBad:"Bu JSON okunamadı",
+    evRun:"Biter", evExp:"Son kullanma", evShop:"Alışveriş günü", noEvents:"Önümüzdeki 14 günde biten ya da tarihi dolan yok.",
+    covDays:"{n} gün", covDay:"1 gün", covInf:"bol", covNow:"şimdi",
+    days:["Paz","Pzt","Sal","Çar","Per","Cum","Cmt"],
+    mons:["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"],
+    units:{pcs:"adet",kg:"kg",L:"L",pack:"paket",jar:"kavanoz",bottle:"şişe",tub:"kutu",bunch:"demet"},
+    cats:{dairy:"Süt & yumurta",protein:"Et & balık",produce:"Sebze & meyve",kid:"Çocuk (4 yaş)",
+          carbs:"Ekmek & tahıl",jars:"Kavanoz & sos",drinks:"İçecek",leftover:"Yemek artığı"}
+  }
+};
+let L = "en";
+const t = k => (T[L][k] !== undefined ? T[L][k] : k);
+const fmt = (s,o) => String(s).replace(/\{(\w+)\}/g, (m,k) => (o[k] !== undefined ? o[k] : m));
+
+/* =========================================================================
+   2. Seed inventory — read off the fridge photo, tuned for 2 active
+      adults + one 4-year-old. par = "buy below this", rate = per week.
+      exp = days from first launch, for things with a real use-by date.
+   ========================================================================= */
+const CATS = ["dairy","protein","produce","kid","carbs","jars","drinks","leftover"];
+const UNITS = ["pcs","kg","L","pack","jar","bottle","tub","bunch"];
+
+const SEED = [
+  // --- dairy & eggs (door tray + left shelves) ---
+  ["Eggs","Yumurta","dairy","pcs",20,12,21,30,18],
+  ["Milk","Süt","dairy","L",1,2,3.5,1,6],
+  ["Protein yoghurt cups","Protein yoğurt","dairy","tub",4,4,7,8,12],
+  ["Plain yoghurt (big tub)","Yoğurt (büyük kase)","dairy","tub",1,1,1.5,2,9],
+  ["White cheese","Beyaz peynir","dairy","pack",1,1,1,2,14],
+  ["Kaşar / cheddar","Kaşar peyniri","dairy","pack",1,1,0.8,1,20],
+  ["Butter","Tereyağı","dairy","pack",1,1,0.5,1,40],
+  ["Labne / cream cheese","Labne","dairy","tub",1,1,0.7,1,16],
+  ["Coconut drink (Alpro)","Hindistan cevizi sütü (Alpro)","dairy","L",1,1,1,2,10],
+  // --- meat & fish ---
+  ["Chicken breast","Tavuk göğsü","protein","kg",0,1,1.4,1.5,3],
+  ["Minced beef","Kıyma","protein","kg",0.5,0.5,0.8,1,2],
+  ["Fish (salmon / sea bass)","Balık (somon / levrek)","protein","kg",0,0.5,0.6,0.8,2],
+  ["Smoked turkey / deli","Hindi füme / şarküteri","protein","pack",1,1,1,1,7],
+  // --- vegetables & fruit (crisper drawers) ---
+  ["Tomatoes","Domates","produce","kg",1,0.7,2,2,5],
+  ["Cucumbers","Salatalık","produce","kg",0.8,0.5,1.5,1.5,6],
+  ["Peppers","Biber","produce","kg",0.4,0.3,0.8,1,7],
+  ["Salad greens / rocket","Yeşillik / roka","produce","bunch",1,1,2.5,3,3],
+  ["Carrots","Havuç","produce","kg",0.6,0.5,1,1,14],
+  ["Broccoli / green beans","Brokoli / fasulye","produce","kg",0,0.5,0.8,1,5],
+  ["Lemons","Limon","produce","pcs",3,3,4,6,14],
+  ["Onions & garlic","Soğan & sarımsak","produce","kg",1,0.5,0.8,1,25],
+  ["Apples","Elma","produce","kg",1,1,2,2,12],
+  ["Bananas","Muz","produce","kg",0.5,0.5,1.5,1.5,4],
+  ["Berries / seasonal fruit","Kırmızı meyve / mevsim meyvesi","produce","kg",0.3,0.3,1,1,3],
+  ["Avocado","Avokado","produce","pcs",1,2,3,3,4],
+  // --- kid (4y) ---
+  ["Kid yoghurt / petit","Çocuk yoğurdu / petit","kid","pcs",4,6,7,8,10],
+  ["Cheese sticks / triangles","Çubuk peynir / üçgen peynir","kid","pack",1,1,1,1,21],
+  ["Fruit puree pouch","Meyve püresi","kid","pcs",2,4,4,6,60],
+  ["Kid milk / ayran","Çocuk sütü / ayran","kid","pcs",3,4,7,8,8],
+  // --- bread & carbs ---
+  ["Tortilla / lavash","Tortilla / lavaş","carbs",  "pack",1,1,1,2,11],
+  ["Bread","Ekmek","carbs","pcs",1,1,4,4,2],
+  ["Cooked rice / bulgur","Pilav / bulgur","carbs","tub",1,0,1,1,3],
+  // --- jars & sauces (door) ---
+  ["Pickles","Turşu","jars","jar",2,1,0.4,1,90],
+  ["Tomato paste","Salça","jars","jar",1,1,0.5,1,45],
+  ["Ketchup","Ketçap","jars","bottle",1,1,0.3,1,120],
+  ["Mustard","Hardal","jars","jar",1,1,0.2,1,150],
+  ["Mayonnaise","Mayonez","jars","jar",1,1,0.25,1,60],
+  ["Soy sauce","Soya sosu","jars","bottle",1,1,0.15,1,200],
+  ["Tahini","Tahin","jars","jar",1,1,0.3,1,120],
+  ["Honey","Bal","jars","jar",1,1,0.3,1,300],
+  ["Jam / marmalade","Reçel","jars","jar",1,1,0.35,1,90],
+  ["Olives","Zeytin","jars","jar",1,1,0.5,1,60],
+  ["Hot sauce","Acı sos","jars","bottle",1,1,0.1,1,180],
+  // --- drinks ---
+  ["Sparkling water","Maden suyu","drinks","bottle",3,4,7,12,120],
+  ["Beer","Bira","drinks","pcs",1,2,2,6,150],
+  ["Ayran","Ayran","drinks","L",0,1,1.5,1,9],
+  // --- leftovers ---
+  ["Leftovers in the pot","Tencerede yemek","leftover","tub",1,0,2,1,2]
+];
+
+/* =========================================================================
+   3. State
+   ========================================================================= */
+const KEY = "fridge.v1";
+const DAY = 86400000;
+let S = null;                       // {items, extras, cfg, ticks}
+let view = "fridge", filter = "all", query = "";
+let editingId = null;
+
+const todayD = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+const ymd = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+const parseYmd = s => { if(!s) return null; const p = String(s).split("-").map(Number);
+  if(p.length !== 3 || p.some(isNaN)) return null; return new Date(p[0], p[1]-1, p[2]); };
+const daysBetween = (a,b) => Math.round((b - a)/DAY);
+const uid = () => "i" + Math.random().toString(36).slice(2,9);
+const round1 = n => Math.round(n*10)/10;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function seedState(){
+  const base = todayD();
+  return {
+    v:1,
+    cfg:{ lang:"en", adults:2, kids:1, activity:1, shopDay:6, coverDays:7, learn:true },
+    items: SEED.map(r => ({
+      id: uid(), en:r[0], tr:r[1], cat:r[2], unit:r[3],
+      qty:r[4], par:r[5], rate:r[6], pack:r[7],
+      exp: r[8] != null ? ymd(new Date(base.getTime() + r[8]*DAY)) : null,
+      note:"", lastQty:r[4], lastDate:ymd(base)
+    })),
+    extras:[], ticks:{}
+  };
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const p = JSON.parse(raw);
+      if(p && Array.isArray(p.items)){
+        S = p;
+        S.cfg = Object.assign(seedState().cfg, p.cfg || {});
+        S.extras = Array.isArray(p.extras) ? p.extras : [];
+        S.ticks = p.ticks || {};
+        L = S.cfg.lang === "tr" ? "tr" : "en";
+        return;
+      }
+    }
+  }catch(e){ /* corrupt store — fall through to a fresh seed */ }
+  S = seedState();
+  save();
+}
+function save(){
+  S.cfg.lang = L;
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){ toast("⚠︎ storage full"); }
+}
+
+/* =========================================================================
+   4. Domain logic
+   ========================================================================= */
+const nameOf = it => (L === "tr" ? (it.tr || it.en) : (it.en || it.tr));
+const unitOf = it => (T[L].units[it.unit] || it.unit);
+
+// household scaling: seed rates are calibrated for 2 active adults + 1 kid
+function scale(){
+  const c = S.cfg;
+  const base = 2 + 1*0.55;
+  const now  = (Number(c.adults)||0) + (Number(c.kids)||0)*0.55;
+  const s = (now/base) * (Number(c.activity)||1);
+  return s > 0 ? s : 0.01;
+}
+const rateOf = it => (Number(it.rate)||0) * scale();
+
+function daysLeft(it){
+  const r = rateOf(it);
+  if(r <= 0) return Infinity;
+  return (Number(it.qty)||0) / (r/7);
+}
+function expDays(it){
+  const d = parseYmd(it.exp);
+  return d ? daysBetween(todayD(), d) : null;
+}
+function nextShopDate(from){
+  const base = from || todayD();
+  const want = Number(S.cfg.shopDay);
+  const diff = (want - base.getDay() + 7) % 7;
+  return new Date(base.getTime() + diff*DAY);
+}
+function statusOf(it){
+  const ed = expDays(it);
+  if((Number(it.qty)||0) <= 0) return "out";
+  if(ed !== null && ed < 0) return "exp";
+  if((Number(it.qty)||0) < (Number(it.par)||0)) return "low";
+  if(ed !== null && ed <= 2) return "exp";
+  return "ok";
+}
+// The core question: do I have to buy this on the next run?
+function buyReason(it){
+  const st = statusOf(it);
+  if(st === "out") return "out";
+  if((Number(it.qty)||0) < (Number(it.par)||0)) return "low";
+  if(daysLeft(it) < horizon()) return "soon";
+  return null;
+}
+// Horizon both questions are answered against: get through to the shopping
+// run after next. On the shopping day itself this is simply coverDays.
+function horizon(){
+  return Math.max(0, daysBetween(todayD(), nextShopDate())) + Number(S.cfg.coverDays||7);
+}
+function buyQty(it){
+  const r = rateOf(it);
+  const target = Math.max(Number(it.par)||0, r/7*horizon());
+  let need = target - (Number(it.qty)||0);
+  const pack = Number(it.pack)||0;
+  if(pack > 0) need = Math.ceil(need/pack - 0.001)*pack;
+  return Math.max(pack || 0.5, round1(need));
+}
+function shoppingRows(){
+  const rows = [];
+  S.items.forEach(it => {
+    const why = buyReason(it);
+    if(why) rows.push({ id:it.id, it, why, qty:buyQty(it) });
+  });
+  // grouped by shelf/aisle first — you shop by section, not by urgency
+  const order = { out:0, low:1, soon:2 };
+  rows.sort((a,b) => (CATS.indexOf(a.it.cat)-CATS.indexOf(b.it.cat)) || (order[a.why]-order[b.why]));
+  return rows;
+}
+function restock(it){
+  const learn = S.cfg.learn;
+  if(learn && it.lastDate && it.lastQty != null){
+    const d = daysBetween(parseYmd(it.lastDate) || todayD(), todayD());
+    const used = Number(it.lastQty) - (Number(it.qty)||0);
+    if(d >= 3 && used > 0){
+      const obs = used/d*7/scale();               // observed weekly rate, de-scaled
+      it.rate = round1(0.6*(Number(it.rate)||0) + 0.4*obs);
+    }
+  }
+  it.qty = round1((Number(it.qty)||0) + buyQty(it));
+  it.lastQty = it.qty;
+  it.lastDate = ymd(todayD());
+  const shelf = { dairy:8, protein:3, produce:7, kid:12, carbs:4, jars:90, drinks:60, leftover:3 }[it.cat] || 7;
+  if(it.exp !== null) it.exp = ymd(new Date(todayD().getTime() + shelf*DAY));
+}
+
+/* =========================================================================
+   5. Rendering
+   ========================================================================= */
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+function relDay(n){
+  if(n === 0) return t("today");
+  if(n === 1) return t("tomorrow");
+  if(n < 0)   return fmt(t("daysAgo"), {n:Math.abs(n)});
+  return fmt(t("inDays"), {n});
+}
+function shortDate(d){ return d.getDate() + " " + T[L].mons[d.getMonth()]; }
+
+function applyStatic(){
+  $$("[data-t]").forEach(el => { el.innerHTML = t(el.dataset.t); });
+  $$("[data-tph]").forEach(el => { el.placeholder = t(el.dataset.tph); });
+  document.documentElement.lang = L;
+  document.title = t("appTitle");
+  $("#langBtn").textContent = L === "en" ? "TR" : "EN";
+}
+
+function renderFilters(){
+  const f = $("#filters");
+  const defs = [["all",t("fAll")],["buy",t("fBuy")],["soon",t("fSoon")]]
+    .concat(CATS.map(c => [c, T[L].cats[c]]));
+  f.innerHTML = defs.map(([k,lab]) =>
+    `<button class="chip" data-f="${k}" aria-pressed="${filter===k}">${esc(lab)}</button>`).join("");
+}
+
+function renderFridge(){
+  // summary
+  let out=0, low=0, exp=0, minDays=Infinity;
+  S.items.forEach(it => {
+    const st = statusOf(it);
+    if(st === "out") out++;
+    else if(st === "low") low++;
+    if(st === "exp") exp++;
+    const dl = daysLeft(it);
+    if((Number(it.par)||0) > 0 && dl < minDays) minDays = dl;
+  });
+  $("#s-out").textContent = out;
+  $("#s-low").textContent = low;
+  $("#s-exp").textContent = exp;
+  $("#s-days").textContent = minDays === Infinity ? "–" : Math.max(0, Math.floor(minDays)) + "d";
+
+  // next shop
+  const shop = nextShopDate(), n = daysBetween(todayD(), shop);
+  $("#nextShopTxt").textContent = fmt(t("shopIn"), { day:T[L].days[shop.getDay()] + " " + shortDate(shop), rel:relDay(n) });
+  const rows = shoppingRows();
+  const c = $("#listCount");
+  c.textContent = rows.length;
+  c.classList.toggle("zero", rows.length === 0);
+
+  // items
+  const q = query.trim().toLowerCase();
+  let items = S.items.filter(it => {
+    if(q && !(nameOf(it).toLowerCase().includes(q) || (it.en+it.tr).toLowerCase().includes(q))) return false;
+    if(filter === "all") return true;
+    if(filter === "buy") return !!buyReason(it);
+    if(filter === "soon"){ const e = expDays(it); return e !== null && e <= 3; }
+    return it.cat === filter;
+  });
+
+  const byCat = {};
+  items.forEach(it => { (byCat[it.cat] = byCat[it.cat] || []).push(it); });
+  const order = { out:0, exp:1, low:2, ok:3 };
+  let html = "";
+  CATS.forEach(cat => {
+    const list = byCat[cat];
+    if(!list) return;
+    list.sort((a,b) => (order[statusOf(a)]-order[statusOf(b)]) || daysLeft(a)-daysLeft(b));
+    const need = list.filter(it => buyReason(it)).length;
+    html += `<div class="group-h">${esc(T[L].cats[cat])}${need ? ` <em>· ${need} ${t("fBuy").toLowerCase()}</em>` : ""}</div>`;
+    html += list.map(itemRow).join("");
+  });
+  $("#itemList").innerHTML = html || `<div class="empty">${t("nothing")}</div>`;
+}
+
+function itemRow(it){
+  const st = statusOf(it);
+  const dl = daysLeft(it), ed = expDays(it);
+  const tags = [];
+  if(st === "out") tags.push(`<span class="tag out">${t("outT")}</span>`);
+  else if(st === "low") tags.push(`<span class="tag low">${t("lowT")}</span>`);
+  if(ed !== null && ed < 0) tags.push(`<span class="tag expd">${t("expdT")}</span>`);
+  else if(ed !== null && ed <= 3) tags.push(`<span class="tag exp">${t("expT")}</span>`);
+
+  const sub = [];
+  if(dl === Infinity) sub.push(t("noRate"));
+  else if((Number(it.qty)||0) > 0){
+    const d = Math.floor(dl);
+    sub.push(fmt(t("runsOut"), { d:relDay(d) }));
+  }
+  if(ed !== null){
+    const e = parseYmd(it.exp);
+    sub.push(fmt(t("expOn"), { d:shortDate(e) }));
+  }
+  if(it.note) sub.push(esc(it.note));
+
+  return `<div class="item s-${st}" data-id="${it.id}">
+    <div class="main">
+      <div class="nm">${esc(nameOf(it))}${tags.join("")}</div>
+      <div class="sub">${sub.join(" · ")}</div>
+    </div>
+    <div class="qty">
+      <button data-act="dec" aria-label="-">−</button>
+      <div class="val">${round1(Number(it.qty)||0)}<small>${esc(unitOf(it))}</small></div>
+      <button data-act="inc" aria-label="+">+</button>
+    </div>
+    <button class="edit" data-act="edit" aria-label="edit">✎</button>
+  </div>`;
+}
+
+function renderList(){
+  const rows = shoppingRows();
+  $("#listMeta").textContent = fmt(t("listMetaFmt"), {
+    n: rows.length + S.extras.length,
+    d: shortDate(new Date(todayD().getTime() + horizon()*DAY))
+  });
+  let html = "";
+  if(!rows.length && !S.extras.length){
+    html = `<div class="empty">${t("allGood")}</div>`;
+  } else {
+    let cat = null;
+    rows.forEach(r => {
+      if(r.it.cat !== cat){ cat = r.it.cat; html += `<div class="group-h">${esc(T[L].cats[cat])}</div>`; }
+      const why = r.why === "soon"
+        ? fmt(t("buyBecause").soon, { d:relDay(Math.floor(daysLeft(r.it))) })
+        : t("buyBecause")[r.why];
+      const done = !!S.ticks[r.id];
+      html += `<label class="li ${done?"done":""}">
+        <input type="checkbox" data-tick="${r.id}" ${done?"checked":""} />
+        <span class="t"><b>${round1(r.qty)} ${esc(unitOf(r.it))}</b> ${esc(nameOf(r.it))}
+          <small>${esc(why)}</small></span>
+      </label>`;
+    });
+    if(S.extras.length){
+      html += `<div class="group-h">+</div>`;
+      S.extras.forEach((x,i) => {
+        html += `<label class="li ${x.done?"done":""}">
+          <input type="checkbox" data-extra="${i}" ${x.done?"checked":""} />
+          <span class="t">${esc(x.text)}</span>
+          <button class="x no-print" data-delx="${i}" type="button">✕</button>
+        </label>`;
+      });
+    }
+  }
+  $("#listBody").innerHTML = html;
+}
+
+function renderPlan(){
+  // ---- coverage per category
+  let html = "";
+  CATS.forEach(cat => {
+    const list = S.items.filter(it => it.cat === cat && (Number(it.par)||0) > 0);
+    if(!list.length) return;
+    const d = list.reduce((m,it) => Math.min(m, daysLeft(it)), Infinity);
+    const nd = Math.floor(d);
+    const shown = d === Infinity ? t("covInf")
+      : d < 1 ? t("covNow")
+      : nd === 1 ? t("covDay")
+      : fmt(t("covDays"), { n:nd });
+    const pct = Math.max(3, Math.min(100, (d === Infinity ? 100 : d/14*100)));
+    const col = d < 2 ? "var(--loss)" : d < 5 ? "var(--accent-3)" : "var(--accent-2)";
+    const weak = list.slice().sort((a,b) => daysLeft(a)-daysLeft(b))[0];
+    html += `<div class="cov">
+      <div class="r"><span style="color:var(--text)">${esc(T[L].cats[cat])}</span><span>${esc(shown)}</span></div>
+      <div class="bar"><i style="width:${pct}%;background:${col}"></i></div>
+      <div class="muted" style="font-size:11.5px;margin-top:4px">${esc(nameOf(weak))}</div>
+    </div>`;
+  });
+  $("#coverBody").innerHTML = html;
+
+  // ---- 14-day timeline
+  const ev = {};
+  const push = (d,o) => { if(d < 0 || d > 14) return; (ev[d] = ev[d] || []).push(o); };
+  S.items.forEach(it => {
+    const dl = daysLeft(it);
+    if(dl !== Infinity && (Number(it.qty)||0) > 0) push(Math.floor(dl), { k:"run", n:nameOf(it) });
+    const ed = expDays(it);
+    if(ed !== null && ed >= 0) push(ed, { k:"exp", n:nameOf(it) });
+  });
+  for(let i=0;i<=14;i++){
+    const d = new Date(todayD().getTime() + i*DAY);
+    if(d.getDay() === Number(S.cfg.shopDay)) push(i, { k:"shop" });
+  }
+  const keys = Object.keys(ev).map(Number).sort((a,b)=>a-b);
+  let tl = "";
+  if(!keys.length) tl = `<div class="empty">${t("noEvents")}</div>`;
+  keys.forEach(k => {
+    const d = new Date(todayD().getTime() + k*DAY);
+    const isShop = ev[k].some(e => e.k === "shop");
+    // expiry first (that is the waste risk), then run-outs; long days collapse
+    const rank = { shop:0, exp:1, run:2 };
+    const list = ev[k].slice().sort((a,b) => rank[a.k]-rank[b.k]);
+    const shown = list.slice(0,5), rest = list.length - shown.length;
+    let body = shown.map(e => {
+      if(e.k === "shop") return `<div class="ev shopping"><span class="k">${t("evShop")}</span></div>`;
+      const lab = e.k === "run" ? t("evRun") : t("evExp");
+      return `<div class="ev ${e.k}"><span class="k">${lab}</span>${esc(e.n)}</div>`;
+    }).join("");
+    if(rest > 0) body += `<div class="ev" style="color:var(--text-dim);font-size:12px">+${rest}</div>`;
+    tl += `<div class="day ${isShop?"shop":""}">
+      <div class="d"><b>${T[L].days[d.getDay()]}</b>${shortDate(d)}</div>
+      <div style="flex:1">${body}</div></div>`;
+  });
+  $("#timelineBody").innerHTML = tl;
+
+  // ---- use first
+  const soon = S.items
+    .filter(it => { const e = expDays(it); return (Number(it.qty)||0) > 0 && e !== null && e <= 4; })
+    .sort((a,b) => expDays(a)-expDays(b));
+  $("#useFirstBody").innerHTML = soon.length
+    ? soon.map(it => {
+        const e = expDays(it);
+        return `<div class="li"><span class="t">${esc(nameOf(it))}
+          <small>${e < 0 ? t("expdT") : relDay(e)} · ${round1(it.qty)} ${esc(unitOf(it))}</small></span></div>`;
+      }).join("")
+    : `<div class="empty">${t("nothing")}</div>`;
+}
+
+let deferredInstall = null;
+function renderInstall(){
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  $("#installTxt").textContent = standalone ? t("installDone") : (iOS ? t("installIOS") : t("installAndroid"));
+  $("#btnInstall").hidden = !deferredInstall || standalone;
+  const sw = "serviceWorker" in navigator && navigator.serviceWorker.controller;
+  $("#offlineTxt").textContent = sw ? t("offlineReady") : t("offlineNo");
+}
+
+function renderSettings(){
+  renderInstall();
+  const c = S.cfg;
+  $("#cf-adults").value = c.adults;
+  $("#cf-kids").value = c.kids;
+  $("#cf-activity").value = String(c.activity);
+  $("#cf-cover").value = String(c.coverDays);
+  $("#cf-learn").checked = !!c.learn;
+  const sel = $("#cf-shopday");
+  sel.innerHTML = T[L].days.map((d,i) => `<option value="${i}">${esc(d)}</option>`).join("");
+  sel.value = String(c.shopDay);
+}
+
+function render(){
+  applyStatic();
+  ["fridge","list","plan","settings"].forEach(v => { $("#v-"+v).hidden = (v !== view); });
+  $$(".tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === view)));
+  $("#fab").hidden = (view !== "fridge");
+  renderFilters();
+  renderFridge();
+  if(view === "list") renderList();
+  if(view === "plan") renderPlan();
+  if(view === "settings") renderSettings();
+}
+
+let toastT = null;
+function toast(msg){
+  const el = $("#toast");
+  el.textContent = msg; el.hidden = false;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { el.hidden = true; }, 1900);
+}
+
+/* =========================================================================
+   6. Item editor
+   ========================================================================= */
+function openEditor(id){
+  editingId = id;
+  const it = id ? S.items.find(x => x.id === id) : null;
+  $("#m-title").textContent = it ? t("editItem") : t("newItem");
+  $("#m-cat").innerHTML  = CATS.map(c => `<option value="${c}">${esc(T[L].cats[c])}</option>`).join("");
+  $("#m-unit").innerHTML = UNITS.map(u => `<option value="${u}">${esc(T[L].units[u])}</option>`).join("");
+  $("#m-name").value = it ? nameOf(it) : "";
+  $("#m-cat").value  = it ? it.cat : "produce";
+  $("#m-unit").value = it ? it.unit : "pcs";
+  $("#m-qty").value  = it ? it.qty : 1;
+  $("#m-par").value  = it ? it.par : 1;
+  $("#m-rate").value = it ? it.rate : 1;
+  $("#m-pack").value = it ? it.pack : 1;
+  $("#m-exp").value  = it && it.exp ? it.exp : "";
+  $("#m-note").value = it ? (it.note || "") : "";
+  $("#m-del").hidden = !it;
+  $("#modal").hidden = false;
+}
+function closeEditor(){ $("#modal").hidden = true; editingId = null; }
+
+function saveEditor(){
+  const name = $("#m-name").value.trim();
+  if(!name){ $("#m-name").focus(); return; }
+  const num = (sel,def) => { const v = parseFloat($(sel).value); return isNaN(v) ? def : Math.max(0,v); };
+  let it = editingId ? S.items.find(x => x.id === editingId) : null;
+  if(!it){ it = { id:uid(), en:name, tr:name, note:"", lastQty:0, lastDate:ymd(todayD()) }; S.items.push(it); }
+  if(L === "tr") it.tr = name; else it.en = name;
+  if(!it.tr) it.tr = name;
+  if(!it.en) it.en = name;
+  it.cat  = $("#m-cat").value;
+  it.unit = $("#m-unit").value;
+  it.qty  = num("#m-qty",0);
+  it.par  = num("#m-par",0);
+  it.rate = num("#m-rate",0);
+  it.pack = num("#m-pack",1);
+  it.exp  = $("#m-exp").value || null;
+  it.note = $("#m-note").value.trim();
+  save(); closeEditor(); render(); toast(t("toastSaved"));
+}
+
+/* =========================================================================
+   7. Shopping-list text
+   ========================================================================= */
+function listText(){
+  const rows = shoppingRows();
+  const lines = ["🧊 " + t("listTitle") + " — " + shortDate(nextShopDate())];
+  let cat = null;
+  rows.forEach(r => {
+    if(r.it.cat !== cat){ cat = r.it.cat; lines.push("", T[L].cats[cat]); }
+    lines.push("• " + round1(r.qty) + " " + unitOf(r.it) + " " + nameOf(r.it));
+  });
+  if(S.extras.length){
+    lines.push("", "+");
+    S.extras.forEach(x => lines.push("• " + x.text));
+  }
+  return lines.join("\n");
+}
+
+/* =========================================================================
+   8. Events
+   ========================================================================= */
+$$(".tab").forEach(b => b.addEventListener("click", () => { view = b.dataset.view; render(); window.scrollTo(0,0); }));
+$("#goList").addEventListener("click", () => { view = "list"; render(); window.scrollTo(0,0); });
+
+$("#langBtn").addEventListener("click", () => { L = (L === "en" ? "tr" : "en"); save(); render(); });
+
+$("#filters").addEventListener("click", e => {
+  const b = e.target.closest("[data-f]"); if(!b) return;
+  filter = b.dataset.f; render();
+});
+$("#search").addEventListener("input", e => { query = e.target.value; renderFridge(); });
+
+$("#itemList").addEventListener("click", e => {
+  const btn = e.target.closest("[data-act]"); if(!btn) return;
+  const id = e.target.closest(".item").dataset.id;
+  const it = S.items.find(x => x.id === id); if(!it) return;
+  const act = btn.dataset.act;
+  if(act === "edit"){ openEditor(id); return; }
+  const step = (it.unit === "kg" || it.unit === "L") ? 0.5 : 1;
+  it.qty = Math.max(0, round1((Number(it.qty)||0) + (act === "inc" ? step : -step)));
+  if(act === "inc" && it.qty > (Number(it.lastQty)||0)) it.lastQty = it.qty;
+  save(); renderFridge();
+});
+
+$("#fab").addEventListener("click", () => openEditor(null));
+$("#m-save").addEventListener("click", saveEditor);
+$("#m-cancel").addEventListener("click", closeEditor);
+$("#m-del").addEventListener("click", () => {
+  if(!editingId || !confirm(t("confirmDel"))) return;
+  S.items = S.items.filter(x => x.id !== editingId);
+  save(); closeEditor(); render();
+});
+$("#modal").addEventListener("click", e => { if(e.target.id === "modal") closeEditor(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("#modal").hidden) closeEditor(); });
+
+$("#listBody").addEventListener("change", e => {
+  const tick = e.target.dataset.tick, extra = e.target.dataset.extra;
+  if(tick){ S.ticks[tick] = e.target.checked; }
+  if(extra !== undefined && S.extras[extra]){ S.extras[extra].done = e.target.checked; }
+  // toggle in place — a full re-render here would make the list jump under your thumb
+  const li = e.target.closest(".li");
+  if(li) li.classList.toggle("done", e.target.checked);
+  save();
+});
+$("#listBody").addEventListener("click", e => {
+  const del = e.target.closest("[data-delx]"); if(!del) return;
+  e.preventDefault();
+  S.extras.splice(Number(del.dataset.delx), 1);
+  save(); renderList();
+});
+function addExtra(){
+  const v = $("#extraIn").value.trim(); if(!v) return;
+  S.extras.push({ text:v, done:false });
+  $("#extraIn").value = "";
+  save(); renderList(); renderFridge();
+}
+$("#extraAdd").addEventListener("click", addExtra);
+$("#extraIn").addEventListener("keydown", e => { if(e.key === "Enter") addExtra(); });
+
+$("#btnBought").addEventListener("click", () => {
+  const rows = shoppingRows().filter(r => S.ticks[r.id]);
+  rows.forEach(r => restock(r.it));
+  S.ticks = {};
+  S.extras = S.extras.filter(x => !x.done);
+  save(); render();
+  toast(fmt(t("toastRestocked"), { n:rows.length }));
+});
+$("#btnCopy").addEventListener("click", async () => {
+  const txt = listText();
+  try{ await navigator.clipboard.writeText(txt); toast(t("toastCopied")); }
+  catch(e){ prompt(t("copy"), txt); }
+});
+$("#btnShare").addEventListener("click", async () => {
+  const txt = listText();
+  if(navigator.share){ try{ await navigator.share({ text:txt }); return; }catch(e){ /* dismissed */ } }
+  window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank", "noopener");
+});
+$("#btnPrint").addEventListener("click", () => window.print());
+
+// settings
+const bindCfg = (sel,key,parse) => $(sel).addEventListener("change", e => {
+  S.cfg[key] = parse(e.target);
+  save(); render();
+});
+bindCfg("#cf-adults","adults", el => Math.max(0, parseInt(el.value,10) || 0));
+bindCfg("#cf-kids","kids",     el => Math.max(0, parseInt(el.value,10) || 0));
+bindCfg("#cf-activity","activity", el => parseFloat(el.value) || 1);
+bindCfg("#cf-shopday","shopDay",   el => parseInt(el.value,10) || 0);
+bindCfg("#cf-cover","coverDays",   el => parseInt(el.value,10) || 7);
+bindCfg("#cf-learn","learn",       el => el.checked);
+
+$("#btnExport").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(S,null,2)], { type:"application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "fridge-" + ymd(todayD()) + ".json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+});
+$("#btnImport").addEventListener("click", () => { $("#importWrap").hidden = !$("#importWrap").hidden; });
+$("#importGo").addEventListener("click", () => {
+  try{
+    const p = JSON.parse($("#importTa").value);
+    if(!p || !Array.isArray(p.items)) throw new Error("bad");
+    S = p;
+    S.cfg = Object.assign(seedState().cfg, p.cfg || {});
+    S.extras = Array.isArray(p.extras) ? p.extras : [];
+    S.ticks = p.ticks || {};
+    L = S.cfg.lang === "tr" ? "tr" : "en";
+    save(); $("#importWrap").hidden = true; $("#importTa").value = "";
+    render(); toast(t("importOk"));
+  }catch(e){ toast(t("importBad")); }
+});
+$("#btnReset").addEventListener("click", () => {
+  if(!confirm(t("confirmReset"))) return;
+  const lang = L;
+  S = seedState(); S.cfg.lang = lang; L = lang;
+  save(); render(); toast(t("toastReset"));
+});
+
+/* =========================================================================
+   9. Boot
+   ========================================================================= */
+load();
+render();
+
+/* --- phone plumbing: offline shell, install prompt, durable storage --- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js", { scope:"./" })
+      .then(() => { if(view === "settings") renderInstall(); })
+      .catch(() => { /* file:// or blocked — the app still runs, just not offline */ });
+  });
+}
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredInstall = e;
+  if(view === "settings") renderInstall();
+});
+window.addEventListener("appinstalled", () => { deferredInstall = null; renderInstall(); });
+$("#btnInstall").addEventListener("click", async () => {
+  if(!deferredInstall) return;
+  deferredInstall.prompt();
+  await deferredInstall.userChoice;
+  deferredInstall = null;
+  renderInstall();
+});
+// ask the browser not to evict the inventory when storage gets tight
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+// private mode / storage disabled: say so instead of silently losing everything
+try{ localStorage.setItem("fridge.probe","1"); localStorage.removeItem("fridge.probe"); }
+catch(e){ toast(t("noStore")); }
+
+})();
+</script>
+</body>
+</html>
