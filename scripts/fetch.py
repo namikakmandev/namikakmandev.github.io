@@ -215,8 +215,8 @@ def evds(entry):
         raise RuntimeError("EVDS_KEY env missing - add the repo Actions secret")
     hdr = {"key": key}
     if entry.get("url"):
-        # catalogue endpoints ignore the header and want key in the path:
-        # .../categories/key=XXX&type=json  — hence the {KEY} placeholder
+        # catalogue endpoints, e.g. datagroups/mode=0&code=&type=json ({KEY} kept
+        # for any endpoint that may still want the key inline)
         raw = get(entry["url"].replace("{KEY}", key), headers=hdr).decode("utf-8", "replace")
         try:
             j = json.loads(raw)
@@ -230,7 +230,7 @@ def evds(entry):
         return {"_discover": {"sample": j}}
     out = {}
     for k, code in entry["series"].items():
-        url = (f"https://evds2.tcmb.gov.tr/service/evds/series={code}"
+        url = (f"https://evds3.tcmb.gov.tr/igmevdsms-dis/series={code}"
                "&startDate=01-01-2005&endDate=31-12-2035&type=json")
         j = json.loads(get(url, headers=hdr).decode("utf-8", "replace"))
         items = j.get("items", [])
