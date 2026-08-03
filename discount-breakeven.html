@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Discount Breakeven Table</title>
+<style>
+  :root{
+    --surface:#1a1a19;
+    --page:#0d0d0d;
+    --ink:#ffffff;
+    --ink-2:#c3c2b7;
+    --muted:#898781;
+    --grid:#2c2c2a;
+    --baseline:#383835;
+    --bar:#3987e5;          /* single series — magnitude */
+    --danger:#e66767;       /* status accent for the impossible zone */
+    --accent:#eda100;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--page);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:var(--ink);
+    display:flex;justify-content:center;padding:24px 8px;
+  }
+  /* 4:5 portrait card — screenshot this card for LinkedIn (1080×1350) */
+  .card{
+    width:1080px;max-width:100%;
+    background:var(--surface);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:8px;
+    padding:56px 64px 40px;
+  }
+  .kicker{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:46px;font-weight:800;line-height:1.08;margin:10px 0 6px}
+  h1 .dim{color:var(--ink-2);font-weight:600}
+  .sub{font-size:19px;color:var(--ink-2);max-width:860px;line-height:1.45}
+  .hero-row{display:flex;gap:44px;align-items:baseline;margin:26px 0 8px}
+  .hero .v{font-size:52px;font-weight:800}
+  .hero .l{font-size:14px;color:var(--muted);margin-top:2px;max-width:240px;line-height:1.35}
+  .hero .v.warn{color:var(--danger)}
+
+  .chart-title{font-size:15px;color:var(--ink-2);margin:16px 0 4px;font-weight:600}
+  .chart{margin-top:6px;position:relative}
+  .row{
+    display:grid;
+    grid-template-columns:170px 1fr 190px;
+    align-items:center;
+    height:46px;
+    position:relative;
+  }
+  .who{font-size:18px;font-weight:600}
+  .who small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+  .track{position:relative;height:24px}
+  .zero{position:absolute;top:-10px;bottom:-10px;left:0;width:1px;background:var(--baseline)}
+  .row:first-of-type .zero{top:-24px}
+  .bar{
+    position:absolute;left:0;top:0;height:24px;
+    background:var(--bar);
+    border-radius:0 4px 4px 0;   /* rounded data-end, square at baseline */
+  }
+  .val{font-size:18px;font-weight:700;padding-left:14px;white-space:nowrap}
+  .val small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+  .axis{display:grid;grid-template-columns:170px 1fr 190px;font-size:12px;color:var(--muted);margin-top:6px}
+  .axis .ticks{position:relative;height:16px}
+  .axis .t{position:absolute;transform:translateX(-50%)}
+
+  .matrix{
+    margin-top:24px;display:grid;grid-template-columns:auto repeat(4,1fr);gap:2px;
+    font-size:15px;border-radius:8px;overflow:hidden;
+  }
+  .matrix div{background:rgba(255,255,255,.04);padding:10px 14px;text-align:center}
+  .matrix .h{color:var(--muted);font-size:13px;background:transparent}
+  .matrix .rh{color:var(--ink-2);text-align:left;background:transparent;font-size:14px}
+  .matrix b{font-weight:700}
+
+  .verdict{
+    margin-top:26px;padding:18px 22px;border-radius:8px;
+    background:rgba(230,103,103,.08);border:1px solid rgba(230,103,103,.35);
+    font-size:17px;line-height:1.5;color:var(--ink);
+  }
+  .verdict b{color:var(--danger)}
+  .src{
+    margin-top:22px;padding-top:16px;border-top:1px solid var(--grid);
+    font-size:11.5px;line-height:1.55;color:var(--muted);
+  }
+  .brand{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:13px;color:var(--ink-2)}
+  .brand b{color:var(--ink)}
+  .tip{
+    position:fixed;pointer-events:none;z-index:9;display:none;
+    background:#0d0d0d;border:1px solid rgba(255,255,255,.18);border-radius:6px;
+    padding:10px 12px;font-size:13px;line-height:1.5;color:var(--ink-2);max-width:300px;
+  }
+  .tip b{color:var(--ink)}
+  @media (max-width:760px){
+    .card{padding:28px 20px}
+    h1{font-size:30px}
+    .row{grid-template-columns:100px 1fr 120px}
+    .who{font-size:14px} .val{font-size:14px}
+    .hero .v{font-size:34px}
+    .matrix{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="kicker">Pricing Basics · The Breakeven Table</div>
+  <h1>A 5% discount feels small.<br><span class="dim">The volume it demands is not.</span></h1>
+  <p class="sub">Extra sales volume needed just to earn the <i>same</i> gross profit after a price cut — before the discount has created a single euro of upside.</p>
+
+  <div class="hero-row">
+    <div class="hero"><div class="v">+20%</div><div class="l">volume to break even on a 5% discount, at a 30% gross margin</div></div>
+    <div class="hero"><div class="v">2×</div><div class="l">a 15% discount means doubling your volume — just to stand still</div></div>
+    <div class="hero"><div class="v warn">∞</div><div class="l">discount ≥ your margin: no volume on earth breaks even</div></div>
+  </div>
+
+  <div class="chart-title">Volume uplift required to break even — at a 30% gross margin</div>
+  <div class="chart" id="chart"></div>
+  <div class="axis">
+    <div></div>
+    <div class="ticks" id="ticks"></div>
+    <div></div>
+  </div>
+
+  <div class="chart-title" style="margin-top:22px">…and it gets steeper the thinner your margin</div>
+  <div class="matrix" id="matrix"></div>
+
+  <div class="verdict">
+    <b>A discount is a bet on volume.</b> Before approving one, ask a single question: <i>where, exactly, is the extra volume coming from?</i> If nobody can answer with a number, the discount is not a growth lever — it is a margin donation.
+  </div>
+
+  <div class="src">
+    <b>Method</b> · Required volume uplift = d ÷ (m − d), where m = gross margin on price and d = discount, both as % of list price. Break-even = same total gross profit as before the cut; assumes variable-cost margin, no fixed-cost absorption or elasticity effects — real break-evens are usually <i>worse</i> once payment terms and rebates stack on top. Pure arithmetic, no market data. Try your own numbers: namikakmandev.github.io/discount-margin-calculator.html.
+  </div>
+  <div class="brand"><span><b>Namik Akman</b> · namikakmandev.github.io</span><span>Where the data tells the strategy</span></div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const M = 30; // gross margin % for the main chart
+const DISCOUNTS = [2,4,5,6,8,10,12,15];
+const up = (m,d) => d/(m-d)*100;
+const MAXV = 110;
+const x = v => v/MAXV*100;
+const fmt = n => '+' + (Math.round(n*10)/10).toFixed(1).replace(/\.0$/,'') + '%';
+
+const chart = document.getElementById('chart');
+chart.innerHTML = DISCOUNTS.map(d=>{
+  const v = up(M,d);
+  const perUnit = d/M*100; // profit per unit lost
+  return `<div class="row" data-d="${d}">
+    <div class="who">${d}% off</div>
+    <div class="track">
+      <span class="zero"></span>
+      <span class="bar" style="width:${x(v)}%"></span>
+    </div>
+    <div class="val">${fmt(v)} volume<small>profit/unit −${(Math.round(perUnit*10)/10).toFixed(1).replace(/\.0$/,'')}%</small></div>
+  </div>`;
+}).join('');
+document.getElementById('ticks').innerHTML =
+  [0,25,50,75,100].map(t=>`<span class="t" style="left:${x(t)}%">${t?'+':''}${t}%</span>`).join('');
+
+// margin × discount matrix
+const MARGINS=[20,30,40,50], DS=[5,10,15];
+let html = `<div class="h"></div>` + MARGINS.map(m=>`<div class="h">at ${m}% margin</div>`).join('');
+DS.forEach(d=>{
+  html += `<div class="rh">${d}% off needs</div>` + MARGINS.map(m=>{
+    if(d>=m) return `<div style="color:var(--danger)"><b>never</b></div>`;
+    return `<div><b>${fmt(up(m,d))}</b></div>`;
+  }).join('');
+});
+document.getElementById('matrix').innerHTML = html;
+
+// hover tooltip
+const tip = document.getElementById('tip');
+chart.addEventListener('mousemove', e=>{
+  const row = e.target.closest('.row'); if(!row){tip.style.display='none';return;}
+  const d = +row.dataset.d, v = up(M,d);
+  tip.innerHTML = `<b>${d}% discount at ${M}% margin</b><br>Unit margin: ${M} → ${M-d} pts (−${(d/M*100).toFixed(1)}% profit per unit)<br>Break-even volume: <b>${fmt(v)}</b><br><span style="color:var(--muted)">100 units before → ${Math.ceil(100*(1+v/100))} units after</span>`;
+  tip.style.display='block';
+  tip.style.left = Math.min(e.clientX+14, innerWidth-320)+'px';
+  tip.style.top  = (e.clientY+14)+'px';
+});
+chart.addEventListener('mouseleave', ()=>tip.style.display='none');
+</script>
+</body>
+</html>
