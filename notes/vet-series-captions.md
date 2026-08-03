@@ -156,14 +156,17 @@ The two segments show clearly different structures.
 
 In human pharma, roughly one fifth of revenue is reinvested in R&D. Current
 prices finance the development of future products, which is consistent with
-the price trend: human pharmaceutical prices increased about 75% in real
-terms over the last twenty years.
+the price trend: US producer prices for human pharmaceuticals — the price at
+the factory gate, as measured by the Bureau of Labor Statistics — increased
+about 75% in real terms over the last twenty years.
 
 In animal health, close to half of revenue goes to manufacturing the
 product. Prices therefore follow input costs, and as shown in part one,
-those inputs became cheaper. Veterinary medicine prices declined about 4% in
-real terms over the same period. The industry has not priced above inflation
-for four decades, which is worth stating clearly.
+those inputs became cheaper. Producer prices for veterinary medicines
+declined about 4% in real terms over the same period. At the manufacturer
+level, this industry has not priced above inflation for four decades — which
+is worth stating clearly. (Factory-gate prices, not what clinics or pet
+owners pay; distribution sits on top.)
 
 The practical conclusion: financial benchmarks should stay within the
 segment. Comparing an animal health company against human pharma ratios, or
