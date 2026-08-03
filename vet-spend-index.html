@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Vet Spend Index — Europe 2015→2025</title>
+<style>
+  :root{
+    --surface:#1a1a19;      /* dark chart surface */
+    --page:#0d0d0d;
+    --ink:#ffffff;
+    --ink-2:#c3c2b7;
+    --muted:#898781;
+    --grid:#2c2c2a;
+    --baseline:#383835;
+    --pos:#3987e5;          /* diverging cool pole (growth) */
+    --neg:#e66767;          /* diverging warm pole (decline) */
+    --accent:#eda100;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--page);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:var(--ink);
+    display:flex;justify-content:center;padding:24px 8px;
+  }
+  /* 4:5 portrait card — screenshot this card for LinkedIn (1080×1350) */
+  .card{
+    width:1080px;max-width:100%;
+    background:var(--surface);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:8px;
+    padding:56px 64px 40px;
+  }
+  .kicker{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:46px;font-weight:800;line-height:1.08;margin:10px 0 6px}
+  h1 .dim{color:var(--ink-2);font-weight:600}
+  .sub{font-size:19px;color:var(--ink-2);max-width:820px;line-height:1.45}
+  .hero-row{display:flex;gap:40px;align-items:baseline;margin:26px 0 8px}
+  .hero .v{font-size:52px;font-weight:800}
+  .hero .l{font-size:14px;color:var(--muted);margin-top:2px;max-width:230px;line-height:1.35}
+  .hero.up .v{color:var(--ink)} .hero .v .chip{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:8px}
+  .chip.pos{background:var(--pos)} .chip.neg{background:var(--neg)}
+
+  .legend{display:flex;gap:22px;margin:18px 0 6px;font-size:14px;color:var(--ink-2)}
+  .legend span{display:flex;align-items:center;gap:7px}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+  .chart{margin-top:8px;position:relative}
+  .row{
+    display:grid;
+    grid-template-columns:190px 1fr 118px;
+    align-items:center;
+    height:44px;               /* 24px bar + air */
+    position:relative;
+  }
+  .row + .row{border-top:1px solid transparent} /* 2px surface gap comes from row height air */
+  .who{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600}
+  .who .flag{font-size:22px;width:28px;text-align:center}
+  .who small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+  .track{position:relative;height:24px}
+  .zero{position:absolute;top:-10px;bottom:-10px;width:1px;background:var(--baseline)}
+  .row:first-of-type .zero{top:-26px}
+  .bar{
+    position:absolute;top:0;height:24px;
+    border-radius:0 4px 4px 0;   /* rounded data-end, square at baseline */
+  }
+  .bar.neg{border-radius:4px 0 0 4px}
+  .val{font-size:18px;font-weight:700;padding-left:14px;white-space:nowrap}
+  .val small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+  .row.eu .who,.row.eu .val{color:var(--ink-2)}
+  .row.eu .bar{opacity:.55;outline:1px dashed rgba(255,255,255,.35);outline-offset:-1px}
+  .axis{display:grid;grid-template-columns:190px 1fr 118px;font-size:12px;color:var(--muted);margin-top:6px}
+  .axis .ticks{position:relative;height:16px}
+  .axis .t{position:absolute;transform:translateX(-50%)}
+
+  .verdict{
+    margin-top:26px;padding:18px 22px;border-radius:8px;
+    background:rgba(57,135,229,.10);border:1px solid rgba(57,135,229,.35);
+    font-size:17px;line-height:1.5;color:var(--ink);
+  }
+  .verdict b{color:#86b6ef}
+  .src{
+    margin-top:22px;padding-top:16px;border-top:1px solid var(--grid);
+    font-size:11.5px;line-height:1.55;color:var(--muted);
+  }
+  .brand{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:13px;color:var(--ink-2)}
+  .brand b{color:var(--ink)}
+  .tip{
+    position:fixed;pointer-events:none;z-index:9;display:none;
+    background:#0d0d0d;border:1px solid rgba(255,255,255,.18);border-radius:6px;
+    padding:10px 12px;font-size:13px;line-height:1.5;color:var(--ink-2);max-width:280px;
+  }
+  .tip b{color:var(--ink)}
+  @media (max-width:760px){
+    .card{padding:28px 20px}
+    h1{font-size:30px}
+    .row{grid-template-columns:120px 1fr 86px}
+    .who{font-size:14px} .val{font-size:14px}
+    .hero .v{font-size:34px}
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="kicker">Vet Spend Index · Europe</div>
+  <h1>Farm veterinary spending, 2015→2025:<br><span class="dim">booming in the East, shrinking in the West</span></h1>
+  <p class="sub">Real (inflation-adjusted) change in what European agriculture spends on veterinary services and medicines — same decade, same industry, opposite directions.</p>
+
+  <div class="hero-row">
+    <div class="hero up"><div class="v"><span class="chip pos"></span>+66%</div><div class="l">Czechia — fastest real growth in the EU, 2015→2025</div></div>
+    <div class="hero"><div class="v"><span class="chip neg"></span>−24%</div><div class="l">France — largest Western market, in real decline</div></div>
+    <div class="hero"><div class="v" style="color:var(--ink-2)">−5%</div><div class="l">EU-27 total in real terms, despite +22% nominal</div></div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--pos)"></i>Real growth</span>
+    <span><i style="background:var(--neg)"></i>Real decline</span>
+    <span style="color:var(--muted)">Right column: 2025 spend, € million</span>
+  </div>
+
+  <div class="chart" id="chart"></div>
+  <div class="axis">
+    <div></div>
+    <div class="ticks" id="ticks"></div>
+    <div></div>
+  </div>
+
+  <div class="verdict">
+    <b>The growth is in Central &amp; Eastern Europe.</b> Inflation ate the entire nominal increase in the EU’s big Western markets — in CEE, spending outran it by 40–65 points. For animal-health strategy: the West is a price &amp; mix game; the volume story has moved East.
+  </div>
+
+  <div class="src">
+    <b>Sources &amp; method</b> · Eurostat, Economic Accounts for Agriculture (aact_eaa01), item AM205000 “Veterinary expenses”, € million at current prices — covers <i>all livestock</i> on farms, not cattle only; excludes companion-animal care. Real change = country series deflated by euro-area HICP annual mean (FRED CP0000EZ19M086NEST; +28.7% cumulative 2015→2025). Values in current EUR: FX effects included for non-euro countries. UK excluded (series ends 2020). 2025 = latest Eurostat EAA vintage. Reproducible from data/eu-vet-countries.json, data/eu-vet-expenses.json, data/eu-hicp.json (fetched via scripts/fetch.py); data cut-off Aug 2026.
+  </div>
+  <div class="brand"><span><b>Namik Akman</b> · namikakmandev.github.io</span><span>Where the data tells the strategy</span></div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+// real = HICP-deflated (euro-area, annual mean) change 2015→2025, %
+const ROWS = [
+  {c:"Czechia",       f:"🇨🇿", real: 65.6, nom:113.0, y15: 111, y25: 237},
+  {c:"Portugal",      f:"🇵🇹", real: 63.4, nom:110.3, y15:  35, y25:  73},
+  {c:"Hungary",       f:"🇭🇺", real: 46.9, nom: 89.0, y15:  68, y25: 129},
+  {c:"Poland",        f:"🇵🇱", real: 39.1, nom: 79.0, y15: 108, y25: 194},
+  {c:"Ireland",       f:"🇮🇪", real: 19.0, nom: 53.2, y15: 269, y25: 412},
+  {c:"Austria",       f:"🇦🇹", real: 18.5, nom: 52.5, y15: 121, y25: 185},
+  {c:"Netherlands",   f:"🇳🇱", real: 11.0, nom: 42.8, y15: 381, y25: 544},
+  {c:"Belgium",       f:"🇧🇪", real: 10.0, nom: 41.5, y15: 228, y25: 323},
+  {c:"Italy",         f:"🇮🇹", real:  2.0, nom: 31.3, y15: 737, y25: 968},
+  {c:"Germany",       f:"🇩🇪", real: -4.3, nom: 23.1, y15: 925, y25:1139},
+  {c:"EU-27",         f:"🇪🇺", real: -5.1, nom: 22.1, y15:5960, y25:7277, eu:true},
+  {c:"Spain",         f:"🇪🇸", real: -4.9, nom: 22.3, y15: 571, y25: 699},
+  {c:"France",        f:"🇫🇷", real:-23.5, nom: -1.5, y15:1455, y25:1434},
+  {c:"Romania",       f:"🇷🇴", real:-32.6, nom:-13.3, y15: 329, y25: 285},
+];
+const MIN=-40, MAX=70, SPAN=MAX-MIN;
+const x = v => ((v-MIN)/SPAN*100);
+const chart = document.getElementById('chart');
+const fmt = n => (n>0?'+':'') + n.toFixed(1) + '%';
+ROWS.sort((a,b)=>b.real-a.real);
+chart.innerHTML = ROWS.map(r=>{
+  const neg = r.real<0;
+  const left  = neg ? x(r.real) : x(0);
+  const width = Math.abs(x(r.real)-x(0));
+  return `<div class="row${r.eu?' eu':''}" data-c="${r.c}">
+    <div class="who"><span class="flag">${r.f}</span><span>${r.c}${r.eu?'<small>aggregate</small>':''}</span></div>
+    <div class="track">
+      <span class="zero" style="left:${x(0)}%"></span>
+      <span class="bar ${neg?'neg':''}" style="left:${left}%;width:${width}%;background:${neg?'var(--neg)':'var(--pos)'}"></span>
+    </div>
+    <div class="val">${fmt(r.real)}<small>€${r.y25.toLocaleString('en-US')} M</small></div>
+  </div>`;
+}).join('');
+document.getElementById('ticks').innerHTML =
+  [-40,-20,0,20,40,60].map(t=>`<span class="t" style="left:${x(t)}%">${t>0?'+':''}${t}%</span>`).join('');
+
+// hover tooltip
+const tip = document.getElementById('tip');
+chart.addEventListener('mousemove', e=>{
+  const row = e.target.closest('.row'); if(!row){tip.style.display='none';return;}
+  const r = ROWS.find(d=>d.c===row.dataset.c);
+  tip.innerHTML = `<b>${r.f} ${r.c}</b><br>2015: €${r.y15.toLocaleString('en-US')} M → 2025: €${r.y25.toLocaleString('en-US')} M<br>Nominal: <b>${fmt(r.nom)}</b> · Real (HICP-deflated): <b>${fmt(r.real)}</b>`;
+  tip.style.display='block';
+  tip.style.left = Math.min(e.clientX+14, innerWidth-300)+'px';
+  tip.style.top  = (e.clientY+14)+'px';
+});
+chart.addEventListener('mouseleave', ()=>tip.style.display='none');
+</script>
+</body>
+</html>
