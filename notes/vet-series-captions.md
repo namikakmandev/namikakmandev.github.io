@@ -123,34 +123,72 @@ Rule for all three: tease the *ratio*, never a single company's margin.
 
 ## Post 2 — What a medicine's price pays for
 
-Last week: the ingredient is the cheapest part of the medicine. So what's the
-expensive part?
+**FINAL — paste this.** Hook is the first three lines (before the "…see more"
+fold). Upload as a *document* post; title: "What a Medicine's Price Pays For —
+8 SEC filings". After pasting, re-add the paragraph breaks manually — LinkedIn
+stripped them on paste last time.
 
-I read the answer straight from eight companies' SEC filings — Pfizer, Lilly,
-AbbVie and Bristol Myers Squibb on the human side; Zoetis, Elanco and Phibro in
-animal health (Merck shown separately: ~9% of it is animal health, so it pools
-with neither group). FY2023–25 averages, medians per group.
+---
 
-The anatomy of $100 of revenue:
+A human medicine and an animal medicine can contain the same molecule.
 
-- R&D: human pharma 19.4 — animal health 7.3. A 2.7× gap.
-- Cost of goods: human 29.6 — animal health 44.6. Inverted.
-- What remains after COGS+R&D+SG&A: ~30 vs ~23. Similar discipline,
-  opposite routes to it.
+Over twenty years, one price rose 75% in real terms. The other fell.
 
-The human medicine's price buys science. The animal medicine's price buys
-manufacturing. And that explains last week's chart: an R&D-built P&L must
-reprice to fund the next molecule (human prices +75% real over the clean
-20-year window) — a manufacturing-built P&L tracks its inputs (veterinary
-prices −4% real, same window, BLS's own veterinary index).
+The explanation isn't greed, and it isn't efficiency. It's anatomy — and it's
+written in the companies' own SEC filings.
 
-If you benchmark an animal-health company against human-pharma norms, you're
-comparing different animals.
+Last post ended with a promise: the ingredient was never the expensive part.
+So this week I read what is, straight from eight 10-Ks — four human-pharma
+filers, three pure-play animal-health filers, FY2023–25, medians per group
+(one mixed filer shown separately, pooled with neither).
 
-Method: SEC EDGAR XBRL, 10-K FY values, global consolidated (not US-only),
-COGS ≠ ingredient (no filer splits it), concept tags recorded per company,
-every figure recomputed from committed data. Small samples — 4 and 3 filers —
-medians, and stated.
+What $100 of revenue actually pays for:
+
+1. R&D: human pharma 19.4 — animal health 7.3. A 2.7× gap. Every human filer
+   sits between 17 and 24; every animal filer below 8.
+
+2. Cost of goods: human 29.6 — animal health 44.6. Inverted. A heavy COGS
+   share doesn't mean costs rose — it means price sits close to cost.
+
+3. What's left after COGS, R&D and SG&A: about 30 versus about 23. Similar
+   discipline, opposite routes to it.
+
+The human price buys science. The animal price buys manufacturing. And that is
+the whole answer to last week's chart: a P&L built on R&D must reprice to fund
+the next molecule — human prices +75% real over the clean 20-year window. A
+P&L built on manufacturing tracks its inputs — veterinary prices −4% real on
+the same window, on the BLS's own veterinary index. Four decades without
+out-pricing inflation is a fairness story hiding in a government data series.
+
+So one instruction, whichever side you sit on: benchmark within the anatomy.
+An animal-health R&D or COGS ratio judged against human-pharma norms — or the
+reverse — is a category error. You'd be comparing different animals.
+
+Sources on the slides: SEC EDGAR XBRL, 10-K fiscal-year values (Pfizer, Lilly,
+AbbVie, Bristol Myers Squibb; Zoetis, Elanco, Phibro; Merck shown separately),
+BLS producer price indexes, CPI-deflated. Global consolidated figures, small
+samples, medians — all stated on the method page.
+
+---
+
+Notes on the moves, for the record:
+
+- The hook pays off post 1's promise and pre-answers "greed" before any
+  commenter brings it — naming the bad explanation first is the protection.
+- "Vet prices fell 4% real over 20 years" is deliberately framed as a
+  *fairness* story — the safest possible line for an animal-health employee
+  to publish, and it happens to be what the data says.
+- Company names appear ONLY in the source list (method-level transparency,
+  matching the deck); every number in the caption is a group median. The
+  ratio, never a single company's margin.
+- No part-3 tease — the balance-sheet study is shelved. The post ends on an
+  instruction instead, per house style.
+- If a commenter says "they sit on billions of cash anyway": all eight filers
+  are net debtors in the same filings; human-side median net debt ≈ 82% of a
+  year's revenue, FY2023–25 (data/pharma-bs-derived.json). Reply with that,
+  don't lead with it.
+- Expected pushback "R&D% differs because human trials are costlier" — that's
+  not pushback, that IS the thesis; agree in comments.
 
 ## Shelved: balance-sheet post 3 (analysed, not published)
 
