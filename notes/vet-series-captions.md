@@ -131,43 +131,45 @@ LinkedIn uses a proportional font, so column alignment would collapse.
 
 ---
 
-In my last post I looked at 44 years of the price of the active ingredient —
-the powder every medicine starts from — and found that, adjusted for
-inflation, it got about 45% cheaper in the US. I ended with a question: if
-the ingredient got cheaper, why didn't the medicine? This post is the answer.
+In my previous post I examined 44 years of US price data for active
+pharmaceutical ingredients and showed that, adjusted for inflation, the
+ingredient became about 45% cheaper. The open question was why medicine
+prices did not follow the same path. This second part addresses that
+question using the companies' own financial statements.
 
-I went through the last three annual reports of eight companies: four human
-pharma, three animal health, plus Merck, which I kept separate because it's
-a mix of both. Here is where $100 of revenue goes, median of each group:
+I reviewed the last three annual reports (10-K filings) of eight companies:
+four human pharmaceutical companies, three animal health companies, and
+Merck, which I report separately as it operates in both segments. The table
+below shows the cost structure per 100 dollars of revenue, as the median of
+each group, fiscal years 2023 to 2025.
 
-Where $100 of revenue goes (FY2023–25):
+Cost structure per 100 dollars of revenue:
 
-R&D — human 19, animal 7
-Cost of goods — human 30, animal 45
-SG&A — human 21, animal 25
-What's left — human 30, animal 23
+R&D: human pharma 19 / animal health 7
+Cost of goods sold: human pharma 30 / animal health 45
+SG&A: human pharma 21 / animal health 25
+Remaining: human pharma 30 / animal health 23
 
-These are two very different businesses wearing the same industry code.
+The two segments show clearly different structures.
 
-A human medicine's price mostly pays for science. About a fifth of every
-dollar goes to R&D, and today's price has to fund the next molecule. That is
-why human pharma prices rose about 75% in real terms over the last twenty
-years.
+In human pharma, roughly one fifth of revenue is reinvested in R&D. Current
+prices finance the development of future products, which is consistent with
+the price trend: human pharmaceutical prices increased about 75% in real
+terms over the last twenty years.
 
-An animal medicine's price mostly pays for manufacturing. Nearly half of
-every dollar goes to making the product, so the price follows input costs —
-and as we saw last week, those inputs got cheaper. Veterinary prices actually
-fell about 4% in real terms over the same twenty years. Four decades without
-out-pricing inflation is a fairness story that has been sitting in a
-government statistics series all along.
+In animal health, close to half of revenue goes to manufacturing the
+product. Prices therefore follow input costs, and as shown in part one,
+those inputs became cheaper. Veterinary medicine prices declined about 4% in
+real terms over the same period. The industry has not priced above inflation
+for four decades, which is worth stating clearly.
 
-My takeaway after doing this exercise: don't benchmark an animal health
-company against human pharma norms, or the other way around. You'd be
-comparing different animals.
+The practical conclusion: financial benchmarks should stay within the
+segment. Comparing an animal health company against human pharma ratios, or
+the reverse, leads to wrong conclusions.
 
-All numbers, sources and method are in the carousel. SEC filings and BLS
-price indexes, inflation adjusted. The samples are small — four and three
-companies — so everything is a median, and stated as such.
+All figures, sources and methodology are in the document below. Data: SEC
+filings and BLS price indexes, inflation adjusted. Group sizes are small
+(four and three companies), so medians are used throughout.
 
 ---
 
