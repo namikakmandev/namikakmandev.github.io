@@ -215,7 +215,11 @@ def evds(entry):
         raise RuntimeError("EVDS_KEY env missing - add the repo Actions secret")
     hdr = {"key": key}
     if entry.get("url"):
-        j = json.loads(get(entry["url"], headers=hdr).decode("utf-8", "replace"))
+        raw = get(entry["url"], headers=hdr).decode("utf-8", "replace")
+        try:
+            j = json.loads(raw)
+        except json.JSONDecodeError:  # show what actually came back
+            return {"_discover": {"non_json_response": raw[:600]}}
         if isinstance(j, list):  # catalogue endpoints: keep code/name fields only
             slim = [{k: v for k, v in r.items()
                      if any(w in k.upper() for w in ("CODE", "NAME", "ADI"))}
