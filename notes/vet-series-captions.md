@@ -149,6 +149,8 @@ R&D: human pharma 19 / animal health 7
 Cost of goods sold: human pharma 30 / animal health 45
 SG&A: human pharma 21 / animal health 25
 Remaining: human pharma 30 / animal health 23
+(The remainder is not profit — amortisation, one-off charges, interest and
+tax still come out of it.)
 
 The two segments show clearly different structures.
 
