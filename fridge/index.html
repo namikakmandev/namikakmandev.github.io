@@ -6,13 +6,25 @@
 <title>Fridge Tracker — when to replenish</title>
 <meta name="description" content="Private, offline fridge inventory and replenishment tracker for a family of three. Tracks stock, predicts run-out dates, watches expiry and builds the shopping list." />
 <meta name="robots" content="noindex" />
-<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <meta name="theme-color" content="#242b3a" />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Fridge" />
-<link rel="stylesheet" href="css/tokens.css" />
 <style>
+  /* mirrors css/tokens.css — inlined so the app is one self-contained file offline */
+  :root{
+    --bg:#242b3a; --surface:#2d3547; --surface-2:#384156;
+    --text:#f5f7fb; --text-dim:#c6cdda;
+    --accent:#2f9bff; --accent-2:#19c37d; --accent-3:#ff6500; --loss:#e5484d;
+    --border:#4a5469; --radius:14px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
   *,*::before,*::after{box-sizing:border-box}
+  button,.chip,.tab,.qty button{touch-action:manipulation}
   html,body{margin:0;padding:0}
   body{
     font-family:var(--font);background:var(--bg);color:var(--text);
@@ -296,6 +308,13 @@
 
   <!-- ============ SETTINGS ============ -->
   <section id="v-settings" hidden>
+    <div class="card" id="installCard">
+      <h2 style="font-size:15px" data-t="install"></h2>
+      <p class="muted" style="margin:4px 0 0" id="installTxt"></p>
+      <button class="btn pri block" id="btnInstall" style="margin-top:11px" data-t="installBtn" hidden></button>
+      <p class="muted" style="margin:10px 0 0;font-size:12px" id="offlineTxt"></p>
+    </div>
+
     <div class="card">
       <h2 style="font-size:15px" data-t="household"></h2>
       <p class="muted" style="margin:4px 0 0" data-t="householdHelp"></p>
@@ -406,6 +425,13 @@ const T = {
     actLow:"Light", actMid:"Active", actHigh:"Very active / training",
     shopping:"Shopping rhythm", shopDay:"Main shopping day", cover:"Buy enough for (days)",
     learn:"Learn my real pace from restocks",
+    install:"Put it on your phone", installBtn:"Install app",
+    installIOS:"Safari → Share (□↑) → Add to Home Screen. It then opens full-screen, with its own icon.",
+    installAndroid:"Chrome → ⋮ menu → Install app / Add to Home screen. It then opens full-screen, with its own icon.",
+    installDone:"Installed — you are running the app version. Its data is separate from the browser tab, so keep using this one.",
+    offlineReady:"Saved for offline use — it opens in the kitchen with no signal.",
+    offlineNo:"Offline mode not active yet. Reload once while online.",
+    noStore:"⚠︎ This browser is blocking storage (private mode?). Nothing will be remembered.",
     data:"Your data", dataHelp:"Everything stays in this browser (localStorage). Nothing is uploaded. Export a backup before switching phones.",
     exportBtn:"Export JSON", importBtn:"Import", resetBtn:"Reset to fridge photo", pasteJson:"Paste exported JSON", load:"Load",
     footer:"Private &amp; offline · data never leaves this device",
@@ -446,6 +472,13 @@ const T = {
     actLow:"Hafif", actMid:"Aktif", actHigh:"Çok aktif / spor",
     shopping:"Alışveriş düzeni", shopDay:"Ana alışveriş günü", cover:"Kaç günlük alınsın",
     learn:"Gerçek hızımı stok yenilemelerinden öğren",
+    install:"Telefona kur", installBtn:"Uygulamayı kur",
+    installIOS:"Safari → Paylaş (□↑) → Ana Ekrana Ekle. Sonra kendi simgesiyle tam ekran açılır.",
+    installAndroid:"Chrome → ⋮ menü → Uygulamayı yükle / Ana ekrana ekle. Sonra kendi simgesiyle tam ekran açılır.",
+    installDone:"Kuruldu — uygulama sürümünü kullanıyorsun. Verisi tarayıcı sekmesinden ayrıdır, bunu kullanmaya devam et.",
+    offlineReady:"Çevrimdışı kullanıma hazır — mutfakta sinyal olmadan da açılır.",
+    offlineNo:"Çevrimdışı mod henüz aktif değil. İnternet varken bir kez yenile.",
+    noStore:"⚠︎ Bu tarayıcı depolamayı engelliyor (gizli mod?). Hiçbir şey hatırlanmaz.",
     data:"Verilerin", dataHelp:"Her şey bu tarayıcıda kalır (localStorage). Hiçbir şey yüklenmez. Telefon değiştirmeden önce yedek al.",
     exportBtn:"JSON dışa aktar", importBtn:"İçe aktar", resetBtn:"Fotoğraftaki hâle döndür", pasteJson:"Dışa aktarılan JSON’u yapıştır", load:"Yükle",
     footer:"Özel &amp; çevrimdışı · veri cihazdan çıkmaz",
@@ -905,7 +938,19 @@ function renderPlan(){
     : `<div class="empty">${t("nothing")}</div>`;
 }
 
+let deferredInstall = null;
+function renderInstall(){
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  $("#installTxt").textContent = standalone ? t("installDone") : (iOS ? t("installIOS") : t("installAndroid"));
+  $("#btnInstall").hidden = !deferredInstall || standalone;
+  const sw = "serviceWorker" in navigator && navigator.serviceWorker.controller;
+  $("#offlineTxt").textContent = sw ? t("offlineReady") : t("offlineNo");
+}
+
 function renderSettings(){
+  renderInstall();
   const c = S.cfg;
   $("#cf-adults").value = c.adults;
   $("#cf-kids").value = c.kids;
@@ -1125,6 +1170,33 @@ $("#btnReset").addEventListener("click", () => {
    ========================================================================= */
 load();
 render();
+
+/* --- phone plumbing: offline shell, install prompt, durable storage --- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js", { scope:"./" })
+      .then(() => { if(view === "settings") renderInstall(); })
+      .catch(() => { /* file:// or blocked — the app still runs, just not offline */ });
+  });
+}
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  deferredInstall = e;
+  if(view === "settings") renderInstall();
+});
+window.addEventListener("appinstalled", () => { deferredInstall = null; renderInstall(); });
+$("#btnInstall").addEventListener("click", async () => {
+  if(!deferredInstall) return;
+  deferredInstall.prompt();
+  await deferredInstall.userChoice;
+  deferredInstall = null;
+  renderInstall();
+});
+// ask the browser not to evict the inventory when storage gets tight
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+// private mode / storage disabled: say so instead of silently losing everything
+try{ localStorage.setItem("fridge.probe","1"); localStorage.removeItem("fridge.probe"); }
+catch(e){ toast(t("noStore")); }
 
 })();
 </script>
