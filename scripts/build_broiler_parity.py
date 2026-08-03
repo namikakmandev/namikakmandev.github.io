@@ -85,6 +85,22 @@ try:
 except (FileNotFoundError, KeyError):
     pass  # weekly PL sources not fetched yet
 
+# Türkiye monthly, current to last month: TÜİK Yİ-ÜFE via EVDS, the same
+# T17/T25 pair the cattle study used. Index ratio (both 2005-01=100), so only
+# the movement is meaningful — and T17 is ALL processed meat, not broiler.
+try:
+    trm = series("tr-meat-feed-ppi.json")
+    tm, tf = trm["meat_ppi"], trm["feed_ppi"]
+    out["regions"]["TR-monthly"] = {
+        "source": "TCMB EVDS / TÜİK Yİ-ÜFE (TP.TUFE1YI.T17 / T25)",
+        "meat_basis": "meat-products PPI, all meat - NOT broiler-specific",
+        "columns": ["month", "meat_ppi", "feed_ppi", "parity_idx"],
+        "rows": [[m, round(tm[m], 2), round(tf[m], 2), round(tm[m] / tf[m], 4)]
+                 for m in sorted(set(tm) & set(tf)) if tf[m]],
+    }
+except (FileNotFoundError, KeyError):
+    pass  # EVDS series not fetched yet
+
 # IMF poultry on FRED is an INDEX (2016=100), not USD/tonne, so the world
 # parity can only be an index: rebase corn to 2016=100 and take the ratio.
 pm, pc = world["poultry"], world["corn"]
