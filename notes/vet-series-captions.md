@@ -126,7 +126,8 @@ Rule for all three: tease the *ratio*, never a single company's margin.
 **FINAL — paste this.** Hook is the first three lines (before the "…see more"
 fold). Upload as a *document* post; title: "What a Medicine's Price Pays For —
 8 SEC filings". After pasting, re-add the paragraph breaks manually — LinkedIn
-stripped them on paste last time.
+stripped them on paste last time. The "table" is line-based on purpose:
+LinkedIn uses a proportional font, so column alignment would collapse.
 
 ---
 
@@ -134,40 +135,29 @@ A human medicine and an animal medicine can contain the same molecule.
 
 Over twenty years, one price rose 75% in real terms. The other fell.
 
-The explanation isn't greed, and it isn't efficiency. It's anatomy — and it's
-written in the companies' own SEC filings.
+Why? Not greed. Not efficiency. Anatomy. I read it in eight companies' own
+SEC filings.
 
-Last post ended with a promise: the ingredient was never the expensive part.
-So this week I read what is, straight from eight 10-Ks — four human-pharma
-filers, three pure-play animal-health filers, FY2023–25, medians per group
-(one mixed filer shown separately, pooled with neither).
+WHERE $100 OF REVENUE GOES (median, FY2023–25)
+━━━━━━━━━━━━━━━━━━━━
+R&D .................. Human $19 | Animal $7
+Cost of goods ... Human $30 | Animal $45
+SG&A ............... Human $21 | Animal $25
+Remainder ....... Human $30 | Animal $23
+━━━━━━━━━━━━━━━━━━━━
 
-What $100 of revenue actually pays for:
+→ The human price buys SCIENCE. It must rise — today's price funds the next
+molecule. +75% real in 20 years.
 
-1. R&D: human pharma 19.4 — animal health 7.3. A 2.7× gap. Every human filer
-   sits between 17 and 24; every animal filer below 8.
+→ The animal price buys MANUFACTURING. It follows input costs — which fell.
+−4% real, same 20 years. Forty years without out-pricing inflation: a
+fairness story, sitting in a government data series.
 
-2. Cost of goods: human 29.6 — animal health 44.6. Inverted. A heavy COGS
-   share doesn't mean costs rose — it means price sits close to cost.
+One takeaway: never benchmark animal health against human-pharma norms, or
+the reverse. You'd be comparing different animals.
 
-3. What's left after COGS, R&D and SG&A: about 30 versus about 23. Similar
-   discipline, opposite routes to it.
-
-The human price buys science. The animal price buys manufacturing. And that is
-the whole answer to last week's chart: a P&L built on R&D must reprice to fund
-the next molecule — human prices +75% real over the clean 20-year window. A
-P&L built on manufacturing tracks its inputs — veterinary prices −4% real on
-the same window, on the BLS's own veterinary index. Four decades without
-out-pricing inflation is a fairness story hiding in a government data series.
-
-So one instruction, whichever side you sit on: benchmark within the anatomy.
-An animal-health R&D or COGS ratio judged against human-pharma norms — or the
-reverse — is a category error. You'd be comparing different animals.
-
-Sources on the slides: SEC EDGAR XBRL, 10-K fiscal-year values (Pfizer, Lilly,
-AbbVie, Bristol Myers Squibb; Zoetis, Elanco, Phibro; Merck shown separately),
-BLS producer price indexes, CPI-deflated. Global consolidated figures, small
-samples, medians — all stated on the method page.
+Full anatomy, sources and method in the carousel. SEC EDGAR 10-Ks, BLS price
+indexes, inflation-adjusted, medians of small groups — all stated.
 
 ---
 
