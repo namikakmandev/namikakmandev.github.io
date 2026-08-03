@@ -26,8 +26,8 @@ MODE = os.environ.get("MODE", "").strip()
 report = {}
 
 
-def get(url, timeout=120):
-    req = urllib.request.Request(url, headers=UA)
+def get(url, timeout=120, headers=None):
+    req = urllib.request.Request(url, headers={**UA, **(headers or {})})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
 
@@ -205,8 +205,44 @@ def json_source(entry):
     return dict(out)
 
 
+def evds(entry):
+    """CBRT EVDS (evds2.tcmb.gov.tr). Needs the EVDS_KEY repo secret, passed to
+    the workflow as env. Two shapes: entry['url'] hits a raw endpoint (the
+    categories/datagroups/serieList catalogue - discovery only), or
+    entry['series'] {key: EVDS code} fetches monthly data."""
+    key = os.environ.get("EVDS_KEY", "").strip()
+    if not key:
+        raise RuntimeError("EVDS_KEY env missing - add the repo Actions secret")
+    hdr = {"key": key}
+    if entry.get("url"):
+        j = json.loads(get(entry["url"], headers=hdr).decode("utf-8", "replace"))
+        return {"_discover": {"sample": j[:80] if isinstance(j, list) else j}}
+    out = {}
+    for k, code in entry["series"].items():
+        url = (f"https://evds2.tcmb.gov.tr/service/evds/series={code}"
+               "&startDate=01-01-2005&endDate=31-12-2035&type=json")
+        j = json.loads(get(url, headers=hdr).decode("utf-8", "replace"))
+        items = j.get("items", [])
+        if MODE == "discover":
+            return {"_discover": {"totalCount": j.get("totalCount"),
+                                  "sample": items[:3]}}
+        col = code.replace(".", "_")
+        vals = {}
+        for it in items:
+            t = str(it.get("Tarih", ""))
+            parts = t.split("-")
+            if len(parts) == 2:  # months arrive as "2015-1"
+                t = f"{parts[0]}-{int(parts[1]):02d}"
+            try:
+                vals[t] = float(it.get(col))
+            except (TypeError, ValueError):
+                continue
+        out[k] = vals
+    return out
+
+
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
-             "json": json_source}
+             "json": json_source, "evds": evds}
 
 
 # ----------------------------------------------------------------- runner
