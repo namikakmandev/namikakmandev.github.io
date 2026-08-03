@@ -233,7 +233,8 @@
    "hunt": "^(CashAndCashEquivalents|ShortTermInvestments|MarketableSecurities|AvailableForSaleSecurities|LongTermDebt|DebtCurrent|ShortTermBorrowings|CommercialPaper|InventoryNet|PropertyPlantAndEquipment|Goodwill|IntangibleAssets|FiniteLivedIntangibleAssets|Assets$|StockholdersEquity$)",
    "concepts": {
     "cash": [
-     "CashAndCashEquivalentsAtCarryingValue"
+     "CashAndCashEquivalentsAtCarryingValue",
+     "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents"
     ],
     "sti": [
      "ShortTermInvestments",
@@ -242,18 +243,22 @@
     ],
     "debt_lt": [
      "LongTermDebtNoncurrent",
+     "LongTermDebtAndCapitalLeaseObligations",
      "LongTermDebt"
     ],
     "debt_st": [
-     "LongTermDebtCurrent",
      "DebtCurrent",
-     "ShortTermBorrowings"
+     "LongTermDebtAndCapitalLeaseObligationsCurrent",
+     "LongTermDebtCurrent",
+     "ShortTermBorrowings",
+     "CommercialPaper"
     ],
     "inventory": [
      "InventoryNet"
     ],
     "ppe": [
-     "PropertyPlantAndEquipmentNet"
+     "PropertyPlantAndEquipmentNet",
+     "PropertyPlantAndEquipmentAndFinanceLeaseRightOfUseAssetAfterAccumulatedDepreciationAndAmortization"
     ],
     "goodwill": [
      "Goodwill"
@@ -264,11 +269,14 @@
     ],
     "assets": [
      "Assets"
+    ],
+    "equity": [
+     "StockholdersEquity"
     ]
    },
    "out": "data/pharma-bs.json",
    "source": "SEC EDGAR XBRL company facts (data.sec.gov), 10-K fiscal-year-end balance-sheet values, same eight filers as pharma-pnl.",
-   "note": "CANDIDATE concepts pending MODE=discover — balance-sheet tag variance is high (short-term investments and debt especially). Finalise against data/_fetch-report.json before analysing. Instant facts at FY end pass the same form=10-K/fp=FY filter as flows."
+   "note": "Concepts finalised against MODE=discover output (data/_fetch-report.json, run 30826887018). Known seams: Zoetis cash lives under the combined restricted-cash tag; ZTS/ELAN report no short-term-investments line (absence noted, not imputed as zero); AbbVie debt under ...AndCapitalLeaseObligations variants; Phibro debt tags end FY2024; Lilly short-term investments end FY2024. debt_st is first-available-tag approximation. Instant FY-end stocks; fiscal year-ends differ across filers (Phibro June, Zoetis/others Dec)."
   }
  ]
 }
