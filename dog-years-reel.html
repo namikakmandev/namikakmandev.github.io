@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dog Years — video reel (1080×1350)</title>
+<style>
+  :root{
+    --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --sci:#3987e5; --myth:#d95926; --accent:#eda100;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#0d0d0d}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;min-height:100vh;
+  }
+  /* exact 4:5 canvas for LinkedIn video */
+  .stage{
+    width:1080px;height:1350px;background:var(--surface);
+    padding:64px 68px;display:flex;flex-direction:column;position:relative;overflow:hidden;
+  }
+  .kicker{font-size:17px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:50px;font-weight:800;line-height:1.06;margin:12px 0 4px}
+  h1 .dim{color:var(--ink-2);font-weight:600}
+  .sub{font-size:20px;color:var(--ink-2);line-height:1.4;margin-top:8px}
+
+  .readout{display:flex;align-items:flex-end;gap:56px;margin:34px 0 6px}
+  .rd .n{font-size:104px;font-weight:800;line-height:.95;color:var(--sci);font-variant-numeric:tabular-nums}
+  .rd .n.small{font-size:52px;color:var(--myth)}
+  .rd .c{font-size:16px;color:var(--muted);margin-top:10px;max-width:250px;line-height:1.35}
+  .dogage{font-size:34px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+  .dogage span{font-size:18px;color:var(--muted);font-weight:600;display:block;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+
+  /* fake slider track that the marker rides */
+  .track{position:relative;height:10px;background:#262624;border-radius:6px;margin:26px 0 8px}
+  .fill{position:absolute;left:0;top:0;bottom:0;background:var(--sci);border-radius:6px}
+  .knob{position:absolute;top:50%;width:30px;height:30px;border-radius:50%;background:var(--sci);
+        transform:translate(-50%,-50%);border:4px solid var(--surface);box-shadow:0 0 0 2px var(--sci)}
+  .tk{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-top:8px}
+
+  svg{display:block;width:100%;height:auto;margin-top:16px}
+  .ax{font-size:14px;fill:var(--muted)}
+  .axlab{font-size:14px;fill:var(--ink-2)}
+
+  .caption{
+    margin-top:auto;padding:22px 26px;border-radius:10px;
+    background:rgba(57,135,229,.10);border:1px solid rgba(57,135,229,.35);
+    font-size:23px;line-height:1.45;min-height:112px;
+    display:grid;align-items:center;   /* grid, not flex — flex turns inline nodes into items and eats spaces */
+    transition:opacity .25s ease;
+  }
+  .caption b{color:#86b6ef}
+  .brand{display:flex;justify-content:space-between;margin-top:18px;font-size:15px;color:var(--ink-2)}
+  .brand b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="kicker">Pet Data · Dog Years, Properly</div>
+  <h1>How old is your dog, <span class="dim">really?</span></h1>
+  <p class="sub">The “multiply by 7” rule is a myth. Here is what the DNA clock says.</p>
+
+  <div class="readout">
+    <div class="dogage"><span>Dog’s age</span><i id="dogage" style="font-style:normal">2 months</i></div>
+    <div class="rd"><div class="n" id="human">10</div><div class="c">human-equivalent years — epigenetic formula</div></div>
+    <div class="rd"><div class="n small" id="myth">1.2</div><div class="c">what “×7” would have said</div></div>
+  </div>
+
+  <div class="track"><div class="fill" id="fill"></div><div class="knob" id="knob"></div></div>
+  <div class="tk"><span>2 mo</span><span>4 yr</span><span>8 yr</span><span>12 yr</span><span>16 yr</span></div>
+
+  <svg id="plot" viewBox="0 0 944 600" aria-hidden="true"></svg>
+
+  <div class="caption" id="caption"><span>&nbsp;</span></div>
+  <div class="brand"><span><b>Namik Akman</b> · namikakmandev.github.io</span><span>Full calculator on the site →</span></div>
+</div>
+
+<script>
+const H = d => 16*Math.log(d) + 31;
+const AMIN=0.17, AMAX=16;
+
+/* ---------- static chart ---------- */
+const W=944, HT=600, L=62, R=22, T=18, B=56;
+const XMIN=0.17, XMAX=16, YMAX=115;
+const px = d => L + (d-XMIN)/(XMAX-XMIN)*(W-L-R);
+const py = v => T + (1-v/YMAX)*(HT-T-B);
+let s='';
+[0,25,50,75,100].forEach(v=>{
+  s+=`<line x1="${L}" y1="${py(v)}" x2="${W-R}" y2="${py(v)}" stroke="var(--grid)" stroke-width="1"/>`;
+  s+=`<text class="ax" x="${L-10}" y="${py(v)+5}" text-anchor="end">${v}</text>`;
+});
+[1,4,8,12,16].forEach(d=>s+=`<text class="ax" x="${px(d)}" y="${HT-B+24}" text-anchor="middle">${d}</text>`);
+s+=`<text class="axlab" x="${(L+W-R)/2}" y="${HT-6}" text-anchor="middle">Dog’s actual age (years)</text>`;
+s+=`<line x1="${L}" y1="${py(0)}" x2="${W-R}" y2="${py(0)}" stroke="var(--baseline)" stroke-width="1"/>`;
+s+=`<line x1="${px(XMIN)}" y1="${py(7*XMIN)}" x2="${px(16)}" y2="${py(112)}" stroke="var(--myth)" stroke-width="2.5" stroke-dasharray="9 7" stroke-linecap="round"/>`;
+let pts=[]; for(let d=XMIN;d<=16.001;d+=0.04) pts.push(`${px(d).toFixed(1)},${py(H(d)).toFixed(1)}`);
+s+=`<polyline points="${pts.join(' ')}" fill="none" stroke="var(--sci)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+s+=`<text class="ax" fill="var(--myth)" x="${px(15.4)}" y="${py(108)-10}" text-anchor="end" style="font-weight:700">the “×7” myth</text>`;
+s+=`<line id="vline" x1="0" y1="${T}" x2="0" y2="${py(0)}" stroke="rgba(255,255,255,.28)" stroke-width="1"/>`;
+s+=`<circle id="dot" r="9" fill="var(--sci)" stroke="var(--surface)" stroke-width="3"/>`;
+s+=`<circle id="dotm" r="7" fill="var(--myth)" stroke="var(--surface)" stroke-width="3"/>`;
+document.getElementById('plot').innerHTML = s;
+
+/* ---------- render one frame ---------- */
+const $=id=>document.getElementById(id);
+function render(a){
+  const h=H(a), m=7*a;
+  $('dogage').textContent = a<1 ? `${Math.round(a*12)} months` : `${a.toFixed(1)} years`;
+  $('human').textContent = h.toFixed(0);
+  $('myth').textContent  = m.toFixed(1);
+  const t=(a-AMIN)/(AMAX-AMIN);
+  $('fill').style.width = (t*100)+'%';
+  $('knob').style.left  = (t*100)+'%';
+  $('dot').setAttribute('cx',px(a));  $('dot').setAttribute('cy',py(h));
+  $('dotm').setAttribute('cx',px(a)); $('dotm').setAttribute('cy',py(Math.min(m,YMAX)));
+  $('vline').setAttribute('x1',px(a)); $('vline').setAttribute('x2',px(a));
+}
+function caption(html){ const c=$('caption'); c.style.opacity=0;
+  setTimeout(()=>{ c.innerHTML='<span>'+html+'</span>'; c.style.opacity=1; },200); }
+
+/* ---------- timeline ---------- */
+const ease = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+const wait = ms => new Promise(r=>setTimeout(r,ms));
+function sweep(from,to,dur){
+  return new Promise(res=>{
+    const t0=performance.now();
+    (function step(now){
+      const p=Math.min((now-t0)/dur,1);
+      render(from+(to-from)*ease(p));
+      p<1 ? requestAnimationFrame(step) : res();
+    })(t0);
+  });
+}
+async function run(){
+  render(AMIN); caption('&nbsp;');
+  await wait(700);
+  caption('A puppy is <b>not</b> a baby for long.');
+  await sweep(AMIN,1,1500);
+  caption('At <b>1 year</b> your dog is already about <b>31</b> in human terms.<br>The “×7” rule said 7.');
+  await wait(2200);
+  await sweep(1,7,2000);
+  caption('At <b>7 years</b> — about <b>62</b>. This is where <b>senior screening</b> should begin.');
+  await wait(2200);
+  await sweep(7,14,2000);
+  caption('At <b>14</b> the myth overshoots badly: it claims 98. The DNA clock says <b>73</b>.');
+  await wait(2400);
+  caption('Dogs sprint through youth, then age slowly.<br><b>Check your own dog — link in the comments.</b>');
+  await wait(2600);
+}
+window.__reelDone = run();
+</script>
+</body>
+</html>

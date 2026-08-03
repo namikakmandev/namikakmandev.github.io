@@ -48,6 +48,44 @@ Drag the slider — it shows the science-based age, the old "×7" guess, and the
 
 ---
 
+## Publishing the interactive part on LinkedIn
+
+LinkedIn does **not** run interactive code in a post — no embedded widgets,
+sliders or iframes, in feed posts or in articles. Three ways to deliver the
+feeling of interactivity, in order of effectiveness:
+
+1. **Video of the slider moving (BUILT — use this).**
+   `assets/dog-years-reel.mp4` — 1080×1350, 17 s, H.264, ~1.2 MB, no audio.
+   Video autoplays silently in the feed, so the numbers visibly animate as the
+   age sweeps 2 months → 1 yr → 7 yr → 14 yr. Re-record any time from
+   `dog-years-reel.html` (see command below). Post this as the media, with the
+   calculator link in the first comment.
+2. **Carousel / document post.** Upload a PDF; each swipe is a page (e.g. one
+   page per dog age). LinkedIn favours document posts for dwell time. Slower to
+   make, and the reader picks from fixed pages rather than any value.
+3. **Static poster + link in comments.** The baseline — `dog-years.html`
+   screenshot as the image, real calculator one tap away on the site.
+
+Re-record the video (needs playwright + ffmpeg-static):
+
+```bash
+# 1. record the animation at 1080x1350
+node -e "const{chromium}=require('playwright');(async()=>{
+  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium'});
+  const c=await b.newContext({viewport:{width:1080,height:1350},
+    recordVideo:{dir:'vid',size:{width:1080,height:1350}}});
+  const p=await c.newPage();
+  await p.goto('file://<repo>/dog-years-reel.html');
+  await p.evaluate(()=>window.__reelDone); await c.close(); await b.close();})()"
+# 2. transcode to LinkedIn-ready MP4
+ffmpeg -y -i vid/*.webm -vf "fps=30,format=yuv420p" -c:v libx264 \
+  -preset slow -crf 20 -movflags +faststart -an assets/dog-years-reel.mp4
+```
+
+**Important:** the calculator link only works once this branch is merged into
+`main` — GitHub Pages serves the default branch. Merge, load
+https://namikakmandev.github.io/dog-years.html once to confirm, then post.
+
 ## Integrity / accuracy notes
 
 - Formula is verbatim from the peer-reviewed paper: human = 16·ln(dog) + 31
