@@ -136,29 +136,31 @@ medicines became about 45% cheaper in the US over 44 years. So why didn't
 medicine prices follow?
 
 I checked the annual reports of 8 companies — 4 human pharma, 3 animal
-health, Merck reported separately. Cost structure per $100 of revenue,
-FY2023–25 medians:
+health, Merck reported separately.
 
-R&D: human 19 / animal 7
-Cost of goods: human 30 / animal 45
-SG&A: human 21 / animal 25
-Remaining: human 30 / animal 23
+📊 Cost structure per $100 of revenue, FY2023–25 medians:
+
+▪️ R&D: human 19 / animal 7
+▪️ Cost of goods: human 30 / animal 45
+▪️ SG&A: human 21 / animal 25
+▪️ Remaining: human 30 / animal 23
 (Remaining is not profit — amortisation, one-offs, interest and tax still
 come out of it.)
 
-Human pharma reinvests a fifth of revenue in R&D. Today's prices fund the
-next product — producer prices rose 75% in real terms over 20 years.
+🔬 Human pharma reinvests a fifth of revenue in R&D. Today's prices fund
+the next product — producer prices rose 75% in real terms over 20 years.
 
-Animal health spends nearly half of revenue on manufacturing. Prices follow
-input costs, which fell — producer prices declined 4% real over the same 20
-years. Four decades without pricing above inflation, at the factory gate.
+🏭 Animal health spends nearly half of revenue on manufacturing. Prices
+follow input costs, which fell — producer prices declined 4% real over the
+same 20 years. Four decades without pricing above inflation, at the factory
+gate.
 
-Conclusion: human pharma sells innovation, priced ahead of cost to fund the
-next product. Animal health sells production, priced near cost, earning
+✅ Conclusion: human pharma sells innovation, priced ahead of cost to fund
+the next product. Animal health sells production, priced near cost, earning
 through volume and efficiency. So benchmark within the segment — the two
 look alike but are different businesses.
 
-Full method and sources in the document.
+📄 Full method and sources in the document below.
 
 ---
 
