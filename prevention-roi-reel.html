@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prevention Break-Even — video reel (1080×1350)</title>
+<style>
+  :root{
+    --surface:#1a1a19; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --s1:#3987e5; --neg:#e66767; --good:#0ca30c; --accent:#eda100;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#0d0d0d}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+       display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .stage{width:1080px;height:1350px;background:var(--surface);padding:60px 64px;
+         display:flex;flex-direction:column;overflow:hidden}
+  .kicker{font-size:17px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:47px;font-weight:800;line-height:1.07;margin:12px 0 6px}
+  h1 .dim{color:var(--ink-2);font-weight:600}
+  .formula{margin-top:14px;padding:14px 20px;border-radius:9px;background:rgba(255,255,255,.05);
+           border:1px solid rgba(255,255,255,.09);font-size:19px;line-height:1.45;color:var(--ink-2)}
+  .formula b{color:#86b6ef}
+
+  .readout{display:flex;align-items:flex-end;gap:50px;margin:26px 0 4px}
+  .r .n{font-size:78px;font-weight:800;line-height:.95;font-variant-numeric:tabular-nums}
+  .r .c{font-size:15px;color:var(--muted);margin-top:8px;max-width:230px;line-height:1.35}
+  .inc{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums}
+  .inc span{display:block;font-size:16px;color:var(--muted);font-weight:600;letter-spacing:.12em;
+            text-transform:uppercase;margin-bottom:6px}
+
+  svg{display:block;width:100%;height:auto;margin-top:10px}
+  .ax{font-size:15px;fill:var(--muted)} .axlab{font-size:15px;fill:var(--ink-2)}
+
+  .caption{margin-top:auto;padding:22px 26px;border-radius:10px;font-size:23px;line-height:1.45;
+           min-height:122px;display:grid;align-items:center;transition:opacity .25s ease,background .4s ease,border-color .4s ease;
+           background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12)}
+  .caption.no{background:rgba(230,103,103,.11);border-color:rgba(230,103,103,.45)}
+  .caption.yes{background:rgba(12,163,12,.11);border-color:rgba(12,163,12,.45)}
+  .caption b{color:var(--ink)}
+  .brand{display:flex;justify-content:space-between;margin-top:16px;font-size:15px;color:var(--ink-2)}
+  .brand b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="kicker">Animal Health Economics</div>
+  <h1>“Prevention pays.”<br><span class="dim">Until it doesn’t.</span></h1>
+  <div class="formula">Break-even incidence = <b>programme cost ÷ (efficacy × cost per case)</b><br>
+    <span style="font-size:16px">Example: €12 per head · 50% efficacy · €250 per case → <b>9.6%</b></span></div>
+
+  <div class="readout">
+    <div class="inc"><span>Herd incidence</span><i id="inc" style="font-style:normal">2.0%</i></div>
+    <div class="r"><div class="n" id="net" style="color:var(--neg)">−€11</div><div class="c">net benefit per animal</div></div>
+    <div class="r"><div class="n" id="roi" style="color:var(--neg);font-size:56px">−79%</div><div class="c">return on the programme</div></div>
+  </div>
+
+  <svg id="plot" aria-hidden="true"></svg>
+
+  <div class="caption" id="caption"><span>&nbsp;</span></div>
+  <div class="brand"><span><b>Namik Akman</b> · namikakmandev.github.io</span><span>Full model on the site →</span></div>
+</div>
+
+<script>
+const PROG=12, EFF=.5, COST=250;
+const BE = PROG/(EFF*COST)*100;                 // 9.6%
+const net = p => (p/100)*EFF*COST - PROG;
+const roi = p => ((p/100)*EFF*COST)/PROG - 1;
+
+/* ---- chart ---- */
+const W=952, HT=640, L=84, R=40, T=24, B=64;
+const XMAX=25, YMIN=-14, YMAX=20;
+const px=v=>L+v/XMAX*(W-L-R), py=v=>T+(1-(v-YMIN)/(YMAX-YMIN))*(HT-T-B);
+let s='';
+for(let v=-10;v<=20;v+=10){
+  s+=`<line x1="${L}" y1="${py(v)}" x2="${W-R}" y2="${py(v)}" stroke="var(--grid)" stroke-width="1"/>`;
+  s+=`<text class="ax" x="${L-12}" y="${py(v)+5}" text-anchor="end">${v>0?'+':''}${v}</text>`;
+}
+[0,5,10,15,20,25].forEach(v=>s+=`<text class="ax" x="${px(v)}" y="${HT-B+26}" text-anchor="middle">${v}%</text>`);
+s+=`<text class="axlab" x="${(L+W-R)/2}" y="${HT-8}" text-anchor="middle">Annual disease incidence</text>`;
+s+=`<text class="axlab" transform="translate(20,${(T+HT-B)/2}) rotate(-90)" text-anchor="middle">Net benefit per animal (€)</text>`;
+s+=`<line x1="${L}" y1="${py(0)}" x2="${W-R}" y2="${py(0)}" stroke="var(--baseline)" stroke-width="2"/>`;
+// break-even guide
+s+=`<line x1="${px(BE)}" y1="${T}" x2="${px(BE)}" y2="${py(YMIN)}" stroke="rgba(255,255,255,.22)" stroke-width="1" stroke-dasharray="6 6"/>`;
+s+=`<text class="ax" x="${px(BE)+10}" y="${T+18}" fill="var(--ink-2)" style="font-weight:700">break-even ${BE.toFixed(1)}%</text>`;
+// the value line
+s+=`<line x1="${px(0)}" y1="${py(net(0))}" x2="${px(XMAX)}" y2="${py(net(XMAX))}" stroke="var(--s1)" stroke-width="3.5" stroke-linecap="round"/>`;
+s+=`<line id="vline" x1="0" y1="${T}" x2="0" y2="${py(YMIN)}" stroke="rgba(255,255,255,.3)" stroke-width="1"/>`;
+s+=`<circle id="dot" r="11" fill="var(--neg)" stroke="var(--surface)" stroke-width="3"/>`;
+const plot=document.getElementById('plot');
+plot.setAttribute('viewBox',`0 0 ${W} ${HT}`); plot.innerHTML=s;
+
+/* ---- frame ---- */
+const $=i=>document.getElementById(i);
+function render(p){
+  const n=net(p), r=roi(p), pos=n>=0;
+  const col = pos ? 'var(--good)' : 'var(--neg)';
+  $('inc').textContent = p.toFixed(1)+'%';
+  $('net').textContent = (n<0?'−€':'+€') + Math.abs(n).toFixed(0);
+  $('net').style.color = col;
+  $('roi').textContent = (r<0?'−':'+') + Math.abs(r*100).toFixed(0)+'%';
+  $('roi').style.color = col;
+  $('dot').setAttribute('cx',px(p)); $('dot').setAttribute('cy',py(n)); $('dot').setAttribute('fill',col);
+  $('vline').setAttribute('x1',px(p)); $('vline').setAttribute('x2',px(p));
+}
+function caption(html,cls){ const c=$('caption'); c.style.opacity=0;
+  setTimeout(()=>{ c.innerHTML='<span>'+html+'</span>'; c.className='caption '+(cls||''); c.style.opacity=1; },200); }
+
+/* ---- timeline ---- */
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const sweep=(a,b,d)=>new Promise(res=>{const t0=performance.now();
+  (function s(now){const q=Math.min((now-t0)/d,1); render(a+(b-a)*ease(q)); q<1?requestAnimationFrame(s):res();})(t0);});
+async function run(){
+  render(2); caption('&nbsp;'); await wait(700);
+  caption('At <b>2% incidence</b> the protocol loses money on treatment savings alone.','no');
+  await wait(2200);
+  await sweep(2,9.6,2200);
+  caption('At <b>9.6%</b> — break-even. The programme exactly pays for itself.');
+  await wait(2200);
+  await sweep(9.6,15,1800);
+  caption('At <b>15%</b> it returns <b>+56%</b>. Same product. Same price. Different herd.','yes');
+  await wait(2400);
+  caption('So “does prevention pay?” has no universal answer.<br><b>Run it on your own numbers — link in the comments.</b>');
+  await wait(2600);
+}
+window.__reelDone = run();
+</script>
+</body>
+</html>

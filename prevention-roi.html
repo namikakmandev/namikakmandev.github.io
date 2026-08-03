@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Prevention Break-Even — what animal health protocols must clear to pay</title>
+<meta name="description" content="Prevention pays — but only above a break-even disease incidence. The arithmetic, plus an interactive model: herd size, incidence, cost per case, programme cost and efficacy.">
+<style>
+  :root{
+    --surface:#1a1a19; --page:#0d0d0d; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+    --neg:#e66767; --good:#0ca30c; --accent:#eda100;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--page);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+       color:var(--ink);display:flex;flex-direction:column;align-items:center;padding:24px 8px 60px}
+  /* 4:5 portrait card — screenshot this for LinkedIn */
+  .card{width:1080px;max-width:100%;background:var(--surface);
+        border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:46px 60px 32px}
+  .kicker{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:41px;font-weight:800;line-height:1.08;margin:10px 0 6px}
+  h1 .dim{color:var(--ink-2);font-weight:600}
+  .sub{font-size:19px;color:var(--ink-2);max-width:900px;line-height:1.45}
+
+  .formula{
+    margin:16px 0 2px;padding:14px 20px;border-radius:8px;background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.09);font-size:21px;line-height:1.5;
+  }
+  .formula b{color:#86b6ef}
+  .formula small{display:block;font-size:14px;color:var(--muted);margin-top:8px;line-height:1.45}
+
+  .hero-row{display:flex;gap:44px;align-items:baseline;margin:16px 0 2px;flex-wrap:wrap}
+  .hero .v{font-size:50px;font-weight:800}
+  .hero .l{font-size:14px;color:var(--muted);margin-top:2px;max-width:240px;line-height:1.35}
+
+  .legend{display:flex;gap:22px;margin:14px 0 0;font-size:14px;color:var(--ink-2);flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:8px}
+  .legend i{width:22px;height:3px;border-radius:2px;display:inline-block}
+
+  svg{display:block;width:100%;height:auto;margin-top:4px}
+  .ax{font-size:13px;fill:var(--muted)} .axlab{font-size:13px;fill:var(--ink-2)}
+  .dlab{font-size:14px;font-weight:700}
+
+  .verdict{margin-top:16px;padding:16px 20px;border-radius:8px;
+    background:rgba(57,135,229,.10);border:1px solid rgba(57,135,229,.35);
+    font-size:17px;line-height:1.5}
+  .verdict b{color:#86b6ef}
+  .src{margin-top:16px;padding-top:14px;border-top:1px solid var(--grid);
+       font-size:11.5px;line-height:1.55;color:var(--muted)}
+  .brand{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:13px;color:var(--ink-2)}
+  .brand b{color:var(--ink)}
+
+  /* ---- interactive model (outside the screenshot card) ---- */
+  .calc{width:1080px;max-width:100%;margin-top:28px;background:var(--surface);
+        border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:34px 64px 42px}
+  .calc h2{font-size:27px;font-weight:800}
+  .calc .h{font-size:16px;color:var(--ink-2);margin:6px 0 24px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 44px}
+  .f label{display:flex;justify-content:space-between;font-size:15px;color:var(--ink-2);margin-bottom:2px}
+  .f label b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .f input{width:100%;accent-color:var(--s1)}
+  .f .hint{font-size:12px;color:var(--muted);margin-top:3px}
+  .outs{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:28px;border-radius:8px;overflow:hidden}
+  .outs div{background:rgba(255,255,255,.04);padding:16px 18px}
+  .outs .k{font-size:13px;color:var(--muted);line-height:1.3}
+  .outs .v{font-size:30px;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
+  .banner{margin-top:18px;padding:16px 20px;border-radius:8px;font-size:17px;line-height:1.5}
+  .banner.yes{background:rgba(12,163,12,.10);border:1px solid rgba(12,163,12,.45)}
+  .banner.no{background:rgba(230,103,103,.10);border:1px solid rgba(230,103,103,.45)}
+  .banner b{font-weight:800}
+  @media (max-width:760px){
+    .card,.calc{padding:28px 20px}
+    h1{font-size:29px} .hero .v{font-size:34px}
+    .grid{grid-template-columns:1fr} .outs{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="kicker">Animal Health Economics · The Prevention Break-Even</div>
+  <h1>“Prevention pays.”<br><span class="dim">Everyone says it. Almost nobody shows where it stops.</span></h1>
+  <p class="sub">A preventive protocol only earns its cost above a certain disease incidence. That threshold is one division — and it is the most useful number in the business case.</p>
+
+  <div class="formula">
+    Break-even incidence = <b>programme cost per animal ÷ (efficacy × cost per case)</b>
+    <small>Below that incidence the programme costs more than the disease it prevents. Above it, every point of incidence is margin. Net benefit per animal = (incidence × efficacy × cost per case) − programme cost.</small>
+  </div>
+
+  <div class="hero-row">
+    <div class="hero"><div class="v" style="color:var(--s1)">9.6%</div><div class="l">break-even incidence — the number the business case lives or dies on</div></div>
+    <div class="hero"><div class="v" style="color:var(--good)">+56%</div><div class="l">return at 15% incidence</div></div>
+    <div class="hero"><div class="v" style="color:var(--neg)">−48%</div><div class="l">…and at 5% incidence, the same protocol destroys value</div></div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--s2)"></i>Cost per case €150</span>
+    <span><i style="background:var(--s1)"></i>€250</span>
+    <span><i style="background:var(--s3)"></i>€400</span>
+    <span style="color:var(--muted)">● break-even point</span>
+  </div>
+
+  <svg id="plot" role="img" aria-label="Net benefit per animal against disease incidence, for three cost-per-case scenarios. Each line crosses zero at its break-even incidence."></svg>
+
+  <div class="verdict">
+    <b>Two things this changes in a real conversation.</b> First, “what is your incidence?” stops being a clinical question and becomes the commercial one — it decides whether the protocol is an investment or a cost. Second, the honest answer in a low-incidence herd is that prevention does not pay on treatment savings alone; it has to be argued on variance, welfare, antimicrobial reduction or trade access. Those are real arguments. They are just not this one.
+  </div>
+
+  <div class="src">
+    <b>Method</b> · Deterministic single-period model. Net benefit per animal = (annual incidence × efficacy × cost per case) − programme cost per animal; break-even incidence = programme cost ÷ (efficacy × cost per case); return = benefit ÷ cost − 1. Cost per case bundles treatment, labour, production loss, mortality and cull risk. <b>The numbers above are an illustrative worked example, not evidence:</b> incidence, efficacy and cost per case must come from your own records or published trials for the output to mean anything. Excluded by design: discounting, sub-clinical losses, variance and risk-aversion (prevention narrows the spread of outcomes, not just its mean), compliance drop-off and herd immunity — all of which move the answer in prevention's favour.
+  </div>
+  <div class="brand"><span><b>Namik Akman</b> · namikakmandev.github.io</span><span>Where the data tells the strategy</span></div>
+</div>
+
+<div class="calc">
+  <h2>Run it on your own numbers</h2>
+  <p class="h">Five inputs. The break-even and the return update as you drag.</p>
+  <div class="grid">
+    <div class="f">
+      <label>Animals in the group <b id="l-herd">500</b></label>
+      <input id="herd" type="range" min="50" max="5000" step="50" value="500">
+      <div class="hint">head covered by the protocol</div>
+    </div>
+    <div class="f">
+      <label>Annual disease incidence <b id="l-inc">15%</b></label>
+      <input id="inc" type="range" min="1" max="40" step="0.5" value="15">
+      <div class="hint">share of animals affected per year, untreated</div>
+    </div>
+    <div class="f">
+      <label>Cost per case <b id="l-cost">€250</b></label>
+      <input id="cost" type="range" min="50" max="800" step="10" value="250">
+      <div class="hint">treatment + labour + production loss + mortality/cull risk</div>
+    </div>
+    <div class="f">
+      <label>Programme cost per animal <b id="l-prog">€12</b></label>
+      <input id="prog" type="range" min="1" max="80" step="1" value="12">
+      <div class="hint">product, application and handling, per head per year</div>
+    </div>
+    <div class="f">
+      <label>Protocol efficacy <b id="l-eff">50%</b></label>
+      <input id="eff" type="range" min="10" max="95" step="5" value="50">
+      <div class="hint">reduction in incidence achieved in practice, not in the trial</div>
+    </div>
+  </div>
+
+  <div class="outs">
+    <div><div class="k">Break-even incidence</div><div class="v" id="o-be" style="color:var(--s1)">9.6%</div></div>
+    <div><div class="k">Net benefit, whole group</div><div class="v" id="o-net">€3,375</div></div>
+    <div><div class="k">Return on the programme</div><div class="v" id="o-roi">+56%</div></div>
+    <div><div class="k">Benefit per €1 spent</div><div class="v" id="o-bcr">€1.56</div></div>
+  </div>
+  <div class="banner yes" id="banner"></div>
+</div>
+
+<script>
+/* ---------- model ---------- */
+const M = (herd, incPct, cost, prog, effPct) => {
+  const p = incPct/100, e = effPct/100;
+  const benefitPerHead = p * e * cost;
+  const netPerHead = benefitPerHead - prog;
+  return {
+    be: prog / (e * cost) * 100,          // break-even incidence, %
+    net: netPerHead * herd,
+    roi: prog > 0 ? benefitPerHead/prog - 1 : 0,
+    bcr: prog > 0 ? benefitPerHead/prog : 0,
+    netPerHead
+  };
+};
+const eur = n => '€' + Math.round(n).toLocaleString('en-US');
+const pct = n => (n>=0?'+':'−') + Math.abs(n*100).toFixed(0) + '%';
+
+/* ---------- sensitivity chart: net benefit per head vs incidence ---------- */
+const W=944, HT=330, L=76, R=140, T=18, B=50;
+const XMAX=30, YMIN=-20, YMAX=45;      // incidence %, € per head
+const px = v => L + v/XMAX*(W-L-R);
+const py = v => T + (1-(v-YMIN)/(YMAX-YMIN))*(HT-T-B);
+const SCEN = [
+  {cost:150, col:'var(--s2)', name:'€150'},
+  {cost:250, col:'var(--s1)', name:'€250'},
+  {cost:400, col:'var(--s3)', name:'€400'},
+];
+const PROG=12, EFF=0.5;
+let s='';
+for(let v=YMIN; v<=YMAX; v+=20){   // −20, 0, +20, +40
+  s+=`<line x1="${L}" y1="${py(v)}" x2="${W-R}" y2="${py(v)}" stroke="var(--grid)" stroke-width="1"/>`;
+  s+=`<text class="ax" x="${L-10}" y="${py(v)+4}" text-anchor="end">${v>0?'+':''}${v}</text>`;
+}
+[0,5,10,15,20,25,30].forEach(v=>s+=`<text class="ax" x="${px(v)}" y="${HT-B+22}" text-anchor="middle">${v}%</text>`);
+s+=`<text class="axlab" x="${(L+W-R)/2}" y="${HT-6}" text-anchor="middle">Annual disease incidence</text>`;
+s+=`<text class="axlab" transform="translate(18,${(T+HT-B)/2}) rotate(-90)" text-anchor="middle">Net benefit per animal (€)</text>`;
+// the zero line is the story — draw it heavier
+s+=`<line x1="${L}" y1="${py(0)}" x2="${W-R}" y2="${py(0)}" stroke="var(--baseline)" stroke-width="2"/>`;
+s+=`<text class="ax" x="${W-R+8}" y="${py(0)+4}" fill="var(--muted)">break-even</text>`;
+SCEN.forEach(sc=>{
+  const y0 = 0*EFF*sc.cost - PROG, y1 = (XMAX/100)*EFF*sc.cost - PROG;
+  s+=`<line x1="${px(0)}" y1="${py(y0)}" x2="${px(XMAX)}" y2="${py(Math.min(y1,YMAX))}"
+        stroke="${sc.col}" stroke-width="2.5" stroke-linecap="round"/>`;
+  const be = PROG/(EFF*sc.cost)*100;
+  s+=`<circle cx="${px(be)}" cy="${py(0)}" r="6" fill="${sc.col}" stroke="var(--surface)" stroke-width="2"/>`;
+  // surface halo so a crossing line never runs through the label
+  s+=`<text class="dlab" fill="${sc.col}" x="${px(be)}" y="${py(0)+24}" text-anchor="middle"
+        stroke="var(--surface)" stroke-width="5" paint-order="stroke">${be.toFixed(1)}%</text>`;
+  // right-edge series label (no legend-only reliance)
+  const yEnd = Math.min(y1, YMAX);
+  s+=`<text class="dlab" fill="${sc.col}" x="${px(XMAX)+10}" y="${py(yEnd)+5}">${sc.name}/case</text>`;
+});
+s+=`<text class="ax" x="${px(1)}" y="${py(-16)}" fill="var(--neg)">programme costs more than it saves</text>`;
+const plot = document.getElementById('plot');
+plot.setAttribute('viewBox', `0 0 ${W} ${HT}`);   // keep the box tied to the geometry
+plot.innerHTML = s;
+
+/* ---------- interactive ---------- */
+const $=id=>document.getElementById(id);
+const IN=['herd','inc','cost','prog','eff'].map($);
+function upd(){
+  const [herd,inc,cost,prog,eff] = IN.map(el=>+el.value);
+  $('l-herd').textContent = herd.toLocaleString('en-US');
+  $('l-inc').textContent  = inc+'%';
+  $('l-cost').textContent = '€'+cost;
+  $('l-prog').textContent = '€'+prog;
+  $('l-eff').textContent  = eff+'%';
+  const r = M(herd,inc,cost,prog,eff);
+  $('o-be').textContent  = r.be.toFixed(1)+'%';
+  $('o-net').textContent = (r.net<0?'−':'') + eur(Math.abs(r.net));
+  $('o-roi').textContent = pct(r.roi);
+  $('o-bcr').textContent = '€'+r.bcr.toFixed(2);
+  $('o-net').style.color = r.net>=0 ? 'var(--good)' : 'var(--neg)';
+  $('o-roi').style.color = r.roi>=0 ? 'var(--good)' : 'var(--neg)';
+  const b=$('banner'), pays = inc > r.be;
+  b.className = 'banner ' + (pays?'yes':'no');
+  b.innerHTML = pays
+    ? `<b>It pays.</b> At ${inc}% incidence you are ${(inc-r.be).toFixed(1)} points above the ${r.be.toFixed(1)}% break-even — the protocol returns ${eur(r.net)} across ${herd.toLocaleString('en-US')} animals. Incidence would have to fall below ${r.be.toFixed(1)}% before the case breaks.`
+    : `<b>It does not pay on treatment savings alone.</b> At ${inc}% incidence you are below the ${r.be.toFixed(1)}% break-even, losing ${eur(Math.abs(r.net))} across ${herd.toLocaleString('en-US')} animals. To justify it you need the arguments this model does not price: reduced variance, welfare, antimicrobial reduction, trade or buyer requirements.`;
+}
+IN.forEach(el=>el.addEventListener('input',upd)); upd();
+</script>
+</body>
+</html>
