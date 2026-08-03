@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AH Data Desk — proof of concept</title>
+<meta name="description" content="One live indicator layer for animal health economics: each series carries its source, its exact code, its deflator, its known breaks and what it does not measure. Public data only.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --surface:#1a1a19; --page:#0d0d0d; --card:#201f1e; --ink:#fff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --line:#383835; --s1:#3987e5; --up:#0ca30c; --down:#e66767; --accent:#eda100;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--page);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+       line-height:1.5;padding:0 0 80px}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+  header{border-bottom:1px solid var(--grid);padding:34px 0 26px;margin-bottom:26px}
+  .kicker{font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:36px;font-weight:800;line-height:1.1;margin:8px 0 8px}
+  .lede{font-size:18px;color:var(--ink-2);max-width:780px}
+  .flag{margin-top:18px;padding:14px 18px;border-radius:8px;font-size:14.5px;line-height:1.5;
+        background:rgba(237,161,0,.09);border:1px solid rgba(237,161,0,.4);color:var(--ink-2)}
+  .flag b{color:var(--accent)}
+
+  h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+     font-weight:700;margin:34px 0 14px}
+
+  /* ---- ask layer ---- */
+  .ask{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px 24px}
+  .ask .row{display:flex;gap:10px}
+  .ask input{flex:1;background:#141413;border:1px solid var(--line);border-radius:7px;color:var(--ink);
+             font:inherit;font-size:16px;padding:12px 14px}
+  .ask input:focus{outline:2px solid var(--s1);outline-offset:-1px}
+  .ask button{background:var(--s1);border:0;border-radius:7px;color:#fff;font:inherit;font-weight:700;
+              padding:12px 22px;cursor:pointer}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{background:#141413;border:1px solid var(--line);border-radius:20px;color:var(--ink-2);
+        font-size:13px;padding:6px 13px;cursor:pointer}
+  .chip:hover{border-color:var(--s1);color:var(--ink)}
+  .answer{margin-top:18px;padding:18px 20px;border-radius:9px;background:rgba(57,135,229,.09);
+          border:1px solid rgba(57,135,229,.35);font-size:16.5px;display:none}
+  .answer.miss{background:rgba(230,103,103,.09);border-color:rgba(230,103,103,.4)}
+  .answer .big{font-size:32px;font-weight:800;display:block;margin:4px 0 8px}
+  .answer .meta{font-size:13px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid var(--grid);line-height:1.55}
+  .answer .meta b{color:var(--ink-2)}
+
+  /* ---- cards ---- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+  .c{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px 22px;display:flex;flex-direction:column}
+  .c .grp{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .c h3{font-size:17px;font-weight:700;margin:6px 0 2px;line-height:1.3}
+  .c .mk{font-size:12.5px;color:var(--muted)}
+  .c .val{font-size:34px;font-weight:800;margin-top:12px;font-variant-numeric:tabular-nums}
+  .c .val small{font-size:14px;font-weight:600;color:var(--muted);margin-left:6px}
+  .c .deltas{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;font-size:13.5px}
+  .c .d b{font-variant-numeric:tabular-nums}
+  .c .d span{color:var(--muted)}
+  .up{color:var(--up)} .down{color:var(--down)}
+  .c svg{margin:14px 0 4px;width:100%;height:56px;display:block}
+  .c .foot{margin-top:auto;padding-top:14px;font-size:11.5px;color:var(--muted);line-height:1.55;
+           border-top:1px solid var(--grid)}
+  .c .foot b{color:var(--ink-2)}
+  .c .brk{display:block;margin-top:7px;color:#f0a58c}
+  .asof{font-size:12px;color:var(--muted);margin-top:8px}
+
+  /* ---- extend ---- */
+  .ext{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px 24px;font-size:15.5px;color:var(--ink-2)}
+  .ext p+p{margin-top:10px}
+  .ext code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  pre{background:#141413;border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-top:12px;
+      overflow-x:auto;color:#9ec5f4}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--grid);font-size:12.5px;color:var(--muted)}
+  @media(max-width:640px){ h1{font-size:26px} .ask .row{flex-direction:column} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="kicker">Proof of concept · Animal Health Economics</div>
+  <h1>AH Data Desk</h1>
+  <p class="lede">One live indicator layer. Every series carries its source, its exact dataset code, its deflator, its known breaks, and — the part that is normally missing — <b>what it does not measure</b>. Ask a question and the answer arrives with those attached.</p>
+  <div class="flag">
+    <b>Scope of this demo:</b> built entirely from <b>public sources</b> — Eurostat, FAOSTAT, USDA ERS, BLS/FRED, TÜİK/TEPGE — refreshed by the existing GitHub Actions pipeline. <b>No company, customer or licensed market data is used here, and none should be added to this repository.</b> Internal sources belong in a company-approved private environment; this page is the pattern, not the destination.
+  </div>
+</header>
+
+<h2>Ask the desk</h2>
+<div class="ask">
+  <div class="row">
+    <input id="q" placeholder="e.g. how is Türkiye broiler parity doing?" autocomplete="off">
+    <button id="go">Ask</button>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="answer" id="a"></div>
+</div>
+
+<h2>Indicators</h2>
+<div class="grid" id="grid"></div>
+
+<h2>How this extends to internal data</h2>
+<div class="ext">
+  <p>Nothing on this page is bespoke. <code>scripts/build_desk.py</code> reads whatever series exist and emits one <code>desk-index.json</code>; the page renders that file. Adding a series to the public pipeline is a single entry in <code>data-sources.json</code> — no new code:</p>
+  <pre>{ "name": "eu-vet-countries", "provider": "eurostat",
+  "dataset": "aact_eaa01",
+  "params": { "am_item": "AM205000", "unit": "MIO_EUR", "geo": ["FR","DE","PL", "..."] },
+  "out": "data/eu-vet-countries.json",
+  "note": "all livestock, not cattle only" }</pre>
+  <p>Pointing this at internal or licensed sources means adding a provider that reads from the approved warehouse and running it inside the company environment. The page, the indicator contract and the caveat discipline stay exactly as they are.</p>
+  <p><b>Two things to settle before any of that happens:</b> whether the licence for each paid source permits internal redistribution and ingestion into an AI system, and which approved service the question layer is allowed to call. The answer layer below is deliberately deterministic — it answers only from the indicator file and says so plainly when it cannot, which is the behaviour any LLM sitting in its place would need to be held to.</p>
+</div>
+
+<footer id="foot"></footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmtNum = (v, u) => {
+  if (u === 'ratio') return v.toFixed(2);
+  if (u === 'million head') return v.toFixed(1);
+  if (u.startsWith('€')) return '€' + Math.round(v).toLocaleString('en-US');
+  if (u.startsWith('$')) return '$' + Math.round(v).toLocaleString('en-US');
+  return v.toLocaleString('en-US', {maximumFractionDigits: 2});
+};
+const sign = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1) + '%';
+const cls  = v => v > 0 ? 'up' : v < 0 ? 'down' : '';
+
+function sparkline(points){
+  if (!points.length) return '';
+  const vs = points.map(p => p[1]);
+  const lo = Math.min(...vs), hi = Math.max(...vs), span = (hi - lo) || 1;
+  const W = 300, H = 56, pad = 3;
+  const d = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * W;
+    const y = pad + (1 - (p[1] - lo) / span) * (H - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const last = d[d.length - 1].split(',');
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${d.join(' ')}" fill="none" stroke="var(--s1)" stroke-width="2"
+      stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="3.2" fill="var(--s1)" stroke="var(--card)" stroke-width="2"/>
+  </svg>`;
+}
+
+let IDX = [];
+
+function card(i){
+  const deltas = [
+    i.change  != null ? `<span class="d"><b class="${cls(i.change)}">${sign(i.change)}</b> <span>${i.change_label}</span></span>` : '',
+    i.change2 != null ? `<span class="d"><b class="${cls(i.change2)}">${sign(i.change2)}</b> <span>${i.change2_label}</span></span>` : '',
+  ].join('');
+  return `<div class="c">
+    <div class="grp">${i.group}</div>
+    <h3>${i.title}</h3>
+    <div class="mk">${i.market}</div>
+    <div class="val">${fmtNum(i.value, i.unit)}<small>${i.unit}</small></div>
+    <div class="deltas">${deltas}</div>
+    ${sparkline(i.spark)}
+    <div class="asof">as of ${i.asof}</div>
+    <div class="foot">
+      <b>Source</b> ${i.source} · <code>${i.code}</code><br>
+      <b>Does not measure</b> ${i.not_measured}
+      ${i.deflator ? `<br><b>Deflator</b> ${i.deflator}` : ''}
+      ${i.break ? `<span class="brk"><b>⚠ Break</b> ${i.break}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ---------- the answer layer ----------
+   Deterministic on purpose: it resolves a question to indicators in the index and
+   reports what they say, with the caveats attached. When nothing scores high
+   enough it says so instead of guessing — the same contract an LLM would need. */
+/* Generic words are excluded from scoring: they appear inside source citations
+   ("…market reports", "…price indices") and would otherwise let an unrelated
+   question match a series on a single meaningless hit. */
+const STOP = new Set(('the a an of in on for is are how what which whats show me tell my our it at to and or vs versus doing do does now current latest '
+  + 'market markets report reports data price prices index indices series number figure').split(' '));
+const MIN_SCORE = 3;   // at least one strong match plus corroboration
+const SYN = {
+  broiler:['broiler','chicken','poultry','tavuk'], cattle:['cattle','beef','sigir','sığır'],
+  parity:['parity','parite','ratio','margin','feed'], vet:['vet','veterinary','spend','spending','expenditure'],
+  herd:['herd','head','population','stock'], cost:['cost','costs','cowcalf','cow-calf'],
+  tr:['turkiye','türkiye','turkey','tr'], eu:['eu','europe','european'], us:['us','usa','america','american','united states'],
+};
+function tokens(q){
+  return q.toLowerCase().replace(/[^a-zçğıöşü0-9\s-]/g,' ').split(/\s+/).filter(w=>w && !STOP.has(w));
+}
+function score(ind, toks){
+  const hay = (ind.title+' '+ind.market+' '+ind.group+' '+ind.id+' '+ind.source).toLowerCase();
+  let s = 0;
+  for (const t of toks){
+    if (hay.includes(t)) { s += 2; continue; }
+    for (const list of Object.values(SYN))
+      if (list.includes(t) && list.some(v => hay.includes(v))) { s += 1.5; break; }
+  }
+  return s;
+}
+function answer(q){
+  const el = $('#a'); el.style.display = 'block';
+  const toks = tokens(q);
+  if (!toks.length) { el.className='answer miss'; el.innerHTML='<b>Ask about one of the indicators below.</b>'; return; }
+
+  const ranked = IDX.map(i => ({i, s: score(i, toks)})).sort((a,b) => b.s - a.s);
+  const best = ranked[0];
+  if (!best || best.s < MIN_SCORE){
+    el.className = 'answer miss';
+    el.innerHTML = `<b>The desk does not hold that.</b><br>
+      This layer answers only from the ${IDX.length} indicators loaded below — it does not estimate, and it does not answer from general knowledge.
+      <div class="meta">That refusal is the feature. An answer layer over commercial data has to be able to say “not in the data” — otherwise it will invent a plausible number, and a plausible wrong number in a pricing discussion is worse than no answer.</div>`;
+    return;
+  }
+
+  const wantsCompare = /compare|versus|vs|against|which|highest|lowest|best|worst/.test(q.toLowerCase());
+  const peers = ranked.filter(r => r.s >= best.s - 1.5 && r.i.unit === best.i.unit).slice(0, 3).map(r => r.i);
+
+  if (wantsCompare && peers.length > 1){
+    const rows = peers.map(i => `<li><b>${i.market}</b> — ${fmtNum(i.value, i.unit)} ${i.unit}
+      <span class="${cls(i.change)}">${i.change != null ? sign(i.change) : ''}</span>
+      <span style="color:var(--muted)">(${i.asof})</span></li>`).join('');
+    el.className = 'answer';
+    el.innerHTML = `<b>Comparable series in the index</b><ul style="margin:10px 0 0 18px">${rows}</ul>
+      <div class="meta"><b>Read with care.</b> ${peers[0].not_measured}
+      ${peers[0].unit === 'ratio' ? ' Index ratios are comparable <i>within</i> a country over time, never <i>between</i> countries as levels.' : ''}
+      <br><b>Sources</b> ${[...new Set(peers.map(p => p.source))].join(' · ')}</div>`;
+    return;
+  }
+
+  const i = best.i;
+  el.className = 'answer';
+  el.innerHTML = `<b>${i.title}</b>
+    <span class="big">${fmtNum(i.value, i.unit)} <small style="font-size:15px;font-weight:600;color:var(--muted)">${i.unit}, ${i.asof}</small></span>
+    ${i.change != null ? `<span class="${cls(i.change)}"><b>${sign(i.change)}</b></span> ${i.change_label}` : ''}
+    ${i.change2 != null ? `<br><span class="${cls(i.change2)}"><b>${sign(i.change2)}</b></span> ${i.change2_label}` : ''}
+    <div class="meta">
+      <b>Source</b> ${i.source} · ${i.code}<br>
+      <b>Does not measure</b> ${i.not_measured}
+      ${i.deflator ? `<br><b>Deflator</b> ${i.deflator}` : ''}
+      ${i.break ? `<br><b style="color:#f0a58c">⚠ Break</b> ${i.break}` : ''}
+    </div>`;
+}
+
+/* ---------- boot ---------- */
+fetch('data/desk-index.json').then(r => r.json()).then(d => {
+  IDX = d.indicators;
+  $('#grid').innerHTML = IDX.map(card).join('');
+  const qs = ['How is Türkiye broiler parity doing?','EU vet spend','Compare cattle parity across markets',
+              'US cow-calf costs','EU cattle herd','What is our market share in Poland?'];
+  $('#chips').innerHTML = qs.map(q => `<span class="chip">${q}</span>`).join('');
+  document.querySelectorAll('.chip').forEach(c =>
+    c.addEventListener('click', () => { $('#q').value = c.textContent; answer(c.textContent); }));
+  $('#foot').innerHTML = `${IDX.length} indicators · ${d.generated_from} · built by <code>${d.builder}</code> ·
+    latest observation ${IDX.map(i => i.asof).sort().slice(-1)[0]}`;
+}).catch(() => {
+  $('#grid').innerHTML = `<div class="c"><h3>Index not loaded</h3><div class="mk">
+    Run <code>python scripts/build_desk.py</code>, then serve over http (not file://).</div></div>`;
+});
+$('#go').addEventListener('click', () => answer($('#q').value));
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') answer($('#q').value); });
+</script>
+</body>
+</html>
