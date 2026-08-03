@@ -1,124 +1,179 @@
 {
-  "_readme": [
-    "Add a series by adding an entry here — no new script needed.",
-    "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
-    "Then:            python scripts/fetch.py NAME",
-    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL)",
-    "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
-  ],
-  "sources": [
-    {
-      "name": "cattle-herd",
-      "provider": "owid",
-      "slug": "cattle-livestock-count-heads",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/herd-cattle.json",
-      "source": "FAOSTAT cattle stocks (head), via Our World in Data",
-      "note": "annual; national totals, all cattle"
-    },
-    {
-      "name": "us-prices",
-      "provider": "fred",
-      "series": {
-        "cattle_ppi": "WPU0131",
-        "corn_ppi": "WPU012202",
-        "cpi": "CPIAUCSL"
-      },
-      "out": "data/us-prices.json",
-      "source": "BLS producer price indexes via FRED, plus CPI for deflating",
-      "note": "PPI levels are index numbers (1982=100) — ratios only, never quantities"
-    },
-    {
-      "name": "eu-vet-expenses",
-      "provider": "eurostat",
-      "dataset": "aact_eaa01",
-      "params": {
-        "am_item": "AM205000",
-        "unit": "MIO_EUR",
-        "geo": "EU27_2020"
-      },
-      "out": "data/eu-vet-expenses.json",
-      "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
-      "note": "ALL livestock, not cattle only — do not present as a per-cattle figure without saying so"
-    },
-    {
-      "name": "eu-hicp",
-      "provider": "fred",
-      "series": {
-        "hicp": "CP0000EZ19M086NEST"
-      },
-      "out": "data/eu-hicp.json",
-      "source": "Euro area HICP via FRED — deflator for any EUR money series"
-    },
-    {
-      "name": "us-cowcalf-costs",
-      "provider": "csv",
-      "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
-      "filters": {
-        "Region": "U.S. total"
-      },
-      "group_col": "Item",
-      "key_col": "Year",
-      "value_col": "Value",
-      "out": "data/us-cowcalf-costs.json",
-      "source": "USDA ERS commodity costs and returns, cow-calf",
-      "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
-    },
-    {
-      "name": "eu-herd-countries",
-      "provider": "owid",
-      "slug": "cattle-livestock-count-heads",
-      "entities": {
-        "France": "FR",
-        "Germany": "DE",
-        "Ireland": "IE",
-        "Spain": "ES",
-        "Italy": "IT",
-        "Poland": "PL",
-        "Netherlands": "NL",
-        "Romania": "RO",
-        "Belgium": "BE",
-        "Austria": "AT",
-        "Hungary": "HU",
-        "Czechia": "CZ",
-        "Portugal": "PT",
-        "United Kingdom": "UK"
-      },
-      "out": "data/herd-eu-countries.json",
-      "source": "FAOSTAT cattle stocks (head) by EU member state, via Our World in Data",
-      "note": "dairy and beef combined, same limitation as the aggregate"
-    },
-    {
-      "name": "eu-vet-countries",
-      "provider": "eurostat",
-      "dataset": "aact_eaa01",
-      "params": {
-        "am_item": "AM205000",
-        "unit": "MIO_EUR",
-        "geo": [
-          "FR",
-          "DE",
-          "IE",
-          "PL",
-          "ES",
-          "IT",
-          "NL",
-          "BE",
-          "AT",
-          "RO",
-          "HU",
-          "CZ",
-          "PT",
-          "UK"
-        ]
-      },
-      "out": "data/eu-vet-countries.json",
-      "source": "Eurostat EAA veterinary expenses by member state, million EUR, ALL livestock",
-      "note": "all livestock, not cattle only"
-    }
-  ]
+ "_readme": [
+  "Add a series by adding an entry here — no new script needed.",
+  "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
+  "Then:            python scripts/fetch.py NAME",
+  "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL)",
+  "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
+ ],
+ "sources": [
+  {
+   "name": "cattle-herd",
+   "provider": "owid",
+   "slug": "cattle-livestock-count-heads",
+   "entities": {
+    "United States": "US",
+    "European Union (27)": "EU",
+    "Turkey": "TR"
+   },
+   "out": "data/herd-cattle.json",
+   "source": "FAOSTAT cattle stocks (head), via Our World in Data",
+   "note": "annual; national totals, all cattle"
+  },
+  {
+   "name": "us-prices",
+   "provider": "fred",
+   "series": {
+    "cattle_ppi": "WPU0131",
+    "corn_ppi": "WPU012202",
+    "cpi": "CPIAUCSL"
+   },
+   "out": "data/us-prices.json",
+   "source": "BLS producer price indexes via FRED, plus CPI for deflating",
+   "note": "PPI levels are index numbers (1982=100) — ratios only, never quantities"
+  },
+  {
+   "name": "eu-vet-expenses",
+   "provider": "eurostat",
+   "dataset": "aact_eaa01",
+   "params": {
+    "am_item": "AM205000",
+    "unit": "MIO_EUR",
+    "geo": "EU27_2020"
+   },
+   "out": "data/eu-vet-expenses.json",
+   "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
+   "note": "ALL livestock, not cattle only — do not present as a per-cattle figure without saying so"
+  },
+  {
+   "name": "eu-hicp",
+   "provider": "fred",
+   "series": {
+    "hicp": "CP0000EZ19M086NEST"
+   },
+   "out": "data/eu-hicp.json",
+   "source": "Euro area HICP via FRED — deflator for any EUR money series"
+  },
+  {
+   "name": "us-cowcalf-costs",
+   "provider": "csv",
+   "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
+   "filters": {
+    "Region": "U.S. total"
+   },
+   "group_col": "Item",
+   "key_col": "Year",
+   "value_col": "Value",
+   "out": "data/us-cowcalf-costs.json",
+   "source": "USDA ERS commodity costs and returns, cow-calf",
+   "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
+  },
+  {
+   "name": "eu-herd-countries",
+   "provider": "owid",
+   "slug": "cattle-livestock-count-heads",
+   "entities": {
+    "France": "FR",
+    "Germany": "DE",
+    "Ireland": "IE",
+    "Spain": "ES",
+    "Italy": "IT",
+    "Poland": "PL",
+    "Netherlands": "NL",
+    "Romania": "RO",
+    "Belgium": "BE",
+    "Austria": "AT",
+    "Hungary": "HU",
+    "Czechia": "CZ",
+    "Portugal": "PT",
+    "United Kingdom": "UK"
+   },
+   "out": "data/herd-eu-countries.json",
+   "source": "FAOSTAT cattle stocks (head) by EU member state, via Our World in Data",
+   "note": "dairy and beef combined, same limitation as the aggregate"
+  },
+  {
+   "name": "eu-vet-countries",
+   "provider": "eurostat",
+   "dataset": "aact_eaa01",
+   "params": {
+    "am_item": "AM205000",
+    "unit": "MIO_EUR",
+    "geo": [
+     "FR",
+     "DE",
+     "IE",
+     "PL",
+     "ES",
+     "IT",
+     "NL",
+     "BE",
+     "AT",
+     "RO",
+     "HU",
+     "CZ",
+     "PT",
+     "UK"
+    ]
+   },
+   "out": "data/eu-vet-countries.json",
+   "source": "Eurostat EAA veterinary expenses by member state, million EUR, ALL livestock",
+   "note": "all livestock, not cattle only"
+  },
+  {
+   "name": "broiler-price-fao",
+   "provider": "csv",
+   "url": "https://faostatservices.fao.org/api/v1/en/data/PP?area=59,103,112,118,121,173,179,194,221,223,225&element=5532&item=1058&year=1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025&show_codes=true&show_unit=true&null_values=false&output_type=csv",
+   "group_col": "Area",
+   "key_col": "Year",
+   "value_col": "Value",
+   "out": "data/broiler-price-fao.json",
+   "source": "FAOSTAT producer prices, meat of chickens, USD/tonne",
+   "note": "annual; farm-gate producer price; coverage varies by country"
+  },
+  {
+   "name": "feed-maize-fao",
+   "provider": "csv",
+   "url": "https://faostatservices.fao.org/api/v1/en/data/PP?area=59,103,112,118,121,173,179,194,221,223,225&element=5532&item=56&year=1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025&show_codes=true&show_unit=true&null_values=false&output_type=csv",
+   "group_col": "Area",
+   "key_col": "Year",
+   "value_col": "Value",
+   "out": "data/feed-maize-fao.json",
+   "source": "FAOSTAT producer prices, maize (corn), USD/tonne",
+   "note": "proxy for feed cost; Gulf states import feed so producer price may not exist"
+  },
+  {
+   "name": "feed-wheat-fao",
+   "provider": "csv",
+   "url": "https://faostatservices.fao.org/api/v1/en/data/PP?area=59,103,112,118,121,173,179,194,221,223,225&element=5532&item=15&year=1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025&show_codes=true&show_unit=true&null_values=false&output_type=csv",
+   "group_col": "Area",
+   "key_col": "Year",
+   "value_col": "Value",
+   "out": "data/feed-wheat-fao.json",
+   "source": "FAOSTAT producer prices, wheat, USD/tonne",
+   "note": "backup feed proxy where maize is missing"
+  },
+  {
+   "name": "pl-agri-out-idx",
+   "provider": "eurostat",
+   "dataset": "apri_pi20_outm",
+   "params": {
+    "geo": "PL"
+   },
+   "out": "data/pl-agri-out-idx.json",
+   "source": "Eurostat monthly agricultural output price index, Poland",
+   "note": "discover first: need the poultry product code"
+  },
+  {
+   "name": "pl-agri-in-idx",
+   "provider": "eurostat",
+   "dataset": "apri_pi20_inm",
+   "params": {
+    "geo": "PL"
+   },
+   "out": "data/pl-agri-in-idx.json",
+   "source": "Eurostat monthly agricultural input price index, Poland",
+   "note": "discover first: need the feedingstuffs product code"
+  }
+ ]
 }
