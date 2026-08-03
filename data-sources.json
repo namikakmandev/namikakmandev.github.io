@@ -232,7 +232,8 @@
    "value_col": "Value",
    "out": "data/pp-items-pl.json",
    "source": "FAOSTAT producer prices, every item reported by Poland (USD/tonne)",
-   "note": "one-off probe: which commodities does this country actually report"
+   "note": "one-off probe, done - see data/pp-items-*.json; disabled to keep cron light",
+   "enabled": false
   },
   {
    "name": "pp-items-tr",
@@ -249,7 +250,8 @@
    "value_col": "Value",
    "out": "data/pp-items-tr.json",
    "source": "FAOSTAT producer prices, every item reported by Türkiye (USD/tonne)",
-   "note": "one-off probe: which commodities does this country actually report"
+   "note": "one-off probe, done - see data/pp-items-*.json; disabled to keep cron light",
+   "enabled": false
   },
   {
    "name": "pp-items-ae",
@@ -266,7 +268,8 @@
    "value_col": "Value",
    "out": "data/pp-items-ae.json",
    "source": "FAOSTAT producer prices, every item reported by United Arab Emirates (USD/tonne)",
-   "note": "one-off probe: which commodities does this country actually report"
+   "note": "one-off probe, done - see data/pp-items-*.json; disabled to keep cron light",
+   "enabled": false
   },
   {
    "name": "pp-items-iq",
@@ -283,7 +286,8 @@
    "value_col": "Value",
    "out": "data/pp-items-iq.json",
    "source": "FAOSTAT producer prices, every item reported by Iraq (USD/tonne)",
-   "note": "one-off probe: which commodities does this country actually report"
+   "note": "one-off probe, done - see data/pp-items-*.json; disabled to keep cron light",
+   "enabled": false
   },
   {
    "name": "pp-items-jo",
@@ -300,7 +304,8 @@
    "value_col": "Value",
    "out": "data/pp-items-jo.json",
    "source": "FAOSTAT producer prices, every item reported by Jordan (USD/tonne)",
-   "note": "one-off probe: which commodities does this country actually report"
+   "note": "one-off probe, done - see data/pp-items-*.json; disabled to keep cron light",
+   "enabled": false
   },
   {
    "name": "pp-items-kw",
@@ -317,7 +322,8 @@
    "value_col": "Value",
    "out": "data/pp-items-kw.json",
    "source": "FAOSTAT producer prices, every item reported by Kuwait (USD/tonne)",
-   "note": "one-off probe: which commodities does this country actually report"
+   "note": "one-off probe, done - see data/pp-items-*.json; disabled to keep cron light",
+   "enabled": false
   },
   {
    "name": "pp-items-om",
@@ -334,7 +340,25 @@
    "value_col": "Value",
    "out": "data/pp-items-om.json",
    "source": "FAOSTAT producer prices, every item reported by Oman (USD/tonne)",
-   "note": "one-off probe: which commodities does this country actually report"
+   "note": "one-off probe, done - see data/pp-items-*.json; disabled to keep cron light",
+   "enabled": false
+  },
+  {
+   "name": "broiler-price-fao-bio",
+   "provider": "csv",
+   "url": "https://bulks-faostat.fao.org/production/Prices_E_All_Data_(Normalized).zip",
+   "zip_member": "Prices_E_All_Data_(Normalized).csv",
+   "filters": {
+    "Item": "Meat of chickens, fresh or chilled (biological)",
+    "Element Code": "5532",
+    "Months Code": "7021"
+   },
+   "group_col": "Area",
+   "key_col": "Year",
+   "value_col": "Value",
+   "out": "data/broiler-price-fao-bio.json",
+   "source": "FAOSTAT producer prices, meat of chickens (biological/live-weight basis), USD/tonne",
+   "note": "PL, IQ, JO and post-2012 TR report on this basis - NOT level-comparable with the carcass item"
   }
  ]
 }
