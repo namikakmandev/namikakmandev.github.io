@@ -153,8 +153,10 @@ Animal health spends nearly half of revenue on manufacturing. Prices follow
 input costs, which fell — producer prices declined 4% real over the same 20
 years. Four decades without pricing above inflation, at the factory gate.
 
-Conclusion: benchmark within the segment. The two industries look alike but
-are built differently.
+Conclusion: human pharma sells innovation, priced ahead of cost to fund the
+next product. Animal health sells production, priced near cost, earning
+through volume and efficiency. So benchmark within the segment — the two
+look alike but are different businesses.
 
 Full method and sources in the document.
 
