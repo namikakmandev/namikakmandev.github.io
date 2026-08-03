@@ -192,8 +192,10 @@ def json_source(entry):
             dd, mm, yy = k.split("/")
             k = f"{yy}-{mm}-{dd}"
         v = r.get(entry["value_col"])
-        if isinstance(v, str):  # e.g. "€187.50" — strip currency, thousands sep
-            m = num.search(v.replace("€", "").replace(",", ""))
+        if isinstance(v, str):  # "€187.50" but also "€165,88" (decimal comma)
+            v = v.replace("€", "").strip()
+            v = v.replace(",", ".") if ("," in v and "." not in v) else v.replace(",", "")
+            m = num.search(v)
             v = m.group() if m else None
         try:
             g = str(r.get(entry.get("group_col"), "ALL")) if entry.get("group_col") else "ALL"
