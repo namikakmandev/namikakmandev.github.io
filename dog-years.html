@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dog Years, Properly — the 7× rule is wrong</title>
+<meta name="description" content="The 7-year rule for dog age is a myth. The peer-reviewed epigenetic formula (16 × ln(age) + 31) says a 1-year-old dog is already ~31 in human terms. Interactive calculator included.">
+<style>
+  :root{
+    --surface:#1a1a19;
+    --page:#0d0d0d;
+    --ink:#ffffff;
+    --ink-2:#c3c2b7;
+    --muted:#898781;
+    --grid:#2c2c2a;
+    --baseline:#383835;
+    --sci:#3987e5;          /* science curve */
+    --myth:#d95926;         /* the 7x myth */
+    --accent:#eda100;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--page);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;padding:24px 8px 60px;
+  }
+  /* 4:5 portrait card — screenshot this card for LinkedIn (1080×1350) */
+  .card{
+    width:1080px;max-width:100%;
+    background:var(--surface);
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:8px;
+    padding:56px 64px 40px;
+  }
+  .kicker{font-size:15px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:46px;font-weight:800;line-height:1.08;margin:10px 0 6px}
+  h1 .dim{color:var(--ink-2);font-weight:600}
+  .sub{font-size:19px;color:var(--ink-2);max-width:880px;line-height:1.45}
+  .hero-row{display:flex;gap:44px;align-items:baseline;margin:24px 0 6px}
+  .hero .v{font-size:52px;font-weight:800}
+  .hero .l{font-size:14px;color:var(--muted);margin-top:2px;max-width:250px;line-height:1.35}
+
+  .legend{display:flex;gap:24px;margin:12px 0 0;font-size:15px;color:var(--ink-2)}
+  .legend span{display:flex;align-items:center;gap:8px}
+  .legend i{width:22px;height:3px;border-radius:2px;display:inline-block}
+  .legend i.dash{background:none;border-top:3px dashed var(--myth);height:0}
+
+  svg{display:block;width:100%;height:auto;margin-top:6px}
+  .ax{font-size:13px;fill:var(--muted)}
+  .axlab{font-size:13px;fill:var(--ink-2)}
+  .dlab{font-size:15px;font-weight:700;fill:var(--ink)}
+
+  .stages{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;margin-top:20px;border-radius:8px;overflow:hidden}
+  .stages div{background:rgba(255,255,255,.04);padding:12px 14px;text-align:center}
+  .stages .a{font-size:20px;font-weight:800;color:var(--sci)}
+  .stages .b{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.35}
+
+  .verdict{
+    margin-top:24px;padding:18px 22px;border-radius:8px;
+    background:rgba(57,135,229,.10);border:1px solid rgba(57,135,229,.35);
+    font-size:17px;line-height:1.5;color:var(--ink);
+  }
+  .verdict b{color:#86b6ef}
+  .src{
+    margin-top:22px;padding-top:16px;border-top:1px solid var(--grid);
+    font-size:11.5px;line-height:1.55;color:var(--muted);
+  }
+  .brand{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:13px;color:var(--ink-2)}
+  .brand b{color:var(--ink)}
+
+  /* interactive calculator — deliberately OUTSIDE the screenshot card */
+  .calc{
+    width:1080px;max-width:100%;margin-top:28px;
+    background:var(--surface);border:1px solid rgba(255,255,255,.10);border-radius:8px;
+    padding:34px 64px 40px;
+  }
+  .calc h2{font-size:26px;font-weight:800;margin-bottom:6px}
+  .calc p.h{font-size:16px;color:var(--ink-2);margin-bottom:22px}
+  .calc .out{display:flex;gap:44px;align-items:baseline;margin:18px 0 10px;flex-wrap:wrap}
+  .calc .big{font-size:64px;font-weight:800;color:var(--sci);line-height:1}
+  .calc .big small{display:block;font-size:14px;color:var(--muted);font-weight:400;margin-top:6px}
+  .calc .alt{font-size:30px;font-weight:700;color:var(--myth);line-height:1}
+  .calc .alt small{display:block;font-size:14px;color:var(--muted);font-weight:400;margin-top:6px}
+  .calc .stage{font-size:20px;font-weight:700;line-height:1}
+  .calc .stage small{display:block;font-size:14px;color:var(--muted);font-weight:400;margin-top:6px}
+  input[type=range]{width:100%;accent-color:var(--sci);margin-top:10px}
+  .rowlab{display:flex;justify-content:space-between;font-size:14px;color:var(--ink-2)}
+  .ticks2{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
+  @media (max-width:760px){
+    .card,.calc{padding:28px 20px}
+    h1{font-size:30px} .hero .v{font-size:34px}
+    .stages{grid-template-columns:repeat(2,1fr)}
+    .calc .big{font-size:44px}
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="kicker">Pet Data · Dog Years, Properly</div>
+  <h1>Your dog is older than you think.<br><span class="dim">And the “multiply by 7” rule is simply wrong.</span></h1>
+  <p class="sub">Scientists mapped chemical marks on dog DNA against human DNA and produced a real conversion. It is not a straight line — dogs sprint through youth, then age slowly.</p>
+
+  <div class="hero-row">
+    <div class="hero"><div class="v" style="color:var(--sci)">31</div><div class="l">human-equivalent years of a <b>1-year-old</b> dog — not 7</div></div>
+    <div class="hero"><div class="v">62</div><div class="l">a 7-year-old dog is already middle-aged, heading into senior care</div></div>
+    <div class="hero"><div class="v" style="color:var(--myth)">×7</div><div class="l">the old rule: too young early, too old late — wrong at both ends</div></div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--sci)"></i>Epigenetic formula (Wang et al., 2020)</span>
+    <span><i class="dash"></i>The “×7” myth</span>
+  </div>
+
+  <svg id="plot" viewBox="0 0 940 400" role="img" aria-label="Human-equivalent age versus dog age: the science curve rises steeply then flattens, while the times-seven myth is a straight line."></svg>
+
+  <div class="stages" id="stages"></div>
+
+  <div class="verdict">
+    <b>This is not trivia — it is a care calendar.</b> A dog covers three human decades in its first year, which is why early-life vaccination, nutrition and neutering decisions matter so much. And a 7-year-old dog at ~62 human years is why senior screening should start years before most owners think to ask for it.
+  </div>
+
+  <div class="src">
+    <b>Source &amp; method</b> · Wang, T. et al., “Quantitative Translation of Dog-to-Human Aging by Conserved Remodeling of the DNA Methylome”, <i>Cell Systems</i> 11(2), 2020 (UC San Diego School of Medicine). Formula: human-equivalent age = 16 × ln(dog age in years) + 31. Built from DNA-methylation profiles of 104 Labrador Retrievers (4 weeks–16 years) aligned to 320 humans (1–103 years). <b>Limits:</b> derived from a single breed, so it does not capture breed-size effects — large breeds age faster and live shorter lives than small ones; the curve is undefined below ~1 month. The “×7” rule has no scientific basis; it is a rule of thumb of unknown origin.
+  </div>
+  <div class="brand"><span><b>Namik Akman</b> · namikakmandev.github.io</span><span>Where the data tells the strategy</span></div>
+</div>
+
+<div class="calc">
+  <h2>How old is your dog, really?</h2>
+  <p class="h">Drag the slider — the numbers update live.</p>
+  <div class="rowlab"><span>Dog’s age</span><span id="dogage" style="color:var(--ink);font-weight:700">3.0 years</span></div>
+  <input id="slider" type="range" min="0.2" max="16" step="0.1" value="3">
+  <div class="ticks2"><span>2 mo</span><span>4 yr</span><span>8 yr</span><span>12 yr</span><span>16 yr</span></div>
+  <div class="out">
+    <div><div class="big" id="human">48.6</div><small>human-equivalent years (epigenetic formula)</small></div>
+    <div><div class="alt" id="mythv">21</div><small>what the “×7” rule would have said</small></div>
+    <div><div class="stage" id="stage">Adult</div><small>life stage</small></div>
+  </div>
+</div>
+
+<script>
+const H = d => 16*Math.log(d) + 31;      // Wang et al. 2020
+const M = d => 7*d;                       // the myth
+const stageOf = h => h < 20 ? "Puppy / juvenile" : h < 45 ? "Young adult" : h < 62 ? "Adult" : h < 72 ? "Mature" : "Senior";
+
+/* ---- chart ---- */
+const W=940, HT=400, L=64, R=26, T=18, B=48;
+const XMIN=0.25, XMAX=16, YMIN=0, YMAX=115;
+const px = d => L + (d-XMIN)/(XMAX-XMIN)*(W-L-R);
+const py = v => T + (1-(v-YMIN)/(YMAX-YMIN))*(HT-T-B);
+let s = '';
+// gridlines + y ticks
+[0,25,50,75,100].forEach(v=>{
+  s += `<line x1="${L}" y1="${py(v)}" x2="${W-R}" y2="${py(v)}" stroke="var(--grid)" stroke-width="1"/>`;
+  s += `<text class="ax" x="${L-10}" y="${py(v)+4}" text-anchor="end">${v}</text>`;
+});
+// x ticks
+[1,2,4,6,8,10,12,14,16].forEach(d=>{
+  s += `<text class="ax" x="${px(d)}" y="${HT-B+22}" text-anchor="middle">${d}</text>`;
+});
+s += `<text class="axlab" x="${(L+W-R)/2}" y="${HT-4}" text-anchor="middle">Dog’s actual age (years)</text>`;
+s += `<text class="axlab" transform="translate(16,${(T+HT-B)/2}) rotate(-90)" text-anchor="middle">Human-equivalent age (years)</text>`;
+s += `<line x1="${L}" y1="${py(0)}" x2="${W-R}" y2="${py(0)}" stroke="var(--baseline)" stroke-width="1"/>`;
+
+// myth line (dashed, secondary encoding beyond color)
+s += `<line x1="${px(XMIN)}" y1="${py(M(XMIN))}" x2="${px(16)}" y2="${py(M(16))}" stroke="var(--myth)" stroke-width="2" stroke-dasharray="8 6" stroke-linecap="round"/>`;
+// science curve
+let pts=[];
+for(let d=XMIN; d<=16.001; d+=0.05) pts.push(`${px(d).toFixed(1)},${py(H(d)).toFixed(1)}`);
+s += `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--sci)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+// selective direct labels only
+[[1,'1 yr → 31'],[7,'7 yr → 62'],[15,'15 yr → 74']].forEach(([d,txt],i)=>{
+  s += `<circle cx="${px(d)}" cy="${py(H(d))}" r="5" fill="var(--sci)" stroke="var(--surface)" stroke-width="2"/>`;
+  s += `<text class="dlab" x="${px(d)+(i===2?-8:10)}" y="${py(H(d))-12}" text-anchor="${i===2?'end':'start'}">${txt}</text>`;
+});
+s += `<text class="dlab" fill="var(--myth)" x="${px(14.4)}" y="${py(M(14.4))-14}" text-anchor="end">“×7” says 105</text>`;
+document.getElementById('plot').innerHTML = s;
+
+/* ---- life-stage strip ---- */
+document.getElementById('stages').innerHTML = [
+  [1,'A 1-year-old dog is already a young adult'],
+  [4,'Four years in, and the curve is flattening'],
+  [7,'Seven years: senior screening territory'],
+  [12,'Twelve years — but only ~71 in human terms'],
+].map(([d,t])=>`<div><div class="a">${d} yr → ${H(d).toFixed(0)}</div><div class="b">${t}</div></div>`).join('');
+
+/* ---- interactive calculator ---- */
+const sl=document.getElementById('slider');
+function upd(){
+  const d=+sl.value;
+  document.getElementById('dogage').textContent = d<1 ? `${Math.round(d*12)} months` : `${d.toFixed(1)} years`;
+  document.getElementById('human').textContent = H(d).toFixed(1);
+  document.getElementById('mythv').textContent = M(d).toFixed(1);
+  document.getElementById('stage').textContent = stageOf(H(d));
+}
+sl.addEventListener('input',upd); upd();
+</script>
+</body>
+</html>
