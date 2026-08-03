@@ -131,33 +131,43 @@ LinkedIn uses a proportional font, so column alignment would collapse.
 
 ---
 
-A human medicine and an animal medicine can contain the same molecule.
+In my last post I looked at 44 years of the price of the active ingredient —
+the powder every medicine starts from — and found that, adjusted for
+inflation, it got about 45% cheaper in the US. I ended with a question: if
+the ingredient got cheaper, why didn't the medicine? This post is the answer.
 
-Over twenty years, one price rose 75% in real terms. The other fell.
+I went through the last three annual reports of eight companies: four human
+pharma, three animal health, plus Merck, which I kept separate because it's
+a mix of both. Here is where $100 of revenue goes, median of each group:
 
-Why? Not greed. Not efficiency. Anatomy. I read it in eight companies' own
-SEC filings.
+Where $100 of revenue goes (FY2023–25):
 
-WHERE $100 OF REVENUE GOES (median, FY2023–25)
-━━━━━━━━━━━━━━━━━━━━
-R&D .................. Human $19 | Animal $7
-Cost of goods ... Human $30 | Animal $45
-SG&A ............... Human $21 | Animal $25
-Remainder ....... Human $30 | Animal $23
-━━━━━━━━━━━━━━━━━━━━
+R&D — human 19, animal 7
+Cost of goods — human 30, animal 45
+SG&A — human 21, animal 25
+What's left — human 30, animal 23
 
-→ The human price buys SCIENCE. It must rise — today's price funds the next
-molecule. +75% real in 20 years.
+These are two very different businesses wearing the same industry code.
 
-→ The animal price buys MANUFACTURING. It follows input costs — which fell.
-−4% real, same 20 years. Forty years without out-pricing inflation: a
-fairness story, sitting in a government data series.
+A human medicine's price mostly pays for science. About a fifth of every
+dollar goes to R&D, and today's price has to fund the next molecule. That is
+why human pharma prices rose about 75% in real terms over the last twenty
+years.
 
-One takeaway: never benchmark animal health against human-pharma norms, or
-the reverse. You'd be comparing different animals.
+An animal medicine's price mostly pays for manufacturing. Nearly half of
+every dollar goes to making the product, so the price follows input costs —
+and as we saw last week, those inputs got cheaper. Veterinary prices actually
+fell about 4% in real terms over the same twenty years. Four decades without
+out-pricing inflation is a fairness story that has been sitting in a
+government statistics series all along.
 
-Full anatomy, sources and method in the carousel. SEC EDGAR 10-Ks, BLS price
-indexes, inflation-adjusted, medians of small groups — all stated.
+My takeaway after doing this exercise: don't benchmark an animal health
+company against human pharma norms, or the other way around. You'd be
+comparing different animals.
+
+All numbers, sources and method are in the carousel. SEC filings and BLS
+price indexes, inflation adjusted. The samples are small — four and three
+companies — so everything is a median, and stated as such.
 
 ---
 
