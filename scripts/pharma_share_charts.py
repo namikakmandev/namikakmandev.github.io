@@ -206,8 +206,95 @@ def chart_size_vs_share():
     save(fig, "04_size_vs_share.png")
 
 
+# ---------------------------------------------- 5: the world that has data
+def merged_world():
+    """Eurostat share_gva for Europe + STAN share_gva elsewhere.
+
+    STAN replaces Eurostat for IE (Eurostat confidential after 2014) and TR
+    (Eurostat has one year); adds GBR and the non-European OECD world.
+    Validated: 10 of 11 dual-source countries match within ±0.15 pp;
+    Switzerland kept on the Eurostat figure with the divergence disclosed.
+    """
+    stan = json.load(open(os.path.join(ROOT, "data", "pharma-share-stan.json")))["shares"]
+    out = {}
+    for geo, rows in share.items():
+        if geo in EXCLUDE or geo in ("IE", "TR"):
+            continue
+        y = max(int(k) for k in rows if rows[k]["share_gva"])
+        out[geo] = (NAMES.get(geo, geo), y, rows[str(y)]["share_gva"], "EU")
+    for geo, rows in stan.items():
+        y = max(int(k) for k in rows)
+        name = {"USA": "United States", "JPN": "Japan", "KOR": "South Korea",
+                "CAN": "Canada", "MEX": "Mexico", "AUS": "Australia",
+                "CHL": "Chile", "COL": "Colombia", "CRI": "Costa Rica",
+                "ISR": "Israel", "GBR": "United Kingdom", "TUR": "Türkiye",
+                "IRL": "Ireland"}[geo]
+        out[geo] = (name, y, rows[str(y)]["share_gva"], "STAN")
+    return out, stan
+
+
+def chart_world_ranking():
+    data, _ = merged_world()
+    rows = sorted(data.items(), key=lambda kv: kv[1][2])
+    fig, ax = plt.subplots(figsize=(11.8, 12.2))
+    fig.subplots_adjust(left=0.24, top=0.88)
+    names = [f"{v[0]}" for _, v in rows]
+    vals = [v[2] for _, v in rows]
+    colors = [ORANGE if g in ("TUR",) else
+              (AQUA if v[3] == "STAN" else BLUE) for g, v in rows]
+    bars = ax.barh(names, vals, color=colors, height=0.62, zorder=3)
+    for (g, v), b in zip(rows, bars):
+        ax.annotate(f"{v[2]:.2f}%  ·  {v[1]}",
+                    (v[2], b.get_y() + b.get_height() / 2),
+                    xytext=(5, 0), textcoords="offset points",
+                    color=INK if g in ("DK", "CH", "IRL", "USA", "JPN", "TUR") else INK2,
+                    fontsize=10, va="center")
+    ax.set_xscale("log")
+    ax.set_xticks([0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 17])
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}%"))
+    ax.grid(axis="y", visible=False)
+    ax.tick_params(axis="y", labelsize=10.5)
+    title(fig, "Pharma share of the economy — 42 countries, most recent year each",
+          "C21 value added ÷ total value added, current prices, log scale. "
+          "Bar label: share · year.\nBlue: Eurostat · aqua: OECD STAN · orange: Türkiye")
+    save(fig, "05_world_ranking.png")
+
+
+def chart_world_trajectories():
+    _, stan = merged_world()
+    fig, ax = plt.subplots(figsize=(12.6, 7.0))
+
+    def s(geo):
+        rows = stan[geo]
+        ys = sorted(int(y) for y in rows)
+        return ys, [rows[str(y)]["share_gva"] for y in ys]
+
+    for geo in ("CAN", "MEX", "AUS", "CHL", "COL", "CRI"):
+        ys, vs = s(geo)
+        ax.plot(ys, vs, color=MUTED, lw=1.0, alpha=0.55, zorder=1)
+    focus = [("USA", BLUE, "United States"), ("KOR", AQUA, "South Korea"),
+             ("JPN", ORANGE, "Japan"), ("GBR", YELLOW, "United Kingdom")]
+    for geo, c, label in focus:
+        ys, vs = s(geo)
+        ax.plot(ys, vs, color=c, lw=2.4, zorder=3, label=label)
+        ax.annotate(f"{label}  {vs[-1]:.2f}% ({ys[-1]})", (ys[-1], vs[-1]),
+                    xytext=(8, 0), textcoords="offset points",
+                    color=c, fontsize=11.5, fontweight="bold", va="center")
+    ax.set_xlim(1990, 2033)
+    ax.set_ylim(0, 1.35)
+    ax.yaxis.set_major_formatter(pct)
+    title(fig, "The big economies hold pharma near 1% — for thirty years",
+          "C21 value added ÷ total value added, OECD STAN, 1990 → most recent. "
+          "Grey: Canada, Mexico, Australia, Chile, Colombia, Costa Rica")
+    ax.legend(ncols=4, loc="lower left", bbox_to_anchor=(0, 1.0),
+              frameon=False, fontsize=11.5, labelcolor=INK, columnspacing=1.4)
+    save(fig, "06_world_trajectories.png")
+
+
 if __name__ == "__main__":
     chart_trajectories()
     chart_ranked_2023()
     chart_share_of_manufacturing()
     chart_size_vs_share()
+    chart_world_ranking()
+    chart_world_trajectories()

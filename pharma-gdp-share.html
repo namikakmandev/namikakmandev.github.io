@@ -4,23 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Pharma States of Europe — 30 Years of Pharma's Share of GDP — Namık Akman</title>
-  <meta name="description" content="Thirty years of Eurostat national accounts across 30 European countries: for most economies pharma is half a percent of GDP and never moves — while Denmark, Switzerland and Ireland became pharma states." />
+  <meta name="description" content="Eurostat + OECD STAN across 42 countries, Europe to the Americas and Asia-Pacific: in every big economy pharma manufacturing holds near 1% of the economy for thirty years — the 5–17% weights exist only where one industry became the economy." />
 
   <!-- Open Graph (LinkedIn, Facebook, Slack, WhatsApp) -->
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="Namık Akman" />
   <meta property="og:title" content="The Pharma States of Europe — 30 Years of Pharma's Share of GDP" />
-  <meta property="og:description" content="Eurostat national accounts, 30 countries, 1995–2025. The median country: pharma is 0.5% of GDP and hasn't moved in 30 years. Denmark: 0.8% → 8.7%, and nearly half of all manufacturing." />
+  <meta property="og:description" content="Eurostat + OECD STAN, 42 countries. Median country: pharma is 0.5% of GDP, flat for 30 years — the US holds 0.87%, Japan 0.66%. Denmark: 0.8% → 8.7%, Ireland 16.7%. Concentration, not pharma, is the phenomenon." />
   <meta property="og:url" content="https://namikakmandev.github.io/pharma-gdp-share.html" />
   <meta property="og:image" content="https://namikakmandev.github.io/assets/pharma-study/01_share_trajectories.png" />
   <meta property="og:image:width" content="1386" />
   <meta property="og:image:height" content="770" />
-  <meta property="og:image:alt" content="Line chart, 1995–2025: pharma share of GDP for 30 European countries. Denmark rises from 0.8% to 8.7%, Switzerland from 2.1% to 6.7%; a grey mass of countries stays below 1%." />
+  <meta property="og:image:alt" content="Line chart, 1995–2025: pharma share of GDP. Denmark rises from 0.8% to 8.7%, Switzerland from 2.1% to 6.7%; a grey mass of countries stays below 1%." />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="The Pharma States of Europe — 30 Years of Pharma's Share of GDP" />
-  <meta name="twitter:description" content="Eurostat national accounts, 30 countries, 1995–2025. The median country: 0.5% of GDP, flat for 30 years. Denmark: 0.8% → 8.7%." />
+  <meta name="twitter:description" content="Eurostat + OECD STAN, 42 countries. Every big economy holds pharma near 1% for 30 years; the pharma states are all small: Ireland 16.7%, Denmark 9.8%, Switzerland 6.9%." />
   <meta name="twitter:image" content="https://namikakmandev.github.io/assets/pharma-study/01_share_trajectories.png" />
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
@@ -111,13 +111,15 @@
           years change the answer? I pulled Eurostat's national accounts for 30 European
           countries, 1995–2025: pharma manufacturing value added, total GDP, and total
           manufacturing, all in each country's own currency so no exchange rate touches the
-          ratio. The answer splits Europe into two entirely different stories.
+          ratio. The answer splits Europe into two entirely different stories — and OECD
+          data extends the same measure to the Americas and Asia-Pacific, 42 countries in
+          all, each shown at its most recent available year.
         </p>
 
         <div class="meta">
-          <span><b>Data</b> — Eurostat national accounts (nama_10_a64, nama_10_gdp)</span>
-          <span><b>Sector</b> — NACE C21: pharmaceutical manufacturing</span>
-          <span><b>Scope</b> — 30 countries &middot; 1995–2025 &middot; annual</span>
+          <span><b>Data</b> — Eurostat national accounts + OECD STAN</span>
+          <span><b>Sector</b> — NACE/ISIC C21: pharmaceutical manufacturing</span>
+          <span><b>Scope</b> — 42 countries &middot; 1990–2025 &middot; annual</span>
           <span><b>Method</b> — Python &middot; open pipeline in this repo</span>
         </div>
 
@@ -141,7 +143,7 @@
           <div class="k orange">
             <div class="l">Türkiye, 2023</div>
             <div class="v">0.35%</div>
-            <div class="d">of GDP &middot; &euro;3.6bn (only year published)</div>
+            <div class="d">of GDP &middot; &euro;3.6bn &middot; flat since 2003 (OECD)</div>
           </div>
         </div>
 
@@ -197,8 +199,10 @@
           <strong>Türkiye enters at 0.35% of GDP</strong> — mid-table in absolute size
           (&euro;3.6bn of pharma value added, more than Austria or Poland) but bottom-third
           in weight, and 1.8% of its manufacturing sector. One important honesty note:
-          TurkStat delivered this detail to Eurostat for <em>2023 only</em>, so Türkiye
-          appears in the snapshot but cannot appear in any trajectory in this study.
+          TurkStat delivered this detail to Eurostat for <em>2023 only</em> — but OECD STAN
+          carries a Turkish C21 series for 2003–2021, and it says the weight has been
+          essentially flat: 0.49% of total value added in 2003, 0.34% in 2021. The snapshot
+          is not a young sector's first data point; it is a two-decade plateau.
         </p>
 
         <!-- ================= 3: SHARE OF MANUFACTURING ================ -->
@@ -243,6 +247,50 @@
           fails.
         </p>
 
+        <!-- ================= 5: BEYOND EUROPE ================ -->
+        <h2>5. Beyond Europe <span class="accent">— the Americas and Asia-Pacific join the chart</span></h2>
+        <p>
+          Is the "flat mass below 1%" a European quirk? OECD STAN publishes the same
+          industry (ISIC C21) against the same denominator for the OECD world, and the two
+          sources agree almost perfectly where they overlap — 10 of 11 dual-covered
+          countries match to within a rounding error. Merging them (each country at its
+          <strong>most recent available year</strong>, labelled on every bar):
+        </p>
+
+        <div class="chart">
+          <img src="assets/pharma-study/05_world_ranking.png" alt="Horizontal bar chart of 42 countries, pharma share of total value added on a log scale, each bar labelled with its share and its year. Ireland 16.7% (2023) leads, then Denmark 9.81% (2025) and Switzerland 6.87% (2024). United Kingdom 0.95% (2023), United States 0.87% (2023), South Korea 0.77% (2023), Japan 0.66% (2022), Mexico 0.51% (2024), Canada 0.27% (2024), Australia 0.17% (2023).">
+          <div class="chart-cap">Pharma share of total-economy value added, log scale, most recent year per country (2020–2025, labelled per bar). Blue bars: Eurostat. Aqua: OECD STAN — which also restores the two series Eurostat truncates: Ireland (16.7% in 2023) and Türkiye (2003–21).</div>
+        </div>
+
+        <p>
+          The answer: <strong>no country outside Europe reaches even 1%</strong>. The
+          United States — home of the world's largest pharma companies by revenue — keeps
+          pharma <em>manufacturing</em> at 0.87% of its economy; the United Kingdom at
+          0.95%, South Korea 0.77%, Japan 0.66%, Canada 0.27%, Australia 0.17%. And these
+          are not snapshots that might have caught a bad year:
+        </p>
+
+        <div class="chart">
+          <img src="assets/pharma-study/06_world_trajectories.png" alt="Line chart 1990 to 2024: pharma share of total value added for the United States, United Kingdom, South Korea and Japan, all oscillating between 0.5% and 1.1% for the entire period. Grey context lines for Canada, Mexico, Australia, Chile, Colombia and Costa Rica sit lower, between 0.1% and 0.7%.">
+          <div class="chart-cap">Thirty-four years of the same chart: the world's biggest economies hold pharma manufacturing in a narrow band around 1% — through the genomics boom, biologics, and COVID. Korea is the only clear structural riser outside Europe.</div>
+        </div>
+
+        <p>
+          This sharpens the European story instead of diluting it. A big diversified
+          economy keeps pharma near 1% — apparently a law of large economies, holding from
+          Washington to Tokyo for three decades. The 5–17% weights exist only in small
+          economies that let one industry become the economy: Ireland, Denmark,
+          Switzerland. <strong>Concentration, not pharma, is the phenomenon.</strong>
+        </p>
+        <p class="dim">
+          What this section honestly cannot show: China, India and Brazil. They are not in
+          OECD STAN, and no source publishes pharma manufacturing value added against a
+          national-accounts total on the same definition for them — India's official series
+          covers only registered factories, China publishes gross output rather than value
+          added. Any "pharma share of China's GDP" figure you see quoted is built on a
+          different measure, and does not belong on this chart.
+        </p>
+
         <!-- ================= WHAT TO DO ================ -->
         <div class="recs">
           <h3>What to do with this — three readings</h3>
@@ -258,12 +306,13 @@
               over). Watch Slovenia and Hungary as the next candidates: both already carry
               2–7&times; the manufacturing share of their GDP peers. What would change this:
               C21 share of manufacturing stalling below 15% for Slovenia through 2027.</li>
-            <li><b>If you read this from Türkiye:</b> the single published data point says
-              the sector is mid-sized in euros but underweight at home (0.35% of GDP vs the
-              0.54% median) — and the more actionable gap is statistical: one year of data
-              means no trajectory, no trend, no case. The first ask is for TurkStat to
-              publish the C21 back-series; the growth argument can only be made after it
-              exists.</li>
+            <li><b>If you read this from Türkiye:</b> the sector is mid-sized in euros but
+              underweight at home (0.35% of GDP vs the 0.54% median) — and the OECD
+              back-series removes the optimistic excuse: this is not a young sector still
+              ramping, it has held 0.3–0.5% for two decades while Korea, a fair peer,
+              climbed from 0.68% to 0.77% and built global biosimilar champions. The gap is
+              strategy, not statistics — though TurkStat publishing C21 for 2022+ (the OECD
+              series stops in 2021) is still worth asking for.</li>
           </ol>
         </div>
 
@@ -294,6 +343,22 @@
             Iceland: published C21 value added is negative from 2017 and is excluded.
             Türkiye: 2023 only, as delivered to Eurostat. Norway's coverage starts 1975 but
             its pharma sector is tiny (0.16%).
+          </p>
+          <p>
+            <strong>The world extension (section 5).</strong> OECD STAN
+            (<code>DSD_STAN@DF_STAN_2025</code>): ISIC C21 value added &divide; total-economy
+            value added, current prices, national currency — the like-for-like denominator
+            both sources publish, so world bars are shares of <em>total value added</em>,
+            which run slightly higher than shares of GDP (GDP adds product taxes on top).
+            Validation: of 11 countries in both sources, 10 agree within &plusmn;0.15&nbsp;pp
+            at matched years. The exception is Switzerland (OECD 4.8% vs Eurostat 6.5% in
+            2022) — the chart keeps the Eurostat figure and you should treat the Swiss level
+            as uncertain within that range. Ireland and Türkiye switch to the OECD series
+            (Eurostat suppresses or lacks them). Excluded as collection breaks, not
+            economics: New Zealand (C21 drops 299&rarr;11 MNZD between 2017 and 2018) and
+            Colombia's 2020–21 observations (4,315&rarr;193&rarr;1,222&rarr;5,422 bn COP).
+            Each country is shown at its most recent available year, 2020–2025, labelled on
+            the bar — reproducible from <code>data/pharma-share-stan.json</code>.
           </p>
           <p>
             <strong>Want the pipeline, or this analysis for another sector?</strong>
