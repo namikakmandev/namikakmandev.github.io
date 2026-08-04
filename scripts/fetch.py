@@ -16,7 +16,7 @@ Providers: fred | eurostat | owid | csv
 Every run writes data/_fetch-report.json recording what each source returned, so a
 silent zero is visible instead of looking like a real answer.
 """
-import csv, io, json, os, re, sys, urllib.request
+import csv, io, json, os, re, sys, time, urllib.parse, urllib.request
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -162,33 +162,43 @@ def csv_source(entry):
     return dict(out)
 
 
-def stooq(entry):
-    """Stooq end-of-day quotes -> {series_key: {YYYY-MM: close}}. Keyless CSV.
+def yahoo(entry):
+    """Yahoo Finance chart API -> {series_key: {YYYY-MM: adjusted close}}. Keyless JSON.
 
-    entry['series'] maps output key -> stooq symbol (e.g. 'LLY': 'lly.us',
-    S&P 500 is '^spx'). entry['interval']: d/w/m (default m). Closes are
-    split-adjusted but NOT dividend-adjusted — price return only.
+    entry['series'] maps output key -> yahoo symbol (e.g. 'LLY', '^GSPC').
+    entry['interval']: 1d/1wk/1mo (default 1mo); entry['range'] default 'max'.
+    Uses adjclose (split- AND dividend-adjusted = total return); falls back to
+    raw close for indices, which pay no dividends. Stooq was tried first but
+    serves an anti-bot JS challenge to GitHub Actions IPs.
     """
-    interval = entry.get("interval", "m")
+    interval = entry.get("interval", "1mo")
+    rng = entry.get("range", "max")
     out = {}
     disc = {}
     for key, sym in entry["series"].items():
-        raw = get(f"https://stooq.com/q/d/l/?s={sym}&i={interval}").decode()
-        rdr = csv.DictReader(io.StringIO(raw))
-        rows = list(rdr)
+        url = (f"https://query1.finance.yahoo.com/v8/finance/chart/"
+               f"{urllib.parse.quote(sym)}?range={rng}&interval={interval}")
+        j = json.loads(get(url).decode())
+        r = ((j.get("chart") or {}).get("result") or [{}])[0]
+        ind = r.get("indicators") or {}
+        ts = r.get("timestamp") or []
+        adj = ((ind.get("adjclose") or [{}])[0].get("adjclose")) or []
+        raw = ((ind.get("quote") or [{}])[0].get("close")) or []
         if MODE == "discover":
-            disc[key] = {"symbol": sym, "columns": rdr.fieldnames,
-                         "n_rows": len(rows), "first": rows[:2], "last": rows[-2:]}
+            meta = r.get("meta") or {}
+            disc[key] = {"symbol": sym, "result_keys": sorted(r.keys()),
+                         "indicator_keys": sorted(ind.keys()),
+                         "currency": meta.get("currency"),
+                         "n_timestamps": len(ts), "n_adjclose": len(adj),
+                         "first_ts": ts[:2], "last_ts": ts[-2:],
+                         "error": (j.get("chart") or {}).get("error")}
             continue
+        series = adj if any(v is not None for v in adj) else raw
         vals = {}
-        for row in rows:
-            date = (row.get("Date") or "").strip()
-            close = (row.get("Close") or "").strip()
-            if len(date) >= 7 and close:
-                try:
-                    vals[date[:7]] = float(close)
-                except ValueError:
-                    continue
+        for t, v in zip(ts, series):
+            if v is None:
+                continue
+            vals[time.strftime("%Y-%m", time.gmtime(t))] = round(float(v), 4)
         out[key] = vals
     if MODE == "discover":
         return {"_discover": disc}
@@ -196,7 +206,7 @@ def stooq(entry):
 
 
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
-             "stooq": stooq}
+             "yahoo": yahoo}
 
 
 # ----------------------------------------------------------------- runner

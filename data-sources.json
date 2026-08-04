@@ -3,7 +3,7 @@
     "Add a series by adding an entry here — no new script needed.",
     "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
     "Then:            python scripts/fetch.py NAME",
-    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL) | stooq (any stooq symbol)",
+    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL) | yahoo (any yahoo finance symbol)",
     "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
   ],
   "sources": [
@@ -348,25 +348,26 @@
     },
     {
       "name": "glp1-stocks",
-      "provider": "stooq",
-      "interval": "m",
+      "provider": "yahoo",
+      "interval": "1mo",
+      "range": "max",
       "series": {
-        "LLY": "lly.us",
-        "NVO": "nvo.us",
-        "AMGN": "amgn.us",
-        "PFE": "pfe.us",
-        "AZN": "azn.us",
-        "RHHBY": "rhhby.us",
-        "VKTX": "vktx.us",
-        "GPCR": "gpcr.us",
-        "ALT": "alt.us",
-        "ZLDPF": "zldpf.us",
-        "SPX": "^spx",
-        "XBI": "xbi.us"
+        "LLY": "LLY",
+        "NVO": "NVO",
+        "AMGN": "AMGN",
+        "PFE": "PFE",
+        "AZN": "AZN",
+        "RHHBY": "RHHBY",
+        "VKTX": "VKTX",
+        "GPCR": "GPCR",
+        "ALT": "ALT",
+        "ZLDPF": "ZLDPF",
+        "SPX": "^GSPC",
+        "XBI": "XBI"
       },
       "out": "data/glp1-stocks.json",
-      "source": "Stooq monthly closing prices, US listings/ADRs (USD); ^spx = S&P 500 index, XBI = SPDR biotech ETF benchmark",
-      "note": "PRICE return only — split-adjusted, dividends excluded. ADRs (NVO, AZN, RHHBY, ZLDPF) embed FX moves. Metsera (MTSR) excluded: acquired by Pfizer Nov 2025, delisted — survivorship caveat. Zealand only trades OTC in the US (ZLDPF, thin); primary listing is Copenhagen."
+      "source": "Yahoo Finance monthly adjusted closes, US listings/ADRs (USD); ^GSPC = S&P 500 index, XBI = SPDR biotech ETF benchmark",
+      "note": "Adjusted close = split- and dividend-adjusted (total return); index SPX is raw level. ADRs (NVO, AZN, RHHBY, ZLDPF) embed FX moves. Metsera (MTSR) excluded: acquired by Pfizer Nov 2025, delisted — survivorship caveat. Zealand only trades OTC in the US (ZLDPF, thin); primary listing is Copenhagen."
     }
   ]
 }
