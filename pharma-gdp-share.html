@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Pharma States of Europe — 30 Years of Pharma's Share of GDP — Namık Akman</title>
+  <meta name="description" content="Thirty years of Eurostat national accounts across 30 European countries: for most economies pharma is half a percent of GDP and never moves — while Denmark, Switzerland and Ireland became pharma states." />
+
+  <!-- Open Graph (LinkedIn, Facebook, Slack, WhatsApp) -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Namık Akman" />
+  <meta property="og:title" content="The Pharma States of Europe — 30 Years of Pharma's Share of GDP" />
+  <meta property="og:description" content="Eurostat national accounts, 30 countries, 1995–2025. The median country: pharma is 0.5% of GDP and hasn't moved in 30 years. Denmark: 0.8% → 8.7%, and nearly half of all manufacturing." />
+  <meta property="og:url" content="https://namikakmandev.github.io/pharma-gdp-share.html" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/pharma-study/01_share_trajectories.png" />
+  <meta property="og:image:width" content="1386" />
+  <meta property="og:image:height" content="770" />
+  <meta property="og:image:alt" content="Line chart, 1995–2025: pharma share of GDP for 30 European countries. Denmark rises from 0.8% to 8.7%, Switzerland from 2.1% to 6.7%; a grey mass of countries stays below 1%." />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="The Pharma States of Europe — 30 Years of Pharma's Share of GDP" />
+  <meta name="twitter:description" content="Eurostat national accounts, 30 countries, 1995–2025. The median country: 0.5% of GDP, flat for 30 years. Denmark: 0.8% → 8.7%." />
+  <meta name="twitter:image" content="https://namikakmandev.github.io/assets/pharma-study/01_share_trajectories.png" />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    /* Case-study layout — same system as the SaaS pricing study */
+    .study { padding: 32px 0 64px; }
+    .study .container { max-width: 880px; }
+    .study .back { color: var(--text-dim); font-size: .9rem; }
+    .study .back:hover { color: var(--text); text-decoration: none; }
+    .study h1 { font-size: 2.1rem; line-height: 1.18; letter-spacing: -.015em; margin: 14px 0 10px; }
+    .study .lede { color: var(--text-dim); font-size: 1.1rem; line-height: 1.55; margin-bottom: 22px; max-width: 760px; }
+    .study .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--text-dim); font-size: .85rem;
+                   border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+                   padding: 12px 0; margin-bottom: 32px; }
+    .study .meta b { color: var(--text); font-weight: 600; }
+    .study h2 { font-size: 1.35rem; margin: 40px 0 14px; letter-spacing: -.01em; }
+    .study h2 .accent { color: var(--accent-2); }
+    .study h3 { font-size: 1.05rem; margin: 26px 0 10px; color: var(--text); }
+    .study p { margin: 0 0 16px; color: var(--text); }
+    .study ul.bullets { margin: 0 0 18px 22px; padding: 0; }
+    .study ul.bullets li { margin-bottom: 8px; color: var(--text); }
+
+    .chart { background: var(--surface); border: 1px solid var(--border);
+             border-radius: var(--radius); padding: 14px; margin: 22px 0 8px; }
+    .chart img { width: 100%; height: auto; border-radius: 8px; }
+    .chart-cap { color: var(--text-dim); font-size: .85rem; margin: 8px 4px 4px; }
+
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0 30px; }
+    .kpis .k { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+    .kpis .k .l { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+    .kpis .k .v { font-size: 1.55rem; font-weight: 700; margin-top: 4px; letter-spacing: -.01em; }
+    .kpis .k.green .v { color: var(--accent-2); }
+    .kpis .k.orange .v { color: var(--accent-3); }
+    .kpis .k.blue .v { color: var(--accent); }
+    .kpis .k .d { font-size: .82rem; color: var(--text-dim); margin-top: 4px; }
+
+    .pullquote { border-left: 3px solid var(--accent-2); padding: 6px 18px; margin: 24px 0;
+                 font-size: 1.05rem; color: var(--text); line-height: 1.55; }
+    .pullquote.orange { border-left-color: var(--accent-3); }
+
+    .recs { background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 22px 24px; margin: 28px 0 18px; }
+    .recs h3 { margin-top: 0; color: var(--accent); }
+    .recs ol { margin: 10px 0 0 22px; }
+    .recs ol li { margin-bottom: 14px; }
+    .recs ol li b { color: var(--text); }
+
+    table.tbl { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: .92rem; }
+    table.tbl th, table.tbl td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    table.tbl th { color: var(--text-dim); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+    table.tbl th.num, table.tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    table.tbl tr.hi td { background: rgba(25, 195, 125, 0.06); }
+
+    .footnote { color: var(--text-dim); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 36px; }
+    .footnote a { color: var(--accent); }
+    .footnote code { font-size: .82rem; color: var(--text); }
+
+    @media (max-width: 720px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .study h1 { font-size: 1.65rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="projects.html" class="back">&larr; Back to projects</a>
+
+        <h1>The pharma states of Europe. <span style="color:var(--text-dim);font-weight:500;">Thirty years of pharma's share of GDP.</span></h1>
+        <p class="lede">
+          How big is the pharmaceutical industry inside a national economy — and does thirty
+          years change the answer? I pulled Eurostat's national accounts for 30 European
+          countries, 1995–2025: pharma manufacturing value added, total GDP, and total
+          manufacturing, all in each country's own currency so no exchange rate touches the
+          ratio. The answer splits Europe into two entirely different stories.
+        </p>
+
+        <div class="meta">
+          <span><b>Data</b> — Eurostat national accounts (nama_10_a64, nama_10_gdp)</span>
+          <span><b>Sector</b> — NACE C21: pharmaceutical manufacturing</span>
+          <span><b>Scope</b> — 30 countries &middot; 1995–2025 &middot; annual</span>
+          <span><b>Method</b> — Python &middot; open pipeline in this repo</span>
+        </div>
+
+        <!-- ================= HEADLINE KPIs ================ -->
+        <div class="kpis">
+          <div class="k blue">
+            <div class="l">Denmark, share of GDP</div>
+            <div class="v">0.8&rarr;8.7%</div>
+            <div class="d">1995 &rarr; 2025</div>
+          </div>
+          <div class="k green">
+            <div class="l">Denmark, share of manufacturing</div>
+            <div class="v">49%</div>
+            <div class="d">2025 — nearly half</div>
+          </div>
+          <div class="k">
+            <div class="l">Median country, 2023</div>
+            <div class="v">0.54%</div>
+            <div class="d">of GDP — flat for 30 years</div>
+          </div>
+          <div class="k orange">
+            <div class="l">Türkiye, 2023</div>
+            <div class="v">0.35%</div>
+            <div class="d">of GDP &middot; &euro;3.6bn (only year published)</div>
+          </div>
+        </div>
+
+        <!-- ================= 1: THE TWO EUROPES ================ -->
+        <h2>1. Two Europes <span class="accent">— the flat mass and the risers</span></h2>
+        <p>
+          Start with the whole picture: every country's pharma manufacturing value added as
+          a share of its own GDP, every year since 1995.
+        </p>
+
+        <div class="chart">
+          <img src="assets/pharma-study/01_share_trajectories.png" alt="Line chart, 1995–2025. A grey mass of ~25 country lines stays below 1.5% of GDP the whole period. Four highlighted lines rise: Denmark from 0.8% to 8.7%, Switzerland from 2.1% to 6.7%, Slovenia to 2.7%, Belgium to 2.3%. A dashed Ireland line peaks at 12.8% in 2002 and is suppressed after 2014.">
+          <div class="chart-cap">Pharma manufacturing (NACE C21) gross value added &divide; GDP, current prices, national currency, 1995–2025. Grey: the other 25 countries. Ireland is real but Eurostat suppresses its C21 series after 2014 for confidentiality — the dashed line ends where the data does.</div>
+        </div>
+
+        <p>
+          The grey mass is the honest headline for most of the continent: in the median
+          European country pharma manufacturing is about <strong>half a percent of GDP —
+          0.54% in 2023</strong> — and that number has barely moved in thirty years. The
+          big four economies are all in the mass: Germany went 0.52% &rarr; 0.61% since 1995,
+          France 0.60% &rarr; 0.55%, Italy 0.50% &rarr; 0.53%, Spain 0.54% &rarr; 0.58%.
+          Thirty years of blockbuster drugs, biotech waves and COVID, and pharma's weight in
+          Europe's large economies is exactly where it started.
+        </p>
+        <p>
+          And then there are the risers. <strong>Denmark went from 0.8% of GDP to 8.7%</strong> —
+          a tenfold gain in weight, with more than half of it arriving in just three years
+          (+35%, +49%, +35% year-on-year growth in pharma value added in 2022–24 — the
+          GLP-1/Ozempic years). <strong>Switzerland climbed from 2.1% to 6.7%</strong> over the
+          same period — slower, steadier, and driven by two giants rather than one.
+          Slovenia (2.7%) and Belgium (2.3%) are the quieter members of the club.
+        </p>
+
+        <div class="pullquote">
+          Between 2019 and 2024, pharma manufacturing alone accounted for roughly
+          <strong>one in four kroner of Denmark's entire nominal GDP growth</strong>.
+          One industry — arguably one company.
+        </div>
+
+        <!-- ================= 2: THE RANKING ================ -->
+        <h2>2. The full ranking <span class="accent">— where every country stands</span></h2>
+        <p>
+          The most recent year with data for nearly everyone is 2023. Ranked:
+        </p>
+
+        <div class="chart">
+          <img src="assets/pharma-study/02_ranked_2023.png" alt="Horizontal bar chart, pharma share of GDP in 2023 for 28 countries. Denmark 6.54% and Switzerland 6.07% tower over the rest. Slovenia 2.48%, Belgium 2.42%, Hungary 1.17%, then a long tail from Netherlands 0.94% down to Estonia 0.06%. Türkiye highlighted in orange at 0.35%.">
+          <div class="chart-cap">Pharma share of GDP, 2023, all countries with data. Ireland's series ends in 2014 (suppressed); Iceland is excluded because its published C21 value added turns negative from 2017. Türkiye in orange.</div>
+        </div>
+
+        <p>
+          Two countries sit above 6%; two more above 2%; everyone else is below 1.2%.
+          <strong>Türkiye enters at 0.35% of GDP</strong> — mid-table in absolute size
+          (&euro;3.6bn of pharma value added, more than Austria or Poland) but bottom-third
+          in weight, and 1.8% of its manufacturing sector. One important honesty note:
+          TurkStat delivered this detail to Eurostat for <em>2023 only</em>, so Türkiye
+          appears in the snapshot but cannot appear in any trajectory in this study.
+        </p>
+
+        <!-- ================= 3: SHARE OF MANUFACTURING ================ -->
+        <h2>3. The sharper lens <span class="accent">— pharma as a share of all manufacturing</span></h2>
+        <p>
+          Share of GDP understates how concentrated this story is, because GDP is mostly
+          services everywhere. Divide pharma by <em>manufacturing</em> value added instead
+          and the concentration becomes hard to overstate:
+        </p>
+
+        <div class="chart">
+          <img src="assets/pharma-study/03_share_of_manufacturing.png" alt="Line chart 1995–2025 of pharma as a share of total manufacturing value added. Denmark reaches 49%, Switzerland 35%, Belgium 20%, Slovenia 14%. Grey context lines for Germany, France, Italy, Spain, Netherlands, Austria, Poland, Czechia, Hungary all stay below about 10%.">
+          <div class="chart-cap">C21 &divide; total manufacturing (NACE C) gross value added. In 1995 pharma was 5% of Danish manufacturing; in 2025 it is 49%.</div>
+        </div>
+
+        <div class="pullquote orange">
+          Nearly <strong>half of Danish manufacturing is now one industry</strong>. That is
+          a national industrial strategy, a currency-policy problem (the krone shadows an
+          economy increasingly unlike the eurozone's), and a single-company risk
+          concentration — all in one chart.
+        </div>
+
+        <!-- ================= 4: SIZE VS WEIGHT ================ -->
+        <h2>4. Size is not weight <span class="accent">— the Germany paradox</span></h2>
+        <p>
+          A ranking by <em>share</em> hides that the biggest pharma producers are still the
+          big economies. Put absolute size (in euros, log scale) against weight in the
+          domestic economy:
+        </p>
+
+        <div class="chart">
+          <img src="assets/pharma-study/04_size_vs_share.png" alt="Scatter plot: pharma value added in euros (x, log scale) vs share of own GDP (y), 2023. Denmark (€24bn, 6.5%) and Switzerland (€52bn, 6.1%) sit top right. Germany (€26bn) sits far right but at only 0.61% of GDP. Türkiye in orange at €3.6bn and 0.35%.">
+          <div class="chart-cap">Each dot is a country, 2023. Germany produces almost as much pharma value as Denmark — and it rounds to nothing inside the German economy.</div>
+        </div>
+
+        <p>
+          In 2023 Germany and Denmark produced almost exactly the same amount of pharma
+          value added — &euro;26bn and &euro;24bn. In Germany that is 0.61% of the economy;
+          in Denmark it is 6.5%. The exact same industry is a rounding error in one country
+          and the national growth engine in another. That asymmetry — not the size of the industry — is what decides how much a
+          country's macro numbers, currency and politics move when one molecule succeeds or
+          fails.
+        </p>
+
+        <!-- ================= WHAT TO DO ================ -->
+        <div class="recs">
+          <h3>What to do with this — three readings</h3>
+          <ol>
+            <li><b>If you analyse economies:</b> never quote "pharma's share of GDP" as one
+              European number — the median (0.54%) and the pharma states (6–9%) are different
+              universes. And check Denmark-style concentration before trusting any Danish,
+              Swiss or Irish macro aggregate: through 2026, ex-pharma GDP is the more
+              informative series. What would change this: two consecutive years of Danish
+              pharma GVA growing slower than Danish GDP.</li>
+            <li><b>If you work in pharma strategy:</b> the risers are supply-side stories —
+              a country can multiply its pharma weight in a decade (Denmark did it twice
+              over). Watch Slovenia and Hungary as the next candidates: both already carry
+              2–7&times; the manufacturing share of their GDP peers. What would change this:
+              C21 share of manufacturing stalling below 15% for Slovenia through 2027.</li>
+            <li><b>If you read this from Türkiye:</b> the single published data point says
+              the sector is mid-sized in euros but underweight at home (0.35% of GDP vs the
+              0.54% median) — and the more actionable gap is statistical: one year of data
+              means no trajectory, no trend, no case. The first ask is for TurkStat to
+              publish the C21 back-series; the growth argument can only be made after it
+              exists.</li>
+          </ol>
+        </div>
+
+        <!-- ================= SOURCES ================ -->
+        <div class="footnote">
+          <p>
+            <strong>Sources.</strong> Eurostat <code>nama_10_a64</code> (gross value added by
+            A*64 industry, NACE C21 = manufacture of basic pharmaceutical products and
+            pharmaceutical preparations; and NACE C = total manufacturing) and
+            <code>nama_10_gdp</code> (GDP at market prices), annual, current prices, million
+            units of national currency; EUR versions used only for cross-country size, never
+            for shares. Span used: 1995–2025 (2024–25 values are first releases and may be
+            revised). Data fetched 4 Aug 2026 via <code>scripts/fetch.py</code>; every figure
+            on this page is reproducible from <code>data/pharma-share.json</code> in this
+            repository.
+          </p>
+          <p>
+            <strong>Caveats — read before quoting.</strong> NACE C21 is pharma
+            <em>manufacturing</em> only: it excludes pharmacies, wholesale, and R&amp;D booked
+            in separate service-sector entities, so this measures where pharma <em>production
+            value</em> sits, not the industry's full footprint. No deflator is needed —
+            each share is nominal-over-nominal in the same currency, so inflation and
+            exchange rates cancel. Denmark's figures include value added from production
+            Danish companies contract out abroad ("factoryless" production counts in Danish
+            national accounts) — the share is genuinely in Danish GDP, but the factories are
+            not all in Denmark. Ireland: Eurostat suppresses C21 after 2014 (confidentiality
+            — the sector is dominated by a handful of firms); its dashed line ends honestly.
+            Iceland: published C21 value added is negative from 2017 and is excluded.
+            Türkiye: 2023 only, as delivered to Eurostat. Norway's coverage starts 1975 but
+            its pharma sector is tiny (0.16%).
+          </p>
+          <p>
+            <strong>Want the pipeline, or this analysis for another sector?</strong>
+            <a href="contact.html">Get in touch</a>.
+          </p>
+        </div>
+
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Built with plain HTML, CSS &amp; JavaScript</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=28"></script>
+</body>
+</html>
