@@ -162,7 +162,41 @@ def csv_source(entry):
     return dict(out)
 
 
-PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source}
+def stooq(entry):
+    """Stooq end-of-day quotes -> {series_key: {YYYY-MM: close}}. Keyless CSV.
+
+    entry['series'] maps output key -> stooq symbol (e.g. 'LLY': 'lly.us',
+    S&P 500 is '^spx'). entry['interval']: d/w/m (default m). Closes are
+    split-adjusted but NOT dividend-adjusted — price return only.
+    """
+    interval = entry.get("interval", "m")
+    out = {}
+    disc = {}
+    for key, sym in entry["series"].items():
+        raw = get(f"https://stooq.com/q/d/l/?s={sym}&i={interval}").decode()
+        rdr = csv.DictReader(io.StringIO(raw))
+        rows = list(rdr)
+        if MODE == "discover":
+            disc[key] = {"symbol": sym, "columns": rdr.fieldnames,
+                         "n_rows": len(rows), "first": rows[:2], "last": rows[-2:]}
+            continue
+        vals = {}
+        for row in rows:
+            date = (row.get("Date") or "").strip()
+            close = (row.get("Close") or "").strip()
+            if len(date) >= 7 and close:
+                try:
+                    vals[date[:7]] = float(close)
+                except ValueError:
+                    continue
+        out[key] = vals
+    if MODE == "discover":
+        return {"_discover": disc}
+    return out
+
+
+PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
+             "stooq": stooq}
 
 
 # ----------------------------------------------------------------- runner

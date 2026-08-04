@@ -3,7 +3,7 @@
     "Add a series by adding an entry here — no new script needed.",
     "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
     "Then:            python scripts/fetch.py NAME",
-    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL)",
+    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL) | stooq (any stooq symbol)",
     "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
   ],
   "sources": [
@@ -345,6 +345,28 @@
       "out": "data/pharma-mirror.json",
       "source": "Eurostat Comext DS-045409 — EU27 imports by partner and HS4, EUR: what non-EU producers ship into the EU",
       "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
+    },
+    {
+      "name": "glp1-stocks",
+      "provider": "stooq",
+      "interval": "m",
+      "series": {
+        "LLY": "lly.us",
+        "NVO": "nvo.us",
+        "AMGN": "amgn.us",
+        "PFE": "pfe.us",
+        "AZN": "azn.us",
+        "RHHBY": "rhhby.us",
+        "VKTX": "vktx.us",
+        "GPCR": "gpcr.us",
+        "ALT": "alt.us",
+        "ZLDPF": "zldpf.us",
+        "SPX": "^spx",
+        "XBI": "xbi.us"
+      },
+      "out": "data/glp1-stocks.json",
+      "source": "Stooq monthly closing prices, US listings/ADRs (USD); ^spx = S&P 500 index, XBI = SPDR biotech ETF benchmark",
+      "note": "PRICE return only — split-adjusted, dividends excluded. ADRs (NVO, AZN, RHHBY, ZLDPF) embed FX moves. Metsera (MTSR) excluded: acquired by Pfizer Nov 2025, delisted — survivorship caveat. Zealand only trades OTC in the US (ZLDPF, thin); primary listing is Copenhagen."
     }
   ]
 }
