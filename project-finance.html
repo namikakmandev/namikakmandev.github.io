@@ -123,7 +123,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
   <button id="tourBtn" type="button" title="Step-by-step guided walkthrough of the model">🧭 Guided tour</button>
   <a id="ccLink" href="company-check.html" title="Upload a company's balance sheet & P&L — ratios, Z-score, credit verdict"
      style="margin-left:8px;background:#222834;color:#d3d7df;border:1px solid #2A3040;border-radius:16px;padding:5px 12px;font:600 12px system-ui;text-decoration:none">🏢 Company Check</a>
-  <div class="env"><span class="dot"></span><span id="envText">annual model · ₺</span></div>
+  <div class="env"><span class="dot"></span><span id="envText">semi-annual debt · USD view</span></div>
 </div>
 <style>
   #tourBtn{margin-left:14px;background:#2F9BFF;color:#fff;border:0;border-radius:16px;padding:5px 13px;font:600 12px system-ui;cursor:pointer}
@@ -164,7 +164,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
    {el:function(){return document.querySelector('.kpis');}, t:'The verdict at a glance',
     d:function(){return 'Eight headline metrics, always live. <b>Project IRR '+g('k-pirr')+'</b> is what the asset earns by itself; <b>Equity IRR '+g('k-eirr')+'</b> is the sponsor’s return after debt — the gap between them is what leverage adds. <b>Min DSCR '+g('k-dscr')+'</b> is the lender’s test: the tightest year’s cash cover of debt service.';}},
    {el:function(){return document.querySelector('.panel.left');}, t:'Every assumption is a dial',
-    d:'The whole deal is defined here: capex, <b>non-EPC costs</b> (land, fees, advisory), <b>opex during construction</b>, timing, gearing, the ₺ and USD debt tranches, revenue, opex, tax and hurdles. Change any number — every chart and metric recomputes instantly. Note the <b>goal seek</b> hints: max gearing at the DSCR target, and the revenue needed to hit the equity hurdle.'},
+    d:'The whole deal is defined here: capex and its <b>drawdown schedule</b>, <b>non-EPC costs</b> (land, fees, pre-COD G&amp;A), gearing — applied to <b>total uses</b> — the ₺ and USD debt tranches, <b>payment frequency</b>, the revenue model (<b>traffic × tariff</b> for the toll road), opex, tax, and <b>WACC / cost of equity built from components</b>. Change any number — every chart and metric recomputes instantly. Note the <b>goal seek</b> hints: max gearing at the DSCR target, and the revenue needed to hit the equity hurdle.'},
    {el:function(){return document.querySelector('.presets');}, t:'Three ready-made deals',
     d:'Toll Road, Solar PV, and a Hospital PPP tuned as an <b>FX-risk teaching case</b> — heavy USD debt against lira-capped revenue. Use them as starting points and adjust.'},
    {el:function(){return card('Milestones');}, t:'Timeline & payment conditions',
@@ -172,7 +172,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
    {el:function(){return card('Macro Projection');}, t:'The macro engine (OVP)',
     d:'Türkiye’s official medium-term programme drives the model: inflation, the commercial ₺ rate and USD/TRY flow through <b>every single year</b>. Beyond the official table, USD/TRY is extrapolated by the inflation differential — relative purchasing-power parity, the standard long-run assumption.'},
    {el:function(){return card('Sources & Uses');}, t:'Sources & Uses — the funding plan',
-    d:function(){return 'The <b>USES</b> — capex, non-EPC, pre-COD opex, construction insurance, financing fees, capitalised interest (IDC), plus an FX-revaluation line when part of the debt is in USD — total '+g('u-tot')+'. They are funded by three <b>SOURCES</b>: a ₺ bank tranche, a USD tranche, and sponsor equity. The bar shows the debt/equity split; the tag confirms the plan balances.';}},
+    d:function(){return 'The <b>USES</b> — capex, non-EPC costs, construction insurance, financing fees, capitalised interest (IDC) and the <b>DSRA pre-funding</b>, plus an FX-revaluation line when part of the debt is in USD — total '+g('u-tot')+'. They are funded by three <b>SOURCES</b>: a ₺ bank tranche, a USD tranche, and sponsor equity — <b>debt is sized as gearing × total uses</b>, the bottom line of this table. The bar shows the debt/equity split; the tag confirms the plan balances.';}},
    {el:function(){return card('Drawdown');}, t:'How the build is paid for',
     d:'Year by year: how much is drawn, how much interest accrues, and who funds it. IDC is <b>capitalised</b> — rolled into the loan rather than paid in cash — so the debt share of funding climbs each construction year. That is why debt at COD is bigger than the debt share of capex.'},
    {el:function(){return card('Currency Mismatch');}, t:'The classic infrastructure risk',
@@ -246,10 +246,10 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       <div class="grp-t">Project</div>
       <div class="f"><label>Project name</label><div class="wrap"><input type="text" id="name" value="Toll Road Project"></div></div>
       <div class="f"><label>Total investment (Capex)</label><div class="wrap"><input type="text" id="capex" value="5,000,000,000"><span class="suf">₺</span></div></div>
-      <div class="f"><label>Non-EPC costs <small>% of capex · development, land, fees</small></label><div class="wrap"><input type="number" id="nonEpcPct" value="8" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
-      <div class="f"><label>Opex during construction <small>% of capex · pre-COD</small></label><div class="wrap"><input type="number" id="opexConstrPct" value="2" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Non-EPC costs <small>% of capex · land, fees, pre-COD G&amp;A</small></label><div class="wrap"><input type="number" id="nonEpcPct" value="10" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f" id="f-insc"><label>Insurance · construction <small>CAR/DSU · % of capex</small></label><div class="wrap"><input type="number" id="insConstrPct" value="1" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Construction period</label><div class="wrap"><input type="number" id="constr" value="3" class="has-suf-yil"><span class="suf">yrs</span></div></div>
+      <div class="f"><label>Capex schedule <small>drawdown profile over construction</small></label><select id="capexProfile"><option value="linear">Linear (even)</option><option value="scurve" selected>S-curve (mid-heavy)</option><option value="front">Front-loaded</option><option value="back">Back-loaded</option></select></div>
       <div class="f"><label>Operating period <small>concession/operation</small></label><div class="wrap"><input type="number" id="opyears" value="25" class="has-suf-yil"><span class="suf">yrs</span></div></div>
       <div class="f"><label>Terminal value <small>% of capex</small></label><div class="wrap"><input type="number" id="tv" value="15" class="has-suf"><span class="suf">%</span></div></div>
     </div>
@@ -262,12 +262,13 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       <div class="f"><label>USD debt share <small>FX tranche of debt</small></label><div class="wrap"><input type="number" id="usdDebtShare" value="50" step="5" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>USD debt rate <small>FX tranche interest</small></label><div class="wrap"><input type="number" id="usdDebtRate" value="8" step="0.1" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Debt tenor <small>operating years</small></label><div class="wrap"><input type="number" id="tenor" value="15" class="has-suf-yil"><span class="suf">yrs</span></div></div>
+      <div class="f"><label>Payment frequency <small>debt service · model timestep</small></label><select id="payFreq"><option value="1">Annual</option><option value="2" selected>Semi-annual</option><option value="4">Quarterly</option></select></div>
       <div class="f" id="f-draworder"><label>Drawdown order <small>construction funding</small></label><select id="drawOrder"><option value="prorata">Pro-rata (debt + equity together)</option><option value="equityfirst">Equity first, then debt</option></select></div>
       <div class="f" id="f-feearr"><label>Arrangement fee <small>% of facility · at close</small></label><div class="wrap"><input type="number" id="feeArr" value="2" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f" id="f-feecom"><label>Commitment fee <small>% p.a. on undrawn</small></label><div class="wrap"><input type="number" id="feeCommit" value="0.5" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
       <div class="f"><label>Repayment</label><select id="repay"><option value="sculpt">DSCR-targeted</option><option value="annuity">Annuity (level)</option></select></div>
       <div class="f"><label>Target DSCR</label><div class="wrap"><input type="number" id="dscr" value="1.30" step="0.05"></div></div>
-      <div class="f"><label>DSRA <small>reserve, months of debt service</small></label><div class="wrap"><input type="number" id="dsraMonths" value="6" step="1" class="has-suf"><span class="suf">mo</span></div></div>
+      <div class="f"><label>DSRA <small>pre-funded at close · months of DS</small></label><div class="wrap"><input type="number" id="dsraMonths" value="6" step="1" class="has-suf"><span class="suf">mo</span></div></div>
     </div>
 
     <div class="grp">
@@ -278,11 +279,23 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
     </div>
 
     <div class="grp">
-      <div class="grp-t">Revenue</div>
-      <div class="f"><label>Annual revenue <small>full capacity</small></label><div class="wrap"><input type="text" id="rev0" value="900,000,000"><span class="suf">₺</span></div></div>
-      <div class="gs-hint" title="Goal seek: the full-capacity annual revenue that brings Equity IRR up to your hurdle rate."><span class="gs-tag">goal seek</span><span>for equity hurdle:</span> <b id="gs-rev-v">—</b> <a id="gsApplyR">use this →</a></div>
+      <div class="grp-t">Revenue Model</div>
+      <div class="f"><label>Revenue model <small>how operating income is built</small></label><select id="revMode"><option value="simple">Simple — annual revenue</option><option value="traffic" selected>Traffic × tariff (toll road)</option></select></div>
+      <div class="f" id="f-rev0"><label>Annual revenue <small>full capacity</small></label><div class="wrap"><input type="text" id="rev0" value="900,000,000"><span class="suf">₺</span></div></div>
+      <div class="gs-hint" id="gs-rev-hint" title="Goal seek: the full-capacity annual revenue that brings Equity IRR up to your hurdle rate."><span class="gs-tag">goal seek</span><span>for equity hurdle:</span> <b id="gs-rev-v">—</b> <a id="gsApplyR">use this →</a></div>
+      <div id="trafficFields" style="display:none">
+        <div class="f"><label>Cars · traffic <small>vehicles/day (AADT)</small></label><div class="wrap"><input type="number" id="t1n" value="20000" step="500"></div></div>
+        <div class="f"><label>Cars · tariff <small>per transit, start-year prices</small></label><div class="wrap"><input type="number" id="t1p" value="75" step="5" class="has-suf"><span class="suf">₺</span></div></div>
+        <div class="f"><label>Bus / minibus · traffic <small>vehicles/day</small></label><div class="wrap"><input type="number" id="t2n" value="1500" step="100"></div></div>
+        <div class="f"><label>Bus / minibus · tariff</label><div class="wrap"><input type="number" id="t2p" value="120" step="5" class="has-suf"><span class="suf">₺</span></div></div>
+        <div class="f"><label>Trucks / HGV · traffic <small>vehicles/day</small></label><div class="wrap"><input type="number" id="t3n" value="3000" step="100"></div></div>
+        <div class="f"><label>Trucks / HGV · tariff</label><div class="wrap"><input type="number" id="t3p" value="260" step="5" class="has-suf"><span class="suf">₺</span></div></div>
+        <div class="f"><label>Traffic growth <small>per year</small></label><div class="wrap"><input type="number" id="trafGrowth" value="3" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+        <div class="f"><label>Tariff escalation <small>periodic update rule</small></label><select id="tariffEsc"><option value="cpi">CPI — OVP inflation path</option><option value="fixed">Fixed % (₺ escalation below)</option></select></div>
+        <div class="f"><label>Revenue share <small>to public authority</small></label><div class="wrap"><input type="number" id="revShare" value="0" step="1" class="has-suf"><span class="suf">%</span></div></div>
+      </div>
       <div class="f"><label>Year-1 ramp-up</label><div class="wrap"><input type="number" id="ramp" value="70" class="has-suf"><span class="suf">%</span></div></div>
-      <div class="f"><label>₺ revenue escalation <small>non-USD share</small></label><div class="wrap"><input type="number" id="esc" value="6" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>₺ revenue escalation <small>non-USD share · simple / fixed</small></label><div class="wrap"><input type="number" id="esc" value="6" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
     </div>
 
     <div class="grp">
@@ -295,9 +308,12 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
     </div>
 
     <div class="grp">
-      <div class="grp-t">Discount Rates</div>
-      <div class="f"><label>Project discount <small>NPV (unlevered)</small></label><div class="wrap"><input type="number" id="disc" value="10" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
-      <div class="f"><label>Equity hurdle <small>NPV (levered)</small></label><div class="wrap"><input type="number" id="discE" value="15" step="0.5" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="grp-t">WACC &amp; Cost of Equity <span class="pill">USD nominal</span></div>
+      <div class="f"><label>Risk-free rate <small>long USD bond</small></label><div class="wrap"><input type="number" id="rf" value="4.5" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Equity risk premium <small>mature-market ERP</small></label><div class="wrap"><input type="number" id="erp" value="5.5" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="f"><label>Beta <small>levered · sector</small></label><div class="wrap"><input type="number" id="beta" value="1.0" step="0.05"></div></div>
+      <div class="f"><label>Country risk premium <small>Türkiye</small></label><div class="wrap"><input type="number" id="crp" value="4" step="0.25" class="has-suf"><span class="suf">%</span></div></div>
+      <div class="gs-hint" id="wacc-view" style="margin-top:2px" title="CoE = rf + β × ERP + CRP. WACC = (1−gearing) × CoE + gearing × cost of debt × (1−tax). Cost of debt is taken from the USD tranche rate (USD-comparable). Equity NPV discounts at CoE, Project NPV at WACC — both on USD-equivalent cash flows."></div>
     </div>
 
     <div class="grp">
@@ -313,7 +329,7 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
   <!-- ===== RESULTS ===== -->
   <div class="right">
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-      <div class="curtog"><button id="cur-try" type="button" class="on">₺ TRY</button><button id="cur-usd" type="button">$ USD</button></div>
+      <div class="curtog"><button id="cur-try" type="button">₺ TRY</button><button id="cur-usd" type="button" class="on">$ USD</button></div>
     </div>
     <div class="kpis">
       <div class="kpi"><div class="k-l">Project IRR <small>(unlevered)</small></div><div class="k-v" id="k-pirr">—</div><div class="k-d" id="k-pirr-d">asset return</div></div>
@@ -350,11 +366,11 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
         <div class="su-col">
           <h4>Uses</h4>
           <div class="su-row"><span>Construction investment (Capex)</span><span class="v" id="u-capex">—</span></div>
-          <div class="su-row"><span>Non-EPC costs <small>land · fees · advisory</small></span><span class="v" id="u-nonepc">—</span></div>
-          <div class="su-row"><span>Opex during construction <small>pre-COD</small></span><span class="v" id="u-opexc">—</span></div>
+          <div class="su-row"><span>Non-EPC costs <small>land · fees · advisory · pre-COD G&amp;A</small></span><span class="v" id="u-nonepc">—</span></div>
           <div class="su-row"><span>Interest during construction (IDC)</span><span class="v" id="u-idc">—</span></div>
           <div class="su-row" id="u-insc-row"><span>Insurance · construction <small>CAR / DSU</small></span><span class="v" id="u-insc">—</span></div>
           <div class="su-row" id="u-fees-row"><span>Financing fees <small>arrangement + commitment</small></span><span class="v" id="u-fees">—</span></div>
+          <div class="su-row" id="u-dsra-row"><span>DSRA pre-funding <small>at COD · months of DS</small></span><span class="v" id="u-dsra0">—</span></div>
           <div class="su-row" id="u-fxrev-row" style="display:none"><span>FX revaluation <small>USD tranche · draw → COD</small></span><span class="v" id="u-fxrev">—</span></div>
           <div class="su-row tot"><span>Total uses</span><span class="v" id="u-tot">—</span></div>
         </div>
@@ -395,8 +411,8 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       <div id="chart-dscr"></div>
       <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6;border-top:1px dashed var(--line);padding-top:9px">
         <b style="color:var(--ink);font-family:var(--mono)">DSCR = CFADS ÷ DS.</b>
-        <b style="color:var(--ink)">CFADS</b> = Cash Flow Available for Debt Service (EBITDA − tax − maintenance capex);
-        <b style="color:var(--ink)">DS</b> = Debt Service (interest + scheduled principal).
+        <b style="color:var(--ink)">CFADS</b> = Cash Flow Available for Debt Service = <b style="color:var(--ink)">EBITDA − tax</b> (maintenance capex and DSRA movements sit below CFADS, in the equity cash flow);
+        <b style="color:var(--ink)">DS</b> = Debt Service (interest + scheduled principal), paid at the selected payment frequency — with DSCR-targeted sculpting the coverage is flat at the target every year, including year 1.
         A DSCR of 1.30× means operating cash flow covers that year's debt service 1.3 times over — the cushion lenders size the loan against.
       </div>
     </div>
@@ -454,12 +470,18 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
       </div>
     </div>
 
+    <div class="card">
+      <h2>Financial Statements <span class="tag">income statement · cash flow · balance sheet</span></h2>
+      <div class="tbl-wrap" id="fs-body"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6" id="fs-note"></div>
+    </div>
+
     <div id="verdict" class="verdict"></div>
   </div>
 </div>
 
 <div class="note">
-  <b>ProjeFin</b> is an illustrative project finance (PF) model for infrastructure projects. It capitalizes construction-period capex draws and <b>interest during construction (IDC)</b>; in the operating period it models revenue ramp-up/escalation, operating cost, maintenance capex and depreciation-adjusted tax. Debt is split into a <b>₺ tranche</b> and a <b>USD tranche</b>: the USD leg accrues at its own rate and is converted to ₺ at each year's USD/TRY, so a falling lira raises ₺ debt service. <b>FX cover</b> (USD-linked revenue ÷ USD debt service) and the open-FX position show the currency mismatch; a <b>USD/TRY shock</b> stresses it in the tornado and downside case. Debt is repaid either by <b>annuity</b> or <b>sculpted to a target DSCR</b>. Outputs: unlevered <b>Project IRR</b>, levered <b>Equity IRR</b>, NPV, <b>DSCR</b> (min/average) and <b>LLCR</b>. Tax is computed with an interest shield for equity, and without interest for the project (unlevered). All calculations run in the browser, on an annual basis — this is not an official financial model or investment advice.
+  <b>ProjeFin</b> is an illustrative project finance (PF) model for infrastructure projects. Senior debt is sized as <b>gearing × total uses</b> (the Sources &amp; Uses bottom line, including IDC, fees and the DSRA pre-funding); <b>interest during construction (IDC)</b> accrues monthly on the outstanding drawn balance of each tranche following the selected <b>capex schedule</b>. In the operating period revenue comes from a <b>simple annual figure or a traffic × tariff build-up</b> (vehicle categories, traffic growth, CPI- or fixed-escalated tariffs, authority revenue share); debt service runs at the selected <b>payment frequency</b> (semi-annual by default), repaid by <b>annuity</b> or <b>sculpted to a target DSCR</b>. <b>CFADS = EBITDA − tax</b>; maintenance capex and DSRA movements sit below CFADS in the equity cash flow. Debt is split into a <b>₺ tranche</b> and a <b>USD tranche</b>: the USD leg accrues at its own rate and converts to ₺ at each year's USD/TRY, so a falling lira raises ₺ debt service — <b>FX cover</b> and the open-FX position show the mismatch. Outputs: unlevered <b>Project IRR</b>, levered <b>Equity IRR</b>, NPV at a <b>component-built WACC / cost of equity</b> (USD nominal, on USD-equivalent flows), <b>DSCR</b> (min/average), <b>LLCR</b>, and full periodic <b>financial statements</b> (income statement, cash flow, balance sheet). The base display currency is <b>USD</b> — long-horizon ₺ figures are distorted by inflation. All calculations run in the browser — this is not an official financial model or investment advice.
 </div>
 
 <script>
@@ -478,20 +500,21 @@ function shortUSD(v){const a=Math.abs(v),s=v<0?'−':'';
   if(a>=1e6)return s+'$'+trN1.format(a/1e6)+' mn';
   if(a>=1e3)return s+'$'+trN.format(a/1e3)+' k';
   return s+'$'+trN.format(a);}
-let CUR='TRY';                                   // ₺ / USD view
+let CUR='USD';                                   // ₺ / USD view — USD is the base view (long-horizon ₺ figures are distorted by inflation)
 // Format a ₺ amount, converting to USD at that year's USD/TRY (falls back to fxFb if no fx given)
 function M(vTRY, fx){ return CUR==='USD' ? shortUSD(vTRY/((fx||0)>0?fx:1)) : shortM(vTRY); }
 
 const PRESETS={
-  toll:{name:'Toll Road Project',capex:5000000000,nonEpcPct:8,opexConstrPct:2,insConstrPct:1,insOpPct:0.4,constr:3,opyears:25,tv:15,gearing:70,debtRate:9,usdDebtShare:50,usdDebtRate:8,tenor:15,drawOrder:'prorata',feeArr:2,feeCommit:0.5,repay:'sculpt',dscr:1.30,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:40,rev0:900000000,ramp:70,esc:6,opexPct:22,maintPct:4,tax:25,depYears:20,disc:10,discE:15,sensRange:10,dsRev:15,dsCapex:10,dsRate:2,dsFx:30},
-  power:{name:'Solar Power (PV)',capex:2200000000,nonEpcPct:6,opexConstrPct:1,insConstrPct:0.8,insOpPct:0.35,constr:2,opyears:30,tv:5,gearing:75,debtRate:8.5,usdDebtShare:60,usdDebtRate:7.5,tenor:14,drawOrder:'prorata',feeArr:2,feeCommit:0.5,repay:'sculpt',dscr:1.25,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:60,rev0:430000000,ramp:90,esc:4,opexPct:15,maintPct:2,tax:25,depYears:25,disc:9,discE:14,sensRange:10,dsRev:15,dsCapex:10,dsRate:2,dsFx:30},
+  // Toll road: detailed traffic × tariff revenue model, CPI-escalated tariffs, S-curve capex.
+  toll:{name:'Toll Road Project',capex:5000000000,nonEpcPct:10,insConstrPct:1,insOpPct:0.4,constr:3,opyears:25,tv:15,capexProfile:'scurve',gearing:70,debtRate:9,usdDebtShare:50,usdDebtRate:8,tenor:15,payFreq:2,drawOrder:'prorata',feeArr:2,feeCommit:0.5,repay:'sculpt',dscr:1.30,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:40,revMode:'traffic',rev0:900000000,t1n:20000,t1p:75,t2n:1500,t2p:120,t3n:3000,t3p:260,trafGrowth:3,tariffEsc:'cpi',revShare:0,ramp:70,esc:6,opexPct:22,maintPct:4,tax:25,depYears:20,rf:4.5,erp:5.5,beta:1.0,crp:4,sensRange:10,dsRev:15,dsCapex:10,dsRate:2,dsFx:30},
+  power:{name:'Solar Power (PV)',capex:2200000000,nonEpcPct:7,insConstrPct:0.8,insOpPct:0.35,constr:2,opyears:30,tv:5,capexProfile:'linear',gearing:75,debtRate:8.5,usdDebtShare:60,usdDebtRate:7.5,tenor:14,payFreq:2,drawOrder:'prorata',feeArr:2,feeCommit:0.5,repay:'sculpt',dscr:1.25,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:60,revMode:'simple',rev0:430000000,trafGrowth:0,tariffEsc:'cpi',revShare:0,ramp:90,esc:4,opexPct:15,maintPct:2,tax:25,depYears:25,rf:4.5,erp:5.5,beta:0.9,crp:4,sensRange:10,dsRev:15,dsCapex:10,dsRate:2,dsFx:30},
   // FX-mismatch teaching case: lira-capped revenue against heavy USD debt. Annuity so DSCR
   // floats and the lira shock visibly bites; downside isolates FX (other stresses 0).
-  hospital:{name:'City Hospital (PPP)',capex:8000000000,nonEpcPct:10,opexConstrPct:3,insConstrPct:1,insOpPct:0.45,constr:3,opyears:25,tv:5,gearing:70,debtRate:9,usdDebtShare:85,usdDebtRate:7.5,tenor:16,drawOrder:'equityfirst',feeArr:2.5,feeCommit:0.5,repay:'annuity',dscr:1.20,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:15,rev0:1700000000,ramp:95,esc:5,opexPct:28,maintPct:4,tax:25,depYears:25,disc:10,discE:15,sensRange:10,dsRev:0,dsCapex:0,dsRate:0,dsFx:30}
+  hospital:{name:'City Hospital (PPP)',capex:8000000000,nonEpcPct:13,insConstrPct:1,insOpPct:0.45,constr:3,opyears:25,tv:5,capexProfile:'scurve',gearing:70,debtRate:9,usdDebtShare:85,usdDebtRate:7.5,tenor:16,payFreq:2,drawOrder:'equityfirst',feeArr:2.5,feeCommit:0.5,repay:'annuity',dscr:1.20,dsraMonths:6,startYear:2026,rateMode:'fixed',fxRevPct:15,revMode:'simple',rev0:1700000000,trafGrowth:0,tariffEsc:'cpi',revShare:0,ramp:95,esc:5,opexPct:28,maintPct:4,tax:25,depYears:25,rf:4.5,erp:5.5,beta:1.1,crp:4,sensRange:10,dsRev:0,dsCapex:0,dsRate:0,dsFx:30}
 };
 
 const NUMF=['capex','rev0']; // large fields with thousands separators
-const IDS=['name','capex','nonEpcPct','opexConstrPct','insConstrPct','insOpPct','constr','opyears','tv','gearing','debtRate','usdDebtShare','usdDebtRate','tenor','drawOrder','feeArr','feeCommit','repay','dscr','dsraMonths','startYear','rateMode','fxRevPct','rev0','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE','sensRange','dsRev','dsCapex','dsRate','dsFx'];
+const IDS=['name','capex','nonEpcPct','insConstrPct','insOpPct','constr','opyears','tv','capexProfile','gearing','debtRate','usdDebtShare','usdDebtRate','tenor','payFreq','drawOrder','feeArr','feeCommit','repay','dscr','dsraMonths','startYear','rateMode','fxRevPct','revMode','rev0','t1n','t1p','t2n','t2p','t3n','t3p','trafGrowth','tariffEsc','revShare','ramp','esc','opexPct','maintPct','tax','depYears','rf','erp','beta','crp','sensRange','dsRev','dsCapex','dsRate','dsFx'];
 
 function readState(){
   const s={};
@@ -499,9 +522,18 @@ function readState(){
   s.repay=$('repay').value;
   s.drawOrder=$('drawOrder').value;
   s.rateMode=$('rateMode').value;
-  ['constr','opyears','tv','nonEpcPct','opexConstrPct','insConstrPct','insOpPct','gearing','debtRate','usdDebtShare','usdDebtRate','tenor','feeArr','feeCommit','dscr','dsraMonths','startYear','fxRevPct','ramp','esc','opexPct','maintPct','tax','depYears','disc','discE','sensRange','dsRev','dsCapex','dsRate','dsFx']
+  s.capexProfile=$('capexProfile').value;
+  s.revMode=$('revMode').value;
+  s.tariffEsc=$('tariffEsc').value;
+  ['constr','opyears','tv','nonEpcPct','insConstrPct','insOpPct','gearing','debtRate','usdDebtShare','usdDebtRate','tenor','payFreq','feeArr','feeCommit','dscr','dsraMonths','startYear','fxRevPct','t1n','t1p','t2n','t2p','t3n','t3p','trafGrowth','revShare','ramp','esc','opexPct','maintPct','tax','depYears','rf','erp','beta','crp','sensRange','dsRev','dsCapex','dsRate','dsFx']
     .forEach(k=>s[k]=parseFloat(String($(k).value).replace(',','.'))||0);
   NUMF.forEach(k=>s[k]=parseInt(String($(k).value).replace(/\D/g,''))||0);
+  // Cost of Equity built from components (CAPM + country premium) and WACC — both USD nominal.
+  // These replace the old free-input "project discount" / "equity hurdle".
+  const g=Math.min(0.95,Math.max(0,s.gearing/100));
+  const kd=(s.usdDebtShare>0? s.usdDebtRate : s.debtRate)||0;   // USD-comparable cost of debt
+  s.discE=s.rf + s.beta*s.erp + s.crp;                          // CoE
+  s.disc=(1-g)*s.discE + g*kd*(1-(s.tax||0)/100);               // WACC
   return s;
 }
 
@@ -535,13 +567,31 @@ function irr(cfs){
 }
 function npv(cfs,r){let v=0;for(let t=0;t<cfs.length;t++)v+=cfs[t]/Math.pow(1+r,t+1);return v;}
 
+// Capex drawdown schedule → per-construction-year weights (sum = 1)
+function capexWeights(profile,C){
+  if(C<=0) return [];
+  const w=[];
+  for(let y=1;y<=C;y++){
+    let v=1;
+    if(profile==='scurve'){ const x=(y-0.5)/C; v=Math.exp(-Math.pow((x-0.5)/0.28,2)/2); }
+    else if(profile==='front'){ v=C-y+1.5; }
+    else if(profile==='back'){ v=y+0.5; }
+    w.push(v);
+  }
+  const t=w.reduce((a,b)=>a+b,0)||1;
+  return w.map(v=>v/t);
+}
+
 function compute(s){
   const C=Math.max(0,Math.round(s.constr)), O=Math.max(1,Math.round(s.opyears)), N=C+O;
-  const capex=s.capex, gear=Math.min(1,Math.max(0,s.gearing/100));
+  const capex=s.capex, gear=Math.min(0.95,Math.max(0,s.gearing/100));
   const tenor=Math.max(1,Math.round(s.tenor)), taxRate=s.tax/100;
   const tgtD=Math.max(1.0,s.dscr), tvPct=s.tv/100;
   const fxRev=Math.min(1,Math.max(0,s.fxRevPct/100));
   const usdShare=Math.min(1,Math.max(0,(s.usdDebtShare||0)/100));   // FX tranche of debt
+  const m=Math.max(1,Math.round(s.payFreq||2));      // debt-service payments per year (model timestep)
+  const revScale=(s.revScale!=null?s.revScale:1);    // stress multiplier (sensitivity / downside / MC)
+  const startY=Math.round(s.startYear);
   // macro path (by project year)
   const mp=macroPath(s.startYear,N);
   const haveMacro = !!OVP;
@@ -553,172 +603,230 @@ function compute(s){
   // USD tranche rate: fixed manual; rateBump stress applies to both legs
   const usdRateAt=y=> (s.usdDebtRate||0)/100 + (s.rateBump||0)/100;
   // FX shock: a lira devaluation that hits AFTER the debt is drawn (operating years only).
-  // Applying it to construction too would just re-size the USD loan at the shocked rate and
-  // cancel out — the mismatch only bites when the lira falls relative to the rate the USD
-  // debt was contracted at, i.e. from COD onward.
   const fxShk=(s.fxShock||0)/100;
   const fxAt=y=> (haveMacro ? mp[y-1].usdtry : 1) * (y>C ? (1+fxShk) : 1);
-  // Base for USD-linked revenue is the first-operating-year rate BEFORE the shock, so the
-  // shock lifts USD revenue and USD debt service together — the net is the true mismatch.
+  // Base for USD-linked revenue (simple mode) is the first-operating-year rate BEFORE the shock.
   const fxBase = haveMacro ? (mp[Math.min(C,N-1)]?.usdtry||1) : 1;
-  // ---- Development / soft costs funded through construction (Sources & Uses) ----
-  // Beyond the physical build (capex), the funding plan also carries Non-EPC costs
-  // (land, permits, advisory, insurance, financing fees) and pre-COD operating expenses.
-  // Both are drawn evenly across construction and funded at the same gearing as capex,
-  // so they lift the debt/equity envelope and accrue IDC — but they are NOT part of the
-  // depreciable asset base or terminal value (those stay tied to capex).
-  const nonEpc = capex*Math.max(0,s.nonEpcPct||0)/100;
-  const opexC  = capex*Math.max(0,s.opexConstrPct||0)/100;
-  const insC   = capex*Math.max(0,s.insConstrPct||0)/100;   // CAR/EAR + DSU premium, funded like other spend
-  const devCost = nonEpc+opexC+insC;                       // extra uses beyond capex
-  const constrSpend = capex+devCost;                  // total drawn over construction
-  const rows=[];
-  // ---- Construction period: capex + dev-cost draws + IDC ----
-  // Debt is carried as two legs: a ₺ balance and a USD balance (held in USD units, so its
-  // ₺ value re-rates with the FX path). IDC accrues on each leg at its own rate.
-  const capexDrawY=C>0?capex/C:0, nonEpcDrawY=C>0?nonEpc/C:0, opexCDrawY=C>0?opexC/C:0, insCDrawY=C>0?insC/C:0;
-  const drawY=capexDrawY+nonEpcDrawY+opexCDrawY+insCDrawY;
-  // Financing fees: arrangement fee (% of the committed facility, paid at close) plus a
-  // commitment fee accruing on the still-undrawn facility each construction year. Both are
-  // funded through the plan like other spend — a levered (financing) cost, so they hit the
-  // funding plan and equity cash flow but NOT the unlevered project cash flow.
-  const feeA=Math.max(0,s.feeArr||0)/100, feeC2=Math.max(0,s.feeCommit||0)/100;
-  const facility=gear*constrSpend;                    // committed senior facility (excl. IDC)
-  const arrFee=facility*feeA;
-  // Drawdown order: pro-rata funds every lira gear/(1-gear); equity-first spends the sponsor
-  // cheque before drawing debt, so debt (and IDC) starts later — Equity IRR drops, IDC shrinks.
-  const eqFirst = s.drawOrder==='equityfirst';
-  const eqTarget=(1-gear)*(constrSpend+arrFee);
-  let balTRY=0, balUSD=0, equityTot=0, idcTot=0, debtDrawn=0, feesTot=0;
-  let capexUSDacc=0, nonEpcUSDacc=0, opexCUSDacc=0, insCUSDacc=0, feesUSDacc=0;   // per-year USD-equivalent
-  for(let y=1;y<=C;y++){
-    const rT=rateAt(y), rU=usdRateAt(y), fx=fxAt(y);
-    const idcT=balTRY*rT, idcU=balUSD*rU;            // idcU in USD units
-    const idcTryEq=idcT+idcU*fx; idcTot+=idcTryEq;
-    balTRY+=idcT; balUSD+=idcU;
-    const commit= feeC2>0? Math.max(0,facility-debtDrawn)*feeC2 : 0;
-    const feeY=(y===1?arrFee:0)+commit;
-    feesTot+=feeY; if(fx>0) feesUSDacc+=feeY/fx;
-    const spendY=drawY+feeY;
-    let dD,dE;
-    if(eqFirst){ dE=Math.min(spendY,Math.max(0,eqTarget-equityTot)); dD=spendY-dE; }
-    else { dD=spendY*gear; dE=spendY*(1-gear); }
-    balTRY+=dD*(1-usdShare); balUSD+=(fx>0? dD*usdShare/fx : 0);
-    debtDrawn+=dD; equityTot+=dE;
-    if(fx>0){ capexUSDacc+=capexDrawY/fx; nonEpcUSDacc+=nonEpcDrawY/fx; opexCUSDacc+=opexCDrawY/fx; insCUSDacc+=insCDrawY/fx; }
-    const balTot=balTRY+balUSD*fx;
-    rows.push({year:y,cal:Math.round(s.startYear)+y-1,phase:'Construction',rev:0,ebitda:0,interest:idcTryEq,tax:0,ds:0,cfads:0,dscr:null,debtBal:balTot,rate:rT,fx:fx,projCF:-drawY,eqCF:-dE,fees:feeY,usdRev:0,dsUSD:0,fxCover:null,openFX:0});
-  }
-  const fxCOD=fxAt(Math.max(1,C));
-  const usdDebtCODunits=balUSD;                       // FX debt outstanding at COD, in USD
-  const debtCOD=balTRY+balUSD*fxCOD;                  // total debt at transition to operation (₺), incl. IDC
-  // ---- Operating period ----
-  const depYears=Math.max(1,Math.min(Math.round(s.depYears),O));
-  const depPerYear=capex/depYears;
-  let minDSCR=Infinity, sumDSCR=0, nDSCR=0, pvCFADS=0, df=1;
-  let minFxCover=Infinity, sumFxCover=0, nFx=0;
-  let nolLev=0, nolUnlev=0;   // tax loss carry-forward pools (levered / unlevered)
-  for(let k=1;k<=O;k++){
-    const py=C+k, rT=rateAt(py), rU=usdRateAt(py), fx=fxAt(py), ramp=(k===1)?s.ramp/100:1;
-    // revenue: ₺-indexed share escalates; USD-indexed share moves with OVP USD/TRY
-    const tryRev=s.rev0*(1-fxRev)*Math.pow(1+s.esc/100,k-1);
-    const usdRev=s.rev0*fxRev*(fx/fxBase);
-    const rev=(tryRev+usdRev)*ramp;
-    const opIns=capex*Math.max(0,s.insOpPct||0)/100*Math.pow(1+s.esc/100,k-1);   // asset-value based, not revenue based
-    const opex=rev*s.opexPct/100, ebitda=rev-opex-opIns, maint=rev*s.maintPct/100;
-    const dep=(k<=depYears)?depPerYear:0;
-    // interest on each leg (USD leg converted to ₺ at this year's rate)
-    const intTRY=balTRY*rT, intUSDtry=balUSD*rU*fx;
-    const interest=intTRY+intUSDtry;
-    const balUSDtry=balUSD*fx, balTot=balTRY+balUSDtry;
-    const rBlend= balTot>0? interest/balTot : rT;     // effective blended cost of debt
-    // tax with loss carry-forward: negative taxable income builds a pool that shelters later profits
-    let tiL=ebitda-dep-interest, taxLev;
-    if(tiL<=0){ nolLev+=-tiL; taxLev=0; } else { const u=Math.min(nolLev,tiL); nolLev-=u; taxLev=(tiL-u)*taxRate; }
-    let tiU=ebitda-dep, taxUnlev;
-    if(tiU<=0){ nolUnlev+=-tiU; taxUnlev=0; } else { const u=Math.min(nolUnlev,tiU); nolUnlev-=u; taxUnlev=(tiU-u)*taxRate; }
-    const cfads=ebitda-taxLev-maint;
-    let ds=0,principal=0;
-    if(k<=tenor && balTot>1){
-      if(s.repay==='annuity'){
-        const rem=tenor-(k-1);
-        const ann=rBlend>0? balTot*rBlend*Math.pow(1+rBlend,rem)/(Math.pow(1+rBlend,rem)-1) : balTot/rem;
-        principal=Math.min(Math.max(ann-interest,0),balTot);
-      } else {
-        const target=cfads/tgtD;
-        principal=Math.min(Math.max(target-interest,0),balTot);
-      }
-      ds=interest+principal;
+  const fx1=fxAt(1);
+  const wacc=s.disc, coe=s.discE;                    // built from components in readState
+  // CPI price index at project year py, relative to py=1 (compounds OVP inflation from model start)
+  const cpiCache=[1];
+  const cpiIdx=py=>{ while(cpiCache.length<py){ const j=cpiCache.length;
+    const mm=haveMacro?macroFor(startY+j):null; cpiCache.push(cpiCache[j-1]*(1+((mm?mm.infl:(s.esc||0))||0)/100)); }
+    return cpiCache[Math.max(0,py-1)]; };
+  // ---- Operating revenue model ----
+  // 'simple': one full-capacity annual revenue figure, ₺ share escalating, USD share on the FX path.
+  // 'traffic': toll-road build-up — vehicle categories × transits/day × tariff, annual traffic
+  // growth, tariff escalation (CPI per OVP, or fixed %), USD-linked tariff share, and a revenue
+  // share carved out to the public authority. Tariffs are quoted at start-year price levels.
+  const trafficMode = s.revMode==='traffic';
+  const trafBase0 = 365*(((+s.t1n||0)*(+s.t1p||0))+((+s.t2n||0)*(+s.t2p||0))+((+s.t3n||0)*(+s.t3p||0)));
+  function revenueYear(k){          // k = operating year (1..O); returns {rev, usdRev} in ₺
+    const py=C+k, fx=fxAt(py), ramp=(k===1)?s.ramp/100:1;
+    if(trafficMode){
+      const gross=trafBase0*Math.pow(1+(s.trafGrowth||0)/100,k-1);
+      const escIdx=(s.tariffEsc==='fixed'||!haveMacro)? Math.pow(1+(s.esc||0)/100,py-1) : cpiIdx(py);
+      const net=1-Math.min(1,Math.max(0,(s.revShare||0)/100));
+      const tl=gross*(1-fxRev)*escIdx, usd=gross*fxRev*(fx/(fx1||1));
+      return {rev:(tl+usd)*ramp*net*revScale, usdRev:usd*ramp*net*revScale};
     }
-    // allocate principal across legs pro-rata to current ₺ value
-    const wTRY= balTot>0? balTRY/balTot : 1;
-    const prinTRY=principal*wTRY, prinUSDtry=principal*(1-wTRY);
-    balTRY-=prinTRY; balUSD-=(fx>0? prinUSDtry/fx : 0);
-    const balAfter=balTRY+balUSD*fx;
-    // FX cover: USD-linked revenue vs USD debt service (both ₺); open position = surplus/deficit
-    const dsUSD=intUSDtry+prinUSDtry;
-    const openFX=usdRev-dsUSD;
-    const fxCover= dsUSD>1? usdRev/dsUSD : null;
-    if(fxCover!=null){ if(fxCover<minFxCover)minFxCover=fxCover; sumFxCover+=fxCover; nFx++; }
-    const dscr= ds>0? cfads/ds : null;
-    if(dscr!=null){ if(dscr<minDSCR)minDSCR=dscr; sumDSCR+=dscr; nDSCR++; }
-    if(k<=tenor){ df/=(1+rBlend); pvCFADS+=cfads*df; }
-    rows.push({year:py,cal:Math.round(s.startYear)+py-1,phase:'Operating',rev,ebitda,interest,tax:taxLev,ds,cfads,dscr,debtBal:balAfter,rate:rBlend,fx,
-               projCF:ebitda-taxUnlev-maint, eqCF:cfads-ds, usdRev, dsUSD, fxCover, openFX});
+    const tl=s.rev0*(1-fxRev)*Math.pow(1+s.esc/100,k-1);
+    const usd=s.rev0*fxRev*(fx/fxBase);
+    return {rev:(tl+usd)*ramp*revScale, usdRev:usd*ramp*revScale};
   }
-  // ---- Debt Service Reserve Account (cash-funded; affects equity cash-flow timing only) ----
-  // Target each operating year = N months of NEXT year's debt service; funding traps equity cash,
-  // step-downs and the final release return it. Unlevered/project cash flow is unaffected.
+  // ---- Uses beyond capex: Non-EPC (land, permits, advisory, pre-COD G&A) + construction insurance.
+  // (Construction-period overheads sit inside Non-EPC — a greenfield project has no operations
+  // pre-COD, so there is no separate "opex during construction" line in the plan.)
+  const nonEpc = capex*Math.max(0,s.nonEpcPct||0)/100;
+  const insC   = capex*Math.max(0,s.insConstrPct||0)/100;
+  const devCost = nonEpc+insC;
+  const constrSpend = capex+devCost;                 // physical + soft spend over construction
+  const wgt=capexWeights(s.capexProfile||'linear',C);
+  const feeA=Math.max(0,s.feeArr||0)/100, feeC2=Math.max(0,s.feeCommit||0)/100;
   const dsraM=Math.max(0,s.dsraMonths||0);
-  let dsra=0;
-  if(dsraM>0){
-    const ops=rows.filter(x=>x.phase==='Operating');
-    let prevT=0;
+  const eqFirst = s.drawOrder==='equityfirst';
+  const depYears=Math.max(1,Math.min(Math.round(s.depYears),O));
+  const depPerYear=capex/depYears;                   // tax depreciation (asset base = capex)
+
+  // ---- Operating engine: debt runs at payment frequency m (semi-annual default) ----
+  // Sculpted repayment sets each PERIOD's principal so period CFADS/m ÷ period DS = target,
+  // so annual DSCR is flat at the target from year 1 (the annual-model first-year kink is gone).
+  function debtYear(bT,bU,rT,rU,fx,cfads,k){
+    let interest=0,principal=0,intUSD=0,prinUSD=0;
+    const inTenor=k<=tenor;
+    for(let p=0;p<m;p++){
+      const iT=bT*rT/m, iU=bU*rU/m*fx, i=iT+iU;
+      interest+=i; intUSD+=iU;
+      const balTot=bT+bU*fx;
+      let prin=0;
+      if(inTenor && balTot>1){
+        if(s.repay==='annuity'){
+          const rb= balTot>0? (i*m)/balTot : rT;               // blended annual rate
+          const rp=rb/m, remP=(tenor-k)*m+(m-p);               // remaining payment periods
+          const ann= rp>0? balTot*rp*Math.pow(1+rp,remP)/(Math.pow(1+rp,remP)-1) : balTot/remP;
+          prin=Math.min(Math.max(ann-i,0),balTot);
+        } else {
+          prin=Math.min(Math.max(cfads/m/tgtD - i,0),balTot);
+        }
+      }
+      principal+=prin;
+      const wT= balTot>0? bT/balTot : 1;
+      const pT=prin*wT, pU=prin*(1-wT);
+      bT-=pT; bU-=(fx>0? pU/fx : 0);
+      prinUSD+=pU;
+    }
+    return {balTRY:bT,balUSD:bU,interest,principal,ds:interest+principal,intUSD,prinUSD};
+  }
+  function runOps(balTRY0,balUSD0){
+    const rows2=[];
+    let balTRY=balTRY0, balUSD=balUSD0;
+    const balCOD0=balTRY0+balUSD0*fxAt(Math.min(N,C+1));   // debt at COD, ₺ — materiality floor for DSCR stats
+    let minDSCR=Infinity,sumDSCR=0,nD=0,pvCFADS=0,df=1;
+    let minFx=Infinity,sumFx=0,nFx=0,nolLev=0,nolUnlev=0;
+    for(let k=1;k<=O;k++){
+      const py=C+k, rT=rateAt(py), rU=usdRateAt(py), fx=fxAt(py);
+      const rv=revenueYear(k), rev=rv.rev, usdRev=rv.usdRev;
+      const opIns=capex*Math.max(0,s.insOpPct||0)/100*Math.pow(1+s.esc/100,k-1);   // asset-value based
+      const opex=rev*s.opexPct/100, ebitda=rev-opex-opIns, maint=rev*s.maintPct/100;
+      const dep=(k<=depYears)?depPerYear:0;
+      const balTot0=balTRY+balUSD*fx;
+      // tax ↔ interest ↔ sculpt are circular once debt amortises intra-year: two passes converge
+      let intGuess=balTRY*rT+balUSD*rU*fx, taxLev=0, cfads=0, res=null, poolAfter=nolLev;
+      for(let pass=0;pass<2;pass++){
+        let ti=ebitda-dep-intGuess, tL, pool=nolLev;
+        if(ti<=0){ pool+=-ti; tL=0; } else { const u=Math.min(pool,ti); pool-=u; tL=(ti-u)*taxRate; }
+        cfads=ebitda-tL;                        // CFADS = EBITDA − tax (maintenance sits below, in equity CF)
+        res=debtYear(balTRY,balUSD,rT,rU,fx,cfads,k);
+        taxLev=tL; poolAfter=pool;
+        if(Math.abs(res.interest-intGuess)<1) break;
+        intGuess=res.interest;
+      }
+      nolLev=poolAfter;
+      balTRY=res.balTRY; balUSD=res.balUSD;
+      const interest=res.interest, principal=res.principal, ds=res.ds;
+      // unlevered tax (no interest deduction), with its own loss carry-forward pool
+      let tiU=ebitda-dep, taxUnlev;
+      if(tiU<=0){ nolUnlev+=-tiU; taxUnlev=0; } else { const u=Math.min(nolUnlev,tiU); nolUnlev-=u; taxUnlev=(tiU-u)*taxRate; }
+      const balAfter=balTRY+balUSD*fx;
+      const dsUSD=res.intUSD+res.prinUSD;
+      const openFX=usdRev-dsUSD;
+      const fxCover= dsUSD>1? usdRev/dsUSD : null;
+      if(fxCover!=null){ if(fxCover<minFx)minFx=fxCover; sumFx+=fxCover; nFx++; }
+      const dscr= ds>0? cfads/ds : null;
+      // min/avg DSCR statistics skip the final stub year (opening balance < 1% of COD debt),
+      // where a token repayment makes the ratio meaninglessly large
+      if(dscr!=null && balTot0>balCOD0*0.01){ if(dscr<minDSCR)minDSCR=dscr; sumDSCR+=dscr; nD++; }
+      const rBlend= balTot0>0? interest/balTot0 : rT;
+      if(k<=tenor){ df/=(1+rBlend); pvCFADS+=cfads*df; }
+      rows2.push({year:py,cal:startY+py-1,phase:'Operating',rev,ebitda,interest,tax:taxLev,ds,cfads,dscr,debtBal:balAfter,rate:rBlend,fx,
+                  projCF:ebitda-taxUnlev-maint, eqCF:cfads-ds-maint, usdRev,dsUSD,fxCover,openFX,
+                  maint,prin:principal,draw:0,dsraFund:0,opcost:opex+opIns,dep,fees:0});
+    }
+    return {rows:rows2,balTRY,balUSD,minDSCR,sumDSCR,nD,pvCFADS,minFx,sumFx,nFx};
+  }
+
+  // ---- Construction period: MONTHLY engine + debt sized on TOTAL USES ----
+  // Barış rules honoured here:
+  //  · Debt at COD = gearing × total uses (the S&U bottom line, incl. IDC, fees and the DSRA),
+  //    equity = (1 − gearing) × total uses. Sized iteratively (IDC ↔ facility are circular).
+  //  · IDC accrues MONTHLY on the outstanding drawn balance of each tranche at its own rate —
+  //    a day-count-style accrual on the actual principal at risk, following the capex schedule.
+  //  · The DSRA (n months of first-year debt service) is pre-funded at COD inside the plan.
+  //  · Every use — including IDC — is funded gearing% by debt (capitalised) and the rest by
+  //    equity in cash (or equity-first if selected), so the S&U identity holds exactly.
+  let idcTot=0, feesTot=0, dsra0=0, uses=constrSpend;
+  let conRows=[], opState=null, equityTot=0, debtDrawn=0, balTRYe=0, balUSDe=0;
+  let usdAcc={capex:0,nonEpc:0,ins:0,fees:0,dsra:0,idc:0,eq:0,debt:0};
+  for(let iter=0; iter<5; iter++){
+    const facility=gear*uses;                        // total senior debt at COD (incl. capitalised IDC)
+    const eqTarget=(1-gear)*uses;
+    const arrFee=facility*feeA;
+    let balTRY=0,balUSD=0,eq=0,drawn=0,idcSum=0,feeSum=0;
+    conRows=[]; usdAcc={capex:0,nonEpc:0,ins:0,fees:0,dsra:0,idc:0,eq:0,debt:0};
+    for(let y=1;y<=C;y++){
+      const rT=rateAt(y), rU=usdRateAt(y), fx=fxAt(y);
+      const spendY=constrSpend*(wgt[y-1]||0);
+      let yIDC=0,yFee=0,yDraw=0,yEq=0,yDsra=0;
+      for(let mo=1;mo<=12;mo++){
+        const idcT=balTRY*rT/12, idcU=balUSD*rU/12;
+        const idcTry=idcT+idcU*fx;
+        const commit= feeC2>0? Math.max(0,facility-drawn)*feeC2/12 : 0;
+        const fee=(y===1&&mo===1?arrFee:0)+commit;
+        const dsraF=(y===C&&mo===12)?dsra0:0;        // DSRA pre-funded in the final month, at COD
+        const useMo=spendY/12+fee+idcTry+dsraF;
+        let dD,dE;
+        if(eqFirst){ dE=Math.min(useMo,Math.max(0,eqTarget-eq)); dD=useMo-dE; }
+        else { dD=useMo*gear; dE=useMo*(1-gear); }
+        balTRY+=dD*(1-usdShare); balUSD+=(fx>0? dD*usdShare/fx : 0);
+        drawn+=dD; eq+=dE;
+        yIDC+=idcTry; yFee+=fee; yDraw+=dD; yEq+=dE; yDsra+=dsraF;
+      }
+      idcSum+=yIDC; feeSum+=yFee;
+      if(fx>0){ usdAcc.capex+=capex*(wgt[y-1]||0)/fx; usdAcc.nonEpc+=nonEpc*(wgt[y-1]||0)/fx;
+        usdAcc.ins+=insC*(wgt[y-1]||0)/fx; usdAcc.fees+=yFee/fx; usdAcc.dsra+=yDsra/fx;
+        usdAcc.idc+=yIDC/fx; usdAcc.eq+=yEq/fx; usdAcc.debt+=yDraw/fx; }
+      conRows.push({year:y,cal:startY+y-1,phase:'Construction',rev:0,ebitda:0,interest:yIDC,tax:0,ds:0,cfads:0,dscr:null,
+                    debtBal:balTRY+balUSD*fx,rate:rT,fx,projCF:-(constrSpend*(wgt[y-1]||0)),eqCF:-yEq,fees:yFee,
+                    draw:yDraw,dsraFund:yDsra,usdRev:0,dsUSD:0,fxCover:null,openFX:0,maint:0,prin:0,opcost:0,dep:0});
+    }
+    idcTot=idcSum; feesTot=feeSum; equityTot=eq; debtDrawn=drawn; balTRYe=balTRY; balUSDe=balUSD;
+    opState=runOps(balTRY,balUSD);
+    const ds1=opState.rows.length? opState.rows[0].ds : 0;
+    dsra0=dsraM/12*ds1;                              // n months of the FIRST year's debt service
+    uses=constrSpend+feesTot+idcTot+dsra0;           // S&U bottom line the gearing applies to
+  }
+  const rows=conRows.concat(opState.rows);
+  const fxCOD=fxAt(Math.max(1,C));
+  const usdDebtCODunits=balUSDe;                     // FX debt outstanding at COD, in USD
+  const debtCOD=balTRYe+balUSDe*fxCOD;               // total debt at COD (₺), incl. capitalised IDC
+  // ---- DSRA during operations: pre-funded at close; then tracks next year's debt service ----
+  let dsra=dsra0;
+  if(dsraM>0 && opState.rows.length){
+    const ops=opState.rows;
+    let prevT=dsra0;
     for(let i=0;i<ops.length;i++){
       const nextDS=(i+1<ops.length)?ops[i+1].ds:0;
-      const target=dsraM/12*nextDS;
-      ops[i].eqCF-=(target-prevT);   // grow = fund (cash out); shrink = release (cash in)
+      const target=dsraM/12*nextDS;                  // final year → 0: full release to equity
+      ops[i].eqCF-=(target-prevT);
+      ops[i].dsraDelta=target-prevT;
+      ops[i].dsraBal=target;
       if(target>dsra)dsra=target;
       prevT=target;
     }
   }
   // terminal value (added to the last operating year)
-  const tv=capex*tvPct, residDebt=balTRY+balUSD*fxAt(N);
+  const tv=capex*tvPct, residDebt=opState.balTRY+opState.balUSD*fxAt(N);
   const last=rows[rows.length-1];
   last.projCF+=tv;
   last.eqCF+=Math.max(0,tv-residDebt);
   last.tv=tv; last.residDebt=residDebt;
-  // IRR / NPV (₺) + USD-equivalent
+  // IRR (₺ and USD-equivalent)
   const fxOf=r=> haveMacro? r.fx : 1;
   const projCFs=rows.map(r=>r.projCF), eqCFs=rows.map(r=>r.eqCF);
-  const eqCFsUSD=rows.map(r=>r.eqCF/fxOf(r));
+  const projCFsUSD=rows.map(r=>r.projCF/fxOf(r)), eqCFsUSD=rows.map(r=>r.eqCF/fxOf(r));
   const pIRR=irr(projCFs), eIRR=irr(eqCFs), eIRRusd=haveMacro?irr(eqCFsUSD):null;
-  const pNPV=npv(projCFs,s.disc/100), eNPV=npv(eqCFs,s.discE/100);
-  // NPV is a present value → convert to USD at the spot (year-1) rate (not re-discounted)
+  // NPV: USD-equivalent cash flows discounted at WACC (project) / Cost of Equity (equity) —
+  // both are USD nominal rates, so the ₺ figure is just the USD NPV at the spot rate.
   const fx0=fxAt(1);
-  const pNPVusd=haveMacro?pNPV/fx0:pNPV, eNPVusd=haveMacro?eNPV/fx0:eNPV;
-  const llcr= debtCOD>0? pvCFADS/debtCOD : null;
-  // USD totals (each year at its own USD/TRY). Capex / Non-EPC / pre-COD opex are accumulated
-  // per-year in the construction loop; IDC, equity and debt come from the row cash flows.
-  const capexUSD=capexUSDacc, nonEpcUSD=nonEpcUSDacc, opexCUSD=opexCUSDacc;
-  let idcUSD=0,equityUSD=0,debtCODusd=0;
-  rows.forEach(r=>{ if(r.phase==='Construction'){ const fx=fxOf(r), drawY=-r.projCF, dE=-r.eqCF;
-    idcUSD+=r.interest/fx; equityUSD+=dE/fx; debtCODusd+=(drawY+(r.fees||0)-dE+r.interest)/fx; }});
+  const pNPVusd=npv(projCFsUSD,wacc/100), eNPVusd=npv(eqCFsUSD,coe/100);
+  const pNPV=pNPVusd*fx0, eNPV=eNPVusd*fx0;
+  const llcr= debtCOD>0? opState.pvCFADS/debtCOD : null;
+  const idcUSD=usdAcc.idc, equityUSD=usdAcc.eq, debtCODusd=usdAcc.debt;
   // equity payback and project breakeven years — cumulative cash ≥ 0
-  const startY=Math.round(s.startYear);
   let cumE=0, ePayPy=null; for(let i=0;i<eqCFs.length;i++){ cumE+=eqCFs[i]; if(ePayPy===null&&cumE>=0) ePayPy=i+1; }
   let cumP=0, pBePy=null; for(let i=0;i<projCFs.length;i++){ cumP+=projCFs[i]; if(pBePy===null&&cumP>=0) pBePy=i+1; }
   return {C,O,N,rows,capex,idcTot,debtCOD,debtDrawn,equityTot,gear,haveMacro,fxRev,rateMode:s.rateMode,startY,
           usdShare, usdDebtCODunits, usdDebtCOD:usdDebtCODunits*fxCOD, fxShock:s.fxShock||0,
-          minFxCover:isFinite(minFxCover)?minFxCover:null, avgFxCover:nFx?sumFxCover/nFx:null,
-          minDSCR:isFinite(minDSCR)?minDSCR:null, avgDSCR:nDSCR?sumDSCR/nDSCR:null,
-          pIRR,eIRR,eIRRusd,pNPV,eNPV,pNPVusd,eNPVusd,llcr,tgtD,repay:s.repay,residDebt,tv,dsra,
-          capexUSD,nonEpcUSD,opexCUSD,idcUSD,equityTotUSD:equityUSD,debtCODusd,
-          usesUSD:capexUSD+nonEpcUSD+opexCUSD+insCUSDacc+idcUSD+feesUSDacc, sourcesUSD:debtCODusd+equityUSD,
-          nonEpc,opexC,insC,insCUSD:insCUSDacc,devCost,constrSpend, constrSpendUSD:capexUSD+nonEpcUSD+opexCUSD+insCUSDacc, feesTot, feesUSD:feesUSDacc,
+          minFxCover:isFinite(opState.minFx)?opState.minFx:null, avgFxCover:opState.nFx?opState.sumFx/opState.nFx:null,
+          minDSCR:isFinite(opState.minDSCR)?opState.minDSCR:null, avgDSCR:opState.nD?opState.sumDSCR/opState.nD:null,
+          pIRR,eIRR,eIRRusd,pNPV,eNPV,pNPVusd,eNPVusd,llcr,tgtD,repay:s.repay,residDebt,tv,dsra,dsra0,
+          wacc,coe,payFreq:m,revMode:s.revMode,depYears,
+          capexUSD:usdAcc.capex,nonEpcUSD:usdAcc.nonEpc,idcUSD,equityTotUSD:equityUSD,debtCODusd,dsra0USD:usdAcc.dsra,
+          usesUSD:usdAcc.capex+usdAcc.nonEpc+usdAcc.ins+idcUSD+usdAcc.fees+usdAcc.dsra, sourcesUSD:debtCODusd+equityUSD,
+          nonEpc,insC,insCUSD:usdAcc.ins,devCost,constrSpend, constrSpendUSD:usdAcc.capex+usdAcc.nonEpc+usdAcc.ins, feesTot, feesUSD:usdAcc.fees,
           payback:ePayPy, ePayPy, pBePy, eqPaybackCal:ePayPy!=null?startY+ePayPy-1:null, projBreakevenCal:pBePy!=null?startY+pBePy-1:null,
           fxStart:fxAt(C+1), fxEnd:fxAt(N),
-          uses:capex+devCost+feesTot+idcTot, sources:debtCOD+equityTot};
+          uses, sources:debtCOD+equityTot};
 }
 
 /* ---- charts ---- */
@@ -853,7 +961,7 @@ function metricVal(r,metric){ return metric==='dscr' ? (r.minDSCR!=null?r.minDSC
 function tornadoData(s,range,metric){
   const f=range/100, rb=s.debtRate*f;          // rate flexed proportionally, in points
   const defs=[
-    {name:'Revenue',   lo:c=>c.rev0*=(1-f),    hi:c=>c.rev0*=(1+f)},
+    {name:'Revenue',   lo:c=>c.revScale=1-f,   hi:c=>c.revScale=1+f},
     {name:'Capex',     lo:c=>c.capex*=(1-f),   hi:c=>c.capex*=(1+f)},
     {name:'Operating cost', lo:c=>c.opexPct*=(1-f), hi:c=>c.opexPct*=(1+f)},
     {name:'Debt rate', lo:c=>c.rateBump=-rb,   hi:c=>c.rateBump=rb},
@@ -889,7 +997,7 @@ function tornadoChart(d,metric){
 }
 function downsideState(s){
   const c=Object.assign({},s);
-  c.rev0  = s.rev0 *(1-(s.dsRev||0)/100);
+  c.revScale = (1-(s.dsRev||0)/100);   // haircut works for both revenue modes
   c.capex = s.capex*(1+(s.dsCapex||0)/100);
   c.rateBump = (s.rateBump||0)+(s.dsRate||0);
   c.fxShock = (s.fxShock||0)+(s.dsFx||0);   // lira devaluation stress
@@ -905,6 +1013,7 @@ function solveMaxGearing(s){
   return lo*100;
 }
 function solveRevenueForHurdle(s){
+  if(s.revMode==='traffic') return null;         // goal seek applies to the simple annual-revenue input
   const target=s.discE;
   const eirrAt=rev=>{ const r=compute(Object.assign({},s,{rev0:rev})); return r.eIRR!=null?r.eIRR*100:-100; };
   let lo=s.rev0*0.2, hi=s.rev0*3;
@@ -916,6 +1025,16 @@ function solveRevenueForHurdle(s){
 
 function render(){
   const s=readState(), r=compute(s);
+  // revenue-model UI: show traffic fields only in traffic mode
+  {
+    const t=s.revMode==='traffic';
+    $('trafficFields').style.display=t?'':'none';
+    $('f-rev0').style.display=t?'none':'';
+    $('gs-rev-hint').style.display=t?'none':'flex';
+  }
+  // derived WACC & CoE shown under their components
+  $('wacc-view').innerHTML='<span class="gs-tag">derived</span><span>CoE = '+trN1.format(s.rf)+' + '+trN1.format(s.beta)+'×'+trN1.format(s.erp)+' + '+trN1.format(s.crp)
+    +' = <b>'+trN1.format(s.discE)+'%</b> · WACC = <b>'+trN1.format(s.disc)+'%</b></span>';
   // KPI
   $('k-pirr').textContent = r.pIRR!=null?pct(r.pIRR*100):'—';
   $('k-eirr').textContent = r.eIRR!=null?pct(r.eIRR*100):'—';
@@ -928,27 +1047,28 @@ function render(){
   $('k-adscr-d').textContent = r.llcr!=null?('LLCR '+trN2.format(r.llcr)+'x'):'tenor average';
   const isU=CUR==='USD';
   $('k-pnpv').textContent = isU?shortUSD(r.pNPVusd):shortM(r.pNPV); $('k-pnpv').className='k-v '+(r.pNPV>=0?'green':'red');
-  $('k-pnpv-d').textContent=trN1.format(s.disc)+'% discount'+(isU?' · USD-eq.':'');
+  $('k-pnpv-d').textContent='WACC '+trN1.format(s.disc)+'%'+(isU?' · USD-eq.':' · USD-based');
   $('k-enpv').textContent = isU?shortUSD(r.eNPVusd):shortM(r.eNPV); $('k-enpv').className='k-v '+(r.eNPV>=0?'green':'red');
-  $('k-enpv-d').textContent=trN1.format(s.discE)+'% hurdle'+(isU?' · USD-eq.':'');
+  $('k-enpv-d').textContent='CoE '+trN1.format(s.discE)+'%'+(isU?' · USD-eq.':' · USD-based');
   $('k-eq').textContent = isU?shortUSD(r.equityTotUSD):shortM(r.equityTot);
   $('k-eq-d').textContent = 'invested in construction'+(isU?' (USD)':'');
   $('k-pay').textContent = r.eqPaybackCal!=null? String(r.eqPaybackCal) : '—';
   $('k-pay-d').textContent = (r.eqPaybackCal!=null?('equity payback'):'no payback within tenor')
     + (r.projBreakevenCal!=null?(' · project breakeven '+r.projBreakevenCal):'');
-  // Sources & Uses
+  // Sources & Uses — debt is sized on the BOTTOM LINE of this table: debt = gearing × total uses
   $('u-capex').textContent=isU?shortUSD(r.capexUSD):shortM(r.capex);
   $('u-nonepc').textContent=isU?shortUSD(r.nonEpcUSD):shortM(r.nonEpc);
-  $('u-opexc').textContent=isU?shortUSD(r.opexCUSD):shortM(r.opexC);
   $('u-idc').textContent=isU?shortUSD(r.idcUSD):shortM(r.idcTot);
   $('u-insc-row').style.display = (r.insC||0)>1 ? '' : 'none';
   $('u-insc').textContent=isU?shortUSD(r.insCUSD):shortM(r.insC);
   $('u-fees-row').style.display = (r.feesTot||0)>1 ? '' : 'none';
   $('u-fees').textContent=isU?shortUSD(r.feesUSD):shortM(r.feesTot);
+  $('u-dsra-row').style.display = (r.dsra0||0)>1 ? '' : 'none';
+  $('u-dsra0').textContent=isU?shortUSD(r.dsra0USD):shortM(r.dsra0);
   // FX revaluation reconciling line: the USD tranche is drawn at each year's rate but carried
   // at the COD rate, so in ₺ the funding plan balances only with this revaluation shown.
   // (The USD view is naturally consistent — each flow at its own rate — so the line hides there.)
-  const gapFx = isU ? 0 : r.debtCOD-(r.debtDrawn+r.idcTot);
+  const gapFx = isU ? 0 : r.debtCOD-r.debtDrawn;
   $('u-fxrev-row').style.display = Math.abs(gapFx)>1 ? '' : 'none';
   $('u-fxrev').textContent = shortM(gapFx);
   $('u-tot').textContent=isU?shortUSD(r.usesUSD):shortM(r.uses+gapFx);
@@ -960,12 +1080,12 @@ function render(){
   const dShare=r.sources>0?r.debtCOD/r.sources*100:0;
   $('bar-debt').style.width=dShare.toFixed(1)+'%'; $('bar-eq').style.width=(100-dShare).toFixed(1)+'%';
   $('lg-debt').textContent=trN.format(dShare)+'%'; $('lg-eq').textContent=trN.format(100-dShare)+'%';
-  const bal= isU ? Math.abs(r.usesUSD-r.sourcesUSD)<1 : Math.abs(r.uses+gapFx-r.sources)<1;
+  const bal= isU ? Math.abs(r.usesUSD-r.sourcesUSD)<Math.max(1,r.usesUSD*0.001) : Math.abs(r.uses+gapFx-r.sources)<Math.max(1,r.uses*0.001);
   $('su-bal').textContent = bal?'✓ balanced':'≠ unbalanced';
   $('su-bal').style.color = bal?'var(--green)':'var(--red)';
-  $('su-dsra').innerHTML = r.dsra>1
-    ? 'Memo · DSRA (debt service reserve): <b style="color:var(--ink);font-family:var(--mono)">'+(isU?shortUSD(r.dsra/r.fxStart):shortM(r.dsra))+'</b> — funded from operating cash flow over the tenor, not at financial close, so it sits outside the funding plan above.'
-    : '';
+  $('su-dsra').innerHTML = 'Senior debt is sized on the bottom line of this table: <b style="color:var(--ink);font-family:var(--mono)">debt = '
+    +trN.format(r.gear*100)+'% × total uses</b> (incl. IDC, fees'+(r.dsra0>1?' and the DSRA pre-funding':'')+'), equity funds the rest.'
+    +(r.dsra0>1?' The DSRA ('+trN1.format(s.dsraMonths)+' months of first-year debt service) is funded at COD inside the plan — the first debt-service payment falls due during the investment horizon, so its reserve belongs in the budget; it then tracks the next period\'s debt service and the final release returns to equity.':'');
   // Construction funding drawdown — per year, capex+IDC split into debt- vs equity-funded.
   // Debt here is at DRAWDOWN value (dD + capitalised IDC), so the table balances exactly;
   // the USD tranche later revalues to the COD balance (the FX gap noted in Sources & Uses).
@@ -976,11 +1096,11 @@ function render(){
     let html='';
     cons.forEach(row=>{
       const fx=row.fx||1, draw=-row.projCF, idc=row.interest+(row.fees||0), eq=-row.eqCF;
-      const debt=(draw-eq)+idc, total=draw+idc, dpct= total>0? debt/total*100 : 0;
+      const debt=row.draw, total=draw+idc+(row.dsraFund||0), dpct= total>0? debt/total*100 : 0;
       html+='<tr><td>'+row.cal+'</td><td>'+fm(conv(draw,fx))+'</td><td>'+fm(conv(idc,fx))+'</td><td>'+fm(conv(total,fx))
         +'</td><td>'+fm(conv(debt,fx))+'</td><td>'+fm(conv(eq,fx))+'</td><td>'+trN.format(dpct)+'%</td></tr>';
     });
-    const tDebt=r.debtDrawn+r.idcTot, tDpct= r.uses>0? tDebt/r.uses*100 : 0;
+    const tDebt=r.debtDrawn, tDpct= r.uses>0? tDebt/r.uses*100 : 0;
     html+='<tr style="font-weight:600;border-top:2px solid var(--line)"><td>Total</td>'
       +'<td>'+(isU?shortUSD(r.constrSpendUSD):shortM(r.constrSpend))+'</td>'
       +'<td>'+(isU?shortUSD(r.idcUSD+r.feesUSD):shortM(r.idcTot+r.feesTot))+'</td>'
@@ -990,10 +1110,11 @@ function render(){
       +'<td>'+trN.format(tDpct)+'%</td></tr>';
     $('fund-body').innerHTML=html;
     const gap=r.debtCOD-tDebt;
-    $('fund-note').innerHTML='Construction spend — capex plus Non-EPC costs, pre-COD opex and financing fees — is drawn evenly across construction'
-      +(s.drawOrder==='equityfirst' ? ', with <b style="color:var(--ink)">equity injected first</b> — the sponsor cheque is fully spent before the bank facility draws, so IDC starts later and is smaller.'
+    const profTxt={linear:'a linear (even)',scurve:'an S-curve (mid-heavy)',front:'a front-loaded',back:'a back-loaded'}[s.capexProfile]||'a linear';
+    $('fund-note').innerHTML='Construction spend — capex plus Non-EPC costs and insurance — follows <b style="color:var(--ink)">'+profTxt+' capex schedule</b>, with financing fees and the DSRA pre-funding added to the plan'
+      +(s.drawOrder==='equityfirst' ? ', and <b style="color:var(--ink)">equity injected first</b> — the sponsor cheque is fully spent before the bank facility draws, so IDC starts later and is smaller.'
                                     : ', funded <b style="color:var(--ink)">'+trN.format(r.gear*100)+'% debt / '+trN.format((1-r.gear)*100)+'% equity</b> pro-rata.')
-      +' Interest during construction (IDC) is rolled into the loan (100% debt), so the debt share of funding climbs each year. Equity is fully drawn during construction.'
+      +' IDC accrues <b style="color:var(--ink)">monthly on the outstanding drawn balance</b> of each tranche at its own rate and is funded through the plan like any other use, so the debt at COD lands exactly on gearing × total uses.'
       +(gap>1?' Debt is shown here at <b style="color:var(--ink)">drawdown value</b>; the USD tranche revalues to '+(isU?shortUSD(r.debtCODusd):shortM(r.debtCOD))+' at COD — the '+shortM(gap)+' FX difference flagged in Sources &amp; Uses.':'');
   }());
   // Macro projection card (OVP)
@@ -1044,7 +1165,7 @@ function render(){
       + (dc? ('amortises to zero by <b style="color:var(--ink)">'+dc.cal+'</b> (final maturity)')
             : ('runs to tenor end with a balloon of <b style="color:var(--ink)">'+(isU?shortUSD(r.residDebt):shortM(r.residDebt))+'</b> covered by terminal value'))
       + '; sponsor equity turns cash-positive at payback <b style="color:var(--green)">'+payTxt+'</b>. '
-      + 'The DSRA is funded from operating cash flow (not at close), sized to '+trN.format(s.dsraMonths||0)+' months of debt service.';
+      + 'The DSRA ('+trN.format(s.dsraMonths||0)+' months of debt service) is pre-funded at COD inside the funding plan, then tracks the next period\'s debt service.';
   }());
   // charts
   $('chart-dscr').innerHTML=dscrChart(r.rows,r.tgtD);
@@ -1131,6 +1252,96 @@ function render(){
       +'<td>'+M(row.debtBal,fx)+'</td>'
       +'<td class="'+(eq<0?'neg':'')+'">'+M(eq,fx)+'</td></tr>';
   }).join('');
+  // Financial statements — periodic horizontal layout: (i) income statement, (ii) cash flow, (iii) balance sheet.
+  // Book basis: everything funded through the plan (capex, non-EPC, insurance, fees, IDC) is
+  // capitalised into fixed assets; maintenance capex is capitalised as it is spent. The SPV
+  // sweeps all free cash to the sponsor, so cash on the balance sheet is the DSRA only —
+  // and construction-year net cash flow is exactly zero (all uses are met by sources).
+  (function(){
+    const rows=r.rows;
+    const bookBase=r.uses-r.dsra0;
+    const bookDepY=bookBase/Math.max(1,r.depYears);
+    let nfa=0,paidIn=0,re=0,dsraB=0,prevDebt=0;
+    const cols=rows.map((row,i)=>{
+      const isC=row.phase==='Construction';
+      const k=row.year-r.C, lastRow=i===rows.length-1;
+      const bookDep=isC?0:(k<=r.depYears?bookDepY:0);
+      const interest=isC?0:row.interest;
+      const ebit=(isC?0:row.ebitda)-bookDep, pbt=ebit-interest;
+      let ni=isC?0:(pbt-row.tax);
+      const spend=isC?-row.projCF:0, eqIn=isC?-row.eqCF:0;
+      const maint=row.maint||0;
+      const dsraDelta=isC?(row.dsraFund||0):(row.dsraDelta||0);
+      // FX revaluation of the USD tranche: year-end balance is carried at year-end USD/TRY, while
+      // draws/repayments happened at in-year rates. Capitalised during construction (borrowing
+      // cost), expensed through net income during operations — so the balance sheet ties out.
+      const reval=row.debtBal-prevDebt-(row.draw||0)+(row.prin||0);
+      prevDebt=row.debtBal;
+      let tvIn=0,gain=0,tvRepay=0,debtBal=row.debtBal;
+      if(isC){ nfa+=spend+row.interest+(row.fees||0)+reval; paidIn+=eqIn; dsraB+=row.dsraFund||0; }
+      else { nfa+=maint-bookDep; ni-=reval; dsraB=row.dsraBal!=null?row.dsraBal:dsraB; }
+      if(lastRow){
+        tvIn=row.tv||0; gain=tvIn-nfa; tvRepay=Math.min(tvIn,row.residDebt||0);
+        ni+=gain; debtBal=Math.max(0,(row.residDebt||0)-tvRepay); nfa=0; dsraB=0;
+      }
+      const dist=isC?0:row.eqCF;
+      re+=ni-dist;
+      const check0=(nfa+dsraB)-(debtBal+paidIn+re);
+      const check=Math.abs(check0)<Math.max(1000,r.uses*1e-5)?0:check0;   // hide iterative-sizing rounding dust
+      return {row,isC,bookDep,interest,ebit,pbt,ni,spend,eqIn,maint,dsraDelta,dist,tvIn,gain,tvRepay,reval,
+              nfa,dsraB,debtBal,paidIn,re,check};
+    });
+    const fm=(v,fx)=> Math.abs(v||0)<0.5? '<span style="color:var(--muted)">·</span>' : M(v,fx);
+    const yrHead='<tr><th style="min-width:158px"></th>'+cols.map(c=>'<th>'+c.row.cal+'</th>').join('')+'</tr>';
+    const line=(label,fn,cls)=>'<tr'+(cls?' style="'+cls+'"':'')+'><td style="text-align:left;font-family:var(--sans)">'+label+'</td>'
+      +cols.map(c=>'<td>'+fm(fn(c),c.row.fx)+'</td>').join('')+'</tr>';
+    const strong='font-weight:600;border-top:1px solid var(--line)';
+    const h=t=>'<div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin:14px 0 6px">'+t+'</div>';
+    let html=h('Income statement · '+(CUR==='USD'?'USD':'₺'))+'<table>'+yrHead
+      + line('Revenue',c=>c.isC?0:c.row.rev)
+      + line('Operating costs',c=>c.isC?0:-c.row.opcost)
+      + line('EBITDA',c=>c.isC?0:c.row.ebitda,strong)
+      + line('Depreciation (book)',c=>-c.bookDep)
+      + line('EBIT',c=>c.isC?0:c.ebit,strong)
+      + line('Interest expense',c=>-c.interest)
+      + line('FX revaluation · USD debt',c=>c.isC?0:-c.reval)
+      + line('Disposal gain · terminal value',c=>c.gain)
+      + line('Profit before tax',c=>c.isC?0:(c.pbt-c.reval+c.gain),strong)
+      + line('Tax',c=>c.isC?0:-c.row.tax)
+      + line('Net income',c=>c.ni,strong)
+      +'</table>';
+    html+=h('Cash flow statement')+'<table>'+yrHead
+      + line('Debt drawn',c=>c.row.draw)
+      + line('Equity injected',c=>c.eqIn)
+      + line('Construction & development spend',c=>-c.spend)
+      + line('Financing fees',c=>-(c.row.fees||0))
+      + line('IDC (capitalised, funded)',c=>c.isC?-c.row.interest:0)
+      + line('EBITDA',c=>c.isC?0:c.row.ebitda)
+      + line('Tax paid',c=>c.isC?0:-c.row.tax)
+      + line('CFADS',c=>c.isC?0:c.row.cfads,strong)
+      + line('Debt service (interest + principal)',c=>-c.row.ds)
+      + line('Maintenance capex',c=>-c.maint)
+      + line('DSRA funding / release',c=>-c.dsraDelta)
+      + line('Terminal value proceeds',c=>c.tvIn)
+      + line('Debt repaid from terminal value',c=>-c.tvRepay)
+      + line('Distributions to equity',c=>-c.dist)
+      + line('Net cash flow',c=>c.isC?(c.row.draw+c.eqIn-c.spend-(c.row.fees||0)-c.row.interest-c.dsraDelta)
+                                     :(c.row.ebitda-c.row.tax-c.row.ds-c.maint-c.dsraDelta+c.tvIn-c.tvRepay-c.dist),strong)
+      +'</table>';
+    html+=h('Balance sheet · year-end')+'<table>'+yrHead
+      + line('Net fixed assets',c=>c.nfa)
+      + line('DSRA (restricted cash)',c=>c.dsraB)
+      + line('Total assets',c=>c.nfa+c.dsraB,strong)
+      + line('Senior debt',c=>c.debtBal)
+      + line('Paid-in equity',c=>c.paidIn)
+      + line('Retained earnings',c=>c.re)
+      + line('Total liabilities & equity',c=>c.debtBal+c.paidIn+c.re,strong)
+      + line('Check (A − L−E)',c=>c.check)
+      +'</table>';
+    $('fs-body').innerHTML=html;
+    $('fs-note').innerHTML='<b style="color:var(--ink)">Construction years net to zero</b> — every use (capex, fees, IDC, DSRA) is met by debt and equity drawn in the same period, the Sources &amp; Uses discipline. '
+      +'The SPV sweeps free cash to the sponsor each year, so the only cash on the balance sheet is the DSRA. All financed costs (incl. IDC and fees) are capitalised into fixed assets; maintenance capex is capitalised as spent. The <b style="color:var(--ink)">Check</b> row should read “·” (zero) throughout.';
+  }());
   // verdict
   const okDSCR=r.minDSCR!=null&&r.minDSCR>=r.tgtD-0.005;   // screen shows 2 decimals; let values that round to target pass
   const okIRR=r.eIRR!=null&&r.eIRR*100>=s.discE;
@@ -1148,7 +1359,7 @@ function render(){
     +(r.haveMacro?' <b>OVP macro:</b> USD/TRY '+trN2.format(r.fxStart)+'→'+trN2.format(r.fxEnd)+', '+trN.format(r.fxRev*100)+'% of revenue is USD-linked. ₺ equity IRR '+(r.eIRR!=null?pct(r.eIRR*100):'—')+', <b>USD-equivalent '+(r.eIRRusd!=null?pct(r.eIRRusd*100):'—')+'</b> — the gap is the nominal uplift from TRY depreciation.':'')
     +(r.usdShare>0?' <b>FX mismatch:</b> '+trN.format(r.usdShare*100)+'% of debt is USD-denominated; at its tightest, USD-linked revenue covers '+(r.minFxCover!=null?'<b>'+trN2.format(r.minFxCover)+'×</b>':'—')+' of USD debt service'+(r.avgFxCover!=null?' ('+trN2.format(r.avgFxCover)+'× average)':'')+'. '+(r.minFxCover!=null&&r.minFxCover<1?'<b>Below 1.0× the FX leg is not self-funding — a falling lira directly erodes DSCR.</b> Test the USD/TRY shock in the downside case.':'The FX leg is broadly self-hedged by USD revenue.'):'')
     +(r.residDebt>1?' <b>Note:</b> '+(isU?shortUSD(r.residDebt/r.fxEnd):shortM(r.residDebt))+' of debt remains at maturity (balloon); the terminal value is used to repay it.':'')
-    +(r.dsra>1?' A debt service reserve (DSRA) of ~'+(isU?shortUSD(r.dsra/r.fxStart):shortM(r.dsra))+' (≈'+trN1.format(s.dsraMonths)+' months of debt service) is cash-funded and released over the tenor.':'');
+    +(r.dsra>1?' A debt service reserve (DSRA) of ~'+(isU?shortUSD(r.dsra/r.fxStart):shortM(r.dsra))+' (≈'+trN1.format(s.dsraMonths)+' months of debt service) is pre-funded at COD in the funding plan and released over the tenor.':'');
   // expose live state for the AI assistant (pf-ai.js)
   window.__PF = { s:s, r:r, cur:CUR };
   saveState();
@@ -1170,7 +1381,7 @@ function setCur(c){ CUR=c; $('cur-try').classList.toggle('on',c==='TRY'); $('cur
 $('cur-try').addEventListener('click',()=>setCur('TRY'));
 $('cur-usd').addEventListener('click',()=>setCur('USD'));
 // --- persistence: inputs + currency view survive a refresh (localStorage) ---
-const STORE_KEY='projefin_state_v1';
+const STORE_KEY='projefin_state_v2';   // v2: Barış review revisions (new inputs, USD base view)
 function saveState(){ try{ const o={cur:CUR}; IDS.forEach(k=>{ const el=$(k); if(el) o[k]=el.value; }); localStorage.setItem(STORE_KEY, JSON.stringify(o)); }catch(e){} }
 function loadState(){ try{ const raw=localStorage.getItem(STORE_KEY); if(!raw) return false; const o=JSON.parse(raw)||{};
   IDS.forEach(k=>{ const el=$(k); if(el && o[k]!=null && o[k]!=='') el.value=o[k]; });
@@ -1235,8 +1446,8 @@ const OVP_EMBEDDED = {
   var AI_SYSTEM =
     "You are the assistant for ProjeFin, an illustrative infrastructure PROJECT FINANCE model. " +
     "The user wants to understand HOW the model works and what the on-screen numbers mean. Explain the project-finance logic clearly and concisely in plain English. " +
-    "Key mechanics: during the construction period, capex is drawn down and interest during construction (IDC) is capitalized into the debt balance; in the operating period, revenue (with a year-1 ramp-up and annual escalation, part ₺-indexed and part USD-linked) less operating cost, maintenance capex and tax produces the cash flow. " +
-    "Debt is repaid either by a level ANNUITY or SCULPTED to a target DSCR (each year's principal is set so cash flow available for debt service ÷ debt service = the target). " +
+    "Key mechanics: senior debt is sized as gearing × TOTAL USES (the Sources & Uses bottom line, including IDC, financing fees and the DSRA pre-funding at COD). During construction, capex is drawn on a schedule (linear / S-curve / front / back) and interest during construction (IDC) accrues MONTHLY on the outstanding drawn balance of each tranche. In the operating period, revenue comes from a simple annual figure or a traffic × tariff build-up (vehicle categories × transits × tariff, traffic growth, CPI- or fixed-escalated tariffs, authority revenue share); CFADS = EBITDA − tax, with maintenance capex and DSRA movements below CFADS in the equity cash flow. " +
+    "Debt service runs at the selected payment frequency (semi-annual default), repaid either by a level ANNUITY or SCULPTED to a target DSCR (each period's principal is set so CFADS ÷ debt service = the target, so coverage is flat from year 1). " +
     "Outputs: unlevered PROJECT IRR (the asset's own return, ignoring financing), levered EQUITY IRR (the sponsor's return after debt), NPV, DSCR (min and average), and LLCR (loan-life coverage). Tax uses an interest shield for equity, and no interest deduction for the unlevered project. " +
     "The OVP (Orta Vadeli Program — Turkey's official medium-term economic program) drives the inflation, interest-rate and USD/TRY path; for years beyond the OVP table, USD/TRY is extrapolated by the inflation differential (relative purchasing-power parity). Keep the abbreviation 'OVP' — do not translate it. " +
     "If the question is about the current scenario, use the 'CURRENT SCENARIO' figures you are given and answer with concrete numbers. Do NOT invent a number you were not given; if unsure, say you don't have it. " +
@@ -1284,7 +1495,7 @@ const OVP_EMBEDDED = {
       "- Financing: gearing " + pct(s.gearing) + " · debt rate " + (r.rateMode === "ovp" ? "OVP path" : "fixed " + pct(s.debtRate)) + " · tenor " + s.tenor + "y operating · repayment " + repayTxt + " · target DSCR " + xx(r.tgtD) + "\n" +
       "- Revenue: full-capacity " + money(s.rev0) + "/y · year-1 ramp " + pct(s.ramp) + " · ₺-escalation " + pct(s.esc) + " · USD-linked share " + pct(r.fxRev * 100) + "\n" +
       "- Costs & tax: opex " + pct(s.opexPct) + " of revenue · operating insurance " + pct(s.insOpPct) + " of capex p.a. · maintenance capex " + pct(s.maintPct) + " · corporate tax " + pct(s.tax) + " · depreciation " + s.depYears + "y\n" +
-      "- Discount rates: project " + pct(s.disc) + " (unlevered NPV) · equity hurdle " + pct(s.discE) + " (levered NPV)\n\n" +
+      "- WACC & Cost of Equity (USD nominal, component-built): CoE = rf " + pct(s.rf) + " + beta " + nf2.format(s.beta) + " × ERP " + pct(s.erp) + " + country premium " + pct(s.crp) + " = " + pct(s.discE) + "; WACC = " + pct(s.disc) + ". NPVs discount USD-equivalent cash flows: project at WACC, equity at CoE.\n\n" +
       "KEY RESULTS\n" +
       "- Project IRR (unlevered, the asset's return): " + (r.pIRR != null ? pctF(r.pIRR) : "—") + "\n" +
       "- Equity IRR (levered, sponsor return): " + (r.eIRR != null ? pctF(r.eIRR) : "—") + (r.eIRRusd != null ? "  (USD-equivalent " + pctF(r.eIRRusd) + ")" : "") + "  [hurdle " + pct(s.discE) + "]\n" +
@@ -1292,7 +1503,8 @@ const OVP_EMBEDDED = {
       "- Project NPV: " + money(r.pNPV) + " (at " + pct(s.disc) + ") · Equity NPV: " + money(r.eNPV) + " (at " + pct(s.discE) + ")\n" +
       "- Equity payback year: " + (r.eqPaybackCal != null ? r.eqPaybackCal : "not within tenor") + " · Project breakeven year: " + (r.projBreakevenCal != null ? r.projBreakevenCal : "not within horizon") + "\n\n" +
       "SOURCES & USES (at construction completion / COD)\n" +
-      "- Uses: capex " + money(r.capex) + " + Non-EPC costs " + money(r.nonEpc) + " + opex during construction " + money(r.opexC) + " + construction insurance " + money(r.insC || 0) + " + financing fees " + money(r.feesTot || 0) + " + IDC (interest during construction) " + money(r.idcTot) + " = " + money(r.uses) + "\n" +
+      "- Uses: capex " + money(r.capex) + " + Non-EPC costs " + money(r.nonEpc) + " + construction insurance " + money(r.insC || 0) + " + financing fees " + money(r.feesTot || 0) + " + IDC (interest during construction) " + money(r.idcTot) + " + DSRA pre-funding " + money(r.dsra0 || 0) + " = " + money(r.uses) + "\n" +
+      "- Debt is sized on this bottom line: debt = gearing × total uses; equity funds the rest.\n" +
       "- Sources: debt " + money(r.debtCOD) + " (" + nf.format(dShare) + "%) + equity " + money(r.equityTot) + " (" + nf.format(100 - dShare) + "%) = " + money(r.sources) + "\n" +
       (r.residDebt > 1 ? "- Residual (balloon) debt at maturity: " + money(r.residDebt) + " — covered by the terminal value.\n" : "") +
       "\nMACRO (OVP)\n" +
@@ -1301,9 +1513,10 @@ const OVP_EMBEDDED = {
           "- Beyond the OVP table, USD/TRY is extrapolated by the inflation differential (terminal inflation − US inflation), i.e. relative PPP — the lira depreciates by roughly that gap each year.\n"
         : "- OVP not loaded — a fixed debt rate and ₺ revenue are used (no FX path).\n") +
       "\nMETHOD NOTES (use if asked how something is computed)\n" +
-      "- IDC: during construction, interest accrues on the drawn debt and is capitalized (added to the debt balance) rather than paid in cash — so the debt at COD exceeds the pure debt portion of capex.\n" +
-      "- Sculpt vs annuity: 'sculpt' sizes each year's principal so DSCR hits the target every year (principal = CFADS/target − interest); 'annuity' keeps a level total payment. Sculpting keeps coverage flat; annuity lets DSCR drift.\n" +
-      "- DSCR = CFADS (cash flow available for debt service) ÷ debt service (interest + principal). LLCR = PV of future CFADS over the loan life ÷ debt outstanding.\n" +
+      "- IDC: accrues monthly on the outstanding drawn balance of each tranche (day-count style, following the capex schedule) and is funded through the plan like any other use, so debt at COD = gearing × total uses exactly.\n" +
+      "- Sculpt vs annuity: 'sculpt' sizes each payment period's principal so DSCR hits the target (principal = CFADS/periods/target − interest); 'annuity' keeps a level total payment. Sculpting keeps coverage flat at the target — including year 1, because the debt engine runs at the payment frequency, not annually.\n" +
+      "- DSCR = CFADS ÷ debt service (interest + principal). CFADS = EBITDA − tax; maintenance capex and DSRA movements sit BELOW CFADS, in the equity cash flow. LLCR = PV of future CFADS over the loan life ÷ debt outstanding.\n" +
+      "- The page also shows full periodic FINANCIAL STATEMENTS (income statement, cash flow statement, balance sheet, horizontal by year); construction-year net cash flow is zero by construction (all uses met by sources).\n" +
       "- Project (unlevered) IRR uses pre-financing cash flow (EBITDA − unlevered tax − maintenance, plus terminal value); Equity (levered) IRR uses cash flow after debt service. The gap between them is the value added by leverage.\n" +
       "- Tax: equity case deducts interest (interest shield); the unlevered project case does not. Depreciation is straight-line over the depreciation period.\n" +
       "- USD-equivalent equity IRR converts each year's ₺ cash flow at that year's USD/TRY; it is lower than the ₺ IRR because part of the ₺ return is just nominal inflation from lira depreciation.\n" +
@@ -1714,8 +1927,8 @@ const OVP_EMBEDDED = {
     // --- 3) Break-even: how far revenue can fall before DSCR 1.00x / equity NPV 0 ---
     function updBreak(){
       var s=readState();
-      var f_dscr=function(h){ var r=flexCompute(s,function(c){c.rev0=s.rev0*(1-h);}); return r.minDSCR!=null?r.minDSCR:99; };
-      var f_npv =function(h){ return flexCompute(s,function(c){c.rev0=s.rev0*(1-h);}).eNPV; };
+      var f_dscr=function(h){ var r=flexCompute(s,function(c){c.revScale=1-h;}); return r.minDSCR!=null?r.minDSCR:99; };
+      var f_npv =function(h){ return flexCompute(s,function(c){c.revScale=1-h;}).eNPV; };
       function solve(f,target){                    // f decreasing in h; find f(h)=target
         var lo=0,hi=0.95;
         if(f(lo)<=target) return 0;
@@ -1768,7 +1981,7 @@ const OVP_EMBEDDED = {
         var end=Math.min(i+250,N);
         for(;i<end;i++){
           var r=flexCompute(s,function(c){
-            c.rev0 = s.rev0*Math.max(0.4, 1+randn()*sig);                 // demand / price level
+            c.revScale = Math.max(0.4, 1+randn()*sig);                    // demand / price level
             c.capex = s.capex*(1+tri(-0.05,0.05,Math.max(0.06,capM)));    // overrun-skewed build cost
             c.fxShock = clamp(randn()*fxS,-30,80);                        // post-COD lira shock, ±
             c.rateBump = clamp(randn()*rS,-4,6);                          // funding-cost surprise
@@ -1854,9 +2067,9 @@ const OVP_EMBEDDED = {
       L.push('Assumptions;capex='+n(s.capex)+';gearing='+s.gearing+'%;tenor='+s.tenor+'y;repay='+s.repay+';drawdown='+(s.drawOrder||'prorata')+';target DSCR='+s.dscr+';USD debt share='+s.usdDebtShare+'%;arr fee='+s.feeArr+'%;commit fee='+s.feeCommit+'%');
       L.push('Results;Project IRR='+(r.pIRR!=null?f2(r.pIRR*100)+'%':'n/a')+';Equity IRR='+(r.eIRR!=null?f2(r.eIRR*100)+'%':'n/a')+';min DSCR='+(r.minDSCR!=null?f2(r.minDSCR):'n/a')+';uses='+n(r.uses)+';debt at COD='+n(r.debtCOD)+';equity='+n(r.equityTot));
       L.push('');
-      L.push(['year','calendar','phase','rate','usdtry','revenue','ebitda','interest','tax','debt_service','cfads','dscr','debt_balance','fees','project_cf','equity_cf'].join(';'));
+      L.push(['year','calendar','phase','rate','usdtry','revenue','ebitda','interest','tax','debt_service','principal','cfads','dscr','maintenance','debt_balance','fees','project_cf','equity_cf'].join(';'));
       r.rows.forEach(function(x){
-        L.push([x.year,x.cal,x.phase,f2((x.rate||0)*100),f2(x.fx),n(x.rev),n(x.ebitda),n(x.interest),n(x.tax),n(x.ds),n(x.cfads),(x.dscr!=null?f2(x.dscr):''),n(x.debtBal),n(x.fees||0),n(x.projCF),n(x.eqCF)].join(';'));
+        L.push([x.year,x.cal,x.phase,f2((x.rate||0)*100),f2(x.fx),n(x.rev),n(x.ebitda),n(x.interest),n(x.tax),n(x.ds),n(x.prin||0),n(x.cfads),(x.dscr!=null?f2(x.dscr):''),n(x.maint||0),n(x.debtBal),n(x.fees||0),n(x.projCF),n(x.eqCF)].join(';'));
       });
       var blob=new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'});
       var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
