@@ -87,7 +87,7 @@ def eurostat(entry):
             qs += f"&{k}={vi}"
     j = json.loads(get(base + qs).decode())
     if MODE == "discover":
-        dims = {d: list(j["dimension"][d]["category"]["label"].items())[:40]
+        dims = {d: list(j["dimension"][d]["category"]["label"].items())[:250]
                 for d in j["id"]}
         return {"_discover": {"dimension_ids": j["id"], "sizes": j["size"],
                               "categories": dims}}
@@ -164,7 +164,7 @@ def run(entry):
     data = fn(entry)
     if "_discover" in data:
         report[name] = {"mode": "discover", **data["_discover"]}
-        print(json.dumps(data["_discover"], indent=1, default=str)[:4000])
+        print(json.dumps(data["_discover"], indent=1, default=str)[:24000])
         return
     counts = {k: len(v) for k, v in data.items()}
     empty = [k for k, n in counts.items() if n == 0]
