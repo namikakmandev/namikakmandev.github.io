@@ -78,25 +78,33 @@ def _jsonstat(j):
 
 
 def eurostat(entry):
-    """Any Eurostat dataset. entry['dataset'] + entry['params'] (dict)."""
-    base = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
-            + entry["dataset"] + "?format=JSON&lang=EN")
+    """Any Eurostat dataset. entry['dataset'] + entry['params'] (dict).
+
+    entry['api']='comext' switches to the Comext endpoint, which serves the
+    DS-* datasets (international trade, PRODCOM) the statistics API does not.
+    """
+    host = ("https://ec.europa.eu/eurostat/api/comext/dissemination/statistics/1.0/data/"
+            if entry.get("api") == "comext" else
+            "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/")
+    base = host + entry["dataset"] + "?format=JSON&lang=EN"
     qs = ""
     for k, v in entry.get("params", {}).items():
         for vi in (v if isinstance(v, list) else [v]):   # repeated params, e.g. several geos
             qs += f"&{k}={vi}"
     j = json.loads(get(base + qs).decode())
     if MODE == "discover":
-        dims = {d: list(j["dimension"][d]["category"]["label"].items())[:40]
+        dims = {d: list(j["dimension"][d]["category"]["label"].items())[:250]
                 for d in j["id"]}
         return {"_discover": {"dimension_ids": j["id"], "sizes": j["size"],
                               "categories": dims}}
     rows = _jsonstat(j)
-    geo_dim = "geo" if "geo" in j["id"] else None
+    # series key: entry['group_dims'] joined with '|' (e.g. reporter|product),
+    # else the geo dimension, else everything under 'ALL'
+    gd = entry.get("group_dims") or (["geo"] if "geo" in j["id"] else [])
     out = defaultdict(dict)
     for key, val in rows:
         t = key.get("time")
-        g = key.get(geo_dim, "ALL") if geo_dim else "ALL"
+        g = "|".join(key[d] for d in gd) if gd else "ALL"
         if t:
             out[g][t] = val
     return dict(out)
@@ -164,7 +172,7 @@ def run(entry):
     data = fn(entry)
     if "_discover" in data:
         report[name] = {"mode": "discover", **data["_discover"]}
-        print(json.dumps(data["_discover"], indent=1, default=str)[:4000])
+        print(json.dumps(data["_discover"], indent=1, default=str)[:24000])
         return
     counts = {k: len(v) for k, v in data.items()}
     empty = [k for k, n in counts.items() if n == 0]
