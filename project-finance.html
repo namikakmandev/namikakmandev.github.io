@@ -331,6 +331,74 @@ td.dscr-bad{color:var(--red);font-weight:600} td.dscr-ok{color:var(--green)}
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
       <div class="curtog"><button id="cur-try" type="button">₺ TRY</button><button id="cur-usd" type="button" class="on">$ USD</button></div>
     </div>
+
+    <!-- ===== Revision notes: what changed after the review ===== -->
+    <style>
+      #revlog{border-left:3px solid var(--orange)}
+      #revlog .rl-g{margin:12px 0 2px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--orange);font-weight:700}
+      #revlog ul{margin:5px 0 0;padding-left:18px}
+      #revlog li{font-size:12.5px;line-height:1.62;margin-bottom:7px;color:var(--muted)}
+      #revlog li b{color:var(--ink)}
+      #revlog .rl-jump{cursor:pointer;font-size:11px;white-space:nowrap;font-family:var(--mono)}
+      #revlog .rl-jump:hover{text-decoration:underline}
+      #revlogTgl{margin-left:auto;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--muted);padding:4px 11px;font:600 11.5px system-ui;cursor:pointer}
+      .rl-flash{outline:2px solid var(--orange);outline-offset:3px;transition:outline .2s}
+    </style>
+    <div class="card" id="revlog">
+      <h2>📋 Revision Notes <span class="tag">what changed after the review · Aug 2026</span>
+        <button id="revlogTgl" type="button">Hide</button></h2>
+      <div id="revlogBody">
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">This build implements the review notes on the Toll Road example (e-mail, 4 Aug 2026). Each point below says <b style="color:var(--ink)">what changed</b> and links to where it lives on the page.</div>
+
+        <div class="rl-g">Investment period</div>
+        <ul>
+          <li><b>Debt sized on the S&amp;U bottom line</b> — the loan is now <b>gearing × total uses</b> (including IDC, financing fees and the DSRA pre-funding), solved iteratively because IDC and facility size depend on each other. At 70% gearing, debt is exactly 70% of total uses. <a class="rl-jump" data-card="Sources &amp; Uses">→ Sources &amp; Uses</a></li>
+          <li><b>IDC on the outstanding balance</b> — interest during construction now accrues <b>monthly on the drawn balance of each tranche</b> (₺ and USD separately, each at its own rate), following the actual drawdown path rather than a yearly approximation. Monthly is this model's day-count equivalent; a literal per-day accrual would change the figures only marginally. <a class="rl-jump" data-card="Construction Funding">→ Drawdown</a></li>
+          <li><b>Capex drawdown schedule</b> — a new input: linear, <b>S-curve</b> (default for the toll road), front- or back-loaded. It drives the draws, and with them IDC and commitment fees. <a class="rl-jump" data-grp="Project">→ Inputs · Project</a></li>
+          <li><b>DSRA inside the funding plan</b> — the 6-month pre-funding is now a <b>Uses line funded at COD</b>, so the first debt-service reserve is part of the construction budget; afterwards the reserve tracks next period's debt service. <a class="rl-jump" data-card="Sources &amp; Uses">→ Sources &amp; Uses</a></li>
+          <li><b>“Opex during construction” removed from S&amp;U</b> — pre-COD overheads (utilities, staff and similar G&amp;A) now sit inside <b>Non-EPC</b>, as suggested; the separate input is gone.</li>
+          <li><b>Zero cash flow during construction</b> — with every use funded by a source, the project's net cash flow in the investment period is now zero by construction (greenfield logic); the cash flow statement shows it line by line. <a class="rl-jump" data-card="Financial Statements">→ Financial Statements</a></li>
+        </ul>
+
+        <div class="rl-g">Operating period</div>
+        <ul>
+          <li><b>Operating revenue model</b> — toll-road revenue is now built bottom-up: <b>vehicle categories × daily transits × tariff</b>, with traffic growth, CPI-linked or fixed tariff escalation and an authority revenue share, all as inputs. The simple annual-revenue mode remains for other asset types. <a class="rl-jump" data-grp="Revenue">→ Inputs · Revenue</a></li>
+          <li><b>DSCR flat at target in every year</b> — the debt engine now runs at the <b>debt-service payment frequency</b> (semi-annual by default; annual / quarterly selectable) instead of annually. With sculpted repayment, coverage now sits on the target in all years — including year 1, which previously showed 1.14×. <a class="rl-jump" data-card="DSCR Profile">→ DSCR Profile</a></li>
+          <li><b>CFADS = EBITDA − tax</b> — redefined per the review; maintenance capex and DSRA movements moved <b>below CFADS</b>, into the equity cash flow. <a class="rl-jump" data-card="DSCR Profile">→ DSCR Profile</a></li>
+        </ul>
+
+        <div class="rl-g">General framework</div>
+        <ul>
+          <li><b>USD base currency</b> — the default display is now <b>USD</b> (₺ stays one click away): long-horizon ₺ figures are distorted by inflation.</li>
+          <li><b>WACC &amp; Cost of Equity from components</b> — the former “Project discount / Equity hurdle” inputs are replaced by <b>risk-free rate, equity risk premium, beta and country risk premium</b>: CoE = rf + β×ERP + CRP; WACC = (1−g)·CoE + g·k<sub>d</sub>·(1−tax). Project NPV discounts at WACC, Equity NPV at CoE, both on USD-equivalent flows. <a class="rl-jump" data-grp="WACC">→ Inputs · WACC</a></li>
+          <li><b>Financial statements</b> — a new card with the <b>income statement, cash flow and balance sheet</b> in horizontal periodic layout (in that order), including FX revaluation of the USD debt and a balance-check row. <a class="rl-jump" data-card="Financial Statements">→ Financial Statements</a></li>
+        </ul>
+      </div>
+    </div>
+    <script>
+    (function(){
+      var KEY='projefin_revlog_hidden';
+      var body=document.getElementById('revlogBody'), tgl=document.getElementById('revlogTgl');
+      function set(hid){ body.style.display=hid?'none':''; tgl.textContent=hid?'Show':'Hide';
+        try{localStorage.setItem(KEY,hid?'1':'');}catch(e){} }
+      try{ if(localStorage.getItem(KEY)==='1') set(true); }catch(e){}
+      tgl.addEventListener('click',function(){ set(body.style.display!=='none'); });
+      // jump links: find the card by its h2 text, or the input group by its title, scroll + flash
+      function findCard(txt){ return [].slice.call(document.querySelectorAll('.card')).filter(function(c){
+        var h=c.querySelector('h2'); return h&&h.textContent.indexOf(txt)>=0; })[0]; }
+      function findGrp(txt){ return [].slice.call(document.querySelectorAll('.panel.left .grp')).filter(function(g){
+        var t=g.querySelector('.grp-t'); return t&&t.textContent.indexOf(txt)>=0; })[0]; }
+      document.querySelectorAll('#revlog .rl-jump').forEach(function(a){
+        a.addEventListener('click',function(){
+          var el=a.dataset.card?findCard(a.dataset.card):findGrp(a.dataset.grp);
+          if(!el) return;
+          el.scrollIntoView({behavior:'smooth',block:'center'});
+          el.classList.add('rl-flash'); setTimeout(function(){el.classList.remove('rl-flash');},1800);
+        });
+      });
+    })();
+    </script>
+
     <div class="kpis">
       <div class="kpi"><div class="k-l">Project IRR <small>(unlevered)</small></div><div class="k-v" id="k-pirr">—</div><div class="k-d" id="k-pirr-d">asset return</div></div>
       <div class="kpi k-eq"><div class="k-l">Equity IRR <small>(levered)</small></div><div class="k-v green" id="k-eirr">—</div><div class="k-d" id="k-eirr-d">sponsor return</div></div>
