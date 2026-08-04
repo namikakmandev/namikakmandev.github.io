@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The GLP-1 Trade — Stock Performance of the Weight-Loss Drug Makers — Namık Akman</title>
+  <meta name="description" content="Eli Lilly and Novo Nordisk built the same blockbuster drug class — yet one sits near an all-time high and the other has lost two-thirds of its value. Monthly total-return data, 2005–2026, for 12 GLP-1 names against the S&P 500 and biotech benchmark." />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Namık Akman" />
+  <meta property="og:title" content="The GLP-1 Trade — When the Same Molecule Splits Two Stocks" />
+  <meta property="og:description" content="Lilly +1,815% since 2015 and 6% off its all-time high; Novo Nordisk 64% below its 2024 peak. The pure-play biotechs range from +156% in a year to 98% wiped out. One class, wildly different tape." />
+  <meta property="og:url" content="https://namikakmandev.github.io/glp1-stocks.html" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="The GLP-1 Trade — When the Same Molecule Splits Two Stocks" />
+  <meta name="twitter:description" content="Lilly +1,815% since 2015; Novo Nordisk 64% below its 2024 peak. Monthly total-return data, 2005–2026, 12 GLP-1 names vs the S&P 500." />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .study { padding: 32px 0 64px; }
+    .study .container { max-width: 960px; }
+    .study .back { color: var(--text-dim); font-size: .9rem; }
+    .study .back:hover { color: var(--text); text-decoration: none; }
+    .study h1 { font-size: 2.1rem; line-height: 1.18; letter-spacing: -.015em; margin: 14px 0 10px; }
+    .study .lede { color: var(--text-dim); font-size: 1.1rem; line-height: 1.55; margin-bottom: 22px; max-width: 780px; }
+    .study .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--text-dim); font-size: .85rem;
+                   border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+                   padding: 12px 0; margin-bottom: 32px; }
+    .study .meta b { color: var(--text); font-weight: 600; }
+    .study h2 { font-size: 1.35rem; margin: 44px 0 8px; letter-spacing: -.01em; }
+    .study p { margin: 0 0 16px; color: var(--text); }
+    .study p.sub { color: var(--text-dim); margin: -2px 0 14px; font-size: .98rem; }
+
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0 30px; }
+    .kpis .k { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+    .kpis .k .l { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+    .kpis .k .v { font-size: 1.55rem; font-weight: 700; margin-top: 4px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+    .kpis .k.green .v { color: var(--accent-2); }
+    .kpis .k.red .v { color: var(--loss); }
+    .kpis .k.blue .v { color: var(--accent); }
+    .kpis .k .d { font-size: .82rem; color: var(--text-dim); margin-top: 4px; }
+
+    .fig { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+           padding: 16px 16px 10px; margin: 16px 0 8px; }
+    .fig-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+    .fig-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+    .fig-note { font-size: .8rem; color: var(--text-dim); }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 4px 2px 10px; }
+    .legend button { display: inline-flex; align-items: center; gap: 7px; background: none; border: 0; cursor: pointer;
+                     color: var(--text-dim); font: inherit; font-size: .84rem; padding: 3px 4px; border-radius: 6px; }
+    .legend button:hover { color: var(--text); }
+    .legend button[aria-pressed="false"] { opacity: .4; }
+    .legend .sw { width: 22px; height: 3px; border-radius: 2px; flex: 0 0 auto; }
+    .legend .sw.dash { background-image: linear-gradient(90deg, currentColor 60%, transparent 0); background-size: 7px 3px; }
+    .legend button b { color: var(--text); font-weight: 600; }
+    svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+    svg.chart text { fill: var(--text-dim); font-size: 11px; font-family: var(--font); }
+    svg.chart .lbl { fill: var(--text); font-weight: 600; font-size: 11.5px; }
+    svg.chart .grid { stroke: var(--border); stroke-width: 1; opacity: .5; }
+    svg.chart .axis { stroke: var(--border); stroke-width: 1; }
+    svg.chart .zero { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+    svg.chart .line { fill: none; stroke-width: 2; }
+    svg.chart .line.bench { stroke-width: 1.5; stroke-dasharray: 5 4; }
+    svg.chart .hit { cursor: crosshair; }
+    .tip { position: absolute; pointer-events: none; z-index: 20; background: var(--surface-2);
+           border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: .8rem;
+           color: var(--text); box-shadow: 0 6px 24px rgba(0,0,0,.35); min-width: 150px; opacity: 0; transition: opacity .08s; }
+    .tip .tt-date { color: var(--text-dim); font-size: .74rem; margin-bottom: 5px; }
+    .tip .tt-row { display: flex; align-items: center; gap: 7px; justify-content: space-between; }
+    .tip .tt-row .nm { display: flex; align-items: center; gap: 6px; }
+    .tip .tt-row .dot { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; }
+    .tip .tt-row .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .chart-wrap { position: relative; }
+
+    .toggle-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 4px; }
+    .toggle-row button { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
+                         font: inherit; font-size: .82rem; padding: 5px 11px; border-radius: 999px; cursor: pointer; }
+    .toggle-row button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    table.tbl { width: 100%; border-collapse: collapse; margin: 8px 0 8px; font-size: .9rem; }
+    table.tbl th, table.tbl td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    table.tbl th:first-child, table.tbl td:first-child { text-align: left; }
+    table.tbl th { color: var(--text-dim); font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; cursor: default; }
+    table.tbl td { font-variant-numeric: tabular-nums; }
+    table.tbl td.name b { color: var(--text); font-weight: 600; }
+    table.tbl td.name .tk { color: var(--text-dim); font-size: .78rem; margin-left: 6px; }
+    table.tbl .pos { color: var(--accent-2); }
+    table.tbl .neg { color: var(--loss); }
+    table.tbl tr.tier td { background: var(--surface-2); color: var(--text-dim); font-size: .72rem;
+                           text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+    .tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 14px 12px; }
+
+    .pullquote { border-left: 3px solid var(--accent); padding: 6px 18px; margin: 24px 0;
+                 font-size: 1.05rem; color: var(--text); line-height: 1.55; }
+    .callout { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+               padding: 18px 22px; margin: 22px 0; }
+    .callout h3 { margin: 0 0 8px; font-size: 1rem; color: var(--accent); }
+    .callout ul { margin: 0 0 0 20px; } .callout li { margin-bottom: 8px; }
+
+    .footnote { color: var(--text-dim); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 40px; }
+    .footnote a { color: var(--accent); }
+    .footnote code { font-size: .82rem; color: var(--text); }
+    .loading { color: var(--text-dim); padding: 40px 0; text-align: center; }
+    .err { color: var(--loss); }
+
+    @media (max-width: 720px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .study h1 { font-size: 1.65rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="projects.html" class="back">&larr; Back to projects</a>
+
+        <h1>The GLP-1 trade. <span style="color:var(--text-dim);font-weight:500;">One molecule class, two very different stocks.</span></h1>
+        <p class="lede">
+          GLP-1 receptor agonists — semaglutide, tirzepatide and the rest — became the
+          defining drug story of the decade, treating diabetes and then obesity. Two companies
+          own the franchise: <b>Eli Lilly</b> and <b>Novo Nordisk</b>. They rode the same science,
+          yet the market has priced them apart to a degree that is hard to believe from the
+          headlines alone. This page pulls monthly total-return prices (split- and
+          dividend-adjusted) for twelve listed GLP-1 names and two benchmarks, and lets the tape
+          tell the story. All figures update automatically each month from the source data.
+        </p>
+
+        <div class="meta">
+          <span>Data as of <b id="m-asof">—</b></span>
+          <span>Source <b>Yahoo Finance (monthly adjusted close)</b></span>
+          <span>Benchmarks <b>S&amp;P 500 · SPDR Biotech (XBI)</b></span>
+          <span>Returns <b>total return, USD</b></span>
+        </div>
+
+        <div id="app">
+          <div class="loading">Loading market data…</div>
+        </div>
+
+        <div class="footnote" id="foot" style="display:none">
+          <p><b>Method &amp; caveats.</b>
+          Prices are monthly adjusted closes from Yahoo Finance, in USD, fetched through this
+          site's GitHub Actions pipeline (<code>scripts/fetch.py</code> → <code>data/glp1-stocks.json</code>)
+          and recomputed in your browser. "Adjusted" means split- and dividend-adjusted, so the
+          lines are <b>total return</b>, not price alone; the S&amp;P 500 line is the raw index level
+          (no dividends), so it slightly understates the market against the dividend-paying stocks —
+          the biotech ETF (XBI) is the fairer sector benchmark.</p>
+          <p>Non-US companies trade here as ADRs (Novo Nordisk, AstraZeneca, Roche, Zealand), so
+          their USD returns embed currency moves; Zealand's US line is thin OTC while its primary
+          listing is Copenhagen. <b>Comparability:</b> Lilly and Novo are GLP-1-driven stories, but
+          Amgen, AstraZeneca, Roche and Pfizer are diversified — GLP-1 is one program among many, so
+          read those as context, not as "GLP-1 returns". <b>Survivorship:</b> Metsera (a pure-play
+          obesity biotech) is absent because Pfizer acquired and delisted it in November 2025;
+          Boehringer Ingelheim (survodutide) is private. Indexed charts rebase each series to 100 at
+          the base month; drawdown is the percent decline from each stock's own running all-time high
+          within the window. Not investment advice.</p>
+          <p>Built by Namık Akman · <a href="projects.html">More studies</a></p>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="js/main.js" defer></script>
+  <script>
+  (function () {
+    "use strict";
+
+    // ---- company metadata: display name, tier, role, categorical colour ----
+    // Colours are the dataviz dark-surface categorical ramp in fixed order
+    // (validated: adjacent CVD ΔE≥8, normal-vision floor≥15 on surface #2d3547).
+    // Benchmarks are neutral reference lines, not categorical.
+    var META = {
+      LLY:   { name: "Eli Lilly",       tier: "leaders", color: "#3987e5" },
+      NVO:   { name: "Novo Nordisk",    tier: "leaders", color: "#d95926" },
+      AMGN:  { name: "Amgen",           tier: "diversified", color: "#199e70" },
+      AZN:   { name: "AstraZeneca",     tier: "diversified", color: "#c98500" },
+      RHHBY: { name: "Roche",           tier: "diversified", color: "#d55181" },
+      PFE:   { name: "Pfizer",          tier: "diversified", color: "#9085e9" },
+      VKTX:  { name: "Viking Thera.",   tier: "biotech", color: "#3987e5" },
+      GPCR:  { name: "Structure Thera.",tier: "biotech", color: "#d95926" },
+      ALT:   { name: "Altimmune",       tier: "biotech", color: "#199e70" },
+      ZLDPF: { name: "Zealand Pharma",  tier: "biotech", color: "#c98500" },
+      SPX:   { name: "S&P 500",         tier: "bench", color: "#aab3c2", bench: true },
+      XBI:   { name: "Biotech ETF (XBI)", tier: "bench", color: "#8b94a6", bench: true }
+    };
+    var TIER_LABEL = {
+      leaders: "GLP-1 leaders", diversified: "Diversified pharma",
+      biotech: "Pure-play biotech", bench: "Benchmarks"
+    };
+
+    // ---------- helpers ----------
+    function monthsOf(s){ return Object.keys(s).sort(); }
+    function addMonth(m){ var y=+m.slice(0,4),mo=+m.slice(5,7); mo++; if(mo>12){y++;mo=1;} return y+"-"+(mo<10?"0":"")+mo; }
+    function fmtMonth(m){ var Y=m.slice(0,4),M=+m.slice(5,7);
+      return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][M-1]+" "+Y; }
+    function pct(x,dp){ if(x==null||!isFinite(x)) return "—"; dp=dp==null?0:dp;
+      return (x>=0?"+":"")+x.toFixed(dp)+"%"; }
+    function ret(s,from,to){ if(s[from]==null||s[to]==null) return null; return (s[to]/s[from]-1)*100; }
+    function lastMonth(s){ var k=monthsOf(s); return k[k.length-1]; }
+    function indexed(s, base){ // -> {month: value rebased to 100 at base}
+      if(s[base]==null) return null; var out={}, b=s[base];
+      monthsOf(s).forEach(function(m){ if(m>=base) out[m]=s[m]/b*100; }); return out;
+    }
+    function drawdown(s){ var out={}, peak=-Infinity;
+      monthsOf(s).forEach(function(m){ if(s[m]>peak) peak=s[m]; out[m]=(s[m]/peak-1)*100; }); return out;
+    }
+    function athInfo(s){ var peak=-Infinity, pm=""; monthsOf(s).forEach(function(m){ if(s[m]>peak){peak=s[m];pm=m;} });
+      var lm=lastMonth(s); return { athMonth:pm, fromAth:(s[lm]/peak-1)*100 }; }
+    function el(tag, attrs, kids){ var e=document.createElementNS("http://www.w3.org/2000/svg",tag);
+      if(attrs) for(var k in attrs) e.setAttribute(k,attrs[k]);
+      if(kids) kids.forEach(function(c){ e.appendChild(c); }); return e; }
+    function txt(s){ return document.createTextNode(s); }
+    function niceTicks(min,max,n){ var span=max-min||1, step=Math.pow(10,Math.floor(Math.log10(span/n)));
+      var err=(span/n)/step; if(err>=7.5)step*=10; else if(err>=3)step*=5; else if(err>=1.5)step*=2;
+      var t=[], s=Math.ceil(min/step)*step; for(;s<=max+1e-9;s+=step) t.push(+s.toFixed(6)); return t; }
+
+    // ---------- line chart (linear or log y), crosshair + tooltip, toggles ----------
+    function LineChart(mount, opts){
+      // opts: series [{key,label,color,bench,points:{m:v}}], months[], log, yfmt, baseNote, dd
+      var W=920, H=opts.dd?300:380, P={t:14,r:96,b:26,l:46};
+      var wrap=document.createElement("div"); wrap.className="chart-wrap"; mount.appendChild(wrap);
+      var tip=document.createElement("div"); tip.className="tip"; wrap.appendChild(tip);
+      var svg=el("svg",{class:"chart",viewBox:"0 0 "+W+" "+H,preserveAspectRatio:"xMidYMid meet",role:"img"});
+      wrap.appendChild(svg);
+      var hidden={};
+      var legendBox=opts.legendMount;
+
+      function vis(){ return opts.series.filter(function(s){ return !hidden[s.key]; }); }
+      function draw(){
+        while(svg.firstChild) svg.removeChild(svg.firstChild);
+        var months=opts.months, x0=P.l, x1=W-P.r, y0=H-P.b, y1=P.t;
+        var xs=function(i){ return months.length<2?x0:x0+(x1-x0)*i/(months.length-1); };
+        // y domain from visible
+        var lo=Infinity,hi=-Infinity;
+        vis().forEach(function(s){ months.forEach(function(m){ var v=s.points[m];
+          if(v!=null){ if(v<lo)lo=v; if(v>hi)hi=v; } }); });
+        if(!isFinite(lo)){ lo=0; hi=1; }
+        if(opts.dd){ hi=0; var pd=(0-lo)*0.06||1; lo-=pd; }        // headroom below deepest drawdown
+        else if(opts.log){ lo=Math.max(lo/1.08,1); hi=hi*1.08; }   // multiplicative pad in log space
+        else { var pad=(hi-lo)*0.06||1; lo-=pad; hi+=pad; }
+        var ys=function(v){ if(opts.log){ var a=Math.log10(lo),b=Math.log10(hi);
+            return y0+(y1-y0)*(Math.log10(Math.max(v,lo))-a)/(b-a); }
+          return y0+(y1-y0)*(v-lo)/(hi-lo); };
+        // gridlines
+        var ticks;
+        if(opts.log){ ticks=[]; for(var d=Math.floor(Math.log10(lo)); d<=Math.ceil(Math.log10(hi)); d++){
+            [1,2,3,5].forEach(function(k){ var v=k*Math.pow(10,d); if(v>=lo&&v<=hi) ticks.push(v); }); } }
+        else ticks=niceTicks(lo,hi,5);
+        ticks = ticks.filter(function(v,i,a){return a.indexOf(v)===i;});
+        ticks.forEach(function(v){ var y=ys(v);
+          svg.appendChild(el("line",{class:(opts.dd&&v===0)?"zero":"grid",x1:x0,x2:x1,y1:y,y2:y}));
+          var t=el("text",{x:x0-8,y:y+3.5,"text-anchor":"end"}); t.appendChild(txt(opts.yfmt(v))); svg.appendChild(t);
+        });
+        // x labels: year starts
+        var seenY={}; months.forEach(function(m,i){ var y=m.slice(0,4);
+          if(!seenY[y] && (+y)%(months.length>140?4:2)===0){ seenY[y]=1;
+            var t=el("text",{x:xs(i),y:H-8,"text-anchor":"middle"}); t.appendChild(txt(y)); svg.appendChild(t); }});
+        svg.appendChild(el("line",{class:"axis",x1:x0,x2:x1,y1:y0,y2:y0}));
+        // lines + end labels
+        var lastLabels=[];
+        vis().forEach(function(s){
+          var d="", started=false, lastI=-1;
+          months.forEach(function(m,i){ var v=s.points[m];
+            if(v==null) return; var X=xs(i),Y=ys(v);
+            d+=(started?"L":"M")+X.toFixed(1)+" "+Y.toFixed(1)+" "; started=true; lastI=i; });
+          if(!d) return;
+          svg.appendChild(el("path",{class:"line"+(s.bench?" bench":""),d:d,stroke:s.color}));
+          var lm=months[lastI], lv=s.points[lm];
+          lastLabels.push({y:ys(lv), color:s.color, label:s.label, x:x1+6});
+        });
+        // de-collide end labels
+        lastLabels.sort(function(a,b){return a.y-b.y;});
+        for(var i=1;i<lastLabels.length;i++){ if(lastLabels[i].y-lastLabels[i-1].y<12) lastLabels[i].y=lastLabels[i-1].y+12; }
+        lastLabels.forEach(function(L){ var t=el("text",{class:"lbl",x:L.x,y:L.y+3.5,fill:L.color});
+          t.appendChild(txt(L.label)); svg.appendChild(t); });
+        // hover layer
+        var cross=el("line",{class:"grid",x1:0,x2:0,y1:y1,y2:y0,opacity:0}); svg.appendChild(cross);
+        var dots=el("g"); svg.appendChild(dots);
+        var hit=el("rect",{class:"hit",x:x0,y:y1,width:x1-x0,height:y0-y1,fill:"transparent"}); svg.appendChild(hit);
+        function move(ev){
+          var r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)/r.width*W;
+          var i=Math.round((px-x0)/((x1-x0)/(months.length-1))); i=Math.max(0,Math.min(months.length-1,i));
+          var m=months[i], X=xs(i);
+          cross.setAttribute("x1",X); cross.setAttribute("x2",X); cross.setAttribute("opacity",.6);
+          while(dots.firstChild) dots.removeChild(dots.firstChild);
+          var rows=[];
+          vis().forEach(function(s){ var v=s.points[m]; if(v==null) return;
+            dots.appendChild(el("circle",{cx:X,cy:ys(v),r:3.5,fill:s.color,stroke:"var(--surface)","stroke-width":1.5}));
+            rows.push({s:s,v:v}); });
+          rows.sort(function(a,b){return b.v-a.v;});
+          var html='<div class="tt-date">'+fmtMonth(m)+'</div>';
+          rows.forEach(function(R){ html+='<div class="tt-row"><span class="nm"><span class="dot" style="background:'+
+            R.s.color+'"></span>'+R.s.label+'</span><span class="val">'+opts.tipfmt(R.v)+'</span></div>'; });
+          tip.innerHTML=html; tip.style.opacity=1;
+          var tx=(X/W)*r.width+16; if(tx> r.width-170) tx=(X/W)*r.width-tip.offsetWidth-16;
+          tip.style.left=Math.max(4,tx)+"px"; tip.style.top=(ev.clientY-r.top+12)+"px";
+        }
+        hit.addEventListener("mousemove",move);
+        hit.addEventListener("mouseleave",function(){ tip.style.opacity=0; cross.setAttribute("opacity",0);
+          while(dots.firstChild) dots.removeChild(dots.firstChild); });
+      }
+      // legend
+      if(legendBox){
+        opts.series.forEach(function(s){
+          var b=document.createElement("button"); b.type="button"; b.setAttribute("aria-pressed","true");
+          b.innerHTML='<span class="sw'+(s.bench?" dash":"")+'" style="background:'+s.color+
+            ';color:'+s.color+'"></span><b>'+s.label+'</b>';
+          b.addEventListener("click",function(){ hidden[s.key]=!hidden[s.key];
+            b.setAttribute("aria-pressed", hidden[s.key]?"false":"true"); draw(); });
+          legendBox.appendChild(b);
+        });
+      }
+      draw();
+      window.addEventListener("resize",function(){ /* viewBox scales; tooltip recalced on move */ });
+      return { redraw:draw };
+    }
+
+    // ---------- build page ----------
+    function build(raw){
+      var S=raw.series;
+      var asof = lastMonth(S.LLY);
+      document.getElementById("m-asof").textContent = fmtMonth(asof);
+      var app=document.getElementById("app"); app.innerHTML="";
+
+      // ---- KPI hero ----
+      var llyAth=athInfo(S.LLY), nvoAth=athInfo(S.NVO);
+      var kpis=[
+        {cls:"green", l:"Eli Lilly · since 2015", v:pct(ret(S.LLY,"2015-01",asof)), d:"total return, dividends in"},
+        {cls:"red",   l:"Novo Nordisk · from peak", v:pct(nvoAth.fromAth), d:"below its "+fmtMonth(nvoAth.athMonth)+" high"},
+        {cls:"blue",  l:"Lilly vs Novo · 3 yr", v:relstr(S.LLY,S.NVO,asof,36), d:"Lilly's edge over Novo, 3-year"},
+        {cls:"green", l:"Biotech ETF · 1 yr", v:pct(ret(S.XBI,addMonths(asof,-12),asof)), d:"XBI sector benchmark"}
+      ];
+      var kdiv=document.createElement("div"); kdiv.className="kpis";
+      kpis.forEach(function(k){ var d=document.createElement("div"); d.className="k "+k.cls;
+        d.innerHTML='<div class="l">'+k.l+'</div><div class="v">'+k.v+'</div><div class="d">'+k.d+'</div>'; kdiv.appendChild(d); });
+      app.appendChild(kdiv);
+
+      // ---- Chart 1: the divergence, indexed from 2021-01 ----
+      section(app,"The divergence",
+        "Same drug class, rebased to 100 in January 2021 — when the obesity trade began. "+
+        "Lilly compounds; Novo climbs to a 2024 peak, then gives most of it back. The S&P 500 is the dashed reference.");
+      var f1=fig(app), lg1=legend(f1);
+      var base1="2021-01";
+      LineChart(f1, {
+        months: monthsFrom(S.LLY, base1),
+        series: [
+          lineSer("LLY",indexed(S.LLY,base1)), lineSer("NVO",indexed(S.NVO,base1)),
+          lineSer("SPX",indexed(S.SPX,base1))
+        ],
+        legendMount: lg1, yfmt:function(v){return Math.round(v);}, tipfmt:function(v){return Math.round(v);}
+      });
+      capt(f1,"Index: Jan 2021 = 100. Higher = better total return since the base month.");
+
+      // ---- Chart 2: long-run compounding, log, indexed from 2015 ----
+      section(app,"A decade of compounding",
+        "The six pharma names with a full history since 2015, indexed to 100 and drawn on a log scale so "+
+        "a straight line means a steady growth rate. Toggle any name in the legend. Benchmarks dashed.");
+      var f2=fig(app), lg2=legend(f2);
+      var base2="2015-01";
+      var big=["LLY","NVO","AMGN","AZN","RHHBY","PFE","XBI","SPX"];
+      LineChart(f2, {
+        months: monthsFrom(S.LLY, base2), log:true,
+        series: big.map(function(k){ return lineSer(k, indexed(S[k],base2)); }),
+        legendMount: lg2,
+        yfmt:function(v){return Math.round(v);}, tipfmt:function(v){return Math.round(v);}
+      });
+      capt(f2,"Index: Jan 2015 = 100, log scale. Note LLY passing 1,800 while the diversified names cluster far below.");
+
+      // ---- Chart 3: drawdown ----
+      section(app,"How far underwater",
+        "Drawdown — each stock's decline from its own running all-time high. Zero means at a record; "+
+        "the depth is the pain an investor holding from the prior peak would have felt.");
+      var f3=fig(app);
+      var ddToggles=document.createElement("div"); ddToggles.className="toggle-row"; f3.appendChild(ddToggles);
+      var lg3=legend(f3);
+      var ddSets={
+        "Leaders": ["LLY","NVO"],
+        "Biotech": ["VKTX","GPCR","ALT","ZLDPF"],
+        "Big pharma": ["AMGN","AZN","RHHBY","PFE"]
+      };
+      var ddChart, ddMountBox=document.createElement("div"); f3.appendChild(ddMountBox);
+      function renderDD(setKey){
+        ddMountBox.innerHTML=""; lg3.innerHTML="";
+        var keys=ddSets[setKey];
+        // common window: earliest month among chosen with data
+        var starts=keys.map(function(k){return monthsOf(S[k])[0];});
+        var start=starts.sort()[0];
+        LineChart(ddMountBox, {
+          months: monthsFrom(S[keys.reduce(function(a,b){return monthsOf(S[a]).length>=monthsOf(S[b]).length?a:b;})], start),
+          dd:true,
+          series: keys.map(function(k){ return lineSer(k, clip(drawdown(S[k]),start)); }),
+          legendMount: lg3, yfmt:function(v){return v+"%";}, tipfmt:function(v){return pct(v,0);}
+        });
+      }
+      Object.keys(ddSets).forEach(function(sk,i){ var b=document.createElement("button"); b.type="button";
+        b.textContent=sk; b.setAttribute("aria-pressed", i===0?"true":"false");
+        b.addEventListener("click",function(){ [].forEach.call(ddToggles.children,function(c){c.setAttribute("aria-pressed","false");});
+          b.setAttribute("aria-pressed","true"); renderDD(sk); }); ddToggles.appendChild(b); });
+      renderDD("Leaders");
+      capt(f3,"Percent below each stock's own prior peak. Altimmune's near-total wipeout dwarfs the leaders' dips.");
+
+      // ---- Table ----
+      section(app,"Every name, every horizon",
+        "The full scorecard. Returns are total return to "+fmtMonth(asof)+"; the last column is today's price versus each stock's all-time high.");
+      buildTable(app, S, asof);
+
+      document.getElementById("foot").style.display="";
+
+      // helpers closed over S
+      function lineSer(k, pts){ var m=META[k]; return {key:k,label:m.name,color:m.color,bench:!!m.bench,points:pts||{}}; }
+    }
+
+    function relstr(a,b,to,n){ var from=addMonths(to,-n); var ra=ret(a,from,to), rb=ret(b,from,to);
+      if(ra==null||rb==null) return "—"; return (ra-rb>=0?"+":"")+Math.round(ra-rb)+" pts"; }
+    function addMonths(m,d){ var y=+m.slice(0,4),mo=+m.slice(5,7)-1+d; y+=Math.floor(mo/12); mo=(mo%12+12)%12;
+      return y+"-"+(mo+1<10?"0":"")+(mo+1); }
+    function monthsFrom(s,base){ return monthsOf(s).filter(function(m){return m>=base;}); }
+    function clip(o,start){ var out={}; Object.keys(o).forEach(function(m){ if(m>=start) out[m]=o[m]; }); return out; }
+
+    function section(p,h,sub){ var e=document.createElement("h2"); e.textContent=h; p.appendChild(e);
+      if(sub){ var s=document.createElement("p"); s.className="sub"; s.textContent=sub; p.appendChild(s); } }
+    function fig(p){ var d=document.createElement("div"); d.className="fig"; p.appendChild(d); return d; }
+    function legend(f){ var d=document.createElement("div"); d.className="legend"; f.appendChild(d); return d; }
+    function capt(f,t){ var d=document.createElement("div"); d.className="fig-note"; d.style.margin="2px 2px 6px";
+      d.textContent=t; f.appendChild(d); }
+
+    function buildTable(app,S,asof){
+      var wrap=document.createElement("div"); wrap.className="tbl-wrap";
+      var cols=[["since 2015","2015-01"],["5-yr",addMonths(asof,-60)],["3-yr",addMonths(asof,-36)],
+                ["1-yr",addMonths(asof,-12)],["YTD",(+asof.slice(0,4)-1)+"-12"]];
+      var order=[["leaders",["LLY","NVO"]],["diversified",["AMGN","AZN","RHHBY","PFE"]],
+                 ["biotech",["VKTX","GPCR","ALT","ZLDPF"]],["bench",["SPX","XBI"]]];
+      var h="<table class='tbl'><thead><tr><th>Company</th>";
+      cols.forEach(function(c){ h+="<th>"+c[0]+"</th>"; });
+      h+="<th>max drawdown</th><th>vs all-time high</th></tr></thead><tbody>";
+      order.forEach(function(grp){
+        h+="<tr class='tier'><td colspan='"+(cols.length+3)+"'>"+TIER_LABEL[grp[0]]+"</td></tr>";
+        grp[1].forEach(function(k){ var s=S[k]; if(!s) return; var m=META[k];
+          h+="<tr><td class='name'><b>"+m.name+"</b><span class='tk'>"+k+"</span></td>";
+          cols.forEach(function(c){ var r = s[c[1]]!=null ? ret(s,c[1],asof) : null;
+            h+="<td class='"+cls(r)+"'>"+pct(r)+"</td>"; });
+          var mdd=maxDD(s), a=athInfo(s);
+          h+="<td class='neg'>"+pct(mdd)+"</td><td class='"+cls(a.fromAth)+"'>"+pct(a.fromAth)+"</td></tr>";
+        });
+      });
+      h+="</tbody></table>"; wrap.innerHTML=h; app.appendChild(wrap);
+    }
+    function cls(r){ return r==null?"":(r>=0?"pos":"neg"); }
+    function maxDD(s){ var dd=drawdown(s), w=0; Object.keys(dd).forEach(function(m){ if(dd[m]<w)w=dd[m]; }); return w; }
+
+    // ---------- load ----------
+    fetch("data/glp1-stocks.json").then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(build)
+      .catch(function(e){ document.getElementById("app").innerHTML=
+        '<p class="loading err">Could not load market data ('+e.message+'). '+
+        'The dataset lives at <code>data/glp1-stocks.json</code> and refreshes monthly via GitHub Actions.</p>'; });
+  })();
+  </script>
+</body>
+</html>
