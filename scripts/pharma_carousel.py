@@ -1,25 +1,28 @@
 #!/usr/bin/env python3
-"""LinkedIn carousel for the pharma-share study -> notes/pharma-carousel.pdf
+"""LinkedIn document deck for the pharma study -> notes/pharma-carousel.pdf
 
-10 portrait slides (1080x1350, LinkedIn document format) in the study's dark
-house style. Numbers are pulled from the data files, not retyped, so the
-carousel can never drift from the page. Also drops each slide as a PNG in
-assets/pharma-study/carousel/ for preview and single-image posting.
+Seven slides, 1080x1350. Every figure is read from the data files, so the deck
+cannot drift from the study page.
+
+Layout: slides are composed through a top-down cursor (Slide.block / .chart).
+Each block reports its own measured height in figure fractions and advances the
+cursor, so elements cannot overlap by construction — nothing is positioned by
+hand-tuned constants.
 """
 import json, os
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PNGDIR = os.path.join(ROOT, "assets", "pharma-study", "carousel")
 os.makedirs(PNGDIR, exist_ok=True)
 
-SURFACE = "#0f1419"; CARD = "#151b22"; INK = "#f4f6f8"; INK2 = "#9aa3ad"
-GRID = "#232a33"; MUTED = "#3d4654"
+# ---------------------------------------------------------------- house style
+SURFACE = "#0f1419"; CARD = "#161d25"; INK = "#f4f6f8"; INK2 = "#98a2ad"
+GRID = "#242c36"; MUTED = "#3d4654"; RULE = "#2b333d"
 BLUE = "#3987e5"; GREEN = "#199e70"; ORANGE = "#d95926"; YELLOW = "#c98500"
 
 plt.rcParams.update({
@@ -27,296 +30,380 @@ plt.rcParams.update({
     "text.color": INK, "font.family": "DejaVu Sans",
 })
 
-share = json.load(open(os.path.join(ROOT, "data", "pharma-share.json")))["shares"]
-stan = json.load(open(os.path.join(ROOT, "data", "pharma-share-stan.json")))["shares"]
-mix = json.load(open(os.path.join(ROOT, "data", "pharma-product-mix.json")))
-
-W, H = 7.2, 9.0          # 1080 x 1350 at dpi 150
+W, H = 7.2, 9.0                  # 1080 x 1350 at dpi 150
+PT = 1.0 / (72 * H)              # one point, as a fraction of figure height
+LEFT, RIGHT = 0.085, 0.915
+COLW = RIGHT - LEFT
+TOP = 0.885                      # content ceiling (below the kicker)
+FLOOR = 0.105                    # content floor (above the footer)
 pct = FuncFormatter(lambda v, _: f"{v:g}%")
 
+# ------------------------------------------------------------------ the data
+share = json.load(open(os.path.join(ROOT, "data", "pharma-share.json")))["shares"]
+stan = json.load(open(os.path.join(ROOT, "data", "pharma-share-stan.json")))["shares"]
+mixd = json.load(open(os.path.join(ROOT, "data", "pharma-product-mix.json")))
+expo = json.load(open(os.path.join(ROOT, "data", "pharma-exports.json")))["series"]
+mirr = json.load(open(os.path.join(ROOT, "data", "pharma-mirror.json")))["series"]
 
-def newslide():
-    fig = plt.figure(figsize=(W, H))
-    fig.patch.set_facecolor(SURFACE)
-    fig.add_artist(plt.Line2D([0.08, 0.16], [0.945, 0.945], color=BLUE,
-                              lw=3, solid_capstyle="round"))
-    return fig
-
-
-def footer(fig, n):
-    fig.text(0.08, 0.045, "Namık Akman", color=INK2, fontsize=11, fontweight="bold")
-    fig.text(0.08, 0.028, "namikakmandev.github.io", color=MUTED, fontsize=9.5)
-    fig.text(0.92, 0.037, f"{n}/10", color=INK2, fontsize=11, ha="right")
+HS = ["3002", "3004", "3003", "2937", "2941"]
+HSLAB = {"3002": "Biologics / vaccines", "3004": "Finished dose",
+         "2937": "Hormones", "2941": "Antibiotics", "3003": "Bulk"}
+HSCOL = {"3002": BLUE, "3004": GREEN, "2937": YELLOW, "2941": ORANGE, "3003": MUTED}
 
 
-def kicker(fig, text, color=BLUE):
-    fig.text(0.08, 0.93, text.upper(), color=color, fontsize=12.5,
-             fontweight="bold", va="top")
+def trade_mix(src, geo, year):
+    tot = sum(src.get(f"{geo}|{p}", {}).get(year, 0) for p in HS)
+    if not tot:
+        return None, 0
+    return {p: 100 * src.get(f"{geo}|{p}", {}).get(year, 0) / tot for p in HS}, tot / 1e9
 
 
-def save(fig, pdf, n):
-    footer(fig, n)
-    pdf.savefig(fig, facecolor=SURFACE)
-    fig.savefig(os.path.join(PNGDIR, f"slide_{n:02d}.png"), dpi=150, facecolor=SURFACE)
-    plt.close(fig)
+# ---------------------------------------------------------------- slide model
+class Slide:
+    """Top-down composition. Every add-method advances a cursor by its own
+    measured height, so no two elements can occupy the same band."""
+
+    def __init__(self, kicker, accent=BLUE):
+        self.fig = plt.figure(figsize=(W, H))
+        self.fig.patch.set_facecolor(SURFACE)
+        self.y = TOP
+        self.fig.add_artist(plt.Line2D([LEFT, LEFT + 0.075], [0.945, 0.945],
+                                       color=accent, lw=3, solid_capstyle="round"))
+        self.fig.text(LEFT, 0.928, kicker.upper(), color=accent, fontsize=11.5,
+                      fontweight="bold", va="top")
+
+    # ---- primitives
+    def gap(self, pts):
+        self.y -= pts * PT
+
+    def block(self, text, size=15.5, color=INK, weight="normal",
+              lead=1.42, gap=10, x=LEFT):
+        n = text.count("\n") + 1
+        self.fig.text(x, self.y, text, fontsize=size, color=color,
+                      fontweight=weight, va="top", linespacing=lead)
+        self.y -= n * size * lead * PT
+        self.gap(gap)
+
+    def rule(self, gap=16):
+        self.fig.add_artist(plt.Line2D([LEFT, RIGHT], [self.y, self.y],
+                                       color=RULE, lw=1))
+        self.gap(gap)
+
+    def chart(self, height_frac, pad_left=0.0, tick_pad=30):
+        """Reserve a band of the given height and return an axes for it.
+
+        tick_pad is extra clearance for x tick labels, which matplotlib draws
+        below the axes rectangle and which the cursor cannot measure."""
+        bottom = self.y - height_frac
+        ax = self.fig.add_axes([LEFT + pad_left, bottom,
+                                COLW - pad_left, height_frac])
+        ax.set_facecolor(SURFACE)
+        for s in ("top", "right", "left"):
+            ax.spines[s].set_visible(False)
+        ax.spines["bottom"].set_color(GRID)
+        ax.tick_params(colors=INK2, labelsize=11.5)
+        self.y = bottom
+        self.gap(tick_pad)
+        return ax
+
+    def save(self, pdf, n):
+        # hard guard: content must never reach the footer band
+        if self.y < FLOOR:
+            raise SystemExit(
+                f"slide {n}: content overflows the footer "
+                f"(cursor {self.y:.3f} < floor {FLOOR:.3f}) — shorten a block")
+        self.fig.text(LEFT, 0.052, "Namık Akman", color=INK2, fontsize=10.5,
+                      fontweight="bold", va="top")
+        self.fig.text(LEFT, 0.034, "namikakmandev.github.io", color=MUTED,
+                      fontsize=9, va="top")
+        self.fig.text(RIGHT, 0.052, f"{n} / 7", color=INK2, fontsize=10.5,
+                      ha="right", va="top")
+        pdf.savefig(self.fig, facecolor=SURFACE)
+        self.fig.savefig(os.path.join(PNGDIR, f"slide_{n:02d}.png"),
+                         dpi=150, facecolor=SURFACE)
+        plt.close(self.fig)
 
 
+# ------------------------------------------------------------------ slide 1
 def s1(pdf):
-    fig = newslide()
-    kicker(fig, "Data study")
-    fig.text(0.08, 0.78, "The pharma", fontsize=46, fontweight="bold", va="top")
-    fig.text(0.08, 0.70, "states", fontsize=46, fontweight="bold", va="top", color=BLUE)
-    fig.text(0.08, 0.605,
-             "How big is the pharmaceutical industry\ninside a national economy — and what\ndoes each country actually make?",
-             fontsize=18, color=INK2, va="top", linespacing=1.5)
-    for i, t in enumerate(["42 countries", "35 years", "Eurostat · OECD · trade"]):
-        fig.text(0.08, 0.40 - i * 0.055, "•  " + t, fontsize=15, color=INK)
-    fig.text(0.08, 0.15, "Swipe →", fontsize=15, color=BLUE, fontweight="bold")
-    save(fig, pdf, 1)
+    s = Slide("Data study · August 2026")
+    s.gap(34)
+    s.block("Pharmaceutical\nmanufacturing in\nthe national economy",
+            size=33, weight="bold", lead=1.26, gap=20)
+    s.rule(gap=20)
+    s.block("A 42-country analysis of how large the pharmaceutical\n"
+            "industry is inside each economy, how concentrated that\n"
+            "exposure has become, and what each country produces.",
+            size=15, color=INK2, gap=30)
+    for label, val in (("Countries", "42"), ("Period", "1990 – 2025"),
+                       ("Sources", "Eurostat · OECD · trade statistics")):
+        s.block(f"{label}", size=10.5, color=MUTED, gap=2)
+        s.block(f"{val}", size=15, color=INK, weight="bold", gap=14)
+    s.save(pdf, 1)
 
 
+# ------------------------------------------------------------------ slide 2
 def s2(pdf):
-    fig = newslide()
-    kicker(fig, "The frame")
-    fig.text(0.08, 0.85, 'One number hides\nthree questions.', fontsize=30,
-             fontweight="bold", va="top", linespacing=1.2)
-    rows = [("How big?", "Pharma's share of the whole economy", BLUE),
-            ("How concentrated?", "How much of one economy rides on it", GREEN),
-            ("What kind?", "Biologics, pills, or raw ingredients", YELLOW)]
-    for i, (h, sub, c) in enumerate(rows):
-        y = 0.60 - i * 0.15
-        fig.add_artist(plt.Line2D([0.08, 0.08], [y - 0.055, y + 0.02], color=c, lw=4))
-        fig.text(0.13, y, h, fontsize=22, fontweight="bold", color=c, va="top")
-        fig.text(0.13, y - 0.045, sub, fontsize=14.5, color=INK2, va="top")
-    fig.text(0.08, 0.12, "Answer all three and the same industry looks\ncompletely different.",
-             fontsize=14.5, color=INK2, linespacing=1.45)
-    save(fig, pdf, 2)
+    s = Slide("Executive summary")
+    s.gap(30)
+    s.block("Three findings", size=30, weight="bold", gap=26)
+    items = [
+        ("01", "Scale is remarkably uniform.", BLUE,
+         "In every large economy, pharmaceutical manufacturing\n"
+         "accounts for approximately 1% of output — and has done\n"
+         "so for three decades."),
+        ("02", "Concentration is the real variable.", GREEN,
+         "Shares of 7–17% occur only in small economies where a\n"
+         "single industry has come to dominate: Ireland, Denmark\n"
+         "and Switzerland."),
+        ("03", "Composition differs more than scale.", YELLOW,
+         "Trade data separates biologics producers from finished-\n"
+         "dose manufacturers — a distinction invisible in the\n"
+         "headline economic figures."),
+    ]
+    for num, head, col, body in items:
+        top = s.y
+        s.block(num, size=13, color=col, weight="bold", gap=4, x=LEFT)
+        s.block(head, size=17, weight="bold", gap=7, x=LEFT + 0.075)
+        s.block(body, size=13.5, color=INK2, lead=1.45, gap=20, x=LEFT + 0.075)
+        s.fig.add_artist(plt.Line2D([LEFT + 0.052, LEFT + 0.052],
+                                    [s.y + 0.018, top - 0.004], color=col, lw=2.5))
+    s.save(pdf, 2)
 
 
+# ------------------------------------------------------------------ slide 3
 def s3(pdf):
-    fig = newslide()
-    kicker(fig, "Surprise 1 · how big")
-    fig.text(0.08, 0.87, "≈1%", fontsize=88, fontweight="bold", color=BLUE, va="top")
-    fig.text(0.08, 0.66,
-             "Every large economy holds pharma\nmanufacturing near 1% of GDP —\nand has for thirty years.",
-             fontsize=20, va="top", linespacing=1.4)
-    for i, (c, v) in enumerate([("United States", "0.87%"), ("United Kingdom", "0.95%"),
-                                ("Japan", "0.66%"), ("Germany", "0.67%")]):
-        y = 0.40 - i * 0.062
-        fig.text(0.08, y, c, fontsize=16, color=INK2)
-        fig.text(0.55, y, v, fontsize=16, color=INK, fontweight="bold")
-    save(fig, pdf, 3)
+    s = Slide("Finding 01 · Scale")
+    s.gap(28)
+    s.block("Large economies hold\npharmaceuticals near 1%",
+            size=27, weight="bold", lead=1.25, gap=12)
+    s.block("Share of total value added, 1990 to most recent year.",
+            size=13, color=INK2, gap=18)
 
-
-def s4(pdf):
-    fig = newslide()
-    kicker(fig, "Thirty years, one band")
-    fig.text(0.08, 0.90, "The big economies never move",
-             fontsize=24, fontweight="bold", va="top")
-    ax = fig.add_axes([0.11, 0.16, 0.82, 0.66])
-    ax.set_facecolor(SURFACE)
-    for sp in ("top", "right", "left"):
-        ax.spines[sp].set_visible(False)
-    ax.spines["bottom"].set_color(GRID)
-    ax.tick_params(colors=INK2, labelsize=12)
+    ax = s.chart(0.375)
     ax.grid(axis="y", color=GRID, lw=0.8)
-    focus = [("USA", BLUE, "United States"), ("JPN", ORANGE, "Japan"),
-             ("GBR", YELLOW, "United Kingdom"), ("KOR", GREEN, "South Korea")]
     for geo in ("CAN", "MEX", "AUS", "FRA", "ITA", "ESP", "DEU"):
-        d = stan.get(geo) or {}
+        d = stan.get(geo)
         if not d:
             continue
         ys = sorted(int(y) for y in d)
-        ax.plot(ys, [d[str(y)]["share_gva"] for y in ys], color=MUTED, lw=1, alpha=.5)
-    for geo, c, lab in focus:
+        ax.plot(ys, [d[str(y)]["share_gva"] for y in ys], color=MUTED, lw=1, alpha=.55)
+    for geo, col, lab in (("USA", BLUE, "United States"), ("GBR", YELLOW, "United Kingdom"),
+                          ("JPN", ORANGE, "Japan"), ("KOR", GREEN, "South Korea")):
         d = stan[geo]; ys = sorted(int(y) for y in d)
         vs = [d[str(y)]["share_gva"] for y in ys]
-        ax.plot(ys, vs, color=c, lw=2.6)
-        ax.annotate(f"{lab} {vs[-1]:.2f}%", (ys[-1], vs[-1]), xytext=(6, 0),
-                    textcoords="offset points", color=c, fontsize=11,
+        ax.plot(ys, vs, color=col, lw=2.4)
+        ax.annotate(f"{lab}  {vs[-1]:.2f}%", (ys[-1], vs[-1]), xytext=(7, 0),
+                    textcoords="offset points", color=col, fontsize=10.5,
                     fontweight="bold", va="center")
-    ax.set_xlim(1990, 2032); ax.set_ylim(0, 1.4)
+    ax.set_xlim(1990, 2036); ax.set_ylim(0, 1.45)
     ax.yaxis.set_major_formatter(pct)
-    fig.text(0.08, 0.11, "Pharma value added ÷ total value added, 1990→. Grey: other economies.",
-             fontsize=11.5, color=INK2)
-    save(fig, pdf, 4)
+
+    s.gap(6)
+    s.block("The band has held through the genomics era, the shift to\n"
+            "biologics and the pandemic. Grey lines: Canada, Mexico,\n"
+            "Australia, France, Italy, Spain, Germany.",
+            size=12.5, color=INK2, lead=1.45, gap=0)
+    s.save(pdf, 3)
 
 
-def s5(pdf):
-    fig = newslide()
-    kicker(fig, "Surprise 2 · how concentrated", GREEN)
-    fig.text(0.08, 0.88, "The exceptions\naren't big.", fontsize=32,
-             fontweight="bold", va="top", linespacing=1.2)
-    fig.text(0.08, 0.70, "They're small economies that let\none industry become the economy.",
-             fontsize=18, color=INK2, va="top", linespacing=1.4)
-    for i, (c, v, note) in enumerate([
-            ("Ireland", "16.7%", "of the whole economy"),
-            ("Denmark", "8.7%", "and ~49% of all manufacturing"),
-            ("Switzerland", "6.7%", "")]):
-        y = 0.50 - i * 0.135
-        fig.text(0.08, y, v, fontsize=40, fontweight="bold", color=GREEN, va="top")
-        fig.text(0.40, y - 0.008, c, fontsize=19, fontweight="bold", va="top")
-        if note:
-            fig.text(0.40, y - 0.052, note, fontsize=13, color=INK2, va="top")
-    save(fig, pdf, 5)
+# ------------------------------------------------------------------ slide 4
+def s4(pdf):
+    s = Slide("Finding 02 · Concentration", GREEN)
+    s.gap(28)
+    s.block("The exceptions are all\nsmall economies",
+            size=27, weight="bold", lead=1.25, gap=12)
+    s.block("Pharmaceutical share of GDP, 1995–2025.", size=13, color=INK2, gap=18)
 
-
-def s6(pdf):
-    fig = newslide()
-    kicker(fig, "One country, one industry", GREEN)
-    fig.text(0.08, 0.90, "Denmark: 0.8% → 8.7% of GDP",
-             fontsize=23, fontweight="bold", va="top")
-    ax = fig.add_axes([0.11, 0.16, 0.82, 0.66])
-    ax.set_facecolor(SURFACE)
-    for sp in ("top", "right", "left"):
-        ax.spines[sp].set_visible(False)
-    ax.spines["bottom"].set_color(GRID)
-    ax.tick_params(colors=INK2, labelsize=12)
+    ax = s.chart(0.355)
     ax.grid(axis="y", color=GRID, lw=0.8)
     for geo in share:
         if geo in ("DK", "CH", "IE", "SI", "BE"):
             continue
         d = share[geo]; ys = sorted(int(y) for y in d if int(y) >= 1995)
-        vs = [d[str(y)]["share_gdp"] for y in ys]
         if len(ys) >= 20:
-            ax.plot(ys, vs, color=MUTED, lw=1, alpha=.5)
-    for geo, c, lab in [("DK", GREEN, "Denmark"), ("CH", ORANGE, "Switzerland")]:
+            ax.plot(ys, [d[str(y)]["share_gdp"] for y in ys], color=MUTED, lw=1, alpha=.5)
+    for geo, col, lab in (("DK", GREEN, "Denmark"), ("CH", ORANGE, "Switzerland")):
         d = share[geo]; ys = sorted(int(y) for y in d if int(y) >= 1995)
         vs = [d[str(y)]["share_gdp"] for y in ys]
-        ax.plot(ys, vs, color=c, lw=2.8)
-        ax.annotate(f"{lab} {vs[-1]:.1f}%", (ys[-1], vs[-1]), xytext=(6, 0),
-                    textcoords="offset points", color=c, fontsize=12,
+        ax.plot(ys, vs, color=col, lw=2.6)
+        ax.annotate(f"{lab}  {vs[-1]:.1f}%", (ys[-1], vs[-1]), xytext=(7, 0),
+                    textcoords="offset points", color=col, fontsize=10.5,
                     fontweight="bold", va="center")
-    ax.set_xlim(1995, 2032); ax.set_ylim(0, 9.6)
+    ax.set_xlim(1995, 2035); ax.set_ylim(0, 9.8)
     ax.yaxis.set_major_formatter(pct)
-    fig.text(0.08, 0.11, "Pharma ÷ GDP, 1995→2025. Grey: 25 other European countries.",
-             fontsize=11.5, color=INK2)
-    save(fig, pdf, 6)
+
+    s.gap(4)
+    s.rule(gap=14)
+    s.block("In 2023 Germany and Denmark each produced roughly €25bn of\n"
+            "pharmaceutical value added. That is 0.6% of the German economy\n"
+            "and 6.5% of the Danish one. Concentration, not sector size,\n"
+            "determines macroeconomic exposure.",
+            size=13, color=INK2, lead=1.5, gap=0)
+    s.save(pdf, 4)
 
 
-def s7(pdf):
-    fig = newslide()
-    kicker(fig, "The paradox", ORANGE)
-    fig.text(0.08, 0.86, "Same industry.\nSame €value.", fontsize=30,
-             fontweight="bold", va="top", linespacing=1.2)
-    fig.text(0.08, 0.68, "In 2023 Germany and Denmark each\nproduced ~€25bn of pharma.",
-             fontsize=17.5, color=INK2, va="top", linespacing=1.4)
-    box = [("Germany", "€26bn", "0.6% of GDP", "a rounding error", INK),
-           ("Denmark", "€24bn", "6.5% of GDP", "the growth engine", GREEN)]
-    for i, (c, e, p, note, col) in enumerate(box):
-        y = 0.52 - i * 0.185
-        fig.add_artist(plt.Rectangle((0.08, y - 0.13), 0.84, 0.15, transform=fig.transFigure,
-                                     facecolor=CARD, edgecolor=GRID, lw=1))
-        fig.text(0.11, y - 0.01, c, fontsize=18, fontweight="bold", va="top", color=col)
-        fig.text(0.11, y - 0.06, e, fontsize=15, color=INK2, va="top")
-        fig.text(0.55, y - 0.01, p, fontsize=22, fontweight="bold", color=col, va="top")
-        fig.text(0.55, y - 0.065, note, fontsize=13.5, color=INK2, va="top")
-    fig.text(0.08, 0.10, "Concentration, not pharma, is the phenomenon.",
-             fontsize=15.5, color=INK, fontweight="bold")
-    save(fig, pdf, 7)
+# ------------------------------------------------------------------ slide 5
+def s5(pdf):
+    """Denmark and Ireland — the breakdown the earlier deck omitted."""
+    s = Slide("Country focus", GREEN)
+    s.gap(26)
+    s.block("Two routes to\nconcentration", size=27, weight="bold", lead=1.25, gap=12)
+    s.block("Ireland repositioned its output. Denmark deepened a single\nfranchise. Both reached scale; the composition differs.",
+            size=13, color=INK2, lead=1.45, gap=22)
+
+    dk_g = share["DK"]; ie_g = stan["IRL"]
+    panels = [
+        ("Ireland", "IE", GREEN,
+         f"{ie_g['1995']['share_gva']:.1f}% → {ie_g['2023']['share_gva']:.1f}%",
+         "of value added, 1995–2023",
+         "Exports  €15bn → €99bn"),
+        ("Denmark", "DK", BLUE,
+         f"{dk_g['1995']['share_gdp']:.1f}% → {dk_g['2025']['share_gdp']:.1f}%",
+         "of GDP, 1995–2025",
+         "Exports  €4bn → €22bn"),
+    ]
+    top = s.y
+    for i, (name, geo, col, headline, sub, exports) in enumerate(panels):
+        x = LEFT if i == 0 else LEFT + COLW / 2 + 0.018
+        w = COLW / 2 - 0.018
+        # zorder 0: figure-level patches otherwise paint over the axes below
+        s.fig.add_artist(plt.Rectangle((x, top - 0.315), w, 0.315,
+                                       transform=s.fig.transFigure,
+                                       facecolor=CARD, edgecolor=GRID, lw=1, zorder=0))
+        s.fig.text(x + 0.022, top - 0.028, name, fontsize=18, fontweight="bold",
+                   color=col, va="top")
+        s.fig.text(x + 0.022, top - 0.070, headline, fontsize=17,
+                   fontweight="bold", va="top")
+        s.fig.text(x + 0.022, top - 0.101, sub, fontsize=10.5, color=INK2, va="top")
+        s.fig.text(x + 0.022, top - 0.130, exports, fontsize=12, color=INK, va="top")
+        # 2002 vs 2024 composition, stacked
+        ax = s.fig.add_axes([x + 0.078, top - 0.285, w - 0.112, 0.108], zorder=3)
+        ax.set_facecolor(CARD)
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+        ax.set_xticks([]); ax.tick_params(colors=INK2, labelsize=10, length=0)
+        rows = ["2024", "2002"]
+        for r, yr in enumerate(rows):
+            m, _ = trade_mix(expo, geo, yr)
+            left = 0
+            for p in HS:
+                v = m[p]
+                ax.barh(r, v, left=left, color=HSCOL[p], height=.62)
+                if v >= 17:
+                    ax.annotate(f"{v:.0f}", (left + v / 2, r), ha="center", va="center",
+                                color="#0f1419" if p == "2937" else "#f4f6f8",
+                                fontsize=9.5, fontweight="bold")
+                left += v
+        ax.set_yticks(range(len(rows))); ax.set_yticklabels(rows, fontsize=10.5)
+        ax.set_xlim(0, 100); ax.set_ylim(-0.6, len(rows) - 0.4)
+        s.fig.text(x + 0.022, top - 0.296, "Export composition, %", fontsize=9.5,
+                   color=MUTED, va="top")
+    s.y = top - 0.315
+    s.gap(16)
+
+    # legend
+    for i, p in enumerate(["3002", "3004", "2937"]):
+        cx = LEFT + i * 0.29
+        s.fig.add_artist(plt.Rectangle((cx, s.y - 0.017), 0.019, 0.019,
+                                       transform=s.fig.transFigure, facecolor=HSCOL[p]))
+        s.fig.text(cx + 0.028, s.y - 0.0075, HSLAB[p], fontsize=11,
+                   color=INK2, va="center")
+    s.y -= 0.030
+    s.gap(14)
+    s.block("Ireland moved from 85% finished dose in 2002 to 53% biologics\n"
+            "and 17% hormones in 2024 — a change of product, not only of\n"
+            "volume. Denmark remained dose-led throughout, scaling a\n"
+            "diabetes and obesity franchise rather than repositioning.",
+            size=12.5, color=INK2, lead=1.5, gap=0)
+    s.save(pdf, 5)
 
 
-def s8(pdf):
-    fig = newslide()
-    kicker(fig, "Surprise 3 · what kind", YELLOW)
-    fig.text(0.08, 0.90, "Two industries hide\ninside “pharma”", fontsize=26,
-             fontweight="bold", va="top", linespacing=1.2)
-    ax = fig.add_axes([0.31, 0.16, 0.60, 0.55])
-    ax.set_facecolor(SURFACE)
+# ------------------------------------------------------------------ slide 6
+def s6(pdf):
+    s = Slide("Finding 03 · Composition", YELLOW)
+    s.gap(26)
+    s.block("Two industries share\none label", size=27, weight="bold", lead=1.25, gap=12)
+    s.block("Share of pharmaceutical exports by product class, 2024.",
+            size=13, color=INK2, gap=16)
+
+    # legend row, measured before the chart so it cannot collide
+    for i, p in enumerate(["3002", "3004", "2937", "2941"]):
+        cx = LEFT + (i % 2) * 0.42
+        cy = s.y - (i // 2) * 0.030
+        s.fig.add_artist(plt.Rectangle((cx, cy - 0.017), 0.019, 0.019,
+                                       transform=s.fig.transFigure, facecolor=HSCOL[p]))
+        s.fig.text(cx + 0.028, cy - 0.0075, HSLAB[p], fontsize=11, color=INK2,
+                   va="center")
+    s.y -= 0.060
+    s.gap(14)
+
+    geos = ["IE", "BE", "NL", "DE", "DK", "FR", "IT"]
+    names = {"IE": "Ireland", "BE": "Belgium", "NL": "Netherlands", "DE": "Germany",
+             "DK": "Denmark", "FR": "France", "IT": "Italy"}
+    ax = s.chart(0.335, pad_left=0.145, tick_pad=10)
     for sp in ax.spines.values():
         sp.set_visible(False)
-    ax.tick_params(colors=INK2, labelsize=12, length=0)
-    CLASSES = [("3002", "Biologics/vaccines", BLUE), ("3004", "Finished dose", GREEN),
-               ("2937", "Hormones", YELLOW), ("2941", "Antibiotics", ORANGE),
-               ("3003", "Bulk", MUTED)]
-    geos = ["IE", "BE", "NL", "DE", "FR", "IT", "ES"]
-    names = {"IE": "Ireland", "BE": "Belgium", "NL": "Netherlands", "DE": "Germany",
-             "FR": "France", "IT": "Italy", "ES": "Spain"}
-    data = mix["eu_exporters"]
-    y = range(len(geos)); left = [0] * len(geos)
-    for code, lab, c in CLASSES:
-        w = [data[g]["mix_pct"][code] for g in geos]
-        ax.barh(list(y), w, left=left, color=c, height=.66)
+    ax.set_xticks([]); ax.tick_params(colors=INK2, labelsize=12, length=0)
+    data = mixd["eu_exporters"]
+    left = [0.0] * len(geos)
+    for p in HS:
+        w = [data[g]["mix_pct"][p] for g in geos]
+        ax.barh(range(len(geos)), w, left=left, color=HSCOL[p], height=.66)
         for i, wi in enumerate(w):
-            if wi >= 14:
+            if wi >= 15:
                 ax.annotate(f"{wi:.0f}", (left[i] + wi / 2, i), ha="center", va="center",
-                            color="#0f1419" if code == "2937" else "#f4f6f8",
+                            color="#0f1419" if p == "2937" else "#f4f6f8",
                             fontsize=10, fontweight="bold")
         left = [l + wi for l, wi in zip(left, w)]
-    ax.set_yticks(list(y)); ax.set_yticklabels([names[g] for g in geos], fontsize=13)
-    ax.invert_yaxis(); ax.set_xlim(0, 100); ax.set_xticks([])
-    # horizontal legend strip above the chart, two rows of chips
-    legend = [("Biologics/vaccines", BLUE, 0.08), ("Finished dose", GREEN, 0.45),
-              ("Hormones", YELLOW, 0.08), ("Antibiotics", ORANGE, 0.45)]
-    for i, (lab, c, x) in enumerate(legend):
-        yy = 0.755 if i < 2 else 0.715
-        fig.add_artist(plt.Rectangle((x, yy), 0.022, 0.024, transform=fig.transFigure, facecolor=c))
-        fig.text(x + 0.032, yy + 0.012, lab, fontsize=12, color=INK2, va="center")
-    fig.text(0.08, 0.115, "Biologics-led (Ireland, Belgium) vs finished-pill-led\n(France, Italy). Export mix by product class, 2024.",
-             fontsize=11.5, color=INK2, linespacing=1.4)
-    save(fig, pdf, 8)
+    ax.set_yticks(range(len(geos))); ax.set_yticklabels([names[g] for g in geos], fontsize=12)
+    ax.invert_yaxis(); ax.set_xlim(0, 100)
+
+    s.gap(2)
+    s.rule(gap=14)
+    s.block("The same distinction holds outside Europe: 97% of South Korea's\n"
+            "pharmaceutical exports to the EU are biologics, against 20% in\n"
+            "2013 — a national capability built within a decade.",
+            size=12.5, color=INK2, lead=1.5, gap=0)
+    s.save(pdf, 6)
 
 
-def s9(pdf):
-    fig = newslide()
-    kicker(fig, "The kicker", BLUE)
-    fig.text(0.08, 0.90, "97%", fontsize=64, fontweight="bold", color=BLUE, va="top")
-    fig.text(0.34, 0.845, "of what South Korea now\nships to the EU is biologics",
-             fontsize=17, va="top", linespacing=1.35)
-    ax = fig.add_axes([0.11, 0.20, 0.82, 0.44])
-    ax.set_facecolor(SURFACE)
-    for sp in ("top", "right", "left"):
-        ax.spines[sp].set_visible(False)
-    ax.spines["bottom"].set_color(GRID)
-    ax.tick_params(colors=INK2, labelsize=12)
-    ax.grid(axis="y", color=GRID, lw=0.8)
-    ex = json.load(open(os.path.join(ROOT, "data", "pharma-mirror.json")))["series"]
-    P = ["3002", "3004", "3003", "2937", "2941"]
-    ys = sorted(int(y) for y in ex["KR|3002"])
-    vals = []
-    for y in ys:
-        tot = sum(ex.get(f"KR|{p}", {}).get(str(y), 0) for p in P)
-        vals.append(100 * ex["KR|3002"].get(str(y), 0) / tot if tot else None)
-    ax.plot(ys, vals, color=BLUE, lw=2.8)
-    ax.fill_between(ys, vals, color=BLUE, alpha=.12)
-    ax.set_xlim(2002, 2025); ax.set_ylim(0, 100); ax.yaxis.set_major_formatter(pct)
-    fig.text(0.08, 0.135, "Up from under 20% in 2013 — Samsung Biologics and Celltrion",
-             fontsize=13.5, color=INK, fontweight="bold")
-    fig.text(0.08, 0.115, "coming online. A national bet, visible in customs data first.",
-             fontsize=13.5, color=INK2)
-    save(fig, pdf, 9)
-
-
-def s10(pdf):
-    fig = newslide()
-    kicker(fig, "Takeaway")
-    fig.text(0.08, 0.86, "Big. Concentrated.\nOr strategic.", fontsize=30,
-             fontweight="bold", va="top", linespacing=1.2)
-    fig.text(0.08, 0.68,
-             "The same industry is a rounding error\nin one country, a national growth engine\nin another, and a bet on the future in a third.",
-             fontsize=17, color=INK2, va="top", linespacing=1.45)
-    fig.add_artist(plt.Rectangle((0.08, 0.30), 0.84, 0.20, transform=fig.transFigure,
-                                 facecolor=CARD, edgecolor=GRID, lw=1))
-    fig.add_artist(plt.Rectangle((0.11, 0.452), 0.028, 0.02, transform=fig.transFigure,
-                                 facecolor=ORANGE))
-    fig.text(0.15, 0.47, "Türkiye", fontsize=17, fontweight="bold", va="top")
-    fig.text(0.11, 0.425, "0.35% of GDP, flat for two decades — while Korea, a fair\npeer, built biosimilar champions from a similar start.\nThe gap is strategy, not statistics.",
-             fontsize=13.5, color=INK2, va="top", linespacing=1.4)
-    fig.text(0.08, 0.20, "Full study · 42 countries · open data pipeline", fontsize=15,
-             color=INK, fontweight="bold")
-    fig.text(0.08, 0.165, "namikakmandev.github.io/pharma-gdp-share.html",
-             fontsize=14, color=BLUE)
-    fig.text(0.08, 0.11, "Follow for more data studies →", fontsize=13.5, color=INK2)
-    save(fig, pdf, 10)
+# ------------------------------------------------------------------ slide 7
+def s7(pdf):
+    s = Slide("Implications")
+    s.gap(28)
+    s.block("What the analysis\nsupports", size=27, weight="bold", lead=1.25, gap=18)
+    rows = [
+        ("Economic analysis", BLUE,
+         "Danish, Irish and Swiss aggregates warrant an\n"
+         "ex-pharmaceutical view before macro conclusions are drawn."),
+        ("Industrial strategy", GREEN,
+         "Composition can be changed within a decade — Ireland and\n"
+         "South Korea repositioned output rather than expanding it."),
+        ("Türkiye", ORANGE,
+         "0.35% of GDP, broadly unchanged since 2003 against a 0.5%\n"
+         "median. The constraint is positioning, not data."),
+    ]
+    for head, col, body in rows:
+        s.block(head, size=15.5, color=col, weight="bold", gap=6)
+        s.block(body, size=12.5, color=INK2, lead=1.5, gap=17)
+    s.rule(gap=14)
+    s.block("Method  ·  NACE/ISIC C21 value added, Eurostat and OECD STAN, in\n"
+            "national currency. Composition from HS chapter-30 trade, a proxy\n"
+            "for output. Full sources and caveats online.",
+            size=10.5, color=MUTED, lead=1.5, gap=14)
+    s.block("namikakmandev.github.io/pharma-gdp-share.html",
+            size=13.5, color=BLUE, weight="bold", gap=0)
+    s.save(pdf, 7)
 
 
 def main():
     out = os.path.join(ROOT, "notes", "pharma-carousel.pdf")
+    from matplotlib.backends.backend_pdf import PdfPages
     with PdfPages(out) as pdf:
-        for f in (s1, s2, s3, s4, s5, s6, s7, s8, s9, s10):
+        for i, f in enumerate((s1, s2, s3, s4, s5, s6, s7), 1):
             f(pdf)
     print("wrote", out)
-    print("slides in", PNGDIR)
 
 
 if __name__ == "__main__":

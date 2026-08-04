@@ -209,6 +209,9 @@ Full study — size, concentration, and product mix for 42 countries: [link]
 
 - The strongest single visual is chart 01 (trajectories). Chart 03 (share of
   manufacturing) is the strongest *second* image if posting a carousel.
+- Carousel: `notes/pharma-carousel.pdf` — 7 slides, upload via "Add a
+  document". Slide 5 is the Denmark/Ireland comparison, the strongest single
+  page. Regenerate with `python3 scripts/pharma_carousel.py`.
 - For the world-extension post, lead with chart 05 (42-country ranking, years
   labelled per bar) and follow with 06 (big-economy trajectories).
 - For the product-mix post, lead with chart 07 (EU export mix) or go
