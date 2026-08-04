@@ -98,11 +98,13 @@ def eurostat(entry):
         return {"_discover": {"dimension_ids": j["id"], "sizes": j["size"],
                               "categories": dims}}
     rows = _jsonstat(j)
-    geo_dim = "geo" if "geo" in j["id"] else None
+    # series key: entry['group_dims'] joined with '|' (e.g. reporter|product),
+    # else the geo dimension, else everything under 'ALL'
+    gd = entry.get("group_dims") or (["geo"] if "geo" in j["id"] else [])
     out = defaultdict(dict)
     for key, val in rows:
         t = key.get("time")
-        g = key.get(geo_dim, "ALL") if geo_dim else "ALL"
+        g = "|".join(key[d] for d in gd) if gd else "ALL"
         if t:
             out[g][t] = val
     return dict(out)

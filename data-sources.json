@@ -219,59 +219,96 @@
       "note": "denominator for the STAN pharma share; same source and basis as stan-pharma so the ratio is internally consistent"
     },
     {
-      "name": "pc1",
-      "provider": "eurostat",
-      "api": "comext",
-      "dataset": "DS-056120",
-      "params": {
-        "decl": "DK",
-        "time": "2023"
-      },
-      "out": "data/pc1.json",
-      "enabled": true,
-      "source": "probe"
-    },
-    {
-      "name": "pc2",
-      "provider": "eurostat",
-      "api": "comext",
-      "dataset": "DS-056120",
-      "params": {
-        "declarant": "008",
-        "time": "2023"
-      },
-      "out": "data/pc2.json",
-      "enabled": true,
-      "source": "probe"
-    },
-    {
-      "name": "pc3",
-      "provider": "eurostat",
-      "api": "comext",
-      "dataset": "DS-056120",
-      "params": {
-        "decl": "008",
-        "time": "2022"
-      },
-      "out": "data/pc3.json",
-      "enabled": true,
-      "source": "probe"
-    },
-    {
-      "name": "tr1",
+      "name": "pharma-exports",
       "provider": "eurostat",
       "api": "comext",
       "dataset": "DS-045409",
       "params": {
-        "reporter": "DK",
-        "partner": "WORLD",
-        "product": "3004",
+        "freq": "A",
         "flow": "2",
+        "partner": "WORLD",
+        "indicators": "VALUE_IN_EUROS",
+        "reporter": [
+          "DK",
+          "IE",
+          "BE",
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "AT",
+          "SI",
+          "HU",
+          "PL"
+        ],
+        "product": [
+          "3002",
+          "3003",
+          "3004",
+          "2937",
+          "2941"
+        ],
+        "time": [
+          "2002",
+          "2003",
+          "2004",
+          "2005",
+          "2006",
+          "2007",
+          "2008",
+          "2009",
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "reporter",
+        "product"
+      ],
+      "out": "data/pharma-exports.json",
+      "source": "Eurostat Comext DS-045409 — exports to world, EUR, by HS4: 3002 immunologicals/vaccines, 3003 bulk medicaments, 3004 dosage medicaments, 2937 hormones, 2941 antibiotics",
+      "note": "EXPORTS, not production — the product-mix proxy; say so wherever shown"
+    },
+    {
+      "name": "tr2",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "1",
+        "product": "3004",
         "time": "2023"
       },
-      "out": "data/tr1.json",
+      "out": "data/tr2.json",
       "enabled": true,
-      "source": "probe"
+      "source": "probe: full reporter and partner code lists"
+    },
+    {
+      "name": "pc4",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "ds-056120",
+      "params": {
+        "time": "2023"
+      },
+      "out": "data/pc4.json",
+      "enabled": true,
+      "source": "probe: prodcom lowercase path"
     }
   ]
 }
