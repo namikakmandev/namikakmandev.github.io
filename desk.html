@@ -187,12 +187,18 @@ function tokens(q){
   return q.toLowerCase().replace(/[^a-zçğıöşü0-9\s-]/g,' ').split(/\s+/).filter(w=>w && !STOP.has(w));
 }
 function score(ind, toks){
-  const hay = (ind.title+' '+ind.market+' '+ind.group+' '+ind.id+' '+ind.source).toLowerCase();
+  // What a term matches decides how much it counts. A hit in the title, market or
+  // id is identifying ("broiler" alone is a real question); a hit in the group or
+  // the source citation is weak corroboration and can never carry an answer alone.
+  const strong = (ind.title + ' ' + ind.market + ' ' + ind.id).toLowerCase();
+  const weak   = (ind.group + ' ' + ind.source).toLowerCase();
   let s = 0;
   for (const t of toks){
-    if (hay.includes(t)) { s += 2; continue; }
+    if (strong.includes(t)) { s += 3; continue; }
+    let syn = false;
     for (const list of Object.values(SYN))
-      if (list.includes(t) && list.some(v => hay.includes(v))) { s += 1.5; break; }
+      if (list.includes(t) && list.some(v => strong.includes(v))) { s += 1.5; syn = true; break; }
+    if (!syn && weak.includes(t)) s += 1;
   }
   return s;
 }
