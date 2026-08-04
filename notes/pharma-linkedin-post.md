@@ -111,12 +111,58 @@ Full study with sources and caveats: [link]
 
 ---
 
+## Product-mix draft (EN) — "what kind of medicine"
+
+We measured how BIG pharma is in 42 economies. But that never says WHAT
+they make. Trade data does — every shipment is filed under a product code —
+and it splits "pharma" into industries that barely resemble each other:
+
+💉 The biologics belt. Ireland, Belgium, the Netherlands, Austria — roughly
+half of what they export is vaccines and antibody drugs (grown in living
+cells, not synthesised). Belgium's share is essentially GSK's vaccine
+plants; Ireland's is the mRNA and monoclonal build-out.
+
+💊 The finished-pill belt. France, Italy, Spain, Poland — 70%+ of exports
+are packaged, measured-dose medicines. Formulate-and-fill, the classic
+pharma most people picture.
+
+🧪 The ingredient suppliers. China's exports to the EU are ~28% antibiotics
+and 16% hormones — the upstream active ingredients the pill-makers depend
+on. India ships 76% finished generics.
+
+And the single most striking line in the whole study:
+
+🇰🇷 97% of what South Korea ships to the EU is biologics — up from under
+20% in 2013. Samsung Biologics and Celltrion came online and a country
+rewired what it exports in under five years. The customs data caught the
+strategy before it ever showed up in a GDP number.
+
+🇩🇰 Denmark's tell: a 9% hormones slice most countries don't have — the
+visible edge of the insulin-and-GLP-1 franchise now driving the whole
+economy.
+
+Big honesty note: this is TRADE, a proxy for production, not production
+itself. Export value is gross (imported ingredients included), and
+distribution hubs re-export goods they didn't make — Slovenia's numbers
+were so inflated by routing that I left it out. Details and caveats on the
+page.
+
+Full study — size, concentration, and product mix for 42 countries: [link]
+
+#pharma #biologics #economics #Korea #dataanalysis #trade
+
+---
+
 ## Posting notes
 
 - The strongest single visual is chart 01 (trajectories). Chart 03 (share of
   manufacturing) is the strongest *second* image if posting a carousel.
 - For the world-extension post, lead with chart 05 (42-country ranking, years
   labelled per bar) and follow with 06 (big-economy trajectories).
+- For the product-mix post, lead with chart 07 (EU export mix) or go
+  straight to 08 (Korea biologics) as the single hook; 09 is the world mix.
+- Product mix is TRADE not production: gross export value, re-exports
+  inflate hubs (Slovenia dropped), HS 2937/3004 split GLP-1 and insulin.
 - Honesty items already handled on the page, keep them if quoting numbers
   elsewhere: C21 is manufacturing only; Ireland suppressed after 2014;
   Iceland excluded (negative GVA); Türkiye 2023-only; Danish GVA includes
