@@ -284,31 +284,67 @@
       "note": "EXPORTS, not production — the product-mix proxy; say so wherever shown"
     },
     {
-      "name": "tr2",
+      "name": "pharma-mirror",
       "provider": "eurostat",
       "api": "comext",
       "dataset": "DS-045409",
       "params": {
         "freq": "A",
         "flow": "1",
-        "product": "3004",
-        "time": "2023"
+        "reporter": "EU27_2020",
+        "indicators": "VALUE_IN_EUROS",
+        "partner": [
+          "US",
+          "CH",
+          "GB",
+          "CN",
+          "IN",
+          "JP",
+          "KR",
+          "IL",
+          "SG",
+          "CA"
+        ],
+        "product": [
+          "3002",
+          "3003",
+          "3004",
+          "2937",
+          "2941"
+        ],
+        "time": [
+          "2002",
+          "2003",
+          "2004",
+          "2005",
+          "2006",
+          "2007",
+          "2008",
+          "2009",
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
       },
-      "out": "data/tr2.json",
-      "enabled": true,
-      "source": "probe: full reporter and partner code lists"
-    },
-    {
-      "name": "pc4",
-      "provider": "eurostat",
-      "api": "comext",
-      "dataset": "ds-056120",
-      "params": {
-        "time": "2023"
-      },
-      "out": "data/pc4.json",
-      "enabled": true,
-      "source": "probe: prodcom lowercase path"
+      "group_dims": [
+        "partner",
+        "product"
+      ],
+      "out": "data/pharma-mirror.json",
+      "source": "Eurostat Comext DS-045409 — EU27 imports by partner and HS4, EUR: what non-EU producers ship into the EU",
+      "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
     }
   ]
 }
