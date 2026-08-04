@@ -16,7 +16,7 @@ Providers: fred | eurostat | owid | csv
 Every run writes data/_fetch-report.json recording what each source returned, so a
 silent zero is visible instead of looking like a real answer.
 """
-import csv, io, json, os, re, sys, time, urllib.parse, urllib.request
+import calendar, csv, io, json, os, re, sys, time, urllib.parse, urllib.request
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -166,18 +166,25 @@ def yahoo(entry):
     """Yahoo Finance chart API -> {series_key: {YYYY-MM: adjusted close}}. Keyless JSON.
 
     entry['series'] maps output key -> yahoo symbol (e.g. 'LLY', '^GSPC').
-    entry['interval']: 1d/1wk/1mo (default 1mo); entry['range'] default 'max'.
+    entry['interval']: 1d/1wk/1mo (default 1mo). Window: entry['start']
+    (YYYY-MM-DD, sent as period1) or entry['range'] ('1y'...'max'). Prefer
+    'start': with range=max Yahoo silently downgrades 1mo bars to quarterly
+    once the span gets long (~40y+), which is invisible in a spot check.
     Uses adjclose (split- AND dividend-adjusted = total return); falls back to
     raw close for indices, which pay no dividends. Stooq was tried first but
     serves an anti-bot JS challenge to GitHub Actions IPs.
     """
     interval = entry.get("interval", "1mo")
-    rng = entry.get("range", "max")
     out = {}
     disc = {}
     for key, sym in entry["series"].items():
+        if "start" in entry:
+            p1 = calendar.timegm(time.strptime(entry["start"], "%Y-%m-%d"))
+            window = f"period1={p1}&period2={int(time.time())}"
+        else:
+            window = f"range={entry.get('range', '10y')}"
         url = (f"https://query1.finance.yahoo.com/v8/finance/chart/"
-               f"{urllib.parse.quote(sym)}?range={rng}&interval={interval}")
+               f"{urllib.parse.quote(sym)}?{window}&interval={interval}")
         j = json.loads(get(url).decode())
         r = ((j.get("chart") or {}).get("result") or [{}])[0]
         ind = r.get("indicators") or {}
