@@ -195,6 +195,28 @@
       "out": "data/pharma-gva-eur.json",
       "source": "Eurostat national accounts A*64 — NACE C21 gross value added, current prices, million EUR",
       "note": "for comparing absolute pharma output across countries; the share ratio uses the MNAC pair"
+    },
+    {
+      "name": "stan-pharma",
+      "provider": "csv",
+      "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN,1.0/A..VALU.XDC.D21?format=csvfile&dimensionAtObservation=AllDimensions",
+      "group_col": "REF_AREA",
+      "key_col": "TIME_PERIOD",
+      "value_col": "OBS_VALUE",
+      "out": "data/stan-pharma.json",
+      "source": "OECD STAN — value added of ISIC D21 (pharmaceuticals), current prices, million national currency",
+      "note": "same industry definition as NACE C21, so shares are comparable with the Eurostat set; national currency so the ratio carries no FX noise"
+    },
+    {
+      "name": "stan-total",
+      "provider": "csv",
+      "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN,1.0/A..VALU.XDC._T?format=csvfile&dimensionAtObservation=AllDimensions",
+      "group_col": "REF_AREA",
+      "key_col": "TIME_PERIOD",
+      "value_col": "OBS_VALUE",
+      "out": "data/stan-total.json",
+      "source": "OECD STAN — total-economy value added, current prices, million national currency",
+      "note": "denominator for the STAN pharma share; same source and basis as stan-pharma so the ratio is internally consistent"
     }
   ]
 }
