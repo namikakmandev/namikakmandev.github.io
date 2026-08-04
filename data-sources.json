@@ -119,6 +119,82 @@
       "out": "data/eu-vet-countries.json",
       "source": "Eurostat EAA veterinary expenses by member state, million EUR, ALL livestock",
       "note": "all livestock, not cattle only"
+    },
+    {
+      "name": "pharma-gva",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MNAC",
+        "nace_r2": "C21",
+        "na_item": "B1G"
+      },
+      "out": "data/pharma-gva.json",
+      "source": "Eurostat national accounts A*64 — gross value added of NACE C21 (basic pharmaceutical products and preparations), current prices, million national currency",
+      "note": "NATIONAL CURRENCY on purpose — the pharma/GDP ratio must not carry exchange-rate noise. C21 is manufacturing only: it excludes pharma wholesale, retail pharmacy and R&D services."
+    },
+    {
+      "name": "gdp-total",
+      "provider": "eurostat",
+      "dataset": "nama_10_gdp",
+      "params": {
+        "unit": "CP_MNAC",
+        "na_item": "B1GQ"
+      },
+      "out": "data/gdp-total.json",
+      "source": "Eurostat national accounts — GDP at market prices, current prices, million national currency",
+      "note": "same vintage and currency basis as pharma-gva, so the ratio is internally consistent"
+    },
+    {
+      "name": "gva-total",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MNAC",
+        "nace_r2": "TOTAL",
+        "na_item": "B1G"
+      },
+      "out": "data/gva-total.json",
+      "source": "Eurostat national accounts A*64 — total gross value added, current prices, million national currency",
+      "note": "the like-for-like denominator. GDP = GVA + taxes less subsidies on products, so pharma/GVA is the cleaner share; pharma/GDP is the more quotable one."
+    },
+    {
+      "name": "manuf-gva",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MNAC",
+        "nace_r2": "C",
+        "na_item": "B1G"
+      },
+      "out": "data/manuf-gva.json",
+      "source": "Eurostat national accounts A*64 — total manufacturing (NACE C) gross value added, current prices, million national currency",
+      "note": "context denominator: pharma's share of manufacturing, not just of the whole economy"
+    },
+    {
+      "name": "gdp-eur",
+      "provider": "eurostat",
+      "dataset": "nama_10_gdp",
+      "params": {
+        "unit": "CP_MEUR",
+        "na_item": "B1GQ"
+      },
+      "out": "data/gdp-eur.json",
+      "source": "Eurostat national accounts — GDP at market prices, current prices, million EUR",
+      "note": "for comparing economy SIZE across countries only; never use for the share ratio"
+    },
+    {
+      "name": "pharma-gva-eur",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MEUR",
+        "nace_r2": "C21",
+        "na_item": "B1G"
+      },
+      "out": "data/pharma-gva-eur.json",
+      "source": "Eurostat national accounts A*64 — NACE C21 gross value added, current prices, million EUR",
+      "note": "for comparing absolute pharma output across countries; the share ratio uses the MNAC pair"
     }
   ]
 }
