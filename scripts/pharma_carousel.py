@@ -252,6 +252,8 @@ def s5(pdf):
     s.block("Ireland repositioned its output. Denmark deepened a single\nfranchise. Both reached scale; the composition differs.",
             size=13, color=INK2, lead=1.45, gap=22)
 
+    # both panels on the same basis — C21 share of total value added — so the
+    # two countries are directly comparable despite coming from two sources
     dk_g = share["DK"]; ie_g = stan["IRL"]
     panels = [
         ("Ireland", "IE", GREEN,
@@ -259,8 +261,8 @@ def s5(pdf):
          "of value added, 1995–2023",
          "Exports  €15bn → €99bn"),
         ("Denmark", "DK", BLUE,
-         f"{dk_g['1995']['share_gdp']:.1f}% → {dk_g['2025']['share_gdp']:.1f}%",
-         "of GDP, 1995–2025",
+         f"{dk_g['1995']['share_gva']:.1f}% → {dk_g['2025']['share_gva']:.1f}%",
+         "of value added, 1995–2025",
          "Exports  €4bn → €22bn"),
     ]
     top = s.y
