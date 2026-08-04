@@ -78,9 +78,15 @@ def _jsonstat(j):
 
 
 def eurostat(entry):
-    """Any Eurostat dataset. entry['dataset'] + entry['params'] (dict)."""
-    base = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
-            + entry["dataset"] + "?format=JSON&lang=EN")
+    """Any Eurostat dataset. entry['dataset'] + entry['params'] (dict).
+
+    entry['api']='comext' switches to the Comext endpoint, which serves the
+    DS-* datasets (international trade, PRODCOM) the statistics API does not.
+    """
+    host = ("https://ec.europa.eu/eurostat/api/comext/dissemination/statistics/1.0/data/"
+            if entry.get("api") == "comext" else
+            "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/")
+    base = host + entry["dataset"] + "?format=JSON&lang=EN"
     qs = ""
     for k, v in entry.get("params", {}).items():
         for vi in (v if isinstance(v, list) else [v]):   # repeated params, e.g. several geos
