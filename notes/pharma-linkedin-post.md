@@ -1,8 +1,10 @@
 # LinkedIn post — The Pharma States of Europe
 
 Study page: https://namikakmandev.github.io/pharma-gdp-share.html
-Attach: `assets/pharma-study/01_share_trajectories.png` (or post the link and let
-the OG card render — the page's preview image is the same chart).
+
+**To publish, use `notes/linkedin-post-ready.txt`** — same text, unwrapped so
+it pastes into LinkedIn as clean paragraphs, with the publishing steps and
+the prepared replies. This file is the drafting history.
 
 ---
 
