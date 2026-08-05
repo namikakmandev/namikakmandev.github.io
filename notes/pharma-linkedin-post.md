@@ -6,60 +6,39 @@ the OG card render — the page's preview image is the same chart).
 
 ---
 
-## ★ FINAL POST (ready to publish) — the full-arc version
+## ★ FINAL POST (ready to publish)
 
-> Copy the block below. Best as a 3-image carousel: 05 (world ranking),
-> 07 (EU product mix), 08 (Korea biologics). Or post the link alone and let
-> the preview card render chart 01.
+> ~180 words. Lead image: chart 11 (size vs weight) or the carousel PDF.
 
-How big is the pharmaceutical industry inside a national economy?
+Pharma is about 1% of every large economy.
 
-I pulled 35 years of data across 41 countries to find out. The answer broke
-into three surprises.
+Not 5%. Not 10%. One percent — and it has been for thirty years.
 
-1️⃣ For most economies, pharma is tiny — and stuck. In the median country it's
-about 0.5% of GDP, and it hasn't moved in 30 years. Even the United States —
-home of the world's biggest drug companies — holds pharma manufacturing at
-0.87% of its economy. From Washington to Tokyo, every large economy keeps it
-near 1%, decade after decade. It looks almost like a law of large economies.
+The United States sits at 0.87% of its economy. The UK 0.95%. Japan 0.66%.
+Germany 0.67%. That band held through the genomics boom, the shift to
+biologics, and a pandemic.
 
-2️⃣ The exceptions aren't big — they're small. Ireland 16.7%. Denmark 8.7%,
-where pharma is now nearly HALF of all manufacturing. Switzerland ~7%. These
-aren't pharma superpowers; they're small economies that let one industry
-become the economy. In 2023 Germany and Denmark produced almost the same euro
-value of pharma — a rounding error in Germany (0.6% of GDP), the national
-growth engine in Denmark (6.5%). Concentration, not pharma, is the phenomenon.
+Then there is Ireland: 16.7%.
 
-3️⃣ What they actually make is a third story. Trade data splits "pharma" into
-industries that barely resemble each other: a biologics belt (Ireland,
-Belgium, the Netherlands — half their exports are vaccines and antibody
-drugs) and a finished-pill belt (France, Italy, Spain). And the single most
-striking line in the whole study:
+I pulled 35 years of data for 41 countries, and the exceptions are all
+small: Ireland, Denmark, Switzerland, Belgium. None of them produces more
+medicine than Germany or Japan. They are simply more dependent on it.
 
-🇰🇷 97% of what South Korea now ships to the EU is biologics — up from under
-20% in 2013. Samsung Biologics and Celltrion came online and a country
-rewired what it exports in under five years. The customs data caught the
-strategy before it ever showed up in a GDP figure.
+Two numbers make the point:
 
-The lesson I keep coming back to: "pharma's share of GDP" is a single number
-that hides three completely different questions — how big, how concentrated,
-and what kind. Answer all three and the same industry looks like a rounding
-error, a national strategy, and a bet on the future — depending on where you
-stand.
+→ The US makes €212bn of medicine — 0.87% of its economy.
+→ Ireland makes €83bn — 16.7% of its economy.
 
-Full study, all 41 countries, every chart and the open data pipeline:
+And here is the part I did not expect. Ireland keeps only 75% of the income
+it generates. The rest belongs to owners abroad. Ireland is where medicine
+is manufactured; Denmark, at 103%, is where medicine is owned.
+
+A high pharma share is exposure, not strength.
+
+Full study, all 41 countries, open data:
 https://namikakmandev.github.io/pharma-gdp-share.html
 
-(P.S. — for the folks in my network in Türkiye: we sit at 0.35% of GDP, flat
-for two decades while Korea, a fair peer, built biosimilar champions from a
-similar start. The gap is strategy, not statistics.)
-
-#pharma #economics #biologics #dataanalysis #healthcare #Korea #Türkiye
-
-Data cut: 4 Aug 2026 · Eurostat nama_10_a64 + nama_10_gdp · 30 countries, 1995–2025
-· plus OECD STAN (DF_STAN_2025) for the world extension — 41 countries total.
-All numbers below are reproducible from `data/pharma-share.json` and
-`data/pharma-share-stan.json`.
+#pharma #economics #dataanalysis #manufacturing
 
 ---
 
