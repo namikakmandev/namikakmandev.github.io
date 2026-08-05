@@ -95,6 +95,10 @@
 
     .pullquote { border-left: 3px solid var(--accent); padding: 6px 18px; margin: 24px 0;
                  font-size: 1.05rem; color: var(--text); line-height: 1.55; }
+    .recs { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 6px 26px 22px; margin: 18px 0; }
+    .recs h3 { font-size: 1.02rem; margin: 22px 0 6px; color: var(--accent); letter-spacing: -.005em; }
+    .recs p { margin: 0 0 4px; color: var(--text); line-height: 1.6; }
     .callout { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
                padding: 18px 22px; margin: 22px 0; }
     .callout h3 { margin: 0 0 8px; font-size: 1rem; color: var(--accent); }
@@ -333,9 +337,11 @@
     }
 
     // ---------- build page ----------
+    var PRICES=null, ASOF=null;
     function build(raw){
       var S=raw.series;
       var asof = lastMonth(S.LLY);
+      PRICES=S; ASOF=asof;
       document.getElementById("m-asof").textContent = fmtMonth(asof);
       var app=document.getElementById("app"); app.innerHTML="";
 
@@ -468,8 +474,8 @@
     // ---------- valuation: what the price assumes about future earnings ----------
     function buildValuation(app){
       fetch("data/glp1-valuation.json").then(function(r){ if(!r.ok) throw 0; return r.json(); })
-        .then(function(V){ renderValuation(app, V); })
-        .catch(function(){ /* no valuation data yet — the study stands without it */ });
+        .then(function(V){ renderValuation(app, V); renderConclusion(app, V); })
+        .catch(function(){ renderConclusion(app, null); });   // price-only conclusion still stands
     }
     function renderValuation(app, V){
       var S=V.series, keys=Object.keys(S);
@@ -536,6 +542,64 @@
       n.textContent="Valuation snapshot "+(V.fetched_at||"")+" · fundamentals and consensus via Bigdata.com; "+
         "prices from this study's own dataset. Refreshed on request, not by the monthly cron.";
       app.appendChild(n);
+    }
+
+    // ---------- conclusion: what the whole thing adds up to ----------
+    function renderConclusion(app, V){
+      var S=PRICES, asof=ASOF, base="2015-01";
+      if(!S) return;
+      var six=["LLY","NVO","AMGN","AZN","RHHBY","PFE"].filter(function(k){ return S[k]&&S[k][base]; });
+      var mult=function(k){ return S[k][asof]/S[k][base]; };
+      var avg=function(ks){ return ks.reduce(function(a,k){ return a+mult(k); },0)/ks.length; };
+      var basket=(avg(six)-1)*100;
+      var exLilly=(avg(six.filter(function(k){return k!=="LLY";}))-1)*100;
+      var idx=(mult("SPX")-1)*100;
+      var p=function(v){ return (v>=0?"+":"")+Math.round(v)+"%"; };
+      var beat=six.filter(function(k){ return mult(k)>mult("SPX"); });
+
+      var h2=document.createElement("h2"); h2.textContent="What it adds up to"; app.appendChild(h2);
+      var sub=document.createElement("p"); sub.className="sub";
+      sub.textContent="Three conclusions the data supports, and one it does not.";
+      app.appendChild(sub);
+
+      var box=document.createElement("div"); box.className="recs";
+      box.innerHTML=
+        "<h3>1 &nbsp;One stock carried the entire theme</h3>"+
+        "<p>Held equally from January 2015, the six profitable GLP-1 names returned <b>"+p(basket)+
+        "</b> against <b>"+p(idx)+"</b> for the S&amp;P 500 — a convincing win for the theme. Remove Eli Lilly "+
+        "and the same basket returns <b>"+p(exLilly)+"</b>, which <b>loses to a plain index fund</b>. "+
+        "Of the six, "+(beat.length===1?"only one beat":"only "+beat.length+" beat")+" the index: <b>"+
+        beat.join(", ")+"</b>. The drug class was "+
+        "genuinely transformative and buying the class was still not a strategy — the return lived in one name.</p>"+
+
+        "<h3>2 &nbsp;The company that invented the category lagged the market</h3>"+
+        "<p>Novo Nordisk brought semaglutide to market and defined the category. Since 2015 it has returned <b>"+
+        p((mult("NVO")-1)*100)+"</b> against the index's <b>"+p(idx)+"</b>, and it now sits <b>"+
+        Math.abs(Math.round(athInfo(S.NVO).fromAth))+"% below its "+fmtMonth(athInfo(S.NVO).athMonth)+
+        " peak</b>. Inventing the product and capturing the shareholder return turned out to be different problems.</p>"+
+
+        (V ? ("<h3>3 &nbsp;The cheap one is not obviously the bargain</h3>"+
+        "<p>After that fall Novo trades at <b>"+fx(V.series.NVO&&V.series.NVO.trailing_pe)+
+        "</b> earnings against Lilly's <b>"+fx(V.series.LLY&&V.series.LLY.trailing_pe)+"</b>. But consensus has "+
+        "Novo's earnings per share <b>falling</b> next year and compounding at "+
+        pc(V.series.NVO&&V.series.NVO.eps_growth_5y_cagr)+" a year, against "+
+        pc(V.series.LLY&&V.series.LLY.eps_growth_5y_cagr)+" for Lilly. Adjusted for growth, Novo is the "+
+        "<b>more</b> expensive of the two — PEG "+fx2(V.series.NVO&&V.series.NVO.peg_5y)+" versus "+
+        fx2(V.series.LLY&&V.series.LLY.peg_5y)+". A 14x multiple on shrinking earnings is not a discount; "+
+        "it is a forecast.</p>") : "")+
+
+        "<h3>"+(V?"4":"3")+" &nbsp;What this study cannot tell you</h3>"+
+        "<p>Everything above is what the market <em>has already concluded</em>. None of it establishes who wins "+
+        "the next round — that turns on trial readouts, oral formulations, manufacturing capacity and payer "+
+        "coverage, none of which are in a price series. Note too that Lilly is not priced as a safe bet: at a "+
+        (V?"PEG of "+fx2(V.series.LLY&&V.series.LLY.peg_5y):"multiple near 40x")+" it already requires years of "+
+        "high-teens earnings growth simply to justify today's price. The asymmetry that produced the last decade "+
+        "is not the asymmetry on offer now.</p>";
+      app.appendChild(box);
+
+      function fx(v){ return v==null?"—":v.toFixed(1)+"x"; }
+      function fx2(v){ return v==null?"—":v.toFixed(2); }
+      function pc(v){ return v==null?"—":(v>=0?"+":"")+(v*100).toFixed(0)+"%"; }
     }
 
     function cls(r){ return r==null?"":(r>=0?"pos":"neg"); }
