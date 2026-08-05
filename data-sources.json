@@ -672,15 +672,41 @@
       ]
     },
     {
-      "name": "stan-units",
-      "provider": "csv",
-      "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.USA+DEU+JPN.C21.B1G..?format=csvfile&startPeriod=2022&endPeriod=2022",
-      "group_col": "UNIT_MEASURE",
-      "key_col": "TIME_PERIOD",
-      "value_col": "OBS_VALUE",
-      "out": "data/stan-units.json",
+      "name": "fx-eur",
+      "provider": "eurostat",
+      "dataset": "ert_bil_eur_a",
+      "params": {
+        "unit": "NAC",
+        "statinfo": "AVG",
+        "currency": [
+          "USD",
+          "JPY",
+          "KRW",
+          "CAD",
+          "MXN",
+          "AUD",
+          "GBP",
+          "ILS",
+          "TRY",
+          "CHF",
+          "DKK",
+          "SEK",
+          "NOK",
+          "PLN",
+          "HUF",
+          "CZK",
+          "RON",
+          "BGN",
+          "ISK"
+        ]
+      },
+      "group_dims": [
+        "currency"
+      ],
+      "out": "data/fx-eur.json",
       "enabled": true,
-      "source": "probe: which unit codes STAN publishes for C21 value added"
+      "source": "Eurostat ert_bil_eur_a — annual average exchange rates, national currency per euro",
+      "note": "used only to express absolute pharma value added in a common currency; every share ratio stays in national currency"
     }
   ]
 }
