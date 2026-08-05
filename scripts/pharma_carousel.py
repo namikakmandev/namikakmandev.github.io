@@ -127,18 +127,51 @@ class Slide:
 # ------------------------------------------------------------------ slide 1
 def s1(pdf):
     s = Slide("Data study · August 2026")
-    s.gap(34)
-    s.block("Pharmaceutical\nmanufacturing in\nthe national economy",
-            size=33, weight="bold", lead=1.26, gap=20)
-    s.rule(gap=20)
-    s.block("A 42-country analysis of how large the pharmaceutical\n"
-            "industry is inside each economy, how concentrated that\n"
-            "exposure has become, and what each country produces.",
-            size=15, color=INK2, gap=30)
-    for label, val in (("Countries", "42"), ("Period", "1990 – 2025"),
-                       ("Sources", "Eurostat · OECD · trade statistics")):
-        s.block(f"{label}", size=10.5, color=MUTED, gap=2)
-        s.block(f"{val}", size=15, color=INK, weight="bold", gap=14)
+    s.gap(26)
+    s.block("Pharmaceutical\nmanufacturing in the\nnational economy",
+            size=27, weight="bold", lead=1.22, gap=10)
+    s.block("42 countries · 35 years · how large the industry is, how\n"
+            "concentrated it has become, and what each country makes.",
+            size=13, color=INK2, gap=14)
+
+    # hero: every country's trajectory, three outliers named
+    ax = s.chart(0.255, tick_pad=26)
+    ax.grid(axis="y", color=GRID, lw=0.8)
+    for geo, d in share.items():
+        if geo in ("DK", "CH", "IE"):
+            continue
+        ys = sorted(int(y) for y in d if int(y) >= 1995 and d[str(y)]["share_gva"])
+        if len(ys) >= 20:
+            ax.plot(ys, [d[str(y)]["share_gva"] for y in ys], color=MUTED, lw=1, alpha=.5)
+    hero = [("IE", stan["IRL"], GREEN, "Ireland"),
+            ("DK", share["DK"], BLUE, "Denmark"),
+            ("CH", share["CH"], ORANGE, "Switzerland")]
+    for _, d, col, lab in hero:
+        ys = sorted(int(y) for y in d if int(y) >= 1995)
+        vs = [d[str(y)]["share_gva"] for y in ys]
+        ax.plot(ys, vs, color=col, lw=2.6)
+        ax.annotate(f"{lab}  {vs[-1]:.1f}%", (ys[-1], vs[-1]), xytext=(7, 0),
+                    textcoords="offset points", color=col, fontsize=11,
+                    fontweight="bold", va="center")
+    ax.set_xlim(1995, 2036); ax.set_ylim(0, 21)
+    ax.yaxis.set_major_formatter(pct)
+    ax.set_yticks([0, 5, 10, 15, 20])
+
+    s.block("Pharmaceutical share of total value added, 1995–2025.\n"
+            "Grey: every other country in the study.",
+            size=10.5, color=MUTED, lead=1.45, gap=14)
+    s.rule(gap=16)
+
+    # headline figures, three across
+    stats = [("0.5%", "median country", INK),
+             ("16.7%", "Ireland, the maximum", GREEN),
+             ("97%", "Korean exports\nthat are biologics", BLUE)]
+    for i, (val, lab, col) in enumerate(stats):
+        x = LEFT + i * (COLW / 3)
+        s.fig.text(x, s.y, val, fontsize=25, fontweight="bold", color=col, va="top")
+        s.fig.text(x, s.y - 0.040, lab, fontsize=10.5, color=INK2, va="top",
+                   linespacing=1.4)
+    s.y -= 0.085
     s.save(pdf, 1)
 
 
@@ -250,7 +283,7 @@ def s5(pdf):
     s.gap(26)
     s.block("Two routes to\nconcentration", size=27, weight="bold", lead=1.25, gap=12)
     s.block("Ireland repositioned its output. Denmark deepened a single\nfranchise. Both reached scale; the composition differs.",
-            size=13, color=INK2, lead=1.45, gap=22)
+            size=13, color=INK2, lead=1.45, gap=16)
 
     # both panels on the same basis — C21 share of total value added — so the
     # two countries are directly comparable despite coming from two sources
@@ -302,7 +335,7 @@ def s5(pdf):
         s.fig.text(x + 0.022, top - 0.296, "Export composition, %", fontsize=9.5,
                    color=MUTED, va="top")
     s.y = top - 0.315
-    s.gap(16)
+    s.gap(12)
 
     # legend
     for i, p in enumerate(["3002", "3004", "2937"]):
@@ -312,12 +345,13 @@ def s5(pdf):
         s.fig.text(cx + 0.028, s.y - 0.0075, HSLAB[p], fontsize=11,
                    color=INK2, va="center")
     s.y -= 0.030
-    s.gap(14)
-    s.block("Ireland moved from 85% finished dose in 2002 to 53% biologics\n"
-            "and 17% hormones in 2024 — a change of product, not only of\n"
-            "volume. Denmark remained dose-led throughout, scaling a\n"
-            "diabetes and obesity franchise rather than repositioning.",
-            size=12.5, color=INK2, lead=1.5, gap=0)
+    s.gap(10)
+    s.block("Ireland moved from 85% finished dose in 2002 to 53% biologics and\n"
+            "17% hormones in 2024 — a change of product, not only of volume.\n"
+            "Denmark stayed dose-led, scaling one franchise. Irish shares step\n"
+            "up in 2015 with the national-accounts restatement; the export mix\n"
+            "is unaffected by it.",
+            size=12.5, color=INK2, lead=1.48, gap=0)
     s.save(pdf, 5)
 
 
@@ -340,14 +374,14 @@ def s6(pdf):
     s.y -= 0.060
     s.gap(14)
 
-    geos = ["IE", "BE", "NL", "DE", "DK", "FR", "IT"]
     names = {"IE": "Ireland", "BE": "Belgium", "NL": "Netherlands", "DE": "Germany",
              "DK": "Denmark", "FR": "France", "IT": "Italy"}
+    data = mixd["eu_exporters"]
+    geos = sorted(names, key=lambda g: -data[g]["mix_pct"]["3002"])
     ax = s.chart(0.335, pad_left=0.145, tick_pad=10)
     for sp in ax.spines.values():
         sp.set_visible(False)
     ax.set_xticks([]); ax.tick_params(colors=INK2, labelsize=12, length=0)
-    data = mixd["eu_exporters"]
     left = [0.0] * len(geos)
     for p in HS:
         w = [data[g]["mix_pct"][p] for g in geos]
@@ -358,8 +392,16 @@ def s6(pdf):
                             color="#0f1419" if p == "2937" else "#f4f6f8",
                             fontsize=10, fontweight="bold")
         left = [l + wi for l, wi in zip(left, w)]
+    # absolute scale — the percentages alone hide that Germany ships 5x Denmark
+    for i, g in enumerate(geos):
+        ax.annotate(f"€{data[g]['eur_bn']:,.0f}bn", (105, i), va="center",
+                    color=INK, fontsize=11, fontweight="bold",
+                    annotation_clip=False)
+    ax.annotate("Total exports", (105, -0.8), va="center", color=MUTED, fontsize=9.5,
+                annotation_clip=False)
     ax.set_yticks(range(len(geos))); ax.set_yticklabels([names[g] for g in geos], fontsize=12)
-    ax.invert_yaxis(); ax.set_xlim(0, 100)
+    ax.invert_yaxis()
+    ax.set_xlim(0, 132)          # headroom so the € column sits inside the frame
 
     s.gap(2)
     s.rule(gap=14)
