@@ -248,15 +248,15 @@
 
         // PEG guide lines: PEG = fwdPE/growth ⇒ growth = fwdPE / PEG
         [[1,"PEG 1"],[2,"PEG 2"]].forEach(function(pair){
-          var peg=pair[0], d="", started=false;
+          var peg=pair[0], d="", started=false, on=[];
           for(var v=xlo; v<=xhi; v*=1.04){ var gg=v/peg; if(gg<ylo||gg>yhi){ started=false; continue; }
-            d+=(started?"L":"M")+X(v).toFixed(1)+" "+Y(gg).toFixed(1)+" "; started=true; }
+            d+=(started?"L":"M")+X(v).toFixed(1)+" "+Y(gg).toFixed(1)+" "; started=true; on.push(v); }
           if(!d) return;
           svg.appendChild(el("path",{class:"guide",d:d,fill:"none"}));
-          // label at the line's right end
-          var lastV=null; for(var v2=xlo; v2<=xhi; v2*=1.04){ var g2=v2/peg; if(g2>=ylo&&g2<=yhi) lastV=v2; }
-          if(lastV){ var lt=el("text",{x:X(lastV)-4,y:Y(lastV/peg)-6,"text-anchor":"end",class:"lbl"});
-            lt.setAttribute("fill","var(--text-dim)"); lt.appendChild(txt(pair[1])); svg.appendChild(lt); }
+          // label mid-line, riding just above it — far more legible than at the exit point
+          var mv=on[Math.floor(on.length*0.62)];
+          var lt=el("text",{x:X(mv)+6,y:Y(mv/peg)-7,"text-anchor":"start",class:"lbl"});
+          lt.setAttribute("fill","var(--text-dim)"); lt.appendChild(txt(pair[1])); svg.appendChild(lt);
         });
 
         // points + labels
@@ -266,8 +266,10 @@
           var c=el("circle",{cx:cx,cy:cy,r:6,fill:C.series,stroke:"var(--surface)","stroke-width":2,style:"cursor:pointer"});
           svg.appendChild(c);
           // label placement: right, unless it would collide -> above
-          var ly=cy+3.5, lx=cx+11, anchor="start";
-          if(placed.some(function(q){ return Math.abs(q.y-ly)<11 && Math.abs(q.x-lx)<70; })){ ly=cy-11; lx=cx; anchor="middle"; }
+          var cands=[[cx+11,cy+3.5,"start"],[cx,cy-12,"middle"],[cx-11,cy+3.5,"end"],[cx,cy+16,"middle"]];
+          var pick=cands.find(function(c){ return !placed.some(function(q){
+            return Math.abs(q.y-c[1])<12 && Math.abs(q.x-c[0])<64; }); }) || cands[1];
+          var lx=pick[0], ly=pick[1], anchor=pick[2];
           placed.push({x:lx,y:ly});
           var t=el("text",{class:"lbl",x:lx,y:ly,"text-anchor":anchor}); t.appendChild(txt(p._k)); svg.appendChild(t);
           c.addEventListener("mouseenter",function(ev){
