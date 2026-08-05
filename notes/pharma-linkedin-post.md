@@ -8,7 +8,9 @@ the OG card render — the page's preview image is the same chart).
 
 ## ★ FINAL POST (ready to publish)
 
-> ~215 words. Lead image: chart 11 (size vs share, landscape — best for the feed).
+> ~215 words. Lead image: chart 05, the 41-country ranking
+> (`assets/pharma-study/05_world_ranking.png`) — portrait, every country with
+> its share, euro size and year. Same chart opens the carousel.
 > Post the link as the FIRST COMMENT, not in the body — see Posting notes.
 
 Pharma is about 1% of every large economy. The US 0.87%. Japan 0.66%.
@@ -222,7 +224,8 @@ Full study — size, concentration, and product mix for 41 countries: [link]
 - The strongest single visual is chart 01 (trajectories). Chart 03 (share of
   manufacturing) is the strongest *second* image if posting a carousel.
 - Carousel: `notes/pharma-carousel.pdf` — 9 slides, upload via "Add a
-  document". Regenerate with `python3 scripts/pharma_carousel.py`.
+  document". Slide 1 is the 41-country ranking, so the comparison is the
+  first thing in the feed. Regenerate with `python3 scripts/pharma_carousel.py`.
 - LINK PLACEMENT: an outbound link in the body costs reach. Options are (a)
   link in body — keeps clicks, loses reach, and the OG card renders; (b)
   link in the first comment — best reach, roughly half the clicks; (c) edit

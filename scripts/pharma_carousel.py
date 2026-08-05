@@ -151,52 +151,48 @@ class Slide:
 
 # ------------------------------------------------------------------ slide 1
 def s1(pdf):
+    """Cover: the full 41-country ranking, so the first thing seen is the
+    comparison itself rather than a title card."""
     s = Slide("Data study · August 2026")
-    s.gap(26)
-    s.block("Pharmaceutical\nmanufacturing in the\nnational economy",
-            size=27, weight="bold", lead=1.22, gap=10)
-    s.block("41 countries · 35 years · how large the industry is, how\n"
-            "concentrated it has become, and what each country makes.",
-            size=13, color=INK2, gap=14)
+    s.gap(22)
+    s.block("Pharmaceutical manufacturing\nin the national economy",
+            size=22, weight="bold", lead=1.24, gap=8)
+    s.block("41 countries, each at its most recent published year.",
+            size=12.5, color=INK2, gap=12)
 
-    # hero: every country's trajectory, three outliers named
-    ax = s.chart(0.255, tick_pad=26)
-    ax.grid(axis="y", color=GRID, lw=0.8)
-    for geo, d in share.items():
-        if geo in ("DK", "CH", "IE"):
-            continue
-        ys = sorted(int(y) for y in d if int(y) >= 1995 and d[str(y)]["share_gva"])
-        if len(ys) >= 20:
-            ax.plot(ys, [d[str(y)]["share_gva"] for y in ys], color=MUTED, lw=1, alpha=.5)
-    hero = [("IE", stan["IRL"], GREEN, "Ireland"),
-            ("DK", share["DK"], BLUE, "Denmark"),
-            ("CH", share["CH"], ORANGE, "Switzerland")]
-    for _, d, col, lab in hero:
-        ys = sorted(int(y) for y in d if int(y) >= 1995)
-        vs = [d[str(y)]["share_gva"] for y in ys]
-        ax.plot(ys, vs, color=col, lw=2.6)
-        ax.annotate(f"{lab}  {vs[-1]:.1f}%", (ys[-1], vs[-1]), xytext=(7, 0),
-                    textcoords="offset points", color=col, fontsize=11,
-                    fontweight="bold", va="center")
-    ax.set_xlim(1995, 2036); ax.set_ylim(0, 21)
-    ax.yaxis.set_major_formatter(pct)
-    ax.set_yticks([0, 5, 10, 15, 20])
+    rank = sorted(TABLE, key=lambda d: d["share"])
+    # log scale: the range runs from 0.05% to 16.7%, so linear bars would
+    # collapse everything below Switzerland into the axis
+    ax = s.chart(0.520, pad_left=0.108, tick_pad=24)
+    ax.grid(axis="x", color=GRID, lw=0.7, zorder=0)
+    ax.set_axisbelow(True)
+    names = [d["name"] for d in rank]
+    colors = [ORANGE if d["geo"] == "TUR" else (GREEN if d["share"] >= 2 else BLUE)
+              for d in rank]
+    bars = ax.barh(names, [d["share"] for d in rank], color=colors,
+                   height=0.68, zorder=3)
+    named = {"IRL", "DNK", "DK", "CH", "CHE", "USA", "JPN", "TUR", "DE", "GBR", "BE", "SI"}
+    for d, b in zip(rank, bars):
+        e = d["eur"]
+        money = ("" if e is None else
+                 f"  €{e:,.0f}bn" if e >= 1 else
+                 f"  €{e:.1f}bn" if e >= 0.05 else "  <€0.1bn")
+        ax.annotate(f"{d['share']:.2f}%{money}",
+                    (d["share"], b.get_y() + b.get_height() / 2),
+                    xytext=(4, 0), textcoords="offset points",
+                    color=INK if d["geo"] in named else INK2,
+                    fontsize=6.6, va="center")
+    ax.set_xscale("log")
+    ax.set_xlim(0.045, 95)
+    ax.set_xticks([0.05, 0.1, 0.5, 1, 2, 5, 10, 17])
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}%"))
+    ax.tick_params(axis="y", labelsize=6.8, length=0, pad=2)
+    ax.tick_params(axis="x", labelsize=9.5)
+    ax.set_ylim(-0.8, len(rank) - 0.2)
 
-    s.block("Pharmaceutical share of total value added, 1995–2025.\n"
-            "Grey: every other country in the study.",
-            size=10.5, color=MUTED, lead=1.45, gap=14)
-    s.rule(gap=16)
-
-    # headline figures, three across
-    stats = [("0.5%", "median country", INK),
-             ("16.7%", "Ireland, the maximum", GREEN),
-             ("97%", "Korean exports\nthat are biologics", BLUE)]
-    for i, (val, lab, col) in enumerate(stats):
-        x = LEFT + i * (COLW / 3)
-        s.fig.text(x, s.y, val, fontsize=25, fontweight="bold", color=col, va="top")
-        s.fig.text(x, s.y - 0.040, lab, fontsize=10.5, color=INK2, va="top",
-                   linespacing=1.4)
-    s.y -= 0.085
+    s.block("Share of total value added, log scale. Label: share, then size in euro.\n"
+            "Green: above 2% of the economy. Türkiye in orange.",
+            size=10, color=MUTED, lead=1.45, gap=0)
     s.save(pdf)
 
 
