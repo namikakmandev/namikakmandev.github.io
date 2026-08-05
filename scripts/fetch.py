@@ -231,7 +231,7 @@ def _yahoo_session():
         except Exception:
             pass  # these may 404/403 — we only want the Set-Cookie they carry
     last = None
-    for attempt in range(4):
+    for attempt in range(6):
         for host in ("query1", "query2"):
             try:
                 c = op.open(f"https://{host}.finance.yahoo.com/v1/test/getcrumb",
@@ -241,8 +241,9 @@ def _yahoo_session():
                 last = f"empty crumb from {host}"
             except Exception as ex:
                 last = f"{type(ex).__name__}: {ex}"
-        time.sleep(2 ** attempt)
-    raise RuntimeError(f"could not obtain Yahoo crumb: {last}")
+        # Actions IPs get throttled in bursts; wait it out rather than hammering
+        time.sleep(min(60, 5 * 2 ** attempt))
+    raise RuntimeError(f"could not obtain Yahoo crumb after retries: {last}")
 
 
 def _yahoo_probe():
@@ -303,15 +304,21 @@ def yahoo_valuation(entry):
     op, crumb = _yahoo_session()
     mods = "defaultKeyStatistics,summaryDetail,financialData,price,earningsTrend"
     out, disc = {}, {}
-    for sym in entry["tickers"]:
+    for n, sym in enumerate(entry["tickers"]):
+        if n:
+            time.sleep(1.5)  # pace the burst — Yahoo 429s Actions IPs readily
         url = ("https://query1.finance.yahoo.com/v10/finance/quoteSummary/"
                f"{urllib.parse.quote(sym)}?modules={mods}&crumb={urllib.parse.quote(crumb)}")
-        try:
-            j = json.loads(op.open(url, timeout=60).read().decode())
-        except Exception as ex:
-            out[sym] = {"error": f"{type(ex).__name__}: {ex}"}
-            if MODE == "discover":
-                disc[sym] = out[sym]
+        j = None
+        for attempt in range(3):
+            try:
+                j = json.loads(op.open(url, timeout=60).read().decode())
+                break
+            except Exception as ex:
+                err = f"{type(ex).__name__}: {ex}"
+                time.sleep(5 * 2 ** attempt)
+        if j is None:
+            out[sym] = {"error": err}
             continue
         res = ((j.get("quoteSummary") or {}).get("result") or [None])[0]
         if not res:
