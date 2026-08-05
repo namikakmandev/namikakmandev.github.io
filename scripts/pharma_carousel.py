@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """LinkedIn document deck for the pharma study -> notes/pharma-carousel.pdf
 
-Eight slides, 1080x1350. Every figure is read from the data files, so the deck
+Nine slides, 1080x1350. Every figure is read from the data files, so the deck
 cannot drift from the study page.
 
 Layout: slides are composed through a top-down cursor (Slide.block / .chart).
@@ -37,6 +37,7 @@ COLW = RIGHT - LEFT
 TOP = 0.885                      # content ceiling (below the kicker)
 FLOOR = 0.105                    # content floor (above the footer)
 pct = FuncFormatter(lambda v, _: f"{v:g}%")
+SLIDE = [0, 9]        # [rendered so far, total] — set by main()
 
 # ------------------------------------------------------------------ the data
 share = json.load(open(os.path.join(ROOT, "data", "pharma-share.json")))["shares"]
@@ -45,6 +46,10 @@ mixd = json.load(open(os.path.join(ROOT, "data", "pharma-product-mix.json")))
 expo = json.load(open(os.path.join(ROOT, "data", "pharma-exports.json")))["series"]
 mirr = json.load(open(os.path.join(ROOT, "data", "pharma-mirror.json")))["series"]
 ther = json.load(open(os.path.join(ROOT, "data", "pharma-therapeutic.json")))
+import sys as _sys
+_sys.path.insert(0, os.path.join(ROOT, "scripts"))
+from pharma_table import rows as _table_rows
+TABLE = _table_rows()
 
 TEAL = "#2a9d9d"
 GROUPS = [("Peptide hormones, bulk", YELLOW), ("Antibodies & plasma", BLUE),
@@ -125,7 +130,8 @@ class Slide:
         self.gap(tick_pad)
         return ax
 
-    def save(self, pdf, n):
+    def save(self, pdf, _ignored=None):
+        n = SLIDE[0] = SLIDE[0] + 1
         # hard guard: content must never reach the footer band
         if self.y < FLOOR:
             raise SystemExit(
@@ -135,7 +141,7 @@ class Slide:
                       fontweight="bold", va="top")
         self.fig.text(LEFT, 0.034, "namikakmandev.github.io", color=MUTED,
                       fontsize=9, va="top")
-        self.fig.text(RIGHT, 0.052, f"{n} / 8", color=INK2, fontsize=10.5,
+        self.fig.text(RIGHT, 0.052, f"{n} / {SLIDE[1]}", color=INK2, fontsize=10.5,
                       ha="right", va="top")
         pdf.savefig(self.fig, facecolor=SURFACE)
         self.fig.savefig(os.path.join(PNGDIR, f"slide_{n:02d}.png"),
@@ -149,7 +155,7 @@ def s1(pdf):
     s.gap(26)
     s.block("Pharmaceutical\nmanufacturing in the\nnational economy",
             size=27, weight="bold", lead=1.22, gap=10)
-    s.block("42 countries · 35 years · how large the industry is, how\n"
+    s.block("41 countries · 35 years · how large the industry is, how\n"
             "concentrated it has become, and what each country makes.",
             size=13, color=INK2, gap=14)
 
@@ -191,7 +197,7 @@ def s1(pdf):
         s.fig.text(x, s.y - 0.040, lab, fontsize=10.5, color=INK2, va="top",
                    linespacing=1.4)
     s.y -= 0.085
-    s.save(pdf, 1)
+    s.save(pdf)
 
 
 # ------------------------------------------------------------------ slide 2
@@ -220,7 +226,7 @@ def s2(pdf):
         s.block(body, size=13.5, color=INK2, lead=1.45, gap=20, x=LEFT + 0.075)
         s.fig.add_artist(plt.Line2D([LEFT + 0.052, LEFT + 0.052],
                                     [s.y + 0.018, top - 0.004], color=col, lw=2.5))
-    s.save(pdf, 2)
+    s.save(pdf)
 
 
 # ------------------------------------------------------------------ slide 3
@@ -256,7 +262,7 @@ def s3(pdf):
             "biologics and the pandemic. Grey lines: Canada, Mexico,\n"
             "Australia, France, Italy, Spain, Germany.",
             size=12.5, color=INK2, lead=1.45, gap=0)
-    s.save(pdf, 3)
+    s.save(pdf)
 
 
 # ------------------------------------------------------------------ slide 4
@@ -292,7 +298,7 @@ def s4(pdf):
             "and 6.5% of the Danish one. Concentration, not sector size,\n"
             "determines macroeconomic exposure.",
             size=13, color=INK2, lead=1.5, gap=0)
-    s.save(pdf, 4)
+    s.save(pdf)
 
 
 # ------------------------------------------------------------------ slide 5
@@ -371,10 +377,59 @@ def s5(pdf):
             "up in 2015 with the national-accounts restatement; the export mix\n"
             "is unaffected by it.",
             size=12.5, color=INK2, lead=1.48, gap=0)
-    s.save(pdf, 5)
+    s.save(pdf)
 
 
-# ------------------------------------------------------------------ slide 6
+# ------------------------------------------------------------------ slide 5
+def s5b(pdf):
+    """Size against weight — the two questions separated."""
+    s = Slide("Finding 02 · Size vs weight", GREEN)
+    s.gap(24)
+    s.block("Producing a lot and\ndepending on it are\ndifferent things",
+            size=24, weight="bold", lead=1.24, gap=10)
+    s.block("Pharmaceutical value added, € billion, against share of the economy.",
+            size=12, color=INK2, gap=14)
+
+    ax = s.chart(0.335, pad_left=0.055, tick_pad=30)
+    ax.grid(color=GRID, lw=0.8)
+    OFF = {"USA": (-8, 6, "right"), "IRL": (-8, 6, "right"), "CH": (7, 4, "left"),
+           "DK": (-8, 6, "right"), "DE": (7, -13, "left"), "JPN": (7, 5, "left"),
+           "BE": (-8, 6, "right"), "TUR": (7, 5, "left")}
+    for d in TABLE:
+        if not d["eur"] or d["eur"] <= 0.05:
+            continue
+        big = d["geo"] in OFF
+        c = (ORANGE if d["geo"] == "TUR" else
+             GREEN if d["share"] >= 2 else (BLUE if big else MUTED))
+        ax.scatter(d["eur"], d["share"], s=58 if big else 22, color=c, zorder=3,
+                   edgecolors=SURFACE, linewidths=1.4)
+        if big:
+            dx, dy, ha = OFF[d["geo"]]
+            ax.annotate(d["name"], (d["eur"], d["share"]), xytext=(dx, dy),
+                        textcoords="offset points", ha=ha, zorder=4,
+                        color=INK, fontsize=10)
+    ax.set_xscale("log"); ax.set_yscale("log")
+    ax.set_xlim(0.05, 500); ax.set_ylim(0.04, 30)
+    ax.set_xticks([0.1, 1, 10, 100])
+    ax.set_xticklabels(["€0.1bn", "€1bn", "€10bn", "€100bn"])
+    ax.set_yticks([0.1, 1, 10])
+    ax.set_yticklabels(["0.1%", "1%", "10%"])
+
+    s.gap(4)
+    s.rule(gap=14)
+    facts = [("€212bn", "United States output,\n0.87% of its economy", BLUE),
+             ("€83bn", "Ireland output,\n16.7% of its economy", GREEN),
+             ("4", "countries in both\ncorners — all small", ORANGE)]
+    for i, (val, lab, col) in enumerate(facts):
+        x = LEFT + i * (COLW / 3)
+        s.fig.text(x, s.y, val, fontsize=22, fontweight="bold", color=col, va="top")
+        s.fig.text(x, s.y - 0.036, lab, fontsize=9.5, color=INK2, va="top",
+                   linespacing=1.45)
+    s.y -= 0.080
+    s.save(pdf)
+
+
+# ------------------------------------------------------------------ slide 7
 def s6(pdf):
     """Named therapeutic classes, absolute EUR — what is actually produced."""
     s = Slide("Finding 03 · Composition", YELLOW)
@@ -423,7 +478,7 @@ def s6(pdf):
             "active substance. Germany spreads across antibodies, plasma and\n"
             "small molecules. Denmark publishes almost none of its detail.",
             size=11.5, color=INK2, lead=1.45, gap=0)
-    s.save(pdf, 6)
+    s.save(pdf)
 
 
 # ------------------------------------------------------------------ slide 7
@@ -472,7 +527,7 @@ def s7(pdf):
     s.block("Denmark withholds its insulin, hormone and other-medicament codes and\n"
             "most partner detail: too few firms to publish without disclosing them.",
             size=9.5, color=MUTED, lead=1.45, gap=0)
-    s.save(pdf, 7)
+    s.save(pdf)
 
 
 # ------------------------------------------------------------------ slide 8
@@ -501,14 +556,16 @@ def s8(pdf):
             size=10.5, color=MUTED, lead=1.5, gap=14)
     s.block("namikakmandev.github.io/pharma-gdp-share.html",
             size=13.5, color=BLUE, weight="bold", gap=0)
-    s.save(pdf, 8)
+    s.save(pdf)
 
 
 def main():
     out = os.path.join(ROOT, "notes", "pharma-carousel.pdf")
     from matplotlib.backends.backend_pdf import PdfPages
+    order = (s1, s2, s3, s4, s5b, s5, s6, s7, s8)
+    SLIDE[0], SLIDE[1] = 0, len(order)
     with PdfPages(out) as pdf:
-        for i, f in enumerate((s1, s2, s3, s4, s5, s6, s7, s8), 1):
+        for f in order:
             f(pdf)
     print("wrote", out)
 

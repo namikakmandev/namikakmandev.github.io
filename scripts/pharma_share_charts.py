@@ -254,7 +254,7 @@ def chart_world_ranking():
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}%"))
     ax.grid(axis="y", visible=False)
     ax.tick_params(axis="y", labelsize=10.5)
-    title(fig, "Pharma share of the economy — 42 countries, most recent year each",
+    title(fig, "Pharma share of the economy — 41 countries, most recent year each",
           "C21 value added ÷ total value added, current prices, log scale. "
           "Bar label: share · year.\nBlue: Eurostat · aqua: OECD STAN · orange: Türkiye")
     save(fig, "05_world_ranking.png")

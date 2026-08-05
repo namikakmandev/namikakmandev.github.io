@@ -14,7 +14,7 @@ the OG card render — the page's preview image is the same chart).
 
 How big is the pharmaceutical industry inside a national economy?
 
-I pulled 35 years of data across 42 countries to find out. The answer broke
+I pulled 35 years of data across 41 countries to find out. The answer broke
 into three surprises.
 
 1️⃣ For most economies, pharma is tiny — and stuck. In the median country it's
@@ -47,7 +47,7 @@ and what kind. Answer all three and the same industry looks like a rounding
 error, a national strategy, and a bet on the future — depending on where you
 stand.
 
-Full study, all 42 countries, every chart and the open data pipeline:
+Full study, all 41 countries, every chart and the open data pipeline:
 https://namikakmandev.github.io/pharma-gdp-share.html
 
 (P.S. — for the folks in my network in Türkiye: we sit at 0.35% of GDP, flat
@@ -57,7 +57,7 @@ similar start. The gap is strategy, not statistics.)
 #pharma #economics #biologics #dataanalysis #healthcare #Korea #Türkiye
 
 Data cut: 4 Aug 2026 · Eurostat nama_10_a64 + nama_10_gdp · 30 countries, 1995–2025
-· plus OECD STAN (DF_STAN_2025) for the world extension — 42 countries total.
+· plus OECD STAN (DF_STAN_2025) for the world extension — 41 countries total.
 All numbers below are reproducible from `data/pharma-share.json` and
 `data/pharma-share-stan.json`.
 
@@ -102,11 +102,11 @@ Full study, charts, caveats and the open data pipeline: [link]
 
 ---
 
-## World-extension draft (EN) — 42 countries
+## World-extension draft (EN) — 41 countries
 
 Is pharma's ~1% weight a European quirk? I extended the study to the
 Americas and Asia-Pacific with OECD data — same industry (ISIC C21), same
-denominator, 42 countries, each at its most recent published year (labelled
+denominator, 41 countries, each at its most recent published year (labelled
 on every bar).
 
 The answer surprised me with how clean it is:
@@ -136,7 +136,7 @@ nature. The 5–17% weights (Ireland 16.7%, Denmark 9.8%, Switzerland ~7%)
 exist only in small economies that let one industry become the economy.
 Concentration, not pharma, is the phenomenon.
 
-Full study, all 42 countries, sources and caveats: [link]
+Full study, all 41 countries, sources and caveats: [link]
 
 #pharma #economics #OECD #dataanalysis #Korea #Türkiye #USA #Japan
 
@@ -199,7 +199,7 @@ distribution hubs re-export goods they didn't make — Slovenia's numbers
 were so inflated by routing that I left it out. Details and caveats on the
 page.
 
-Full study — size, concentration, and product mix for 42 countries: [link]
+Full study — size, concentration, and product mix for 41 countries: [link]
 
 #pharma #biologics #economics #Korea #dataanalysis #trade
 
@@ -212,7 +212,7 @@ Full study — size, concentration, and product mix for 42 countries: [link]
 - Carousel: `notes/pharma-carousel.pdf` — 7 slides, upload via "Add a
   document". Slide 5 is the Denmark/Ireland comparison, the strongest single
   page. Regenerate with `python3 scripts/pharma_carousel.py`.
-- For the world-extension post, lead with chart 05 (42-country ranking, years
+- For the world-extension post, lead with chart 05 (41-country ranking, years
   labelled per bar) and follow with 06 (big-economy trajectories).
 - For the product-mix post, lead with chart 07 (EU export mix) or go
   straight to 08 (Korea biologics) as the single hook; 09 is the world mix.
