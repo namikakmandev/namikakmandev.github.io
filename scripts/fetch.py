@@ -270,6 +270,21 @@ def _yahoo_probe():
             out[f"getcrumb {host}"] = f"OK crumb={crumb!r}"
         except Exception as ex:
             out[f"getcrumb {host}"] = f"{type(ex).__name__}: {ex}"
+    # A screener endpoint would beat per-ticker calls outright: one request, every
+    # US ticker, exactly the three columns this page needs. Probe it first.
+    sa = ("https://stockanalysis.com/api/screener/s/f"
+          "?m=marketCap&s=desc&c=no,s,n,marketCap,price,peRatio,peForward,pegRatio,"
+          "epsGrowth5Y,epsThis,epsNext&cn=20&i=stocks")
+    for label, u in (("stockanalysis screener", sa),
+                     ("stockanalysis quote META",
+                      "https://stockanalysis.com/api/symbol/s/meta/overview")):
+        try:
+            rq = urllib.request.Request(u, headers={"User-Agent": BROWSER_UA,
+                                                    "Accept": "application/json"})
+            body = urllib.request.urlopen(rq, timeout=45).read().decode()
+            out[label] = f"OK {len(body)}B :: {body[:400]}"
+        except Exception as ex:
+            out[label] = f"{type(ex).__name__}: {ex}"
     tries = {
         "quoteSummary q1 +crumb": "https://query1.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=defaultKeyStatistics&crumb=CRUMB",
         "quoteSummary q2 +crumb": "https://query2.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=defaultKeyStatistics&crumb=CRUMB",
