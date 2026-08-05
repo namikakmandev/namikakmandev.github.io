@@ -358,57 +358,71 @@ def s5(pdf):
 # ------------------------------------------------------------------ slide 6
 def s6(pdf):
     s = Slide("Finding 03 · Composition", YELLOW)
-    s.gap(26)
-    s.block("Two industries share\none label", size=27, weight="bold", lead=1.25, gap=12)
-    s.block("Share of pharmaceutical exports by product class, 2024.",
-            size=13, color=INK2, gap=16)
+    s.gap(24)
+    s.block("What the leaders make", size=25, weight="bold", gap=8)
+    s.block("Ranked by pharmaceutical share of the economy; bars show export mix.",
+            size=12, color=INK2, gap=12)
 
     # legend row, measured before the chart so it cannot collide
     for i, p in enumerate(["3002", "3004", "2937", "2941"]):
-        cx = LEFT + (i % 2) * 0.42
-        cy = s.y - (i // 2) * 0.030
-        s.fig.add_artist(plt.Rectangle((cx, cy - 0.017), 0.019, 0.019,
+        cx = LEFT + i * 0.215
+        s.fig.add_artist(plt.Rectangle((cx, s.y - 0.017), 0.017, 0.017,
                                        transform=s.fig.transFigure, facecolor=HSCOL[p]))
-        s.fig.text(cx + 0.028, cy - 0.0075, HSLAB[p], fontsize=11, color=INK2,
-                   va="center")
-    s.y -= 0.060
-    s.gap(14)
+        s.fig.text(cx + 0.024, s.y - 0.0085, HSLAB[p].replace(" / vaccines", ""),
+                   fontsize=9.5, color=INK2, va="center")
+    s.y -= 0.028
+    s.gap(10)
 
-    names = {"IE": "Ireland", "BE": "Belgium", "NL": "Netherlands", "DE": "Germany",
-             "DK": "Denmark", "FR": "France", "IT": "Italy"}
-    data = mixd["eu_exporters"]
-    geos = sorted(names, key=lambda g: -data[g]["mix_pct"]["3002"])
-    ax = s.chart(0.335, pad_left=0.145, tick_pad=10)
+    # ranked by share of the economy, so concentration and composition are
+    # read in one view. Switzerland's mix is EU-facing (mirror data); Slovenia
+    # ranks 4th on share but its trade is re-export routing, so it is omitted.
+    eu, wo = mixd["eu_exporters"], mixd["world_to_eu"]
+    ROWS = [("Ireland", "IE", 16.7, eu["IE"]), ("Denmark", "DK", 9.8, eu["DK"]),
+            ("Switzerland*", "CH", 6.9, wo["CH"]), ("Belgium", "BE", 2.5, eu["BE"]),
+            ("Hungary", "HU", 1.3, eu["HU"]), ("Netherlands", "NL", 1.2, eu["NL"]),
+            ("Germany", "DE", 0.7, eu["DE"]), ("France", "FR", 0.6, eu["FR"]),
+            ("Italy", "IT", 0.6, eu["IT"])]
+
+    ax = s.chart(0.345, pad_left=0.155, tick_pad=10)
     for sp in ax.spines.values():
         sp.set_visible(False)
-    ax.set_xticks([]); ax.tick_params(colors=INK2, labelsize=12, length=0)
-    left = [0.0] * len(geos)
+    ax.set_xticks([]); ax.tick_params(colors=INK2, labelsize=11.5, length=0)
+    left = [0.0] * len(ROWS)
     for p in HS:
-        w = [data[g]["mix_pct"][p] for g in geos]
-        ax.barh(range(len(geos)), w, left=left, color=HSCOL[p], height=.66)
+        w = [r[3]["mix_pct"][p] for r in ROWS]
+        ax.barh(range(len(ROWS)), w, left=left, color=HSCOL[p], height=.68)
         for i, wi in enumerate(w):
-            if wi >= 15:
+            if wi >= 16:
                 ax.annotate(f"{wi:.0f}", (left[i] + wi / 2, i), ha="center", va="center",
                             color="#0f1419" if p == "2937" else "#f4f6f8",
-                            fontsize=10, fontweight="bold")
+                            fontsize=9.5, fontweight="bold")
         left = [l + wi for l, wi in zip(left, w)]
-    # absolute scale — the percentages alone hide that Germany ships 5x Denmark
-    for i, g in enumerate(geos):
-        ax.annotate(f"€{data[g]['eur_bn']:,.0f}bn", (105, i), va="center",
-                    color=INK, fontsize=11, fontweight="bold",
-                    annotation_clip=False)
-    ax.annotate("Total exports", (105, -0.8), va="center", color=MUTED, fontsize=9.5,
+    for i, (nm, g, shr, d) in enumerate(ROWS):
+        col = GREEN if shr >= 2 else INK2
+        ax.annotate(f"{shr:.1f}%", (106, i), va="center", color=col,
+                    fontsize=11, fontweight="bold", annotation_clip=False)
+        ax.annotate(f"€{d['eur_bn']:,.0f}bn", (128, i), va="center", color=INK,
+                    fontsize=10.5, annotation_clip=False)
+    ax.annotate("share", (106, -0.9), va="center", color=MUTED, fontsize=9,
                 annotation_clip=False)
-    ax.set_yticks(range(len(geos))); ax.set_yticklabels([names[g] for g in geos], fontsize=12)
+    ax.annotate("exports", (128, -0.9), va="center", color=MUTED, fontsize=9,
+                annotation_clip=False)
+    # divider between the concentrated economies and the large ones
+    ax.axhline(5.5, color=RULE, lw=1, xmin=0, xmax=0.79)
+    ax.set_yticks(range(len(ROWS)))
+    ax.set_yticklabels([r[0] for r in ROWS], fontsize=11.5)
     ax.invert_yaxis()
-    ax.set_xlim(0, 132)          # headroom so the € column sits inside the frame
+    ax.set_xlim(0, 152)
 
     s.gap(2)
-    s.rule(gap=14)
-    s.block("The same distinction holds outside Europe: 97% of South Korea's\n"
-            "pharmaceutical exports to the EU are biologics, against 20% in\n"
-            "2013 — a national capability built within a decade.",
-            size=12.5, color=INK2, lead=1.5, gap=0)
+    s.block("The leaders are not one industry. Ireland and Belgium are biologics\n"
+            "producers; Denmark is dose-led with the hormone share that marks\n"
+            "insulin and GLP-1; Switzerland splits evenly. Below the line, the\n"
+            "large economies are finished-dose manufacturers at modest scale.",
+            size=12, color=INK2, lead=1.45, gap=8)
+    s.block("* Switzerland: exports to the EU only. Slovenia ranks 4th on share but\n"
+            "  its trade figures are distribution-hub re-exports, so it is omitted.",
+            size=9.5, color=MUTED, lead=1.45, gap=0)
     s.save(pdf, 6)
 
 
