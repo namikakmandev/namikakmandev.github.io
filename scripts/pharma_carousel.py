@@ -269,30 +269,40 @@ def s4(pdf):
             size=27, weight="bold", lead=1.25, gap=12)
     s.block("Pharmaceutical share of the economy, 1995–2025.", size=13, color=INK2, gap=18)
 
-    ax = s.chart(0.355)
+    # all five exceptions the study names are drawn — Ireland comes from OECD
+    # because its Eurostat series is suppressed after 2014
+    EXC = ("IE", "DK", "CH", "SI", "BE")
+    ax = s.chart(0.325)
     ax.grid(axis="y", color=GRID, lw=0.8)
     for geo in share:
-        if geo in ("DK", "CH", "IE", "SI", "BE"):
+        if geo in EXC:
             continue
         d = share[geo]; ys = sorted(int(y) for y in d if int(y) >= 1995)
         if len(ys) >= 20:
-            ax.plot(ys, [d[str(y)]["share_gdp"] for y in ys], color=MUTED, lw=1, alpha=.5)
-    for geo, col, lab in (("DK", GREEN, "Denmark"), ("CH", ORANGE, "Switzerland")):
-        d = share[geo]; ys = sorted(int(y) for y in d if int(y) >= 1995)
-        vs = [d[str(y)]["share_gdp"] for y in ys]
+            ax.plot(ys, [d[str(y)]["share_gva"] for y in ys], color=MUTED, lw=1, alpha=.5)
+    # dy nudges the two labels that would otherwise collide (3.1% vs 2.5%)
+    for d, col, lab, dy in ((stan["IRL"], GREEN, "Ireland", 0),
+                            (share["DK"], BLUE, "Denmark", 0),
+                            (share["CH"], ORANGE, "Switzerland", 0),
+                            (share["SI"], YELLOW, "Slovenia", 6),
+                            (share["BE"], TEAL, "Belgium", -6)):
+        ys = sorted(int(y) for y in d if int(y) >= 1995)
+        vs = [d[str(y)]["share_gva"] for y in ys]
         ax.plot(ys, vs, color=col, lw=2.6)
-        ax.annotate(f"{lab}  {vs[-1]:.1f}%", (ys[-1], vs[-1]), xytext=(7, 0),
+        ax.annotate(f"{lab}  {vs[-1]:.1f}%", (ys[-1], vs[-1]), xytext=(7, dy),
                     textcoords="offset points", color=col, fontsize=10.5,
                     fontweight="bold", va="center")
-    ax.set_xlim(1995, 2035); ax.set_ylim(0, 9.8)
+    ax.set_xlim(1995, 2034); ax.set_ylim(0, 21)
     ax.yaxis.set_major_formatter(pct)
+    ax.set_yticks([0, 5, 10, 15, 20])
 
     s.gap(4)
     s.rule(gap=14)
     s.block("In 2023 Germany and Denmark each produced roughly €25bn of\n"
-            "pharmaceutical value added. That is 0.6% of the German economy\n"
-            "and 6.5% of the Danish one. Concentration, not sector size,\n"
-            "determines macroeconomic exposure.",
+            "pharmaceutical value added. That is 0.67% of the German economy\n"
+            "and 7.4% of the Danish one. Concentration, not sector size,\n"
+            "determines macroeconomic exposure. Ireland's step up in 2015 is\n"
+            "a national-accounts restatement, not a jump in output.",
             size=13, color=INK2, lead=1.5, gap=0)
     s.save(pdf)
 
