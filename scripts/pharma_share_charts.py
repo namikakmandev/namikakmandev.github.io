@@ -240,23 +240,39 @@ def chart_world_ranking():
     fig.subplots_adjust(left=0.24, top=0.88)
     names = [f"{v[0]}" for _, v in rows]
     vals = [v[2] for _, v in rows]
-    colors = [ORANGE if g in ("TUR",) else
-              (AQUA if v[3] == "STAN" else BLUE) for g, v in rows]
+    # colour carries the argument, not the data source
+    colors = [ORANGE if g == "TUR" else (AQUA if v[2] >= 2 else BLUE)
+              for g, v in rows]
     bars = ax.barh(names, vals, color=colors, height=0.62, zorder=3)
+    # absolute size alongside the share, so one chart answers both questions
+    import sys as _sys
+    _sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    from pharma_table import rows as _rows
+    EUR = {d["geo"]: d["eur"] for d in _rows()}
     for (g, v), b in zip(rows, bars):
-        ax.annotate(f"{v[2]:.2f}%  ·  {v[1]}",
-                    (v[2], b.get_y() + b.get_height() / 2),
+        e = EUR.get(g)
+        if e is None:
+            money = ""
+        elif e >= 1:
+            money = f"   €{e:,.0f}bn"
+        elif e >= 0.05:
+            money = f"   €{e:.1f}bn"
+        else:
+            money = "   <€0.1bn"
+        lab = f"{v[2]:.2f}%{money}   {v[1]}"
+        ax.annotate(lab, (v[2], b.get_y() + b.get_height() / 2),
                     xytext=(5, 0), textcoords="offset points",
                     color=INK if g in ("DK", "CH", "IRL", "USA", "JPN", "TUR") else INK2,
                     fontsize=10, va="center")
     ax.set_xscale("log")
+    ax.set_xlim(0.045, 62)
     ax.set_xticks([0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 17])
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}%"))
     ax.grid(axis="y", visible=False)
     ax.tick_params(axis="y", labelsize=10.5)
     title(fig, "Pharma share of the economy — 41 countries, most recent year each",
-          "C21 value added ÷ total value added, current prices, log scale. "
-          "Bar label: share · year.\nBlue: Eurostat · aqua: OECD STAN · orange: Türkiye")
+          "Share of the economy, log scale. Label: share, size in euro, year.\n"
+          "Green: above 2% of the economy. Türkiye in orange.")
     save(fig, "05_world_ranking.png")
 
 

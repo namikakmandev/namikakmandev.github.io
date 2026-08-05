@@ -8,7 +8,8 @@ the OG card render — the page's preview image is the same chart).
 
 ## ★ FINAL POST (ready to publish)
 
-> ~180 words. Lead image: chart 11 (size vs weight) or the carousel PDF.
+> ~180 words. Lead image: chart 11 (size vs weight, landscape — best for the feed)
+> or chart 05 (41-country ranking with share + euro, portrait — best as a single image).
 
 Pharma is about 1% of every large economy.
 
