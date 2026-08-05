@@ -347,37 +347,101 @@
       "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
     },
     {
-      "name": "hs6-probe2",
+      "name": "hs6-check",
       "provider": "eurostat",
       "api": "comext",
       "dataset": "DS-045409",
       "params": {
         "freq": "A",
         "flow": "2",
-        "reporter": "DK",
+        "reporter": [
+          "DE",
+          "IE",
+          "BE",
+          "NL",
+          "FR",
+          "IT",
+          "DK"
+        ],
         "partner": "WORLD",
         "indicators": "VALUE_IN_EUROS",
         "product": [
           "300431",
           "300439",
           "300490",
-          "300441",
-          "300443",
-          "300449",
-          "30043100",
-          "30043900",
-          "30049000",
-          "300460",
-          "300420"
+          "300215",
+          "300212",
+          "300241",
+          "293719"
         ],
         "time": "2024"
       },
       "group_dims": [
+        "reporter",
         "product"
       ],
-      "out": "data/hs6-probe2.json",
+      "out": "data/hs6-check.json",
       "enabled": true,
-      "source": "probe: which 3004 sub-codes Comext serves"
+      "source": "HS6 detail by reporter — establishes where detailed codes are published vs suppressed"
+    },
+    {
+      "name": "pharma-dest",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": [
+          "DK",
+          "IE",
+          "BE"
+        ],
+        "partner": [
+          "WORLD",
+          "US",
+          "CN",
+          "JP",
+          "GB",
+          "CH",
+          "CA",
+          "AU",
+          "BR",
+          "IN",
+          "KR",
+          "TR",
+          "RU",
+          "MX",
+          "SA",
+          "AE",
+          "DE",
+          "FR",
+          "NL",
+          "BE",
+          "IT",
+          "ES",
+          "PL",
+          "DK",
+          "IE",
+          "SE",
+          "NO"
+        ],
+        "indicators": "VALUE_IN_EUROS",
+        "product": [
+          "3002",
+          "3004",
+          "2937"
+        ],
+        "time": "2024"
+      },
+      "group_dims": [
+        "reporter",
+        "product",
+        "partner"
+      ],
+      "out": "data/pharma-dest.json",
+      "enabled": true,
+      "source": "Destination markets for the concentration leaders, by HS4 class, 2024"
     }
   ]
 }
