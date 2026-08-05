@@ -421,6 +421,9 @@
         "The full scorecard. Returns are total return to "+fmtMonth(asof)+"; the last column is today's price versus each stock's all-time high.");
       buildTable(app, S, asof);
 
+      // ---- Valuation (loaded separately; absent = section simply omitted) ----
+      buildValuation(app);
+
       document.getElementById("foot").style.display="";
 
       // helpers closed over S
@@ -462,6 +465,79 @@
       });
       h+="</tbody></table>"; wrap.innerHTML=h; app.appendChild(wrap);
     }
+    // ---------- valuation: what the price assumes about future earnings ----------
+    function buildValuation(app){
+      fetch("data/glp1-valuation.json").then(function(r){ if(!r.ok) throw 0; return r.json(); })
+        .then(function(V){ renderValuation(app, V); })
+        .catch(function(){ /* no valuation data yet — the study stands without it */ });
+    }
+    function renderValuation(app, V){
+      var S=V.series, keys=Object.keys(S);
+      var h2=document.createElement("h2"); h2.textContent="What the price assumes"; app.appendChild(h2);
+      var p=document.createElement("p"); p.className="sub";
+      p.textContent="Price performance says what happened. Multiples say what the market now expects. "+
+        "A low PE is only cheap if earnings hold up — so each multiple sits next to the growth rate it depends on.";
+      app.appendChild(p);
+
+      var pct=function(x){ return x==null?"—":(x>=0?"+":"")+(x*100).toFixed(0)+"%"; };
+      var x=function(v,dp){ return v==null?"—":v.toFixed(dp==null?1:dp)+"x"; };
+      var cols=[["Company","name"],["PE","trailing_pe"],["Forward PE","forward_pe"],["PEG","peg_5y"],
+                ["EPS next yr","eps_growth_next_yr"],["EPS 5-yr CAGR","eps_growth_5y_cagr"],
+                ["EV/EBITDA","ev_ebitda"],["ROE","roe"],["FCF yield","fcf_yield"]];
+      var w=document.createElement("div"); w.className="tbl-wrap";
+      var t="<table class='tbl'><thead><tr>";
+      cols.forEach(function(c){ t+="<th>"+c[0]+"</th>"; }); t+="</tr></thead><tbody>";
+      keys.forEach(function(k){
+        var r=S[k]; t+="<tr>";
+        t+="<td class='name'><b>"+r.name+"</b><span class='tk'>"+k+"</span></td>";
+        t+="<td>"+x(r.trailing_pe)+"</td>";
+        t+="<td>"+(r.forward_pe==null?"<span style='color:var(--text-dim)'>—</span>":x(r.forward_pe))+"</td>";
+        t+="<td class='"+(r.peg_5y==null?"":(r.peg_5y<=1.5?"pos":r.peg_5y>=2.5?"neg":""))+"'>"+x(r.peg_5y,2)+"</td>";
+        t+="<td class='"+cls(r.eps_growth_next_yr)+"'>"+pct(r.eps_growth_next_yr)+"</td>";
+        t+="<td class='"+cls(r.eps_growth_5y_cagr)+"'>"+pct(r.eps_growth_5y_cagr)+"</td>";
+        t+="<td>"+x(r.ev_ebitda)+"</td><td>"+pct(r.roe)+"</td><td>"+pct(r.fcf_yield)+"</td>";
+        t+="</tr>";
+      });
+      t+="</tbody></table>"; w.innerHTML=t; app.appendChild(w);
+
+      var lly=S.LLY, nvo=S.NVO;
+      var q=document.createElement("div"); q.className="pullquote";
+      if(lly&&nvo){
+        q.innerHTML="Novo trades on about <b>"+x(nvo.trailing_pe)+"</b> earnings against Lilly's <b>"+
+          x(lly.trailing_pe)+"</b> — but consensus has Novo's earnings per share <b>falling</b> next year and "+
+          "compounding at only "+pct(nvo.eps_growth_5y_cagr)+" a year, against "+pct(lly.eps_growth_5y_cagr)+
+          " for Lilly. The discount is not the market offering the same business cheaper. It is the market "+
+          "forecasting a smaller business.";
+      }
+      app.appendChild(q);
+
+      var c=document.createElement("div"); c.className="callout";
+      c.innerHTML="<h3>Before you trust these numbers</h3><ul>"+
+        "<li><b>Trailing and forward EPS are not measured the same way.</b> Trailing PE here uses reported "+
+        "(GAAP) earnings; analyst consensus is usually stated on an adjusted basis that excludes amortisation "+
+        "and one-off charges. Where a company carries heavy acquisition amortisation — Amgen and AstraZeneca "+
+        "most of all — that alone makes the trailing-to-forward drop look larger than any real improvement.</li>"+
+        "<li><b>Pfizer has no PEG</b> and that is the finding: consensus EPS falls from $"+
+        (S.PFE?S.PFE.eps_fy26.toFixed(2):"—")+" in 2026 to $"+(S.PFE?S.PFE.eps_fy30.toFixed(2):"—")+
+        " by 2030. Dividing a multiple by negative growth produces a number that looks precise and means nothing.</li>"+
+        "<li><b>Roche's forward PE is blank on purpose.</b> Its consensus EPS is quoted per ADR while its market "+
+        "capitalisation is on ordinary shares; combining them without an ADR-ratio and currency assumption would "+
+        "produce a confident-looking error.</li>"+
+        "<li><b>Mixed as-of dates.</b> Lilly's multiples are trailing-twelve-month; the others are at their "+
+        "2025 fiscal year-end, because that is the most recent basis each company reports. The basis is not "+
+        "identical across rows, so read the levels as indicative and the growth columns as the like-for-like part.</li>"+
+        "<li><b>The four clinical-stage biotechs are missing</b> — Viking, Structure, Altimmune and Zealand are "+
+        "pre-profit. There is no multiple to show, which is itself the point: their prices rest entirely on trial "+
+        "outcomes, not earnings.</li></ul>";
+      app.appendChild(c);
+
+      var n=document.createElement("div"); n.className="fig-note";
+      n.style.margin="10px 2px";
+      n.textContent="Valuation snapshot "+(V.fetched_at||"")+" · fundamentals and consensus via Bigdata.com; "+
+        "prices from this study's own dataset. Refreshed on request, not by the monthly cron.";
+      app.appendChild(n);
+    }
+
     function cls(r){ return r==null?"":(r>=0?"pos":"neg"); }
     function maxDD(s){ var dd=drawdown(s), w=0; Object.keys(dd).forEach(function(m){ if(dd[m]<w)w=dd[m]; }); return w; }
 
