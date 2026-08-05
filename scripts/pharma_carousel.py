@@ -543,8 +543,8 @@ def s8(pdf):
          "Composition can be changed within a decade — Ireland and\n"
          "South Korea repositioned output rather than expanding it."),
         ("Türkiye", ORANGE,
-         "0.35% of GDP, broadly unchanged since 2003 against a 0.5%\n"
-         "median. The constraint is positioning, not data."),
+         "0.34% of the economy, broadly unchanged since 2003 against a\n"
+         "0.5% median. The constraint is positioning, not data."),
     ]
     for head, col, body in rows:
         s.block(head, size=15.5, color=col, weight="bold", gap=6)
