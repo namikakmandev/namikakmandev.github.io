@@ -1,0 +1,128 @@
+{
+  "_readme": [
+    "Dog dermatology market — Poland. A TOP-DOWN ESTIMATE built entirely from free/public",
+    "sources. No public source measures this market directly, so every headline number here",
+    "is MODELLED, not observed. This file is the single reproducible source for the study page",
+    "dog-derm-poland.html — every figure on that page recomputes from the inputs below.",
+    "Cut-off: 5 Aug 2026. Author: pipeline in this repository."
+  ],
+
+  "fx": {
+    "eur_pln": 4.30,
+    "note": "EUR/PLN ~4.30, 2024-2025 average band (4.2-4.4). Used only to express PLN results in EUR; the model is built in PLN."
+  },
+
+  "inputs": {
+    "dog_population": {
+      "value_million": 8.1,
+      "unit": "dogs",
+      "market": "Poland",
+      "year": 2023,
+      "source": "FEDIAF Facts & Figures 2025 (2023 pet population data)",
+      "note": "4th largest dog population in the EU; highest per-capita dog ownership in Europe (~49% of households). Polish trade press rounds to 8.0M."
+    },
+    "derm_episode_rate_per_year": {
+      "low": 0.08,
+      "mid": 0.12,
+      "high": 0.18,
+      "unit": "share of the dog population with a vet-attended dermatological episode per year",
+      "source_proxy": "UK VetCompass primary-care data: skin disorders ~12.6% one-year period prevalence (2nd most common disorder group); otitis externa ~7.3%. General-practice caseload surveys put dermatology at 8-40% of small-animal consultations (UK 21.4%, Montreal 18.8%).",
+      "PROXY_LIMITATION": "No Polish national prevalence dataset exists. UK/Western-European prevalence is applied to the Polish dog population. This assumption travels with every number derived from it. Polish figures could differ due to breed mix, climate, and treatment-seeking behaviour."
+    },
+    "annual_derm_spend_per_treated_dog_pln": {
+      "low": 300,
+      "mid": 500,
+      "high": 800,
+      "unit": "PLN per treated dog per year (blended across simple and chronic cases)",
+      "source_proxy": "Built from Polish public price points: standard vet consultation 100-250 PLN (PETHELP/Vivigo 2024-25 price surveys); Apoquel 16mg ~46-90 PLN per 20-tablet pack (Allegro listings, 2026); diagnostics (skin scrape/cytology, USG ~160 PLN, faecal ~100 PLN). A simple episode (1 consult + short topical course) ~150-400 PLN; a chronic atopic case (long-term Apoquel/Cytopoint + repeat consults + diagnostics) ~1,500-4,000 PLN/yr. Blend is dominated by simple cases with a chronic minority.",
+      "note": "Blended average, NOT a chronic-case cost."
+    }
+  },
+
+  "envelope_crosscheck": {
+    "poland_vet_services_market": {
+      "low_eur_million": 900,
+      "high_eur_million": 1400,
+      "source": "IBISWorld Veterinary Services in Poland (~EUR 1.4bn, 2026); Ken Research Poland Animal Health & Veterinary (~USD 0.9-1.5bn); Eurostat/reportlinker production value EUR 827.6M (2023) rising to ~EUR 997M by 2028.",
+      "note": "Whole veterinary market — includes farm/livestock work, not companion-animal only."
+    },
+    "companion_animal_share": {
+      "low": 0.50,
+      "high": 0.65,
+      "note": "Assumed share of the vet-services market that is companion animals (Poland retains a sizeable food-animal veterinary sector)."
+    },
+    "dog_share_of_companion": {
+      "low": 0.55,
+      "high": 0.65,
+      "note": "Dogs vs cats/other; dogs ~47-52% of the pet population but higher share of clinical spend."
+    },
+    "derm_share_of_canine_clinical_spend": {
+      "low": 0.10,
+      "high": 0.20,
+      "note": "Dermatology as a share of canine clinical REVENUE. Lower than its ~15-25% share of consultation VOLUME because derm visits are on average cheaper than surgery/dentistry."
+    }
+  },
+
+  "results": {
+    "_method": "Bottom-up: dogs x derm_episode_rate x annual_spend_per_treated_dog. Envelope: vet market x companion share x dog share x derm revenue share. Both in PLN then / 4.30 for EUR.",
+    "bottom_up_pln_million": {
+      "low": 194,
+      "mid": 486,
+      "high": 1166,
+      "_calc": "8.1M x {0.08,0.12,0.18} x {300,500,800}"
+    },
+    "bottom_up_eur_million": {
+      "low": 45,
+      "mid": 113,
+      "high": 271
+    },
+    "envelope_eur_million": {
+      "low": 25,
+      "high": 118,
+      "_calc": "{900,1400} x companion{0.50,0.65} x dog{0.55,0.65} x derm{0.10,0.20}"
+    },
+    "reconciled_central_band_eur_million": {
+      "low": 70,
+      "high": 150,
+      "point": 110,
+      "note": "Overlap of the two independent methods. Reported as the honest central estimate; the wider bottom-up range (EUR 45-271M) is the outer bound."
+    }
+  },
+
+  "supply_side": {
+    "veterinary_facilities": {
+      "value": 7600,
+      "unit": "licensed animal-treatment establishments (zaklady lecznicze dla zwierzat)",
+      "source": "Krajowa Izba Lekarsko-Weterynaryjna (National Chamber) / WetSystems register; ~72% are clinics, avg ~1.5 vets each. Business-directory counts run higher (8,800 IBISWorld; ~12,700 CompanyData) because they include all registered vet businesses.",
+      "note": "Free, public, complete national register at wetsystems.org.pl — countable by voivodeship and identifiable by derm specialism."
+    },
+    "veterinarians": {
+      "value": 10000,
+      "unit": "practising veterinarians",
+      "source": "Krajowa Izba Lekarsko-Weterynaryjna"
+    },
+    "regional_concentration": {
+      "note": "Mazovia (Warsaw) leads with ~1,691 vet businesses, then Greater Poland ~850, Silesia ~666, Lower Silesia ~612 (business-directory basis)."
+    }
+  },
+
+  "sources": [
+    {"pub": "FEDIAF", "what": "European Facts & Figures 2025 — pet population", "url": "https://europeanpetfood.org/about/statistics/"},
+    {"pub": "VetCompass / RVC", "what": "Prevalence of commonly diagnosed disorders in UK dogs under primary veterinary care", "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7888168/"},
+    {"pub": "Hill et al.", "what": "Survey of prevalence, diagnosis and treatment of dermatological conditions in small animals in general practice", "url": "https://pubmed.ncbi.nlm.nih.gov/16632525/"},
+    {"pub": "IBISWorld", "what": "Veterinary Services in Poland — industry data", "url": "https://www.ibisworld.com/poland/industry/veterinary-services/200088/"},
+    {"pub": "Ken Research", "what": "Poland Animal Health & Veterinary Market", "url": "https://www.kenresearch.com/poland-animal-health-veterinary-market"},
+    {"pub": "Krajowa Izba Lekarsko-Weterynaryjna", "what": "National register of veterinary establishments (WetSystems)", "url": "https://wetsystems.org.pl/WetSystemsInfo/zinfo.html"},
+    {"pub": "GIW (General Veterinary Inspectorate)", "what": "Veterinary statistical reporting (RRW)", "url": "https://www.wetgiw.gov.pl/publikacje/rrw-sprawozdawczosc-statystyczna"},
+    {"pub": "PETHELP.pl", "what": "Cost of a Polish vet visit, 2024-2025 price survey", "url": "https://pethelp.pl/ile-kosztuje-wizyta-u-weterynarza-2024-cennik/"},
+    {"pub": "My Company Polska", "what": "Polish pet-food spend ~5bn PLN, +10%/yr", "url": "https://mycompanypolska.pl/artykul/polacy-wydali-4-7-mld-zl-na-karme-dla-zwierzat-w-2025-roku/20218"},
+    {"pub": "Grand View Research", "what": "Europe veterinary dermatology drugs market (~USD 5.2bn 2024)", "url": "https://www.grandviewresearch.com/horizon/outlook/veterinary-dermatology-drugs-market/europe"}
+  ],
+
+  "paid_vendors": [
+    {"vendor": "Kynetec (VetTrak / PetTrak, incl. former Vetnosis)", "gives": "Actual pharmaceutical sales through the vet channel and patient visits/spend by therapeutic area, monthly, by country — the only real measured source for Polish derm-drug sales.", "url": "https://www.kynetec.com/animal-health"},
+    {"vendor": "Grand View Research Horizon", "gives": "Country-level veterinary dermatology drug outlook (Poland cut available).", "url": "https://www.grandviewresearch.com/horizon/outlook/veterinary-dermatology-drugs-market/europe"},
+    {"vendor": "Euromonitor — Pet Care in Poland", "gives": "Polish pet ownership, spend and channels; weak on pharma specifics.", "url": "https://www.euromonitor.com/pet-care-in-poland/report"},
+    {"vendor": "IBISWorld — Poland Veterinary Services", "gives": "Services-side revenue, establishment counts, margins.", "url": "https://www.ibisworld.com/poland/industry/veterinary-services/200088/"}
+  ]
+}

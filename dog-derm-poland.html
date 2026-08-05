@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How big is dog dermatology in Poland? — A public-data estimate — Namık Akman</title>
+  <meta name="description" content="No source measures the canine dermatology market in Poland directly. So I built it from free public data: 8.1M dogs (FEDIAF), skin-disease prevalence (VetCompass), the vet-services envelope (IBISWorld) and Polish price points. Two independent methods reconcile at roughly €70–150M a year." />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Namık Akman" />
+  <meta property="og:title" content="How big is dog dermatology in Poland? — A public-data estimate" />
+  <meta property="og:description" content="No one publishes this number. Built from FEDIAF dog population, VetCompass prevalence, the IBISWorld vet-services envelope and Polish price points — two independent methods reconcile at ~€70–150M/yr. Fully reproducible; every assumption on the page." />
+  <meta property="og:url" content="https://namikakmandev.github.io/dog-derm-poland.html" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="How big is dog dermatology in Poland? — A public-data estimate" />
+  <meta name="twitter:description" content="A market nobody measures, estimated from public data. Two independent methods (bottom-up from 8.1M dogs; top-down from the vet-services envelope) reconcile at ~€70–150M/yr. Every assumption stated; fully reproducible." />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    /* Case-study layout — same system as the pharma & SaaS studies */
+    .study { padding: 32px 0 64px; }
+    .study .container { max-width: 880px; }
+    .study .back { color: var(--text-dim); font-size: .9rem; }
+    .study .back:hover { color: var(--text); text-decoration: none; }
+    .study h1 { font-size: 2.1rem; line-height: 1.18; letter-spacing: -.015em; margin: 14px 0 10px; }
+    .study .lede { color: var(--text-dim); font-size: 1.1rem; line-height: 1.55; margin-bottom: 22px; max-width: 760px; }
+    .study .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--text-dim); font-size: .85rem;
+                   border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+                   padding: 12px 0; margin-bottom: 28px; }
+    .study h2 { font-size: 1.5rem; margin: 40px 0 10px; letter-spacing: -.01em; }
+    .study h2 .accent { color: var(--text-dim); font-weight: 500; }
+    .study p { line-height: 1.68; margin: 12px 0; }
+    .study p.dim { color: var(--text-dim); font-size: .96rem; }
+
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 22px 0 8px; }
+    .kpis .k { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+               padding: 16px 16px 14px; }
+    .kpis .k.blue  { border-top: 3px solid var(--accent); }
+    .kpis .k.green { border-top: 3px solid #19c37d; }
+    .kpis .k.orange{ border-top: 3px solid #ff9f45; }
+    .kpis .k .l { font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+    .kpis .k .v { font-size: 1.5rem; font-weight: 700; margin: 6px 0 0; letter-spacing: -.01em; }
+    .kpis .k .d { font-size: .82rem; color: var(--text-dim); margin-top: 4px; }
+
+    .pullquote { border-left: 3px solid #19c37d; padding: 6px 18px; margin: 24px 0;
+                 font-size: 1.05rem; color: var(--text); line-height: 1.55; }
+    .pullquote.orange { border-left-color: #ff9f45; }
+
+    .recs { background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 22px 24px; margin: 28px 0 18px; }
+    .recs h3 { margin-top: 0; color: var(--accent); }
+    .recs ol { margin: 10px 0 0 22px; }
+    .recs ol li { margin-bottom: 14px; }
+    .recs ol li b { color: var(--text); }
+
+    table.tbl { width: 100%; border-collapse: collapse; margin: 14px 0 20px; font-size: .92rem; }
+    table.tbl th, table.tbl td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    table.tbl th { color: var(--text-dim); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
+    table.tbl th.num, table.tbl td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    table.tbl tr.hi td { background: rgba(25, 195, 125, 0.08); font-weight: 600; }
+    table.tbl caption { text-align: left; color: var(--text-dim); font-size: .82rem; margin-bottom: 8px; }
+
+    /* Inline CSS bar figure — reproducible, no external image */
+    .fig { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+           padding: 20px 22px; margin: 20px 0; }
+    .fig .fig-title { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); margin-bottom: 16px; }
+    .barrow { display: grid; grid-template-columns: 150px 1fr 96px; align-items: center; gap: 12px; margin: 9px 0; }
+    .barrow .lab { font-size: .9rem; color: var(--text); }
+    .barrow .track { background: var(--border); border-radius: 6px; height: 22px; position: relative; overflow: hidden; }
+    .barrow .fill { height: 100%; border-radius: 6px; }
+    .barrow .val { font-size: .9rem; text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+    .fig .fig-cap { font-size: .82rem; color: var(--text-dim); margin-top: 14px; line-height: 1.5; }
+    .band { background: var(--border); border-radius: 6px; height: 30px; position: relative; margin: 6px 0; }
+    .band .seg { position: absolute; height: 100%; border-radius: 6px; }
+
+    .modelled { display:inline-block; font-size:.7rem; letter-spacing:.05em; text-transform:uppercase;
+                background:rgba(255,159,69,.14); color:#ff9f45; border:1px solid rgba(255,159,69,.35);
+                padding:2px 8px; border-radius:20px; vertical-align:middle; margin-left:8px; }
+
+    .footnote { color: var(--text-dim); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 36px; }
+    .footnote a { color: var(--accent); }
+    .footnote code { font-size: .82rem; color: var(--text); }
+
+    @media (max-width: 720px) {
+      .kpis { grid-template-columns: repeat(2, 1fr); }
+      .study h1 { font-size: 1.65rem; }
+      .barrow { grid-template-columns: 110px 1fr 74px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="projects.html" class="back">&larr; Back to projects</a>
+
+        <h1>How big is dog dermatology in Poland?
+          <span style="color:var(--text-dim);font-weight:500;">A number nobody publishes, built from public data.</span></h1>
+        <p class="lede">
+          Ask any market-research vendor for "the canine dermatology market in Poland" and you get
+          a paywall, or a European figure with Poland buried inside it. No public source measures
+          this directly. So the honest move is to <em>build</em> it — from data that is free and
+          checkable: how many dogs Poland has, how often skin disease brings them to a vet, what a
+          course of treatment costs, and how large the whole veterinary market is as a ceiling.
+          Two independent methods, built to disagree, land in the same place: roughly
+          <strong>€70–150&nbsp;million a year</strong>. This page shows every step, every assumption,
+          and exactly where a paid dataset would sharpen it.
+        </p>
+
+        <div class="meta">
+          <span><b>Data</b> — FEDIAF &middot; VetCompass &middot; IBISWorld &middot; Polish price surveys</span>
+          <span><b>Market</b> — Poland &middot; dogs &middot; dermatology</span>
+          <span><b>Nature</b> — modelled estimate, not a measured market</span>
+          <span><b>Method</b> — reproducible from <code>data/dog-derm-poland.json</code></span>
+        </div>
+
+        <!-- ================= HEADLINE KPIs ================ -->
+        <div class="kpis">
+          <div class="k blue">
+            <div class="l">Dogs in Poland</div>
+            <div class="v">8.1M</div>
+            <div class="d">FEDIAF 2023 · highest per-capita in Europe</div>
+          </div>
+          <div class="k green">
+            <div class="l">Central estimate <span class="modelled" style="margin:0">modelled</span></div>
+            <div class="v">€70–150M</div>
+            <div class="d">canine derm spend / year · point ≈ €110M</div>
+          </div>
+          <div class="k">
+            <div class="l">Skin disease in dogs</div>
+            <div class="v">~12.6%</div>
+            <div class="d">1-yr prevalence, 2nd most common (VetCompass, UK proxy)</div>
+          </div>
+          <div class="k orange">
+            <div class="l">Vet establishments</div>
+            <div class="v">~7,600</div>
+            <div class="d">national register · ~10,000 vets</div>
+          </div>
+        </div>
+        <p class="dim">
+          Every euro figure on this page is <strong>modelled</strong>, not observed — there is no
+          meter on this market. The badge marks where that is true. What is <em>measured</em> is the
+          scaffolding: the dog count, the disease prevalence, the price points and the vet-market ceiling.
+        </p>
+
+        <!-- ================= 1: WHY THERE IS NO NUMBER ================ -->
+        <h2>1. Why the number doesn't exist <span class="accent">— and what does</span></h2>
+        <p>
+          "Dermatology market" is three different objects, and every source measures a different one:
+          the <strong>drugs</strong> (Apoquel, Cytopoint, antiparasitics, topicals), the
+          <strong>services</strong> (consultations, diagnostics, follow-ups), or <strong>both</strong>.
+          Mixing them is the classic error here, so this study fixes one target up front:
+          <strong>total owner spend on treating canine skin disease in Poland — drugs and services
+          together — in a year.</strong>
+        </p>
+        <p>
+          What public data <em>can</em> supply are four solid anchors. None of them is the answer, but
+          together they box it in:
+        </p>
+        <table class="tbl">
+          <caption>The four public anchors — all free, all checkable</caption>
+          <thead>
+            <tr><th>Anchor</th><th>Value</th><th>Source (free)</th><th>Role in the estimate</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Dog population</td><td>8.1M</td><td>FEDIAF Facts &amp; Figures</td><td>the denominator</td></tr>
+            <tr><td>Skin-disease prevalence</td><td>~12.6%/yr</td><td>VetCompass (UK)</td><td>how many dogs are affected — <em>proxy</em></td></tr>
+            <tr><td>Treatment price points</td><td>100–250 PLN visit; 46–90 PLN Apoquel pack</td><td>PETHELP, Allegro</td><td>cost per episode</td></tr>
+            <tr><td>Vet-services market</td><td>€0.9–1.4bn</td><td>IBISWorld, Ken Research</td><td>the ceiling / sanity check</td></tr>
+          </tbody>
+        </table>
+        <p>
+          The one genuinely borrowed number is prevalence. <strong>No Polish national dataset records
+          how common skin disease is in dogs</strong>, so I use UK VetCompass primary-care data, where
+          skin disorders are the second most common problem group at ~12.6% one-year prevalence (with
+          otitis externa a further ~7.3%). Applying a UK rate to Polish dogs is the load-bearing
+          assumption of the whole study — it travels with every figure below, and it is the first thing
+          a paid dataset would replace.
+        </p>
+
+        <!-- ================= 2: BOTTOM-UP ================ -->
+        <h2>2. Method one: bottom-up <span class="accent">— from 8.1 million dogs</span></h2>
+        <p>
+          Multiply three things: how many dogs there are, the share that see a vet for a skin problem
+          in a year, and what an owner spends on that episode. Each input is given a low / mid / high
+          value so the uncertainty is visible rather than hidden in a single point.
+        </p>
+        <table class="tbl">
+          <caption>Bottom-up model — Poland, canine dermatology, per year (modelled)</caption>
+          <thead>
+            <tr><th>Input</th><th class="num">Low</th><th class="num">Mid</th><th class="num">High</th><th>Basis</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Dogs</td><td class="num">8.1M</td><td class="num">8.1M</td><td class="num">8.1M</td><td>FEDIAF (measured)</td></tr>
+            <tr><td>Vet-attended derm episodes /yr</td><td class="num">8%</td><td class="num">12%</td><td class="num">18%</td><td>VetCompass prevalence (proxy)</td></tr>
+            <tr><td>Spend per treated dog /yr</td><td class="num">300 zł</td><td class="num">500 zł</td><td class="num">800 zł</td><td>Polish price points (blended)</td></tr>
+            <tr class="hi"><td>Market (PLN)</td><td class="num">194M zł</td><td class="num">486M zł</td><td class="num">1,166M zł</td><td>product of the three</td></tr>
+            <tr class="hi"><td>Market (EUR @4.30)</td><td class="num">€45M</td><td class="num">€113M</td><td class="num">€271M</td><td>&nbsp;</td></tr>
+          </tbody>
+        </table>
+        <p class="dim">
+          The spend figure is a <em>blend</em>, not a chronic-case cost. Most skin episodes are a single
+          consult plus a short topical course (~150–400 PLN); a minority are chronic atopic dogs on
+          long-term Apoquel or Cytopoint with repeat visits and diagnostics (~1,500–4,000 PLN/yr). The
+          blended average is pulled down by the many simple cases.
+        </p>
+
+        <!-- ================= 3: TOP-DOWN ================ -->
+        <h2>3. Method two: top-down <span class="accent">— carving down the vet market</span></h2>
+        <p>
+          A completely different route, sharing none of the bottom-up inputs. Start from the whole
+          Polish veterinary-services market and take successive slices: how much is companion-animal
+          (not farm), how much of that is dogs, and how much of canine clinical revenue is dermatology.
+        </p>
+        <div class="fig">
+          <div class="fig-title">Top-down: from €0.9–1.4bn vet market to canine dermatology</div>
+          <div class="barrow"><span class="lab">Whole vet market</span><div class="track"><div class="fill" style="width:100%;background:#3a4256"></div></div><span class="val">€0.9–1.4bn</span></div>
+          <div class="barrow"><span class="lab">× companion animal<br><small style="color:var(--text-dim)">50–65%</small></span><div class="track"><div class="fill" style="width:58%;background:#4a6da8"></div></div><span class="val">€0.5–0.8bn</span></div>
+          <div class="barrow"><span class="lab">× dogs<br><small style="color:var(--text-dim)">55–65%</small></span><div class="track"><div class="fill" style="width:36%;background:#2F9BFF"></div></div><span class="val">€0.3–0.5bn</span></div>
+          <div class="barrow"><span class="lab">× dermatology<br><small style="color:var(--text-dim)">10–20% of revenue</small></span><div class="track"><div class="fill" style="width:9%;background:#19c37d"></div></div><span class="val">€25–118M</span></div>
+          <div class="fig-cap">
+            Each slice is an assumed share, stated in the labels and in the data file. Dermatology is
+            ~15–25% of consultation <em>volume</em> but a smaller share of <em>revenue</em>, because
+            skin visits are cheaper on average than surgery or dentistry — so the derm slice is set at
+            10–20% of canine clinical revenue.
+          </div>
+        </div>
+
+        <!-- ================= 4: RECONCILE ================ -->
+        <h2>4. Where they meet <span class="accent">— two methods, one band</span></h2>
+        <p>
+          The two methods share no inputs — one is built from dogs and diseases, the other from a market
+          total and revenue shares. That makes their overlap meaningful rather than circular.
+        </p>
+        <div class="fig">
+          <div class="fig-title">Estimate ranges, € million per year (modelled)</div>
+          <div style="position:relative;margin:0 0 4px;font-size:.75rem;color:var(--text-dim)">
+            <span style="position:absolute;left:0">€0</span>
+            <span style="position:absolute;left:25%">€75</span>
+            <span style="position:absolute;left:50%">€150</span>
+            <span style="position:absolute;left:75%">€225</span>
+            <span style="position:absolute;right:0">€300</span>
+          </div>
+          <div style="height:18px"></div>
+          <div style="font-size:.85rem;margin:2px 0 2px;color:var(--text)">Bottom-up (dogs × prevalence × spend)</div>
+          <div class="band"><div class="seg" style="left:15%;width:75.3%;background:linear-gradient(90deg,#2F9BFF,#4a6da8)"></div>
+            <div class="seg" style="left:37.6%;width:2px;background:#fff"></div></div>
+          <div style="font-size:.75rem;color:var(--text-dim);margin-bottom:14px">€45M ——— <b style="color:var(--text)">€113M</b> ——— €271M</div>
+          <div style="font-size:.85rem;margin:2px 0 2px;color:var(--text)">Top-down (vet market carved down)</div>
+          <div class="band"><div class="seg" style="left:8.3%;width:31%;background:linear-gradient(90deg,#19c37d,#12a568)"></div></div>
+          <div style="font-size:.75rem;color:var(--text-dim);margin-bottom:14px">€25M ——— €118M</div>
+          <div style="font-size:.85rem;margin:2px 0 2px;color:var(--text)"><b>Reconciled central band</b></div>
+          <div class="band"><div class="seg" style="left:23.3%;width:26.7%;background:linear-gradient(90deg,#ff9f45,#ffb570)"></div>
+            <div class="seg" style="left:36.7%;width:2px;background:#fff"></div></div>
+          <div style="font-size:.75rem;color:var(--text-dim)">€70M ——— <b style="color:var(--text)">€110M</b> ——— €150M</div>
+          <div class="fig-cap">
+            The bottom-up band is wide (€45–271M) because three uncertain inputs multiply. The top-down
+            band (€25–118M) is tighter but leans low, since it can only capture spend that flows through
+            veterinary clinics — not pet-shop antiparasitics or online Apoquel bought without a fresh
+            consult. Their overlap, <strong>€70–150M with a point near €110M</strong>, is the honest
+            headline.
+          </div>
+        </div>
+        <div class="pullquote">
+          Two methods that share no inputs agree on a band. That agreement is the finding — not the
+          €110M point, which is a single draw from a distribution and should never be quoted alone.
+        </div>
+
+        <!-- ================= 5: SUPPLY SIDE ================ -->
+        <h2>5. Who delivers it <span class="accent">— the supply side is fully public</span></h2>
+        <p>
+          One part of this market needs no modelling at all. The
+          <a href="https://wetsystems.org.pl/WetSystemsInfo/zinfo.html">National Chamber of Veterinarians'
+          register</a> is a free, complete, public list of every licensed animal-treatment
+          establishment in Poland — roughly <strong>7,600 facilities and ~10,000 vets</strong>, most of
+          them single-vet clinics, concentrated in Mazovia (Warsaw, ~1,691 businesses), Greater Poland,
+          Silesia and Lower Silesia. You can count them by voivodeship and identify the derm-focused
+          practices by hand. For anyone sizing a sales territory or a referral network, that register is
+          the asset — no vendor required.
+        </p>
+
+        <!-- ================= WHAT TO DO ================ -->
+        <div class="recs">
+          <h3>What to do with this</h3>
+          <ol>
+            <li><b>Use it as a sizing skeleton, not a quote.</b> The defensible statement is
+              "<strong>canine dermatology in Poland is a €70–150M/yr market</strong>, modelled from
+              public data" — never a single point. If you need a decision-grade number, method one tells
+              you exactly which input to buy down: prevalence and spend-per-dog, in that order. What
+              would change the estimate: a Polish (not UK) prevalence figure — it could move the whole
+              band up or down by a third.</li>
+            <li><b>If budget is small, buy one input.</b> The
+              <a href="https://www.grandviewresearch.com/horizon/outlook/veterinary-dermatology-drugs-market/europe">Grand
+              View Horizon</a> Poland veterinary-dermatology-drug cut (~$1–5k) replaces the drug half of
+              spend with a measured figure and instantly narrows the band. Cheapest path from estimate to
+              evidence.</li>
+            <li><b>If a real investment rides on it, buy Kynetec.</b>
+              <a href="https://www.kynetec.com/animal-health">Kynetec VetTrak / PetTrak</a> (which
+              absorbed Vetnosis) is the only source that <em>measures</em> Polish derm-drug sales and
+              patient visits through the vet channel, monthly. That is where actual Apoquel/Cytopoint-class
+              volumes for Poland live. Expect a five-figure custom quote — justified only when the number
+              drives a market-entry or M&amp;A decision.</li>
+            <li><b>Grab the free supply-side asset now.</b> The national vet register (section 5) costs
+              nothing and is the highest-value public dataset here for anyone selling <em>into</em> Polish
+              clinics. Pull it before commissioning anything paid.</li>
+          </ol>
+        </div>
+
+        <!-- ================= SOURCES ================ -->
+        <div class="footnote">
+          <p>
+            <strong>What is measured vs modelled.</strong> Measured inputs: dog population — FEDIAF
+            <em>Facts &amp; Figures 2025</em> (2023 data), 8.1M dogs. Price points — Polish vet-visit
+            surveys (PETHELP, Vivigo, 2024–25: 100–250 PLN standard consult) and Apoquel 16mg pack
+            listings (Allegro, 2026: ~46–90 PLN / 20 tablets). Vet-services market — IBISWorld
+            <em>Veterinary Services in Poland</em> (~€1.4bn, 2026), Ken Research (~$0.9–1.5bn), Eurostat
+            production value (€827.6M, 2023). Supply side — Krajowa Izba Lekarsko-Weterynaryjna /
+            WetSystems national register. <strong>Everything expressed in euros is modelled</strong> —
+            derived from these inputs, not observed.
+          </p>
+          <p>
+            <strong>The load-bearing proxy.</strong> No Polish dataset records canine skin-disease
+            prevalence. This study borrows UK VetCompass primary-care prevalence (skin disorders ~12.6%
+            one-year period prevalence, second most common disorder group; otitis externa ~7.3%) and
+            general-practice caseload surveys (dermatology 8–40% of small-animal consultations; UK 21.4%,
+            Montréal 18.8%). Applying a UK rate to Polish dogs is an assumption, not a fact, and it
+            travels with every euro figure on this page. Breed mix, climate and treatment-seeking
+            behaviour could all push the Polish rate off the UK one.
+          </p>
+          <p>
+            <strong>Definitions, so the numbers reproduce.</strong> Target = total annual owner spend on
+            treating canine skin disease in Poland, drugs and services combined. Bottom-up = 8.1M ×
+            {8%, 12%, 18%} × {300, 500, 800} PLN. Top-down = €{0.9–1.4}bn × companion{50–65%} ×
+            dog{55–65%} × derm-revenue{10–20%}. EUR/PLN = 4.30 (2024–25 band 4.2–4.4), used only to
+            express PLN results in euros. Reconciled band = the overlap of the two methods. No deflator
+            is applied — all figures are a single recent year (2023–2026), not a time series. Known
+            limits: the top-down route captures only clinic-channel spend and so leans low; the two
+            methods are ranges, not point forecasts; "market size" figures from different vendors mix
+            production value and revenue and are used only as an order-of-magnitude ceiling.
+          </p>
+          <p>
+            <strong>Reproducibility.</strong> Every figure recomputes from
+            <code>data/dog-derm-poland.json</code> in this repository (data cut-off 5 Aug 2026). No chart
+            on this page uses an external image — the bars are CSS driven by the same numbers.
+          </p>
+          <p>
+            <strong>Paid sources, if you outgrow the estimate.</strong>
+            <a href="https://www.kynetec.com/animal-health">Kynetec (VetTrak/PetTrak, incl. Vetnosis)</a>
+            — measured Polish derm-drug sales and patient visits;
+            <a href="https://www.grandviewresearch.com/horizon/outlook/veterinary-dermatology-drugs-market/europe">Grand
+            View Research Horizon</a> — country-level derm-drug outlook with a Poland cut;
+            <a href="https://www.euromonitor.com/pet-care-in-poland/report">Euromonitor — Pet Care in
+            Poland</a> — ownership, spend and channels;
+            <a href="https://www.ibisworld.com/poland/industry/veterinary-services/200088/">IBISWorld —
+            Poland Veterinary Services</a> — services revenue and establishment counts.
+          </p>
+          <p>
+            <strong>Want this built for another market or species?</strong>
+            <a href="contact.html">Get in touch</a>.
+          </p>
+        </div>
+
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>&copy; <span data-year>2026</span> Namık Akman</span>
+      <span>Built with plain HTML, CSS &amp; JavaScript</span>
+    </div>
+  </footer>
+
+  <script src="js/main.js?v=28"></script>
+</body>
+</html>
