@@ -216,17 +216,77 @@ def yahoo(entry):
 
 
 def _yahoo_session():
-    """Yahoo gates quoteSummary behind a cookie+crumb pair. Get both, once."""
+    """Yahoo gates quoteSummary behind a cookie+crumb pair. Get both, once.
+
+    Actions runners share heavily-used IPs, so getcrumb often answers 429; retry
+    with backoff and fall back to the query2 host before giving up.
+    """
+    jar = http.cookiejar.CookieJar()
+    op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+    op.addheaders = [("User-Agent", BROWSER_UA), ("Accept", "*/*"),
+                     ("Accept-Language", "en-US,en;q=0.9")]
+    for seed in ("https://fc.yahoo.com", "https://finance.yahoo.com/quote/AAPL"):
+        try:
+            op.open(seed, timeout=30).read()
+        except Exception:
+            pass  # these may 404/403 — we only want the Set-Cookie they carry
+    last = None
+    for attempt in range(4):
+        for host in ("query1", "query2"):
+            try:
+                c = op.open(f"https://{host}.finance.yahoo.com/v1/test/getcrumb",
+                            timeout=30).read().decode().strip()
+                if c and "<" not in c:
+                    return op, c
+                last = f"empty crumb from {host}"
+            except Exception as ex:
+                last = f"{type(ex).__name__}: {ex}"
+        time.sleep(2 ** attempt)
+    raise RuntimeError(f"could not obtain Yahoo crumb: {last}")
+
+
+def _yahoo_probe():
+    """Discovery: which access strategy actually works from this runner?
+
+    Yahoo's fundamentals endpoints are gated and rate-limited differently per
+    host and path; probe each and report, rather than guessing one and retrying.
+    """
+    out = {}
     jar = http.cookiejar.CookieJar()
     op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
     op.addheaders = [("User-Agent", BROWSER_UA), ("Accept", "*/*")]
-    try:
-        op.open("https://fc.yahoo.com", timeout=30).read()
-    except Exception:
-        pass  # this call is expected to 404 — we only want the Set-Cookie it carries
-    crumb = op.open("https://query1.finance.yahoo.com/v1/test/getcrumb",
-                    timeout=30).read().decode().strip()
-    return op, crumb
+    for seed in ("https://fc.yahoo.com", "https://finance.yahoo.com/quote/AAPL"):
+        try:
+            r = op.open(seed, timeout=30); r.read()
+            out["seed " + seed] = f"HTTP {r.status}, cookies now={len(jar)}"
+        except Exception as ex:
+            out["seed " + seed] = f"{type(ex).__name__}: {ex} (cookies={len(jar)})"
+    crumb = None
+    for host in ("query1", "query2"):
+        try:
+            crumb = op.open(f"https://{host}.finance.yahoo.com/v1/test/getcrumb",
+                            timeout=30).read().decode().strip()
+            out[f"getcrumb {host}"] = f"OK crumb={crumb!r}"
+        except Exception as ex:
+            out[f"getcrumb {host}"] = f"{type(ex).__name__}: {ex}"
+    tries = {
+        "quoteSummary q1 +crumb": "https://query1.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=defaultKeyStatistics&crumb=CRUMB",
+        "quoteSummary q2 +crumb": "https://query2.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=defaultKeyStatistics&crumb=CRUMB",
+        "quoteSummary q1 no-crumb": "https://query1.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=defaultKeyStatistics",
+        "v7 quote +crumb": "https://query1.finance.yahoo.com/v7/finance/quote?symbols=AAPL&crumb=CRUMB",
+        "chart api (control)": "https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=1mo&interval=1mo",
+    }
+    for label, url in tries.items():
+        if "CRUMB" in url and not crumb:
+            out[label] = "skipped — no crumb"
+            continue
+        u = url.replace("CRUMB", urllib.parse.quote(crumb or ""))
+        try:
+            body = op.open(u, timeout=45).read().decode()
+            out[label] = f"OK {len(body)}B :: {body[:160]}"
+        except Exception as ex:
+            out[label] = f"{type(ex).__name__}: {ex}"
+    return out
 
 
 def yahoo_valuation(entry):
@@ -238,6 +298,8 @@ def yahoo_valuation(entry):
     earningsTrend (per-year consensus EPS + growth) so PEG can be COMPUTED —
     Yahoo's own pegRatio and the vendor ratio feeds are unreliable/negative.
     """
+    if MODE == "discover":
+        return {"_discover": {"probe": _yahoo_probe()}}
     op, crumb = _yahoo_session()
     mods = "defaultKeyStatistics,summaryDetail,financialData,price,earningsTrend"
     out, disc = {}, {}
