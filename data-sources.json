@@ -3,7 +3,7 @@
     "Add a series by adding an entry here — no new script needed.",
     "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
     "Then:            python scripts/fetch.py NAME",
-    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL) | yahoo (any yahoo finance symbol)",
+    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL)",
     "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
   ],
   "sources": [
@@ -373,12 +373,303 @@
       "name": "valuation-multiples",
       "provider": "yahoo_valuation",
       "tickers": [
-        "META", "AMZN", "AVGO", "CRDO", "RTX", "CRWD", "MU", "NET",
-        "ALAB", "BE", "PLTR", "CBRS", "RBRK", "RKLB", "TEM", "ASTS", "EOSE"
+        "META",
+        "AMZN",
+        "AVGO",
+        "CRDO",
+        "RTX",
+        "CRWD",
+        "MU",
+        "NET",
+        "ALAB",
+        "BE",
+        "PLTR",
+        "CBRS",
+        "RBRK",
+        "RKLB",
+        "TEM",
+        "ASTS",
+        "EOSE"
       ],
       "out": "data/valuation-multiples.json",
       "source": "Yahoo Finance quoteSummary — trailing/forward EPS and PE, consensus EPS by horizon, growth rates",
       "note": "SNAPSHOT, not a time series: values are as-of the fetch date and are overwritten each run. Forward PE uses next-fiscal-year consensus EPS, so it moves with estimate revisions as well as price. PEG is computed as forward PE / expected EPS growth — Yahoo's own pegRatio field is unreliable. Loss-making companies have no meaningful PE: those cells are intentionally blank. SpaceX is private and has no multiples at all."
+    },
+    {
+      "name": "hs6-check",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": [
+          "DE",
+          "IE",
+          "BE",
+          "NL",
+          "FR",
+          "IT",
+          "DK"
+        ],
+        "partner": "WORLD",
+        "indicators": "VALUE_IN_EUROS",
+        "product": [
+          "300431",
+          "300439",
+          "300490",
+          "300215",
+          "300212",
+          "300241",
+          "293719"
+        ],
+        "time": "2024"
+      },
+      "group_dims": [
+        "reporter",
+        "product"
+      ],
+      "out": "data/hs6-check.json",
+      "enabled": true,
+      "source": "HS6 detail by reporter — establishes where detailed codes are published vs suppressed"
+    },
+    {
+      "name": "pharma-dest",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": [
+          "DK",
+          "IE",
+          "BE"
+        ],
+        "partner": [
+          "WORLD",
+          "US",
+          "CN",
+          "JP",
+          "GB",
+          "CH",
+          "CA",
+          "AU",
+          "BR",
+          "IN",
+          "KR",
+          "TR",
+          "RU",
+          "MX",
+          "SA",
+          "AE",
+          "DE",
+          "FR",
+          "NL",
+          "BE",
+          "IT",
+          "ES",
+          "PL",
+          "DK",
+          "IE",
+          "SE",
+          "NO"
+        ],
+        "indicators": "VALUE_IN_EUROS",
+        "product": [
+          "3002",
+          "3004",
+          "2937"
+        ],
+        "time": "2024"
+      },
+      "group_dims": [
+        "reporter",
+        "product",
+        "partner"
+      ],
+      "out": "data/pharma-dest.json",
+      "enabled": true,
+      "source": "Destination markets for the concentration leaders, by HS4 class, 2024"
+    },
+    {
+      "name": "pharma-hs6-trend",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": [
+          "IE",
+          "BE",
+          "DK",
+          "DE",
+          "NL",
+          "IT",
+          "FR"
+        ],
+        "partner": "WORLD",
+        "indicators": "VALUE_IN_EUROS",
+        "product": [
+          "293719",
+          "300241",
+          "300215",
+          "300212",
+          "300490",
+          "300439",
+          "300431"
+        ],
+        "time": [
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "reporter",
+        "product"
+      ],
+      "out": "data/pharma-hs6-trend.json",
+      "enabled": true,
+      "source": "Eurostat Comext DS-045409 — exports to world by HS6 therapeutic class, 2010-2024",
+      "note": "293719 polypeptide hormones (GLP-1/insulin-analogue class, bulk); 300241 human vaccines; 300215 immunological in doses (antibodies); 300212 antisera/blood fractions; 300431 insulin medicaments; 300439 other hormone medicaments; 300490 other medicaments"
+    },
+    {
+      "name": "peptide-flows",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "reporter": [
+          "IE",
+          "DK",
+          "DE",
+          "BE",
+          "FR",
+          "IT"
+        ],
+        "partner": "WORLD",
+        "product": "293719",
+        "flow": [
+          "1",
+          "2"
+        ],
+        "indicators": [
+          "VALUE_IN_EUROS",
+          "QUANTITY_IN_100KG"
+        ],
+        "time": [
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "reporter",
+        "flow",
+        "indicators"
+      ],
+      "out": "data/peptide-flows.json",
+      "enabled": true,
+      "source": "Comext — HS 2937.19 imports (flow 1) and exports (flow 2), value and quantity",
+      "note": "net exports test: re-export shows as large imports; domestic production does not"
+    },
+    {
+      "name": "peptide-dest",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": "IE",
+        "product": "293719",
+        "indicators": "VALUE_IN_EUROS",
+        "partner": [
+          "WORLD",
+          "US",
+          "CH",
+          "DE",
+          "BE",
+          "NL",
+          "GB",
+          "JP",
+          "CN",
+          "DK",
+          "FR",
+          "SG",
+          "BR",
+          "CA"
+        ],
+        "time": [
+          "2018",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "partner"
+      ],
+      "out": "data/peptide-dest.json",
+      "enabled": true,
+      "source": "Comext — where Ireland's bulk peptide hormone exports go"
+    },
+    {
+      "name": "gni-gdp",
+      "provider": "eurostat",
+      "dataset": "nasa_10_nf_tr",
+      "params": {
+        "unit": "CP_MNAC",
+        "na_item": "B5G",
+        "sector": "S1",
+        "geo": [
+          "IE",
+          "DK",
+          "CH",
+          "BE",
+          "NL",
+          "DE",
+          "LU",
+          "FR",
+          "IT",
+          "AT",
+          "HU",
+          "SI"
+        ]
+      },
+      "out": "data/gni-gdp.json",
+      "enabled": true,
+      "source": "Eurostat nasa_10_nf_tr — gross national income (B5G), total economy",
+      "note": "GNI minus GDP is net primary income from abroad: negative where foreign-owned profits are repatriated out, positive where a country's firms earn abroad",
+      "group_dims": [
+        "geo",
+        "direct"
+      ]
     }
   ]
 }
