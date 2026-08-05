@@ -347,6 +347,55 @@
       "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
     },
     {
+      "name": "glp1-stocks",
+      "provider": "yahoo",
+      "interval": "1mo",
+      "start": "2005-01-01",
+      "series": {
+        "LLY": "LLY",
+        "NVO": "NVO",
+        "AMGN": "AMGN",
+        "PFE": "PFE",
+        "AZN": "AZN",
+        "RHHBY": "RHHBY",
+        "VKTX": "VKTX",
+        "GPCR": "GPCR",
+        "ALT": "ALT",
+        "ZLDPF": "ZLDPF",
+        "SPX": "^GSPC",
+        "XBI": "XBI"
+      },
+      "out": "data/glp1-stocks.json",
+      "source": "Yahoo Finance monthly adjusted closes, US listings/ADRs (USD); ^GSPC = S&P 500 index, XBI = SPDR biotech ETF benchmark",
+      "note": "Adjusted close = split- and dividend-adjusted (total return); index SPX is raw level. ADRs (NVO, AZN, RHHBY, ZLDPF) embed FX moves. Metsera (MTSR) excluded: acquired by Pfizer Nov 2025, delisted — survivorship caveat. Zealand only trades OTC in the US (ZLDPF, thin); primary listing is Copenhagen."
+    },
+    {
+      "name": "valuation-multiples",
+      "provider": "yahoo_valuation",
+      "tickers": [
+        "META",
+        "AMZN",
+        "AVGO",
+        "CRDO",
+        "RTX",
+        "CRWD",
+        "MU",
+        "NET",
+        "ALAB",
+        "BE",
+        "PLTR",
+        "CBRS",
+        "RBRK",
+        "RKLB",
+        "TEM",
+        "ASTS",
+        "EOSE"
+      ],
+      "out": "data/valuation-multiples.json",
+      "source": "Yahoo Finance quoteSummary — trailing/forward EPS and PE, consensus EPS by horizon, growth rates",
+      "note": "SNAPSHOT, not a time series: values are as-of the fetch date and are overwritten each run. Forward PE uses next-fiscal-year consensus EPS, so it moves with estimate revisions as well as price. PEG is computed as forward PE / expected EPS growth — Yahoo's own pegRatio field is unreliable. Loss-making companies have no meaningful PE: those cells are intentionally blank. SpaceX is private and has no multiples at all."
+    },
+    {
       "name": "hs6-check",
       "provider": "eurostat",
       "api": "comext",

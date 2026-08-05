@@ -153,6 +153,11 @@
   .li .t small{display:block;color:var(--text-dim);font-size:11.5px;margin-top:2px}
   .li.done .t{text-decoration:line-through;opacity:.45}
   .li .x{border:0;background:none;color:var(--text-dim);font-size:15px;padding:0 4px}
+  .li .cart{
+    flex:0 0 auto;text-decoration:none;font-size:17px;line-height:1;padding:5px 6px;
+    border:1px solid var(--border);border-radius:9px;background:var(--surface-2);
+  }
+  .li.done .cart{opacity:.35}
   .addrow{display:flex;gap:8px;margin-top:10px}
   .addrow input{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:14px}
 
@@ -316,6 +321,20 @@
     </div>
 
     <div class="card">
+      <h2 style="font-size:15px" data-t="ordering"></h2>
+      <p class="muted" style="margin:4px 0 0" data-t="orderHelp"></p>
+      <div class="field">
+        <label data-t="storeLbl"></label>
+        <select id="cf-store"></select>
+      </div>
+      <div class="field">
+        <label data-t="urlTpl"></label>
+        <input id="cf-storeurl" spellcheck="false" inputmode="url" />
+        <p class="muted" style="margin:6px 0 0;font-size:11.5px" data-t="urlHelp"></p>
+      </div>
+    </div>
+
+    <div class="card">
       <h2 style="font-size:15px" data-t="household"></h2>
       <p class="muted" style="margin:4px 0 0" data-t="householdHelp"></p>
       <div class="grid2">
@@ -425,6 +444,10 @@ const T = {
     actLow:"Light", actMid:"Active", actHigh:"Very active / training",
     shopping:"Shopping rhythm", shopDay:"Main shopping day", cover:"Buy enough for (days)",
     learn:"Learn my real pace from restocks",
+    ordering:"Order online", orderHelp:"The 🛒 next to each line opens your delivery app with that item searched. It cannot fill a cart for you — no delivery service offers that to personal apps.",
+    storeLbl:"Delivery app", urlTpl:"Search link ({q} = the item)",
+    urlHelp:"If a search opens the wrong page, search once in the app, copy the address and paste it here with {q} where the item name goes.",
+    orderTitle:"Search in {s}",
     install:"Put it on your phone", installBtn:"Install app",
     installIOS:"Safari → Share (□↑) → Add to Home Screen. It then opens full-screen, with its own icon.",
     installAndroid:"Chrome → ⋮ menu → Install app / Add to Home screen. It then opens full-screen, with its own icon.",
@@ -472,6 +495,10 @@ const T = {
     actLow:"Hafif", actMid:"Aktif", actHigh:"Çok aktif / spor",
     shopping:"Alışveriş düzeni", shopDay:"Ana alışveriş günü", cover:"Kaç günlük alınsın",
     learn:"Gerçek hızımı stok yenilemelerinden öğren",
+    ordering:"Online sipariş", orderHelp:"Her satırın yanındaki 🛒, o ürünü arayarak sipariş uygulamanı açar. Sepeti senin yerine dolduramaz — hiçbir servis bunu kişisel uygulamalara sunmuyor.",
+    storeLbl:"Sipariş uygulaması", urlTpl:"Arama bağlantısı ({q} = ürün)",
+    urlHelp:"Arama yanlış sayfayı açarsa, uygulamada bir kez ara, adresi kopyala ve ürün adının geldiği yere {q} koyarak buraya yapıştır.",
+    orderTitle:"{s} içinde ara",
     install:"Telefona kur", installBtn:"Uygulamayı kur",
     installIOS:"Safari → Paylaş (□↑) → Ana Ekrana Ekle. Sonra kendi simgesiyle tam ekran açılır.",
     installAndroid:"Chrome → ⋮ menü → Uygulamayı yükle / Ana ekrana ekle. Sonra kendi simgesiyle tam ekran açılır.",
@@ -575,6 +602,16 @@ const SEED = [
 /* =========================================================================
    3. State
    ========================================================================= */
+// Search-link templates. {q} is replaced by the item name. These are plain
+// deep links — every delivery API that could fill a cart is partner-gated.
+const STORES = {
+  ubereats:    { label:"Uber Eats",      url:"https://www.ubereats.com/search?q={q}" },
+  getir:       { label:"Getir",          url:"https://getir.com/arama/?q={q}" },
+  migros:      { label:"Migros Hemen",   url:"https://www.migros.com.tr/arama?q={q}" },
+  yemeksepeti: { label:"Yemeksepeti",    url:"https://www.yemeksepeti.com/search?q={q}" },
+  custom:      { label:"Custom",         url:"" }
+};
+
 const KEY = "fridge.v1";
 const DAY = 86400000;
 let S = null;                       // {items, extras, cfg, ticks}
@@ -594,7 +631,8 @@ function seedState(){
   const base = todayD();
   return {
     v:1,
-    cfg:{ lang:"en", adults:2, kids:1, activity:1, shopDay:6, coverDays:7, learn:true },
+    cfg:{ lang:"en", adults:2, kids:1, activity:1, shopDay:6, coverDays:7, learn:true,
+           store:"ubereats", storeUrl:STORES.ubereats.url },
     items: SEED.map(r => ({
       id: uid(), en:r[0], tr:r[1], cat:r[2], unit:r[3],
       qty:r[4], par:r[5], rate:r[6], pack:r[7],
@@ -699,6 +737,22 @@ function shoppingRows(){
   rows.sort((a,b) => (CATS.indexOf(a.it.cat)-CATS.indexOf(b.it.cat)) || (order[a.why]-order[b.why]));
   return rows;
 }
+// "Fish (salmon / sea bass)" -> "Fish": stores choke on qualifiers
+function searchTerm(it){
+  return nameOf(it).replace(/\([^)]*\)/g, "").split("/")[0].replace(/\s+/g," ").trim() || nameOf(it);
+}
+function storeName(){
+  const st = STORES[S.cfg.store];
+  return st && st.label !== "Custom" ? st.label : (t("storeLbl"));
+}
+function orderUrl(it){
+  const tpl = (S.cfg.storeUrl || "").trim();
+  if(!tpl || !/^https?:\/\//i.test(tpl)) return null;
+  return tpl.includes("{q}")
+    ? tpl.replace("{q}", encodeURIComponent(searchTerm(it)))
+    : tpl + encodeURIComponent(searchTerm(it));
+}
+
 function restock(it){
   const learn = S.cfg.learn;
   if(learn && it.lastDate && it.lastQty != null){
@@ -847,10 +901,16 @@ function renderList(){
         ? fmt(t("buyBecause").soon, { d:relDay(Math.floor(daysLeft(r.it))) })
         : t("buyBecause")[r.why];
       const done = !!S.ticks[r.id];
+      const url = orderUrl(r.it);
+      const cart = url
+        ? `<a class="cart no-print" href="${esc(url)}" target="_blank" rel="noopener noreferrer"
+             title="${esc(fmt(t("orderTitle"), { s:storeName() }))}">🛒</a>`
+        : "";
       html += `<label class="li ${done?"done":""}">
         <input type="checkbox" data-tick="${r.id}" ${done?"checked":""} />
         <span class="t"><b>${round1(r.qty)} ${esc(unitOf(r.it))}</b> ${esc(nameOf(r.it))}
           <small>${esc(why)}</small></span>
+        ${cart}
       </label>`;
     });
     if(S.extras.length){
@@ -957,6 +1017,12 @@ function renderSettings(){
   $("#cf-activity").value = String(c.activity);
   $("#cf-cover").value = String(c.coverDays);
   $("#cf-learn").checked = !!c.learn;
+  const store = $("#cf-store");
+  store.innerHTML = Object.keys(STORES)
+    .map(k => `<option value="${k}">${esc(STORES[k].label)}</option>`).join("");
+  store.value = c.store || "ubereats";
+  $("#cf-storeurl").value = c.storeUrl || "";
+
   const sel = $("#cf-shopday");
   sel.innerHTML = T[L].days.map((d,i) => `<option value="${i}">${esc(d)}</option>`).join("");
   sel.value = String(c.shopDay);
@@ -1135,6 +1201,17 @@ bindCfg("#cf-activity","activity", el => parseFloat(el.value) || 1);
 bindCfg("#cf-shopday","shopDay",   el => parseInt(el.value,10) || 0);
 bindCfg("#cf-cover","coverDays",   el => parseInt(el.value,10) || 7);
 bindCfg("#cf-learn","learn",       el => el.checked);
+$("#cf-store").addEventListener("change", e => {
+  S.cfg.store = e.target.value;
+  const preset = STORES[S.cfg.store];
+  if(preset && preset.url) S.cfg.storeUrl = preset.url;   // "Custom" keeps whatever is typed
+  save(); render();
+});
+$("#cf-storeurl").addEventListener("change", e => {
+  S.cfg.storeUrl = e.target.value.trim();
+  S.cfg.store = "custom";
+  save(); render();
+});
 
 $("#btnExport").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(S,null,2)], { type:"application/json" });
