@@ -8,38 +8,70 @@ the OG card render — the page's preview image is the same chart).
 
 ## ★ FINAL POST (ready to publish)
 
-> ~180 words. Lead image: chart 11 (size vs weight, landscape — best for the feed)
-> or chart 05 (41-country ranking with share + euro, portrait — best as a single image).
+> ~215 words. Lead image: chart 11 (size vs share, landscape — best for the feed).
+> Post the link as the FIRST COMMENT, not in the body — see Posting notes.
 
-Pharma is about 1% of every large economy.
-
-Not 5%. Not 10%. One percent — and it has been for thirty years.
-
-The United States sits at 0.87% of its economy. The UK 0.95%. Japan 0.66%.
-Germany 0.67%. That band held through the genomics boom, the shift to
-biologics, and a pandemic.
+Pharma is about 1% of every large economy. The US 0.87%. Japan 0.66%.
+Germany 0.67%.
 
 Then there is Ireland: 16.7%.
 
-I pulled 35 years of data for 41 countries, and the exceptions are all
-small: Ireland, Denmark, Switzerland, Belgium. None of them produces more
-medicine than Germany or Japan. They are simply more dependent on it.
+I pulled 35 years of national accounts for 41 countries. That ~1% band held
+through the genomics boom, the shift to biologics, and a pandemic. And every
+country that breaks it is small: Ireland, Denmark, Switzerland, Slovenia,
+Belgium.
 
-Two numbers make the point:
+Small is the whole explanation. The same industry weighs more when the
+economy under it weighs less.
 
-→ The US makes €212bn of medicine — 0.87% of its economy.
-→ Ireland makes €83bn — 16.7% of its economy.
+Germany's pharma industry adds €26bn to its economy. Denmark's adds €36bn —
+more, from an economy a tenth the size. In Germany that is 0.67%. In
+Denmark, 9.8%.
 
-And here is the part I did not expect. Ireland keeps only 75% of the income
-it generates. The rest belongs to owners abroad. Ireland is where medicine
-is manufactured; Denmark, at 103%, is where medicine is owned.
+And here is the part I did not expect. Of every €100 of income generated
+inside Ireland, €75 stays in Ireland. The other €25 is profit leaving for
+foreign owners. Denmark is the mirror image: Danes keep €103 for every €100
+earned at home, because Danish firms earn more abroad than foreigners take
+out.
+
+That measure covers the whole economy, not pharma alone. But it is the same
+ownership pattern: Ireland's plants are owned abroad. Denmark's champion is
+Danish.
+
+Ireland is where medicine is made. Denmark is where medicine is owned.
 
 A high pharma share is exposure, not strength.
 
-Full study, all 41 countries, open data:
+Is there another industry that became one country's entire economy this way?
+I can think of two, and neither ended well.
+
+Full study, 41 countries, open data — link in the first comment.
+
+#pharma #economics #Ireland #Denmark
+
+### First comment (post within seconds of publishing)
+
+Full study, all 41 countries, every source and caveat:
 https://namikakmandev.github.io/pharma-gdp-share.html
 
-#pharma #economics #dataanalysis #manufacturing
+Method note: this is pharmaceutical manufacturing value added (NACE/ISIC
+C21) against total value added, computed in each country's own currency so
+no exchange rate touches the ratio. Eurostat for Europe, OECD STAN for the
+rest.
+
+### Replies to have ready
+
+- **"What about China/India/Brazil?"** Nobody publishes pharma value added
+  for them on a comparable national-accounts basis. Any "pharma share of
+  China's GDP" figure you have seen is a different measure wearing the same
+  name. Seed this yourself around hour two if nobody asks.
+- **"Ireland's series jumps in 2015."** That is the national-accounts
+  restatement, and the source switches Eurostat → OECD there. Disclosed in
+  the study footnotes.
+- **Türkiye angle** (better in a comment than the body — it is a different
+  post's thesis): 0.34% of the economy, flat since 2003, while South Korea
+  went from a similar base to a global biologics position. The gap is
+  strategy, not statistics.
 
 ---
 
@@ -189,9 +221,16 @@ Full study — size, concentration, and product mix for 41 countries: [link]
 
 - The strongest single visual is chart 01 (trajectories). Chart 03 (share of
   manufacturing) is the strongest *second* image if posting a carousel.
-- Carousel: `notes/pharma-carousel.pdf` — 7 slides, upload via "Add a
-  document". Slide 5 is the Denmark/Ireland comparison, the strongest single
-  page. Regenerate with `python3 scripts/pharma_carousel.py`.
+- Carousel: `notes/pharma-carousel.pdf` — 9 slides, upload via "Add a
+  document". Regenerate with `python3 scripts/pharma_carousel.py`.
+- LINK PLACEMENT: an outbound link in the body costs reach. Options are (a)
+  link in body — keeps clicks, loses reach, and the OG card renders; (b)
+  link in the first comment — best reach, roughly half the clicks; (c) edit
+  it in later — don't, editing resets distribution. Recommended: (b).
+  Note (a) and a native image are mutually exclusive — attaching an image
+  suppresses the OG card. Pick one.
+- A carousel (document post) and a native image are also mutually exclusive.
+  If you post the carousel, the link still goes in the first comment.
 - For the world-extension post, lead with chart 05 (41-country ranking, years
   labelled per bar) and follow with 06 (big-economy trajectories).
 - For the product-mix post, lead with chart 07 (EU export mix) or go

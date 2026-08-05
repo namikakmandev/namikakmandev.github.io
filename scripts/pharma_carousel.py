@@ -271,7 +271,7 @@ def s4(pdf):
     s.gap(28)
     s.block("The exceptions are all\nsmall economies",
             size=27, weight="bold", lead=1.25, gap=12)
-    s.block("Pharmaceutical share of GDP, 1995–2025.", size=13, color=INK2, gap=18)
+    s.block("Pharmaceutical share of the economy, 1995–2025.", size=13, color=INK2, gap=18)
 
     ax = s.chart(0.355)
     ax.grid(axis="y", color=GRID, lw=0.8)
