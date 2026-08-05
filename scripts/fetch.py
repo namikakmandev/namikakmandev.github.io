@@ -400,6 +400,7 @@ def run(entry):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     json.dump({"source": entry.get("source", entry["provider"]),
                "fetched_by": "scripts/fetch.py",
+               "fetched_at": time.strftime("%Y-%m-%d", time.gmtime()),
                "config": {k: entry[k] for k in entry if k not in ("out",)},
                "series": data},
               open(out_path, "w"), separators=(",", ":"))
