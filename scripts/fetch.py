@@ -12,16 +12,19 @@ Usage
         -> do not parse; dump what the source actually returns (columns, dimension
            names, category codes) so a parser can be written against reality
 
-Providers: fred | eurostat | owid | csv
+Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation
 Every run writes data/_fetch-report.json recording what each source returned, so a
 silent zero is visible instead of looking like a real answer.
 """
-import calendar, csv, io, json, os, re, sys, time, urllib.parse, urllib.request
+import calendar, csv, http.cookiejar, io, json, os, re, sys, time, urllib.parse, urllib.request
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG = os.path.join(ROOT, "data-sources.json")
 UA = {"User-Agent": "namikakmandev-data/1.0 (github actions)"}
+# Yahoo's gated endpoints reject the plain UA above; they want a browser string.
+BROWSER_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/122.0 Safari/537.36")
 MODE = os.environ.get("MODE", "").strip()
 report = {}
 
@@ -212,8 +215,93 @@ def yahoo(entry):
     return out
 
 
+def _yahoo_session():
+    """Yahoo gates quoteSummary behind a cookie+crumb pair. Get both, once."""
+    jar = http.cookiejar.CookieJar()
+    op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+    op.addheaders = [("User-Agent", BROWSER_UA), ("Accept", "*/*")]
+    try:
+        op.open("https://fc.yahoo.com", timeout=30).read()
+    except Exception:
+        pass  # this call is expected to 404 — we only want the Set-Cookie it carries
+    crumb = op.open("https://query1.finance.yahoo.com/v1/test/getcrumb",
+                    timeout=30).read().decode().strip()
+    return op, crumb
+
+
+def yahoo_valuation(entry):
+    """Valuation multiples per ticker -> {TICKER: {metric: value}}.
+
+    entry['tickers']: list of Yahoo symbols. Pulls quoteSummary modules
+    defaultKeyStatistics (trailing/forward EPS, pegRatio), summaryDetail
+    (trailing/forward PE), financialData (price, growth), price (name), and
+    earningsTrend (per-year consensus EPS + growth) so PEG can be COMPUTED —
+    Yahoo's own pegRatio and the vendor ratio feeds are unreliable/negative.
+    """
+    op, crumb = _yahoo_session()
+    mods = "defaultKeyStatistics,summaryDetail,financialData,price,earningsTrend"
+    out, disc = {}, {}
+    for sym in entry["tickers"]:
+        url = ("https://query1.finance.yahoo.com/v10/finance/quoteSummary/"
+               f"{urllib.parse.quote(sym)}?modules={mods}&crumb={urllib.parse.quote(crumb)}")
+        try:
+            j = json.loads(op.open(url, timeout=60).read().decode())
+        except Exception as ex:
+            out[sym] = {"error": f"{type(ex).__name__}: {ex}"}
+            if MODE == "discover":
+                disc[sym] = out[sym]
+            continue
+        res = ((j.get("quoteSummary") or {}).get("result") or [None])[0]
+        if not res:
+            out[sym] = {"error": "no result: " + json.dumps(j)[:200]}
+            if MODE == "discover":
+                disc[sym] = out[sym]
+            continue
+        if MODE == "discover":
+            disc[sym] = {"modules": sorted(res.keys()),
+                         "keystats_keys": sorted((res.get("defaultKeyStatistics") or {}).keys()),
+                         "summary_keys": sorted((res.get("summaryDetail") or {}).keys()),
+                         "trend_periods": [t.get("period") for t in
+                                           (res.get("earningsTrend") or {}).get("trend", [])],
+                         "sample": {k: _raw((res.get("defaultKeyStatistics") or {}).get(k))
+                                    for k in ("trailingEps", "forwardEps", "pegRatio")}}
+            continue
+        ks, sd = res.get("defaultKeyStatistics") or {}, res.get("summaryDetail") or {}
+        fd, pr = res.get("financialData") or {}, res.get("price") or {}
+        rec = {
+            "name": pr.get("longName") or pr.get("shortName") or sym,
+            "price": _raw(fd.get("currentPrice")) or _raw(pr.get("regularMarketPrice")),
+            "market_cap": _raw(pr.get("marketCap")),
+            "trailing_eps": _raw(ks.get("trailingEps")),
+            "forward_eps": _raw(ks.get("forwardEps")),
+            "trailing_pe": _raw(sd.get("trailingPE")),
+            "forward_pe": _raw(sd.get("forwardPE")),
+            "yahoo_peg": _raw(ks.get("pegRatio")),
+            "earnings_growth": _raw(fd.get("earningsGrowth")),
+            "revenue_growth": _raw(fd.get("revenueGrowth")),
+            "profit_margin": _raw(fd.get("profitMargins")),
+        }
+        # consensus EPS by horizon, for a PEG we compute ourselves
+        for t in (res.get("earningsTrend") or {}).get("trend", []):
+            p = t.get("period")
+            if p in ("0q", "+1q", "0y", "+1y", "+5y"):
+                rec["eps_" + p] = _raw((t.get("earningsEstimate") or {}).get("avg"))
+                rec["growth_" + p] = _raw(t.get("growth"))
+        out[sym] = rec
+    if MODE == "discover":
+        return {"_discover": disc}
+    return out
+
+
+def _raw(v):
+    """Yahoo wraps numbers as {'raw':x,'fmt':...}; unwrap, tolerate plain/None."""
+    if isinstance(v, dict):
+        return v.get("raw")
+    return v if isinstance(v, (int, float)) else None
+
+
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
-             "yahoo": yahoo}
+             "yahoo": yahoo, "yahoo_valuation": yahoo_valuation}
 
 
 # ----------------------------------------------------------------- runner
@@ -227,9 +315,14 @@ def run(entry):
         return
     counts = {k: len(v) for k, v in data.items()}
     empty = [k for k, n in counts.items() if n == 0]
-    report[name] = {"ok": bool(data) and not empty, "counts": counts,
+    # span is only meaningful for time-keyed series; a per-ticker metric dict is not one
+    dated = all(re.match(r"^\d{4}(-\d{2})?$", str(t)) for v in data.values() for t in v)
+    errs = {k: v["error"] for k, v in data.items() if isinstance(v, dict) and "error" in v}
+    report[name] = {"ok": bool(data) and not empty and not errs, "counts": counts,
                     "empty_keys": empty,
-                    "span": {k: [min(v), max(v)] for k, v in data.items() if v}}
+                    "errors": errs,
+                    "span": ({k: [min(v), max(v)] for k, v in data.items() if v}
+                             if dated else "n/a (not a time series)")}
     if not data or empty:
         print(f"[WARN] {name}: empty series {empty or 'all'}")
     else:
