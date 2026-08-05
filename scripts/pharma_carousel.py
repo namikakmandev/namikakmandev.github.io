@@ -565,10 +565,74 @@ def s8(pdf):
     s.save(pdf)
 
 
+NONEU = {"KR": "South Korea", "US": "United States", "CH": "Switzerland",
+         "GB": "United Kingdom", "CN": "China", "IN": "India"}
+
+
+def s6b(pdf):
+    """Switzerland and the other non-EU producers, visible only as EU imports."""
+    s = Slide("Finding 03 · The view from outside", YELLOW)
+    s.gap(22)
+    s.block("Switzerland is invisible\nin EU export data", size=25, weight="bold",
+            lead=1.24, gap=8)
+    s.block("EU customs records only what EU members report. Non-EU producers\n"
+            "show up solely as what the EU buys from them, 2024.",
+            size=11.5, color=INK2, lead=1.45, gap=14)
+
+    legend = ["3002", "3004", "2937", "2941", "3003"]
+    for i, p in enumerate(legend):
+        cx = LEFT + (i % 3) * 0.278
+        cy = s.y - (i // 3) * 0.030
+        s.fig.add_artist(plt.Rectangle((cx, cy - 0.017), 0.017, 0.017,
+                                       transform=s.fig.transFigure, facecolor=HSCOL[p]))
+        s.fig.text(cx + 0.024, cy - 0.0085, HSLAB[p], fontsize=9, color=INK2,
+                   va="center")
+    s.y -= 0.048
+    s.gap(10)
+
+    rows = []
+    for g in NONEU:
+        m, t = trade_mix(mirr, g, "2024")
+        if m:
+            rows.append((g, m, t))
+    rows.sort(key=lambda r: -r[1]["3002"])
+
+    ax = s.chart(0.360, pad_left=0.125, tick_pad=22)
+    ax.tick_params(colors=INK2, labelsize=10.5, length=0)
+    left = [0.0] * len(rows)
+    for p in HS:
+        w = [r[1][p] for r in rows]
+        ax.barh(range(len(rows)), w, left=left, color=HSCOL[p], height=.66)
+        for i, wi in enumerate(w):
+            if wi >= 9:
+                ax.annotate(f"{wi:.0f}", (left[i] + wi / 2, i), ha="center", va="center",
+                            color="#0f1419" if p == "2937" else "#f4f6f8",
+                            fontsize=9.5, fontweight="bold")
+        left = [l + wi for l, wi in zip(left, w)]
+    # totals sit past the bars, so the country names alone fit the left margin
+    for i, (_, _, t) in enumerate(rows):
+        ax.annotate(f"€{t:.0f}bn", (103, i), va="center", color=INK,
+                    fontsize=10, fontweight="bold", annotation_clip=False)
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels([NONEU[g] for g, _, _ in rows], fontsize=10.5)
+    # headroom past 100% so the euro totals land inside the axes
+    ax.invert_yaxis(); ax.set_xlim(0, 124)
+    ax.set_xticks([0, 25, 50, 75, 100])
+    ax.xaxis.set_major_formatter(pct)
+
+    s.gap(2)
+    s.block("Switzerland ships €38bn into the EU, split almost evenly between\n"
+            "biologics and finished medicines. Korea ships little else: 97%\n"
+            "biologics, built in under a decade. A partial view — it misses\n"
+            "everything these countries sell outside the EU.",
+            size=11.5, color=INK2, lead=1.45, gap=0)
+    s.save(pdf)
+
+
 def main():
     out = os.path.join(ROOT, "notes", "pharma-carousel.pdf")
     from matplotlib.backends.backend_pdf import PdfPages
-    order = (s1, s2, s3, s4, s5b, s5, s6, s7, s8)
+    order = (s1, s2, s3, s4, s5b, s5, s6, s6b, s7, s8)
     SLIDE[0], SLIDE[1] = 0, len(order)
     with PdfPages(out) as pdf:
         for f in order:

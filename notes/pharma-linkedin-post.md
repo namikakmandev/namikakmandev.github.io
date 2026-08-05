@@ -223,9 +223,13 @@ Full study — size, concentration, and product mix for 41 countries: [link]
 
 - The strongest single visual is chart 01 (trajectories). Chart 03 (share of
   manufacturing) is the strongest *second* image if posting a carousel.
-- Carousel: `notes/pharma-carousel.pdf` — 9 slides, upload via "Add a
+- Carousel: `notes/pharma-carousel.pdf` — 10 slides, upload via "Add a
   document". Slide 1 is the 41-country ranking, so the comparison is the
   first thing in the feed. Regenerate with `python3 scripts/pharma_carousel.py`.
+- Switzerland is absent from every EU export chart (07, 12, slide 7) because
+  Comext records only what EU members report. It appears only in the mirror
+  view (09, slide 8) as what the EU buys from it — €38bn. Say this if asked;
+  it is on the page too.
 - LINK PLACEMENT: an outbound link in the body costs reach. Options are (a)
   link in body — keeps clicks, loses reach, and the OG card renders; (b)
   link in the first comment — best reach, roughly half the clicks; (c) edit

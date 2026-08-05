@@ -66,9 +66,16 @@ def mix(src, geo, year="2024"):
 
 
 def title(fig, main, sub):
+    """Draw the title block and return the y just below the subtitle.
+
+    Callers that put anything else in the header band (a legend) must use the
+    returned value: the subtitle's height depends on its line count and on the
+    figure height, so a fixed anchor collides on short figures."""
     fig.subplots_adjust(top=0.86)
     fig.text(0.065, 0.975, main, fontsize=17, fontweight="bold", color=INK, va="top")
     fig.text(0.065, 0.928, sub, fontsize=11.5, color=INK2, va="top")
+    lines = sub.count("\n") + 1
+    return 0.928 - lines * 11.5 * 1.35 / 72 / fig.get_figheight()
 
 
 def save(fig, name):
@@ -102,10 +109,13 @@ def stacked(src, geos, fname, main, sub, note_total="exports to world"):
     ax.set_xlim(0, 100); ax.set_ylim(-0.6, len(rows) - 0.4)
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}%"))
     ax.invert_yaxis()
-    title(fig, main, sub)
-    ax.legend(ncols=5, loc="lower left", bbox_to_anchor=(0, 1.005),
+    sub_bottom = title(fig, main, sub)
+    ax.legend(ncols=5, loc="upper left", bbox_to_anchor=(0.065, sub_bottom - 0.006),
+              bbox_transform=fig.transFigure,
               frameon=False, fontsize=10.5, labelcolor=INK, columnspacing=1.2,
               handlelength=1.1, handletextpad=0.5)
+    # drop the plot below the legend strip we just placed
+    fig.subplots_adjust(top=sub_bottom - 0.006 - 10.5 * 2.1 / 72 / fig.get_figheight())
     save(fig, fname)
 
 
