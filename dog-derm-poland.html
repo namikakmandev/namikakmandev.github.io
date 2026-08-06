@@ -124,6 +124,11 @@
   .study .chain .ch b{ font-family: var(--serif); font-size: 1.25rem; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
   .study .chain .ch small{ font-size: .72rem; color: var(--muted); line-height: 1.35; }
   .study .chain .ch.res{ border-color: var(--modelled); background: var(--modelled-wash); }
+  .study .chain .ch cite{ font-family: var(--mono); font-size: .6rem; font-style: normal; letter-spacing: .04em;
+                    color: var(--measured); margin-top: 4px; padding-top: 4px;
+                    border-top: 1px solid var(--rule); display: block; }
+  .study .chain .ch cite.est{ color: var(--modelled); }
+  .study .chain .ch cite.res{ color: var(--modelled); }
   .study .chain .op{ display: flex; align-items: center; font-family: var(--mono); color: var(--muted); font-size: .95rem; }
   .study .convert{ display: flex; flex-direction: column; gap: 0; margin-top: 10px; }
   .study .convert .cv{ display: grid; grid-template-columns: 82px 1fr; gap: 14px; align-items: baseline;
@@ -231,19 +236,59 @@
         Three methods were used. The simplest one, in a single line:
       </p>
       <div class="chain">
-        <span class="ch"><b>8.1M</b><small>dogs in Poland</small></span>
+        <span class="ch"><b>8.1M</b><small>dogs in Poland</small><cite>FEDIAF 2025</cite></span>
         <span class="op">×</span>
-        <span class="ch"><b>12%</b><small>treated for a skin<br>problem each year</small></span>
+        <span class="ch"><b>12%</b><small>treated for a skin<br>problem each year</small><cite class="est">UK VetCompass</cite></span>
         <span class="op">×</span>
-        <span class="ch"><b>500 zł</b><small>average cost<br>per treated dog</small></span>
+        <span class="ch"><b>500 zł</b><small>average cost<br>per treated dog</small><cite class="est">Polish price data</cite></span>
         <span class="op">=</span>
-        <span class="ch res"><b>€113M</b><small>a year</small></span>
+        <span class="ch res"><b>€113M</b><small>a year</small><cite class="res">calculated</cite></span>
       </div>
-      <p style="margin-top:12px;font-size:.92rem">
+      <p style="margin-top:14px;font-size:.92rem">
         Vary each input across a plausible low and high and the result runs from €45M to €271M. Two
         further methods — working down from the size of the Polish vet market, and scaling German
         figures to Polish conditions — narrow that to the reported <strong>€70–150M</strong>.
         Full workings in sections 04 and 05.
+      </p>
+
+      <p style="margin-top:16px;font-size:.92rem"><strong>Where each input comes from, and what else
+        was available.</strong> For every input there was more than one published figure. The table
+        shows what was chosen and what was rejected.</p>
+      <div class="scroll">
+        <table style="margin-top:8px">
+          <thead>
+            <tr><th>Input</th><th>Used</th><th>Source</th><th>Other figures available</th><th>Why this one</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Dogs in Poland</b></td>
+              <td class="n">8.1M</td>
+              <td>FEDIAF <em>Facts &amp; Figures 2025</em> (2023 data)</td>
+              <td>8.0M — Polish trade press, 2024<br>~7.3M — derived from 49% of households × 14.8M households</td>
+              <td>The standard European source, compiled on one definition across all countries. The alternatives differ by about 1%, so the choice does not materially affect the result.</td>
+            </tr>
+            <tr>
+              <td><b>Share treated<br>each year</b></td>
+              <td class="n">12%<br><span style="font-weight:400;color:var(--muted)">(8–18%)</span></td>
+              <td>UK VetCompass primary-care data — skin disorders, 12.58% one-year prevalence</td>
+              <td>0.17% — Sweden, Agria: atopic dermatitis only<br>7.30% — UK: otitis externa only<br>18.8–21.4% — UK / Montréal: share of <em>consultations</em></td>
+              <td>The only figure that measures the share of <em>dogs</em> with <em>any</em> skin problem in a year, which is what the calculation requires. The 0.17% covers one diagnosis; the 18.8–21.4% counts visits, not dogs, and is inflated because affected dogs return repeatedly.</td>
+            </tr>
+            <tr>
+              <td><b>Cost per<br>treated dog</b></td>
+              <td class="n">500 zł<br><span style="font-weight:400;color:var(--muted)">(300–800)</span></td>
+              <td>Constructed from Polish prices: consultation 100–250 zł; Apoquel 16mg 46–90 zł per 20 tablets; ultrasound ~160 zł</td>
+              <td>150–400 zł — a single episode: one consultation plus a short topical course<br>1,500–4,000 zł — a chronic case: repeat consultations, long-term medication (840–1,640 zł/yr for Apoquel alone) and tests</td>
+              <td>No source publishes an average, so the two case types are blended. 500 zł corresponds to assuming <strong>roughly 10% of treated dogs are chronic cases</strong> and 90% single episodes. At 5% chronic the average is ~400 zł; at 15% it is ~650 zł.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:.9rem;color:var(--muted)">
+        <strong>Which input matters most.</strong> The dog count is firm. The other two are not. The
+        share treated is a UK rate applied to Poland, because no Polish figure exists. The cost is
+        constructed rather than observed, and rests on the 10% chronic-case assumption above. Those two
+        inputs, not the dog count, are what the range from €45M to €271M is made of.
       </p>
     </div>
   </section>
