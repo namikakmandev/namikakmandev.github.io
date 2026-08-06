@@ -34,47 +34,38 @@ LinkedIn carousels are **document posts**. Create post → the document icon →
 
 > Eight molecules are chasing the obesity market. Two have arrived.
 >
-> GLP-1 medicines copy the gut hormones that tell the body it has eaten. Semaglutide and tirzepatide are approved. Six more are still in trials.
+> GLP-1 medicines copy the gut hormones that tell the body it has eaten. Semaglutide and tirzepatide are approved. Six more are in trials.
 >
-> I mapped the landscape by molecule rather than by company — what each one targets, how far it has got, and which disease it is aimed at.
+> I mapped all eight by molecule rather than by company. Three things stood out 👇
 >
-> Three things stood out.
+> 🧬 **One receptor became four.** The first medicines hit GLP-1 alone. Newer ones add GIP, amylin or glucagon — more effect, not just more dose.
 >
-> **The field started with one receptor and now targets four.** The first medicines hit GLP-1 alone. Newer ones pair it with GIP, amylin or glucagon — adding effects rather than simply dosing harder.
+> 💊 **The next contest is oral.** One approved peptide is now a tablet. A small molecule sits in Phase 3 behind it, far simpler to make at scale.
 >
-> **The next contest is oral.** One approved peptide now comes as a tablet. A small molecule is in Phase 3 behind it, and small molecules are far simpler to manufacture at the scale this demand implies.
+> 🩺 **It is moving past weight.** One molecule is approved in liver disease; another entered Phase 3 there this month, and is in trials for alcohol use disorder.
 >
-> **The biology is spreading past weight.** One molecule is already approved in liver disease. Another entered Phase 3 there this month, and is in trials for alcohol use disorder — the same receptor family reaching into addiction.
->
-> Receptor targets, stages and approvals are on the slides, with sources: company filings, company releases and regulatory announcements, as at August 2026. No trade names, and cross-trial figures are not head-to-head.
+> 📄 Sources on the slides: filings, company releases and regulatory announcements, as at August 2026. No trade names; cross-trial figures are not head-to-head.
 >
 > Personal analysis using public information. Views my own. Not medical advice.
 
-**Why this shape:** the first two lines carry the hook before LinkedIn truncates. The three bolded points map to slides 2, 4 and 5, so someone who reads only the post still gets the substance, and someone who swipes gets the evidence.
+About 150 words. The first two lines carry the hook before LinkedIn truncates;
+the three icons map to slides 2, 4 and 5, so the post stands alone and the deck
+supplies the evidence.
 
-## Post copy — shorter alternative
+## Post copy — short version
 
-> GLP-1 medicines copy the gut hormones that tell the body it has eaten.
+> 🧬 GLP-1 medicines copy the gut hormones that tell the body it has eaten.
 >
-> Eight molecules are in play. Two are approved. Six are in trials.
+> Eight molecules are in play for obesity. Two are approved. Six are in trials.
 >
-> What surprised me mapping them out: the field began by targeting one receptor and now targets four — GLP-1, GIP, amylin and glucagon — and the newest programmes are aimed at the liver and at addiction rather than at weight.
+> Mapping them out, two things surprised me: the field began with one receptor and now targets four — GLP-1, GIP, amylin and glucagon — and the newest programmes aim at the liver and at addiction rather than at weight.
 >
-> Landscape by molecule, with sources, as at August 2026. No trade names.
+> 📄 Landscape by molecule, with sources, as at August 2026. No trade names.
 >
 > Personal analysis using public information. Views my own. Not medical advice.
 
-## Post copy — question opener
-
-> Which is harder: finding a molecule that works, or making it into a tablet?
->
-> Eight GLP-1 molecules are in play for obesity. Two are approved. The interesting contest now is formulation, not efficacy — one approved peptide has reached tablet form, and a small molecule is in Phase 3 behind it, far simpler to manufacture at scale.
->
-> I mapped all eight by receptor target, stage and indication. Sources on the slides, as at August 2026.
->
-> Personal analysis using public information. Views my own. Not medical advice.
-
----
+**Icons:** keep to three or four. More reads as clutter, and pharma audiences
+tend to be conservative. Swap 🩺 for 🫁 or drop it entirely if it feels much.
 
 ## Hashtags
 
