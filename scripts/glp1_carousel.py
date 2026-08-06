@@ -124,61 +124,72 @@ def rowstrip(fig, rows, y0, gap=0.062):
 
 # ----------------------------------------------------------------- slides
 def s1(pdf):
-    """Cover. Leads with the two returns, because the gap is the story."""
+    """Cover: the chart. Sized and shaded so the split reads at thumbnail size."""
     fig = newslide()
     kicker(fig, "GLP-1 market study")
-    fig.text(0.08, 0.865, "Same medicine.", fontsize=36, fontweight="bold", va="top")
-    fig.text(0.08, 0.795, "Opposite outcomes.", fontsize=36, fontweight="bold",
+    fig.text(0.08, 0.875, "Same medicine.", fontsize=35, fontweight="bold", va="top")
+    fig.text(0.08, 0.808, "Opposite outcomes.", fontsize=35, fontweight="bold",
              va="top", color=BLUE)
 
-    for i, (k, colour, name, drug) in enumerate([
-            ("LLY", BLUE, "Eli Lilly", "tirzepatide — Mounjaro, Zepbound"),
-            ("NVO", ORANGE, "Novo Nordisk", "semaglutide — Ozempic, Wegovy")]):
-        y = 0.615 - i * 0.20
-        fig.text(0.08, y, pc(ret(k)), fontsize=64, fontweight="bold",
-                 color=colour, va="center")
-        fig.text(0.08, y - 0.068, name, fontsize=17, fontweight="bold", color=INK)
-        fig.text(0.08, y - 0.098, drug, fontsize=12.5, color=INK2)
+    ax = axes(fig, [0.13, 0.30, 0.74, 0.43])
+    b = "2021-01"
+    ms = [m for m in MONTHS if b <= m <= NOW]
+    xs = list(range(len(ms)))
+    lly = [S["LLY"][m] / S["LLY"][b] * 100 for m in ms]
+    nvo = [S["NVO"][m] / S["NVO"][b] * 100 for m in ms]
+    spx = [S["SPX"][m] / S["SPX"][b] * 100 for m in ms]
+    # shade the gap: the divergence is the story, so make it a visible area
+    ax.fill_between(xs, lly, nvo, where=[a > c for a, c in zip(lly, nvo)],
+                    color=BLUE, alpha=0.13, linewidth=0)
+    ax.plot(xs, spx, color=MUTED, lw=1.5, ls=(0, (4, 3)))
+    ax.plot(xs, nvo, color=ORANGE, lw=3.4)
+    ax.plot(xs, lly, color=BLUE, lw=3.4)
+    for k, ys, c, lab in (("LLY", lly, BLUE, "Eli Lilly"),
+                          ("NVO", nvo, ORANGE, "Novo Nordisk"),
+                          ("SPX", spx, MUTED, "S&P 500")):
+        ax.annotate(lab, (len(ms) - 1, ys[-1]), xytext=(9, 0),
+                    textcoords="offset points", color=c,
+                    fontsize=12.5 if k != "SPX" else 10.5,
+                    fontweight="bold", va="center")
+    yrs = [(i, m[:4]) for i, m in enumerate(ms) if m.endswith("-01") and int(m[:4]) % 2 == 1]
+    ax.set_xticks([i for i, _ in yrs]); ax.set_xticklabels([t for _, t in yrs], fontsize=12)
+    ax.set_xlim(0, len(ms) + 28)
 
-    fig.add_artist(plt.Line2D([0.08, 0.92], [0.315, 0.315], color=GRID, lw=1))
-    fig.text(0.08, 0.265,
-             "Both companies built the defining medicine\nof the decade. One produced almost all of\nthe shareholder return.",
-             fontsize=17, va="top", linespacing=1.45)
-    fig.text(0.08, 0.115, f"Total return, Jan 2015 – {fmt_month(NOW)}. USD, dividends reinvested.",
-             fontsize=12, color=MUTED)
+    fig.text(0.13, 0.255, "Indexed: Jan 2021 = 100", fontsize=11, color=MUTED)
+    fig.add_artist(plt.Line2D([0.08, 0.92], [0.215, 0.215], color=GRID, lw=1))
+    fig.text(0.08, 0.168,
+             "Two companies built the defining medicine of\nthe decade. One produced almost all of the return.",
+             fontsize=16.5, va="top", linespacing=1.45)
+    fig.text(0.08, 0.088, f"Total return, Jan 2021 – {fmt_month(NOW)}. USD, dividends reinvested.",
+             fontsize=11.5, color=MUTED)
     save(fig, pdf, 1)
 
 
 def s2(pdf):
+    """The same story as a number, now that the cover has shown the shape."""
     fig = newslide()
     kicker(fig, "Performance since 2015")
-    fig.text(0.08, 0.895, "Lilly outperformed.\nNovo did not.", fontsize=29,
-             fontweight="bold", va="top", linespacing=1.2)
+    fig.text(0.08, 0.885, "A decade apart.", fontsize=34, fontweight="bold", va="top")
 
-    ax = axes(fig, [0.13, 0.47, 0.77, 0.30])
-    b = "2021-01"
-    ms = [m for m in MONTHS if b <= m <= NOW]
-    xs = range(len(ms))
-    for k, c, lw in (("SPX", MUTED, 1.6), ("NVO", ORANGE, 2.4), ("LLY", BLUE, 2.4)):
-        ys = [S[k][m] / S[k][b] * 100 for m in ms]
-        ax.plot(xs, ys, color=c, lw=lw, ls=(0, (4, 3)) if k == "SPX" else "-")
-        ax.annotate(f"{ys[-1]:.0f}", (len(ms) - 1, ys[-1]), xytext=(6, 0),
-                    textcoords="offset points", color=c, fontsize=11,
-                    fontweight="bold", va="center")
-    yrs = [(i, m[:4]) for i, m in enumerate(ms) if m.endswith("-01") and int(m[:4]) % 2 == 1]
-    ax.set_xticks([i for i, _ in yrs]); ax.set_xticklabels([t for _, t in yrs])
-    ax.set_xlim(0, len(ms) + 7)
-    # right-aligned: the year ticks sit on the left half, so this clears them
-    fig.text(0.90, 0.432, "Indexed: Jan 2021 = 100", fontsize=11, color=MUTED, ha="right")
+    for i, (k, colour, name, drug) in enumerate([
+            ("LLY", BLUE, "Eli Lilly", "tirzepatide — Mounjaro, Zepbound"),
+            ("NVO", ORANGE, "Novo Nordisk", "semaglutide — Ozempic, Wegovy")]):
+        y = 0.700 - i * 0.205
+        fig.text(0.08, y, pc(ret(k)), fontsize=62, fontweight="bold",
+                 color=colour, va="center")
+        fig.text(0.08, y - 0.068, name, fontsize=17, fontweight="bold", color=INK)
+        fig.text(0.08, y - 0.098, drug, fontsize=12.5, color=INK2)
 
-    rowstrip(fig, [
-        ("Eli Lilly", "tirzepatide — Mounjaro, Zepbound", pc(ret("LLY")), BLUE),
-        ("Novo Nordisk", "semaglutide — Ozempic, Wegovy", pc(ret("NVO")), ORANGE),
-        ("S&P 500", "market benchmark", pc(ret("SPX")), INK2),
-    ], 0.375, gap=0.075)
+    fig.add_artist(plt.Line2D([0.08, 0.92], [0.375, 0.375], color=GRID, lw=1))
+    fig.text(0.08, 0.325, "S&P 500", fontsize=16, fontweight="bold", color=INK)
+    fig.text(0.92, 0.330, pc(ret("SPX")), fontsize=26, fontweight="bold",
+             color=INK2, ha="right", va="center")
+    fig.text(0.08, 0.297, "market benchmark", fontsize=12, color=INK2)
+    fig.add_artist(plt.Line2D([0.08, 0.92], [0.265, 0.265], color=GRID, lw=1))
 
-    fig.text(0.08, 0.155, "Novo created the category and still trailed the index.",
-             fontsize=14, color=INK)
+    fig.text(0.08, 0.205,
+             "Novo Nordisk created the category and still\ntrailed the index over the decade.",
+             fontsize=16.5, va="top", linespacing=1.45)
     fig.text(0.08, 0.115, f"Total return, Jan 2015 – {fmt_month(NOW)}",
              fontsize=11.5, color=MUTED)
     save(fig, pdf, 2)
