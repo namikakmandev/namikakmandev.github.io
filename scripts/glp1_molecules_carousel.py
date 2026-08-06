@@ -94,6 +94,13 @@ MOLECULES = [
 STAGES = ["Phase 1", "Phase 2", "Phase 3", "Filed", "Approved"]
 STAGE_COLOUR = [ORANGE, YELLOW, BLUE, VIOLET, GREEN]
 
+N_TOTAL = len(MOLECULES)
+N_STAGE = [sum(1 for _, _, _, si, _ in MOLECULES if si == i) for i in range(len(STAGES))]
+N_APPROVED = N_STAGE[4]
+N_PENDING = N_TOTAL - N_APPROVED
+WORD = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six",
+        7: "Seven", 8: "Eight", 9: "Nine", 10: "Ten"}
+
 # indication, molecules, colour — approval status noted in the label
 INDICATIONS = [
     ("Obesity /\noverweight", GREEN,
@@ -148,34 +155,46 @@ def chip(ax, x, y, w, h, colour, alpha=1.0):
 
 # ----------------------------------------------------------------- slides
 def s1(pdf):
-    """Cover: one big number, and the four receptors the field is built on."""
+    """Cover. Plain language first: what these drugs are, then how far along."""
     fig = newslide()
     kicker(fig, "GLP-1 · the molecules")
-    fig.text(0.08, 0.845, "Four receptors.", fontsize=37, fontweight="bold", va="top")
-    fig.text(0.08, 0.775, "Nine molecules.", fontsize=37, fontweight="bold",
-             va="top", color=BLUE)
-
-    # receptor chips — the visual spine of the whole deck
-    ax = blank_ax(fig, [0.08, 0.545, 0.84, 0.16])
-    ax.set_xlim(0, 4); ax.set_ylim(0, 1)
-    for i, r in enumerate(RECEPTORS):
-        chip(ax, i + 0.06, 0.34, 0.88, 0.42, RCOLOUR[r])
-        ax.text(i + 0.5, 0.55, r, ha="center", va="center", fontsize=13.5,
-                fontweight="bold", color="#0f1419" if r == "amylin" else "#ffffff")
-    ax.text(2.0, 0.10, "the receptor family the whole field is built on",
-            ha="center", fontsize=11.5, color=INK2)
-
-    fig.text(0.08, 0.470, "587%", fontsize=72, fontweight="bold", color=GREEN, va="top")
-    fig.text(0.08, 0.355,
-             "growth in US prescriptions for GLP-1\nreceptor agonists, 2019 to 2024.",
+    fig.text(0.08, 0.870, f"{WORD[N_TOTAL]} molecules.", fontsize=35,
+             fontweight="bold", va="top")
+    fig.text(0.08, 0.800, f"{WORD[N_APPROVED]} have arrived.", fontsize=35,
+             fontweight="bold", va="top", color=BLUE)
+    fig.text(0.08, 0.712,
+             "GLP-1 medicines copy the gut hormones that tell\nthe body it has eaten. They changed diabetes care,\nthen obesity care.",
              fontsize=16, va="top", linespacing=1.45)
-    fig.add_artist(plt.Line2D([0.08, 0.92], [0.275, 0.275], color=GRID, lw=1))
-    fig.text(0.08, 0.225,
-             "Two molecules are approved for obesity.\nSeven more are in trials.",
-             fontsize=16.5, va="top", linespacing=1.45, color=INK)
-    fig.text(0.08, 0.128,
-             "Receptor targets, stage and indication. No trade names.\nSources on the final slide. As at August 2026.",
-             fontsize=11, va="top", color=MUTED, linespacing=1.4)
+
+    # one square per molecule, grouped and coloured by how far it has got
+    ax = blank_ax(fig, [0.08, 0.470, 0.84, 0.115])
+    ax.set_xlim(0, N_TOTAL); ax.set_ylim(0, 1)
+    x = 0
+    for i, st in enumerate(STAGES):
+        n = N_STAGE[i]
+        if not n:
+            continue
+        for k in range(n):
+            chip(ax, x + k + 0.06, 0.52, 0.88, 0.40, STAGE_COLOUR[i])
+        short = st.replace("Phase ", "Ph ")
+        ax.text(x + n / 2, 0.30, f"{short} · {n}", ha="center", va="top",
+                fontsize=10.5, color=INK2, fontweight="bold")
+        x += n
+    ax.text(N_TOTAL / 2, 0.03, "one square = one molecule", ha="center",
+            fontsize=10, color=MUTED)
+
+    fig.text(0.08, 0.408, "587%", fontsize=58, fontweight="bold",
+             color=GREEN, va="top")
+    fig.text(0.08, 0.315,
+             "growth in US prescriptions for these\nmedicines between 2019 and 2024.",
+             fontsize=15.5, va="top", linespacing=1.45)
+    fig.add_artist(plt.Line2D([0.08, 0.92], [0.232, 0.232], color=GRID, lw=1))
+    fig.text(0.08, 0.192,
+             "What follows: what each molecule targets, how far\nit has got, and which diseases it is aimed at.",
+             fontsize=14.5, va="top", linespacing=1.42, color=INK)
+    fig.text(0.08, 0.100,
+             "No trade names, companies or share prices. Sources on the final slide.",
+             fontsize=11, color=MUTED)
     save(fig, pdf, 1)
 
 
@@ -220,8 +239,8 @@ def s3(pdf):
     """Pipeline by stage."""
     fig = newslide()
     kicker(fig, "Where each one stands")
-    fig.text(0.08, 0.895, "Two on the market.\nSeven behind them.", fontsize=28,
-             fontweight="bold", va="top", linespacing=1.2)
+    fig.text(0.08, 0.895, f"{WORD[N_APPROVED]} on the market.\n{WORD[N_PENDING]} behind them.",
+             fontsize=28, fontweight="bold", va="top", linespacing=1.2)
 
     ax = blank_ax(fig, [0.08, 0.255, 0.84, 0.545])
     ax.set_xlim(-0.6, 4.6); ax.set_ylim(-0.4, 3.5)
