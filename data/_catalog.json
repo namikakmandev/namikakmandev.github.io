@@ -1,0 +1,738 @@
+{
+ "_readme": "Index of every dataset in data/. Written by scripts/build_catalog.py. provenance: pipeline = fetched by scripts/fetch.py on a schedule; script = written by another script, run by hand; manual = pulled by hand, cannot self-refresh; unattributed = nothing claims it, treat with suspicion.",
+ "generated_by": "scripts/build_catalog.py",
+ "totals": {
+  "datasets": 43,
+  "by_provenance": {
+   "script": 14,
+   "pipeline": 25,
+   "manual": 1,
+   "unattributed": 3
+  },
+  "observations": 24825
+ },
+ "datasets": [
+  {
+   "file": "data/cattle-eu.json",
+   "bytes": 4439,
+   "shape": "bespoke",
+   "series": 3,
+   "observations": 3,
+   "coverage": null,
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_cattle_data.py",
+   "auto_refresh": false,
+   "source": "EC agri-food data portal: young bulls R3 EU avg (EUR/100kg) + feed grain MS avg (EUR/t), monthly means of weekly quotes",
+   "note": null
+  },
+  {
+   "file": "data/cattle-parity.json",
+   "bytes": 17284,
+   "shape": "regions",
+   "series": 3,
+   "observations": 9,
+   "coverage": null,
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_cattle_data.py",
+   "auto_refresh": false,
+   "source": null,
+   "note": null
+  },
+  {
+   "file": "data/cattle-tr.json",
+   "bytes": 6827,
+   "shape": "bespoke",
+   "series": 3,
+   "observations": 3,
+   "coverage": null,
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_cattle_data.py",
+   "auto_refresh": false,
+   "source": "TCMB EVDS / T\u00dc\u0130K Y\u0130-\u00dcFE: TP.TUFE1YI.T17 (korunmu\u015f et ve et \u00fcr\u00fcnleri), TP.TUFE1YI.T25 (haz\u0131r hayvan yemleri)",
+   "note": null
+  },
+  {
+   "file": "data/cattle-us.json",
+   "bytes": 20405,
+   "shape": "bespoke",
+   "series": 3,
+   "observations": 3,
+   "coverage": null,
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_cattle_data.py",
+   "auto_refresh": false,
+   "source": "FRED/BLS producer price indexes: WPU0131 (slaughter cattle), WPU012202 (corn)",
+   "note": null
+  },
+  {
+   "file": "data/corn-parity.json",
+   "bytes": 24776,
+   "shape": "regions",
+   "series": 2,
+   "observations": 6,
+   "coverage": null,
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_cattle_data.py",
+   "auto_refresh": false,
+   "source": null,
+   "note": "denominator = maize/corn everywhere (robustness check)"
+  },
+  {
+   "file": "data/eu-hicp.json",
+   "bytes": 5944,
+   "shape": "series",
+   "series": 1,
+   "observations": 355,
+   "coverage": {
+    "first": "1996-12",
+    "last": "2026-06"
+   },
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "pipeline",
+   "producer": "eu-hicp",
+   "provider": "fred",
+   "auto_refresh": true,
+   "source": "Euro area HICP via FRED \u2014 deflator for any EUR money series",
+   "note": null
+  },
+  {
+   "file": "data/eu-vet-countries.json",
+   "bytes": 7804,
+   "shape": "series",
+   "series": 14,
+   "observations": 530,
+   "coverage": {
+    "first": "1973",
+    "last": "2025"
+   },
+   "last_commit": "2026-07-28T15:59:01+00:00",
+   "provenance": "pipeline",
+   "producer": "eu-vet-countries",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat EAA veterinary expenses by member state, million EUR, ALL livestock",
+   "note": "all livestock, not cattle only"
+  },
+  {
+   "file": "data/eu-vet-expenses.json",
+   "bytes": 774,
+   "shape": "series",
+   "series": 1,
+   "observations": 21,
+   "coverage": {
+    "first": "2005",
+    "last": "2025"
+   },
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "pipeline",
+   "producer": "eu-vet-expenses",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
+   "note": "ALL livestock, not cattle only \u2014 do not present as a per-cattle figure without saying so"
+  },
+  {
+   "file": "data/fx-eur.json",
+   "bytes": 11810,
+   "shape": "series",
+   "series": 18,
+   "observations": 786,
+   "coverage": {
+    "first": "1971",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-05T12:59:55+00:00",
+   "provenance": "pipeline",
+   "producer": "fx-eur",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat ert_bil_eur_a \u2014 annual average exchange rates, national currency per euro",
+   "note": "used only to express absolute pharma value added in a common currency; every share ratio stays in national currency"
+  },
+  {
+   "file": "data/gdp-eur.json",
+   "bytes": 22959,
+   "shape": "series",
+   "series": 46,
+   "observations": 1408,
+   "coverage": {
+    "first": "1975",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-04T07:37:59+00:00",
+   "provenance": "pipeline",
+   "producer": "gdp-eur",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat national accounts \u2014 GDP at market prices, current prices, million EUR",
+   "note": "for comparing economy SIZE across countries only; never use for the share ratio"
+  },
+  {
+   "file": "data/gdp-total.json",
+   "bytes": 23535,
+   "shape": "series",
+   "series": 46,
+   "observations": 1408,
+   "coverage": {
+    "first": "1975",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-04T07:37:59+00:00",
+   "provenance": "pipeline",
+   "producer": "gdp-total",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat national accounts \u2014 GDP at market prices, current prices, million national currency",
+   "note": "same vintage and currency basis as pharma-gva, so the ratio is internally consistent"
+  },
+  {
+   "file": "data/glp1-molecules.json",
+   "bytes": 2967,
+   "shape": "molecules",
+   "series": 8,
+   "observations": 8,
+   "coverage": null,
+   "last_commit": "2026-08-06T19:54:28+00:00",
+   "provenance": "script",
+   "producer": "glp1_molecules_carousel.py",
+   "auto_refresh": false,
+   "source": "Company filings (10-Q, 8-K), company releases, regulatory announcements and industry landscape reviews, Dec 2025 \u2013 Aug 2026",
+   "note": null
+  },
+  {
+   "file": "data/glp1-stocks.json",
+   "bytes": 45347,
+   "shape": "series",
+   "series": 12,
+   "observations": 2522,
+   "coverage": {
+    "first": "2005-01",
+    "last": "2026-08"
+   },
+   "last_commit": "2026-08-04T15:55:53+00:00",
+   "provenance": "pipeline",
+   "producer": "glp1-stocks",
+   "provider": "yahoo",
+   "auto_refresh": true,
+   "source": "Yahoo Finance monthly adjusted closes, US listings/ADRs (USD); ^GSPC = S&P 500 index, XBI = SPDR biotech ETF benchmark",
+   "note": "Adjusted close = split- and dividend-adjusted (total return); index SPX is raw level. ADRs (NVO, AZN, RHHBY, ZLDPF) embed FX moves. Metsera (MTSR) excluded: acquired by Pfizer Nov 2025, delisted \u2014 survivorship caveat. Zealand only trades OTC in the US (ZLDPF, thin); primary listing is Copenhagen."
+  },
+  {
+   "file": "data/glp1-valuation.json",
+   "bytes": 3036,
+   "shape": "series",
+   "series": 6,
+   "observations": 113,
+   "coverage": null,
+   "last_commit": "2026-08-05T09:43:22+00:00",
+   "provenance": "manual",
+   "producer": "manual pull",
+   "auto_refresh": false,
+   "source": "Company fundamentals and consensus estimates via Bigdata.com",
+   "note": "Trailing multiples are company-level and on reported earnings; consensus growth is on an adjusted basis. Basis differs by company (TTM for one, FY2025 for the rest) and is carried per row.",
+   "as_of": "2026-08-05",
+   "refresh": "manual \u2014 re-pull via the Bigdata.com connector; not on the cron"
+  },
+  {
+   "file": "data/gni-gdp.json",
+   "bytes": 14196,
+   "shape": "series",
+   "series": 24,
+   "observations": 818,
+   "coverage": {
+    "first": "1949",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-05T10:08:51+00:00",
+   "provenance": "pipeline",
+   "producer": "gni-gdp",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat nasa_10_nf_tr \u2014 gross national income (B5G), total economy",
+   "note": "GNI minus GDP is net primary income from abroad: negative where foreign-owned profits are repatriated out, positive where a country's firms earn abroad"
+  },
+  {
+   "file": "data/gva-total.json",
+   "bytes": 22095,
+   "shape": "series",
+   "series": 43,
+   "observations": 1319,
+   "coverage": {
+    "first": "1975",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-04T07:37:59+00:00",
+   "provenance": "pipeline",
+   "producer": "gva-total",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat national accounts A*64 \u2014 total gross value added, current prices, million national currency",
+   "note": "the like-for-like denominator. GDP = GVA + taxes less subsidies on products, so pharma/GVA is the cleaner share; pharma/GDP is the more quotable one."
+  },
+  {
+   "file": "data/herd-cattle.json",
+   "bytes": 3898,
+   "shape": "series",
+   "series": 3,
+   "observations": 192,
+   "coverage": {
+    "first": "1961",
+    "last": "2024"
+   },
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "pipeline",
+   "producer": "cattle-herd",
+   "provider": "owid",
+   "auto_refresh": true,
+   "source": "FAOSTAT cattle stocks (head), via Our World in Data",
+   "note": "annual; national totals, all cattle"
+  },
+  {
+   "file": "data/herd-eu-countries.json",
+   "bytes": 14896,
+   "shape": "series",
+   "series": 14,
+   "observations": 825,
+   "coverage": {
+    "first": "1961",
+    "last": "2024"
+   },
+   "last_commit": "2026-07-28T15:59:01+00:00",
+   "provenance": "pipeline",
+   "producer": "eu-herd-countries",
+   "provider": "owid",
+   "auto_refresh": true,
+   "source": "FAOSTAT cattle stocks (head) by EU member state, via Our World in Data",
+   "note": "dairy and beef combined, same limitation as the aggregate"
+  },
+  {
+   "file": "data/herd-report.json",
+   "bytes": 177,
+   "shape": "bespoke",
+   "series": 2,
+   "observations": 8,
+   "coverage": null,
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_herd_data.py",
+   "auto_refresh": false,
+   "source": null,
+   "note": null
+  },
+  {
+   "file": "data/hs6-check.json",
+   "bytes": 2158,
+   "shape": "series",
+   "series": 46,
+   "observations": 46,
+   "coverage": {
+    "first": "2024",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-05T09:48:57+00:00",
+   "provenance": "pipeline",
+   "producer": "hs6-check",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "HS6 detail by reporter \u2014 establishes where detailed codes are published vs suppressed",
+   "note": null
+  },
+  {
+   "file": "data/hs6-probe.json",
+   "bytes": 869,
+   "shape": "series",
+   "series": 11,
+   "observations": 11,
+   "coverage": {
+    "first": "2024",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-05T09:46:10+00:00",
+   "provenance": "unattributed",
+   "producer": null,
+   "auto_refresh": false,
+   "source": "probe: does Comext serve HS 6-digit detail?",
+   "note": "No script writes this file and it is not in data-sources.json. Provenance unknown \u2014 verify or remove."
+  },
+  {
+   "file": "data/hs6-probe2.json",
+   "bytes": 645,
+   "shape": "series",
+   "series": 5,
+   "observations": 5,
+   "coverage": {
+    "first": "2024",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-05T09:47:22+00:00",
+   "provenance": "unattributed",
+   "producer": null,
+   "auto_refresh": false,
+   "source": "probe: which 3004 sub-codes Comext serves",
+   "note": "No script writes this file and it is not in data-sources.json. Provenance unknown \u2014 verify or remove."
+  },
+  {
+   "file": "data/manuf-gva.json",
+   "bytes": 21007,
+   "shape": "series",
+   "series": 43,
+   "observations": 1316,
+   "coverage": {
+    "first": "1975",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-04T07:37:59+00:00",
+   "provenance": "pipeline",
+   "producer": "manuf-gva",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat national accounts A*64 \u2014 total manufacturing (NACE C) gross value added, current prices, million national currency",
+   "note": "context denominator: pharma's share of manufacturing, not just of the whole economy"
+  },
+  {
+   "file": "data/peptide-dest.json",
+   "bytes": 922,
+   "shape": "series",
+   "series": 11,
+   "observations": 19,
+   "coverage": {
+    "first": "2018",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-05T10:04:14+00:00",
+   "provenance": "pipeline",
+   "producer": "peptide-dest",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Comext \u2014 where Ireland's bulk peptide hormone exports go",
+   "note": null
+  },
+  {
+   "file": "data/peptide-flows.json",
+   "bytes": 7000,
+   "shape": "series",
+   "series": 24,
+   "observations": 360,
+   "coverage": {
+    "first": "2010",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-05T10:04:14+00:00",
+   "provenance": "pipeline",
+   "producer": "peptide-flows",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Comext \u2014 HS 2937.19 imports (flow 1) and exports (flow 2), value and quantity",
+   "note": "net exports test: re-export shows as large imports; domestic production does not"
+  },
+  {
+   "file": "data/pharma-dest.json",
+   "bytes": 7766,
+   "shape": "series",
+   "series": 216,
+   "observations": 216,
+   "coverage": {
+    "first": "2024",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-05T09:48:57+00:00",
+   "provenance": "pipeline",
+   "producer": "pharma-dest",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Destination markets for the concentration leaders, by HS4 class, 2024",
+   "note": null
+  },
+  {
+   "file": "data/pharma-exports.json",
+   "bytes": 28042,
+   "shape": "series",
+   "series": 60,
+   "observations": 1375,
+   "coverage": {
+    "first": "2002",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-04T08:40:01+00:00",
+   "provenance": "pipeline",
+   "producer": "pharma-exports",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat Comext DS-045409 \u2014 exports to world, EUR, by HS4: 3002 immunologicals/vaccines, 3003 bulk medicaments, 3004 dosage medicaments, 2937 hormones, 2941 antibiotics",
+   "note": "EXPORTS, not production \u2014 the product-mix proxy; say so wherever shown"
+  },
+  {
+   "file": "data/pharma-gva-eur.json",
+   "bytes": 14216,
+   "shape": "series",
+   "series": 35,
+   "observations": 1004,
+   "coverage": {
+    "first": "1975",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-04T07:37:59+00:00",
+   "provenance": "pipeline",
+   "producer": "pharma-gva-eur",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat national accounts A*64 \u2014 NACE C21 gross value added, current prices, million EUR",
+   "note": "for comparing absolute pharma output across countries; the share ratio uses the MNAC pair"
+  },
+  {
+   "file": "data/pharma-gva.json",
+   "bytes": 14838,
+   "shape": "series",
+   "series": 35,
+   "observations": 1004,
+   "coverage": {
+    "first": "1975",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-04T07:37:59+00:00",
+   "provenance": "pipeline",
+   "producer": "pharma-gva",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat national accounts A*64 \u2014 gross value added of NACE C21 (basic pharmaceutical products and preparations), current prices, million national currency",
+   "note": "NATIONAL CURRENCY on purpose \u2014 the pharma/GDP ratio must not carry exchange-rate noise. C21 is manufacturing only: it excludes pharma wholesale, retail pharmacy and R&D services."
+  },
+  {
+   "file": "data/pharma-hs6-trend.json",
+   "bytes": 11744,
+   "shape": "series",
+   "series": 47,
+   "observations": 521,
+   "coverage": {
+    "first": "2010",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-05T09:50:50+00:00",
+   "provenance": "pipeline",
+   "producer": "pharma-hs6-trend",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat Comext DS-045409 \u2014 exports to world by HS6 therapeutic class, 2010-2024",
+   "note": "293719 polypeptide hormones (GLP-1/insulin-analogue class, bulk); 300241 human vaccines; 300215 immunological in doses (antibodies); 300212 antisera/blood fractions; 300431 insulin medicaments; 300439 other hormone medicaments; 300490 other medicaments"
+  },
+  {
+   "file": "data/pharma-mirror.json",
+   "bytes": 22778,
+   "shape": "series",
+   "series": 50,
+   "observations": 1149,
+   "coverage": {
+    "first": "2002",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-04T08:40:01+00:00",
+   "provenance": "pipeline",
+   "producer": "pharma-mirror",
+   "provider": "eurostat",
+   "auto_refresh": true,
+   "source": "Eurostat Comext DS-045409 \u2014 EU27 imports by partner and HS4, EUR: what non-EU producers ship into the EU",
+   "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
+  },
+  {
+   "file": "data/pharma-product-mix.json",
+   "bytes": 2224,
+   "shape": "bespoke",
+   "series": 2,
+   "observations": 22,
+   "coverage": null,
+   "last_commit": "2026-08-04T08:47:09+00:00",
+   "provenance": "script",
+   "producer": "pharma_product_mix.py",
+   "auto_refresh": false,
+   "source": null,
+   "note": "Product mix as share of pharma trade value by HS class (3002 biologics, 3004 dosage, 3003 bulk, 2937 hormones, 2941 antibiotics). Eurostat Comext DS-045409. EU/EFTA rows = exports to world; non-EU rows = exports to the EU only (mirror). Proxy for product mix, NOT production."
+  },
+  {
+   "file": "data/pharma-share-stan.json",
+   "bytes": 23866,
+   "shape": "shares",
+   "series": 13,
+   "observations": 359,
+   "coverage": {
+    "first": "1990",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-04T08:24:15+00:00",
+   "provenance": "script",
+   "producer": "pharma_share_stan.py",
+   "auto_refresh": false,
+   "source": null,
+   "note": "ISIC C21 value added as % of total-economy value added. OECD STAN DF_STAN_2025, current prices, national currency. Only countries the Eurostat set lacks or truncates."
+  },
+  {
+   "file": "data/pharma-share.json",
+   "bytes": 111014,
+   "shape": "shares",
+   "series": 31,
+   "observations": 904,
+   "coverage": {
+    "first": "1975",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-04T07:49:07+00:00",
+   "provenance": "script",
+   "producer": "pharma_share.py",
+   "auto_refresh": false,
+   "source": null,
+   "note": "C21 gross value added as % of GDP / total GVA / manufacturing GVA. Eurostat nama_10_a64 + nama_10_gdp, current prices, national currency."
+  },
+  {
+   "file": "data/pharma-therapeutic.json",
+   "bytes": 5330,
+   "shape": "countries",
+   "series": 7,
+   "observations": 35,
+   "coverage": null,
+   "last_commit": "2026-08-05T09:54:21+00:00",
+   "provenance": "script",
+   "producer": "pharma_therapeutic.py",
+   "auto_refresh": false,
+   "source": null,
+   "note": "Exports to world, EUR, 2024, Eurostat Comext DS-045409. Classes are HS 6-digit; 'not published' is the residual between the HS4 chapter total and the published detail."
+  },
+  {
+   "file": "data/stan-pharma.json",
+   "bytes": 20971,
+   "shape": "series",
+   "series": 38,
+   "observations": 1105,
+   "coverage": {
+    "first": "1990",
+    "last": "2024"
+   },
+   "last_commit": "2026-08-04T08:17:08+00:00",
+   "provenance": "pipeline",
+   "producer": "stan-pharma",
+   "provider": "csv",
+   "auto_refresh": true,
+   "source": "OECD STAN \u2014 value added of ISIC C21 (pharmaceuticals), current prices, million national currency",
+   "note": "same industry definition as NACE C21, so shares are comparable with the Eurostat set; national currency so the ratio carries no FX noise"
+  },
+  {
+   "file": "data/stan-total.json",
+   "bytes": 23924,
+   "shape": "series",
+   "series": 38,
+   "observations": 1298,
+   "coverage": {
+    "first": "1990",
+    "last": "2025"
+   },
+   "last_commit": "2026-08-04T08:13:43+00:00",
+   "provenance": "pipeline",
+   "producer": "stan-total",
+   "provider": "csv",
+   "auto_refresh": true,
+   "source": "OECD STAN \u2014 total-economy value added, current prices, million national currency",
+   "note": "denominator for the STAN pharma share; same source and basis as stan-pharma so the ratio is internally consistent"
+  },
+  {
+   "file": "data/tr-series-candidates.json",
+   "bytes": 35036,
+   "shape": "groups",
+   "series": 14,
+   "observations": 14,
+   "coverage": null,
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "unattributed",
+   "producer": null,
+   "auto_refresh": false,
+   "source": "TCMB EVDS catalog dump: datagroups matching tar\u0131m/\u00fcretici fiyat/\u00dcFE",
+   "note": "No script writes this file and it is not in data-sources.json. Provenance unknown \u2014 verify or remove."
+  },
+  {
+   "file": "data/us-cowcalf-costs.json",
+   "bytes": 13345,
+   "shape": "series",
+   "series": 32,
+   "observations": 916,
+   "coverage": {
+    "first": "1996",
+    "last": "2025"
+   },
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "pipeline",
+   "producer": "us-cowcalf-costs",
+   "provider": "csv",
+   "auto_refresh": true,
+   "source": "USDA ERS commodity costs and returns, cow-calf",
+   "note": "SURVEY BASIS CHANGED IN 2008 \u2014 do not compare across that break"
+  },
+  {
+   "file": "data/us-prices.json",
+   "bytes": 41317,
+   "shape": "series",
+   "series": 3,
+   "observations": 2573,
+   "coverage": {
+    "first": "1947-01",
+    "last": "2026-06"
+   },
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "pipeline",
+   "producer": "us-prices",
+   "provider": "fred",
+   "auto_refresh": true,
+   "source": "BLS producer price indexes via FRED, plus CPI for deflating",
+   "note": "PPI levels are index numbers (1982=100) \u2014 ratios only, never quantities"
+  },
+  {
+   "file": "data/vetcost-eu-tr.json",
+   "bytes": 2437,
+   "shape": "series",
+   "series": 3,
+   "observations": 109,
+   "coverage": {
+    "first": "1973",
+    "last": "2025"
+   },
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_vetcost_data.py",
+   "auto_refresh": false,
+   "source": "Eurostat aact_eaa01 veterinary expenses, million EUR at current prices; ALL livestock, not cattle only",
+   "note": null
+  },
+  {
+   "file": "data/vetcost-report.json",
+   "bytes": 694,
+   "shape": "bespoke",
+   "series": 2,
+   "observations": 7,
+   "coverage": null,
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_vetcost_data.py",
+   "auto_refresh": false,
+   "source": null,
+   "note": null
+  },
+  {
+   "file": "data/vetcost-us.json",
+   "bytes": 3843,
+   "shape": "series",
+   "series": 4,
+   "observations": 120,
+   "coverage": {
+    "first": "1996",
+    "last": "2025"
+   },
+   "last_commit": "2026-07-28T11:54:37+00:00",
+   "provenance": "script",
+   "producer": "fetch_vetcost_data.py",
+   "auto_refresh": false,
+   "source": "USDA ERS commodity costs and returns, cow-calf, U.S. total",
+   "note": null
+  }
+ ]
+}

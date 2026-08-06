@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Data Behind the Studies — Namık Akman</title>
+  <meta name="description" content="Every dataset behind the studies on this site: what produced it, what it covers, how fresh it is, and which files have no traceable provenance." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Namık Akman" />
+  <meta property="og:title" content="The Data Behind the Studies" />
+  <meta property="og:description" content="A catalogue of every dataset behind the studies — source, coverage, freshness, and the ones that cannot account for themselves." />
+  <meta property="og:url" content="https://namikakmandev.github.io/data.html" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .study { padding: 32px 0 64px; }
+    .study .container { max-width: 1060px; }
+    .study .back { color: var(--text-dim); font-size: .9rem; }
+    .study .back:hover { color: var(--text); text-decoration: none; }
+    .study h1 { font-size: 2rem; line-height: 1.18; letter-spacing: -.015em; margin: 14px 0 10px; }
+    .study .lede { color: var(--text-dim); font-size: 1.05rem; line-height: 1.55; margin-bottom: 22px; max-width: 800px; }
+    .study h2 { font-size: 1.2rem; margin: 36px 0 8px; }
+    .study p { color: var(--text); }
+
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0 22px; }
+    .kpis .k { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 15px 17px; }
+    .kpis .k .l { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+    .kpis .k .v { font-size: 1.6rem; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .kpis .k .d { font-size: .78rem; color: var(--text-dim); margin-top: 3px; }
+    .kpis .k.green .v { color: var(--accent-2); }
+    .kpis .k.red .v { color: var(--loss); }
+    .kpis .k.blue .v { color: var(--accent); }
+
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 14px 0 10px; }
+    .controls input { background: var(--surface); border: 1px solid var(--border); color: var(--text);
+                      border-radius: 999px; padding: 8px 16px; font: inherit; font-size: .9rem; min-width: 230px; }
+    .controls input::placeholder { color: var(--text-dim); }
+    .controls button { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
+                       font: inherit; font-size: .82rem; padding: 6px 13px; border-radius: 999px; cursor: pointer; }
+    .controls button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .controls .count { color: var(--text-dim); font-size: .85rem; margin-left: auto; }
+
+    .tbl-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+                padding: 4px 14px 12px; overflow-x: auto; }
+    table.cat { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 860px; }
+    table.cat th, table.cat td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+    table.cat th { color: var(--text-dim); font-weight: 600; font-size: .7rem; text-transform: uppercase;
+                   letter-spacing: .04em; cursor: pointer; white-space: nowrap; }
+    table.cat th:hover { color: var(--text); }
+    table.cat td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.cat td.f code { color: var(--text); font-size: .84rem; }
+    table.cat td .src { display: block; color: var(--text-dim); font-size: .78rem; margin-top: 3px; max-width: 430px; line-height: 1.4; }
+    table.cat tr:hover td { background: var(--surface-2); }
+    .pill { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+    .pill.pipeline { background: rgba(25,195,125,.16); color: var(--accent-2); }
+    .pill.script { background: rgba(47,155,255,.16); color: var(--accent); }
+    .pill.manual { background: rgba(255,101,0,.16); color: var(--accent-3); }
+    .pill.unattributed { background: rgba(229,72,77,.16); color: var(--loss); }
+    .cov { color: var(--text-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .callout { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+               padding: 18px 22px; margin: 24px 0; }
+    .callout h3 { margin: 0 0 8px; font-size: 1rem; color: var(--accent); }
+    .callout ul { margin: 0 0 0 20px; } .callout li { margin-bottom: 7px; }
+    .callout code { font-size: .84rem; }
+
+    .footnote { color: var(--text-dim); font-size: .85rem; border-top: 1px solid var(--border);
+                padding-top: 16px; margin-top: 36px; }
+    .footnote a { color: var(--accent); } .footnote code { color: var(--text); font-size: .82rem; }
+    .loading { color: var(--text-dim); padding: 40px 0; text-align: center; }
+    @media (max-width: 760px) { .kpis { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="projects.html" class="back">&larr; Back to projects</a>
+        <h1>The data behind the studies.</h1>
+        <p class="lede">
+          Every study on this site is built from public statistics pulled by a small
+          pipeline in the same repository. This is the index of that data: what produced
+          each file, what it covers, how fresh it is — and, honestly, which files can no
+          longer account for themselves. Generated by
+          <code>scripts/build_catalog.py</code>, not maintained by hand.
+        </p>
+
+        <div id="app"><div class="loading">Loading the catalogue…</div></div>
+
+        <div class="footnote" id="foot" style="display:none">
+          <p><b>What provenance means.</b>
+          <b>Pipeline</b> — fetched by <code>scripts/fetch.py</code> from a definition in
+          <code>data-sources.json</code> and refreshed on a schedule; adding one is a few lines
+          of config, not a new script. <b>Script</b> — written by another script in
+          <code>scripts/</code>, run by hand, so it is only as current as its last run.
+          <b>Manual</b> — pulled by hand from a source the pipeline cannot reach, carrying an
+          explicit as-of date because it cannot refresh itself. <b>Unattributed</b> — nothing
+          in the repository writes it. Those are exploratory files left behind; they are listed
+          rather than deleted so the gap is visible, and nothing published depends on them.</p>
+          <p><b>Why this exists.</b> The directory grew to forty-odd files across a dozen
+          different shapes, written by several scripts at different times. Starting a new study
+          meant opening old files to work out what was there. One generated index is cheaper than
+          that, and it makes staleness visible instead of leaving it to be discovered later.</p>
+          <p>Rebuild with <code>python3 scripts/build_catalog.py</code> ·
+          <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/data/_catalog.json">Open the catalogue JSON</a> ·
+          <a href="projects.html">Back to the studies</a></p>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="js/main.js" defer></script>
+  <script>
+  (function () {
+    "use strict";
+    var DATA = null, filter = "all", q = "";
+    var sort = { col: "observations", dir: -1 };
+
+    function esc(s){ return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+    function num(n){ return n == null ? "—" : Number(n).toLocaleString("en-GB"); }
+    function ymd(s){ return s ? String(s).slice(0, 10) : "—"; }
+
+    fetch("data/_catalog.json").then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(build)
+      .catch(function(e){ document.getElementById("app").innerHTML =
+        '<p class="loading">Could not load the catalogue (' + e.message + '). Build it with ' +
+        '<code>python3 scripts/build_catalog.py</code>.</p>'; });
+
+    function build(C){
+      DATA = C;
+      var app = document.getElementById("app"); app.innerHTML = "";
+      var t = C.totals, p = t.by_provenance || {};
+
+      var k = document.createElement("div"); k.className = "kpis";
+      [["", "Datasets", t.datasets, "indexed in data/"],
+       ["blue", "Observations", num(t.observations), "across every file"],
+       ["green", "Refresh themselves", p.pipeline || 0, "on a schedule, no touch"],
+       [(p.unattributed ? "red" : ""), "Unattributed", p.unattributed || 0,
+        p.unattributed ? "nothing writes these" : "all accounted for"]
+      ].forEach(function(o){
+        var d = document.createElement("div"); d.className = "k " + o[0];
+        d.innerHTML = '<div class="l">'+o[1]+'</div><div class="v">'+o[2]+
+                      '</div><div class="d">'+o[3]+'</div>';
+        k.appendChild(d);
+      });
+      app.appendChild(k);
+
+      var ctr = document.createElement("div"); ctr.className = "controls";
+      var inp = document.createElement("input");
+      inp.type = "search"; inp.placeholder = "Search file, source or note…";
+      inp.addEventListener("input", function(){ q = this.value.toLowerCase(); render(); });
+      ctr.appendChild(inp);
+      var order = ["all", "pipeline", "script", "manual", "unattributed"];
+      order.forEach(function(f){
+        if (f !== "all" && !p[f]) return;
+        var b = document.createElement("button"); b.type = "button";
+        b.textContent = f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1) +
+                        " · " + (p[f] || 0);
+        b.setAttribute("aria-pressed", f === "all" ? "true" : "false");
+        b.addEventListener("click", function(){
+          filter = f;
+          [].forEach.call(ctr.querySelectorAll("button"), function(x){ x.setAttribute("aria-pressed","false"); });
+          b.setAttribute("aria-pressed","true"); render();
+        });
+        ctr.appendChild(b);
+      });
+      var cnt = document.createElement("span"); cnt.className = "count"; cnt.id = "cnt";
+      ctr.appendChild(cnt);
+      app.appendChild(ctr);
+
+      var wrap = document.createElement("div"); wrap.className = "tbl-wrap"; wrap.id = "tw";
+      app.appendChild(wrap);
+
+      var cal = document.createElement("div"); cal.className = "callout";
+      cal.innerHTML = "<h3>Reading this honestly</h3><ul>" +
+        "<li><b>Only the pipeline files are current.</b> Everything marked <i>script</i> or " +
+        "<i>manual</i> is as old as the last time someone ran it. The date column says when, " +
+        "and no chart should be trusted past it without a rerun.</li>" +
+        "<li><b>Coverage is not quality.</b> A long span means many observations, not that they " +
+        "are comparable end to end — several series carry definition breaks noted in the file.</li>" +
+        "<li><b>The unattributed files are a finding, not an oversight.</b> They are exploratory " +
+        "pulls that outlived their purpose. Listing them beats a tidy index that hides them.</li>" +
+        "</ul>";
+      app.appendChild(cal);
+
+      render();
+      document.getElementById("foot").style.display = "";
+    }
+
+    function render(){
+      var rows = DATA.datasets.filter(function(e){
+        if (filter !== "all" && e.provenance !== filter) return false;
+        if (!q) return true;
+        return (e.file + " " + (e.source||"") + " " + (e.note||"") + " " +
+                (e.producer||"")).toLowerCase().indexOf(q) > -1;
+      });
+      rows.sort(function(a, b){
+        var x = a[sort.col], y = b[sort.col];
+        if (typeof x === "string" || typeof y === "string")
+          return sort.dir * String(x||"").localeCompare(String(y||""));
+        if (x == null && y == null) return 0;
+        if (x == null) return 1; if (y == null) return -1;
+        return sort.dir * (x - y);
+      });
+
+      var cols = [["file","Dataset"],["provenance","Source of truth"],["series","Series"],
+                  ["observations","Observations"],["coverage","Coverage"],["last_commit","Last change"]];
+      var h = "<table class='cat'><thead><tr>";
+      cols.forEach(function(c){ h += "<th data-c='"+c[0]+"'>"+c[1]+"</th>"; });
+      h += "</tr></thead><tbody>";
+      rows.forEach(function(e){
+        var cov = e.coverage ? (e.coverage.first + " → " + e.coverage.last) : "—";
+        h += "<tr><td class='f'><code>"+esc(e.file.replace("data/",""))+"</code>";
+        if (e.source) h += "<span class='src'>"+esc(e.source)+"</span>";
+        else if (e.note) h += "<span class='src'>"+esc(e.note)+"</span>";
+        h += "</td>";
+        h += "<td><span class='pill "+e.provenance+"'>"+e.provenance+"</span>";
+        if (e.producer) h += "<span class='src'>"+esc(e.producer)+"</span>";
+        h += "</td>";
+        h += "<td class='num'>"+num(e.series)+"</td>";
+        h += "<td class='num'>"+num(e.observations)+"</td>";
+        h += "<td class='cov'>"+cov+"</td>";
+        h += "<td class='cov'>"+ymd(e.last_commit)+"</td></tr>";
+      });
+      h += "</tbody></table>";
+      document.getElementById("tw").innerHTML = h;
+      document.getElementById("cnt").textContent =
+        rows.length + " of " + DATA.datasets.length + " shown";
+
+      [].forEach.call(document.querySelectorAll("th[data-c]"), function(th){
+        th.addEventListener("click", function(){
+          var c = th.getAttribute("data-c");
+          if (sort.col === c) sort.dir *= -1;
+          else { sort.col = c; sort.dir = (c === "file" || c === "provenance") ? 1 : -1; }
+          render();
+        });
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
