@@ -2,14 +2,20 @@
 """LinkedIn carousel: the GLP-1 molecule landscape -> notes/glp1-molecules-carousel.pdf
 
 Option A. A science deck, not a markets deck: NO share prices, NO valuation, NO
-company names. Subject is the molecules — mechanism, stage and indication. For an
-author employed in the pharmaceutical industry this removes securities commentary
-and competitor commentary entirely.
+company names, NO trade names. Subject is the molecules — receptor targets, stage
+and indication. For an author employed in the pharmaceutical industry this removes
+securities commentary and competitor commentary entirely.
+
+Built around three graphics rather than text lists:
+  slide 2  receptor matrix     — which molecule hits which receptor
+  slide 3  pipeline by stage   — where each one stands
+  slide 4  weight loss         — the two oral candidates, cross-trial caveat shown
+  slide 5  indication map      — the biology spreading beyond obesity
 
 6 portrait slides (1080x1350), same house style as scripts/glp1_carousel.py.
 
-Unlike the markets deck, these facts cannot be computed from a price file, so they
-are stated here with their source. Every claim below traces to one of:
+These facts cannot be computed from a price file, so each is stated here against
+its source:
 
   [1] Structure Therapeutics 10-Q, FY2026 Q1 (7 May 2026) — aleniglipron
       (GSBR-1290) is "an oral small molecule selective glucagon-like-peptide-1
@@ -45,14 +51,13 @@ are stated here with their source. Every claim below traces to one of:
       agonists such as tirzepatide.
   [9] Clarivate commentary (5 Aug 2026) — US GLP-1 receptor agonist prescriptions
       rose 587% from 2019 to 2024; obesity rates on track to exceed 50% by 2030.
-
-No trade names appear anywhere in this deck, by design.
 """
 import os
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyBboxPatch
 from matplotlib.backends.backend_pdf import PdfPages
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,6 +67,7 @@ os.makedirs(PNGDIR, exist_ok=True)
 SURFACE = "#0f1419"; INK = "#f4f6f8"; INK2 = "#9aa3ad"
 GRID = "#232a33"; MUTED = "#3d4654"
 BLUE = "#3987e5"; GREEN = "#199e70"; ORANGE = "#d95926"; YELLOW = "#c98500"
+VIOLET = "#9085e9"
 
 plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
@@ -71,19 +77,31 @@ plt.rcParams.update({
 W, H = 7.2, 9.0
 NSLIDES = 6
 
-# molecule, mechanism, stage, stage-rank (for the pipeline graphic), source refs
-PIPELINE = [
-    ("semaglutide",                 "GLP-1 receptor agonist",        "Approved",  4, "[8]"),
-    ("tirzepatide",                 "dual GIP/GLP-1 agonist",        "Approved",  4, "[8]"),
-    ("oral semaglutide 25 mg",      "GLP-1 agonist, tablet",         "Approved",  4, "[5]"),
-    ("cagrilintide + semaglutide",  "GLP-1 + amylin",                "Filed",     3, "[6][7]"),
-    ("aleniglipron",                "oral GLP-1, small molecule",    "Phase 3",   2, "[1][2]"),
-    ("pemvidutide",                 "glucagon/GLP-1, 1:1",           "Phase 3",   2, "[3][4]"),
-    ("zenagamtide",                 "GLP-1 + amylin",                "Phase 3",   2, "[7]"),
-    ("petrelintide",                "amylin analogue",               "Phase 2",   1, "[6]"),
-    ("ACCG-2671",                   "oral amylin, small molecule",   "Phase 1",   0, "[1][6]"),
+RECEPTORS = ["GLP-1", "GIP", "amylin", "glucagon"]
+RCOLOUR = {"GLP-1": BLUE, "GIP": GREEN, "amylin": YELLOW, "glucagon": ORANGE}
+
+# molecule, receptors hit, stage, stage index (0=Ph1 .. 4=Approved), source
+MOLECULES = [
+    ("semaglutide",                ["GLP-1"],               "Approved", 4, "[8]"),
+    ("tirzepatide",                ["GLP-1", "GIP"],        "Approved", 4, "[8]"),
+    ("cagrilintide + semaglutide", ["GLP-1", "amylin"],     "Filed",    3, "[6][7]"),
+    ("aleniglipron",               ["GLP-1"],               "Phase 3",  2, "[1][2]"),
+    ("pemvidutide",                ["GLP-1", "glucagon"],   "Phase 3",  2, "[3][4]"),
+    ("zenagamtide",                ["GLP-1", "amylin"],     "Phase 3",  2, "[7]"),
+    ("petrelintide",               ["amylin"],              "Phase 2",  1, "[6]"),
+    ("ACCG-2671",                  ["amylin"],              "Phase 1",  0, "[1][6]"),
 ]
-STAGE_COLOUR = {4: GREEN, 3: BLUE, 2: BLUE, 1: YELLOW, 0: ORANGE}
+STAGES = ["Phase 1", "Phase 2", "Phase 3", "Filed", "Approved"]
+STAGE_COLOUR = [ORANGE, YELLOW, BLUE, VIOLET, GREEN]
+
+# indication, molecules, colour — approval status noted in the label
+INDICATIONS = [
+    ("Obesity /\noverweight", GREEN,
+     ["semaglutide", "tirzepatide", "cagrilintide + semaglutide",
+      "aleniglipron", "zenagamtide", "petrelintide", "ACCG-2671"]),
+    ("Liver disease\n(MASH)", YELLOW, ["semaglutide", "pemvidutide"]),
+    ("Alcohol use\ndisorder", ORANGE, ["pemvidutide"]),
+]
 
 
 def newslide():
@@ -112,137 +130,203 @@ def save(fig, pdf, n):
     plt.close(fig)
 
 
-def rows(fig, items, y0, gap=0.105):
-    """molecule / mechanism / stage blocks."""
-    for i, (mol, mech, stage, rank) in enumerate(items):
-        y = y0 - i * gap
-        fig.text(0.08, y, mol, fontsize=20, fontweight="bold", color=INK)
-        fig.text(0.08, y - 0.032, mech, fontsize=13, color=INK2)
-        fig.text(0.92, y, stage, fontsize=15, fontweight="bold",
-                 color=STAGE_COLOUR[rank], ha="right")
-        fig.add_artist(plt.Line2D([0.08, 0.92], [y - 0.055, y - 0.055], color=GRID, lw=1))
+def blank_ax(fig, rect):
+    ax = fig.add_axes(rect)
+    ax.set_facecolor(SURFACE)
+    ax.set_xticks([]); ax.set_yticks([])
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    return ax
+
+
+def chip(ax, x, y, w, h, colour, alpha=1.0):
+    ax.add_patch(FancyBboxPatch((x, y), w, h,
+                                boxstyle="round,pad=0,rounding_size=0.09",
+                                linewidth=0, facecolor=colour, alpha=alpha,
+                                mutation_aspect=0.5))
 
 
 # ----------------------------------------------------------------- slides
 def s1(pdf):
+    """Cover: one big number, and the four receptors the field is built on."""
     fig = newslide()
     kicker(fig, "GLP-1 · the molecules")
-    fig.text(0.08, 0.815, "Two molecules", fontsize=38, fontweight="bold", va="top")
-    fig.text(0.08, 0.740, "approved.", fontsize=38, fontweight="bold", va="top")
-    fig.text(0.08, 0.650, "Nine in the race.", fontsize=38, fontweight="bold",
+    fig.text(0.08, 0.845, "Four receptors.", fontsize=37, fontweight="bold", va="top")
+    fig.text(0.08, 0.775, "Nine molecules.", fontsize=37, fontweight="bold",
              va="top", color=BLUE)
-    fig.text(0.08, 0.545,
-             "GLP-1 medicines reshaped the treatment of\ntype 2 diabetes, then of obesity.\n\n"
-             "What follows is the landscape by molecule:\nmechanism, stage and indication.\n\n"
-             "No share prices. No companies. Just the\nmolecules and where they stand.",
-             fontsize=17, va="top", linespacing=1.45)
-    fig.add_artist(plt.Line2D([0.08, 0.92], [0.235, 0.235], color=GRID, lw=1))
-    fig.text(0.08, 0.185,
-             "US prescriptions for GLP-1 receptor agonists rose\n587% between 2019 and 2024.",
-             fontsize=14, va="top", color=INK, linespacing=1.4)
-    fig.text(0.08, 0.095, "Sources listed on the final slide. As at August 2026.",
-             fontsize=11, color=MUTED)
+
+    # receptor chips — the visual spine of the whole deck
+    ax = blank_ax(fig, [0.08, 0.545, 0.84, 0.16])
+    ax.set_xlim(0, 4); ax.set_ylim(0, 1)
+    for i, r in enumerate(RECEPTORS):
+        chip(ax, i + 0.06, 0.34, 0.88, 0.42, RCOLOUR[r])
+        ax.text(i + 0.5, 0.55, r, ha="center", va="center", fontsize=13.5,
+                fontweight="bold", color="#0f1419" if r == "amylin" else "#ffffff")
+    ax.text(2.0, 0.10, "the receptor family the whole field is built on",
+            ha="center", fontsize=11.5, color=INK2)
+
+    fig.text(0.08, 0.470, "587%", fontsize=72, fontweight="bold", color=GREEN, va="top")
+    fig.text(0.08, 0.355,
+             "growth in US prescriptions for GLP-1\nreceptor agonists, 2019 to 2024.",
+             fontsize=16, va="top", linespacing=1.45)
+    fig.add_artist(plt.Line2D([0.08, 0.92], [0.275, 0.275], color=GRID, lw=1))
+    fig.text(0.08, 0.225,
+             "Two molecules are approved for obesity.\nSeven more are in trials.",
+             fontsize=16.5, va="top", linespacing=1.45, color=INK)
+    fig.text(0.08, 0.128,
+             "Receptor targets, stage and indication. No trade names.\nSources on the final slide. As at August 2026.",
+             fontsize=11, va="top", color=MUTED, linespacing=1.4)
     save(fig, pdf, 1)
 
 
 def s2(pdf):
+    """Receptor matrix: the single most informative graphic in the deck."""
     fig = newslide()
-    kicker(fig, "Approved for obesity", GREEN)
-    fig.text(0.08, 0.895, "Only two mechanisms\nare on the market.", fontsize=28,
-             fontweight="bold", va="top", linespacing=1.2)
-    rows(fig, [
-        ("semaglutide", "GLP-1 receptor agonist · injectable and oral", "Approved", 4),
-        ("tirzepatide", "dual GIP/GLP-1 agonist · injectable", "Approved", 4),
-    ], 0.700, gap=0.135)
-    fig.text(0.08, 0.475,
-             "One activates the GLP-1 receptor alone.\nThe other adds GIP, a second incretin receptor.",
-             fontsize=16.5, va="top", linespacing=1.45)
-    fig.text(0.08, 0.355,
-             "Everything else in obesity is still in trials.",
-             fontsize=18, fontweight="bold", color=INK)
-    fig.text(0.08, 0.265,
-             "That is unusual for a therapy area this large, and it\nis why each trial readout moves the field so much.",
-             fontsize=15, va="top", color=INK2, linespacing=1.45)
-    fig.text(0.08, 0.135, "Obesity prevalence is projected to exceed 50% of adults by 2030.",
-             fontsize=12.5, color=MUTED)
+    kicker(fig, "How they work")
+    fig.text(0.08, 0.895, "One target became four.", fontsize=27,
+             fontweight="bold", va="top")
+
+    n = len(MOLECULES)
+    ax = blank_ax(fig, [0.40, 0.235, 0.52, 0.60])
+    ax.set_xlim(-0.5, len(RECEPTORS) - 0.5)
+    ax.set_ylim(n - 0.5, -1.3)                     # header row above the grid
+
+    for j, r in enumerate(RECEPTORS):              # column heads
+        ax.text(j, -0.95, r, ha="center", va="center", fontsize=11,
+                fontweight="bold", color=RCOLOUR[r], rotation=0)
+    for i in range(n):                             # faint row rules
+        ax.plot([-0.5, len(RECEPTORS) - 0.5], [i + 0.5, i + 0.5],
+                color=GRID, lw=0.8, zorder=0)
+
+    for i, (mol, hits, stage, si, _) in enumerate(MOLECULES):
+        ax.text(-0.72, i, mol, ha="right", va="center", fontsize=12,
+                fontweight="bold", color=INK, transform=ax.transData)
+        for j, r in enumerate(RECEPTORS):
+            if r in hits:
+                ax.scatter([j], [i], s=200, color=RCOLOUR[r], zorder=3)
+            else:
+                ax.scatter([j], [i], s=44, color=GRID, zorder=2)
+
+    fig.text(0.08, 0.196,
+             "The first medicines hit one receptor. The newer ones pair\nGLP-1 with a second — to add effects, not just dose harder.",
+             fontsize=14.5, va="top", linespacing=1.42)
+    fig.text(0.08, 0.086,
+             "A filled dot means the molecule targets that receptor.",
+             fontsize=11, color=MUTED)
     save(fig, pdf, 2)
 
 
 def s3(pdf):
+    """Pipeline by stage."""
     fig = newslide()
-    kicker(fig, "The shift to a tablet")
-    fig.text(0.08, 0.895, "The next contest is\noral.", fontsize=29,
+    kicker(fig, "Where each one stands")
+    fig.text(0.08, 0.895, "Two on the market.\nSeven behind them.", fontsize=28,
              fontweight="bold", va="top", linespacing=1.2)
-    fig.text(0.08, 0.740, "oral semaglutide 25 mg", fontsize=21, fontweight="bold")
-    fig.text(0.08, 0.708, "peptide in tablet form", fontsize=13, color=INK2)
-    fig.text(0.92, 0.740, "Approved", fontsize=15, fontweight="bold",
-             color=GREEN, ha="right")
-    fig.text(0.08, 0.648,
-             "Authorised in the EU in July 2026 — the first\nGLP-1 receptor agonist in tablet form for weight\n"
-             "management there, and its fifth authorisation\nafter the US, UK, UAE and Bahrain.",
-             fontsize=15, va="top", linespacing=1.45)
-    fig.text(0.08, 0.488, "About 17% weight loss versus 3% on placebo in Phase 3b.",
-             fontsize=12.5, color=INK2)
-    fig.add_artist(plt.Line2D([0.08, 0.92], [0.452, 0.452], color=GRID, lw=1))
-    fig.text(0.08, 0.402, "aleniglipron", fontsize=21, fontweight="bold")
-    fig.text(0.08, 0.370, "oral GLP-1, small molecule", fontsize=13, color=INK2)
-    fig.text(0.92, 0.402, "Phase 3", fontsize=15, fontweight="bold", color=BLUE, ha="right")
-    fig.text(0.08, 0.310,
-             "A small molecule rather than a peptide, which is\nsimpler to manufacture at scale. Phase 2b showed\n"
-             "up to 16.2% weight loss in the extension study,\nwith a 10.4% discontinuation rate.",
-             fontsize=15, va="top", linespacing=1.45)
-    fig.text(0.08, 0.135,
-             "A tablet changes who can be treated, not just how well.",
-             fontsize=12, color=MUTED)
+
+    ax = blank_ax(fig, [0.08, 0.255, 0.84, 0.545])
+    ax.set_xlim(-0.6, 4.6); ax.set_ylim(-0.4, 3.5)
+
+    # stage columns
+    for i, st in enumerate(STAGES):
+        chip(ax, i - 0.44, 3.06, 0.88, 0.30, STAGE_COLOUR[i], alpha=0.9)
+        ax.text(i, 3.21, st, ha="center", va="center", fontsize=10.5,
+                fontweight="bold",
+                color="#0f1419" if STAGE_COLOUR[i] in (YELLOW, GREEN) else "#ffffff")
+        ax.plot([i, i], [-0.35, 2.92], color=GRID, lw=0.9, zorder=0)
+
+    # molecules stacked within their stage column
+    by_stage = {}
+    for mol, hits, stage, si, _ in MOLECULES:
+        by_stage.setdefault(si, []).append((mol, hits))
+    for si, items in by_stage.items():
+        for k, (mol, hits) in enumerate(items):
+            y = 2.45 - k * 0.72
+            ax.scatter([si], [y], s=150, color=STAGE_COLOUR[si], zorder=3)
+            short = mol.replace("cagrilintide + semaglutide", "cagrilintide\n+ semaglutide")
+            ax.text(si, y - 0.20, short, ha="center", va="top", fontsize=9.6,
+                    color=INK, fontweight="bold", linespacing=1.25)
+            ax.text(si, y - 0.20 - (0.30 if "\n" in short else 0.14),
+                    " · ".join(hits), ha="center", va="top", fontsize=8.2, color=INK2)
+
+    fig.text(0.08, 0.212,
+             "Only two mechanisms have reached patients. Everything\nelse — oral formats, combinations, new receptors — is\nstill being tested.",
+             fontsize=14.5, va="top", linespacing=1.42)
+    fig.text(0.08, 0.098,
+             "Stage as at August 2026. Development stages change; several readouts are due.",
+             fontsize=11, color=MUTED)
     save(fig, pdf, 3)
 
 
 def s4(pdf):
+    """The oral shift, with weight-loss figures and the cross-trial caveat."""
     fig = newslide()
-    kicker(fig, "Beyond GLP-1 alone", YELLOW)
-    fig.text(0.08, 0.895, "Amylin is the second\nmechanism.", fontsize=28,
+    kicker(fig, "The shift to a tablet")
+    fig.text(0.08, 0.895, "The next contest\nis oral.", fontsize=29,
              fontweight="bold", va="top", linespacing=1.2)
-    rows(fig, [
-        ("cagrilintide + semaglutide", "GLP-1 + amylin · injectable", "Filed", 3),
-        ("zenagamtide", "GLP-1 + amylin receptor agonist", "Phase 3", 2),
-        ("petrelintide", "amylin analogue", "Phase 2", 1),
-        ("ACCG-2671", "oral amylin, small molecule", "Phase 1", 0),
-    ], 0.715, gap=0.108)
-    fig.text(0.08, 0.275,
-             "If approved, the first combination would pair a\nGLP-1 receptor agonist with an amylin analogue\nfor the first time. A decision is expected in Q4.",
-             fontsize=15.5, va="top", linespacing=1.45)
-    fig.text(0.08, 0.135,
-             "Amylin targets satiety by a different route, so the two mechanisms may add\nrather than overlap.",
-             fontsize=12.5, va="top", color=MUTED, linespacing=1.35)
+
+    bars = [("oral semaglutide\n25 mg", 17.0, GREEN, "peptide, tablet · approved"),
+            ("aleniglipron", 16.2, BLUE, "small molecule · Phase 3"),
+            ("placebo", 3.0, MUTED, "same trial as the first bar")]
+    ax = fig.add_axes([0.30, 0.365, 0.62, 0.40])
+    ax.set_facecolor(SURFACE)
+    for sp in ("top", "right", "left"):
+        ax.spines[sp].set_visible(False)
+    ax.spines["bottom"].set_color(GRID)
+    ax.tick_params(colors=INK2, labelsize=10.5)
+    ax.grid(axis="x", color=GRID, lw=0.8)
+    ax.barh(range(len(bars)), [b[1] for b in bars],
+            color=[b[2] for b in bars], height=0.52)
+    ax.set_yticks(range(len(bars))); ax.set_yticklabels([])
+    ax.invert_yaxis()
+    tr = ax.get_yaxis_transform()
+    for i, (lab, v, c, sub) in enumerate(bars):
+        ax.text(-0.04, i - (0.16 if "\n" in lab else 0.09), lab, transform=tr,
+                ha="right", va="center", fontsize=11.5, fontweight="bold",
+                color=INK, linespacing=1.2)
+        ax.text(-0.04, i + (0.26 if "\n" in lab else 0.20), sub, transform=tr,
+                ha="right", va="center", fontsize=8.6, color=INK2)
+        ax.annotate(f"{v:.1f}%", (v, i), xytext=(7, 0), textcoords="offset points",
+                    va="center", fontsize=13, fontweight="bold", color=INK)
+    ax.set_xlim(0, 21)
+    ax.set_xlabel("Weight loss reported in trials  (%)", fontsize=10.5,
+                  color=INK2, labelpad=8)
+
+    fig.text(0.08, 0.315,
+             "A tablet changes who can realistically be treated, not\njust how much weight comes off. One is a peptide in\ntablet form; the other a small molecule, simpler to\nmanufacture at scale.",
+             fontsize=14.5, va="top", linespacing=1.42)
+    fig.text(0.08, 0.150,
+             "Not a head-to-head comparison. Different trials, populations and\ndurations: 17% versus 3% placebo at Phase 3b; 16.2% is the upper end of\nan open-label extension, with a 10.4% discontinuation rate.",
+             fontsize=10.5, va="top", color=MUTED, linespacing=1.4)
     save(fig, pdf, 4)
 
 
 def s5(pdf):
+    """Indication map — the biology spreading beyond obesity."""
     fig = newslide()
     kicker(fig, "Beyond obesity", ORANGE)
     fig.text(0.08, 0.895, "The same biology is\nmoving into the liver.", fontsize=27,
              fontweight="bold", va="top", linespacing=1.2)
-    fig.text(0.08, 0.735, "semaglutide", fontsize=20, fontweight="bold")
-    fig.text(0.08, 0.703, "GLP-1 receptor agonist", fontsize=13, color=INK2)
-    fig.text(0.92, 0.735, "Approved in MASH", fontsize=14, fontweight="bold",
-             color=GREEN, ha="right")
-    fig.text(0.08, 0.645,
-             "One of only two treatments approved for MASH.\nThe other works on a thyroid hormone receptor.",
-             fontsize=15, va="top", linespacing=1.45)
-    fig.add_artist(plt.Line2D([0.08, 0.92], [0.575, 0.575], color=GRID, lw=1))
-    fig.text(0.08, 0.520, "pemvidutide", fontsize=20, fontweight="bold")
-    fig.text(0.08, 0.488, "balanced 1:1 glucagon/GLP-1 agonist", fontsize=13, color=INK2)
-    fig.text(0.92, 0.520, "Phase 3", fontsize=14, fontweight="bold", color=BLUE, ha="right")
-    fig.text(0.08, 0.430,
-             "Adding glucagon acts directly on the liver, while\nGLP-1 handles appetite and weight. In Phase 3 for\n"
-             "MASH from August 2026: about 1,790 patients,\n52-week data expected in 2029.",
-             fontsize=15, va="top", linespacing=1.45)
-    fig.text(0.08, 0.265,
-             "Also in development for alcohol use disorder and\nalcohol-associated liver disease, with FDA Fast Track\nin both, and Breakthrough Therapy status in MASH.",
-             fontsize=14, va="top", color=INK2, linespacing=1.45)
-    fig.text(0.08, 0.135,
-             "Metabolic, hepatic and addiction pathways converge on one receptor family.",
-             fontsize=11.5, color=MUTED)
+
+    ax = blank_ax(fig, [0.08, 0.285, 0.84, 0.51])
+    ax.set_xlim(0, 3); ax.set_ylim(0, 1)
+    for i, (title, colour, mols) in enumerate(INDICATIONS):
+        chip(ax, i + 0.04, 0.82, 0.92, 0.15, colour, alpha=0.92)
+        ax.text(i + 0.5, 0.895, title.replace("\n", " "), ha="center", va="center",
+                fontsize=10.2, fontweight="bold",
+                color="#0f1419" if colour in (YELLOW, GREEN) else "#ffffff")
+        for k, m in enumerate(mols):
+            short = m.replace("cagrilintide + semaglutide", "cagrilintide\n+ semaglutide")
+            ax.text(i + 0.5, 0.72 - k * 0.098, short, ha="center", va="top",
+                    fontsize=9.8, color=INK, linespacing=1.2)
+        if i:
+            ax.plot([i, i], [0.02, 0.99], color=GRID, lw=0.9)
+
+    fig.text(0.08, 0.245,
+             "Adding glucagon acts directly on the liver while GLP-1\nhandles appetite. That widened the field from weight\nto liver disease, and now to addiction.",
+             fontsize=14.5, va="top", linespacing=1.42)
+    fig.text(0.08, 0.126,
+             "One molecule is approved in MASH, one of only two treatments for it. A\nglucagon/GLP-1 agonist began Phase 3 there in Aug 2026; data due 2029.",
+             fontsize=10.5, va="top", color=MUTED, linespacing=1.4)
     save(fig, pdf, 5)
 
 
@@ -252,9 +336,9 @@ def s6(pdf):
     fig.text(0.08, 0.895, "What this covers.", fontsize=30,
              fontweight="bold", va="top")
     fig.text(0.08, 0.790,
-             "Approval status, mechanism and trial stage as at\nAugust 2026, taken from company filings, company\nreleases and industry landscape reviews.\n\n"
-             "No trade names are used. No share prices,\nvaluations or company comparisons appear here —\nthis is a view of the science, not of the market.\n\n"
-             "Trial results are point-in-time and stages change.\nNothing here is medical or investment advice.",
+             "Receptor targets, approval status and trial stage as\nat August 2026, from company filings, company\nreleases and industry landscape reviews.\n\n"
+             "No trade names. No share prices, valuations or\ncompany comparisons — this is a view of the science,\nnot of the market.\n\n"
+             "Trial results are point-in-time and stages change.\nCross-trial figures are not head-to-head.",
              fontsize=15.5, va="top", linespacing=1.45)
     fig.add_artist(plt.Line2D([0.08, 0.92], [0.335, 0.335], color=GRID, lw=1))
     fig.text(0.08, 0.285, "Sources", fontsize=13, fontweight="bold", color=INK)
@@ -264,6 +348,7 @@ def s6(pdf):
              fontsize=11.5, va="top", color=INK2, linespacing=1.4)
     fig.text(0.08, 0.160, "Related work", fontsize=13, fontweight="bold", color=INK)
     fig.text(0.08, 0.128, "namikakmandev.github.io", fontsize=13, color=BLUE)
+    fig.text(0.08, 0.088, "Not medical or investment advice.", fontsize=11, color=MUTED)
     save(fig, pdf, 6)
 
 
