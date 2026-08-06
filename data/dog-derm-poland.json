@@ -7,21 +7,37 @@
     "",
     "v2 (6 Aug 2026) adds: (a) a REFERENCE-MARKET panel — Germany, UK, Sweden, Czechia/Hungary —",
     "used to transfer clinical RATES into Poland while anchoring MONEY locally; (b) TWO SCOPES,",
-    "because the definition of 'dermatology market' moves the answer more than any input does.",
+    "v3 (6 Aug 2026) CORRECTS v2: Method 3 (Germany transfer) measures DERMATOLOGY DRUGS ONLY,",
+    "while Methods 1-2 measure DRUGS + SERVICES. v2 wrongly reported all three as converging on",
+    "one object and revised the band up on that basis. v3 separates the two objects, reverts the",
+    "drugs+services band to EUR 70-150M, and reports the drugs-only conflict as UNRESOLVED.",
     "Cut-off: 6 Aug 2026."
   ],
-
   "TRANSFER_RULE": {
     "principle": "Rates transfer across markets; money does not.",
-    "transfer": ["disease prevalence", "incidence", "chronicity", "breed risk distribution"],
-    "do_not_transfer": ["price per consult", "spend per dog", "treatment penetration", "referral rates"],
+    "transfer": [
+      "disease prevalence",
+      "incidence",
+      "chronicity",
+      "breed risk distribution"
+    ],
+    "do_not_transfer": [
+      "price per consult",
+      "spend per dog",
+      "treatment penetration",
+      "referral rates"
+    ],
     "why": "Clinical parameters are biological and broadly stable across comparable dog populations. Economic parameters scale with income, veterinary price level, and insurance penetration — all of which differ sharply between Poland and every reference market available."
   },
-
   "scopes": {
     "A_clinical": {
       "definition": "Vet-attended canine skin disease in Poland — drugs AND services. Excludes retail/OTC antiparasitic preventatives bought without a consult, shampoos and supplements.",
-      "use_when": "You want the market for TREATING SICK DOGS."
+      "use_when": "You want the market for TREATING SICK DOGS.",
+      "SUB_SCOPES": {
+        "A1_drugs_and_services": "Total owner spend on vet-attended canine skin disease. Methods 1 and 2 measure THIS.",
+        "A2_drugs_only": "The pharmaceutical slice alone — the addressable market for a derm therapeutics business. Method 3 and all vendor figures measure THIS.",
+        "WHY_IT_MATTERS": "A1 and A2 differ by roughly 2x. Quoting a vendor drugs figure against a drugs+services estimate is the single easiest way to be wrong by 2-4x."
+      }
     },
     "B_vendor": {
       "definition": "The category commercial market-research vendors label 'veterinary dermatology' — includes antiparasitic preventatives (45.2% of the German figure), OTC topicals and supplements, dogs and cats.",
@@ -29,23 +45,44 @@
     },
     "NOTE": "Scope choice moves the answer by ~2.2x — more than prevalence and spend uncertainty combined."
   },
-
   "fx": {
-    "eur_pln": 4.30,
+    "eur_pln": 4.3,
     "usd_eur": 1.08,
     "note": "EUR/PLN ~4.30 (2024-25 band 4.2-4.4). USD/EUR ~1.08 (2024). Model is built in PLN; USD vendor figures converted at 1.08."
   },
-
   "prevalence_ladder": {
     "_warning": "These four rows measure FOUR DIFFERENT OBJECTS and must never be mixed or averaged. The 74x spread between the first and second row is definitional, not geographic.",
     "rows": [
-      {"object": "Atopic dermatitis — new insured claims", "rate": "0.17%/yr (1.7 per 1,000 dog-years)", "market": "Sweden", "source": "Agria insurance claims 1995-2002 (Nodtvedt et al.)", "note": "One specific diagnosis, claims-based. A FLOOR for chronic atopic cases, not a skin-disease rate."},
-      {"object": "All skin disorders — 1-year period prevalence", "rate": "12.58%", "market": "UK", "source": "VetCompass primary-care data", "note": "2nd most common disorder group. THE FIGURE USED IN THIS STUDY."},
-      {"object": "Otitis externa — 1-year period prevalence", "rate": "7.30%", "market": "UK", "source": "VetCompass", "note": "Partly overlapping with the skin group; not additive."},
-      {"object": "Dermatology share of all consultations", "rate": "18.8-21.4%", "market": "UK / Montreal", "source": "Hill et al. 2006; Univ. Montreal small-animal clinic", "note": "Share of VISITS, not share of dogs. Higher because affected dogs visit repeatedly."}
+      {
+        "object": "Atopic dermatitis — new insured claims",
+        "rate": "0.17%/yr (1.7 per 1,000 dog-years)",
+        "market": "Sweden",
+        "source": "Agria insurance claims 1995-2002 (Nodtvedt et al.)",
+        "note": "One specific diagnosis, claims-based. A FLOOR for chronic atopic cases, not a skin-disease rate."
+      },
+      {
+        "object": "All skin disorders — 1-year period prevalence",
+        "rate": "12.58%",
+        "market": "UK",
+        "source": "VetCompass primary-care data",
+        "note": "2nd most common disorder group. THE FIGURE USED IN THIS STUDY."
+      },
+      {
+        "object": "Otitis externa — 1-year period prevalence",
+        "rate": "7.30%",
+        "market": "UK",
+        "source": "VetCompass",
+        "note": "Partly overlapping with the skin group; not additive."
+      },
+      {
+        "object": "Dermatology share of all consultations",
+        "rate": "18.8-21.4%",
+        "market": "UK / Montreal",
+        "source": "Hill et al. 2006; Univ. Montreal small-animal clinic",
+        "note": "Share of VISITS, not share of dogs. Higher because affected dogs visit repeatedly."
+      }
     ]
   },
-
   "reference_markets": {
     "_role": "Poland has no domestic prevalence or derm-market data. These four markets supply transferable rates and the scaling factors needed to move economics into Polish conditions.",
     "poland": {
@@ -78,20 +115,32 @@
       "source": "Agria insurance database"
     },
     "czechia_hungary": {
-      "price_level_eu100": {"czechia": 82, "hungary": 74},
+      "price_level_eu100": {
+        "czechia": 82,
+        "hungary": 74
+      },
       "role": "ECONOMIC ANALOGUES — closest to Poland in income and vet-market structure. Used to confirm Poland's price level (72) sits in a coherent CEE band rather than being an outlier. Too data-thin to supply prevalence or market size.",
       "czechia_dog_ownership": "42% of households own a dog",
       "source": "Eurostat comparative price levels 2024; FEDIAF"
     }
   },
-
   "scaling_factors": {
     "_use": "Applied ONLY to money transferred from a reference market into Poland. Never applied to clinical rates.",
-    "price_level_poland_vs_germany": {"low": 0.60, "high": 0.72, "basis": "Eurostat comparative price levels: Poland 72 vs Germany ~110 on EU=100 → ratio ~0.65. Polish vet visit 100-250 PLN (EUR 23-58) vs German basic care EUR 100-250/yr corroborates."},
-    "treatment_seeking_poland_vs_germany": {"low": 0.75, "high": 0.90, "basis": "Pet insurance penetration <10% (PL) vs ~20% (DE). Uninsured owners defer follow-ups and decline referrals, so fewer billed episodes per case — not merely cheaper ones."},
-    "combined": {"low": 0.45, "high": 0.65}
+    "price_level_poland_vs_germany": {
+      "low": 0.6,
+      "high": 0.72,
+      "basis": "Eurostat comparative price levels: Poland 72 vs Germany ~110 on EU=100 → ratio ~0.65. Polish vet visit 100-250 PLN (EUR 23-58) vs German basic care EUR 100-250/yr corroborates."
+    },
+    "treatment_seeking_poland_vs_germany": {
+      "low": 0.75,
+      "high": 0.9,
+      "basis": "Pet insurance penetration <10% (PL) vs ~20% (DE). Uninsured owners defer follow-ups and decline referrals, so fewer billed episodes per case — not merely cheaper ones."
+    },
+    "combined": {
+      "low": 0.45,
+      "high": 0.65
+    }
   },
-
   "inputs_scope_A": {
     "dog_population": {
       "value_million": 8.1,
@@ -100,46 +149,87 @@
       "note": "4th largest dog population in the EU; highest per-capita dog ownership in Europe (~49% of households)."
     },
     "derm_episode_rate_per_year": {
-      "low": 0.08, "mid": 0.12, "high": 0.18,
+      "low": 0.08,
+      "mid": 0.12,
+      "high": 0.18,
       "source_proxy": "UK VetCompass — skin disorders ~12.6% one-year period prevalence.",
       "PROXY_LIMITATION": "No Polish national prevalence dataset exists. Rate is transferred from the UK under the TRANSFER_RULE above. Breed mix, climate and treatment-seeking behaviour could push the Polish rate off the UK one."
     },
     "annual_derm_spend_per_treated_dog_pln": {
-      "low": 300, "mid": 500, "high": 800,
+      "low": 300,
+      "mid": 500,
+      "high": 800,
       "source": "Polish price points ONLY (not transferred): consultation 100-250 PLN (PETHELP/Vivigo 2024-25); Apoquel 16mg ~46-90 PLN per 20-tablet pack (Allegro 2026); USG ~160 PLN. Simple episode ~150-400 PLN; chronic atopic case ~1,500-4,000 PLN/yr. Blend is dominated by simple cases.",
       "note": "Blended average, NOT a chronic-case cost."
     }
   },
-
   "results": {
     "scope_A_clinical": {
       "method_1_bottom_up": {
-        "eur_million": {"low": 45, "mid": 113, "high": 271},
-        "pln_million": {"low": 194, "mid": 486, "high": 1166},
+        "eur_million": {
+          "low": 45,
+          "mid": 113,
+          "high": 271
+        },
+        "pln_million": {
+          "low": 194,
+          "mid": 486,
+          "high": 1166
+        },
         "_calc": "8.1M x {0.08,0.12,0.18} x {300,500,800} PLN / 4.30"
       },
       "method_2_top_down_envelope": {
-        "eur_million": {"low": 25, "high": 118},
+        "eur_million": {
+          "low": 25,
+          "high": 118
+        },
         "_calc": "EUR {900,1400}M x companion{0.50,0.65} x dog{0.55,0.65} x derm-revenue{0.10,0.20}"
       },
       "method_3_germany_transfer": {
-        "eur_million": {"low": 110, "high": 188},
+        "eur_million": {
+          "low": 110,
+          "high": 188
+        },
         "_calc": "EUR 1062M x (1-0.4523) ex-antiparasitic = EUR 582M; x dog-share{0.55,0.65} = EUR 320-378M; / 10.6M German dogs = EUR 30-36/dog; x scaling{0.45,0.65} = EUR 13.5-23.4/dog; x 8.1M Polish dogs",
-        "note": "NEW in v2. Lands ABOVE methods 1 and 2 — see revision note."
+        "note": "Reports EUR 110-188M for drugs alone, which EXCEEDS the methods 1-2 estimate for drugs AND services. That is a genuine contradiction, not a convergence.",
+        "measures": "DRUGS ONLY — not comparable to methods 1 and 2"
       },
       "reconciled": {
-        "eur_million": {"low": 90, "high": 160, "point": 120},
-        "REVISION_NOTE": "v1 reported EUR 70-150M (point 110). The Germany transfer, which shares no inputs with either earlier method, lands at EUR 110-188M and pulls the central band up. v2 reports EUR 90-160M, point ~EUR 120M.",
-        "FALSE_PRECISION_WARNING": "A strict 3-way intersection of the method ranges gives EUR 110-118M. That is NOT reported as the answer: these are scenario ranges, not statistical confidence intervals, and intersecting them would manufacture precision the inputs cannot support."
-      }
+        "A1_drugs_and_services_eur_million": {
+          "low": 70,
+          "high": 150,
+          "point": 110,
+          "basis": "Methods 1 and 2 only — the two routes that actually measure this object, both anchored on Polish price data."
+        },
+        "A2_drugs_only_eur_million": {
+          "low": 30,
+          "high": 80,
+          "basis": "A1 x drug share of a derm episode (40-55%). Consult and diagnostics dominate simple cases; medication dominates chronic ones."
+        },
+        "UNRESOLVED_CONFLICT": {
+          "local_build_says_drugs": "EUR 30-80M",
+          "germany_transfer_says_drugs": "EUR 110-188M",
+          "gap": "2.3x to 3.9x",
+          "likelier_culprit": "The vendor anchor. Competing publishers differ ~2x on the same global market, and Grand View's Germany figure would imply German owners spend EUR 30-36/dog/yr on clinical derm drugs alone. But the alternative reading - that the Polish vet-services envelope understates companion-animal spend - cannot be ruled out from public data.",
+          "how_to_settle_it": "One Kynetec Poland data point, or any measured Polish derm drug sales figure, resolves this immediately. Until then the drugs-only number carries a 2-4x uncertainty and should be quoted as a range, not a point."
+        },
+        "REVISION_HISTORY": "v1: EUR 70-150M (methods 1-2). v2: raised to EUR 90-160M on the mistaken basis that method 3 measured the same object. v3: reverted to EUR 70-150M for drugs+services; method 3 reclassified as a drugs-only upper-bound check."
+      },
+      "OBJECT_WARNING": "Methods 1-2 measure DRUGS + SERVICES. Method 3 measures DRUGS ONLY. They are NOT three estimates of one quantity and must not be intersected or averaged."
     },
     "scope_B_vendor": {
       "germany_transfer": {
-        "eur_million": {"low": 201, "high": 343},
+        "eur_million": {
+          "low": 201,
+          "high": 343
+        },
         "_calc": "EUR 1062M x dog-share{0.55,0.65} = EUR 584-690M; / 10.6M = EUR 55-65/dog; x scaling{0.45,0.65} = EUR 25-42/dog; x 8.1M Polish dogs"
       },
       "reported": {
-        "eur_million": {"low": 100, "high": 340},
+        "eur_million": {
+          "low": 100,
+          "high": 340
+        },
         "note": "The lower bound is HALVED from the transfer result to carry the ~2x disagreement between vendors on the global total. Scope B is therefore LESS certain than Scope A despite looking more official — its uncertainty is definitional and vendor-driven, not Poland-specific."
       }
     },
@@ -148,7 +238,6 @@
       "note": "Scope B / Scope A. Definition moves the answer more than prevalence and spend uncertainty combined."
     }
   },
-
   "supply_side": {
     "veterinary_facilities": {
       "value": 7600,
@@ -156,21 +245,33 @@
       "source": "Krajowa Izba Lekarsko-Weterynaryjna / WetSystems register; ~72% are clinics, avg ~1.5 vets each. Business-directory counts run higher (8,800 IBISWorld; ~12,700 CompanyData) because they include all registered vet businesses.",
       "note": "Free, public, complete national register at wetsystems.org.pl — countable by voivodeship."
     },
-    "veterinarians": {"value": 10000, "source": "Krajowa Izba Lekarsko-Weterynaryjna"},
+    "veterinarians": {
+      "value": 10000,
+      "source": "Krajowa Izba Lekarsko-Weterynaryjna"
+    },
     "regional_concentration": "Mazovia (Warsaw) ~1,691 vet businesses, Greater Poland ~850, Silesia ~666, Lower Silesia ~612 (business-directory basis)."
   },
-
   "envelope_crosscheck": {
     "poland_vet_services_market": {
-      "low_eur_million": 900, "high_eur_million": 1400,
+      "low_eur_million": 900,
+      "high_eur_million": 1400,
       "source": "IBISWorld Veterinary Services in Poland (~EUR 1.4bn, 2026); Ken Research (~USD 0.9-1.5bn); Eurostat production value EUR 827.6M (2023) → ~EUR 997M by 2028.",
       "note": "Whole veterinary market — includes farm/livestock work, not companion-animal only."
     },
-    "companion_animal_share": {"low": 0.50, "high": 0.65},
-    "dog_share_of_companion": {"low": 0.55, "high": 0.65},
-    "derm_share_of_canine_clinical_spend": {"low": 0.10, "high": 0.20, "note": "Dermatology is ~15-25% of consultation VOLUME but less of REVENUE — skin visits are cheaper than surgery or dentistry."}
+    "companion_animal_share": {
+      "low": 0.5,
+      "high": 0.65
+    },
+    "dog_share_of_companion": {
+      "low": 0.55,
+      "high": 0.65
+    },
+    "derm_share_of_canine_clinical_spend": {
+      "low": 0.1,
+      "high": 0.2,
+      "note": "Dermatology is ~15-25% of consultation VOLUME but less of REVENUE — skin visits are cheaper than surgery or dentistry."
+    }
   },
-
   "known_breaks_and_limits": [
     "EU veterinary prices rose ~37% since 2015 and are still running ~6%/yr vs ~2% general inflation — any figure older than ~2 years understates current spend.",
     "The top-down envelope captures clinic-channel spend only, so it structurally leans low.",
@@ -178,24 +279,78 @@
     "No deflator applied: all figures are a single recent year (2023-2026), not a time series.",
     "Sweden's 0.17%/yr is atopic-dermatitis incidence from insured claims — NOT comparable to the UK's 12.58% all-skin period prevalence."
   ],
-
   "sources": [
-    {"pub": "FEDIAF", "what": "European Facts & Figures 2025 — pet population", "url": "https://europeanpetfood.org/about/statistics/"},
-    {"pub": "VetCompass / RVC", "what": "Prevalence of commonly diagnosed disorders in UK dogs under primary veterinary care", "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7888168/"},
-    {"pub": "Hill et al.", "what": "Prevalence, diagnosis and treatment of dermatological conditions in small animals in general practice", "url": "https://pubmed.ncbi.nlm.nih.gov/16632525/"},
-    {"pub": "Nodtvedt et al. / Agria", "what": "Incidence of and risk factors for atopic dermatitis in insured Swedish dogs", "url": "https://pubmed.ncbi.nlm.nih.gov/16987404/"},
-    {"pub": "Grand View Research", "what": "Germany veterinary dermatology drugs market (USD 1,146.9M, 2024)", "url": "https://www.grandviewresearch.com/horizon/outlook/veterinary-dermatology-drugs-market/germany"},
-    {"pub": "Eurostat", "what": "Comparative price levels, household consumption, 2024", "url": "https://ec.europa.eu/eurostat/web/products-eurostat-news/w/ddn-20250619-1"},
-    {"pub": "IBISWorld", "what": "Veterinary Services in Poland", "url": "https://www.ibisworld.com/poland/industry/veterinary-services/200088/"},
-    {"pub": "Ken Research", "what": "Poland Animal Health & Veterinary Market", "url": "https://www.kenresearch.com/poland-animal-health-veterinary-market"},
-    {"pub": "Krajowa Izba Lekarsko-Weterynaryjna", "what": "National register of veterinary establishments", "url": "https://wetsystems.org.pl/WetSystemsInfo/zinfo.html"},
-    {"pub": "PETHELP.pl", "what": "Cost of a Polish vet visit, 2024-2025 price survey", "url": "https://pethelp.pl/ile-kosztuje-wizyta-u-weterynarza-2024-cennik/"}
+    {
+      "pub": "FEDIAF",
+      "what": "European Facts & Figures 2025 — pet population",
+      "url": "https://europeanpetfood.org/about/statistics/"
+    },
+    {
+      "pub": "VetCompass / RVC",
+      "what": "Prevalence of commonly diagnosed disorders in UK dogs under primary veterinary care",
+      "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7888168/"
+    },
+    {
+      "pub": "Hill et al.",
+      "what": "Prevalence, diagnosis and treatment of dermatological conditions in small animals in general practice",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/16632525/"
+    },
+    {
+      "pub": "Nodtvedt et al. / Agria",
+      "what": "Incidence of and risk factors for atopic dermatitis in insured Swedish dogs",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/16987404/"
+    },
+    {
+      "pub": "Grand View Research",
+      "what": "Germany veterinary dermatology drugs market (USD 1,146.9M, 2024)",
+      "url": "https://www.grandviewresearch.com/horizon/outlook/veterinary-dermatology-drugs-market/germany"
+    },
+    {
+      "pub": "Eurostat",
+      "what": "Comparative price levels, household consumption, 2024",
+      "url": "https://ec.europa.eu/eurostat/web/products-eurostat-news/w/ddn-20250619-1"
+    },
+    {
+      "pub": "IBISWorld",
+      "what": "Veterinary Services in Poland",
+      "url": "https://www.ibisworld.com/poland/industry/veterinary-services/200088/"
+    },
+    {
+      "pub": "Ken Research",
+      "what": "Poland Animal Health & Veterinary Market",
+      "url": "https://www.kenresearch.com/poland-animal-health-veterinary-market"
+    },
+    {
+      "pub": "Krajowa Izba Lekarsko-Weterynaryjna",
+      "what": "National register of veterinary establishments",
+      "url": "https://wetsystems.org.pl/WetSystemsInfo/zinfo.html"
+    },
+    {
+      "pub": "PETHELP.pl",
+      "what": "Cost of a Polish vet visit, 2024-2025 price survey",
+      "url": "https://pethelp.pl/ile-kosztuje-wizyta-u-weterynarza-2024-cennik/"
+    }
   ],
-
   "paid_vendors": [
-    {"vendor": "Kynetec (VetTrak / PetTrak, incl. former Vetnosis)", "gives": "Actual pharmaceutical sales through the vet channel and patient visits/spend by therapeutic area, monthly, by country — the only real measured source for Polish derm sales.", "url": "https://www.kynetec.com/animal-health"},
-    {"vendor": "Grand View Research Horizon", "gives": "Country-level veterinary dermatology drug outlook (Poland cut available).", "url": "https://www.grandviewresearch.com/horizon/outlook/veterinary-dermatology-drugs-market/europe"},
-    {"vendor": "Euromonitor — Pet Care in Poland", "gives": "Polish pet ownership, spend and channels; weak on pharma specifics.", "url": "https://www.euromonitor.com/pet-care-in-poland/report"},
-    {"vendor": "IBISWorld — Poland Veterinary Services", "gives": "Services-side revenue, establishment counts, margins.", "url": "https://www.ibisworld.com/poland/industry/veterinary-services/200088/"}
+    {
+      "vendor": "Kynetec (VetTrak / PetTrak, incl. former Vetnosis)",
+      "gives": "Actual pharmaceutical sales through the vet channel and patient visits/spend by therapeutic area, monthly, by country — the only real measured source for Polish derm sales.",
+      "url": "https://www.kynetec.com/animal-health"
+    },
+    {
+      "vendor": "Grand View Research Horizon",
+      "gives": "Country-level veterinary dermatology drug outlook (Poland cut available).",
+      "url": "https://www.grandviewresearch.com/horizon/outlook/veterinary-dermatology-drugs-market/europe"
+    },
+    {
+      "vendor": "Euromonitor — Pet Care in Poland",
+      "gives": "Polish pet ownership, spend and channels; weak on pharma specifics.",
+      "url": "https://www.euromonitor.com/pet-care-in-poland/report"
+    },
+    {
+      "vendor": "IBISWorld — Poland Veterinary Services",
+      "gives": "Services-side revenue, establishment counts, margins.",
+      "url": "https://www.ibisworld.com/poland/industry/veterinary-services/200088/"
+    }
   ]
 }
