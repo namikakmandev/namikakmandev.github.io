@@ -162,8 +162,11 @@ def s1(pdf):
              fontweight="bold", va="top")
     fig.text(0.08, 0.800, f"{WORD[N_APPROVED]} have arrived.", fontsize=35,
              fontweight="bold", va="top", color=BLUE)
+    approved = [m for m, _, _, si, _ in MOLECULES if si == 4]
     fig.text(0.08, 0.712,
-             "GLP-1 medicines copy the gut hormones that tell\nthe body it has eaten. They changed diabetes care,\nthen obesity care.",
+             "GLP-1 medicines copy the gut hormones that tell the\n"
+             f"body it has eaten. {WORD[N_APPROVED]} are approved for obesity:\n"
+             f"{' and '.join(approved)}. {WORD[N_PENDING]} more are in trials.",
              fontsize=16, va="top", linespacing=1.45)
 
     # one square per molecule, grouped and coloured by how far it has got
