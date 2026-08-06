@@ -38,11 +38,11 @@ LinkedIn carousels are **document posts**. Create post → the document icon →
 >
 > I mapped all eight by molecule rather than by company. Three things stood out 👇
 >
-> 🧬 **One receptor became four.** The first medicines hit GLP-1 alone. Newer ones add GIP, amylin or glucagon — more effect, not just more dose.
+> 🧬 One receptor became four. The first medicines hit GLP-1 alone. Newer ones add GIP, amylin or glucagon — more effect, not just more dose.
 >
-> 💊 **The next contest is oral.** One approved peptide is now a tablet. A small molecule sits in Phase 3 behind it, far simpler to make at scale.
+> 💊 The next contest is oral. One approved peptide is now a tablet. A small molecule sits in Phase 3 behind it, far simpler to make at scale.
 >
-> 🩺 **It is moving past weight.** One molecule is approved in liver disease; another entered Phase 3 there this month, and is in trials for alcohol use disorder.
+> 🩺 It is moving past weight. One molecule is approved in liver disease; another entered Phase 3 there this month, and is in trials for alcohol use disorder.
 >
 > 📄 Sources on the slides: filings, company releases and regulatory announcements, as at August 2026. No trade names; cross-trial figures are not head-to-head.
 >
@@ -51,6 +51,10 @@ LinkedIn carousels are **document posts**. Create post → the document icon →
 About 150 words. The first two lines carry the hook before LinkedIn truncates;
 the three icons map to slides 2, 4 and 5, so the post stands alone and the deck
 supplies the evidence.
+
+**Paste as plain text — LinkedIn has no bold in posts.** Markdown asterisks show
+up literally, and the Unicode-bold trick breaks screen readers. The icons already
+carry the structure, so no emphasis markup is needed.
 
 ## Post copy — short version
 
