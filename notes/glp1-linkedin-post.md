@@ -1,99 +1,105 @@
-# GLP-1 study — LinkedIn carousel & post
+# GLP-1 — LinkedIn assets
 
-**Asset:** `notes/glp1-carousel.pdf` — 10 slides, 1080×1350 (4:5 portrait).
-Single slides as PNG in `assets/glp1-study/carousel/` for image posts or Twitter/X.
+Two decks exist. **Only A is intended for LinkedIn.**
 
-**Regenerate:** `python3 scripts/glp1_carousel.py`
-Numbers come from `data/glp1-stocks.json` and `data/glp1-valuation.json`, so the deck
-cannot drift from the study page. Basis is the **last complete month** — the newest bar
-in the price file is a partial month captured mid-session.
+| | File | Content | Status |
+|---|---|---|---|
+| **A** | `notes/glp1-molecules-carousel.pdf` | Molecule landscape — receptor targets, stage, indication. No share prices, no company names, no trade names. | **publish** |
+| **B** | `notes/glp1-carousel.pdf` | Markets study — returns, valuation multiples, the one-stock finding. Molecule-led, companies as data attribution. | in repo, **not** for posting |
 
----
-
-## How to post it
-
-LinkedIn carousels are **document posts**: upload the PDF directly (Create post →
-document icon → upload → give it a title). LinkedIn converts it to the swipeable
-card deck. HTML cannot be uploaded; PPT/DOCX would just be converted to PDF anyway.
-
-- The **title you type on upload appears above the deck** — make it the hook, not "carousel".
-- Slide 1 is the thumbnail in the feed. It has to earn the swipe on its own.
-- Put the study link in the **first comment** if you want maximum reach, or in the post
-  body if you care more about clicks than impressions.
-- 4:5 portrait takes the most vertical space in the feed. Don't switch to square.
+Regenerate: `python3 scripts/glp1_molecules_carousel.py` · `python3 scripts/glp1_carousel.py`
+Single slides as PNG: `assets/glp1-study/molecules/` and `assets/glp1-study/carousel/`
 
 ---
 
-## Post copy (option A — the counterintuitive finding)
+## Before posting
 
-> GLP-1 drugs were the biggest thing in medicine this decade.
->
-> Held equally since 2015, the six profitable GLP-1 names returned +450%, against
-> +275% for the S&P 500. A clear win for the theme.
->
-> Now remove Eli Lilly.
->
-> The same basket returns +170% — it loses to a plain index fund.
->
-> One stock carried the entire theme. And the company that *invented* the category,
-> Novo Nordisk, returned +175% against the index's +275%, and sits 65% below its
-> 2024 peak.
->
-> Being right about the trend was not the same as making money from it.
->
-> Full study, charts and open data pipeline in the comments. Not investment advice.
-
-## Post copy (option B — the valuation angle)
-
-> Novo Nordisk trades at 14x earnings. Eli Lilly trades at 40x.
->
-> So Novo is the cheap one, right?
->
-> Adjust for growth and it isn't. Consensus has Novo's earnings *falling* next year
-> and compounding at 7% a year; Lilly's compound at 17%. On a PEG basis Novo is the
-> **more** expensive of the two — 2.26 versus 1.92.
->
-> A 14x multiple on shrinking earnings is not a discount. It's a forecast.
->
-> I pulled 21 years of monthly total returns for 12 GLP-1 names, then added the
-> valuation layer. What the price already assumes turned out to be the whole story.
-
-## Post copy (option C — teaching angle, widest audience)
-
-> A quick way to sanity-check any share price: flip the multiple upside down.
->
-> Novo Nordisk at 14x earnings → 7.1% earnings yield
-> Eli Lilly at 40x earnings → 2.5% earnings yield
->
-> Suddenly it's comparable to a bond, or a flat you'd rent out. And the real question
-> appears on its own: why accept 2.5% from Lilly?
->
-> Because Lilly's earnings grow at 17% a year and Novo's are flat until 2028. That
-> trade-off is what valuation actually is.
->
-> I worked through it on 12 GLP-1 stocks — including why the "cheap" one is the
-> expensive one.
+- [ ] **Check your employer's external communications policy.** The decisive step, and the one nobody else can do for you.
+- [ ] Confirm you are content with the personal-capacity wording below, in your own words rather than mine.
+- [ ] A links only to `namikakmandev.github.io` (the site root), not to the markets study. Note the site itself does host that study, which names companies and shows share prices — reachable in two clicks if someone goes looking.
 
 ---
 
-## Slide map
+## How to upload
+
+LinkedIn carousels are **document posts**. Create post → the document icon → upload the PDF → give it a title.
+
+- The **title you type on upload appears above the deck.** Make it the hook, not "carousel". Suggested: *Eight molecules are chasing obesity. Two have arrived.*
+- Slide 1 is the feed thumbnail. It has to earn the tap on its own.
+- Keep the PDF as-is at 1080×1350 — portrait takes the most vertical space in the feed.
+
+---
+
+## Post copy — recommended
+
+> Eight molecules are chasing the obesity market. Two have arrived.
+>
+> GLP-1 medicines copy the gut hormones that tell the body it has eaten. Semaglutide and tirzepatide are approved. Six more are still in trials.
+>
+> I mapped the landscape by molecule rather than by company — what each one targets, how far it has got, and which disease it is aimed at.
+>
+> Three things stood out.
+>
+> **The field started with one receptor and now targets four.** The first medicines hit GLP-1 alone. Newer ones pair it with GIP, amylin or glucagon — adding effects rather than simply dosing harder.
+>
+> **The next contest is oral.** One approved peptide now comes as a tablet. A small molecule is in Phase 3 behind it, and small molecules are far simpler to manufacture at the scale this demand implies.
+>
+> **The biology is spreading past weight.** One molecule is already approved in liver disease. Another entered Phase 3 there this month, and is in trials for alcohol use disorder — the same receptor family reaching into addiction.
+>
+> Receptor targets, stages and approvals are on the slides, with sources: company filings, company releases and regulatory announcements, as at August 2026. No trade names, and cross-trial figures are not head-to-head.
+>
+> Personal analysis using public information. Views my own. Not medical advice.
+
+**Why this shape:** the first two lines carry the hook before LinkedIn truncates. The three bolded points map to slides 2, 4 and 5, so someone who reads only the post still gets the substance, and someone who swipes gets the evidence.
+
+## Post copy — shorter alternative
+
+> GLP-1 medicines copy the gut hormones that tell the body it has eaten.
+>
+> Eight molecules are in play. Two are approved. Six are in trials.
+>
+> What surprised me mapping them out: the field began by targeting one receptor and now targets four — GLP-1, GIP, amylin and glucagon — and the newest programmes are aimed at the liver and at addiction rather than at weight.
+>
+> Landscape by molecule, with sources, as at August 2026. No trade names.
+>
+> Personal analysis using public information. Views my own. Not medical advice.
+
+## Post copy — question opener
+
+> Which is harder: finding a molecule that works, or making it into a tablet?
+>
+> Eight GLP-1 molecules are in play for obesity. Two are approved. The interesting contest now is formulation, not efficacy — one approved peptide has reached tablet form, and a small molecule is in Phase 3 behind it, far simpler to manufacture at scale.
+>
+> I mapped all eight by receptor target, stage and indication. Sources on the slides, as at August 2026.
+>
+> Personal analysis using public information. Views my own. Not medical advice.
+
+---
+
+## Hashtags
+
+Pick three or four, not ten: `#GLP1` `#obesity` `#drugdevelopment` `#pharma` `#MASH` `#clinicaltrials`
+
+---
+
+## Slide map — deck A
 
 | # | Slide | Point |
 |---|-------|-------|
-| 1 | One drug class, two opposite outcomes | Hook + scope |
-| 2 | Same science, different decade | LLY vs NVO vs index, total return since 2015 |
-| 3 | They rose together — then split | Indexed divergence chart from 2021 |
-| 4 | −73% | Novo's drawdown + why losses are asymmetric |
-| 5 | Same tailwind, opposite results | 1-yr dispersion inside the theme |
-| 6 | One stock carried the entire theme | The finding: basket vs ex-Lilly vs index |
-| 7 | The inventor lagged the market | Novo vs S&P since 2015 |
-| 8 | So Novo is cheap now? | PE / growth / PEG side by side |
-| 9 | Flip it upside down | Earnings yield — the teaching slide |
-| 10 | What it cannot tell you | Honest limits + link |
+| 1 | Eight molecules. Two have arrived. | Plain-language opener, unit bar by stage, 587% prescription growth |
+| 2 | One target became four. | Receptor matrix: molecule × GLP-1 / GIP / amylin / glucagon |
+| 3 | Two on the market. Six behind them. | Pipeline positioned Phase 1 → Approved |
+| 4 | The next contest is oral. | Weight-loss bars for the two oral candidates, with cross-trial caveat |
+| 5 | The same biology is moving into the liver. | Indication map: obesity / liver disease / alcohol use disorder |
+| 6 | What this covers. | Scope, sources, limitations |
 
-## Notes
+## Integrity notes carried on the deck
 
-- Valuation figures are a manual snapshot (fundamentals via Bigdata.com), not the
-  monthly cron. Re-pull before reposting if it's been a while.
-- Trailing PE is GAAP; consensus forward EPS is adjusted. Stated on the study page.
-- Keep "Not investment advice" in the post, not only on slide 10.
+- Slide 4's bars are **not head-to-head** — different trials, populations and durations. Stated on the slide.
+- All counts derive from the molecule table in the script, so a headline cannot contradict the data.
+- Molecule names appear only where a filing or company release confirms them.
+- Stages are as at August 2026 and change; several readouts are due.
+
+## If someone asks about the markets angle in the comments
+
+Deck B exists and is in the repo. It is not posted, and the two questions are separate: A is about the science, B is about share prices. Answering market questions under a science post pulls you into exactly the territory A was built to avoid.
