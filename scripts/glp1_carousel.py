@@ -112,7 +112,11 @@ def axes(fig, rect):
 
 
 def rowstrip(fig, rows, y0, gap=0.062):
-    """name / descriptor / value rows with a rule under each."""
+    """subject / attribution / value rows with a rule under each.
+
+    The subject line is the molecule; the attribution line carries the company,
+    because the figure shown is a company-level share return.
+    """
     for i, (name, desc, val, colour) in enumerate(rows):
         y = y0 - i * gap
         fig.text(0.08, y, name, fontsize=15.5, color=INK, fontweight="bold")
@@ -127,7 +131,7 @@ def s1(pdf):
     """Cover: the chart. Sized and shaded so the split reads at thumbnail size."""
     fig = newslide()
     kicker(fig, "GLP-1 market study")
-    fig.text(0.08, 0.875, "Same medicine.", fontsize=35, fontweight="bold", va="top")
+    fig.text(0.08, 0.875, "Two molecules.", fontsize=35, fontweight="bold", va="top")
     fig.text(0.08, 0.808, "Opposite outcomes.", fontsize=35, fontweight="bold",
              va="top", color=BLUE)
 
@@ -144,24 +148,28 @@ def s1(pdf):
     ax.plot(xs, spx, color=MUTED, lw=1.5, ls=(0, (4, 3)))
     ax.plot(xs, nvo, color=ORANGE, lw=3.4)
     ax.plot(xs, lly, color=BLUE, lw=3.4)
-    for k, ys, c, lab in (("LLY", lly, BLUE, "Eli Lilly"),
-                          ("NVO", nvo, ORANGE, "Novo Nordisk"),
-                          ("SPX", spx, MUTED, "S&P 500")):
-        ax.annotate(lab, (len(ms) - 1, ys[-1]), xytext=(9, 0),
+    # molecule leads, company shown small: the line is a company share return
+    for k, ys, c, mol, co in (("LLY", lly, BLUE, "tirzepatide", "Eli Lilly"),
+                              ("NVO", nvo, ORANGE, "semaglutide", "Novo Nordisk"),
+                              ("SPX", spx, MUTED, "S&P 500", "")):
+        ax.annotate(mol, (len(ms) - 1, ys[-1]), xytext=(9, 4 if co else 0),
                     textcoords="offset points", color=c,
-                    fontsize=12.5 if k != "SPX" else 10.5,
-                    fontweight="bold", va="center")
+                    fontsize=12.5 if co else 10.5, fontweight="bold", va="center")
+        if co:
+            ax.annotate(co, (len(ms) - 1, ys[-1]), xytext=(9, -9),
+                        textcoords="offset points", color=INK2, fontsize=9, va="center")
     yrs = [(i, m[:4]) for i, m in enumerate(ms) if m.endswith("-01") and int(m[:4]) % 2 == 1]
     ax.set_xticks([i for i, _ in yrs]); ax.set_xticklabels([t for _, t in yrs], fontsize=12)
-    ax.set_xlim(0, len(ms) + 28)
+    ax.set_xlim(0, len(ms) + 34)
 
     fig.text(0.13, 0.255, "Indexed: Jan 2021 = 100", fontsize=11, color=MUTED)
-    fig.add_artist(plt.Line2D([0.08, 0.92], [0.215, 0.215], color=GRID, lw=1))
-    fig.text(0.08, 0.175,
-             "Two companies built the defining medicine of\nthe decade. One produced almost all of the return.",
+    fig.add_artist(plt.Line2D([0.08, 0.92], [0.228, 0.228], color=GRID, lw=1))
+    fig.text(0.08, 0.190,
+             "Two molecules defined the decade in metabolic\nmedicine. The market rewarded them very differently.",
              fontsize=16.5, va="top", linespacing=1.45)
-    fig.text(0.08, 0.077, f"Total return, Jan 2021 – {fmt_month(NOW)}. USD, dividends reinvested.",
-             fontsize=11.5, color=MUTED)
+    fig.text(0.08, 0.093,
+             f"Share price total return of each molecule's maker, Jan 2021 – {fmt_month(NOW)}.",
+             fontsize=11, color=MUTED)
     save(fig, pdf, 1)
 
 
@@ -171,17 +179,16 @@ def s2(pdf):
     kicker(fig, "Performance since 2015")
     fig.text(0.08, 0.885, "A decade apart.", fontsize=34, fontweight="bold", va="top")
 
-    for i, (k, colour, name, drug) in enumerate([
-            # Molecules and mechanism only — no trade names. Brand names read as
-            # product communication, which carries its own sensitivities for an
-            # author working inside the industry.
-            ("LLY", BLUE, "Eli Lilly", "tirzepatide — dual GIP/GLP-1 agonist"),
-            ("NVO", ORANGE, "Novo Nordisk", "semaglutide — GLP-1 receptor agonist")]):
+    for i, (k, colour, mol, mech, co) in enumerate([
+            # Molecule leads; the company is the small attribution line, because
+            # the figure is a company-level share return, not the molecule's.
+            ("LLY", BLUE, "tirzepatide", "dual GIP/GLP-1 agonist", "Eli Lilly"),
+            ("NVO", ORANGE, "semaglutide", "GLP-1 receptor agonist", "Novo Nordisk")]):
         y = 0.700 - i * 0.205
         fig.text(0.08, y, pc(ret(k)), fontsize=62, fontweight="bold",
                  color=colour, va="center")
-        fig.text(0.08, y - 0.068, name, fontsize=17, fontweight="bold", color=INK)
-        fig.text(0.08, y - 0.098, drug, fontsize=12.5, color=INK2)
+        fig.text(0.08, y - 0.068, mol, fontsize=19, fontweight="bold", color=INK)
+        fig.text(0.08, y - 0.100, f"{mech} · share return, {co}", fontsize=12, color=INK2)
 
     fig.add_artist(plt.Line2D([0.08, 0.92], [0.375, 0.375], color=GRID, lw=1))
     fig.text(0.08, 0.325, "S&P 500", fontsize=16, fontweight="bold", color=INK)
@@ -191,7 +198,7 @@ def s2(pdf):
     fig.add_artist(plt.Line2D([0.08, 0.92], [0.265, 0.265], color=GRID, lw=1))
 
     fig.text(0.08, 0.205,
-             "Novo Nordisk created the category and still\ntrailed the index over the decade.",
+             "The molecule that created the category did not\nproduce the larger return.",
              fontsize=16.5, va="top", linespacing=1.45)
     fig.text(0.08, 0.115, f"Total return, Jan 2015 – {fmt_month(NOW)}",
              fontsize=11.5, color=MUTED)
@@ -215,12 +222,13 @@ def s3(pdf):
     picks = [best, "LLY", "NVO", worst]
     seen = set(); picks = [k for k in picks if not (k in seen or seen.add(k))]
 
-    # Descriptors: molecule names only where a filing or release confirms them.
+    # Molecule leads; company is the attribution. Molecule named only where a
+    # filing or company release confirms it, otherwise the company stands alone.
     LABEL = {
-        "LLY": ("Eli Lilly", "tirzepatide — approved, on sale"),
-        "NVO": ("Novo Nordisk", "semaglutide — approved, on sale"),
-        "GPCR": ("Structure Therapeutics", "aleniglipron — oral GLP-1, Phase 3"),
-        "ALT": ("Altimmune", "pemvidutide — liver disease, Phase 3"),
+        "LLY": ("tirzepatide", "approved · Eli Lilly"),
+        "NVO": ("semaglutide", "approved · Novo Nordisk"),
+        "GPCR": ("aleniglipron", "oral GLP-1, Ph 3 · Structure Tx"),
+        "ALT": ("pemvidutide", "liver disease, Ph 3 · Altimmune"),
         "VKTX": ("Viking Therapeutics", "clinical stage, no approved product"),
         "ZLDPF": ("Zealand Pharma", "clinical stage, no approved product"),
         "AMGN": ("Amgen", "GLP-1 in development only"),
@@ -250,16 +258,16 @@ def s3(pdf):
                     textcoords="offset points", color=INK, fontsize=12.5,
                     fontweight="bold", va="center", ha="left" if v >= 0 else "right")
     ax.set_xlim(min(min(vals) * 2.6 - 15, -55), max(vals) * 1.30)
-    ax.set_xlabel(f"Total return, 12 months to {fmt_month(NOW)}  (%)",
+    ax.set_xlabel(f"Share price total return, 12 months to {fmt_month(NOW)}  (%)",
                   fontsize=11, color=INK2, labelpad=9)
 
     fig.text(0.08, 0.245,
              "The highest and lowest performers are both pre-revenue.\nTheir share prices move on trial results, not on sales.",
              fontsize=14, va="top", linespacing=1.4, color=INK)
     fig.text(0.08, 0.135,
-             f"Selection: best and worst of the ten companies, plus the two leaders. All four\n"
-             f"develop or sell GLP-1 medicines. The broad biotech index rose {pc(ret('XBI', frm))} over the\n"
-             f"same period; it is not GLP-1 specific.",
+             f"Returns are company share prices, grouped by lead molecule. Selection: best and\n"
+             f"worst of the ten, plus the two approved molecules. The broad biotech index rose\n"
+             f"{pc(ret('XBI', frm))} over the same period; it is not GLP-1 specific.",
              fontsize=10.5, va="top", color=MUTED, linespacing=1.35)
     save(fig, pdf, 3)
 
@@ -275,12 +283,12 @@ def s4(pdf):
     rowstrip(fig, [
         ("All six GLP-1 companies", "equally weighted", pc(basket), GREEN),
         ("S&P 500", "market benchmark", pc(ret("SPX")), INK2),
-        ("The same six, excluding Lilly", "equally weighted", pc(ex), ORANGE),
+        ("Excluding tirzepatide's maker", "the other five, equally weighted", pc(ex), ORANGE),
     ], 0.70, gap=0.115)
-    fig.text(0.08, 0.36, "Sector exposure alone did not deliver the return.",
+    fig.text(0.08, 0.36, "Exposure to the drug class was not enough.",
              fontsize=17, color=INK, fontweight="bold")
     fig.text(0.08, 0.285,
-             "Excluding one company, the group returned less\nthan the index over the same period.",
+             "Excluding a single company, the group returned\nless than the index over the same period.",
              fontsize=15, va="top", linespacing=1.4, color=INK)
     fig.text(0.08, 0.165, f"Held from Jan 2015 to {fmt_month(NOW)}. Total return.",
              fontsize=11.5, color=MUTED)
@@ -293,8 +301,10 @@ def s5(pdf):
     kicker(fig, "Valuation")
     fig.text(0.08, 0.895, "A lower multiple reflects\nlower expected growth.", fontsize=26,
              fontweight="bold", va="top", linespacing=1.22)
-    for t, x in (("Novo Nordisk", 0.62), ("Eli Lilly", 0.86)):
-        fig.text(x, 0.735, t, fontsize=12.5, color=INK2, fontweight="bold", ha="center")
+    for mol, co, x in (("semaglutide", "Novo Nordisk", 0.62),
+                       ("tirzepatide", "Eli Lilly", 0.86)):
+        fig.text(x, 0.742, mol, fontsize=13, color=INK, fontweight="bold", ha="center")
+        fig.text(x, 0.715, co, fontsize=10, color=INK2, ha="center")
     rows = [("Price ÷ earnings", f"{nvo.get('trailing_pe', 0):.1f}x",
              f"{lly.get('trailing_pe', 0):.1f}x", False),
             ("Expected growth, 5-yr",
@@ -316,10 +326,10 @@ def s5(pdf):
              "Adjusted for growth, Novo Nordisk is the more\nexpensive of the two.",
              fontsize=17, va="top", fontweight="bold", linespacing=1.4)
     fig.text(0.08, 0.205,
-             "Only these two companies have approved GLP-1 medicines for\nobesity on the market. The comparison is the whole market.",
+             "These are the only two GLP-1 molecules approved for obesity.\nThe comparison is the whole market.",
              fontsize=14, va="top", color=INK, linespacing=1.4)
     fig.text(0.08, 0.115,
-             "Trailing multiples are on reported earnings; consensus growth is on an adjusted\nbasis. Snapshot, not a live figure.",
+             "Multiples are company-level, not molecule-level. Trailing figures use reported\nearnings; consensus growth is on an adjusted basis. Snapshot, not live.",
              fontsize=10.5, va="top", color=MUTED, linespacing=1.35)
     save(fig, pdf, 5)
 
@@ -329,11 +339,11 @@ def s6(pdf):
     kicker(fig, "Scope and limitations")
     fig.text(0.08, 0.895, "What this does\nnot cover.", fontsize=31,
              fontweight="bold", va="top", linespacing=1.2)
-    fig.text(0.08, 0.715,
-             "These figures show what the market\ncurrently expects.\n\n"
-             "They do not forecast trial outcomes,\nregulatory decisions, manufacturing\ncapacity or pricing.\n\n"
-             "Valuation figures are a point-in-time\nsnapshot and move with estimate\nrevisions as well as price.",
-             fontsize=17, va="top", linespacing=1.45)
+    fig.text(0.08, 0.720,
+             "These figures show what the market\ncurrently expects. They do not forecast\ntrial outcomes, regulatory decisions\nor pricing.\n\n"
+             "Returns and multiples are company-level.\nA molecule names a programme, not the\nsource of a company's return.\n\n"
+             "Valuation data is a point-in-time snapshot.",
+             fontsize=16, va="top", linespacing=1.45)
     fig.add_artist(plt.Line2D([0.08, 0.92], [0.30, 0.30], color=GRID, lw=1))
     fig.text(0.08, 0.245, "Full study, charts, data and method",
              fontsize=15, color=INK, fontweight="bold")
