@@ -157,10 +157,10 @@ def s1(pdf):
 
     fig.text(0.13, 0.255, "Indexed: Jan 2021 = 100", fontsize=11, color=MUTED)
     fig.add_artist(plt.Line2D([0.08, 0.92], [0.215, 0.215], color=GRID, lw=1))
-    fig.text(0.08, 0.168,
+    fig.text(0.08, 0.175,
              "Two companies built the defining medicine of\nthe decade. One produced almost all of the return.",
              fontsize=16.5, va="top", linespacing=1.45)
-    fig.text(0.08, 0.088, f"Total return, Jan 2021 – {fmt_month(NOW)}. USD, dividends reinvested.",
+    fig.text(0.08, 0.077, f"Total return, Jan 2021 – {fmt_month(NOW)}. USD, dividends reinvested.",
              fontsize=11.5, color=MUTED)
     save(fig, pdf, 1)
 
@@ -172,8 +172,11 @@ def s2(pdf):
     fig.text(0.08, 0.885, "A decade apart.", fontsize=34, fontweight="bold", va="top")
 
     for i, (k, colour, name, drug) in enumerate([
-            ("LLY", BLUE, "Eli Lilly", "tirzepatide — Mounjaro, Zepbound"),
-            ("NVO", ORANGE, "Novo Nordisk", "semaglutide — Ozempic, Wegovy")]):
+            # Molecules and mechanism only — no trade names. Brand names read as
+            # product communication, which carries its own sensitivities for an
+            # author working inside the industry.
+            ("LLY", BLUE, "Eli Lilly", "tirzepatide — dual GIP/GLP-1 agonist"),
+            ("NVO", ORANGE, "Novo Nordisk", "semaglutide — GLP-1 receptor agonist")]):
         y = 0.700 - i * 0.205
         fig.text(0.08, y, pc(ret(k)), fontsize=62, fontweight="bold",
                  color=colour, va="center")
