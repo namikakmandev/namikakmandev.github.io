@@ -52,7 +52,7 @@ its source:
   [9] Clarivate commentary (5 Aug 2026) — US GLP-1 receptor agonist prescriptions
       rose 587% from 2019 to 2024; obesity rates on track to exceed 50% by 2030.
 """
-import os
+import json, os
 
 import matplotlib
 matplotlib.use("Agg")
@@ -374,7 +374,43 @@ def s6(pdf):
     save(fig, pdf, 6)
 
 
+def emit_json():
+    """Same facts the deck draws, written out so glp1-molecules.html can render
+    them too. One source, so page and carousel cannot drift apart."""
+    out = os.path.join(ROOT, "data", "glp1-molecules.json")
+    json.dump({
+        "source": "Company filings (10-Q, 8-K), company releases, regulatory "
+                  "announcements and industry landscape reviews, Dec 2025 – Aug 2026",
+        "as_of": "2026-08",
+        "receptors": RECEPTORS,
+        "receptor_colour": RCOLOUR,
+        "stages": STAGES,
+        "counts": {"total": N_TOTAL, "approved": N_APPROVED, "pending": N_PENDING,
+                   "by_stage": dict(zip(STAGES, N_STAGE))},
+        "molecules": [{"name": m, "receptors": r, "stage": st, "stage_index": si,
+                       "sources": src} for m, r, st, si, src in MOLECULES],
+        "indications": [{"name": t.replace("\n", " "), "molecules": ms}
+                        for t, _, ms in INDICATIONS],
+        "notes": {
+            "oral": "Oral semaglutide 25 mg was authorised in the EU in July 2026, the "
+                    "first GLP-1 receptor agonist in tablet form for weight management "
+                    "there; about 17% weight loss versus 3% placebo in Phase 3b. "
+                    "Aleniglipron is an oral small molecule, Phase 3, with up to 16.2% "
+                    "in an open-label extension and a 10.4% discontinuation rate. "
+                    "These are different trials — not head-to-head.",
+            "prescription_growth": "US prescriptions for GLP-1 receptor agonists rose "
+                                   "587% between 2019 and 2024.",
+            "liver": "Semaglutide is one of only two treatments approved for MASH. "
+                     "Pemvidutide entered Phase 3 in MASH in August 2026 (about 1,790 "
+                     "patients, 52-week data expected 2029) and is also in trials for "
+                     "alcohol use disorder and alcohol-associated liver disease.",
+        },
+    }, open(out, "w"), indent=1)
+    print("wrote", out)
+
+
 def main():
+    emit_json()
     out = os.path.join(ROOT, "notes", "glp1-molecules-carousel.pdf")
     with PdfPages(out) as pdf:
         for f in (s1, s2, s3, s4, s5, s6):

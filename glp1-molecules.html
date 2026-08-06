@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The GLP-1 Molecule Landscape — What Each One Targets, and How Far It Has Got — Namık Akman</title>
+  <meta name="description" content="Eight GLP-1 molecules mapped by receptor target, development stage and indication. Two are approved for obesity; six are in trials. Sourced from company filings, releases and regulatory announcements, August 2026. No trade names." />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="Namık Akman" />
+  <meta property="og:title" content="The GLP-1 Molecule Landscape" />
+  <meta property="og:description" content="Eight molecules. Two have arrived. The field began by targeting one receptor and now targets four — and the newest programmes aim at the liver and at addiction, not weight." />
+  <meta property="og:url" content="https://namikakmandev.github.io/glp1-molecules.html" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/glp1-study/molecules/slide_02.png" />
+  <meta property="og:image:alt" content="A matrix of eight GLP-1 molecules against four receptor targets: GLP-1, GIP, amylin and glucagon" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="The GLP-1 Molecule Landscape" />
+  <meta name="twitter:description" content="Eight molecules mapped by receptor target, stage and indication. Sourced, as at August 2026." />
+  <meta name="twitter:image" content="https://namikakmandev.github.io/assets/glp1-study/molecules/slide_02.png" />
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .study { padding: 32px 0 64px; }
+    .study .container { max-width: 940px; }
+    .study .back { color: var(--text-dim); font-size: .9rem; }
+    .study .back:hover { color: var(--text); text-decoration: none; }
+    .study h1 { font-size: 2.1rem; line-height: 1.18; letter-spacing: -.015em; margin: 14px 0 10px; }
+    .study .lede { color: var(--text-dim); font-size: 1.1rem; line-height: 1.55; margin-bottom: 22px; max-width: 780px; }
+    .study .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--text-dim); font-size: .85rem;
+                   border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+                   padding: 12px 0; margin-bottom: 30px; }
+    .study .meta b { color: var(--text); font-weight: 600; }
+    .study h2 { font-size: 1.35rem; margin: 44px 0 8px; letter-spacing: -.01em; }
+    .study p { margin: 0 0 16px; color: var(--text); }
+    .study p.sub { color: var(--text-dim); margin: -2px 0 16px; font-size: .98rem; max-width: 760px; }
+
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0 26px; }
+    .kpis .k { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+    .kpis .k .l { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+    .kpis .k .v { font-size: 1.7rem; font-weight: 700; margin-top: 4px; letter-spacing: -.01em; }
+    .kpis .k .d { font-size: .82rem; color: var(--text-dim); margin-top: 4px; }
+    .kpis .k.green .v { color: var(--accent-2); }
+    .kpis .k.blue .v { color: var(--accent); }
+
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+             padding: 18px 20px; margin: 16px 0 8px; overflow-x: auto; }
+    .cap { color: var(--text-dim); font-size: .84rem; margin: 8px 2px 6px; }
+
+    /* receptor matrix */
+    table.mx { border-collapse: collapse; width: 100%; min-width: 520px; }
+    table.mx th, table.mx td { padding: 10px 8px; text-align: center; border-bottom: 1px solid var(--border); }
+    table.mx th:first-child, table.mx td:first-child { text-align: left; white-space: nowrap; padding-right: 16px; }
+    table.mx thead th { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; }
+    table.mx td.name { color: var(--text); font-weight: 600; }
+    table.mx td.name small { display: block; color: var(--text-dim); font-weight: 400; font-size: .76rem; margin-top: 2px; }
+    .dot { display: inline-block; width: 15px; height: 15px; border-radius: 50%; }
+    .dot.off { width: 7px; height: 7px; background: var(--border); }
+
+    /* pipeline */
+    .pipe { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; min-width: 620px; }
+    .pipe .col { border-top: 3px solid var(--border); padding-top: 10px; }
+    .pipe .st { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; margin-bottom: 10px; }
+    .pipe .m { background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px;
+               padding: 9px 10px; margin-bottom: 8px; }
+    .pipe .m b { display: block; font-size: .86rem; color: var(--text); }
+    .pipe .m span { font-size: .74rem; color: var(--text-dim); }
+
+    /* weight-loss bars */
+    .bars { display: grid; gap: 12px; }
+    .bars .row { display: grid; grid-template-columns: 190px 1fr 62px; align-items: center; gap: 12px; }
+    .bars .lab b { display: block; font-size: .9rem; }
+    .bars .lab span { font-size: .76rem; color: var(--text-dim); }
+    .bars .track { background: var(--surface-2); border-radius: 6px; height: 22px; overflow: hidden; }
+    .bars .fill { height: 100%; border-radius: 6px; }
+    .bars .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+    /* indications */
+    .inds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .inds .c { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0 0 14px; overflow: hidden; }
+    .inds .c h4 { margin: 0 0 10px; padding: 11px 14px; font-size: .92rem; }
+    .inds .c ul { list-style: none; margin: 0; padding: 0 14px; }
+    .inds .c li { font-size: .88rem; color: var(--text); padding: 5px 0; border-bottom: 1px solid var(--border); }
+    .inds .c li:last-child { border-bottom: 0; }
+
+    .callout { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+               padding: 18px 22px; margin: 24px 0; }
+    .callout h3 { margin: 0 0 8px; font-size: 1rem; color: var(--accent); }
+    .callout ul { margin: 0 0 0 20px; } .callout li { margin-bottom: 8px; }
+
+    .dl { display: inline-block; background: var(--accent); color: #fff; font-weight: 600;
+          padding: 10px 18px; border-radius: 999px; font-size: .92rem; margin: 6px 0 0; }
+    .dl:hover { text-decoration: none; opacity: .92; }
+
+    .footnote { color: var(--text-dim); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 40px; }
+    .footnote a { color: var(--accent); }
+    .footnote code { font-size: .82rem; color: var(--text); }
+    .loading { color: var(--text-dim); padding: 40px 0; text-align: center; }
+
+    @media (max-width: 760px) {
+      .kpis, .inds { grid-template-columns: 1fr; }
+      .study h1 { font-size: 1.65rem; }
+      .bars .row { grid-template-columns: 130px 1fr 54px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="projects.html" class="back">&larr; Back to projects</a>
+
+        <h1>The GLP-1 molecule landscape. <span style="color:var(--text-dim);font-weight:500;">What each one targets, and how far it has got.</span></h1>
+        <p class="lede">
+          GLP-1 medicines copy the gut hormones that tell the body it has eaten. They changed
+          the treatment of type 2 diabetes, then of obesity. This is the field mapped by
+          <b>molecule</b> rather than by company: which receptors each one targets, what stage it
+          has reached, and which disease it is aimed at. No trade names, and no share prices —
+          the commercial side of the same story is a
+          <a href="glp1-stocks.html">separate study</a>.
+        </p>
+
+        <div class="meta">
+          <span>As at <b id="m-asof">—</b></span>
+          <span>Molecules <b id="m-n">—</b></span>
+          <span>Sources <b>company filings, releases, regulatory announcements</b></span>
+        </div>
+
+        <div id="app"><div class="loading">Loading…</div></div>
+
+        <div class="footnote" id="foot" style="display:none">
+          <p><b>Method.</b> Receptor targets, approval status and development stage are taken from
+          company filings (10-Q, 8-K), company releases, regulatory announcements and industry
+          landscape reviews published between December 2025 and August 2026. A molecule is named
+          only where a filing or company release confirms it. Every figure on this page and in the
+          carousel is read from <code>data/glp1-molecules.json</code>, which is written by
+          <code>scripts/glp1_molecules_carousel.py</code> — so the page and the deck cannot drift
+          apart, and the counts cannot contradict the table behind them.</p>
+          <p><b>Limits.</b> Trial results are point-in-time and development stages change; several
+          readouts are due. Weight-loss figures come from different trials with different
+          populations, doses and durations, and are <b>not head-to-head</b> — the chart above shows
+          them separately for that reason. This page describes the state of a research field. It is
+          not medical advice, and nothing here is a recommendation about any treatment.</p>
+          <p>Built by Namık Akman · <a href="projects.html">More studies</a> ·
+          <a href="glp1-stocks.html">The market side of the same story</a></p>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="js/main.js" defer></script>
+  <script>
+  (function () {
+    "use strict";
+    var RC = { "GLP-1": "#2f9bff", "GIP": "#19c37d", "amylin": "#c98500", "glucagon": "#ff6500" };
+    var SC = { "Phase 1": "#ff6500", "Phase 2": "#c98500", "Phase 3": "#2f9bff",
+               "Filed": "#9085e9", "Approved": "#19c37d" };
+    function el(t, c, h){ var e=document.createElement(t); if(c) e.className=c;
+      if(h!=null) e.innerHTML=h; return e; }
+    function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+    fetch("data/glp1-molecules.json").then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(build)
+      .catch(function(e){ document.getElementById("app").innerHTML =
+        '<p class="loading">Could not load the molecule data (' + e.message + '). It lives at ' +
+        '<code>data/glp1-molecules.json</code>.</p>'; });
+
+    function build(D){
+      var app = document.getElementById("app"); app.innerHTML = "";
+      var mols = D.molecules, C = D.counts;
+      document.getElementById("m-asof").textContent = D.as_of || "—";
+      document.getElementById("m-n").textContent = C.total + " tracked";
+
+      // ---- KPIs
+      var k = el("div", "kpis");
+      [["green", "Approved for obesity", C.approved, mols.filter(function(m){return m.stage==="Approved";})
+          .map(function(m){return m.name;}).join(" · ")],
+       ["blue", "Still in development", C.pending, "Phase 1 through filed"],
+       ["", "Receptors targeted", D.receptors.length, D.receptors.join(" · ")]
+      ].forEach(function(o){
+        k.appendChild(el("div", "k " + o[0],
+          '<div class="l">'+o[1]+'</div><div class="v">'+o[2]+'</div><div class="d">'+esc(o[3])+'</div>'));
+      });
+      app.appendChild(k);
+      app.appendChild(el("p", "sub", esc(D.notes.prescription_growth)));
+
+      // ---- receptor matrix
+      app.appendChild(el("h2", null, "One target became four"));
+      app.appendChild(el("p", "sub",
+        "The first medicines activated the GLP-1 receptor alone. Newer ones pair it with a second — "+
+        "GIP, amylin or glucagon — to add effects rather than simply increase the dose."));
+      var p1 = el("div", "panel");
+      var h = "<table class='mx'><thead><tr><th>Molecule</th>";
+      D.receptors.forEach(function(r){ h += "<th style='color:"+RC[r]+"'>"+r+"</th>"; });
+      h += "</tr></thead><tbody>";
+      mols.forEach(function(m){
+        h += "<tr><td class='name'>"+esc(m.name)+"<small>"+m.stage+"</small></td>";
+        D.receptors.forEach(function(r){
+          h += "<td>" + (m.receptors.indexOf(r) > -1
+            ? "<span class='dot' style='background:"+RC[r]+"' title='targets "+r+"'></span>"
+            : "<span class='dot off'></span>") + "</td>";
+        });
+        h += "</tr>";
+      });
+      h += "</tbody></table>";
+      p1.innerHTML = h; app.appendChild(p1);
+      app.appendChild(el("div", "cap", "A filled dot means the molecule targets that receptor."));
+
+      // ---- pipeline
+      app.appendChild(el("h2", null, "Where each one stands"));
+      app.appendChild(el("p", "sub",
+        "Only two mechanisms have reached patients. Everything else — oral formats, combinations, "+
+        "new receptors — is still being tested."));
+      var p2 = el("div", "panel"), pipe = el("div", "pipe");
+      D.stages.forEach(function(st){
+        var col = el("div", "col");
+        col.style.borderTopColor = SC[st];
+        col.appendChild(el("div", "st", "<span style='color:"+SC[st]+"'>"+st+"</span> "+
+          "<span style='color:var(--text-dim)'>· "+(C.by_stage[st]||0)+"</span>"));
+        mols.filter(function(m){ return m.stage === st; }).forEach(function(m){
+          col.appendChild(el("div", "m", "<b>"+esc(m.name)+"</b><span>"+m.receptors.join(" · ")+"</span>"));
+        });
+        pipe.appendChild(col);
+      });
+      p2.appendChild(pipe); app.appendChild(p2);
+      app.appendChild(el("div", "cap", "Stage as at " + D.as_of + ". Stages change; several readouts are due."));
+
+      // ---- oral
+      app.appendChild(el("h2", null, "The next contest is oral"));
+      app.appendChild(el("p", "sub",
+        "A tablet changes who can realistically be treated, not only how much weight comes off. "+
+        "One approved peptide now comes in tablet form; a small molecule sits in Phase 3 behind it, "+
+        "far simpler to manufacture at scale."));
+      var p3 = el("div", "panel"), bars = el("div", "bars");
+      [["oral semaglutide 25 mg", "peptide, tablet · approved", 17.0, "#19c37d"],
+       ["aleniglipron", "small molecule · Phase 3", 16.2, "#2f9bff"],
+       ["placebo", "same trial as the first row", 3.0, "#4a5469"]
+      ].forEach(function(b){
+        var row = el("div", "row");
+        row.appendChild(el("div", "lab", "<b>"+esc(b[0])+"</b><span>"+esc(b[1])+"</span>"));
+        var tr = el("div", "track"), fl = el("div", "fill");
+        fl.style.width = (b[2] / 20 * 100) + "%"; fl.style.background = b[3];
+        tr.appendChild(fl); row.appendChild(tr);
+        row.appendChild(el("div", "val", b[2].toFixed(1) + "%"));
+        bars.appendChild(row);
+      });
+      p3.appendChild(bars); app.appendChild(p3);
+      app.appendChild(el("div", "cap",
+        "Weight loss reported in trials. Not a head-to-head comparison — different trials, "+
+        "populations and durations."));
+
+      // ---- indications
+      app.appendChild(el("h2", null, "The same biology is moving into the liver"));
+      app.appendChild(el("p", "sub",
+        "Adding glucagon acts directly on the liver while GLP-1 handles appetite. That widened "+
+        "the field from weight to liver disease, and now to addiction."));
+      var inds = el("div", "inds");
+      var ICOL = ["#19c37d", "#c98500", "#ff6500"];
+      D.indications.forEach(function(ind, i){
+        var c = el("div", "c");
+        var head = el("h4", null, esc(ind.name));
+        head.style.background = ICOL[i % 3];
+        head.style.color = (i === 0 || i === 1) ? "#0f1419" : "#fff";
+        c.appendChild(head);
+        var ul = el("ul");
+        ind.molecules.forEach(function(m){ ul.appendChild(el("li", null, esc(m))); });
+        c.appendChild(ul); inds.appendChild(c);
+      });
+      app.appendChild(inds);
+      app.appendChild(el("div", "cap", esc(D.notes.liver)));
+
+      // ---- caveats + download
+      var cal = el("div", "callout");
+      cal.innerHTML = "<h3>Reading this fairly</h3><ul>"+
+        "<li><b>Cross-trial figures are not comparisons.</b> The weight-loss numbers come from "+
+        "separate trials with different populations, doses and durations. One is an upper bound "+
+        "from an open-label extension, not a controlled result.</li>"+
+        "<li><b>Stage is not success.</b> Phase 3 entry says a programme was funded and cleared to "+
+        "proceed, not that it will read out well. Several of these will fail.</li>"+
+        "<li><b>Mechanism is not outcome.</b> Targeting two receptors instead of one is a "+
+        "hypothesis about added benefit, and it still has to be demonstrated in patients.</li>"+
+        "<li><b>This is a snapshot.</b> Approvals and stages move; the file behind this page is "+
+        "dated, and so is every number on it.</li></ul>";
+      app.appendChild(cal);
+
+      var dl = el("p", null,
+        '<a class="dl" href="notes/glp1-molecules-carousel.pdf">Download the 6-slide summary (PDF)</a>');
+      app.appendChild(dl);
+
+      document.getElementById("foot").style.display = "";
+    }
+  })();
+  </script>
+</body>
+</html>
