@@ -45,15 +45,6 @@
   .study .back:hover { color: var(--text); text-decoration: none; }
   .study h1 { font-size: 2.1rem; }
   .study section { margin-top: 48px; }
-  @media (max-width: 640px) {
-    .study { font-size: 16px; }
-    .study h1 { font-size: 1.6rem; }
-    .study .twoup { grid-template-columns: 1fr; }
-    .study .answer .fig { font-size: 1.9rem; }
-    .study .frow { grid-template-columns: 1fr 1.6fr auto; gap: 10px; }
-    .study .ask { grid-template-columns: 1fr; gap: 8px; }
-    .study .ask .k { justify-self: start; }
-  }
   .study .eyebrow{ font-family: var(--mono); font-size: .7rem; letter-spacing: .14em;
              text-transform: uppercase; color: var(--muted); }
   .study h1{ font-family: var(--serif); font-weight: 400; font-size: 2.4rem; line-height: 1.16;
@@ -127,6 +118,20 @@
   .study .band .pt{ position: absolute; top: -3px; width: 2px; height: 30px; background: var(--ink); }
   .study .band .pt::after{ content: attr(data-v); position: absolute; top: -17px; left: 50%; transform: translateX(-50%);
                      font-family: var(--mono); font-size: .7rem; color: var(--ink); white-space: nowrap; }
+  .study .chain{ display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin-top: 12px; }
+  .study .chain .ch{ background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+               padding: 10px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 96px; }
+  .study .chain .ch b{ font-family: var(--serif); font-size: 1.25rem; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .study .chain .ch small{ font-size: .72rem; color: var(--muted); line-height: 1.35; }
+  .study .chain .ch.res{ border-color: var(--modelled); background: var(--modelled-wash); }
+  .study .chain .op{ display: flex; align-items: center; font-family: var(--mono); color: var(--muted); font-size: .95rem; }
+  .study .convert{ display: flex; flex-direction: column; gap: 0; margin-top: 10px; }
+  .study .convert .cv{ display: grid; grid-template-columns: 82px 1fr; gap: 14px; align-items: baseline;
+                 padding: 8px 0; border-bottom: 1px solid var(--rule); }
+  .study .convert .cv:last-child{ border-bottom: none; }
+  .study .convert .cl{ font-family: var(--mono); font-size: .92rem; font-variant-numeric: tabular-nums; text-align: right; }
+  .study .convert .cd{ font-size: .9rem; color: var(--muted); }
+  .study .convert .cv.tot .cl, .study .convert .cv.tot .cd{ color: var(--ink); font-weight: 650; }
   .study .groupmark{ font-family: var(--mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; }
   .study .asks{ display: flex; flex-direction: column; }
   .study .ask{ display: grid; grid-template-columns: auto 1fr; gap: 18px; padding: 16px 0;
@@ -141,6 +146,24 @@
   .study .src{ font-size: .83rem; color: var(--muted); line-height: 1.58; }
   .study .src code{ font-family: var(--mono); font-size: .79rem; color: var(--ink); }
   .study footer{ margin-top: 60px; border-top: 1px solid var(--rule); padding-top: 20px; }
+  @media (max-width: 640px) {
+    .study { font-size: 16px; }
+    .study h1 { font-size: 1.6rem; }
+    .study .twoup { grid-template-columns: 1fr; }
+    .study .answer .fig { font-size: 1.9rem; }
+    .study .chain{ gap: 6px; }
+    .study .chain .ch{ min-width: 74px; padding: 8px 10px; }
+    .study .chain .ch b{ font-size: 1.05rem; }
+    .study .chain .ch small{ font-size: .66rem; }
+    .study .convert .cv{ grid-template-columns: 66px 1fr; gap: 10px; }
+    .study .wrap{ padding: 36px 18px 72px; }
+    .study h1{ font-size: 1.85rem; }
+    .study .twoup{ grid-template-columns: 1fr; }
+    .study .answer .fig{ font-size: 1.9rem; }
+    .study .frow{ grid-template-columns: 1fr 1.6fr auto; gap: 10px; }
+    .study .ask{ grid-template-columns: 1fr; gap: 8px; }
+    .study .ask .k{ justify-self: start; }
+  }
   </style>
 </head>
 <body>
@@ -201,6 +224,28 @@
       <strong>€100–340M</strong>. Which definition is used changes the answer more than any other factor
       in this assessment.
     </p>
+
+    <div class="rulebox" style="margin-top:6px">
+      <div class="rt">How the headline figure was reached</div>
+      <p style="margin-top:10px">
+        Three methods were used. The simplest one, in a single line:
+      </p>
+      <div class="chain">
+        <span class="ch"><b>8.1M</b><small>dogs in Poland</small></span>
+        <span class="op">×</span>
+        <span class="ch"><b>12%</b><small>treated for a skin<br>problem each year</small></span>
+        <span class="op">×</span>
+        <span class="ch"><b>500 zł</b><small>average cost<br>per treated dog</small></span>
+        <span class="op">=</span>
+        <span class="ch res"><b>€113M</b><small>a year</small></span>
+      </div>
+      <p style="margin-top:12px;font-size:.92rem">
+        Vary each input across a plausible low and high and the result runs from €45M to €271M. Two
+        further methods — working down from the size of the Polish vet market, and scaling German
+        figures to Polish conditions — narrow that to the reported <strong>€70–150M</strong>.
+        Full workings in sections 04 and 05.
+      </p>
+    </div>
   </section>
 
   <section>
@@ -359,7 +404,41 @@
       <h3 style="margin-top:14px">Method 3 — from German figures <span style="font-weight:400;color:var(--muted)">(medicines only)</span></h3>
       <p style="font-size:.94rem">
         Germany is the only comparable market with a published dermatology figure: USD 1,146.9M for 2024,
-        of which 45.2% is antiparasitic products. This method measures drugs only.
+        of which 45.2% is antiparasitic products. This method measures medicines only.
+      </p>
+      <p style="font-size:.94rem">
+        The German total is first reduced to a figure per German dog. That figure is then converted to
+        Polish conditions. The conversion is the part of this method that carries the most uncertainty,
+        so it is set out in full below.
+      </p>
+      <div class="rulebox" style="background:var(--modelled-wash)">
+        <div class="rt" style="color:var(--modelled)">Converting a German dog into a Polish dog</div>
+        <p style="margin-top:10px;font-size:.94rem">
+          Take €100 spent on a German dog. Two things differ in Poland, and they are separate effects:
+        </p>
+        <div class="convert">
+          <div class="cv"><span class="cl">€100</span><span class="cd">spent on a German dog</span></div>
+          <div class="cv"><span class="cl">× 0.65</span><span class="cd">Polish prices are about 65% of German prices <em>(Eurostat — measured)</em></span></div>
+          <div class="cv"><span class="cl">× 0.80</span><span class="cd">Polish owners treat about 80% as much — fewer follow-up visits and referrals <em>(inferred from insurance coverage — assumption)</em></span></div>
+          <div class="cv tot"><span class="cl">= €52</span><span class="cd">the Polish equivalent of €100 of German spending</span></div>
+        </div>
+        <p style="margin-top:12px;font-size:.94rem">
+          The first multiplier adjusts what a treatment <em>costs</em>. The second adjusts how many
+          treatments are <em>paid for</em>. Spend is cost × number of treatments, so the two are
+          multiplied rather than double-counted: Eurostat price levels measure a fixed basket and carry
+          no volume effect.
+        </p>
+        <p style="margin-top:10px;font-size:.94rem">
+          Applied to the real figures: <strong>€33 per German dog × 0.52 ≈ €17 per Polish dog per year</strong>,
+          and €17 × 8.1M dogs ≈ <strong>€139M</strong> — the middle of the €110–188M range below.
+        </p>
+      </div>
+      <p style="font-size:.9rem;color:var(--muted)">
+        <strong>Sensitivity.</strong> The 0.65 price multiplier is measured. The 0.80 treatment multiplier
+        is an assumption; no source publishes how often Polish owners return for follow-up treatment.
+        Removing it entirely — assuming Polish owners treat as thoroughly as German owners — raises this
+        method to €147–208M. Halving it gives approximately €90M. This single assumption carries more
+        weight than any other input in this method.
       </p>
       <div class="scroll">
         <table>
