@@ -124,19 +124,28 @@ def rowstrip(fig, rows, y0, gap=0.062):
 
 # ----------------------------------------------------------------- slides
 def s1(pdf):
+    """Cover. Leads with the two returns, because the gap is the story."""
     fig = newslide()
     kicker(fig, "GLP-1 market study")
-    fig.text(0.08, 0.80, "Two leaders.", fontsize=41, fontweight="bold", va="top")
-    fig.text(0.08, 0.725, "Very different", fontsize=41, fontweight="bold", va="top")
-    fig.text(0.08, 0.65, "results.", fontsize=41, fontweight="bold", va="top", color=BLUE)
-    fig.text(0.08, 0.545,
-             "GLP-1 medicines reshaped the treatment\nof diabetes and obesity.\n\n"
-             "This review covers 21 years of monthly\ntotal returns for 12 listed companies,\n"
-             "and their current valuations.",
-             fontsize=18, va="top", linespacing=1.45)
-    fig.add_artist(plt.Line2D([0.08, 0.92], [0.28, 0.28], color=GRID, lw=1))
-    fig.text(0.08, 0.235, f"Data: Jan 2005 – {fmt_month(NOW)}", fontsize=14, color=INK2)
-    fig.text(0.08, 0.198, "Total return in USD, dividends reinvested", fontsize=13, color=MUTED)
+    fig.text(0.08, 0.865, "Same medicine.", fontsize=36, fontweight="bold", va="top")
+    fig.text(0.08, 0.795, "Opposite outcomes.", fontsize=36, fontweight="bold",
+             va="top", color=BLUE)
+
+    for i, (k, colour, name, drug) in enumerate([
+            ("LLY", BLUE, "Eli Lilly", "tirzepatide — Mounjaro, Zepbound"),
+            ("NVO", ORANGE, "Novo Nordisk", "semaglutide — Ozempic, Wegovy")]):
+        y = 0.615 - i * 0.20
+        fig.text(0.08, y, pc(ret(k)), fontsize=64, fontweight="bold",
+                 color=colour, va="center")
+        fig.text(0.08, y - 0.068, name, fontsize=17, fontweight="bold", color=INK)
+        fig.text(0.08, y - 0.098, drug, fontsize=12.5, color=INK2)
+
+    fig.add_artist(plt.Line2D([0.08, 0.92], [0.315, 0.315], color=GRID, lw=1))
+    fig.text(0.08, 0.265,
+             "Both companies built the defining medicine\nof the decade. One produced almost all of\nthe shareholder return.",
+             fontsize=17, va="top", linespacing=1.45)
+    fig.text(0.08, 0.115, f"Total return, Jan 2015 – {fmt_month(NOW)}. USD, dividends reinvested.",
+             fontsize=12, color=MUTED)
     save(fig, pdf, 1)
 
 
@@ -186,21 +195,24 @@ def s3(pdf):
     frm = yr_ago(NOW)
     yr = {k: ret(k, frm) for k in ten if frm in S[k]}
     best = max(yr, key=yr.get); worst = min(yr, key=yr.get)
-    picks = [best, "LLY", "XBI", "NVO", worst]
+    # XBI deliberately excluded: it is a broad biotech index across all disease
+    # areas, not a GLP-1 basket, so a bar beside GLP-1 companies would mislead.
+    # Its return is given in the footnote instead.
+    picks = [best, "LLY", "NVO", worst]
     seen = set(); picks = [k for k in picks if not (k in seen or seen.add(k))]
 
+    # Descriptors: molecule names only where a filing or release confirms them.
     LABEL = {
-        "LLY": ("Eli Lilly", "approved products"),
-        "NVO": ("Novo Nordisk", "approved products"),
-        "XBI": ("Biotech ETF (XBI)", "sector benchmark, not a company"),
-        "GPCR": ("Structure Therapeutics", "clinical stage, no approved product"),
-        "ALT": ("Altimmune", "clinical stage, no approved product"),
+        "LLY": ("Eli Lilly", "tirzepatide — approved, on sale"),
+        "NVO": ("Novo Nordisk", "semaglutide — approved, on sale"),
+        "GPCR": ("Structure Therapeutics", "aleniglipron — oral GLP-1, Phase 3"),
+        "ALT": ("Altimmune", "pemvidutide — liver disease, Phase 3"),
         "VKTX": ("Viking Therapeutics", "clinical stage, no approved product"),
         "ZLDPF": ("Zealand Pharma", "clinical stage, no approved product"),
-        "AMGN": ("Amgen", "approved products"),
-        "AZN": ("AstraZeneca", "approved products"),
-        "RHHBY": ("Roche", "approved products"),
-        "PFE": ("Pfizer", "approved products"),
+        "AMGN": ("Amgen", "GLP-1 in development only"),
+        "AZN": ("AstraZeneca", "GLP-1 in development only"),
+        "RHHBY": ("Roche", "GLP-1 in development only"),
+        "PFE": ("Pfizer", "GLP-1 in development only"),
     }
     vals = [ret(k, frm) for k in picks]
 
@@ -218,7 +230,7 @@ def s3(pdf):
         ax.text(-0.04, i - 0.17, nm, transform=tr, ha="right", va="center",
                 fontsize=13, color=INK, fontweight="bold")
         ax.text(-0.04, i + 0.20, desc, transform=tr, ha="right", va="center",
-                fontsize=9.8, color=INK2)
+                fontsize=9.3, color=INK2)
     for i, v in enumerate(vals):
         ax.annotate(pc(v), (v, i), xytext=(7 if v >= 0 else -7, 0),
                     textcoords="offset points", color=INK, fontsize=12.5,
@@ -231,7 +243,9 @@ def s3(pdf):
              "The highest and lowest performers are both pre-revenue.\nTheir share prices move on trial results, not on sales.",
              fontsize=14, va="top", linespacing=1.4, color=INK)
     fig.text(0.08, 0.135,
-             "Selection: best and worst of the ten companies, plus the two\nleaders and the sector benchmark.",
+             f"Selection: best and worst of the ten companies, plus the two leaders. All four\n"
+             f"develop or sell GLP-1 medicines. The broad biotech index rose {pc(ret('XBI', frm))} over the\n"
+             f"same period; it is not GLP-1 specific.",
              fontsize=10.5, va="top", color=MUTED, linespacing=1.35)
     save(fig, pdf, 3)
 
@@ -282,13 +296,16 @@ def s5(pdf):
         fig.text(0.86, y, b, fontsize=23 if hi else 19, ha="center",
                  color=GREEN if hi else INK, fontweight="bold")
         fig.add_artist(plt.Line2D([0.08, 0.92], [y - 0.030, y - 0.030], color=GRID, lw=1))
-    fig.text(0.08, 0.345, "A lower PEG indicates better value for the growth expected.",
+    fig.text(0.08, 0.355, "A lower PEG indicates better value for the growth expected.",
              fontsize=11.5, color=MUTED)
-    fig.text(0.08, 0.265,
+    fig.text(0.08, 0.295,
              "Adjusted for growth, Novo Nordisk is the more\nexpensive of the two.",
              fontsize=17, va="top", fontweight="bold", linespacing=1.4)
-    fig.text(0.08, 0.165,
-             "Trailing multiples are on reported earnings; consensus growth is on an\nadjusted basis. Snapshot, not a live figure.",
+    fig.text(0.08, 0.205,
+             "Only these two companies have approved GLP-1 medicines for\nobesity on the market. The comparison is the whole market.",
+             fontsize=14, va="top", color=INK, linespacing=1.4)
+    fig.text(0.08, 0.115,
+             "Trailing multiples are on reported earnings; consensus growth is on an adjusted\nbasis. Snapshot, not a live figure.",
              fontsize=10.5, va="top", color=MUTED, linespacing=1.35)
     save(fig, pdf, 5)
 
