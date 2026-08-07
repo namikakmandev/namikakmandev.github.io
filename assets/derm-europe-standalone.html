@@ -165,6 +165,25 @@
   .src code { font-family:var(--mono); font-size:.78rem; color:var(--ink); }
   footer { margin-top:58px; border-top:1px solid var(--rule); padding-top:20px; }
 
+  .noteb { font-family:var(--mono); font-size:.6rem; letter-spacing:.08em; text-transform:uppercase;
+           color:var(--muted); background:none; border:1px solid var(--rule); border-radius:2px;
+           padding:2px 7px; cursor:pointer; margin-left:10px; vertical-align:middle; }
+  .noteb:hover { color:var(--measured); border-color:var(--measured); }
+  .noteb.has { color:var(--modelled); border-color:var(--modelled); background:var(--modelled-wash); }
+  .notebox { display:none; margin-top:10px; }
+  .notebox.open { display:block; }
+  .notebox textarea { width:100%; min-height:74px; padding:10px 12px; font:inherit; font-size:.9rem;
+    color:var(--ink); background:var(--surface); border:1px solid var(--modelled); border-radius:3px;
+    resize:vertical; }
+  .notebox .nb-hint { font-family:var(--mono); font-size:.62rem; color:var(--muted); margin-top:4px; }
+  .notesbar { position:fixed; right:18px; bottom:18px; z-index:50; display:none; gap:8px;
+    background:var(--surface); border:1px solid var(--rule); border-radius:4px; box-shadow:var(--shadow);
+    padding:9px 12px; align-items:center; font-family:var(--mono); font-size:.68rem; }
+  .notesbar.show { display:flex; }
+  .notesbar b { color:var(--modelled); }
+  .notesbar button { font:inherit; color:var(--measured); background:none; border:none;
+    cursor:pointer; text-decoration:underline; padding:0; }
+  .notesbar .st { color:var(--muted); }
   @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
   @media (max-width:640px) {
     body { font-size:16px; } .wrap { padding:34px 18px 72px; }
@@ -799,4 +818,54 @@ function select(i){
     </div>`;
 }
 select(0);
+
+/* ---- private reviewer notes: stored in THIS browser only; export to send back ---- */
+const NKEY='derm18-notes';
+const loadN=()=>{try{return JSON.parse(localStorage.getItem(NKEY)||'{}')}catch(e){return{}}};
+const saveN=n=>{try{localStorage.setItem(NKEY,JSON.stringify(n))}catch(e){}};
+const bar=document.createElement('div');
+bar.className='notesbar';
+bar.innerHTML='<span>notes: <b id="ncount">0</b></span><button id="nexp">export</button><button id="nclr">clear</button><span class="st" id="nst"></span>';
+document.body.appendChild(bar);
+const secs=[...document.querySelectorAll('section h2')];
+function refresh(){
+  const n=loadN(), c=Object.values(n).filter(x=>x&&x.trim()).length;
+  document.getElementById('ncount').textContent=c;
+  bar.classList.toggle('show', c>0 || document.querySelector('.notebox.open'));
+  secs.forEach((h,i)=>{const b=h.querySelector('.noteb'); if(b) b.classList.toggle('has', !!(n[i]&&n[i].trim()));});
+}
+secs.forEach((h,i)=>{
+  const b=document.createElement('button');
+  b.className='noteb'; b.type='button'; b.textContent='note';
+  b.setAttribute('aria-label','Add a private note on this section');
+  const box=document.createElement('div'); box.className='notebox';
+  const ta=document.createElement('textarea');
+  ta.placeholder='Your note on this section — private to this browser until you export it.';
+  ta.value=loadN()[i]||'';
+  const hint=document.createElement('div'); hint.className='nb-hint';
+  hint.textContent='Saved locally in this browser only. Use the export button (bottom right) to download all notes and send them back.';
+  box.append(ta,hint);
+  h.appendChild(b); h.parentElement.insertBefore(box,h.nextSibling);
+  b.addEventListener('click',()=>{box.classList.toggle('open'); if(box.classList.contains('open')) ta.focus(); refresh();});
+  ta.addEventListener('input',()=>{const n=loadN(); n[i]=ta.value; saveN(n); refresh();});
+});
+document.getElementById('nclr').addEventListener('click',()=>{
+  if(confirm('Delete all notes stored in this browser?')){saveN({});document.querySelectorAll('.notebox textarea').forEach(t=>t.value='');refresh();}
+});
+document.getElementById('nexp').addEventListener('click',async()=>{
+  const n=loadN(), st=document.getElementById('nst');
+  const lines=['# Notes — Canine Dermatology Medicines, 18 Markets','',`Exported ${new Date().toISOString().slice(0,10)}`,''];
+  secs.forEach((h,i)=>{ if(n[i]&&n[i].trim()){ lines.push('## '+h.textContent.replace(/note$/,'').trim(),'',n[i].trim(),''); }});
+  if(lines.length<=4){ st.textContent='no notes yet'; setTimeout(()=>st.textContent='',2000); return; }
+  const md=lines.join('\n');
+  if(window.claude && window.claude.downloads){
+    try{ await window.claude.downloads.save({filename:'derm-18-markets-notes.md', data:md}); st.textContent='saved'; }
+    catch(e){ st.textContent = e && e.code==='declined' ? '' : 'copied instead'; if(!(e&&e.code==='declined')){ try{await navigator.clipboard.writeText(md);}catch(_){}} }
+  } else {
+    try{ await navigator.clipboard.writeText(md); st.textContent='copied to clipboard'; }
+    catch(e){ st.textContent='copy failed'; }
+  }
+  setTimeout(()=>st.textContent='',2500);
+});
+refresh();
 </script>
