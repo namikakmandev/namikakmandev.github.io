@@ -1,0 +1,472 @@
+<title>Canine Dermatology Medicines — Europe</title>
+<style>
+  :root {
+    --paper:#F7F8FA; --surface:#FFFFFF; --raise:#FFFFFF; --ink:#171B22; --muted:#5C6675; --rule:#DDE1E8;
+    --measured:#1F6F6B; --modelled:#B5761F; --reject:#A63D40;
+    --modelled-wash:rgba(181,118,31,.10); --measured-wash:rgba(31,111,107,.09); --reject-wash:rgba(166,61,64,.08);
+    --sel-wash:rgba(31,111,107,.13);
+    --shadow:0 1px 2px rgba(23,27,34,.05), 0 8px 24px rgba(23,27,34,.06);
+    --serif:Georgia,'Iowan Old Style','Times New Roman',serif;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper:#12151A; --surface:#191D24; --raise:#1F242C; --ink:#E6E9EF; --muted:#98A2B3; --rule:#2A313B;
+      --measured:#4FA9A2; --modelled:#D9A05B; --reject:#E08487;
+      --modelled-wash:rgba(217,160,91,.13); --measured-wash:rgba(79,169,162,.12); --reject-wash:rgba(224,132,135,.11);
+      --sel-wash:rgba(79,169,162,.16);
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); }
+  }
+  :root[data-theme="dark"] { --paper:#12151A; --surface:#191D24; --raise:#1F242C; --ink:#E6E9EF; --muted:#98A2B3; --rule:#2A313B;
+    --measured:#4FA9A2; --modelled:#D9A05B; --reject:#E08487;
+    --modelled-wash:rgba(217,160,91,.13); --measured-wash:rgba(79,169,162,.12); --reject-wash:rgba(224,132,135,.11);
+    --sel-wash:rgba(79,169,162,.16); --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25); }
+  :root[data-theme="light"] { --paper:#F7F8FA; --surface:#FFFFFF; --raise:#FFFFFF; --ink:#171B22; --muted:#5C6675; --rule:#DDE1E8;
+    --measured:#1F6F6B; --modelled:#B5761F; --reject:#A63D40;
+    --modelled-wash:rgba(181,118,31,.10); --measured-wash:rgba(31,111,107,.09); --reject-wash:rgba(166,61,64,.08);
+    --sel-wash:rgba(31,111,107,.13); --shadow:0 1px 2px rgba(23,27,34,.05), 0 8px 24px rgba(23,27,34,.06); }
+
+  body { background:var(--paper); color:var(--ink); font-family:var(--sans);
+         font-size:17px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:860px; margin:0 auto; padding:52px 24px 96px; }
+  .eyebrow { font-family:var(--mono); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  h1 { font-family:var(--serif); font-weight:400; font-size:2.4rem; line-height:1.15;
+       letter-spacing:-.015em; text-wrap:balance; margin:14px 0 0; }
+  .lede { font-size:1.06rem; line-height:1.58; color:var(--muted); max-width:66ch; margin:18px 0 0; }
+  h2 { font-family:var(--serif); font-weight:400; font-size:1.45rem; letter-spacing:-.01em; text-wrap:balance; margin:0 0 4px; }
+  h2 .n { font-family:var(--mono); font-size:.74rem; color:var(--measured); letter-spacing:.08em; display:block; margin-bottom:7px; }
+  h3 { font-size:.94rem; font-weight:650; margin:0 0 6px; }
+  p { margin:0; max-width:70ch; }
+  section { display:flex; flex-direction:column; gap:15px; margin-top:52px; }
+  .stack { display:flex; flex-direction:column; gap:13px; }
+  strong { font-weight:650; }
+
+  .chip { font-family:var(--mono); font-size:.62rem; letter-spacing:.07em; text-transform:uppercase;
+          padding:2px 7px; border-radius:2px; border:1px solid; white-space:nowrap; display:inline-block; }
+  .chip.good { color:var(--measured); border-color:var(--measured); background:var(--measured-wash); }
+  .chip.mid  { color:var(--muted); border-color:var(--rule); }
+  .chip.soft { color:var(--modelled); border-color:var(--modelled); background:var(--modelled-wash); }
+
+  .headline { background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+              border-left:3px solid var(--modelled); padding:26px 28px; box-shadow:var(--shadow);
+              display:flex; flex-direction:column; gap:7px; }
+  .headline .fig { font-family:var(--serif); font-size:2.9rem; line-height:1; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+  .headline .sub { font-size:.95rem; color:var(--muted); max-width:64ch; }
+
+  .rulebox { background:var(--measured-wash); border-radius:4px; padding:18px 22px; }
+  .rulebox.warn { background:var(--modelled-wash); }
+  .rulebox.rej  { background:var(--reject-wash); }
+  .rulebox .rt { font-family:var(--mono); font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:var(--measured); }
+  .rulebox.warn .rt { color:var(--modelled); } .rulebox.rej .rt { color:var(--reject); }
+  .rulebox p { margin-top:8px; max-width:none; }
+
+  .chain { display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin-top:10px; }
+  .chain .ch { background:var(--raise); border:1px solid var(--rule); border-radius:3px; padding:9px 13px;
+               display:flex; flex-direction:column; gap:2px; min-width:92px; }
+  .chain .ch b { font-family:var(--serif); font-size:1.2rem; font-variant-numeric:tabular-nums; }
+  .chain .ch small { font-size:.7rem; color:var(--muted); line-height:1.3; }
+  .chain .ch.res { border-color:var(--modelled); background:var(--modelled-wash); }
+  .chain .op { display:flex; align-items:center; font-family:var(--mono); color:var(--muted); }
+
+  table { width:100%; border-collapse:collapse; font-size:.89rem; }
+  .scroll { overflow-x:auto; }
+  th,td { padding:9px 13px 9px 0; text-align:left; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { font-family:var(--mono); font-size:.64rem; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); font-size:.85rem; }
+  caption { text-align:left; font-size:.79rem; color:var(--muted); padding-bottom:9px; }
+
+  /* ---- country explorer ---- */
+  .explorer { background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+              box-shadow:var(--shadow); overflow:hidden; }
+  .exhead { padding:16px 20px; border-bottom:1px solid var(--rule); display:flex; gap:12px;
+            align-items:baseline; flex-wrap:wrap; }
+  .exhead .t { font-family:var(--mono); font-size:.66rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .exhead .h { font-size:.86rem; color:var(--muted); }
+  .exgrid { display:grid; grid-template-columns:minmax(240px,1fr) minmax(300px,1.25fr); }
+  @media (max-width:720px) { .exgrid { grid-template-columns:1fr; } }
+
+  .clist { border-right:1px solid var(--rule); max-height:520px; overflow-y:auto; }
+  @media (max-width:720px) { .clist { border-right:none; border-bottom:1px solid var(--rule); max-height:280px; } }
+  .crow { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; width:100%;
+          padding:11px 18px; background:none; border:none; border-bottom:1px solid var(--rule);
+          text-align:left; cursor:pointer; color:var(--ink); font:inherit; font-size:.9rem;
+          transition:background .12s ease; }
+  .crow:hover { background:var(--measured-wash); }
+  .crow:focus-visible { outline:2px solid var(--measured); outline-offset:-2px; }
+  .crow[aria-selected="true"] { background:var(--sel-wash); font-weight:650;
+                                box-shadow:inset 3px 0 0 var(--measured); }
+  .crow .cn { display:flex; flex-direction:column; gap:2px; }
+  .crow .cd { font-family:var(--mono); font-size:.66rem; color:var(--muted); font-weight:400; }
+  .crow .cv { font-family:var(--mono); font-size:.84rem; font-variant-numeric:tabular-nums; }
+
+  .cdetail { padding:22px 24px; display:flex; flex-direction:column; gap:14px; }
+  .cdetail .cname { font-family:var(--serif); font-size:1.5rem; letter-spacing:-.01em; }
+  .cdetail .cfig { font-family:var(--serif); font-size:2.1rem; line-height:1; font-variant-numeric:tabular-nums; }
+  .cdetail .crange { font-family:var(--mono); font-size:.8rem; color:var(--muted); }
+  .cdetail .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .cdetail dl { display:grid; grid-template-columns:auto 1fr; gap:7px 14px; margin:0; font-size:.86rem; }
+  .cdetail dt { font-family:var(--mono); font-size:.66rem; letter-spacing:.06em; text-transform:uppercase;
+                color:var(--muted); padding-top:3px; }
+  .cdetail dd { margin:0; }
+  .cdetail dd .v { font-variant-numeric:tabular-nums; font-family:var(--mono); }
+  .cdetail dd .s { display:block; font-size:.75rem; color:var(--muted); }
+  .cnote { font-size:.83rem; color:var(--muted); border-left:2px solid var(--modelled); padding-left:12px; }
+  .cbar { height:22px; background:var(--rule); border-radius:2px; position:relative; }
+  .cbar .seg { position:absolute; height:100%; border-radius:2px; background:var(--modelled); }
+  .cbar .mid { position:absolute; top:-3px; width:2px; height:28px; background:var(--ink); }
+  .cscale { display:flex; justify-content:space-between; font-family:var(--mono); font-size:.64rem; color:var(--muted); margin-top:3px; }
+
+  .asks { display:flex; flex-direction:column; }
+  .ask { display:grid; grid-template-columns:auto 1fr; gap:16px; padding:15px 0;
+         border-bottom:1px solid var(--rule); align-items:start; }
+  .ask:last-child { border-bottom:none; }
+  .ask .k { font-family:var(--mono); font-size:.66rem; letter-spacing:.1em; color:var(--measured);
+            border:1px solid var(--measured); border-radius:2px; padding:3px 7px; white-space:nowrap; }
+  .ask p { font-size:.92rem; }
+
+  .caveat { background:var(--modelled-wash); border-radius:4px; padding:18px 22px; font-size:.86rem; line-height:1.56; max-width:none; }
+  .caveat b { color:var(--modelled); }
+  .src { font-size:.82rem; color:var(--muted); line-height:1.56; }
+  .src code { font-family:var(--mono); font-size:.78rem; color:var(--ink); }
+  footer { margin-top:58px; border-top:1px solid var(--rule); padding-top:20px; }
+
+  @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+  @media (max-width:640px) {
+    body { font-size:16px; } .wrap { padding:34px 18px 72px; }
+    h1 { font-size:1.75rem; } .headline .fig { font-size:2.2rem; }
+    .chain .ch { min-width:74px; padding:8px 10px; } .chain .ch b { font-size:1.02rem; }
+    .ask { grid-template-columns:1fr; gap:7px; } .ask .k { justify-self:start; }
+    .cdetail dl { grid-template-columns:1fr; gap:3px 0; }
+    .cdetail dt { padding-top:9px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Market assessment · 15 European markets · Canine dermatology medicines</div>
+    <h1>Canine Dermatology Medicines — Europe</h1>
+    <p class="lede">
+      No published source measures this market in any single country. This assessment estimates it for
+      15 markets on one identical method: clinical rates taken from UK primary-care records, and
+      medicine costs anchored on Polish retail prices then adjusted for each country's price level.
+      All monetary values are estimates. Select any country below to see its own inputs and workings.
+    </p>
+  </header>
+
+  <section style="margin-top:30px">
+    <div class="headline">
+      <span class="chip soft" style="align-self:flex-start">Estimated · 15 markets</span>
+      <div class="fig">€270–1,630M</div>
+      <p class="sub">
+        Spent each year on medicines to treat skin problems in dogs, across the 15 markets in this
+        panel. Central estimate <strong>€750M</strong>. The panel holds <strong>74.1 million
+        dogs</strong> — about 70% of Europe's estimated 106 million.
+      </p>
+    </div>
+    <div class="rulebox warn">
+      <div class="rt">Read the range, not the point</div>
+      <p style="font-size:.94rem">
+        The band is wide because two inputs are uncertain everywhere: how many dogs are treated in a
+        year, and how much medicine a treated dog consumes. <strong>Individual country figures are less
+        reliable than the total</strong> — errors partly cancel in aggregate and compound individually.
+        Treat a single country's number as an order of magnitude, never as a forecast.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">01</span>How the estimate is built</h2>
+    <div class="stack">
+      <p>Every country uses the same three inputs, multiplied together:</p>
+      <div class="chain">
+        <span class="ch"><b>Dogs</b><small>pet dogs in the<br>country</small></span>
+        <span class="op">×</span>
+        <span class="ch"><b>8–18%</b><small>treated for a skin<br>problem each year</small></span>
+        <span class="op">×</span>
+        <span class="ch"><b>Cost</b><small>medicine per<br>treated dog</small></span>
+        <span class="op">=</span>
+        <span class="ch res"><b>Market</b><small>per year</small></span>
+      </div>
+      <p>
+        Only the first and third inputs change between countries. Dog populations come from national
+        pet-food industry bodies. Medicine cost starts from Polish retail prices — <strong>265 złoty
+        (about €62) per treated dog</strong> — and is scaled by each country's Eurostat price level.
+      </p>
+      <div class="rulebox">
+        <div class="rt">The one rule</div>
+        <p>
+          <strong>Clinical rates are transferred between countries. Prices are not.</strong> How often
+          dogs get skin disease is broadly stable across comparable dog populations. What treatment
+          costs varies with local price levels. So the 8–18% rate is the same everywhere; the cost
+          input changes country by country.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">02</span>The assumptions, in full</h2>
+    <div class="stack">
+      <p>Four assumptions apply to every country in the panel. They are the whole basis of the estimate.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Assumption</th><th>What is assumed</th><th>Why, and how strong</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>1 · Treated share</strong></td>
+              <td>8–18% of dogs are treated for a skin problem each year, central 12%</td>
+              <td>From UK VetCompass primary-care records (skin disorders, 12.58% of dogs in a year). Applied to all countries. <strong>Weak outside the UK</strong> — no other country publishes an equivalent. Breed mix and climate vary.</td>
+            </tr>
+            <tr>
+              <td><strong>2 · Medicine cost</strong></td>
+              <td>265 zł (~€62) per treated dog in Poland, range 145–385 zł</td>
+              <td>Built from Polish retail listings. A single episode costs 50–150 zł; a chronic case 1,000–2,500 zł a year. <strong>Weak</strong> — no source publishes an average, so the two are blended.</td>
+            </tr>
+            <tr>
+              <td><strong>3 · Chronic share</strong></td>
+              <td>10% of treated dogs are chronic cases on long-term medication</td>
+              <td>Sets the blend in assumption 2. <strong>The single most influential input.</strong> At 5% the panel total falls by about a third; at 20% it rises by about a half.</td>
+            </tr>
+            <tr>
+              <td><strong>4 · Price scaling</strong></td>
+              <td>Medicine cost scales with each country's general price level (Eurostat, EU27=100)</td>
+              <td>Transparent and published. <strong>But it likely overstates the spread</strong> — medicines are traded goods sold by a few pan-European manufacturers, so their prices vary less between countries than haircuts do. See the sensitivity below.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="rulebox warn">
+        <div class="rt">Sensitivity — the rich/poor spread is probably too wide</div>
+        <p style="font-size:.94rem">
+          Assumption 4 stretches per-dog medicine cost from €55 in Romania to €122 in Denmark, a
+          2.2× spread, because that is how general consumer prices differ. Medicines almost certainly
+          vary less. Halving that dispersion lowers the panel central estimate from
+          <strong>€750M to €649M</strong> — a 13% reduction, and the more likely figure of the two.
+          The higher number is reported as the headline because it uses the published index without
+          further adjustment.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">03</span>By country</h2>
+    <p>
+      Select a market to see its inputs, its workings and its own caveats. Two markers show how well
+      grounded each one is: whether the disease rate is domestic or borrowed, and whether the price
+      level is a confirmed published figure or an approximation.
+    </p>
+
+    <div class="explorer">
+      <div class="exhead">
+        <span class="t">15 markets · 74.1M dogs</span>
+        <span class="h">Sorted by estimate. Click any row.</span>
+      </div>
+      <div class="exgrid">
+        <div class="clist" role="listbox" aria-label="Countries" id="clist"></div>
+        <div class="cdetail" id="cdetail" role="region" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <p style="font-size:.88rem;color:var(--muted)">
+      <strong>Not in the panel:</strong> the Netherlands, Ireland, Finland, Bulgaria, Croatia, Slovakia,
+      the Baltic states, Norway and Switzerland, plus non-EU Europe. No dog-population figure was
+      confirmed for them at the time of writing. Together with the panel's 74.1M they make up Europe's
+      roughly 106M dogs, so <strong>the panel total is not a European total</strong> — it covers about
+      70% of the continent's dogs.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">04</span>Does the method hold up?</h2>
+    <div class="stack">
+      <p>
+        One published figure exists at European level, from a commercial research house. Comparing
+        against it is the only external check available.
+      </p>
+      <div class="scroll">
+        <table>
+          <tbody>
+            <tr><td>This panel, central</td><td class="n">€750M</td><td>74.1M dogs</td></tr>
+            <tr><td>Scaled to all 106M European dogs</td><td class="n">~€1,070M</td><td>same method</td></tr>
+            <tr><td>Grand View Europe, less antiparasitics, dogs' share</td><td class="n">€1,450–1,720M</td><td>published vendor figure</td></tr>
+            <tr><td><strong>Gap</strong></td><td class="n"><strong>1.4–1.6×</strong></td><td>and the ranges overlap</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        A 1.4–1.6× gap against an unaudited vendor figure, with overlapping ranges, is reasonable
+        agreement for a market nobody measures. It is the strongest evidence available that the method
+        is sound.
+      </p>
+      <div class="rulebox rej">
+        <div class="rt">The same vendor's country data fails its own test</div>
+        <p style="font-size:.94rem">
+          That vendor also publishes a Germany figure. It is <strong>22.0% of their own European
+          total</strong> — but Germany has <strong>10% of Europe's dogs</strong>, and at a price level
+          of 109 you would expect about 11%. Their German number therefore carries <strong>2.0× what
+          its dog population and prices justify</strong>.
+        </p>
+        <p style="margin-top:9px;font-size:.94rem">
+          A second, independent test agrees: that figure implies €240–283 of medicine per treated German
+          dog per year, which would require a simple episode to consume €150–211 of medicine. Retail
+          prices in both countries contradict it. <strong>Published country-level figures in this
+          category should not be relied on without checking them this way.</strong>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">05</span>What to do with this</h2>
+    <div class="asks">
+      <div class="ask">
+        <span class="k">Report</span>
+        <p><b>Quote the panel range, and say it is medicines only.</b> €270–1,630M across 15 markets,
+        central €750M. Counted with veterinary fees and tests the same treatment is roughly double.
+        Published market reports use a wider definition again, adding flea and tick products and cats,
+        and are not comparable.</p>
+      </div>
+      <div class="ask">
+        <span class="k">Verify</span>
+        <p><b>Test one country against a real account.</b> Poland works out at roughly €8,000 of
+        dermatology medicine per veterinary practice per year across 7,600 practices. Anyone with
+        distribution in a panel market can check the equivalent figure in an afternoon.</p>
+      </div>
+      <div class="ask">
+        <span class="k">Priority</span>
+        <p><b>If buying data, buy the chronic-case share.</b> Not another market-size report. It moves
+        the panel total by roughly a third downward or a half upward across a plausible range — more
+        than any other input, in every country at once.</p>
+      </div>
+      <div class="ask">
+        <span class="k">Focus</span>
+        <p><b>Five markets are 72% of the panel.</b> The UK, Germany, Italy, Spain and France together
+        account for about €540M of the €750M central estimate. Precision in the remaining ten changes
+        little.</p>
+      </div>
+      <div class="ask">
+        <span class="k">Caution</span>
+        <p><b>Do not quote a single country figure as a forecast.</b> Country numbers carry the full
+        uncertainty of all four assumptions without the benefit of errors cancelling. The UK is the
+        best-grounded because its disease rate is domestic; Poland is the most thoroughly worked.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="stack">
+      <div class="caveat">
+        <b>Basis of estimates.</b> All monetary figures are estimates; no source measures this market in
+        any country. Measured inputs: dog populations from FEDIAF <em>Facts &amp; Figures</em> (2022–23
+        data) and UK Pet Food (13.5M UK dogs, 2024); UK VetCompass primary-care prevalence (skin
+        disorders 12.58% of dogs in one year); Polish retail medicine listings (oclacitinib 16mg, 46–90
+        zł per 20 tablets, 2026) and Polish veterinary consultation prices (100–250 zł, 2024–25);
+        Eurostat comparative price levels for household final consumption, 2024 (EU27=100). Grand View
+        Research Horizon figures for Europe and Germany are reported for comparison only and are not
+        used in the estimate.
+        <b>Principal assumptions:</b> the UK disease rate applied to every country, and 10% of treated
+        dogs being chronic cases.
+      </div>
+      <p class="src">
+        <strong>Calculation.</strong> Per country: dogs × {8%, 12%, 18%} treated × medicine cost per
+        treated dog. Medicine cost = €61.6 (Poland, 265 zł ÷ 4.30) × country price level ÷ 72, with low
+        and high scaled by 145/265 and 385/265. The Polish figure is a weighted average of a single
+        episode (50–150 zł) and a chronic case (1,000–2,500 zł a year) at a 10% chronic share.
+        EUR/PLN 4.30; USD/EUR 1.08.
+        <strong>Confirmed vs approximate price levels.</strong> Confirmed from the Eurostat 2024
+        release: Denmark 143, Belgium 117, Germany 109, Italy 98, Spain 91, Czechia 88, Greece 86,
+        Hungary 74, Poland 72, Romania 64. Approximate, marked on each country: United Kingdom ~117,
+        France ~109, Sweden ~119, Austria ~120, Portugal ~88. A five-point error in a price level moves
+        a country estimate by about 5%, which is immaterial against a range of this width.
+        <strong>Limitations.</strong> Romania counts pet dogs only; its 0.6–1.0M street dogs are
+        excluded, as they do not generate medicine sales. European veterinary prices have risen about
+        37% since 2015 and continue at roughly 6% a year against general inflation near 2%, so older
+        inputs understate current spend. No deflator is applied; all figures relate to a single recent
+        year (2022–2026) and do not form a time series. The panel is not a European total — see
+        section 03.
+      </p>
+    </div>
+  </footer>
+</div>
+
+<script>
+const DATA = [
+ {c:"United Kingdom",d:13.5,pl:117,plc:false,cost:100,lo:59.2,mid:162.2,hi:353.6,
+  note:"The best-grounded market in the panel. VetCompass is UK primary-care data, so the disease rate here is domestic rather than borrowed — every other country inherits this rate. Its price level is an approximation, as the UK sits outside the EU27 index."},
+ {c:"Germany",d:10.6,pl:109,plc:true,cost:93,lo:43.3,mid:118.7,hi:258.6,
+  note:"A commercial research house publishes a German figure roughly 5× this estimate. It fails two independent plausibility tests — see section 04 — and is not used."},
+ {c:"Spain",d:9.3,pl:91,plc:true,cost:78,lo:31.7,mid:86.9,hi:189.4,note:""},
+ {c:"Italy",d:8.7,pl:98,plc:true,cost:84,lo:31.9,mid:87.6,hi:190.8,note:""},
+ {c:"France",d:7.6,pl:109,plc:false,cost:93,lo:31.0,mid:85.1,hi:185.4,note:""},
+ {c:"Poland",d:8.1,pl:72,plc:true,cost:62,lo:21.9,mid:59.9,hi:130.5,
+  note:"The market worked in full detail. Every cost input in this study is a Polish retail price, so Poland needs no price scaling — the other fourteen countries are scaled from here. A separate check: roughly €8,000 of dermatology medicine per veterinary practice per year across 7,600 practices."},
+ {c:"Romania",d:4.2,pl:64,plc:true,cost:55,lo:10.1,mid:27.6,hi:60.2,
+  note:"Pet dogs only. Romania also has an estimated 0.6–1.0 million street dogs, excluded here because they do not generate medicine sales. The lowest price level in the panel, so the most exposed to the price-scaling caveat in section 02."},
+ {c:"Portugal",d:2.6,pl:88,plc:false,cost:75,lo:8.6,mid:23.5,hi:51.2,note:""},
+ {c:"Czechia",d:2.2,pl:88,plc:true,cost:75,lo:7.3,mid:19.9,hi:43.3,
+  note:"Dog population has fallen markedly since 2010, from over three million. A declining base, unlike most of the panel."},
+ {c:"Hungary",d:2.2,pl:74,plc:true,cost:63,lo:6.1,mid:16.7,hi:36.4,note:""},
+ {c:"Belgium",d:2.0,pl:117,plc:true,cost:100,lo:8.8,mid:24.0,hi:52.4,note:""},
+ {c:"Sweden",d:1.04,pl:119,plc:false,cost:102,lo:4.6,mid:12.7,hi:27.7,
+  note:"Around 90% of Swedish dogs are insured, the highest rate in Europe, so owners are far more likely to complete a course of treatment. This estimate does not adjust for that and is therefore probably conservative for Sweden."},
+ {c:"Austria",d:0.77,pl:120,plc:false,cost:103,lo:3.5,mid:9.5,hi:20.7,
+  note:"Price level shown is the actual-individual-consumption measure, a slightly different basis from the other countries."},
+ {c:"Greece",d:0.65,pl:86,plc:true,cost:74,lo:2.1,mid:5.7,hi:12.5,note:""},
+ {c:"Denmark",d:0.62,pl:143,plc:true,cost:122,lo:3.3,mid:9.1,hi:19.8,
+  note:"The highest price level in the EU, so the most exposed to the price-scaling caveat in section 02 — its cost per dog is likely overstated."}
+].sort((a,b)=>b.mid-a.mid);
+
+const MAXHI = Math.max(...DATA.map(r=>r.hi));
+const list = document.getElementById('clist');
+const detail = document.getElementById('cdetail');
+
+DATA.forEach((r,i)=>{
+  const b = document.createElement('button');
+  b.className='crow'; b.type='button'; b.role='option';
+  b.setAttribute('aria-selected', i===0 ? 'true':'false');
+  b.dataset.i=i;
+  b.innerHTML=`<span class="cn">${r.c}<span class="cd">${r.d}M dogs</span></span>`+
+              `<span class="cv">€${Math.round(r.mid)}M</span>`;
+  b.addEventListener('click',()=>select(i));
+  list.appendChild(b);
+});
+
+function select(i){
+  const r = DATA[i];
+  [...list.children].forEach((el,j)=>el.setAttribute('aria-selected', j===i?'true':'false'));
+  const left = (r.lo/MAXHI)*100, width = ((r.hi-r.lo)/MAXHI)*100, mid = (r.mid/MAXHI)*100;
+  detail.innerHTML = `
+    <div>
+      <div class="cname">${r.c}</div>
+      <div class="chips" style="margin-top:7px">
+        <span class="chip ${r.c==='United Kingdom'?'good':'soft'}">${r.c==='United Kingdom'?'disease rate: domestic':'disease rate: borrowed from UK'}</span>
+        <span class="chip ${r.plc?'mid':'soft'}">price level: ${r.plc?'confirmed':'approximate'}</span>
+      </div>
+    </div>
+    <div>
+      <div class="cfig">€${Math.round(r.mid)}M</div>
+      <div class="crange">range €${r.lo.toFixed(1)}M – €${r.hi.toFixed(1)}M per year</div>
+    </div>
+    <div>
+      <div class="cbar">
+        <div class="seg" style="left:${left}%;width:${width}%"></div>
+        <div class="mid" style="left:${mid}%"></div>
+      </div>
+      <div class="cscale"><span>€0</span><span>€${Math.round(MAXHI)}M</span></div>
+    </div>
+    <dl>
+      <dt>Dogs</dt><dd><span class="v">${r.d}M</span><span class="s">National pet-food industry data</span></dd>
+      <dt>Treated</dt><dd><span class="v">8–18%</span><span class="s">per year · UK VetCompass rate, central 12%</span></dd>
+      <dt>Medicine</dt><dd><span class="v">€${r.cost}</span><span class="s">per treated dog per year · Polish price × price level ${r.pl}/72</span></dd>
+      <dt>Working</dt><dd><span class="v">${r.d}M × 12% × €${r.cost} = €${Math.round(r.mid)}M</span></dd>
+    </dl>
+    ${r.note?`<div class="cnote">${r.note}</div>`:''}
+    <div class="cnote" style="border-left-color:var(--rule)">
+      All four assumptions in section 02 apply to this figure. Country estimates are less reliable than
+      the panel total — read the range, not the point.
+    </div>`;
+}
+select(0);
+</script>
