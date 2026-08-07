@@ -111,6 +111,17 @@
   .cdetail dd .v { font-variant-numeric:tabular-nums; font-family:var(--mono); }
   .cdetail dd .s { display:block; font-size:.75rem; color:var(--muted); }
   .cnote { font-size:.83rem; color:var(--muted); border-left:2px solid var(--modelled); padding-left:12px; }
+  .cyears { margin-top:4px; }
+  .cyears .cyt { font-family:var(--mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase;
+                 color:var(--muted); margin-bottom:8px; }
+  .cybars { display:flex; align-items:flex-end; gap:3px; height:74px; }
+  .cybar { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:3px; height:100%; }
+  .cybar .b { width:100%; max-width:26px; background:var(--measured); opacity:.75; border-radius:2px 2px 0 0; }
+  .cybar.proj .b { background:var(--modelled); opacity:.55;
+    background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,.4) 3px,rgba(255,255,255,.4) 6px); }
+  .cybar .v { font-family:var(--mono); font-size:.56rem; color:var(--muted); white-space:nowrap; }
+  .cybar .y { font-family:var(--mono); font-size:.54rem; color:var(--muted); }
+  .cyears .cyc { font-size:.74rem; color:var(--muted); margin-top:7px; line-height:1.45; }
   .cbar { height:22px; background:var(--rule); border-radius:2px; position:relative; }
   .cbar .seg { position:absolute; height:100%; border-radius:2px; background:var(--modelled); }
   .cbar .mid { position:absolute; top:-3px; width:2px; height:28px; background:var(--ink); }
@@ -388,8 +399,8 @@
         </div>
       </div>
       <p style="font-size:.9rem;color:var(--muted)">
-        <strong>Per-country, year by year:</strong> apply the same index to any country's current
-        share — Poland's $65M today implies roughly $18M in 2014 and $92M in 2028. Country shares are
+        <strong>Per-country, year by year:</strong> every country's own path is shown in its panel in
+        section 03 — the same index applied to its current share — Poland's $65M today implies roughly $18M in 2014 and $92M in 2028. Country shares are
         assumed stable, so no separate per-country annual tables are published: they would repeat the
         same curve eighteen times with false precision. The exceptions to a stable share are named in
         the country notes — Czechia's dog population is declining, and the CEE therapy shift would
@@ -662,6 +673,8 @@ const DATA = [
 ].sort((a,b)=>b.mid-a.mid);
 
 const MAXHI = Math.max(...DATA.map(r=>r.hi));
+const YEARS = [2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2027,2028];
+const INDEX = [0.279,0.306,0.336,0.395,0.459,0.527,0.604,0.698,0.784,0.872,1.000,1.090,1.188,1.295,1.411];
 const list = document.getElementById('clist');
 const detail = document.getElementById('cdetail');
 
@@ -705,6 +718,21 @@ function select(i){
       <dt>Medicine</dt><dd><span class="v">$${r.cost}</span><span class="s">per treated dog per year · Polish price × price level ${r.pl}/72</span></dd>
       <dt>Working</dt><dd><span class="v">${r.d}M × 12% × $${r.cost} = $${Math.round(r.mid)}M</span></dd>
     </dl>
+    <div class="cyears">
+      <div class="cyt">Year by year — modelled, share of panel × panel index</div>
+      <div class="cybars">${YEARS.map((y,j)=>{
+        const v=r.mid*INDEX[j], h=(INDEX[j]/1.411)*100;
+        const key=(y===2014||y===2024||y===2028);
+        return `<div class="cybar${y>2024?' proj':''}">`+
+               (key?`<span class="v">$${v>=100?Math.round(v):v.toFixed(0)}M</span>`:'')+
+               `<div class="b" style="height:${h.toFixed(0)}%"></div>`+
+               (key?`<span class="y">${y}</span>`:'')+`</div>`;
+      }).join('')}</div>
+      <div class="cyc">
+        Not an independent series: this country's current estimate scaled by the modelled panel index
+        (section 04). Striped years are the ~9%/yr projection.${r.c==='United States'?' For the US the early years likely understate reality — the therapy shift began earlier there than in Europe.':''}${r.c==='Czechia'?' Czechia\u2019s declining dog population means its actual path runs below this shared index.':''}${r.c==='Poland'?' If the CEE therapy shift materialises, Poland\u2019s actual path would run above this shared index in the later years.':''}
+      </div>
+    </div>
     ${r.note?`<div class="cnote">${r.note}</div>`:''}
     <div class="cnote" style="border-left-color:var(--rule)">
       All four assumptions in section 02 apply to this figure. Country estimates are less reliable than
