@@ -1,0 +1,66 @@
+# Databricks data-validation tests.
+#
+# Each test runs a SQL query on Databricks (the "actual" side) and compares
+# the result against a reference source (the "expected" side): a CSV export,
+# a REST API, or another Databricks query.
+#
+# Edit the examples below to point at your real tables / endpoints, then run:
+#   python run_tests.py
+
+defaults:
+  float_tolerance: 0.0001     # relative tolerance for numeric comparisons
+  row_count_tolerance: 0      # allowed difference in row counts
+
+tests:
+  # --- Example 1: compare an aggregate against a CSV export from the other system
+  - name: daily_totals_vs_csv
+    description: Daily order totals in Databricks must match the export from the source system.
+    databricks:
+      query: |
+        SELECT order_date, COUNT(*) AS orders, ROUND(SUM(amount), 2) AS total_amount
+        FROM main.sales.orders
+        WHERE order_date >= current_date() - INTERVAL 7 DAYS
+        GROUP BY order_date
+        ORDER BY order_date
+    reference:
+      type: csv
+      path: expected/daily_totals.csv   # relative to where you run the script, or a URL
+    compare:
+      keys: [order_date]
+      checks: [row_count, schema, values]
+      float_tolerance: 0.01
+
+  # --- Example 2: compare row-level data against a REST API (the "other place")
+  - name: customers_vs_source_api
+    description: Customer records in Databricks match the upstream API.
+    databricks:
+      query: |
+        SELECT customer_id, email, status
+        FROM main.crm.customers
+        WHERE updated_at >= current_date() - INTERVAL 1 DAYS
+    reference:
+      type: api
+      url: https://source-system.example.com/api/customers
+      params: { updated_since: yesterday }
+      headers:
+        Authorization: "Bearer ${SOURCE_API_TOKEN}"   # taken from env / GitHub secret
+      record_path: data.customers                     # where the record list lives in the JSON
+    compare:
+      keys: [customer_id]
+      checks: [row_count, values]
+
+  # --- Example 3: reconcile two tables inside Databricks (e.g. raw vs gold layer)
+  - name: raw_vs_gold_revenue
+    description: Gold-layer revenue equals the sum computed from the raw layer.
+    databricks:
+      query: SELECT month, revenue FROM main.gold.monthly_revenue
+    reference:
+      type: databricks
+      query: |
+        SELECT date_trunc('month', ts) AS month, ROUND(SUM(amount), 2) AS revenue
+        FROM main.raw.transactions
+        GROUP BY 1
+    compare:
+      keys: [month]
+      checks: [row_count, values]
+      float_tolerance: 0.001
