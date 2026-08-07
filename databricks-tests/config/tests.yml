@@ -49,7 +49,54 @@ tests:
       keys: [customer_id]
       checks: [row_count, values]
 
-  # --- Example 3: reconcile two tables inside Databricks (e.g. raw vs gold layer)
+  # --- Example 3: compare against a SQL database (SQL Server / PostgreSQL / MySQL ...)
+  # The connection string lives in the SOURCE_DB_URL env var / secret, e.g.
+  #   mssql+pyodbc://user:pass@myserver.database.windows.net/mydb?driver=ODBC+Driver+18+for+SQL+Server
+  - name: orders_vs_source_db
+    description: Order rows in Databricks match the source SQL database.
+    databricks:
+      query: |
+        SELECT order_id, customer_id, ROUND(amount, 2) AS amount
+        FROM main.sales.orders
+        WHERE order_date = current_date() - INTERVAL 1 DAYS
+    reference:
+      type: sql
+      connection: ${SOURCE_DB_URL}
+      query: |
+        SELECT order_id, customer_id, ROUND(amount, 2) AS amount
+        FROM dbo.orders
+        WHERE order_date = CAST(DATEADD(day, -1, GETDATE()) AS date)
+    compare:
+      keys: [order_id]
+      checks: [row_count, values]
+      float_tolerance: 0.01
+
+  # --- Example 4: compare against a Power BI dataset measure (DAX via REST API)
+  # Auth comes from POWERBI_* env vars / secrets (see README section 3b).
+  - name: revenue_vs_powerbi
+    description: Monthly revenue in Databricks equals what the Power BI report shows.
+    databricks:
+      query: |
+        SELECT date_format(order_date, 'yyyy-MM') AS month,
+               ROUND(SUM(amount), 2) AS revenue
+        FROM main.sales.orders
+        GROUP BY 1
+    reference:
+      type: powerbi
+      dataset_id: 00000000-0000-0000-0000-000000000000   # dataset GUID from the PBI URL
+      workspace_id: 00000000-0000-0000-0000-000000000000 # workspace GUID (omit for My workspace)
+      query: |
+        EVALUATE
+        SUMMARIZECOLUMNS(
+            'Date'[YearMonth],
+            "revenue", [Total Revenue]
+        )
+    compare:
+      keys: [month]
+      checks: [row_count, values]
+      float_tolerance: 0.01
+
+  # --- Example 5: reconcile two tables inside Databricks (e.g. raw vs gold layer)
   - name: raw_vs_gold_revenue
     description: Gold-layer revenue equals the sum computed from the raw layer.
     databricks:

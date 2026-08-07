@@ -6,6 +6,9 @@ name: Databricks data-validation tests
 #   DATABRICKS_TOKEN         personal access token or service-principal token
 #   DATABRICKS_WAREHOUSE_ID  SQL warehouse id
 #   SOURCE_API_TOKEN         (optional) token for the reference API, if used
+#   SOURCE_DB_URL            (optional) SQLAlchemy URL of the reference SQL database
+#   POWERBI_TENANT_ID/POWERBI_CLIENT_ID/POWERBI_CLIENT_SECRET
+#                            (optional) service principal for Power BI references
 on:
   schedule:
     - cron: "0 5 * * 1-5"    # weekdays at 05:00 UTC (08:00 İstanbul)
@@ -37,6 +40,10 @@ jobs:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
           DATABRICKS_WAREHOUSE_ID: ${{ secrets.DATABRICKS_WAREHOUSE_ID }}
           SOURCE_API_TOKEN: ${{ secrets.SOURCE_API_TOKEN }}
+          SOURCE_DB_URL: ${{ secrets.SOURCE_DB_URL }}
+          POWERBI_TENANT_ID: ${{ secrets.POWERBI_TENANT_ID }}
+          POWERBI_CLIENT_ID: ${{ secrets.POWERBI_CLIENT_ID }}
+          POWERBI_CLIENT_SECRET: ${{ secrets.POWERBI_CLIENT_SECRET }}
         run: python databricks-tests/run_tests.py
 
       - name: Upload report
