@@ -1,350 +1,362 @@
 {
-  "_readme": [
-    "Add a series by adding an entry here — no new script needed.",
-    "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
-    "Then:            python scripts/fetch.py NAME",
-    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL)",
-    "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
-  ],
-  "sources": [
-    {
-      "name": "cattle-herd",
-      "provider": "owid",
-      "slug": "cattle-livestock-count-heads",
-      "entities": {
-        "United States": "US",
-        "European Union (27)": "EU",
-        "Turkey": "TR"
-      },
-      "out": "data/herd-cattle.json",
-      "source": "FAOSTAT cattle stocks (head), via Our World in Data",
-      "note": "annual; national totals, all cattle"
-    },
-    {
-      "name": "us-prices",
-      "provider": "fred",
-      "series": {
-        "cattle_ppi": "WPU0131",
-        "corn_ppi": "WPU012202",
-        "cpi": "CPIAUCSL"
-      },
-      "out": "data/us-prices.json",
-      "source": "BLS producer price indexes via FRED, plus CPI for deflating",
-      "note": "PPI levels are index numbers (1982=100) — ratios only, never quantities"
-    },
-    {
-      "name": "eu-vet-expenses",
-      "provider": "eurostat",
-      "dataset": "aact_eaa01",
-      "params": {
-        "am_item": "AM205000",
-        "unit": "MIO_EUR",
-        "geo": "EU27_2020"
-      },
-      "out": "data/eu-vet-expenses.json",
-      "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
-      "note": "ALL livestock, not cattle only — do not present as a per-cattle figure without saying so"
-    },
-    {
-      "name": "eu-hicp",
-      "provider": "fred",
-      "series": {
-        "hicp": "CP0000EZ19M086NEST"
-      },
-      "out": "data/eu-hicp.json",
-      "source": "Euro area HICP via FRED — deflator for any EUR money series"
-    },
-    {
-      "name": "us-cowcalf-costs",
-      "provider": "csv",
-      "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
-      "filters": {
-        "Region": "U.S. total"
-      },
-      "group_col": "Item",
-      "key_col": "Year",
-      "value_col": "Value",
-      "out": "data/us-cowcalf-costs.json",
-      "source": "USDA ERS commodity costs and returns, cow-calf",
-      "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
-    },
-    {
-      "name": "eu-herd-countries",
-      "provider": "owid",
-      "slug": "cattle-livestock-count-heads",
-      "entities": {
-        "France": "FR",
-        "Germany": "DE",
-        "Ireland": "IE",
-        "Spain": "ES",
-        "Italy": "IT",
-        "Poland": "PL",
-        "Netherlands": "NL",
-        "Romania": "RO",
-        "Belgium": "BE",
-        "Austria": "AT",
-        "Hungary": "HU",
-        "Czechia": "CZ",
-        "Portugal": "PT",
-        "United Kingdom": "UK"
-      },
-      "out": "data/herd-eu-countries.json",
-      "source": "FAOSTAT cattle stocks (head) by EU member state, via Our World in Data",
-      "note": "dairy and beef combined, same limitation as the aggregate"
-    },
-    {
-      "name": "eu-vet-countries",
-      "provider": "eurostat",
-      "dataset": "aact_eaa01",
-      "params": {
-        "am_item": "AM205000",
-        "unit": "MIO_EUR",
-        "geo": [
-          "FR",
-          "DE",
-          "IE",
-          "PL",
-          "ES",
-          "IT",
-          "NL",
-          "BE",
-          "AT",
-          "RO",
-          "HU",
-          "CZ",
-          "PT",
-          "UK"
-        ]
-      },
-      "out": "data/eu-vet-countries.json",
-      "source": "Eurostat EAA veterinary expenses by member state, million EUR, ALL livestock",
-      "note": "all livestock, not cattle only"
-    },
-    {
-      "name": "pharma-gva",
-      "provider": "eurostat",
-      "dataset": "nama_10_a64",
-      "params": {
-        "unit": "CP_MNAC",
-        "nace_r2": "C21",
-        "na_item": "B1G"
-      },
-      "out": "data/pharma-gva.json",
-      "source": "Eurostat national accounts A*64 — gross value added of NACE C21 (basic pharmaceutical products and preparations), current prices, million national currency",
-      "note": "NATIONAL CURRENCY on purpose — the pharma/GDP ratio must not carry exchange-rate noise. C21 is manufacturing only: it excludes pharma wholesale, retail pharmacy and R&D services."
-    },
-    {
-      "name": "gdp-total",
-      "provider": "eurostat",
-      "dataset": "nama_10_gdp",
-      "params": {
-        "unit": "CP_MNAC",
-        "na_item": "B1GQ"
-      },
-      "out": "data/gdp-total.json",
-      "source": "Eurostat national accounts — GDP at market prices, current prices, million national currency",
-      "note": "same vintage and currency basis as pharma-gva, so the ratio is internally consistent"
-    },
-    {
-      "name": "gva-total",
-      "provider": "eurostat",
-      "dataset": "nama_10_a64",
-      "params": {
-        "unit": "CP_MNAC",
-        "nace_r2": "TOTAL",
-        "na_item": "B1G"
-      },
-      "out": "data/gva-total.json",
-      "source": "Eurostat national accounts A*64 — total gross value added, current prices, million national currency",
-      "note": "the like-for-like denominator. GDP = GVA + taxes less subsidies on products, so pharma/GVA is the cleaner share; pharma/GDP is the more quotable one."
-    },
-    {
-      "name": "manuf-gva",
-      "provider": "eurostat",
-      "dataset": "nama_10_a64",
-      "params": {
-        "unit": "CP_MNAC",
-        "nace_r2": "C",
-        "na_item": "B1G"
-      },
-      "out": "data/manuf-gva.json",
-      "source": "Eurostat national accounts A*64 — total manufacturing (NACE C) gross value added, current prices, million national currency",
-      "note": "context denominator: pharma's share of manufacturing, not just of the whole economy"
-    },
-    {
-      "name": "gdp-eur",
-      "provider": "eurostat",
-      "dataset": "nama_10_gdp",
-      "params": {
-        "unit": "CP_MEUR",
-        "na_item": "B1GQ"
-      },
-      "out": "data/gdp-eur.json",
-      "source": "Eurostat national accounts — GDP at market prices, current prices, million EUR",
-      "note": "for comparing economy SIZE across countries only; never use for the share ratio"
-    },
-    {
-      "name": "pharma-gva-eur",
-      "provider": "eurostat",
-      "dataset": "nama_10_a64",
-      "params": {
-        "unit": "CP_MEUR",
-        "nace_r2": "C21",
-        "na_item": "B1G"
-      },
-      "out": "data/pharma-gva-eur.json",
-      "source": "Eurostat national accounts A*64 — NACE C21 gross value added, current prices, million EUR",
-      "note": "for comparing absolute pharma output across countries; the share ratio uses the MNAC pair"
-    },
-    {
-      "name": "stan-pharma",
-      "provider": "csv",
-      "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.AUS+AUT+BEL+CAN+CHE+CHL+COL+CRI+CZE+DEU+DNK+ESP+EST+FIN+FRA+GBR+GRC+HUN+IRL+ISL+ISR+ITA+JPN+KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT+SVK+SVN+SWE+TUR+USA.C21.B1G.V.XDC?format=csvfile&startPeriod=1990",
-      "group_col": "REF_AREA",
-      "key_col": "TIME_PERIOD",
-      "value_col": "OBS_VALUE",
-      "out": "data/stan-pharma.json",
-      "source": "OECD STAN — value added of ISIC C21 (pharmaceuticals), current prices, million national currency",
-      "note": "same industry definition as NACE C21, so shares are comparable with the Eurostat set; national currency so the ratio carries no FX noise"
-    },
-    {
-      "name": "stan-total",
-      "provider": "csv",
-      "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.._T.B1G.V.XDC?format=csvfile&startPeriod=1990",
-      "group_col": "REF_AREA",
-      "key_col": "TIME_PERIOD",
-      "value_col": "OBS_VALUE",
-      "out": "data/stan-total.json",
-      "source": "OECD STAN — total-economy value added, current prices, million national currency",
-      "note": "denominator for the STAN pharma share; same source and basis as stan-pharma so the ratio is internally consistent"
-    },
-    {
-      "name": "pharma-exports",
-      "provider": "eurostat",
-      "api": "comext",
-      "dataset": "DS-045409",
-      "params": {
-        "freq": "A",
-        "flow": "2",
-        "partner": "WORLD",
-        "indicators": "VALUE_IN_EUROS",
-        "reporter": [
-          "DK",
-          "IE",
-          "BE",
-          "DE",
-          "FR",
-          "IT",
-          "ES",
-          "NL",
-          "AT",
-          "SI",
-          "HU",
-          "PL"
-        ],
-        "product": [
-          "3002",
-          "3003",
-          "3004",
-          "2937",
-          "2941"
-        ],
-        "time": [
-          "2002",
-          "2003",
-          "2004",
-          "2005",
-          "2006",
-          "2007",
-          "2008",
-          "2009",
-          "2010",
-          "2011",
-          "2012",
-          "2013",
-          "2014",
-          "2015",
-          "2016",
-          "2017",
-          "2018",
-          "2019",
-          "2020",
-          "2021",
-          "2022",
-          "2023",
-          "2024"
-        ]
-      },
-      "group_dims": [
-        "reporter",
-        "product"
-      ],
-      "out": "data/pharma-exports.json",
-      "source": "Eurostat Comext DS-045409 — exports to world, EUR, by HS4: 3002 immunologicals/vaccines, 3003 bulk medicaments, 3004 dosage medicaments, 2937 hormones, 2941 antibiotics",
-      "note": "EXPORTS, not production — the product-mix proxy; say so wherever shown"
-    },
-    {
-      "name": "pharma-mirror",
-      "provider": "eurostat",
-      "api": "comext",
-      "dataset": "DS-045409",
-      "params": {
-        "freq": "A",
-        "flow": "1",
-        "reporter": "EU27_2020",
-        "indicators": "VALUE_IN_EUROS",
-        "partner": [
-          "US",
-          "CH",
-          "GB",
-          "CN",
-          "IN",
-          "JP",
-          "KR",
-          "IL",
-          "SG",
-          "CA"
-        ],
-        "product": [
-          "3002",
-          "3003",
-          "3004",
-          "2937",
-          "2941"
-        ],
-        "time": [
-          "2002",
-          "2003",
-          "2004",
-          "2005",
-          "2006",
-          "2007",
-          "2008",
-          "2009",
-          "2010",
-          "2011",
-          "2012",
-          "2013",
-          "2014",
-          "2015",
-          "2016",
-          "2017",
-          "2018",
-          "2019",
-          "2020",
-          "2021",
-          "2022",
-          "2023",
-          "2024"
-        ]
-      },
-      "group_dims": [
-        "partner",
-        "product"
-      ],
-      "out": "data/pharma-mirror.json",
-      "source": "Eurostat Comext DS-045409 — EU27 imports by partner and HS4, EUR: what non-EU producers ship into the EU",
-      "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
-    }
-  ]
+ "_readme": [
+  "Add a series by adding an entry here — no new script needed.",
+  "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
+  "Then:            python scripts/fetch.py NAME",
+  "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL)",
+  "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
+ ],
+ "sources": [
+  {
+   "name": "cattle-herd",
+   "provider": "owid",
+   "slug": "cattle-livestock-count-heads",
+   "entities": {
+    "United States": "US",
+    "European Union (27)": "EU",
+    "Turkey": "TR"
+   },
+   "out": "data/herd-cattle.json",
+   "source": "FAOSTAT cattle stocks (head), via Our World in Data",
+   "note": "annual; national totals, all cattle"
+  },
+  {
+   "name": "us-prices",
+   "provider": "fred",
+   "series": {
+    "cattle_ppi": "WPU0131",
+    "corn_ppi": "WPU012202",
+    "cpi": "CPIAUCSL"
+   },
+   "out": "data/us-prices.json",
+   "source": "BLS producer price indexes via FRED, plus CPI for deflating",
+   "note": "PPI levels are index numbers (1982=100) — ratios only, never quantities"
+  },
+  {
+   "name": "eu-vet-expenses",
+   "provider": "eurostat",
+   "dataset": "aact_eaa01",
+   "params": {
+    "am_item": "AM205000",
+    "unit": "MIO_EUR",
+    "geo": "EU27_2020"
+   },
+   "out": "data/eu-vet-expenses.json",
+   "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
+   "note": "ALL livestock, not cattle only — do not present as a per-cattle figure without saying so"
+  },
+  {
+   "name": "eu-hicp",
+   "provider": "fred",
+   "series": {
+    "hicp": "CP0000EZ19M086NEST"
+   },
+   "out": "data/eu-hicp.json",
+   "source": "Euro area HICP via FRED — deflator for any EUR money series"
+  },
+  {
+   "name": "us-cowcalf-costs",
+   "provider": "csv",
+   "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
+   "filters": {
+    "Region": "U.S. total"
+   },
+   "group_col": "Item",
+   "key_col": "Year",
+   "value_col": "Value",
+   "out": "data/us-cowcalf-costs.json",
+   "source": "USDA ERS commodity costs and returns, cow-calf",
+   "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
+  },
+  {
+   "name": "eu-herd-countries",
+   "provider": "owid",
+   "slug": "cattle-livestock-count-heads",
+   "entities": {
+    "France": "FR",
+    "Germany": "DE",
+    "Ireland": "IE",
+    "Spain": "ES",
+    "Italy": "IT",
+    "Poland": "PL",
+    "Netherlands": "NL",
+    "Romania": "RO",
+    "Belgium": "BE",
+    "Austria": "AT",
+    "Hungary": "HU",
+    "Czechia": "CZ",
+    "Portugal": "PT",
+    "United Kingdom": "UK"
+   },
+   "out": "data/herd-eu-countries.json",
+   "source": "FAOSTAT cattle stocks (head) by EU member state, via Our World in Data",
+   "note": "dairy and beef combined, same limitation as the aggregate"
+  },
+  {
+   "name": "eu-vet-countries",
+   "provider": "eurostat",
+   "dataset": "aact_eaa01",
+   "params": {
+    "am_item": "AM205000",
+    "unit": "MIO_EUR",
+    "geo": [
+     "FR",
+     "DE",
+     "IE",
+     "PL",
+     "ES",
+     "IT",
+     "NL",
+     "BE",
+     "AT",
+     "RO",
+     "HU",
+     "CZ",
+     "PT",
+     "UK"
+    ]
+   },
+   "out": "data/eu-vet-countries.json",
+   "source": "Eurostat EAA veterinary expenses by member state, million EUR, ALL livestock",
+   "note": "all livestock, not cattle only"
+  },
+  {
+   "name": "pharma-gva",
+   "provider": "eurostat",
+   "dataset": "nama_10_a64",
+   "params": {
+    "unit": "CP_MNAC",
+    "nace_r2": "C21",
+    "na_item": "B1G"
+   },
+   "out": "data/pharma-gva.json",
+   "source": "Eurostat national accounts A*64 — gross value added of NACE C21 (basic pharmaceutical products and preparations), current prices, million national currency",
+   "note": "NATIONAL CURRENCY on purpose — the pharma/GDP ratio must not carry exchange-rate noise. C21 is manufacturing only: it excludes pharma wholesale, retail pharmacy and R&D services."
+  },
+  {
+   "name": "gdp-total",
+   "provider": "eurostat",
+   "dataset": "nama_10_gdp",
+   "params": {
+    "unit": "CP_MNAC",
+    "na_item": "B1GQ"
+   },
+   "out": "data/gdp-total.json",
+   "source": "Eurostat national accounts — GDP at market prices, current prices, million national currency",
+   "note": "same vintage and currency basis as pharma-gva, so the ratio is internally consistent"
+  },
+  {
+   "name": "gva-total",
+   "provider": "eurostat",
+   "dataset": "nama_10_a64",
+   "params": {
+    "unit": "CP_MNAC",
+    "nace_r2": "TOTAL",
+    "na_item": "B1G"
+   },
+   "out": "data/gva-total.json",
+   "source": "Eurostat national accounts A*64 — total gross value added, current prices, million national currency",
+   "note": "the like-for-like denominator. GDP = GVA + taxes less subsidies on products, so pharma/GVA is the cleaner share; pharma/GDP is the more quotable one."
+  },
+  {
+   "name": "manuf-gva",
+   "provider": "eurostat",
+   "dataset": "nama_10_a64",
+   "params": {
+    "unit": "CP_MNAC",
+    "nace_r2": "C",
+    "na_item": "B1G"
+   },
+   "out": "data/manuf-gva.json",
+   "source": "Eurostat national accounts A*64 — total manufacturing (NACE C) gross value added, current prices, million national currency",
+   "note": "context denominator: pharma's share of manufacturing, not just of the whole economy"
+  },
+  {
+   "name": "gdp-eur",
+   "provider": "eurostat",
+   "dataset": "nama_10_gdp",
+   "params": {
+    "unit": "CP_MEUR",
+    "na_item": "B1GQ"
+   },
+   "out": "data/gdp-eur.json",
+   "source": "Eurostat national accounts — GDP at market prices, current prices, million EUR",
+   "note": "for comparing economy SIZE across countries only; never use for the share ratio"
+  },
+  {
+   "name": "pharma-gva-eur",
+   "provider": "eurostat",
+   "dataset": "nama_10_a64",
+   "params": {
+    "unit": "CP_MEUR",
+    "nace_r2": "C21",
+    "na_item": "B1G"
+   },
+   "out": "data/pharma-gva-eur.json",
+   "source": "Eurostat national accounts A*64 — NACE C21 gross value added, current prices, million EUR",
+   "note": "for comparing absolute pharma output across countries; the share ratio uses the MNAC pair"
+  },
+  {
+   "name": "stan-pharma",
+   "provider": "csv",
+   "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.AUS+AUT+BEL+CAN+CHE+CHL+COL+CRI+CZE+DEU+DNK+ESP+EST+FIN+FRA+GBR+GRC+HUN+IRL+ISL+ISR+ITA+JPN+KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT+SVK+SVN+SWE+TUR+USA.C21.B1G.V.XDC?format=csvfile&startPeriod=1990",
+   "group_col": "REF_AREA",
+   "key_col": "TIME_PERIOD",
+   "value_col": "OBS_VALUE",
+   "out": "data/stan-pharma.json",
+   "source": "OECD STAN — value added of ISIC C21 (pharmaceuticals), current prices, million national currency",
+   "note": "same industry definition as NACE C21, so shares are comparable with the Eurostat set; national currency so the ratio carries no FX noise"
+  },
+  {
+   "name": "stan-total",
+   "provider": "csv",
+   "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.._T.B1G.V.XDC?format=csvfile&startPeriod=1990",
+   "group_col": "REF_AREA",
+   "key_col": "TIME_PERIOD",
+   "value_col": "OBS_VALUE",
+   "out": "data/stan-total.json",
+   "source": "OECD STAN — total-economy value added, current prices, million national currency",
+   "note": "denominator for the STAN pharma share; same source and basis as stan-pharma so the ratio is internally consistent"
+  },
+  {
+   "name": "pharma-exports",
+   "provider": "eurostat",
+   "api": "comext",
+   "dataset": "DS-045409",
+   "params": {
+    "freq": "A",
+    "flow": "2",
+    "partner": "WORLD",
+    "indicators": "VALUE_IN_EUROS",
+    "reporter": [
+     "DK",
+     "IE",
+     "BE",
+     "DE",
+     "FR",
+     "IT",
+     "ES",
+     "NL",
+     "AT",
+     "SI",
+     "HU",
+     "PL"
+    ],
+    "product": [
+     "3002",
+     "3003",
+     "3004",
+     "2937",
+     "2941"
+    ],
+    "time": [
+     "2002",
+     "2003",
+     "2004",
+     "2005",
+     "2006",
+     "2007",
+     "2008",
+     "2009",
+     "2010",
+     "2011",
+     "2012",
+     "2013",
+     "2014",
+     "2015",
+     "2016",
+     "2017",
+     "2018",
+     "2019",
+     "2020",
+     "2021",
+     "2022",
+     "2023",
+     "2024"
+    ]
+   },
+   "group_dims": [
+    "reporter",
+    "product"
+   ],
+   "out": "data/pharma-exports.json",
+   "source": "Eurostat Comext DS-045409 — exports to world, EUR, by HS4: 3002 immunologicals/vaccines, 3003 bulk medicaments, 3004 dosage medicaments, 2937 hormones, 2941 antibiotics",
+   "note": "EXPORTS, not production — the product-mix proxy; say so wherever shown"
+  },
+  {
+   "name": "pharma-mirror",
+   "provider": "eurostat",
+   "api": "comext",
+   "dataset": "DS-045409",
+   "params": {
+    "freq": "A",
+    "flow": "1",
+    "reporter": "EU27_2020",
+    "indicators": "VALUE_IN_EUROS",
+    "partner": [
+     "US",
+     "CH",
+     "GB",
+     "CN",
+     "IN",
+     "JP",
+     "KR",
+     "IL",
+     "SG",
+     "CA"
+    ],
+    "product": [
+     "3002",
+     "3003",
+     "3004",
+     "2937",
+     "2941"
+    ],
+    "time": [
+     "2002",
+     "2003",
+     "2004",
+     "2005",
+     "2006",
+     "2007",
+     "2008",
+     "2009",
+     "2010",
+     "2011",
+     "2012",
+     "2013",
+     "2014",
+     "2015",
+     "2016",
+     "2017",
+     "2018",
+     "2019",
+     "2020",
+     "2021",
+     "2022",
+     "2023",
+     "2024"
+    ]
+   },
+   "group_dims": [
+    "partner",
+    "product"
+   ],
+   "out": "data/pharma-mirror.json",
+   "source": "Eurostat Comext DS-045409 — EU27 imports by partner and HS4, EUR: what non-EU producers ship into the EU",
+   "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
+  },
+  {
+   "name": "pet-hicp",
+   "provider": "fred",
+   "series": {
+    "ea_pets_vet": "CP0934EZCCM086NEST",
+    "pl_pets_vet": "CP0934PLM086NEST",
+    "de_pets_vet": "CP0934DEM086NEST"
+   },
+   "out": "data/pet-hicp.json",
+   "source": "HICP 'pets and related products; veterinary and other services for pets' (ECOICOP 09.3.4/5) via FRED — euro area confirmed to exist; PL and DE series ids follow FRED's country pattern and need the first Actions run to confirm",
+   "note": "Pet-owner inflation for the dermatology study. Index levels (2015=100) — use year-on-year or cumulative changes only, never levels as spend."
+  }
+ ]
 }
