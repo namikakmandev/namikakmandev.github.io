@@ -116,6 +116,26 @@
   .cbar .mid { position:absolute; top:-3px; width:2px; height:28px; background:var(--ink); }
   .cscale { display:flex; justify-content:space-between; font-family:var(--mono); font-size:.64rem; color:var(--muted); margin-top:3px; }
 
+  .tchart { background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+            padding:22px 24px 16px; box-shadow:var(--shadow); }
+  .tchart .tt { font-family:var(--mono); font-size:.66rem; letter-spacing:.12em; text-transform:uppercase;
+                color:var(--muted); margin-bottom:16px; }
+  .tbars { display:flex; align-items:flex-end; gap:6px; height:150px; }
+  .tbar { flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:5px; height:100%; }
+  .tbar .v { font-family:var(--mono); font-size:.62rem; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .tbar .b { width:100%; max-width:52px; background:var(--measured); border-radius:2px 2px 0 0; }
+  .tbar.approx .b { background:var(--measured); opacity:.45;
+    background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,.4) 4px,rgba(255,255,255,.4) 8px); }
+  .tbar .y { font-family:var(--mono); font-size:.64rem; color:var(--muted); }
+  .tcap { font-size:.8rem; color:var(--muted); margin-top:12px; line-height:1.5; }
+  .decomp { display:flex; flex-direction:column; gap:3px; margin-top:6px; }
+  .drow { display:grid; grid-template-columns:1.2fr 2.4fr auto; gap:14px; align-items:center; }
+  .drow .dl { font-size:.85rem; }
+  .drow .dl small { display:block; color:var(--muted); font-family:var(--mono); font-size:.64rem; }
+  .drow .dt { height:22px; background:var(--rule); border-radius:2px; overflow:hidden; }
+  .drow .df { height:100%; border-radius:2px; }
+  .drow .dv { font-family:var(--mono); font-size:.8rem; text-align:right; min-width:52px; font-variant-numeric:tabular-nums; }
+
   .asks { display:flex; flex-direction:column; }
   .ask { display:grid; grid-template-columns:auto 1fr; gap:16px; padding:15px 0;
          border-bottom:1px solid var(--rule); align-items:start; }
@@ -279,7 +299,91 @@
   </section>
 
   <section>
-    <h2><span class="n">04</span>Does the method hold up?</h2>
+    <h2><span class="n">04</span>The trend — as far back as data exists</h2>
+    <div class="stack">
+      <div class="rulebox warn">
+        <div class="rt">What can and cannot be observed</div>
+        <p style="font-size:.94rem">
+          No one has ever measured this market over time, so <strong>the market itself has no
+          observable history</strong> — any long series of "the European dermatology medicines market"
+          would be an invention. What does exist is the measured history of its drivers, and one series
+          that comes close to the market itself: the maker of the two dominant medicines reports its
+          dermatology revenue in audited filings. That is where the trend can honestly be read.
+        </p>
+      </div>
+
+      <p>
+        <strong>The market in its current shape is barely a decade old.</strong> Before 2014, chronic
+        skin disease in dogs was managed with corticosteroids costing cents a day, and a small
+        cyclosporine niche. Oclacitinib (Apoquel, launched 2014) and lokivetmab (Cytopoint, 2017)
+        created the premium chronic-treatment segment that now carries most of the market's value.
+        A trend line drawn through earlier years on today's definition would be meaningless — the
+        products did not exist.
+      </p>
+
+      <div class="tchart">
+        <div class="tt">The closest measured series — Zoetis dermatology revenue, global, USD millions</div>
+        <div class="tbars">
+          <div class="tbar approx"><span class="v">~250</span><div class="b" style="height:15%"></div><span class="y">2016</span></div>
+          <div class="tbar"><span class="v">607</span><div class="b" style="height:37%"></div><span class="y">2018</span></div>
+          <div class="tbar"><span class="v">770</span><div class="b" style="height:47%"></div><span class="y">2019</span></div>
+          <div class="tbar"><span class="v">941</span><div class="b" style="height:57%"></div><span class="y">2020</span></div>
+          <div class="tbar approx"><span class="v">~1,150</span><div class="b" style="height:69%"></div><span class="y">2021</span></div>
+          <div class="tbar approx"><span class="v">~1,300</span><div class="b" style="height:79%"></div><span class="y">2022</span></div>
+          <div class="tbar"><span class="v">1,427</span><div class="b" style="height:86%"></div><span class="y">2023</span></div>
+          <div class="tbar"><span class="v">1,655</span><div class="b" style="height:100%"></div><span class="y">2024</span></div>
+        </div>
+        <div class="tcap">
+          Solid bars are from SEC filings and earnings releases (2018: $607M · 2019: $770M · 2020: $941M ·
+          2023: $1,427M · 2024: $1,655M). Striped bars are approximations from partial-year disclosures.
+          Global, all species, Apoquel + Cytopoint. <strong>Growth 2018–2024: 18% a year</strong>, still
+          15% a year over 2020–2024. This is one company's revenue, not the market — but these two
+          products dominate the premium segment, so the market's drug component cannot have grown very
+          differently.
+        </div>
+      </div>
+
+      <p>
+        The underlying demand base grew steadily but far more slowly: Europe's dog population rose from
+        about <strong>73 million in 2010 to about 90 million in 2022</strong> — roughly 1.7% a year.
+        (FEDIAF's 2023 figure of ~104–106 million is largely a survey-coverage change, not fourteen
+        million new dogs in one year, and is not treated as growth here.) Veterinary prices add another
+        layer: up about 37% since 2015, still rising around 6% a year against general inflation near 2%.
+      </p>
+
+      <h3 style="margin-top:6px">What a decade of growth is made of</h3>
+      <p style="font-size:.94rem">
+        Applying today's method with 2014 inputs — fewer dogs, lower prices, and a chronic segment of
+        roughly 2% on cheap steroids instead of 10% on modern therapies — the same 15-market panel would
+        have been worth about <strong>€210M in 2014</strong>, against €750M today. That 3.6× rise,
+        about 14% a year, decomposes into three parts:
+      </p>
+      <div class="decomp">
+        <div class="drow"><span class="dl">More dogs<small>~1.6%/yr</small></span><div class="dt"><div class="df" style="width:18%;background:var(--measured);opacity:.5"></div></div><span class="dv">×1.2</span></div>
+        <div class="drow"><span class="dl">Higher prices<small>~4–5%/yr</small></span><div class="dt"><div class="df" style="width:54%;background:var(--measured);opacity:.75"></div></div><span class="dv">×1.5</span></div>
+        <div class="drow"><span class="dl">Therapy shift<small>steroids → modern chronic treatment</small></span><div class="dt"><div class="df" style="width:99%;background:var(--modelled)"></div></div><span class="dv">×2.0</span></div>
+      </div>
+      <p style="font-size:.8rem;color:var(--muted)">
+        Modelled decomposition, not measured. Consistent with the measured 18%/yr franchise growth above —
+        the franchise grew faster than the market because it was also taking share from steroids.
+      </p>
+
+      <div class="rulebox">
+        <div class="rt">What this means going forward</div>
+        <p style="font-size:.94rem">
+          The largest growth engine — the one-off shift from steroids to modern therapies — is largely
+          spent in Western Europe but <strong>not in the CEE markets</strong>, where the chronic-treatment
+          segment is still building. If dogs keep growing at ~1.5%, prices at ~5%, and the therapy shift
+          continues in the East, the panel grows at roughly <strong>8–10% a year</strong> — doubling in
+          seven to nine years. What would break this: loss of exclusivity on the two dominant molecules
+          bringing generic JAK inhibitors, which would grow treated volume but shrink value.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">05</span>Does the method hold up?</h2>
     <div class="stack">
       <p>
         One published figure exists at European level, from a commercial research house. Comparing
@@ -319,7 +423,7 @@
   </section>
 
   <section>
-    <h2><span class="n">05</span>What to do with this</h2>
+    <h2><span class="n">06</span>What to do with this</h2>
     <div class="asks">
       <div class="ask">
         <span class="k">Report</span>
