@@ -1,0 +1,179 @@
+{
+ "what": "Link between pet-owner inflation (HICP 09.3.4 pets / US pets CPI) and headline inflation, per study country",
+ "method": "Calendar-year average index -> YoY inflation; OLS pet = alpha + beta*headline, 2000-2025; spread = mean(pet - headline) 2015-2025. Source: data/pet-hicp.json (FRED mirrors of Eurostat HICP + BLS CPI).",
+ "per_country": {
+  "Poland": {
+   "alpha": 0.496,
+   "beta": 1.097,
+   "corr": 0.796,
+   "spread": 1.924,
+   "pet24": 4.436,
+   "pet25": 3.474,
+   "head25": 3.349
+  },
+  "Germany": {
+   "alpha": -1.24,
+   "beta": 1.6,
+   "corr": 0.714,
+   "spread": 0.832,
+   "pet24": 1.651,
+   "pet25": 0.638,
+   "head25": 2.264
+  },
+  "Spain": {
+   "alpha": 0.775,
+   "beta": 0.744,
+   "corr": 0.525,
+   "spread": 0.355,
+   "pet24": 1.897,
+   "pet25": 1.821,
+   "head25": 2.691
+  },
+  "Italy": {
+   "alpha": 0.004,
+   "beta": 0.885,
+   "corr": 0.796,
+   "spread": -0.298,
+   "pet24": 1.78,
+   "pet25": 0.216,
+   "head25": 1.635
+  },
+  "France": {
+   "alpha": -0.387,
+   "beta": 1.218,
+   "corr": 0.808,
+   "spread": 0.017,
+   "pet24": 2.764,
+   "pet25": 0.955,
+   "head25": 0.926
+  },
+  "Hungary": {
+   "alpha": -1.868,
+   "beta": 1.972,
+   "corr": 0.931,
+   "spread": 2.667,
+   "pet24": 1.599,
+   "pet25": -1.152,
+   "head25": 4.441
+  },
+  "Portugal": {
+   "alpha": -0.806,
+   "beta": 1.224,
+   "corr": 0.648,
+   "spread": 0.128,
+   "pet24": 1.981,
+   "pet25": 0.337,
+   "head25": 2.195
+  },
+  "Austria": {
+   "alpha": -1.878,
+   "beta": 1.444,
+   "corr": 0.799,
+   "spread": 0.043,
+   "pet24": 3.847,
+   "pet25": 1.501,
+   "head25": 3.579
+  },
+  "Belgium": {
+   "alpha": 1.055,
+   "beta": 0.414,
+   "corr": 0.34,
+   "spread": -0.257,
+   "pet24": 3.001,
+   "pet25": 2.385,
+   "head25": 3.026
+  },
+  "Sweden": {
+   "alpha": -0.333,
+   "beta": 1.348,
+   "corr": 0.756,
+   "spread": 0.816,
+   "pet24": 3.775,
+   "pet25": 2.4,
+   "head25": 2.614
+  },
+  "Denmark": {
+   "alpha": 0.94,
+   "beta": 1.015,
+   "corr": 0.653,
+   "spread": 0.91,
+   "pet24": 1.165,
+   "pet25": 0.388,
+   "head25": 1.843
+  },
+  "Greece": {
+   "alpha": 0.564,
+   "beta": 0.657,
+   "corr": 0.633,
+   "spread": 0.339,
+   "pet24": 3.332,
+   "pet25": 0.95,
+   "head25": 2.889
+  },
+  "United States": {
+   "alpha": 4.386,
+   "beta": -0.081,
+   "corr": -0.079,
+   "spread": -0.155,
+   "pet24": 3.189,
+   "pet25": 3.23,
+   "head25": 2.634
+  },
+  "Euro area": {
+   "alpha": -0.458,
+   "beta": 1.178,
+   "corr": 0.736,
+   "spread": 0.254,
+   "pet24": 2.346,
+   "pet25": 1.026
+  }
+ },
+ "findings": [
+  "Europe: relationship is real — correlations 0.5-0.9 (median ~0.74), beta mostly >= 1: pet inflation amplifies headline inflation.",
+  "United States: NO correlation (r = -0.08). US pet inflation is structural at ~4%/yr (alpha 4.4, beta ~0) regardless of headline CPI — anchor it on its own mean, not on CPI projections.",
+  "Measured 2024-25 pet inflation is already far below the model's flat forward gp: Poland 4.4%/3.5% vs 7% assumed; Germany 1.7%/0.6% vs 4.5% assumed. The 2021-24 burst is over."
+ ],
+ "projection_basis": "gp_forward = alpha + beta x projected headline inflation 2026-28 (ECB/EC/IMF-style: euro area ~2%, PL ~3.2%, HU ~3.7%, RO ~4%, UK ~2.2%, US ~2.4%). UK/RO/CZ have no pet series -> proxied via euro-area/Poland relationships, labelled. TR/IL unchanged (USD-terms basis).",
+ "gp_forward_pct": {
+  "Poland": 4.0,
+  "Germany": 2.0,
+  "Spain": 2.3,
+  "Italy": 1.8,
+  "France": 2.0,
+  "Hungary": 5.4,
+  "Portugal": 1.6,
+  "Austria": 1.0,
+  "Belgium": 1.9,
+  "Sweden": 2.4,
+  "Denmark": 2.9,
+  "Greece": 1.9,
+  "United States": 4.0,
+  "United Kingdom": 2.5,
+  "Romania": 4.9,
+  "Czechia": 2.5,
+  "Türkiye": 4.0,
+  "Israel": 4.0
+ },
+ "impact_on_study": {
+  "panel_2028_usd_m": {
+   "old_flat_gp": 3104,
+   "new_projected_gp": 2865
+  },
+  "eme_2028_usd_m": {
+   "old": 1174,
+   "new": 1077
+  },
+  "forward_cagr_2024_28": {
+   "old": "9.4%",
+   "new": "7.2%",
+   "eme_new": "6.9%"
+  },
+  "status": "computed, NOT yet applied to the published study pages"
+ },
+ "gaps": [
+  "FRED has no HICP 09.3.5 (vet services) split - 09.3.4 pets aggregate used",
+  "Romania pet series absent",
+  "Czechia headline absent on FRED",
+  "UK not covered by HICP mirrors"
+ ]
+}
