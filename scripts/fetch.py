@@ -34,16 +34,21 @@ def get(url, timeout=120):
 
 # ----------------------------------------------------------------- providers
 def fred(entry):
-    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint."""
+    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint.
+    A series id that 404s yields an empty dict (visible in empty_keys) instead of
+    failing the whole source — some ids are pattern-derived and not all exist."""
     out = {}
     for key, sid in entry["series"].items():
-        raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
         vals = {}
-        for row in csv.DictReader(io.StringIO(raw)):
-            date = (row.get("DATE") or row.get("observation_date") or "").strip()
-            val = (row.get(sid) or "").strip()
-            if len(date) >= 7 and val not in ("", "."):
-                vals[date[:7]] = float(val)
+        try:
+            raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
+            for row in csv.DictReader(io.StringIO(raw)):
+                date = (row.get("DATE") or row.get("observation_date") or "").strip()
+                val = (row.get(sid) or "").strip()
+                if len(date) >= 7 and val not in ("", "."):
+                    vals[date[:7]] = float(val)
+        except Exception as ex:  # noqa: BLE001
+            print(f"[warn] fred {entry['name']}.{key} ({sid}): {type(ex).__name__}")
         out[key] = vals
     return out
 
