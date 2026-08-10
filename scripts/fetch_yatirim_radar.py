@@ -48,7 +48,7 @@ UNIVERSE = {
     "PGSUS.IS": ("Pegasus", "hisse"),
     "ENKAI.IS": ("Enka İnşaat", "hisse"),
     "ARCLK.IS": ("Arçelik", "hisse"),
-    "KOZAL.IS": ("Koza Altın", "hisse"),
+    "TAVHL.IS": ("TAV Havalimanları", "hisse"),
     "PETKM.IS": ("Petkim", "hisse"),
     "MGROS.IS": ("Migros", "hisse"),
     "GC=F": ("Altın (ons)", "maden"),
