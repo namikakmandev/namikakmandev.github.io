@@ -188,7 +188,7 @@
     <ul>
       <li><b>Trend (35 puan):</b> fiyatın 180 ve 200 günlük basit ortalamalara uzaklığı, 50/200 kesişimi (golden/death cross) ve 200 günlük ortalamanın eğimi.</li>
       <li><b>Momentum (25 puan):</b> 3 ve 6 aylık getiri ile RSI-14 (aşırı alım/satım bölgeleri puan kırar).</li>
-      <li><b>Değerleme (25 puan, BIST ve ABD hisseleri):</b> F/K, PD/DD, özsermaye kârlılığı (ROE) ve temettü verimi.</li>
+      <li><b>Değerleme (25 puan, BIST ve ABD hisseleri):</b> F/K, PD/DD, özsermaye kârlılığı (ROE) ve temettü verimi. Ayrıca her hisse için <b>PEG</b> (F/K ÷ yıllık kâr büyümesi; önce analist konsensüsü, yoksa gerçekleşen büyüme) bilgi amaçlı gösterilir — 1'in altı büyümeye göre ucuz kabul edilir.</li>
       <li><b>Risk (15 puan):</b> 30 günlük yıllıklandırılmış volatilite ve 52 haftalık zirveden uzaklık.</li>
     </ul>
     <p>Değerleme verisi olmayan varlıklarda (altın, gümüş, emtia, endeks) toplam kalan 75 puan üzerinden
@@ -260,6 +260,10 @@ function signals(a){
   if(f.trailing_pe!=null){
     if(f.trailing_pe>0&&f.trailing_pe<8) out.push(["pos","Düşük F/K ("+fmtN(f.trailing_pe,1)+")"]);
     else if(f.trailing_pe>30) out.push(["warn","Yüksek F/K ("+fmtN(f.trailing_pe,1)+")"]);
+  }
+  if(f.peg!=null){
+    if(f.peg<1) out.push(["pos","PEG "+fmtN(f.peg,2)+" — büyümeye göre ucuz"]);
+    else if(f.peg>2.5) out.push(["warn","PEG "+fmtN(f.peg,2)+" — büyümeye göre pahalı"]);
   }
   if(f.dividend_yield>0.04) out.push(["pos","Temettü "+fmtPct(f.dividend_yield)]);
   return out;
@@ -342,6 +346,7 @@ function detailHTML(a){
   const tem=f?kvTable([
     ["F/K (cari)",fmtN(f.trailing_pe,1)],["F/K (ileriye dönük)",fmtN(f.forward_pe,1)],
     ["PD/DD",fmtN(f.price_to_book,2)],["PD/Satış",fmtN(f.price_to_sales,2)],
+    ["PEG (F/K ÷ büyüme)",f.peg!=null?fmtN(f.peg,2)+(f.peg_growth!=null?" (büyüme "+fmtPct(f.peg_growth,0)+")":""):"—"],
     ["ROE",fmtPct(f.roe,0)],["Net kâr marjı",fmtPct(f.profit_margin,0)],
     ["Borç/Özkaynak",f.debt_to_equity!=null?fmtN(f.debt_to_equity,0)+"%":"—"],
     ["Temettü verimi",fmtPct(f.dividend_yield)],
@@ -561,7 +566,7 @@ const AI_SYSTEM=
   "(NASDAQ/NYSE), kıymetli madenler, emtia, BIST 100, S&P 500, Nasdaq, Dow Jones ve Dolar/TL için teknik + temel göstergeleri 0-100 arası bileşik skora indirger. "+
   "Skorlama: Trend 35 puan (fiyatın 180 ve 200 günlük ortalamalara uzaklığı, 50/200 golden-death cross, "+
   "200g ortalamanın eğimi) + Momentum 25 puan (3A ve 6A getiri, RSI-14; aşırı alım/satım puan kırar) + "+
-  "Değerleme 25 puan (BIST ve ABD hisseleri: F/K, PD/DD, ROE, temettü verimi) + Risk 15 puan (30g volatilite, "+
+  "Değerleme 25 puan (BIST ve ABD hisseleri: F/K, PD/DD, ROE, temettü verimi; PEG=F/K÷kâr büyümesi ayrıca verilir, skora girmez) + Risk 15 puan (30g volatilite, "+
   "52 hafta zirvesinden uzaklık). Değerleme verisi olmayan varlıklar 75 puan üzerinden 100'e ölçeklenir. "+
   "65+ Olumlu, 45-65 Nötr, 45 altı Zayıf. "+
   "Sana her soruda 'GÜNCEL RADAR VERİSİ' bloğu verilir — yanıtlarını SADECE bu verilerle ve genel finans "+
@@ -588,6 +593,7 @@ function aiContext(){
     if(f.trailing_pe!=null)l+=` FK=${f.trailing_pe.toFixed(1)}`;
     if(f.forward_pe!=null)l+=` ileri_FK=${f.forward_pe.toFixed(1)}`;
     if(f.price_to_book!=null)l+=` PDDD=${f.price_to_book.toFixed(2)}`;
+    if(f.peg!=null)l+=` PEG=${f.peg.toFixed(2)}`;
     if(f.roe!=null)l+=` ROE=${fmtPct(f.roe,0)}`;
     if(f.dividend_yield!=null)l+=` temettü=${fmtPct(f.dividend_yield)}`;
     if(f.debt_to_equity!=null)l+=` borç/özkaynak=%${f.debt_to_equity.toFixed(0)}`;

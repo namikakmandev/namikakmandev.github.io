@@ -295,7 +295,7 @@ def yahoo_session():
 
 
 def fetch_fundamentals(op, crumb, sym):
-    mods = "defaultKeyStatistics,summaryDetail,financialData,price"
+    mods = "defaultKeyStatistics,summaryDetail,financialData,price,earningsTrend"
     url = ("https://query1.finance.yahoo.com/v10/finance/quoteSummary/"
            f"{urllib.parse.quote(sym)}?modules={mods}&crumb={urllib.parse.quote(crumb)}")
     j = json.loads(get(url, opener=op).decode())
@@ -306,7 +306,22 @@ def fetch_fundamentals(op, crumb, sym):
     sd = res.get("summaryDetail") or {}
     fd = res.get("financialData") or {}
     pr = res.get("price") or {}
+    # PEG'i kendimiz hesaplarız: Yahoo'nun hazır pegRatio'su güvenilmez (bkz.
+    # fetch.py notu). Büyüme: önce analist konsensüsü (+1y), yoksa gerçekleşen
+    # yıllık kâr büyümesi. F/K: önce ileriye dönük, yoksa cari.
+    growth_1y = None
+    for tr in (res.get("earningsTrend") or {}).get("trend", []):
+        if tr.get("period") == "+1y":
+            growth_1y = _num(tr.get("growth"))
+    growth = growth_1y if (growth_1y and growth_1y > 0) else _num(fd.get("earningsGrowth"))
+    pe_for_peg = _num(sd.get("forwardPE")) or _num(sd.get("trailingPE"))
+    peg = None
+    if pe_for_peg and pe_for_peg > 0 and growth and growth > 0.01:
+        peg = round(pe_for_peg / (growth * 100), 2)
     return {
+        "peg": peg,
+        "peg_growth": growth,
+        "yahoo_peg": _num(ks.get("pegRatio")),
         "long_name": pr.get("longName") or pr.get("shortName"),
         "market_cap": _num(pr.get("marketCap")),
         "trailing_pe": _num(sd.get("trailingPE")),
