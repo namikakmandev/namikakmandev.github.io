@@ -314,7 +314,10 @@ def fetch_fundamentals(op, crumb, sym):
         if tr.get("period") == "+1y":
             growth_1y = _num(tr.get("growth"))
     growth = growth_1y if (growth_1y and growth_1y > 0) else _num(fd.get("earningsGrowth"))
-    pe_for_peg = _num(sd.get("forwardPE")) or _num(sd.get("trailingPE"))
+    fpe, tpe = _num(sd.get("forwardPE")), _num(sd.get("trailingPE"))
+    # BIST'te Yahoo'nun ileriye dönük F/K'sı bazen bozuk (ör. 0.4 gibi);
+    # cariyle bariz tutarsızsa cari F/K'ya düş
+    pe_for_peg = fpe if (fpe and fpe > 0 and (not tpe or fpe > tpe * 0.25)) else tpe
     peg = None
     if pe_for_peg and pe_for_peg > 0 and growth and growth > 0.01:
         peg = round(pe_for_peg / (growth * 100), 2)
