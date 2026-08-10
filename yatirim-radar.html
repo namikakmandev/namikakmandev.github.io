@@ -104,6 +104,42 @@
   section.metho p,section.metho li{font-size:13.5px;color:#b9c1cf}
   section.metho ul{margin:8px 0 8px 20px}
   section.metho b{color:var(--text)}
+  /* ---- Radar Asistanı (AI sohbet) ---- */
+  .ai-fab{position:fixed;right:20px;bottom:20px;z-index:60;display:flex;align-items:center;gap:9px;
+    background:linear-gradient(135deg,var(--blue),#1673d1);color:#fff;border:none;border-radius:999px;
+    padding:12px 20px;font-size:14.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 28px rgba(47,155,255,.45);
+    transition:.2s}
+  .ai-fab:hover{transform:translateY(-2px)}
+  .ai-fab .dot{width:8px;height:8px;border-radius:50%;background:#7ef7c3;animation:pulse 1.8s infinite}
+  .ai-panel{position:fixed;right:20px;bottom:20px;z-index:70;width:390px;max-width:calc(100vw - 24px);
+    height:560px;max-height:calc(100vh - 40px);display:none;flex-direction:column;background:var(--panel);
+    border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 60px rgba(0,0,0,.55);overflow:hidden}
+  .ai-panel.open{display:flex}
+  .ai-head{display:flex;align-items:center;gap:10px;padding:13px 16px;background:var(--panel2);
+    border-bottom:1px solid var(--line)}
+  .ai-head .t{font-weight:800;font-size:15px}
+  .ai-head .s{font-size:11.5px;color:var(--muted)}
+  .ai-close{margin-left:auto;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+  .ai-close:hover{color:var(--text)}
+  .ai-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+  .ai-m{max-width:88%;padding:9px 13px;border-radius:13px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:break-word}
+  .ai-m.user{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:4px}
+  .ai-m.bot{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .ai-m.bot.err{border-color:rgba(255,90,106,.5);color:#f5b8be}
+  .ai-m.typing i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);
+    margin-right:4px;animation:pulse 1s infinite}
+  .ai-m.typing i:nth-child(2){animation-delay:.2s}.ai-m.typing i:nth-child(3){animation-delay:.4s}
+  .ai-chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 8px}
+  .ai-chips button{border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:999px;
+    padding:5px 11px;font-size:12px;cursor:pointer}
+  .ai-chips button:hover{color:var(--text);border-color:var(--blue)}
+  .ai-inp{display:flex;gap:8px;padding:11px 14px;border-top:1px solid var(--line);background:var(--panel2)}
+  .ai-inp input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--text);
+    padding:9px 12px;font-size:14px}
+  .ai-inp button{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:0 16px;
+    font-weight:700;cursor:pointer;font-size:14px}
+  .ai-inp button:disabled{opacity:.5;cursor:default}
+  .ai-foot{font-size:10.5px;color:var(--muted);text-align:center;padding:0 14px 9px;background:var(--panel2)}
 </style>
 </head>
 <body>
@@ -161,6 +197,30 @@
       Sayfa açıkken fiyatlar ayrıca dakikada bir doğrudan Yahoo Finance'ten canlı çekilir; başlıktaki
       <b>CANLI</b> rozeti bağlantının durumunu gösterir. Yahoo'nun BIST verisi ~15 dk gecikmeli olabilir.</p>
   </section>
+</div>
+
+<button class="ai-fab" id="aiFab"><span class="dot"></span>Radar Asistanı</button>
+<div class="ai-panel" id="aiPanel" role="dialog" aria-label="Radar Asistanı sohbet">
+  <div class="ai-head">
+    <div><div class="t">🤖 Radar Asistanı</div>
+    <div class="s">Ekrandaki güncel verilerle sorularınızı yanıtlar</div></div>
+    <button class="ai-close" id="aiClose" aria-label="Kapat">×</button>
+  </div>
+  <div class="ai-msgs" id="aiMsgs">
+    <div class="ai-m bot">Merhaba! Radar'daki skorlar, göstergeler ve varlıklar hakkında soru sorabilirsiniz.
+Örnek: "Bugün en güçlü görünen hisse hangisi ve neden?"</div>
+  </div>
+  <div class="ai-chips" id="aiChips">
+    <button>En güçlü 3 varlık hangisi, neden?</button>
+    <button>Altın mı gümüş mü daha iyi trendde?</button>
+    <button>Skor nasıl hesaplanıyor?</button>
+    <button>RSI aşırı alımda olanlar hangileri?</button>
+  </div>
+  <form class="ai-inp" id="aiForm">
+    <input id="aiText" type="text" placeholder="Sorunuzu yazın…" autocomplete="off" maxlength="500" />
+    <button type="submit" id="aiSend">Gönder</button>
+  </form>
+  <div class="ai-foot">Yapay zekâ yanıtları bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.</div>
 </div>
 
 <script>
@@ -489,6 +549,100 @@ async function boot(){
   setInterval(liveTick,60000);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")liveTick();});
 }
+
+/* ---- Radar Asistanı: sitedeki paylaşımlı Anthropic proxy'sini kullanır
+   (assetix-ai worker — FiloDesk, ASSETIX, ProjeFin ile aynı uç nokta). ---- */
+const AI_PROXY_URL="https://assetix-ai.akmannamik83.workers.dev";
+const AI_SYSTEM=
+  "Sen 'Yatırım Radarı' adlı web aracının yardımcı asistanısın. Araç; BIST hisseleri, kıymetli madenler, "+
+  "emtia, BIST 100 ve Dolar/TL için teknik + temel göstergeleri 0-100 arası bileşik skora indirger. "+
+  "Skorlama: Trend 35 puan (fiyatın 180 ve 200 günlük ortalamalara uzaklığı, 50/200 golden-death cross, "+
+  "200g ortalamanın eğimi) + Momentum 25 puan (3A ve 6A getiri, RSI-14; aşırı alım/satım puan kırar) + "+
+  "Değerleme 25 puan (yalnız hisseler: F/K, PD/DD, ROE, temettü verimi) + Risk 15 puan (30g volatilite, "+
+  "52 hafta zirvesinden uzaklık). Değerleme verisi olmayan varlıklar 75 puan üzerinden 100'e ölçeklenir. "+
+  "65+ Olumlu, 45-65 Nötr, 45 altı Zayıf. "+
+  "Sana her soruda 'GÜNCEL RADAR VERİSİ' bloğu verilir — yanıtlarını SADECE bu verilerle ve genel finans "+
+  "bilginle kur; verilmeyen bir rakamı ASLA uydurma, emin değilsen 'bu veri bende yok' de. "+
+  "Kısa, net ve sade Türkçe yanıtla; kullanıcı başka dilde yazarsa o dilde yanıtla. Sayıları Türkçe biçimde ver. "+
+  "Belirli bir varlığı değerlendirirken güçlü VE zayıf yönleri dengeli söyle. "+
+  "Al/sat önerisi isteyen sorularda göstergelerin ne söylediğini açıkla ama kişisel alım-satım talimatı verme; "+
+  "yorum içeren her yanıtın sonuna kısaca 'yatırım tavsiyesi değildir' hatırlatması ekle.";
+let aiHist=[],aiBusy=false;
+
+function aiContext(){
+  if(!DATA)return"Veri henüz yüklenmedi.";
+  const L=[`VERİ ZAMANI: ${new Date(DATA.asof).toLocaleString("tr-TR")}`,
+           "VARLIKLAR (bileşik skora göre sıralı):"];
+  for(const a of DATA.assets){
+    const t=a.tech,f=a.fund||{},s=a.score;
+    let l=`- ${a.name} [${a.symbol}] tür=${a.type} fiyat=${fmtN(t.price,2)} ${cur(a.currency)} `+
+      `günlük=${fmtPct(t.chg1d)} SKOR=${s.total} (${s.label}; trend ${s.trend}/35, momentum ${s.momentum}/25, `+
+      `değerleme ${s.value==null?"yok":s.value+"/25"}, risk ${s.risk}/15) `+
+      `200g_ort_fark=${fmtPct(t.vs_sma200)} 180g_ort_fark=${fmtPct(t.vs_sma180)} `+
+      `RSI=${t.rsi14==null?"—":t.rsi14.toFixed(0)} 3A=${fmtPct(t.r3m)} 6A=${fmtPct(t.r6m)} 12A=${fmtPct(t.r12m)} `+
+      `vol30=${fmtPct(t.vol30,0)} 52h_zirveden=${fmtPct(t.from_hi52)} `+
+      `${t.sma50!=null&&t.sma200!=null?(t.sma50>t.sma200?"golden_cross":"death_cross"):""}`;
+    if(f.trailing_pe!=null)l+=` FK=${f.trailing_pe.toFixed(1)}`;
+    if(f.forward_pe!=null)l+=` ileri_FK=${f.forward_pe.toFixed(1)}`;
+    if(f.price_to_book!=null)l+=` PDDD=${f.price_to_book.toFixed(2)}`;
+    if(f.roe!=null)l+=` ROE=${fmtPct(f.roe,0)}`;
+    if(f.dividend_yield!=null)l+=` temettü=${fmtPct(f.dividend_yield)}`;
+    if(f.debt_to_equity!=null)l+=` borç/özkaynak=%${f.debt_to_equity.toFixed(0)}`;
+    L.push(l);
+    if(a.news&&a.news.length)L.push(`  son haberler: ${a.news.map(n=>n.t).join(" | ")}`);
+  }
+  return L.join("\n");
+}
+
+function aiMsg(cls,text){
+  const el=document.createElement("div");
+  el.className="ai-m "+cls;
+  if(cls.includes("typing"))el.innerHTML="<i></i><i></i><i></i>";
+  else el.textContent=text;
+  $("#aiMsgs").appendChild(el);
+  $("#aiMsgs").scrollTop=$("#aiMsgs").scrollHeight;
+  return el;
+}
+
+async function aiAsk(q){
+  if(aiBusy||!q.trim())return;
+  aiBusy=true;$("#aiSend").disabled=true;
+  aiMsg("user",q);
+  const typing=aiMsg("bot typing","");
+  const hist=aiHist.slice(-6).map(h=>(h.role==="user"?"KULLANICI: ":"ASİSTAN: ")+h.text).join("\n");
+  const prompt=`GÜNCEL RADAR VERİSİ\n${aiContext()}\n\n`+
+    (hist?`ÖNCEKİ SOHBET\n${hist}\n\n`:"")+`KULLANICININ YENİ SORUSU\n${q}`;
+  let out;
+  try{
+    const r=await fetch(AI_PROXY_URL,{method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({prompt,system:AI_SYSTEM}),
+      signal:AbortSignal.timeout(60000)});
+    const j=await r.json().catch(()=>({}));
+    out=r.ok?{text:j.text||""}:{error:j.error||("AI hatası ("+r.status+")")};
+  }catch(e){out={error:"Bağlantı hatası — asistan servisine ulaşılamadı."};}
+  typing.remove();
+  if(out.error)aiMsg("bot err",out.error);
+  else{
+    aiMsg("bot",out.text);
+    aiHist.push({role:"user",text:q},{role:"bot",text:out.text});
+  }
+  aiBusy=false;$("#aiSend").disabled=false;$("#aiText").focus();
+}
+
+$("#aiFab").addEventListener("click",()=>{
+  $("#aiPanel").classList.add("open");$("#aiFab").style.display="none";$("#aiText").focus();
+});
+$("#aiClose").addEventListener("click",()=>{
+  $("#aiPanel").classList.remove("open");$("#aiFab").style.display="";
+});
+$("#aiForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const q=$("#aiText").value.trim();$("#aiText").value="";aiAsk(q);
+});
+$("#aiChips").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(b)aiAsk(b.textContent);
+});
 
 $("#chips").addEventListener("click",e=>{
   const b=e.target.closest(".chip");if(!b)return;
