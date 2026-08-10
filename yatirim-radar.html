@@ -124,6 +124,21 @@
   #noteClear{background:none;color:var(--muted);border:1px solid var(--line)!important}
   .note-saved{font-size:11.5px;color:var(--green);margin-left:6px;opacity:0;transition:.3s}
   .note-saved.show{opacity:1}
+  tr.notable{cursor:pointer}
+  tr.notable:hover td{background:rgba(47,155,255,.07)}
+  .note-flag{margin-left:5px;font-size:11px}
+  .ctx-note{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:90;width:420px;
+    max-width:calc(100vw - 24px);background:var(--panel);border:1px solid var(--blue);border-radius:14px;
+    padding:14px;box-shadow:0 18px 60px rgba(0,0,0,.6)}
+  .ctx-note .cn-title{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:8px}
+  .ctx-note textarea{width:100%;min-height:70px;background:var(--bg);border:1px solid var(--line);
+    border-radius:9px;color:var(--text);padding:9px 11px;font:13.5px/1.5 inherit;resize:vertical}
+  .ctx-note .cn-btns{display:flex;gap:8px;margin-top:9px}
+  .ctx-note .cn-btns button{border:none;border-radius:9px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer}
+  #cnSave{background:var(--blue);color:#fff}
+  #cnDel{background:none;color:var(--red);border:1px solid rgba(255,90,106,.4)!important}
+  #cnCancel{background:var(--panel2);color:var(--muted);border:1px solid var(--line)!important}
+  .chip.lang{margin-left:auto;font-weight:800;letter-spacing:.06em}
   /* ---- Radar Asistanı (AI sohbet) ---- */
   .ai-fab{position:fixed;right:20px;bottom:20px;z-index:60;display:flex;align-items:center;gap:9px;
     background:linear-gradient(135deg,var(--blue),#1673d1);color:#fff;border:none;border-radius:999px;
@@ -165,18 +180,13 @@
 <body>
 <div class="wrap">
   <header class="top">
-    <a class="back" href="index.html">← namikakman — ana sayfa</a>
+    <a class="back" href="index.html" id="backLnk">← namikakman — ana sayfa</a>
     <h1>Yatırım <span class="grad">Radarı</span></h1>
-    <p class="sub">BIST hisseleri, ABD borsaları (NASDAQ &amp; NYSE), kıymetli madenler ve emtialar tek ekranda: 180 / 200 günlük ortalamalar,
-      RSI, MACD, momentum, volatilite ve temel rasyolar (F/K, PD/DD, ROE, temettü) 0–100 arası bir
-      bileşik skora indirgenir. Fiyatlar sayfa açıkken dakikada bir canlı yenilenir; skorlar seans
-      boyunca 15 dakikada bir tazelenir.</p>
+    <p class="sub" id="subTxt"></p>
     <div class="asof"><span id="asof"></span><span class="livechip" id="live" hidden><i></i><span id="livetxt"></span></span></div>
   </header>
 
-  <div class="disclaimer">⚠️ <b>Bu sayfa yatırım tavsiyesi değildir.</b> Skorlar yalnızca halka açık fiyat
-    ve rasyo verilerinden hesaplanan mekanik göstergelerdir; alım-satım kararı için lisanslı bir
-    yatırım danışmanına başvurun. Veriler gecikmeli olabilir.</div>
+  <div class="disclaimer" id="discTxt"></div>
 
   <div class="strip" id="strip"></div>
 
@@ -188,6 +198,7 @@
       <button class="chip" data-f="maden">Kıymetli Madenler</button>
       <button class="chip" data-f="emtia">Emtia</button>
       <button class="chip" data-f="diger">Endeks &amp; Döviz</button>
+      <button class="chip lang" id="langBtn" title="Switch language">EN</button>
     </div>
     <input type="search" id="q" placeholder="Ara: THYAO, altın…" />
     <select id="sort">
@@ -203,9 +214,8 @@
   <div id="list"></div>
 
   <section class="notes-sec" id="notesSec">
-    <h2>📝 Notlar &amp; Geri Bildirim</h2>
-    <p class="hint">Araç hakkında genel not yazın ya da yukarıda bir varlığın kartını açıp altındaki not alanını kullanın.
-      Notlar bu cihazda saklanır; hazır olunca tek tuşla gönderin.</p>
+    <h2 id="notesH2">📝 Notlar &amp; Geri Bildirim</h2>
+    <p class="hint" id="notesHint"></p>
     <textarea id="noteGeneral" placeholder="Genel notunuz / geliştirme öneriniz… (otomatik kaydedilir)"></textarea>
     <div id="noteList"></div>
     <div class="note-actions">
@@ -216,47 +226,35 @@
     </div>
   </section>
 
-  <section class="metho">
-    <h2>Metodoloji</h2>
-    <p>Her varlık için Yahoo Finance'ten 2 yıllık günlük kapanış serisi çekilir ve dört başlıkta puanlanır:</p>
-    <ul>
-      <li><b>Trend (35 puan):</b> fiyatın 180 ve 200 günlük basit ortalamalara uzaklığı, 50/200 kesişimi (golden/death cross) ve 200 günlük ortalamanın eğimi.</li>
-      <li><b>Momentum (25 puan):</b> 3 ve 6 aylık getiri ile RSI-14 (aşırı alım/satım bölgeleri puan kırar).</li>
-      <li><b>Değerleme (25 puan, BIST ve ABD hisseleri):</b> F/K, PD/DD, özsermaye kârlılığı (ROE) ve temettü verimi. Ayrıca her hisse için <b>PEG</b> (F/K ÷ yıllık kâr büyümesi; önce analist konsensüsü, yoksa gerçekleşen büyüme) bilgi amaçlı gösterilir — 1'in altı büyümeye göre ucuz kabul edilir; TL hisselerde büyüme nominal (enflasyon dahil) olduğundan çok düşük PEG'ler temkinli yorumlanmalıdır.</li>
-      <li><b>Risk (15 puan):</b> 30 günlük yıllıklandırılmış volatilite ve 52 haftalık zirveden uzaklık.</li>
-    </ul>
-    <p>Değerleme verisi olmayan varlıklarda (altın, gümüş, emtia, endeks) toplam kalan 75 puan üzerinden
-      100'e ölçeklenir. <b>65+</b> Olumlu, <b>45–65</b> Nötr, <b>45 altı</b> Zayıf olarak etiketlenir.</p>
-    <p style="margin-top:8px"><b>Güncelleme sıklığı:</b> skorlar ve grafikler BIST seansı boyunca 15 dakikada bir,
-      rasyolar ve haberler her akşam kapanıştan sonra GitHub Actions ile tazelenir
-      (<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_yatirim_radar.py">kaynak kodu</a>).
-      Sayfa açıkken fiyatlar ayrıca dakikada bir doğrudan Yahoo Finance'ten canlı çekilir; başlıktaki
-      <b>CANLI</b> rozeti bağlantının durumunu gösterir. Yahoo'nun BIST verisi ~15 dk gecikmeli olabilir.</p>
-  </section>
+  <section class="metho" id="methoSec"></section>
 </div>
 
-<button class="ai-fab" id="aiFab"><span class="dot"></span>Radar Asistanı</button>
+<button class="ai-fab" id="aiFab"><span class="dot"></span><span id="aiFabTxt">Radar Asistanı</span></button>
 <div class="ai-panel" id="aiPanel" role="dialog" aria-label="Radar Asistanı sohbet">
   <div class="ai-head">
-    <div><div class="t">🤖 Radar Asistanı</div>
-    <div class="s">Ekrandaki güncel verilerle sorularınızı yanıtlar</div></div>
+    <div><div class="t" id="aiTitle">🤖 Radar Asistanı</div>
+    <div class="s" id="aiSubTxt"></div></div>
     <button class="ai-close" id="aiClose" aria-label="Kapat">×</button>
   </div>
   <div class="ai-msgs" id="aiMsgs">
-    <div class="ai-m bot">Merhaba! Radar'daki skorlar, göstergeler ve varlıklar hakkında soru sorabilirsiniz.
-Örnek: "Bugün en güçlü görünen hisse hangisi ve neden?"</div>
+    <div class="ai-m bot" id="aiGreet"></div>
   </div>
-  <div class="ai-chips" id="aiChips">
-    <button>En güçlü 3 varlık hangisi, neden?</button>
-    <button>Altın mı gümüş mü daha iyi trendde?</button>
-    <button>Skor nasıl hesaplanıyor?</button>
-    <button>RSI aşırı alımda olanlar hangileri?</button>
-  </div>
+  <div class="ai-chips" id="aiChips"></div>
   <form class="ai-inp" id="aiForm">
     <input id="aiText" type="text" placeholder="Sorunuzu yazın…" autocomplete="off" maxlength="500" />
     <button type="submit" id="aiSend">Gönder</button>
   </form>
-  <div class="ai-foot">Yapay zekâ yanıtları bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.</div>
+  <div class="ai-foot" id="aiFoot"></div>
+</div>
+
+<div class="ctx-note" id="ctxNote" hidden>
+  <div class="cn-title" id="cnTitle"></div>
+  <textarea id="cnText"></textarea>
+  <div class="cn-btns">
+    <button id="cnSave"></button>
+    <button id="cnDel"></button>
+    <button id="cnCancel"></button>
+  </div>
 </div>
 
 <script>
@@ -264,9 +262,172 @@
 const $=s=>document.querySelector(s);
 let DATA=null, filter="tumu", query="", sortBy="score";
 const openSyms=new Set();
+let LANG=localStorage.getItem("radarLang")||"tr";
+const LOC=()=>LANG==="tr"?"tr-TR":"en-US";
+const I18N={
+tr:{
+ docTitle:"Yatırım Radarı — BIST · ABD Borsaları · Kıymetli Madenler · Emtia",
+ back:"← namikakman — ana sayfa",
+ sub:"BIST hisseleri, ABD borsaları (NASDAQ & NYSE), kıymetli madenler ve emtialar tek ekranda: 180 / 200 günlük ortalamalar, RSI, MACD, momentum, volatilite ve temel rasyolar (F/K, PD/DD, ROE, temettü) 0–100 arası bir bileşik skora indirgenir. Fiyatlar sayfa açıkken dakikada bir canlı yenilenir; skorlar seans boyunca 15 dakikada bir tazelenir.",
+ disc:"⚠️ <b>Bu sayfa yatırım tavsiyesi değildir.</b> Skorlar yalnızca halka açık fiyat ve rasyo verilerinden hesaplanan mekanik göstergelerdir; alım-satım kararı için lisanslı bir yatırım danışmanına başvurun. Veriler gecikmeli olabilir.",
+ chips:{tumu:"Tümü",hisse:"BIST",abd:"ABD Borsaları",maden:"Kıymetli Madenler",emtia:"Emtia",diger:"Endeks & Döviz"},
+ searchPh:"Ara: THYAO, altın…",
+ sort:{score:"Sırala: Skor",chg1d:"Günlük değişim",r3m:"3 aylık getiri",rsi:"RSI",pe:"F/K (düşükten)",peg:"PEG (düşükten)"},
+ asof:(d,n)=>`Son analiz: <b>${d}</b> · ${n} varlık izleniyor`,
+ live:"CANLI",liveOff:"canlı bağlantı yok — 15 dk'lık veri",daily:"günlük",
+ tags:{hisse:"BIST Hisse",abd:"ABD Hisse",maden:"Kıymetli Maden",emtia:"Emtia",endeks:"Endeks",doviz:"Döviz"},
+ lbl:{Olumlu:"Olumlu","Nötr":"Nötr",Zayıf:"Zayıf"},
+ noMatch:"Eşleşen varlık yok.",
+ noData:`<b>Veri henüz üretilmemiş.</b><br><br>Bu sayfanın verisi GitHub Actions'taki <b>"Yatirim Radar data"</b> workflow'u tarafından üretilir. Depodaki <b>Actions</b> sekmesinden bir kez elle çalıştırın.`,
+ bars:["Trend","Momentum","Değerleme","Risk"],
+ secScore:"Skor dağılımı",secNews:"Haber akışı",secTech:"Teknik görünüm",secFund:"Temel rasyolar",
+ secNote:"📝 Bu varlık için notum",saved:"kaydedildi ✓",
+ notePh:"Gözlemin, sorun ya da önerin… (otomatik kaydedilir)",
+ legend:["Kapanış","SMA 180","SMA 200"],
+ newsNone:"Haber akışı bulunamadı.",
+ fundNone:"Bu varlık türü için bilanço/rasyo verisi yok; skor teknik göstergelerden hesaplanır.",
+ f:{price:"Fiyat",chg:"Günlük",sma50:"SMA 50",sma100:"SMA 100",sma180:"SMA 180",sma200:"SMA 200",rsi:"RSI (14)",
+    r13:"1A / 3A getiri",r612:"6A / 12A getiri",vol:"Volatilite (30g, yıllık)",band:"52H bandı",fromHi:"Zirveden uzaklık",
+    pe:"F/K (cari)",fpe:"F/K (ileriye dönük)",pb:"PD/DD",ps:"PD/Satış",peg:"PEG (F/K ÷ büyüme)",growth:"büyüme",
+    pegWarn:" — nominal/enflasyon etkili olabilir",pegNone:"veri yok (büyüme tahmini yok/negatif)",
+    roe:"ROE",margin:"Net kâr marjı",dte:"Borç/Özkaynak",dy:"Temettü verimi",rg:"Ciro büyümesi (yıllık)",
+    eg:"Kâr büyümesi (yıllık)",target:"Analist hedefi (ort.)",mcap:"Piyasa değeri",bn:"mlr",noData:"veri yok"},
+ sig:{above200:v=>`200g ort. üzerinde (${v})`,below200:v=>`200g ort. altında (${v})`,s180:v=>`180g ort. ${v}`,
+      golden:"Golden Cross (50>200)",death:"Death Cross (50<200)",
+      rsiOB:v=>`RSI ${v} — aşırı alım`,rsiOS:v=>`RSI ${v} — aşırı satım`,rsi:v=>`RSI ${v}`,
+      macdP:"MACD pozitif",macdN:"MACD negatif",r3m:v=>`3A getiri ${v}`,nearHi:"52H zirvesine yakın",
+      lowPE:v=>`Düşük F/K (${v})`,highPE:v=>`Yüksek F/K (${v})`,
+      pegCheap:v=>`PEG ${v} — büyümeye göre ucuz`,pegRich:v=>`PEG ${v} — büyümeye göre pahalı`,
+      rev:v=>`Ciro ${v}`,div:v=>`Temettü ${v}`},
+ cm:{up:v=>`Fiyat 200 günlük ortalamanın ${v} üzerinde; uzun vadeli trend yukarı yönlü.`,
+     down:v=>`Fiyat 200 günlük ortalamanın ${v} altında; uzun vadeli trend baskı altında.`,
+     r6p:v=>`Son 6 ayda ${v} getiri sağladı.`,r6n:v=>`Son 6 ayda ${v} değer kaybetti.`,
+     ratios:(pe,pb,roe)=>`F/K ${pe}, PD/DD ${pb}${roe?`, ROE ${roe}`:""}.`,
+     ob:"RSI aşırı alım bölgesinde — kısa vadede geri çekilme riski artmış olabilir.",
+     os:"RSI aşırı satım bölgesinde — satış baskısı yorgun görünüyor.",
+     total:(sc,lb)=>`Bileşik skor ${sc}/100 (${lb.toLowerCase()}).`},
+ notesH2:"📝 Notlar & Geri Bildirim",
+ notesHint:"Araç hakkında genel not yazın, yukarıda bir varlığın kartını açıp not alın ya da detaydaki herhangi bir rasyo/gösterge satırına tıklayıp o kaleme özel not iliştirin. Notlar bu cihazda saklanır; hazır olunca tek tuşla gönderin.",
+ genPh:"Genel notunuz / geliştirme öneriniz… (otomatik kaydedilir)",
+ wa:"WhatsApp ile gönder",mail:"E-posta ile gönder",copy:"Panoya kopyala",copied:"Kopyalandı ✓",clear:"Tümünü temizle",
+ noNotes:"Henüz not yok — önce bir şeyler yazın.",confirmClear:"Tüm notlar silinsin mi?",copyFail:"Kopyalanamadı.",
+ notesTitle:"Yatırım Radarı — Notlar",general:"GENEL",clickNote:"Bu kaleme not eklemek için tıklayın",
+ cnTitle:(a,c)=>`Not: ${a} › ${c}`,cnSave:"Kaydet",cnDel:"Sil",cnCancel:"Vazgeç",
+ aiFab:"Radar Asistanı",aiTitle:"🤖 Radar Asistanı",aiSub:"Ekrandaki güncel verilerle sorularınızı yanıtlar",
+ aiGreet:`Merhaba! Radar'daki skorlar, göstergeler ve varlıklar hakkında soru sorabilirsiniz.
+Örnek: "Bugün en güçlü görünen hisse hangisi ve neden?"`,
+ aiChips:["En güçlü 3 varlık hangisi, neden?","Altın mı gümüş mü daha iyi trendde?","Skor nasıl hesaplanıyor?","RSI aşırı alımda olanlar hangileri?"],
+ aiPh:"Sorunuzu yazın…",aiSend:"Gönder",aiFoot:"Yapay zekâ yanıtları bilgilendirme amaçlıdır; yatırım tavsiyesi değildir.",
+ aiErr:"Bağlantı hatası — asistan servisine ulaşılamadı.",aiErrPre:"AI hatası",
+ metho:`<h2>Metodoloji</h2>
+  <p>Her varlık için Yahoo Finance'ten 2 yıllık günlük kapanış serisi çekilir ve dört başlıkta puanlanır:</p>
+  <ul>
+   <li><b>Trend (35 puan):</b> fiyatın 180 ve 200 günlük basit ortalamalara uzaklığı, 50/200 kesişimi (golden/death cross) ve 200 günlük ortalamanın eğimi.</li>
+   <li><b>Momentum (25 puan):</b> 3 ve 6 aylık getiri ile RSI-14 (aşırı alım/satım bölgeleri puan kırar).</li>
+   <li><b>Değerleme (25 puan, BIST ve ABD hisseleri):</b> F/K, PD/DD, özsermaye kârlılığı (ROE) ve temettü verimi. Ayrıca her hisse için <b>PEG</b> (F/K ÷ yıllık kâr büyümesi; önce analist konsensüsü, yoksa gerçekleşen büyüme) bilgi amaçlı gösterilir — 1'in altı büyümeye göre ucuz kabul edilir; TL hisselerde büyüme nominal (enflasyon dahil) olduğundan çok düşük PEG'ler temkinli yorumlanmalıdır.</li>
+   <li><b>Risk (15 puan):</b> 30 günlük yıllıklandırılmış volatilite ve 52 haftalık zirveden uzaklık.</li>
+  </ul>
+  <p>Değerleme verisi olmayan varlıklarda (altın, gümüş, emtia, endeks) toplam kalan 75 puan üzerinden 100'e ölçeklenir. <b>65+</b> Olumlu, <b>45–65</b> Nötr, <b>45 altı</b> Zayıf olarak etiketlenir.</p>
+  <p style="margin-top:8px"><b>Güncelleme sıklığı:</b> skorlar ve grafikler BIST seansı boyunca 15 dakikada bir, rasyolar ve haberler her akşam kapanıştan sonra GitHub Actions ile tazelenir (<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_yatirim_radar.py">kaynak kodu</a>). Sayfa açıkken fiyatlar ayrıca dakikada bir doğrudan Yahoo Finance'ten canlı çekilir; başlıktaki <b>CANLI</b> rozeti bağlantının durumunu gösterir. Yahoo'nun BIST verisi ~15 dk gecikmeli olabilir.</p>`,
+},
+en:{
+ docTitle:"Investment Radar — BIST · US Markets · Precious Metals · Commodities",
+ back:"← namikakman — home",
+ sub:"BIST stocks, US markets (NASDAQ & NYSE), precious metals and commodities on one screen: 180/200-day moving averages, RSI, MACD, momentum, volatility and fundamental ratios (P/E, P/B, ROE, dividend) distilled into a 0–100 composite score. Prices refresh live every minute while the page is open; scores re-compute every 15 minutes through the session.",
+ disc:"⚠️ <b>This page is not investment advice.</b> Scores are mechanical indicators computed purely from public price and ratio data; consult a licensed advisor before trading. Data may be delayed.",
+ chips:{tumu:"All",hisse:"BIST",abd:"US Markets",maden:"Precious Metals",emtia:"Commodities",diger:"Indices & FX"},
+ searchPh:"Search: AAPL, gold…",
+ sort:{score:"Sort: Score",chg1d:"Daily change",r3m:"3-month return",rsi:"RSI",pe:"P/E (low first)",peg:"PEG (low first)"},
+ asof:(d,n)=>`Last analysis: <b>${d}</b> · ${n} assets tracked`,
+ live:"LIVE",liveOff:"no live link — 15-min data",daily:"today",
+ tags:{hisse:"BIST Stock",abd:"US Stock",maden:"Precious Metal",emtia:"Commodity",endeks:"Index",doviz:"FX"},
+ lbl:{Olumlu:"Positive","Nötr":"Neutral",Zayıf:"Weak"},
+ noMatch:"No matching assets.",
+ noData:`<b>No data generated yet.</b><br><br>This page reads data produced by the <b>"Yatirim Radar data"</b> GitHub Actions workflow. Run it once from the repo's <b>Actions</b> tab.`,
+ bars:["Trend","Momentum","Valuation","Risk"],
+ secScore:"Score breakdown",secNews:"News flow",secTech:"Technical view",secFund:"Fundamental ratios",
+ secNote:"📝 My note on this asset",saved:"saved ✓",
+ notePh:"Your observation, issue or idea… (saved automatically)",
+ legend:["Close","SMA 180","SMA 200"],
+ newsNone:"No news found.",
+ fundNone:"No balance-sheet/ratio data for this asset type; the score is computed from technicals only.",
+ f:{price:"Price",chg:"Daily",sma50:"SMA 50",sma100:"SMA 100",sma180:"SMA 180",sma200:"SMA 200",rsi:"RSI (14)",
+    r13:"1M / 3M return",r612:"6M / 12M return",vol:"Volatility (30d, ann.)",band:"52W range",fromHi:"Off 52W high",
+    pe:"P/E (trailing)",fpe:"P/E (forward)",pb:"P/B",ps:"P/S",peg:"PEG (P/E ÷ growth)",growth:"growth",
+    pegWarn:" — may be inflated by nominal TRY growth",pegNone:"n/a (no/negative growth estimate)",
+    roe:"ROE",margin:"Net margin",dte:"Debt/Equity",dy:"Dividend yield",rg:"Revenue growth (yoy)",
+    eg:"Earnings growth (yoy)",target:"Analyst target (avg)",mcap:"Market cap",bn:"bn",noData:"n/a"},
+ sig:{above200:v=>`Above 200d avg (${v})`,below200:v=>`Below 200d avg (${v})`,s180:v=>`180d avg ${v}`,
+      golden:"Golden Cross (50>200)",death:"Death Cross (50<200)",
+      rsiOB:v=>`RSI ${v} — overbought`,rsiOS:v=>`RSI ${v} — oversold`,rsi:v=>`RSI ${v}`,
+      macdP:"MACD positive",macdN:"MACD negative",r3m:v=>`3M return ${v}`,nearHi:"Near 52W high",
+      lowPE:v=>`Low P/E (${v})`,highPE:v=>`High P/E (${v})`,
+      pegCheap:v=>`PEG ${v} — cheap vs growth`,pegRich:v=>`PEG ${v} — rich vs growth`,
+      rev:v=>`Revenue ${v}`,div:v=>`Dividend ${v}`},
+ cm:{up:v=>`Price is ${v} above its 200-day average; the long-term trend points up.`,
+     down:v=>`Price is ${v} below its 200-day average; the long-term trend is under pressure.`,
+     r6p:v=>`Returned ${v} over the last 6 months.`,r6n:v=>`Lost ${v} over the last 6 months.`,
+     ratios:(pe,pb,roe)=>`P/E ${pe}, P/B ${pb}${roe?`, ROE ${roe}`:""}.`,
+     ob:"RSI is in overbought territory — short-term pullback risk may be elevated.",
+     os:"RSI is in oversold territory — selling pressure looks exhausted.",
+     total:(sc,lb)=>`Composite score ${sc}/100 (${lb.toLowerCase()}).`},
+ notesH2:"📝 Notes & Feedback",
+ notesHint:"Write a general note, open an asset card above to note on it, or click any ratio/indicator row in a detail view to attach a note to that specific item. Notes are stored on this device; send them with one tap when ready.",
+ genPh:"Your general note / improvement idea… (saved automatically)",
+ wa:"Send via WhatsApp",mail:"Send via e-mail",copy:"Copy to clipboard",copied:"Copied ✓",clear:"Clear all",
+ noNotes:"No notes yet — write something first.",confirmClear:"Delete all notes?",copyFail:"Copy failed.",
+ notesTitle:"Investment Radar — Notes",general:"GENERAL",clickNote:"Click to attach a note to this item",
+ cnTitle:(a,c)=>`Note: ${a} › ${c}`,cnSave:"Save",cnDel:"Delete",cnCancel:"Cancel",
+ aiFab:"Radar Assistant",aiTitle:"🤖 Radar Assistant",aiSub:"Answers questions using the live data on screen",
+ aiGreet:`Hi! Ask me anything about the scores, indicators and assets on the radar.
+E.g. "Which stock looks strongest today and why?"`,
+ aiChips:["Top 3 strongest assets and why?","Gold or silver — better trend?","How is the score computed?","Which assets are RSI-overbought?"],
+ aiPh:"Type your question…",aiSend:"Send",aiFoot:"AI answers are for information only; not investment advice.",
+ aiErr:"Connection error — assistant service unreachable.",aiErrPre:"AI error",
+ metho:`<h2>Methodology</h2>
+  <p>For every asset a 2-year daily close series is pulled from Yahoo Finance and scored in four buckets:</p>
+  <ul>
+   <li><b>Trend (35 pts):</b> distance to the 180- and 200-day simple moving averages, the 50/200 crossover (golden/death cross) and the slope of the 200-day average.</li>
+   <li><b>Momentum (25 pts):</b> 3- and 6-month returns plus RSI-14 (overbought/oversold zones lose points).</li>
+   <li><b>Valuation (25 pts, BIST & US stocks):</b> P/E, P/B, return on equity and dividend yield. A <b>PEG</b> ratio (P/E ÷ annual earnings growth; analyst consensus first, else realized growth) is also shown for information — below 1 is considered cheap vs growth; for TRY stocks growth is nominal (inflation-inflated), so very low PEGs deserve caution.</li>
+   <li><b>Risk (15 pts):</b> 30-day annualized volatility and drawdown from the 52-week high.</li>
+  </ul>
+  <p>Assets without valuation data (gold, silver, commodities, indices) are rescaled to 100 from the remaining 75 points. <b>65+</b> Positive, <b>45–65</b> Neutral, below <b>45</b> Weak.</p>
+  <p style="margin-top:8px"><b>Refresh cadence:</b> scores and charts refresh every 15 minutes through the BIST session; ratios and news every evening after the close via GitHub Actions (<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_yatirim_radar.py">source</a>). While the page is open, prices additionally stream live from Yahoo Finance every minute; the <b>LIVE</b> badge shows the link status. Yahoo's BIST data may lag ~15 minutes.</p>`,
+},
+};
+const T=()=>I18N[LANG];
+function applyLang(){
+  const t=T();
+  document.title=t.docTitle;
+  $("#backLnk").textContent=t.back;
+  $("#subTxt").textContent=t.sub;
+  $("#discTxt").innerHTML=t.disc;
+  document.querySelectorAll("#chips .chip[data-f]").forEach(c=>{c.textContent=t.chips[c.dataset.f]||c.textContent;});
+  $("#langBtn").textContent=LANG==="tr"?"EN":"TR";
+  $("#q").placeholder=t.searchPh;
+  document.querySelectorAll("#sort option").forEach(o=>{o.textContent=t.sort[o.value]||o.textContent;});
+  $("#notesH2").textContent=t.notesH2;
+  $("#notesHint").textContent=t.notesHint;
+  $("#noteGeneral").placeholder=t.genPh;
+  $("#noteWa").textContent=t.wa;$("#noteMail").textContent=t.mail;
+  $("#noteCopy").textContent=t.copy;$("#noteClear").textContent=t.clear;
+  $("#methoSec").innerHTML=t.metho;
+  $("#aiFabTxt").textContent=t.aiFab;$("#aiTitle").textContent=t.aiTitle;
+  $("#aiSubTxt").textContent=t.aiSub;$("#aiGreet").textContent=t.aiGreet;
+  $("#aiChips").innerHTML=t.aiChips.map(c=>`<button>${c}</button>`).join("");
+  $("#aiText").placeholder=t.aiPh;$("#aiSend").textContent=t.aiSend;
+  $("#aiFoot").textContent=t.aiFoot;
+  $("#cnSave").textContent=t.cnSave;$("#cnDel").textContent=t.cnDel;$("#cnCancel").textContent=t.cnCancel;
+  if(DATA){
+    const d=new Date(DATA.asof);
+    $("#asof").innerHTML=t.asof(d.toLocaleString(LOC(),{dateStyle:"long",timeStyle:"short"}),DATA.assets.length);
+    renderStrip();render();renderNoteList();
+  }
+}
 
-const fmtN=(v,d=2)=>v==null?"—":v.toLocaleString("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d});
-const fmtPct=(v,d=1)=>v==null?"—":(v>0?"+":"")+(v*100).toLocaleString("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d})+"%";
+const fmtN=(v,d=2)=>v==null?"—":v.toLocaleString(LOC(),{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtPct=(v,d=1)=>v==null?"—":(v>0?"+":"")+(v*100).toLocaleString(LOC(),{minimumFractionDigits:d,maximumFractionDigits:d})+"%";
 const cur=c=>c==="TRY"?"₺":(c==="USD"?"$":(c||""));
 const price=a=>{
   const p=a.tech.price;
@@ -278,52 +439,46 @@ const lblCls=l=>l==="Olumlu"?"s-olumlu":(l==="Nötr"?"s-notr":"s-zayif");
 const scoreColor=s=>s>=65?"var(--green)":(s>=45?"var(--gold)":"var(--red)");
 
 function signals(a){
-  const t=a.tech,f=a.fund||{},out=[];
+  const t=a.tech,f=a.fund||{},S=T().sig,out=[];
   if(t.vs_sma200!=null) out.push(t.vs_sma200>=0
-    ?["pos","200g ort. üzerinde ("+fmtPct(t.vs_sma200)+")"]
-    :["neg","200g ort. altında ("+fmtPct(t.vs_sma200)+")"]);
-  if(t.vs_sma180!=null) out.push([t.vs_sma180>=0?"pos":"neg","180g ort. "+fmtPct(t.vs_sma180)]);
-  if(t.sma50!=null&&t.sma200!=null) out.push(t.sma50>t.sma200?["pos","Golden Cross (50>200)"]:["neg","Death Cross (50<200)"]);
+    ?["pos",S.above200(fmtPct(t.vs_sma200))]:["neg",S.below200(fmtPct(t.vs_sma200))]);
+  if(t.vs_sma180!=null) out.push([t.vs_sma180>=0?"pos":"neg",S.s180(fmtPct(t.vs_sma180))]);
+  if(t.sma50!=null&&t.sma200!=null) out.push(t.sma50>t.sma200?["pos",S.golden]:["neg",S.death]);
   if(t.rsi14!=null){
-    if(t.rsi14>70) out.push(["warn","RSI "+fmtN(t.rsi14,0)+" — aşırı alım"]);
-    else if(t.rsi14<30) out.push(["warn","RSI "+fmtN(t.rsi14,0)+" — aşırı satım"]);
-    else out.push([t.rsi14>=45?"pos":"warn","RSI "+fmtN(t.rsi14,0)]);
+    if(t.rsi14>70) out.push(["warn",S.rsiOB(fmtN(t.rsi14,0))]);
+    else if(t.rsi14<30) out.push(["warn",S.rsiOS(fmtN(t.rsi14,0))]);
+    else out.push([t.rsi14>=45?"pos":"warn",S.rsi(fmtN(t.rsi14,0))]);
   }
-  if(t.macd_hist!=null) out.push([t.macd_hist>0?"pos":"neg","MACD "+(t.macd_hist>0?"pozitif":"negatif")]);
-  if(t.r3m!=null&&Math.abs(t.r3m)>0.10) out.push([t.r3m>0?"pos":"neg","3A getiri "+fmtPct(t.r3m)]);
-  if(t.from_hi52!=null&&t.from_hi52>-0.03) out.push(["pos","52H zirvesine yakın"]);
+  if(t.macd_hist!=null) out.push([t.macd_hist>0?"pos":"neg",t.macd_hist>0?S.macdP:S.macdN]);
+  if(t.r3m!=null&&Math.abs(t.r3m)>0.10) out.push([t.r3m>0?"pos":"neg",S.r3m(fmtPct(t.r3m))]);
+  if(t.from_hi52!=null&&t.from_hi52>-0.03) out.push(["pos",S.nearHi]);
   if(f.trailing_pe!=null){
-    if(f.trailing_pe>0&&f.trailing_pe<8) out.push(["pos","Düşük F/K ("+fmtN(f.trailing_pe,1)+")"]);
-    else if(f.trailing_pe>30) out.push(["warn","Yüksek F/K ("+fmtN(f.trailing_pe,1)+")"]);
+    if(f.trailing_pe>0&&f.trailing_pe<8) out.push(["pos",S.lowPE(fmtN(f.trailing_pe,1))]);
+    else if(f.trailing_pe>30) out.push(["warn",S.highPE(fmtN(f.trailing_pe,1))]);
   }
   if(f.peg!=null){
-    if(f.peg<1&&f.peg_growth<=0.6) out.push(["pos","PEG "+fmtN(f.peg,2)+" — büyümeye göre ucuz"]);
-    else if(f.peg>2.5) out.push(["warn","PEG "+fmtN(f.peg,2)+" — büyümeye göre pahalı"]);
+    if(f.peg<1&&f.peg_growth<=0.6) out.push(["pos",S.pegCheap(fmtN(f.peg,2))]);
+    else if(f.peg>2.5) out.push(["warn",S.pegRich(fmtN(f.peg,2))]);
   }
   if(f.revenue_growth!=null){
-    if(f.revenue_growth>0.15) out.push(["pos","Ciro "+fmtPct(f.revenue_growth,0)]);
-    else if(f.revenue_growth<0) out.push(["neg","Ciro "+fmtPct(f.revenue_growth,0)]);
+    if(f.revenue_growth>0.15) out.push(["pos",S.rev(fmtPct(f.revenue_growth,0))]);
+    else if(f.revenue_growth<0) out.push(["neg",S.rev(fmtPct(f.revenue_growth,0))]);
   }
-  if(f.dividend_yield>0.04) out.push(["pos","Temettü "+fmtPct(f.dividend_yield)]);
+  if(f.dividend_yield>0.04) out.push(["pos",S.div(fmtPct(f.dividend_yield))]);
   return out;
 }
 
 function comment(a){
-  const t=a.tech,s=a.score,f=a.fund||{};
-  const p=[];
-  if(t.vs_sma200!=null&&t.vs_sma180!=null){
-    p.push(t.vs_sma200>=0
-      ?`Fiyat 200 günlük ortalamanın ${fmtPct(t.vs_sma200)} üzerinde; uzun vadeli trend yukarı yönlü.`
-      :`Fiyat 200 günlük ortalamanın ${fmtPct(Math.abs(t.vs_sma200))} altında; uzun vadeli trend baskı altında.`);
-  }
-  if(t.r6m!=null) p.push(`Son 6 ayda ${fmtPct(t.r6m)} ${t.r6m>=0?"getiri sağladı":"değer kaybetti"}.`);
-  if(a.type==="hisse"){
+  const t=a.tech,sc=a.score,f=a.fund||{},C=T().cm,p=[];
+  if(t.vs_sma200!=null)
+    p.push(t.vs_sma200>=0?C.up(fmtPct(t.vs_sma200)):C.down(fmtPct(Math.abs(t.vs_sma200))));
+  if(t.r6m!=null)p.push(t.r6m>=0?C.r6p(fmtPct(t.r6m)):C.r6n(fmtPct(Math.abs(t.r6m))));
+  if(a.type==="hisse"||a.type==="abd"){
     if(f.trailing_pe>0&&f.price_to_book>0)
-      p.push(`F/K ${fmtN(f.trailing_pe,1)}, PD/DD ${fmtN(f.price_to_book,1)}${f.roe!=null?`, ROE ${fmtPct(f.roe,0)}`:""}.`);
+      p.push(C.ratios(fmtN(f.trailing_pe,1),fmtN(f.price_to_book,1),f.roe!=null?fmtPct(f.roe,0):null));
   }
-  if(t.rsi14>70) p.push("RSI aşırı alım bölgesinde — kısa vadede geri çekilme riski artmış olabilir.");
-  else if(t.rsi14<30) p.push("RSI aşırı satım bölgesinde — satış baskısı yorgun görünüyor.");
-  p.push(`Bileşik skor ${fmtN(s.total,0)}/100 (${s.label.toLowerCase()}).`);
+  if(t.rsi14>70)p.push(C.ob);else if(t.rsi14<30)p.push(C.os);
+  p.push(C.total(fmtN(sc.total,0),T().lbl[sc.label]||sc.label));
   return p.join(" ");
 }
 
@@ -358,76 +513,81 @@ function drawSpark(cv,sp,big){
   ctx.fillStyle="#19C37D";ctx.fill();
 }
 
-function kvTable(rows){
-  return '<table class="kv">'+rows.filter(r=>r[1]!=="—").map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")+"</table>";
+function kvTable(rows,sym){
+  const notes=getNotes();
+  return '<table class="kv">'+rows.filter(r=>r[1]!=="—").map(r=>{
+    const key=sym+"\u203a"+r[0];
+    const flag=notes[key]?'<span class="note-flag">📝</span>':"";
+    return `<tr class="notable" data-sym="${sym}" data-ctx="${r[0]}" title="${T().clickNote}"><td>${r[0]}${flag}</td><td>${r[1]}</td></tr>`;
+  }).join("")+"</table>";
 }
 
 function detailHTML(a){
-  const t=a.tech,f=a.fund,s=a.score;
+  const t=a.tech,f=a.fund,sc=a.score,L=T(),F=L.f;
   const sigs=signals(a).map(x=>`<span class="sig ${x[0]}">${x[1]}</span>`).join("");
-  const bars=[["Trend",s.trend,35],["Momentum",s.momentum,25],
-              ["Değerleme",s.value,25],["Risk",s.risk,15]]
+  const bars=[[L.bars[0],sc.trend,35],[L.bars[1],sc.momentum,25],
+              [L.bars[2],sc.value,25],[L.bars[3],sc.risk,15]]
     .filter(b=>b[1]!=null)
     .map(b=>`<div class="b"><div class="bt"><span>${b[0]}</span><b>${fmtN(b[1],1)} / ${b[2]}</b></div>
       <div class="bg"><i style="width:${Math.min(100,b[1]/b[2]*100)}%"></i></div></div>`).join("");
   const tek=kvTable([
-    ["Fiyat",price(a)],["Günlük",fmtPct(t.chg1d)],
-    ["SMA 50",fmtN(t.sma50)],["SMA 100",fmtN(t.sma100)],
-    ["SMA 180",fmtN(t.sma180)+" ("+fmtPct(t.vs_sma180)+")"],
-    ["SMA 200",fmtN(t.sma200)+" ("+fmtPct(t.vs_sma200)+")"],
-    ["RSI (14)",fmtN(t.rsi14,1)],
-    ["1A / 3A getiri",fmtPct(t.r1m)+" / "+fmtPct(t.r3m)],
-    ["6A / 12A getiri",fmtPct(t.r6m)+" / "+fmtPct(t.r12m)],
-    ["Volatilite (30g, yıllık)",fmtPct(t.vol30,0)],
-    ["52H bandı",fmtN(t.lo52)+" – "+fmtN(t.hi52)],
-    ["Zirveden uzaklık",fmtPct(t.from_hi52)],
-  ]);
+    [F.price,price(a)],[F.chg,fmtPct(t.chg1d)],
+    [F.sma50,fmtN(t.sma50)],[F.sma100,fmtN(t.sma100)],
+    [F.sma180,fmtN(t.sma180)+" ("+fmtPct(t.vs_sma180)+")"],
+    [F.sma200,fmtN(t.sma200)+" ("+fmtPct(t.vs_sma200)+")"],
+    [F.rsi,fmtN(t.rsi14,1)],
+    [F.r13,fmtPct(t.r1m)+" / "+fmtPct(t.r3m)],
+    [F.r612,fmtPct(t.r6m)+" / "+fmtPct(t.r12m)],
+    [F.vol,fmtPct(t.vol30,0)],
+    [F.band,fmtN(t.lo52)+" – "+fmtN(t.hi52)],
+    [F.fromHi,fmtPct(t.from_hi52)],
+  ],a.symbol);
   const tem=f?kvTable([
-    ["F/K (cari)",fmtN(f.trailing_pe,1)],["F/K (ileriye dönük)",fmtN(f.forward_pe,1)],
-    ["PD/DD",fmtN(f.price_to_book,2)],["PD/Satış",fmtN(f.price_to_sales,2)],
-    ["PEG (F/K ÷ büyüme)",f.peg!=null?fmtN(f.peg,2)+(f.peg_growth!=null?" (büyüme "+fmtPct(f.peg_growth,0)+(f.peg_growth>0.6?" — nominal/enflasyon etkili olabilir":"")+")":""):"veri yok (büyüme tahmini yok/negatif)"],
-    ["ROE",fmtPct(f.roe,0)],["Net kâr marjı",fmtPct(f.profit_margin,0)],
-    ["Borç/Özkaynak",f.debt_to_equity!=null?fmtN(f.debt_to_equity,0)+"%":"—"],
-    ["Temettü verimi",fmtPct(f.dividend_yield)],
-    ["Ciro büyümesi (yıllık)",f.revenue_growth!=null?fmtPct(f.revenue_growth,0):"veri yok"],
-    ["Kâr büyümesi (yıllık)",fmtPct(f.earnings_growth,0)],
-    ["Analist hedefi (ort.)",f.target_mean!=null?fmtN(f.target_mean)+" "+cur(a.currency):"—"],
-    ["Piyasa değeri",f.market_cap!=null?fmtN(f.market_cap/1e9,1)+" mlr "+cur(a.currency):"—"],
-  ]):'<p style="color:var(--muted);font-size:13px">Bu varlık türü için bilanço/rasyo verisi yok; skor teknik göstergelerden hesaplanır.</p>';
+    [F.pe,fmtN(f.trailing_pe,1)],[F.fpe,fmtN(f.forward_pe,1)],
+    [F.pb,fmtN(f.price_to_book,2)],[F.ps,fmtN(f.price_to_sales,2)],
+    [F.peg,f.peg!=null?fmtN(f.peg,2)+(f.peg_growth!=null?" ("+F.growth+" "+fmtPct(f.peg_growth,0)+(f.peg_growth>0.6?F.pegWarn:"")+")":""):F.pegNone],
+    [F.roe,fmtPct(f.roe,0)],[F.margin,fmtPct(f.profit_margin,0)],
+    [F.dte,f.debt_to_equity!=null?fmtN(f.debt_to_equity,0)+"%":"—"],
+    [F.dy,fmtPct(f.dividend_yield)],
+    [F.rg,f.revenue_growth!=null?fmtPct(f.revenue_growth,0):F.noData],
+    [F.eg,f.earnings_growth!=null?fmtPct(f.earnings_growth,0):F.noData],
+    [F.target,f.target_mean!=null?fmtN(f.target_mean)+" "+cur(a.currency):"—"],
+    [F.mcap,f.market_cap!=null?fmtN(f.market_cap/1e9,1)+" "+F.bn+" "+cur(a.currency):"—"],
+  ],a.symbol):`<p style="color:var(--muted);font-size:13px">${L.fundNone}</p>`;
   const news=a.news&&a.news.length
-    ?'<ul class="news">'+a.news.map(n=>`<li><a href="${n.u}" target="_blank" rel="noopener">${n.t}</a><div class="nd">${n.d?new Date(n.d).toLocaleDateString("tr-TR"):""}</div></li>`).join("")+"</ul>"
-    :'<p style="color:var(--muted);font-size:13px">Haber akışı bulunamadı.</p>';
+    ?'<ul class="news">'+a.news.map(n=>`<li><a href="${n.u}" target="_blank" rel="noopener">${n.t}</a><div class="nd">${n.d?new Date(n.d).toLocaleDateString(LOC()):""}</div></li>`).join("")+"</ul>"
+    :`<p style="color:var(--muted);font-size:13px">${L.newsNone}</p>`;
   return `
     <p class="comment">${comment(a)}</p>
     <div class="sigs">${sigs}</div>
     <canvas class="bigchart"></canvas>
-    <div class="legend"><span><i style="background:#2F9BFF"></i>Kapanış</span>
-      <span><i style="background:#FF6500"></i>SMA 180</span>
-      <span><i style="background:#8b94a7"></i>SMA 200</span>
+    <div class="legend"><span><i style="background:#2F9BFF"></i>${L.legend[0]}</span>
+      <span><i style="background:#FF6500"></i>${L.legend[1]}</span>
+      <span><i style="background:#8b94a7"></i>${L.legend[2]}</span>
       <span style="margin-left:auto">${a.spark.start} → ${a.spark.end}</span></div>
     <div class="grid2" style="margin-top:16px">
-      <div><h4>Skor dağılımı</h4><div class="bars">${bars}</div>
-           <h4>Haber akışı</h4>${news}</div>
-      <div><h4>Teknik görünüm</h4>${tek}<h4>Temel rasyolar</h4>${tem}</div>
+      <div><h4>${L.secScore}</h4><div class="bars">${bars}</div>
+           <h4>${L.secNews}</h4>${news}</div>
+      <div><h4>${L.secTech}</h4>${tek}<h4>${L.secFund}</h4>${tem}</div>
     </div>
-    <h4>📝 Bu varlık için notum<span class="note-saved">kaydedildi ✓</span></h4>
-    <textarea class="note-ta" data-sym="${a.symbol}" placeholder="Gözlemin, sorun ya da önerin… (otomatik kaydedilir)">${escNote(getNotes()[a.symbol]||"")}</textarea>`;
+    <h4>${L.secNote}<span class="note-saved">${L.saved}</span></h4>
+    <textarea class="note-ta" data-sym="${a.symbol}" placeholder="${L.notePh}">${escNote(getNotes()[a.symbol]||"")}</textarea>`;
 }
 
 function rowHTML(a,i){
-  const s=a.score;
+  const sc=a.score;
   return `<div class="card" data-sym="${a.symbol}">
     <div class="row">
       <div class="rank">${i+1}</div>
       <div class="nm"><b>${a.name}</b><span class="sym">${a.symbol}</span><br>
-        <span class="tag ${a.type}">${{hisse:"BIST Hisse",abd:"ABD Hisse",maden:"Kıymetli Maden",emtia:"Emtia",endeks:"Endeks",doviz:"Döviz"}[a.type]||a.type}</span>${a.fund?`<span class="mini">${a.fund.trailing_pe!=null?"F/K "+fmtN(a.fund.trailing_pe,1):""}${a.fund.peg!=null?" · PEG "+fmtN(a.fund.peg,2):""}</span>`:""}</div>
+        <span class="tag ${a.type}">${T().tags[a.type]||a.type}</span>${a.fund?`<span class="mini">${a.fund.trailing_pe!=null?(LANG==="tr"?"F/K ":"P/E ")+fmtN(a.fund.trailing_pe,1):""}${a.fund.peg!=null?" · PEG "+fmtN(a.fund.peg,2):""}</span>`:""}</div>
       <div class="pr"><div class="p">${price(a)}</div>
         <div class="c ${cls(a.tech.chg1d)}">${fmtPct(a.tech.chg1d)}</div></div>
       <div class="sparkcell"><canvas class="spark"></canvas></div>
       <div class="scorebox">
-        <span class="score-val" style="color:${scoreColor(s.total)}">${fmtN(s.total,0)}</span>
-        <span class="score-lbl ${lblCls(s.label)}">${s.label}</span>
-        <div class="score-bar"><i style="width:${s.total}%;background:${scoreColor(s.total)}"></i></div>
+        <span class="score-val" style="color:${scoreColor(sc.total)}">${fmtN(sc.total,0)}</span>
+        <span class="score-lbl ${lblCls(sc.label)}">${T().lbl[sc.label]||sc.label}</span>
+        <div class="score-bar"><i style="width:${sc.total}%;background:${scoreColor(sc.total)}"></i></div>
       </div>
     </div>
     <div class="detail"></div>
@@ -453,7 +613,7 @@ function visible(){
 function render(){
   const arr=visible();
   const list=$("#list");
-  list.innerHTML=arr.length?arr.map(rowHTML).join(""):'<div class="empty">Eşleşen varlık yok.</div>';
+  list.innerHTML=arr.length?arr.map(rowHTML).join(""):`<div class="empty">${T().noMatch}</div>`;
   list.querySelectorAll(".card").forEach(card=>{
     const a=arr.find(x=>x.symbol===card.dataset.sym);
     drawSpark(card.querySelector(".spark"),a.spark,false);
@@ -481,7 +641,7 @@ function renderStrip(){
     if(!a)return"";
     return `<div class="stat"><div class="k">${a.name}</div>
       <div class="v">${price(a)}</div>
-      <div class="c ${cls(a.tech.chg1d)}">${fmtPct(a.tech.chg1d)} günlük</div></div>`;
+      <div class="c ${cls(a.tech.chg1d)}">${fmtPct(a.tech.chg1d)} ${T().daily}</div></div>`;
   }).join("");
 }
 
@@ -579,10 +739,10 @@ function setLiveChip(ok){
   const chip=$("#live");chip.hidden=false;
   if(ok){
     chip.className="livechip on";
-    $("#livetxt").textContent="CANLI · "+new Date().toLocaleTimeString("tr-TR");
+    $("#livetxt").textContent=T().live+" · "+new Date().toLocaleTimeString(LOC());
   }else if(!liveEverOk){
     chip.className="livechip off";
-    $("#livetxt").textContent="canlı bağlantı yok — 15 dk'lık veri";
+    $("#livetxt").textContent=T().liveOff;
   }
 }
 
@@ -592,14 +752,11 @@ async function boot(){
     if(!r.ok)throw new Error("HTTP "+r.status);
     DATA=await r.json();
   }catch(e){
-    $("#list").innerHTML=`<div class="empty"><b>Veri henüz üretilmemiş.</b><br><br>
-      Bu sayfanın verisi <code>data/yatirim-radar.json</code> dosyasından okunur ve GitHub Actions'taki
-      <b>“Yatirim Radar data”</b> workflow'u tarafından üretilir. Depodaki <b>Actions</b> sekmesinden
-      workflow'u bir kez elle çalıştırın (Run workflow); sonrasında hafta içi her akşam otomatik yenilenir.</div>`;
+    $("#list").innerHTML=`<div class="empty">${T().noData}</div>`;
     return;
   }
   const d=new Date(DATA.asof);
-  $("#asof").innerHTML=`Son analiz: <b>${d.toLocaleString("tr-TR",{dateStyle:"long",timeStyle:"short"})}</b> · ${DATA.assets.length} varlık izleniyor`;
+  $("#asof").innerHTML=T().asof(d.toLocaleString(LOC(),{dateStyle:"long",timeStyle:"short"}),DATA.assets.length);
   renderStrip();render();
   $("#noteGeneral").value=getNotes()._genel||"";
   renderNoteList();
@@ -619,22 +776,26 @@ function setNote(k,v){
 }
 function escNote(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
 function assetName(sym){
-  if(sym==="_genel")return"GENEL";
+  if(sym==="_genel")return T().general;
   const a=DATA&&DATA.assets.find(x=>x.symbol===sym);
   return a?`${a.name} (${sym})`:sym;
+}
+function noteLabel(key){
+  const i=key.indexOf("\u203a");
+  return i<0?assetName(key):assetName(key.slice(0,i))+" › "+key.slice(i+1);
 }
 function renderNoteList(){
   const n=getNotes();
   const keys=Object.keys(n).filter(k=>k!=="_genel");
   $("#noteList").innerHTML=keys.length
-    ?keys.map(k=>`<div class="nrow"><b>${assetName(k)}:</b> ${escNote(n[k])}</div>`).join("")
+    ?keys.map(k=>`<div class="nrow"><b>${noteLabel(k)}:</b> ${escNote(n[k])}</div>`).join("")
     :"";
 }
 function compileNotes(){
   const n=getNotes();
-  const L=["Yatırım Radarı — Notlar ("+new Date().toLocaleString("tr-TR")+")",""];
-  if(n._genel)L.push("GENEL: "+n._genel,"");
-  for(const k of Object.keys(n))if(k!=="_genel")L.push(assetName(k)+": "+n[k]);
+  const L=[T().notesTitle+" ("+new Date().toLocaleString(LOC())+")",""];
+  if(n._genel)L.push(T().general+": "+n._genel,"");
+  for(const k of Object.keys(n))if(k!=="_genel")L.push(noteLabel(k)+": "+n[k]);
   return L.join("\n");
 }
 function notesEmpty(){const n=getNotes();return !Object.keys(n).length;}
@@ -647,24 +808,56 @@ $("#list").addEventListener("input",e=>{
 });
 $("#noteGeneral").addEventListener("input",e=>setNote("_genel",e.target.value));
 $("#noteWa").addEventListener("click",()=>{
-  if(notesEmpty())return alert("Henüz not yok — önce bir şeyler yazın.");
+  if(notesEmpty())return alert(T().noNotes);
   window.open("https://wa.me/?text="+encodeURIComponent(compileNotes()),"_blank");
 });
 $("#noteMail").addEventListener("click",()=>{
-  if(notesEmpty())return alert("Henüz not yok — önce bir şeyler yazın.");
-  location.href="mailto:akmannamik83@gmail.com?subject="+encodeURIComponent("Yatırım Radarı — notlar")
+  if(notesEmpty())return alert(T().noNotes);
+  location.href="mailto:akmannamik83@gmail.com?subject="+encodeURIComponent(T().notesTitle)
     +"&body="+encodeURIComponent(compileNotes());
 });
 $("#noteCopy").addEventListener("click",async()=>{
-  if(notesEmpty())return alert("Henüz not yok — önce bir şeyler yazın.");
-  try{await navigator.clipboard.writeText(compileNotes());$("#noteCopy").textContent="Kopyalandı ✓";
-    setTimeout(()=>$("#noteCopy").textContent="Panoya kopyala",1500);}catch(e){alert("Kopyalanamadı.");}
+  if(notesEmpty())return alert(T().noNotes);
+  try{await navigator.clipboard.writeText(compileNotes());$("#noteCopy").textContent=T().copied;
+    setTimeout(()=>$("#noteCopy").textContent=T().copy,1500);}catch(e){alert(T().copyFail);}
 });
 $("#noteClear").addEventListener("click",()=>{
-  if(notesEmpty()||!confirm("Tüm notlar silinsin mi?"))return;
+  if(notesEmpty()||!confirm(T().confirmClear))return;
   localStorage.removeItem(NOTES_KEY);
   $("#noteGeneral").value="";renderNoteList();
   document.querySelectorAll(".note-ta").forEach(t=>t.value="");
+});
+
+/* ---- Bağlam notu: detaydaki rasyo/gösterge satırına tıklayınca açılır ---- */
+let cnKey=null;
+function openCtxNote(sym,ctx){
+  cnKey=sym+"\u203a"+ctx;
+  $("#cnTitle").textContent=T().cnTitle(assetName(sym),ctx);
+  $("#cnText").value=getNotes()[cnKey]||"";
+  $("#ctxNote").hidden=false;
+  $("#cnText").focus();
+}
+function closeCtxNote(){$("#ctxNote").hidden=true;cnKey=null;}
+$("#list").addEventListener("click",e=>{
+  const tr=e.target.closest("tr.notable");
+  if(tr)openCtxNote(tr.dataset.sym,tr.dataset.ctx);
+});
+$("#cnSave").addEventListener("click",()=>{
+  if(cnKey!=null)setNote(cnKey,$("#cnText").value);
+  closeCtxNote();render();  // 📝 işaretini tazele (açık kartlar korunur)
+});
+$("#cnDel").addEventListener("click",()=>{
+  if(cnKey!=null)setNote(cnKey,"");
+  closeCtxNote();render();
+});
+$("#cnCancel").addEventListener("click",closeCtxNote);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeCtxNote();});
+
+/* ---- Dil seçimi ---- */
+$("#langBtn").addEventListener("click",()=>{
+  LANG=LANG==="tr"?"en":"tr";
+  localStorage.setItem("radarLang",LANG);
+  applyLang();
 });
 
 /* ---- Radar Asistanı: sitedeki paylaşımlı Anthropic proxy'sini kullanır
@@ -729,7 +922,7 @@ async function aiAsk(q){
   const typing=aiMsg("bot typing","");
   const hist=aiHist.slice(-6).map(h=>(h.role==="user"?"KULLANICI: ":"ASİSTAN: ")+h.text).join("\n");
   const prompt=`GÜNCEL RADAR VERİSİ\n${aiContext()}\n\n`+
-    (hist?`ÖNCEKİ SOHBET\n${hist}\n\n`:"")+`KULLANICININ YENİ SORUSU\n${q}`;
+    (hist?`ÖNCEKİ SOHBET\n${hist}\n\n`:"")+`KULLANICININ YENİ SORUSU\n${q}`+(LANG==="en"?"\n\n(Arayüz dili İngilizce — İngilizce yanıtla / answer in English.)":"");
   let out;
   try{
     const r=await fetch(AI_PROXY_URL,{method:"POST",
@@ -737,8 +930,8 @@ async function aiAsk(q){
       body:JSON.stringify({prompt,system:AI_SYSTEM}),
       signal:AbortSignal.timeout(60000)});
     const j=await r.json().catch(()=>({}));
-    out=r.ok?{text:j.text||""}:{error:j.error||("AI hatası ("+r.status+")")};
-  }catch(e){out={error:"Bağlantı hatası — asistan servisine ulaşılamadı."};}
+    out=r.ok?{text:j.text||""}:{error:j.error||(T().aiErrPre+" ("+r.status+")")};
+  }catch(e){out={error:T().aiErr};}
   typing.remove();
   if(out.error)aiMsg("bot err",out.error);
   else{
@@ -770,6 +963,7 @@ $("#chips").addEventListener("click",e=>{
 $("#q").addEventListener("input",e=>{query=e.target.value.trim().toLocaleLowerCase("tr-TR");render();});
 $("#sort").addEventListener("change",e=>{sortBy=e.target.value;render();});
 let rszT;
+applyLang();
 window.addEventListener("resize",()=>{
   clearTimeout(rszT);
   rszT=setTimeout(()=>{
