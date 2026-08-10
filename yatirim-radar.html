@@ -52,6 +52,7 @@
   .rank{color:var(--muted);font-size:13px;font-weight:700;text-align:center}
   .nm b{font-size:15px}
   .nm .sym{font-size:12px;color:var(--muted);margin-left:6px}
+  .nm .mini{display:block;font-size:11.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
   .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;border-radius:5px;padding:1px 7px;margin-top:3px;text-transform:uppercase}
   .tag.hisse{background:rgba(47,155,255,.15);color:var(--blue)}
   .tag.abd{background:rgba(180,140,255,.15);color:#b48cff}
@@ -105,6 +106,24 @@
   section.metho p,section.metho li{font-size:13.5px;color:#b9c1cf}
   section.metho ul{margin:8px 0 8px 20px}
   section.metho b{color:var(--text)}
+  /* ---- Notlar & geri bildirim ---- */
+  section.notes-sec{margin-top:28px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  section.notes-sec h2{font-size:19px;margin-bottom:6px}
+  section.notes-sec .hint{font-size:13px;color:var(--muted);margin-bottom:12px}
+  .note-ta,#noteGeneral{width:100%;min-height:64px;background:var(--bg);border:1px solid var(--line);
+    border-radius:10px;color:var(--text);padding:10px 12px;font:13.5px/1.5 inherit;resize:vertical}
+  #noteList{margin:12px 0;display:flex;flex-direction:column;gap:6px}
+  #noteList .nrow{font-size:13px;color:#c6cdd9;background:var(--panel2);border:1px solid var(--line);
+    border-radius:9px;padding:7px 11px}
+  #noteList .nrow b{color:var(--blue)}
+  .note-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .note-actions button{border:none;border-radius:10px;padding:9px 16px;font-size:13.5px;font-weight:700;cursor:pointer}
+  #noteWa{background:#1faa55;color:#fff}
+  #noteMail{background:var(--blue);color:#fff}
+  #noteCopy{background:var(--panel2);color:var(--text);border:1px solid var(--line)!important}
+  #noteClear{background:none;color:var(--muted);border:1px solid var(--line)!important}
+  .note-saved{font-size:11.5px;color:var(--green);margin-left:6px;opacity:0;transition:.3s}
+  .note-saved.show{opacity:1}
   /* ---- Radar Asistanı (AI sohbet) ---- */
   .ai-fab{position:fixed;right:20px;bottom:20px;z-index:60;display:flex;align-items:center;gap:9px;
     background:linear-gradient(135deg,var(--blue),#1673d1);color:#fff;border:none;border-radius:999px;
@@ -182,6 +201,20 @@
   </div>
 
   <div id="list"></div>
+
+  <section class="notes-sec" id="notesSec">
+    <h2>📝 Notlar &amp; Geri Bildirim</h2>
+    <p class="hint">Araç hakkında genel not yazın ya da yukarıda bir varlığın kartını açıp altındaki not alanını kullanın.
+      Notlar bu cihazda saklanır; hazır olunca tek tuşla gönderin.</p>
+    <textarea id="noteGeneral" placeholder="Genel notunuz / geliştirme öneriniz… (otomatik kaydedilir)"></textarea>
+    <div id="noteList"></div>
+    <div class="note-actions">
+      <button id="noteWa">WhatsApp ile gönder</button>
+      <button id="noteMail">E-posta ile gönder</button>
+      <button id="noteCopy">Panoya kopyala</button>
+      <button id="noteClear">Tümünü temizle</button>
+    </div>
+  </section>
 
   <section class="metho">
     <h2>Metodoloji</h2>
@@ -376,7 +409,9 @@ function detailHTML(a){
       <div><h4>Skor dağılımı</h4><div class="bars">${bars}</div>
            <h4>Haber akışı</h4>${news}</div>
       <div><h4>Teknik görünüm</h4>${tek}<h4>Temel rasyolar</h4>${tem}</div>
-    </div>`;
+    </div>
+    <h4>📝 Bu varlık için notum<span class="note-saved">kaydedildi ✓</span></h4>
+    <textarea class="note-ta" data-sym="${a.symbol}" placeholder="Gözlemin, sorun ya da önerin… (otomatik kaydedilir)">${escNote(getNotes()[a.symbol]||"")}</textarea>`;
 }
 
 function rowHTML(a,i){
@@ -385,7 +420,7 @@ function rowHTML(a,i){
     <div class="row">
       <div class="rank">${i+1}</div>
       <div class="nm"><b>${a.name}</b><span class="sym">${a.symbol}</span><br>
-        <span class="tag ${a.type}">${{hisse:"BIST Hisse",abd:"ABD Hisse",maden:"Kıymetli Maden",emtia:"Emtia",endeks:"Endeks",doviz:"Döviz"}[a.type]||a.type}</span></div>
+        <span class="tag ${a.type}">${{hisse:"BIST Hisse",abd:"ABD Hisse",maden:"Kıymetli Maden",emtia:"Emtia",endeks:"Endeks",doviz:"Döviz"}[a.type]||a.type}</span>${a.fund?`<span class="mini">${a.fund.trailing_pe!=null?"F/K "+fmtN(a.fund.trailing_pe,1):""}${a.fund.peg!=null?" · PEG "+fmtN(a.fund.peg,2):""}</span>`:""}</div>
       <div class="pr"><div class="p">${price(a)}</div>
         <div class="c ${cls(a.tech.chg1d)}">${fmtPct(a.tech.chg1d)}</div></div>
       <div class="sparkcell"><canvas class="spark"></canvas></div>
@@ -566,10 +601,71 @@ async function boot(){
   const d=new Date(DATA.asof);
   $("#asof").innerHTML=`Son analiz: <b>${d.toLocaleString("tr-TR",{dateStyle:"long",timeStyle:"short"})}</b> · ${DATA.assets.length} varlık izleniyor`;
   renderStrip();render();
+  $("#noteGeneral").value=getNotes()._genel||"";
+  renderNoteList();
   liveTick();
   setInterval(liveTick,60000);
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")liveTick();});
 }
+
+/* ---- Notlar: localStorage'da saklanır, WhatsApp/e-posta ile gönderilir ---- */
+const NOTES_KEY="radarNotlar";
+function getNotes(){try{return JSON.parse(localStorage.getItem(NOTES_KEY))||{}}catch(e){return{}}}
+function setNote(k,v){
+  const n=getNotes();
+  if(v&&v.trim())n[k]=v.trim();else delete n[k];
+  localStorage.setItem(NOTES_KEY,JSON.stringify(n));
+  renderNoteList();
+}
+function escNote(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+function assetName(sym){
+  if(sym==="_genel")return"GENEL";
+  const a=DATA&&DATA.assets.find(x=>x.symbol===sym);
+  return a?`${a.name} (${sym})`:sym;
+}
+function renderNoteList(){
+  const n=getNotes();
+  const keys=Object.keys(n).filter(k=>k!=="_genel");
+  $("#noteList").innerHTML=keys.length
+    ?keys.map(k=>`<div class="nrow"><b>${assetName(k)}:</b> ${escNote(n[k])}</div>`).join("")
+    :"";
+}
+function compileNotes(){
+  const n=getNotes();
+  const L=["Yatırım Radarı — Notlar ("+new Date().toLocaleString("tr-TR")+")",""];
+  if(n._genel)L.push("GENEL: "+n._genel,"");
+  for(const k of Object.keys(n))if(k!=="_genel")L.push(assetName(k)+": "+n[k]);
+  return L.join("\n");
+}
+function notesEmpty(){const n=getNotes();return !Object.keys(n).length;}
+$("#list").addEventListener("input",e=>{
+  const ta=e.target.closest(".note-ta");
+  if(!ta)return;
+  setNote(ta.dataset.sym,ta.value);
+  const badge=ta.closest(".detail").querySelector(".note-saved");
+  if(badge){badge.classList.add("show");clearTimeout(badge._t);badge._t=setTimeout(()=>badge.classList.remove("show"),1200);}
+});
+$("#noteGeneral").addEventListener("input",e=>setNote("_genel",e.target.value));
+$("#noteWa").addEventListener("click",()=>{
+  if(notesEmpty())return alert("Henüz not yok — önce bir şeyler yazın.");
+  window.open("https://wa.me/?text="+encodeURIComponent(compileNotes()),"_blank");
+});
+$("#noteMail").addEventListener("click",()=>{
+  if(notesEmpty())return alert("Henüz not yok — önce bir şeyler yazın.");
+  location.href="mailto:akmannamik83@gmail.com?subject="+encodeURIComponent("Yatırım Radarı — notlar")
+    +"&body="+encodeURIComponent(compileNotes());
+});
+$("#noteCopy").addEventListener("click",async()=>{
+  if(notesEmpty())return alert("Henüz not yok — önce bir şeyler yazın.");
+  try{await navigator.clipboard.writeText(compileNotes());$("#noteCopy").textContent="Kopyalandı ✓";
+    setTimeout(()=>$("#noteCopy").textContent="Panoya kopyala",1500);}catch(e){alert("Kopyalanamadı.");}
+});
+$("#noteClear").addEventListener("click",()=>{
+  if(notesEmpty()||!confirm("Tüm notlar silinsin mi?"))return;
+  localStorage.removeItem(NOTES_KEY);
+  $("#noteGeneral").value="";renderNoteList();
+  document.querySelectorAll(".note-ta").forEach(t=>t.value="");
+});
 
 /* ---- Radar Asistanı: sitedeki paylaşımlı Anthropic proxy'sini kullanır
    (assetix-ai worker — FiloDesk, ASSETIX, ProjeFin ile aynı uç nokta). ---- */
