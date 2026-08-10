@@ -1,0 +1,40 @@
+name: Yatirim Radar data
+
+# data/yatirim-radar.json'u Yahoo Finance'ten tazeler (BIST + madenler + emtia).
+# Anahtar gerektirmez; scripts/fetch_yatirim_radar.py stdlib-only çalışır.
+on:
+  schedule:
+    - cron: "40 15 * * 1-5"   # hafta içi 15:40 UTC (18:40 İstanbul, BIST kapanışı sonrası)
+  workflow_dispatch: {}        # Actions sekmesinden elle de çalıştırılabilir
+
+permissions:
+  contents: write
+
+concurrency:
+  group: yatirim-radar
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build yatirim-radar.json
+        run: python scripts/fetch_yatirim_radar.py
+
+      - name: Commit if changed
+        run: |
+          if git status --porcelain data/yatirim-radar.json | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/yatirim-radar.json
+            git commit -m "chore: refresh yatirim-radar data [skip ci]"
+            git push
+          else
+            echo "yatirim-radar.json unchanged — nothing to commit."
+          fi
