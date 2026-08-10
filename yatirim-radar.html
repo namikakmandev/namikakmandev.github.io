@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Yatırım Radarı — BIST · Kıymetli Madenler · Emtia</title>
-<meta name="description" content="BIST hisseleri, kıymetli madenler ve emtialar için teknik + temel analiz radarı: 180/200 günlük ortalamalar, RSI, MACD, momentum, F/K, PD/DD ve bileşik skor." />
+<title>Yatırım Radarı — BIST · ABD Borsaları · Kıymetli Madenler · Emtia</title>
+<meta name="description" content="BIST ve ABD hisseleri (NASDAQ/NYSE), kıymetli madenler ve emtialar için teknik + temel analiz radarı: 180/200 günlük ortalamalar, RSI, MACD, momentum, F/K, PD/DD ve bileşik skor." />
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <meta name="theme-color" content="#2F9BFF" />
 <style>
@@ -54,6 +54,7 @@
   .nm .sym{font-size:12px;color:var(--muted);margin-left:6px}
   .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;border-radius:5px;padding:1px 7px;margin-top:3px;text-transform:uppercase}
   .tag.hisse{background:rgba(47,155,255,.15);color:var(--blue)}
+  .tag.abd{background:rgba(180,140,255,.15);color:#b48cff}
   .tag.maden{background:rgba(232,185,60,.15);color:var(--gold)}
   .tag.emtia{background:rgba(255,101,0,.16);color:var(--orange)}
   .tag.endeks,.tag.doviz{background:rgba(139,148,167,.16);color:var(--muted)}
@@ -147,7 +148,7 @@
   <header class="top">
     <a class="back" href="index.html">← namikakman — ana sayfa</a>
     <h1>Yatırım <span class="grad">Radarı</span></h1>
-    <p class="sub">BIST hisseleri, kıymetli madenler ve emtialar tek ekranda: 180 / 200 günlük ortalamalar,
+    <p class="sub">BIST hisseleri, ABD borsaları (NASDAQ &amp; NYSE), kıymetli madenler ve emtialar tek ekranda: 180 / 200 günlük ortalamalar,
       RSI, MACD, momentum, volatilite ve temel rasyolar (F/K, PD/DD, ROE, temettü) 0–100 arası bir
       bileşik skora indirgenir. Fiyatlar sayfa açıkken dakikada bir canlı yenilenir; skorlar seans
       boyunca 15 dakikada bir tazelenir.</p>
@@ -163,7 +164,8 @@
   <div class="controls">
     <div class="chips" id="chips">
       <button class="chip on" data-f="tumu">Tümü</button>
-      <button class="chip" data-f="hisse">Hisseler</button>
+      <button class="chip" data-f="hisse">BIST</button>
+      <button class="chip" data-f="abd">ABD Borsaları</button>
       <button class="chip" data-f="maden">Kıymetli Madenler</button>
       <button class="chip" data-f="emtia">Emtia</button>
       <button class="chip" data-f="diger">Endeks &amp; Döviz</button>
@@ -186,7 +188,7 @@
     <ul>
       <li><b>Trend (35 puan):</b> fiyatın 180 ve 200 günlük basit ortalamalara uzaklığı, 50/200 kesişimi (golden/death cross) ve 200 günlük ortalamanın eğimi.</li>
       <li><b>Momentum (25 puan):</b> 3 ve 6 aylık getiri ile RSI-14 (aşırı alım/satım bölgeleri puan kırar).</li>
-      <li><b>Değerleme (25 puan, yalnız hisseler):</b> F/K, PD/DD, özsermaye kârlılığı (ROE) ve temettü verimi.</li>
+      <li><b>Değerleme (25 puan, BIST ve ABD hisseleri):</b> F/K, PD/DD, özsermaye kârlılığı (ROE) ve temettü verimi.</li>
       <li><b>Risk (15 puan):</b> 30 günlük yıllıklandırılmış volatilite ve 52 haftalık zirveden uzaklık.</li>
     </ul>
     <p>Değerleme verisi olmayan varlıklarda (altın, gümüş, emtia, endeks) toplam kalan 75 puan üzerinden
@@ -372,7 +374,7 @@ function rowHTML(a,i){
     <div class="row">
       <div class="rank">${i+1}</div>
       <div class="nm"><b>${a.name}</b><span class="sym">${a.symbol}</span><br>
-        <span class="tag ${a.type}">${{hisse:"Hisse",maden:"Kıymetli Maden",emtia:"Emtia",endeks:"Endeks",doviz:"Döviz"}[a.type]||a.type}</span></div>
+        <span class="tag ${a.type}">${{hisse:"BIST Hisse",abd:"ABD Hisse",maden:"Kıymetli Maden",emtia:"Emtia",endeks:"Endeks",doviz:"Döviz"}[a.type]||a.type}</span></div>
       <div class="pr"><div class="p">${price(a)}</div>
         <div class="c ${cls(a.tech.chg1d)}">${fmtPct(a.tech.chg1d)}</div></div>
       <div class="sparkcell"><canvas class="spark"></canvas></div>
@@ -389,6 +391,7 @@ function rowHTML(a,i){
 function visible(){
   let arr=DATA.assets.slice();
   if(filter==="hisse")arr=arr.filter(a=>a.type==="hisse");
+  else if(filter==="abd")arr=arr.filter(a=>a.type==="abd");
   else if(filter==="maden")arr=arr.filter(a=>a.type==="maden");
   else if(filter==="emtia")arr=arr.filter(a=>a.type==="emtia");
   else if(filter==="diger")arr=arr.filter(a=>a.type==="endeks"||a.type==="doviz");
@@ -419,7 +422,7 @@ function render(){
 }
 
 function renderStrip(){
-  const wanted=["XU100.IS","USDTRY=X","GC=F","GRAMALTIN"];
+  const wanted=["XU100.IS","^GSPC","USDTRY=X","GC=F","GRAMALTIN"];
   $("#strip").innerHTML=wanted.map(sym=>{
     const a=DATA.assets.find(x=>x.symbol===sym);
     if(!a)return"";
@@ -554,11 +557,11 @@ async function boot(){
    (assetix-ai worker — FiloDesk, ASSETIX, ProjeFin ile aynı uç nokta). ---- */
 const AI_PROXY_URL="https://assetix-ai.akmannamik83.workers.dev";
 const AI_SYSTEM=
-  "Sen 'Yatırım Radarı' adlı web aracının yardımcı asistanısın. Araç; BIST hisseleri, kıymetli madenler, "+
-  "emtia, BIST 100 ve Dolar/TL için teknik + temel göstergeleri 0-100 arası bileşik skora indirger. "+
+  "Sen 'Yatırım Radarı' adlı web aracının yardımcı asistanısın. Araç; BIST hisseleri, ABD hisseleri "+
+  "(NASDAQ/NYSE), kıymetli madenler, emtia, BIST 100, S&P 500, Nasdaq, Dow Jones ve Dolar/TL için teknik + temel göstergeleri 0-100 arası bileşik skora indirger. "+
   "Skorlama: Trend 35 puan (fiyatın 180 ve 200 günlük ortalamalara uzaklığı, 50/200 golden-death cross, "+
   "200g ortalamanın eğimi) + Momentum 25 puan (3A ve 6A getiri, RSI-14; aşırı alım/satım puan kırar) + "+
-  "Değerleme 25 puan (yalnız hisseler: F/K, PD/DD, ROE, temettü verimi) + Risk 15 puan (30g volatilite, "+
+  "Değerleme 25 puan (BIST ve ABD hisseleri: F/K, PD/DD, ROE, temettü verimi) + Risk 15 puan (30g volatilite, "+
   "52 hafta zirvesinden uzaklık). Değerleme verisi olmayan varlıklar 75 puan üzerinden 100'e ölçeklenir. "+
   "65+ Olumlu, 45-65 Nötr, 45 altı Zayıf. "+
   "Sana her soruda 'GÜNCEL RADAR VERİSİ' bloğu verilir — yanıtlarını SADECE bu verilerle ve genel finans "+

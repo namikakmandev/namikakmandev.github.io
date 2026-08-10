@@ -30,8 +30,32 @@ BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 TROY_OUNCE_G = 31.1034768
 
-# sembol -> (ad, tür)  türler: hisse | maden | emtia | endeks | doviz
+# sembol -> (ad, tür)  türler: hisse (BIST) | abd (NASDAQ/NYSE) | maden | emtia | endeks | doviz
 UNIVERSE = {
+    # --- ABD hisseleri (NASDAQ) ---
+    "AAPL": ("Apple", "abd"),
+    "MSFT": ("Microsoft", "abd"),
+    "NVDA": ("Nvidia", "abd"),
+    "GOOGL": ("Alphabet (Google)", "abd"),
+    "AMZN": ("Amazon", "abd"),
+    "META": ("Meta Platforms", "abd"),
+    "TSLA": ("Tesla", "abd"),
+    "AVGO": ("Broadcom", "abd"),
+    "NFLX": ("Netflix", "abd"),
+    # --- ABD hisseleri (NYSE) ---
+    "BRK-B": ("Berkshire Hathaway", "abd"),
+    "JPM": ("JPMorgan Chase", "abd"),
+    "V": ("Visa", "abd"),
+    "XOM": ("ExxonMobil", "abd"),
+    "JNJ": ("Johnson & Johnson", "abd"),
+    "WMT": ("Walmart", "abd"),
+    "KO": ("Coca-Cola", "abd"),
+    "PG": ("Procter & Gamble", "abd"),
+    "LLY": ("Eli Lilly", "abd"),
+    # --- ABD endeksleri ---
+    "^GSPC": ("S&P 500", "endeks"),
+    "^IXIC": ("Nasdaq Composite", "endeks"),
+    "^DJI": ("Dow Jones", "endeks"),
     "THYAO.IS": ("Türk Hava Yolları", "hisse"),
     "TUPRS.IS": ("Tüpraş", "hisse"),
     "BIMAS.IS": ("BİM Mağazalar", "hisse"),
@@ -382,7 +406,7 @@ def main():
         t = technicals(closes)
 
         fund = None
-        if typ == "hisse":
+        if typ in ("hisse", "abd"):
             if prev:
                 fund = (prev.get(sym) or {}).get("fund")
             elif crumb:
@@ -403,7 +427,7 @@ def main():
             "tech": {k: rnd(v, 6 if k in ("chg1d", "sma200_slope20") else 4)
                      for k, v in t.items()},
             "fund": fund,
-            "score": score_asset(t, fund, typ == "hisse"),
+            "score": score_asset(t, fund, typ in ("hisse", "abd")),
             "spark": spark(closes, dates),
             "news": news,
         })
