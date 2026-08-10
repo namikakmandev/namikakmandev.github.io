@@ -177,6 +177,7 @@
       <option value="r3m">3 aylık getiri</option>
       <option value="rsi">RSI</option>
       <option value="pe">F/K (düşükten)</option>
+      <option value="peg">PEG (düşükten)</option>
     </select>
   </div>
 
@@ -229,6 +230,7 @@
 "use strict";
 const $=s=>document.querySelector(s);
 let DATA=null, filter="tumu", query="", sortBy="score";
+const openSyms=new Set();
 
 const fmtN=(v,d=2)=>v==null?"—":v.toLocaleString("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtPct=(v,d=1)=>v==null?"—":(v>0?"+":"")+(v*100).toLocaleString("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d})+"%";
@@ -264,6 +266,10 @@ function signals(a){
   if(f.peg!=null){
     if(f.peg<1&&f.peg_growth<=0.6) out.push(["pos","PEG "+fmtN(f.peg,2)+" — büyümeye göre ucuz"]);
     else if(f.peg>2.5) out.push(["warn","PEG "+fmtN(f.peg,2)+" — büyümeye göre pahalı"]);
+  }
+  if(f.revenue_growth!=null){
+    if(f.revenue_growth>0.15) out.push(["pos","Ciro "+fmtPct(f.revenue_growth,0)]);
+    else if(f.revenue_growth<0) out.push(["neg","Ciro "+fmtPct(f.revenue_growth,0)]);
   }
   if(f.dividend_yield>0.04) out.push(["pos","Temettü "+fmtPct(f.dividend_yield)]);
   return out;
@@ -346,11 +352,11 @@ function detailHTML(a){
   const tem=f?kvTable([
     ["F/K (cari)",fmtN(f.trailing_pe,1)],["F/K (ileriye dönük)",fmtN(f.forward_pe,1)],
     ["PD/DD",fmtN(f.price_to_book,2)],["PD/Satış",fmtN(f.price_to_sales,2)],
-    ["PEG (F/K ÷ büyüme)",f.peg!=null?fmtN(f.peg,2)+(f.peg_growth!=null?" (büyüme "+fmtPct(f.peg_growth,0)+(f.peg_growth>0.6?" — nominal/enflasyon etkili olabilir":"")+")":""):"—"],
+    ["PEG (F/K ÷ büyüme)",f.peg!=null?fmtN(f.peg,2)+(f.peg_growth!=null?" (büyüme "+fmtPct(f.peg_growth,0)+(f.peg_growth>0.6?" — nominal/enflasyon etkili olabilir":"")+")":""):"veri yok (büyüme tahmini yok/negatif)"],
     ["ROE",fmtPct(f.roe,0)],["Net kâr marjı",fmtPct(f.profit_margin,0)],
     ["Borç/Özkaynak",f.debt_to_equity!=null?fmtN(f.debt_to_equity,0)+"%":"—"],
     ["Temettü verimi",fmtPct(f.dividend_yield)],
-    ["Ciro büyümesi (yıllık)",fmtPct(f.revenue_growth,0)],
+    ["Ciro büyümesi (yıllık)",f.revenue_growth!=null?fmtPct(f.revenue_growth,0):"veri yok"],
     ["Kâr büyümesi (yıllık)",fmtPct(f.earnings_growth,0)],
     ["Analist hedefi (ort.)",f.target_mean!=null?fmtN(f.target_mean)+" "+cur(a.currency):"—"],
     ["Piyasa değeri",f.market_cap!=null?fmtN(f.market_cap/1e9,1)+" mlr "+cur(a.currency):"—"],
@@ -403,7 +409,8 @@ function visible(){
   if(query)arr=arr.filter(a=>(a.name+" "+a.symbol).toLocaleLowerCase("tr-TR").includes(query));
   const key={score:a=>-a.score.total,chg1d:a=>-(a.tech.chg1d??-9),
              r3m:a=>-(a.tech.r3m??-9),rsi:a=>-(a.tech.rsi14??-9),
-             pe:a=>(a.fund&&a.fund.trailing_pe>0)?a.fund.trailing_pe:1e9}[sortBy];
+             pe:a=>(a.fund&&a.fund.trailing_pe>0)?a.fund.trailing_pe:1e9,
+             peg:a=>(a.fund&&a.fund.peg>0)?a.fund.peg:1e9}[sortBy];
   arr.sort((x,y)=>key(x)-key(y));
   return arr;
 }
@@ -415,9 +422,15 @@ function render(){
   list.querySelectorAll(".card").forEach(card=>{
     const a=arr.find(x=>x.symbol===card.dataset.sym);
     drawSpark(card.querySelector(".spark"),a.spark,false);
+    const det=card.querySelector(".detail");
+    if(openSyms.has(a.symbol)){
+      card.classList.add("open");
+      det.innerHTML=detailHTML(a);
+      requestAnimationFrame(()=>drawSpark(det.querySelector(".bigchart"),a.spark,true));
+    }
     card.querySelector(".row").addEventListener("click",()=>{
       const open=card.classList.toggle("open");
-      const det=card.querySelector(".detail");
+      if(open)openSyms.add(a.symbol);else openSyms.delete(a.symbol);
       if(open&&!det.innerHTML){
         det.innerHTML=detailHTML(a);
         requestAnimationFrame(()=>drawSpark(det.querySelector(".bigchart"),a.spark,true));
@@ -660,7 +673,21 @@ $("#chips").addEventListener("click",e=>{
 });
 $("#q").addEventListener("input",e=>{query=e.target.value.trim().toLocaleLowerCase("tr-TR");render();});
 $("#sort").addEventListener("change",e=>{sortBy=e.target.value;render();});
-window.addEventListener("resize",()=>{if(DATA)render();});
+let rszT;
+window.addEventListener("resize",()=>{
+  clearTimeout(rszT);
+  rszT=setTimeout(()=>{
+    if(!DATA)return;
+    document.querySelectorAll("#list .card").forEach(card=>{
+      const a=DATA.assets.find(x=>x.symbol===card.dataset.sym);
+      if(!a)return;
+      const sp=card.querySelector(".spark");
+      if(sp)drawSpark(sp,a.spark,false);
+      const bc=card.querySelector(".bigchart");
+      if(bc&&card.classList.contains("open"))drawSpark(bc,a.spark,true);
+    });
+  },200);
+});
 boot();
 </script>
 </body>
