@@ -25,6 +25,13 @@
   .sub{color:var(--muted);max-width:760px}
   .asof{font-size:13px;color:var(--muted);margin-top:6px}
   .asof b{color:var(--green);font-weight:600}
+  .livechip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;
+    border-radius:999px;padding:2px 11px;margin-left:8px;vertical-align:1px}
+  .livechip.on{color:var(--green);background:rgba(25,195,125,.12);border:1px solid rgba(25,195,125,.35)}
+  .livechip.off{color:var(--muted);background:rgba(139,148,167,.1);border:1px solid var(--line)}
+  .livechip i{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .livechip.on i{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
   .disclaimer{margin:16px 0;padding:11px 14px;border:1px solid rgba(255,101,0,.4);background:rgba(255,101,0,.08);border-radius:10px;font-size:13px;color:#f0c9ad}
   .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:18px 0}
   .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
@@ -106,8 +113,9 @@
     <h1>Yatırım <span class="grad">Radarı</span></h1>
     <p class="sub">BIST hisseleri, kıymetli madenler ve emtialar tek ekranda: 180 / 200 günlük ortalamalar,
       RSI, MACD, momentum, volatilite ve temel rasyolar (F/K, PD/DD, ROE, temettü) 0–100 arası bir
-      bileşik skora indirgenir; liste her gün otomatik güncellenir.</p>
-    <div class="asof" id="asof"></div>
+      bileşik skora indirgenir. Fiyatlar sayfa açıkken dakikada bir canlı yenilenir; skorlar seans
+      boyunca 15 dakikada bir tazelenir.</p>
+    <div class="asof"><span id="asof"></span><span class="livechip" id="live" hidden><i></i><span id="livetxt"></span></span></div>
   </header>
 
   <div class="disclaimer">⚠️ <b>Bu sayfa yatırım tavsiyesi değildir.</b> Skorlar yalnızca halka açık fiyat
@@ -146,9 +154,12 @@
       <li><b>Risk (15 puan):</b> 30 günlük yıllıklandırılmış volatilite ve 52 haftalık zirveden uzaklık.</li>
     </ul>
     <p>Değerleme verisi olmayan varlıklarda (altın, gümüş, emtia, endeks) toplam kalan 75 puan üzerinden
-      100'e ölçeklenir. <b>65+</b> Olumlu, <b>45–65</b> Nötr, <b>45 altı</b> Zayıf olarak etiketlenir.
-      Veri, hafta içi her akşam BIST kapanışından sonra GitHub Actions ile tazelenir
-      (<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_yatirim_radar.py">kaynak kodu</a>).</p>
+      100'e ölçeklenir. <b>65+</b> Olumlu, <b>45–65</b> Nötr, <b>45 altı</b> Zayıf olarak etiketlenir.</p>
+    <p style="margin-top:8px"><b>Güncelleme sıklığı:</b> skorlar ve grafikler BIST seansı boyunca 15 dakikada bir,
+      rasyolar ve haberler her akşam kapanıştan sonra GitHub Actions ile tazelenir
+      (<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_yatirim_radar.py">kaynak kodu</a>).
+      Sayfa açıkken fiyatlar ayrıca dakikada bir doğrudan Yahoo Finance'ten canlı çekilir; başlıktaki
+      <b>CANLI</b> rozeti bağlantının durumunu gösterir. Yahoo'nun BIST verisi ~15 dk gecikmeli olabilir.</p>
   </section>
 </div>
 
@@ -358,6 +369,107 @@ function renderStrip(){
   }).join("");
 }
 
+/* ---- Canlı fiyat katmanı ----------------------------------------------
+   GitHub Pages statik olduğundan Yahoo'ya doğrudan fetch CORS'a takılır;
+   halka açık CORS ara katmanları zincirleme denenir. Hepsi başarısız olursa
+   sayfa sessizce Actions'ın ürettiği (en fazla 15 dk eski) veriyle kalır. */
+const PROXIES=[
+  u=>"https://corsproxy.io/?url="+encodeURIComponent(u),
+  u=>"https://api.allorigins.win/raw?url="+encodeURIComponent(u),
+  u=>"https://api.codetabs.com/v1/proxy?quest="+encodeURIComponent(u),
+];
+let proxyIdx=0, liveEverOk=false, liveBusy=false;
+
+async function fetchVia(url){
+  for(let i=0;i<PROXIES.length;i++){
+    const k=(proxyIdx+i)%PROXIES.length;
+    try{
+      const r=await fetch(PROXIES[k](url),{signal:AbortSignal.timeout(12000)});
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      const j=await r.json();
+      proxyIdx=k; // çalışan ara katmanı hatırla
+      return j;
+    }catch(e){/* sıradakini dene */}
+  }
+  return null;
+}
+
+function sparkMeta(j){
+  // v7/finance/spark iki şekilde dönebiliyor: {spark:{result:[...]}} veya {result:[...]}
+  const res=(j&&j.spark&&j.spark.result)||(j&&j.result)||[];
+  const out={};
+  for(const r of res){
+    const m=r&&r.response&&r.response[0]&&r.response[0].meta;
+    if(m&&m.regularMarketPrice!=null)
+      out[r.symbol]={p:m.regularMarketPrice,prev:m.chartPreviousClose??m.previousClose??null};
+  }
+  return out;
+}
+
+async function liveTick(){
+  if(liveBusy||!DATA||document.visibilityState!=="visible")return;
+  liveBusy=true;
+  try{
+    const syms=DATA.assets.map(a=>a.symbol).filter(s=>s!=="GRAMALTIN");
+    let quotes={};
+    for(let i=0;i<syms.length;i+=16){
+      const u="https://query1.finance.yahoo.com/v7/finance/spark?symbols="
+        +encodeURIComponent(syms.slice(i,i+16).join(","))+"&range=1d&interval=15m";
+      Object.assign(quotes,sparkMeta(await fetchVia(u)));
+    }
+    if(!Object.keys(quotes).length){
+      // spark çalışmadıysa en azından özet şeridi tekil chart uçlarından besle
+      for(const s of ["XU100.IS","USDTRY=X","GC=F"]){
+        const j=await fetchVia("https://query1.finance.yahoo.com/v8/finance/chart/"
+          +encodeURIComponent(s)+"?range=1d&interval=15m");
+        const m=j&&j.chart&&j.chart.result&&j.chart.result[0]&&j.chart.result[0].meta;
+        if(m&&m.regularMarketPrice!=null)
+          quotes[s]={p:m.regularMarketPrice,prev:m.chartPreviousClose??m.previousClose??null};
+      }
+    }
+    // gram altın türev: ons altın / 31.1035 × USD/TRY
+    if(quotes["GC=F"]&&quotes["USDTRY=X"]){
+      const g=quotes["GC=F"],f=quotes["USDTRY=X"];
+      quotes["GRAMALTIN"]={p:g.p/31.1034768*f.p,
+        prev:(g.prev&&f.prev)?g.prev/31.1034768*f.prev:null};
+    }
+    let n=0;
+    for(const a of DATA.assets){
+      const q=quotes[a.symbol];
+      if(!q)continue;
+      a.tech.price=q.p;
+      if(q.prev)a.tech.chg1d=q.p/q.prev-1;
+      n++;
+    }
+    if(n){liveEverOk=true;refreshPrices();}
+    setLiveChip(n>0);
+  }finally{liveBusy=false;}
+}
+
+function refreshPrices(){
+  renderStrip();
+  document.querySelectorAll("#list .card").forEach(card=>{
+    const a=DATA.assets.find(x=>x.symbol===card.dataset.sym);
+    const pr=card.querySelector(".pr");
+    if(!a||!pr)return;
+    pr.querySelector(".p").textContent=price(a);
+    const c=pr.querySelector(".c");
+    c.textContent=fmtPct(a.tech.chg1d);
+    c.className="c "+cls(a.tech.chg1d);
+  });
+}
+
+function setLiveChip(ok){
+  const chip=$("#live");chip.hidden=false;
+  if(ok){
+    chip.className="livechip on";
+    $("#livetxt").textContent="CANLI · "+new Date().toLocaleTimeString("tr-TR");
+  }else if(!liveEverOk){
+    chip.className="livechip off";
+    $("#livetxt").textContent="canlı bağlantı yok — 15 dk'lık veri";
+  }
+}
+
 async function boot(){
   try{
     const r=await fetch("data/yatirim-radar.json",{cache:"no-store"});
@@ -371,8 +483,11 @@ async function boot(){
     return;
   }
   const d=new Date(DATA.asof);
-  $("#asof").innerHTML=`Son güncelleme: <b>${d.toLocaleString("tr-TR",{dateStyle:"long",timeStyle:"short"})}</b> · ${DATA.assets.length} varlık izleniyor`;
+  $("#asof").innerHTML=`Son analiz: <b>${d.toLocaleString("tr-TR",{dateStyle:"long",timeStyle:"short"})}</b> · ${DATA.assets.length} varlık izleniyor`;
   renderStrip();render();
+  liveTick();
+  setInterval(liveTick,60000);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")liveTick();});
 }
 
 $("#chips").addEventListener("click",e=>{

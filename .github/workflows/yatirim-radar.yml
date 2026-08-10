@@ -4,8 +4,9 @@ name: Yatirim Radar data
 # Anahtar gerektirmez; scripts/fetch_yatirim_radar.py stdlib-only çalışır.
 on:
   schedule:
-    - cron: "40 15 * * 1-5"   # hafta içi 15:40 UTC (18:40 İstanbul, BIST kapanışı sonrası)
-  workflow_dispatch: {}        # Actions sekmesinden elle de çalıştırılabilir
+    - cron: "*/15 7-14 * * 1-5"  # BIST seansı boyunca 15 dk'da bir (10:00-17:45 İstanbul) — FAST mod
+    - cron: "40 15 * * 1-5"      # hafta içi 15:40 UTC (18:40 İstanbul, kapanış sonrası) — tam mod
+  workflow_dispatch: {}           # Actions sekmesinden elle de çalıştırılabilir (tam mod)
 
 permissions:
   contents: write
@@ -25,6 +26,11 @@ jobs:
           python-version: "3.12"
 
       - name: Build yatirim-radar.json
+        env:
+          # Gün içi 15 dk'lık koşular FAST modda: fiyat/teknikler tazelenir,
+          # rasyo + haberler önceki JSON'dan taşınır. Kapanış koşusu ve elle
+          # tetikleme tam mod çalışır.
+          FAST: ${{ github.event_name == 'schedule' && github.event.schedule != '40 15 * * 1-5' && '1' || '' }}
         run: python scripts/fetch_yatirim_radar.py
 
       - name: Commit if changed

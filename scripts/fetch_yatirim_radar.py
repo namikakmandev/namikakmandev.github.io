@@ -23,6 +23,9 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 OUT_PATH = os.environ.get("OUT_PATH", "data/yatirim-radar.json")
+# FAST=1: gün içi 15 dk'lık koşular — fiyat/teknikleri tazele, rasyo ve haberleri
+# önceki JSON'dan taşı (quoteSummary + RSS'i her çeyrek saat sorgulamamak için)
+FAST = os.environ.get("FAST", "").strip() == "1"
 BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 TROY_OUNCE_G = 31.1034768
@@ -337,6 +340,13 @@ def spark(closes, dates, points=125, step=2):
 
 def main():
     charts, errors = {}, []
+    prev = {}
+    if FAST:
+        try:
+            with open(OUT_PATH, encoding="utf-8") as fh:
+                prev = {a["symbol"]: a for a in json.load(fh)["assets"]}
+        except Exception as ex:
+            errors.append(f"FAST: önceki JSON okunamadı ({ex}); tam mod")
     for n, sym in enumerate(UNIVERSE):
         if n:
             time.sleep(0.6)  # Actions IP'leri kolay 429 yer — yavaş git
@@ -358,10 +368,11 @@ def main():
             charts["GRAMALTIN"] = ({d: gold[d] / TROY_OUNCE_G * fx[d] for d in common}, "TRY")
 
     op = crumb = None
-    try:
-        op, crumb = yahoo_session()
-    except Exception as ex:
-        errors.append(f"quoteSummary oturumu açılamadı: {ex}")
+    if not prev:  # FAST modunda rasyolar önceki JSON'dan gelir, oturum gereksiz
+        try:
+            op, crumb = yahoo_session()
+        except Exception as ex:
+            errors.append(f"quoteSummary oturumu açılamadı: {ex}")
 
     assets = []
     for sym, (series, cur) in charts.items():
@@ -371,14 +382,20 @@ def main():
         t = technicals(closes)
 
         fund = None
-        if typ == "hisse" and crumb:
-            try:
-                time.sleep(1.5)
-                fund = fetch_fundamentals(op, crumb, sym)
-            except Exception as ex:
-                errors.append(f"{sym}: fundamentals {type(ex).__name__}: {ex}")
+        if typ == "hisse":
+            if prev:
+                fund = (prev.get(sym) or {}).get("fund")
+            elif crumb:
+                try:
+                    time.sleep(1.5)
+                    fund = fetch_fundamentals(op, crumb, sym)
+                except Exception as ex:
+                    errors.append(f"{sym}: fundamentals {type(ex).__name__}: {ex}")
 
-        news = fetch_news(sym) if sym in UNIVERSE else []
+        if prev:
+            news = (prev.get(sym) or {}).get("news") or []
+        else:
+            news = fetch_news(sym) if sym in UNIVERSE else []
 
         rnd = lambda v, p=4: round(v, p) if isinstance(v, float) else v
         assets.append({
