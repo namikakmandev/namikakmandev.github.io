@@ -120,6 +120,56 @@ def line_svg(series_list, y_ticks, x_years, aria):
 
 
 
+
+
+# --- tiny SVG flags, 24x16, simplified (no crests/stars at this size)
+def _rects(*r):
+    return "".join(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{f}"/>'
+                   for x, y, w, h, f in r)
+
+
+FLAGS = {
+    "PL": _rects((0, 0, 24, 8, "#fff"), (0, 8, 24, 8, "#DC143C")),
+    "SE": _rects((0, 0, 24, 16, "#006AA7"), (7, 0, 3.4, 16, "#FECC02"),
+                 (0, 6.3, 24, 3.4, "#FECC02")),
+    "DK": _rects((0, 0, 24, 16, "#C8102E"), (7, 0, 3.2, 16, "#fff"),
+                 (0, 6.4, 24, 3.2, "#fff")),
+    "HU": _rects((0, 0, 24, 5.33, "#CE2939"), (0, 5.33, 24, 5.33, "#fff"),
+                 (0, 10.67, 24, 5.33, "#477050")),
+    "CZ": _rects((0, 0, 24, 8, "#fff"), (0, 8, 24, 8, "#D7141A"))
+          + '<path d="M0,0 L11,8 L0,16 Z" fill="#11457E"/>',
+    "DE": _rects((0, 0, 24, 5.33, "#000"), (0, 5.33, 24, 5.33, "#DD0000"),
+                 (0, 10.67, 24, 5.33, "#FFCE00")),
+    "NL": _rects((0, 0, 24, 5.33, "#AE1C28"), (0, 5.33, 24, 5.33, "#fff"),
+                 (0, 10.67, 24, 5.33, "#21468B")),
+    "BE": _rects((0, 0, 8, 16, "#000"), (8, 0, 8, 16, "#FDDA24"),
+                 (16, 0, 8, 16, "#EF3340")),
+    "FI": _rects((0, 0, 24, 16, "#fff"), (7, 0, 3.6, 16, "#002F6C"),
+                 (0, 6.2, 24, 3.6, "#002F6C")),
+    "FR": _rects((0, 0, 8, 16, "#0055A4"), (8, 0, 8, 16, "#fff"),
+                 (16, 0, 8, 16, "#EF4135")),
+    "RO": _rects((0, 0, 8, 16, "#002B7F"), (8, 0, 8, 16, "#FCD116"),
+                 (16, 0, 8, 16, "#CE1126")),
+    "PT": _rects((0, 0, 9.6, 16, "#046A38"), (9.6, 0, 14.4, 16, "#DA291C"))
+          + '<circle cx="9.6" cy="8" r="3.2" fill="#F1BF00"/>',
+    "ES": _rects((0, 0, 24, 4, "#AA151B"), (0, 4, 24, 8, "#F1BF00"),
+                 (0, 12, 24, 4, "#AA151B")),
+    "AT": _rects((0, 0, 24, 5.33, "#ED2939"), (0, 5.33, 24, 5.33, "#fff"),
+                 (0, 10.67, 24, 5.33, "#ED2939")),
+    "IT": _rects((0, 0, 8, 16, "#008C45"), (8, 0, 8, 16, "#fff"),
+                 (16, 0, 8, 16, "#CD212A")),
+    "US": _rects((0, 0, 24, 16, "#B22234"))
+          + "".join(f'<rect x="0" y="{i * 16 / 13:.2f}" width="24" '
+                    f'height="{16 / 13:.2f}" fill="#fff"/>'
+                    for i in range(1, 13, 2))
+          + '<rect x="0" y="0" width="10" height="8.6" fill="#3C3B6E"/>',
+}
+
+
+def flag(g):
+    return (f'<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">'
+            f'{FLAGS[g]}</svg>')
+
 # ----------------------------------------------------------------- small multiples
 GRID_FRM = "2017-01"
 GRID_GEOS = ["PL", "SE", "DK", "HU", "CZ", "DE", "NL", "BE",
@@ -169,7 +219,8 @@ def s_grid():
     cells = []
     for g, vet_kv, cpi_kv, gap in panels:
         cells.append(
-            f'<div class="cell"><div class="cellhead"><span>{esc(C.NAMES[g])}</span>'
+            f'<div class="cell"><div class="cellhead">'
+            f'<span>{flag(g)}{esc("USA" if g == "US" else C.NAMES[g])}</span>'
             f'<span>{gap:+.0f}</span></div>'
             f'{mini_svg(vet_kv, cpi_kv, S["blue"])}</div>')
     return slide("Country by country · Jan 2017 → Dec 2025", f"""
@@ -346,9 +397,14 @@ hr { border:none; border-top:1px solid var(--grid); margin:10px 0 32px; }
 .legend b { color:var(--ink); }
 .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:22px 26px;
   margin:10px 0 20px; }
-.cell svg { width:100%%; height:auto; display:block; }
-.cellhead { display:flex; justify-content:space-between; font-size:20px;
-  font-weight:700; margin-bottom:6px; }
+.cell > svg { width:100%%; height:auto; display:block; }
+.cellhead { display:flex; justify-content:space-between; font-size:19px;
+  font-weight:700; margin-bottom:6px; align-items:center; }
+.cellhead span:last-child { margin-left:8px; }
+.cellhead span:first-child { display:flex; align-items:center; gap:9px;
+  min-width:0; }
+.flag { width:28px; height:19px; border-radius:3px; flex:none;
+  outline:1px solid rgba(255,255,255,.12); outline-offset:-1px; }
 .cellhead span:last-child { font-variant-numeric:tabular-nums; }
 .chart svg { width:100%%; height:auto; max-height:790px; display:block; margin:0 auto; }
 .move { border-left:5px solid; border-radius:2px; padding:2px 0 6px 26px;
