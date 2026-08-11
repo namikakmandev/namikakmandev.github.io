@@ -707,6 +707,34 @@
       "enabled": true,
       "source": "Eurostat ert_bil_eur_a — annual average exchange rates, national currency per euro",
       "note": "used only to express absolute pharma value added in a common currency; every share ratio stays in national currency"
+    },
+    {
+      "name": "vet-cpi-eu",
+      "provider": "eurostat",
+      "dataset": "prc_hicp_midx",
+      "params": {
+        "unit": "I15",
+        "coicop": ["CP00", "CP0934", "CP0935"],
+        "geo": ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "IE", "PL", "CZ", "HU", "RO", "PT", "DK", "SE", "FI", "EA20", "TR"]
+      },
+      "group_dims": ["geo", "coicop"],
+      "out": "data/vet-cpi-eu.json",
+      "enabled": true,
+      "source": "Eurostat HICP monthly index (2015=100): CP00 all-items, CP0934 pets and related products, CP0935 veterinary and other services for pets",
+      "note": "CONSUMER prices — pet vet services paid by households, not farm animal health costs. TR reports HICP to Eurostat as a candidate country; class-level coverage per geo to be confirmed by discovery. Codes CP0934/CP0935 to be confirmed by discovery."
+    },
+    {
+      "name": "vet-cpi-us",
+      "provider": "fred",
+      "series": {
+        "vet_services": "CUUR0000SS62032",
+        "pet_services": "CUUR0000SS62031",
+        "cpi_nsa": "CPIAUCNS"
+      },
+      "out": "data/vet-cpi-us.json",
+      "enabled": true,
+      "source": "BLS CPI via FRED: veterinarian services (SS62032), pet services incl. veterinary (SS62031), all-items NSA — all US city average, not seasonally adjusted",
+      "note": "CONSUMER prices, same object as vet-cpi-eu. NSA throughout so the vet/headline ratio is like-for-like. Series ids to be confirmed by discovery."
     }
   ]
 }
