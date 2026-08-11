@@ -172,6 +172,9 @@ FLAGS = {
           + '<circle cx="10.2" cy="8" r="3.4" fill="#E30A17"/>'
           + '<polygon fill="#fff" points="15,6.1 15.44,7.39 16.81,7.41 15.71,8.23 '
             '16.12,9.54 15,8.75 13.88,9.54 14.29,8.23 13.19,7.41 14.56,7.39"/>',
+    "NO": _rects((0, 0, 24, 16, "#BA0C2F"), (6, 0, 5, 16, "#fff"),
+                 (0, 5.5, 24, 5, "#fff"), (7.25, 0, 2.5, 16, "#00205B"),
+                 (0, 6.75, 24, 2.5, "#00205B")),
     "US": _rects((0, 0, 24, 16, "#B22234"))
           + "".join(f'<rect x="0" y="{i * 16 / 13:.2f}" width="24" '
                     f'height="{16 / 13:.2f}" fill="#fff"/>'
@@ -187,9 +190,9 @@ def flag(g):
 # ----------------------------------------------------------------- small multiples
 GRID_FRM = "2017-01"
 GNAMES = {**C.NAMES, "EL": "Greece", "SK": "Slovakia", "BG": "Bulgaria",
-          "TR": "Türkiye", "US": "USA"}
+          "NO": "Norway", "US": "USA"}
 GRID_GEOS = ["PL", "SE", "DK", "HU", "CZ", "DE", "NL", "BE", "FI",
-             "FR", "RO", "PT", "ES", "AT", "IT", "BG", "SK", "EL"]
+             "FR", "RO", "PT", "ES", "AT", "IT", "BG", "SK", "EL", "NO"]
 
 
 def mini_svg(vet_kv, cpi_kv, colour):
@@ -240,14 +243,12 @@ def s_grid():
                    C.pct(C.US["pet_svcs_nsa"], GRID_FRM, C.TO)
                    - C.pct(C.US["cpi_nsa"], GRID_FRM, C.TO)))
     panels.sort(key=lambda r: -r[3])
-    panels.append(("TR", None, C.EU["TR|CP00"], None))
     cells = []
     for g, vet_kv, cpi_kv, gap in panels:
-        gap_txt = "—" if gap is None else f"{gap:+.0f}"
         cells.append(
             f'<div class="cell"><div class="cellhead">'
             f'<span>{flag(g)}{esc(GNAMES[g])}</span>'
-            f'<span>{gap_txt}</span></div>'
+            f'<span>{gap:+.0f}</span></div>'
             f'{mini_svg(vet_kv, cpi_kv, S["blue"])}</div>')
     return slide("Country by country · Jan 2017 → Dec 2025", f"""
   <h2>Twenty markets, one window.</h2>
@@ -259,8 +260,8 @@ def s_grid():
   <div class="grid">{"".join(cells)}</div>
   <p class="note">Both lines start at 100 in Jan&nbsp;2017; panels have their own
   scale — compare the two lines within a panel, the gap number across panels.
-  Sorted by gap. Türkiye publishes no vet-services price index — shown for the
-  record. Ireland omitted (series ends 2023).</p>""")
+  Sorted by gap. Omitted: Türkiye (publishes no vet-services price index) and
+  Ireland (series ends 2023).</p>""")
 
 
 # ----------------------------------------------------------------- slides
@@ -270,8 +271,8 @@ def s1():
     return slide("Vet bills vs inflation · 20 markets", f"""
   <h1>Your vet bill beat inflation.<br><span class="blue">Or did it?</span></h1>
   <p class="lead">Prices of veterinary and other pet services versus all-items
-  inflation in 18 European countries, the United States — and Türkiye, which
-  publishes no vet price index at all.</p>
+  inflation, January&nbsp;2017 to December&nbsp;2025, in 19 European countries
+  and the United States.</p>
   <div class="statrow">
     <div class="stat"><div class="big green">+{pl_v:.0f}%</div>
       <p>vet services, Poland.<br>Headline was +{pl_c:.0f}%.</p></div>
