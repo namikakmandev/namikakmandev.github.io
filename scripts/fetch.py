@@ -40,7 +40,11 @@ def fred(entry):
     """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint."""
     out = {}
     for key, sid in entry["series"].items():
-        raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
+        try:
+            raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
+        except Exception as ex:  # a bad id must not kill the source's other series
+            out[key] = {"error": f"{sid}: {type(ex).__name__}: {ex}"}
+            continue
         vals = {}
         for row in csv.DictReader(io.StringIO(raw)):
             date = (row.get("DATE") or row.get("observation_date") or "").strip()
