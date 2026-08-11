@@ -168,24 +168,21 @@ def s_grid():
     panels.sort(key=lambda r: -r[3])
     cells = []
     for g, vet_kv, cpi_kv, gap in panels:
-        colour = (S["violet"] if g == "US"
-                  else S["green"] if gap > 1 else S["orange"] if gap < -1 else S["ink2"])
         cells.append(
             f'<div class="cell"><div class="cellhead"><span>{esc(C.NAMES[g])}</span>'
-            f'<span style="color:{colour}">{gap:+.0f}</span></div>'
-            f'{mini_svg(vet_kv, cpi_kv, colour)}</div>')
+            f'<span>{gap:+.0f}</span></div>'
+            f'{mini_svg(vet_kv, cpi_kv, S["blue"])}</div>')
     return slide("Country by country · Jan 2017 → Dec 2025", f"""
   <h2>Sixteen markets, one window.</h2>
   <div class="legend">
-    <span><i style="background:{S["green"]}"></i>vet prices — ran ahead</span>
-    <span><i style="background:{S["orange"]}"></i>vet prices — fell behind</span>
+    <span><i style="background:{S["blue"]}"></i>vet prices</span>
     <span><i style="background:{S["muted"]}"></i>overall inflation</span>
-    <span><b>+51</b>&nbsp;= gap in points, vet minus inflation</span>
+    <span><b>+51</b>&nbsp;= how much more vet prices rose, in points</span>
   </div>
   <div class="grid">{"".join(cells)}</div>
   <p class="note">Both lines start at 100 in Jan&nbsp;2017; panels have their own
-  scale — compare lines within a panel, gap numbers across panels. Sorted by gap.
-  Purple = United States. Ireland omitted (series ends 2023).</p>""")
+  scale — compare the two lines within a panel, the gap number across panels.
+  Sorted by gap. Ireland omitted (series ends 2023).</p>""")
 
 
 # ----------------------------------------------------------------- slides
