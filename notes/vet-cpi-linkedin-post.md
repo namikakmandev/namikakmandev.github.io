@@ -1,16 +1,15 @@
 # Vet bills vs inflation — LinkedIn assets
 
-Deck: `notes/vet-cpi-carousel.pdf` — 6 slides, 2160×2700 (2× of 1080×1350
-portrait), rendered from `notes/vet-cpi-carousel.html` by Chromium.
-Single slides as PNG: `assets/vet-cpi-study/slide_01..06.png`.
-Review page (private): the artifact link in the session — same content.
+**Chosen format: single-image post.** `notes/vet-cpi-grid.png` (2160×2700,
+portrait) — the 20-country small-multiples grid, self-contained with legend
+and source line. Upload as an ordinary image post with the copy below.
 
-Regenerate: `python3 scripts/vetcpi_carousel_html.py` then re-render; every
-figure is computed from `data/vet-cpi-eu.json` + `data/vet-cpi-us.json`, so
-the deck cannot contradict the data.
+Alternative kept in repo: the 6-slide document deck
+`notes/vet-cpi-carousel.pdf` (same numbers, rendered from the same HTML).
 
-Upload as a LinkedIn **document post**. Suggested title above the deck:
-*Your vet bill beat inflation. Or did it?*
+Regenerate: `python3 scripts/vetcpi_carousel_html.py` then re-render with
+Chromium; every figure is computed from `data/vet-cpi-eu.json` +
+`data/vet-cpi-us.json`, so the image cannot contradict the data.
 
 ---
 
@@ -28,30 +27,31 @@ Upload as a LinkedIn **document post**. Suggested title above the deck:
 
 > Your vet bill beat inflation. Or did it? Depends entirely on where you live.
 >
-> I compared the price of veterinary and pet services with overall inflation
-> in 19 European countries and the US, 2017 → 2025. One small chart per
-> country, all in the deck below.
+> One small chart per country: the price of veterinary and pet services
+> (blue) against overall inflation (orange), in 19 European countries and
+> the US, 2017 → 2025. The number is the gap, in points.
 >
-> 📈 Far ahead: Bulgaria (+65 points over inflation), Poland +51, Slovakia
-> +50, Sweden +35, Denmark +32.
+> 📈 Far ahead: Bulgaria +65, Poland +51, Slovakia +50, Sweden +35,
+> Denmark +32.
 >
-> 📉 Behind: in Greece, Italy, Spain and Austria, vet prices rose *less* than
-> inflation.
+> 📉 Behind: in Greece, Italy, Spain and Austria, vet prices rose *less*
+> than inflation.
 >
-> The strangest chart is Germany's: perfectly flat for years — vet fees are
-> fixed by a national fee schedule from 1999 — then +24% in a single month
-> when the 2022 revision landed, then flat again. Regulated prices don't
-> drift. They jump.
+> The strangest chart is Germany's. Perfectly flat for years — vet fees are
+> fixed by a national fee schedule dating from 1999 — then +24% in a single
+> month when the 2022 revision landed, then flat again. Regulated prices
+> don't drift. They jump.
 >
-> Also: the US, home of the "vet costs are exploding" story, is mid-table.
-> And Türkiye publishes no vet price index at all.
+> Also: the US, home of the "vet costs are exploding" story, is mid-table
+> at +4. And Türkiye publishes no vet price index at all — the one country
+> I couldn't chart.
 >
-> 📄 Eurostat HICP and BLS CPI, monthly. Scope, exclusions and sources on the
-> last slide.
+> 📄 Eurostat HICP (veterinary & pet services vs all items) and BLS CPI,
+> monthly, Jan 2017 = 100. Sources on the image.
 >
 > Personal analysis of public statistics. Views my own.
 
-~160 words. The first two lines carry the hook before LinkedIn truncates.
+~170 words. The first two lines carry the hook before LinkedIn truncates.
 Paste as plain text; the icons carry the structure.
 
 ## Hashtags

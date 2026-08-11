@@ -485,6 +485,23 @@ data/vet-cpi-us.json.</div>
     open(OUT, "w").write(html)
     print("wrote", OUT)
 
+    # standalone single-image export of the grid slide: no page number,
+    # compact source line in the footer (the deck's sources slide is absent)
+    src = ('<span style="font-size:15px;color:var(--muted)">'
+           'Eurostat prc_hicp_midx CP0935 vs CP00 · US: BLS CPI via FRED · '
+           'own analysis</span>')
+    alone = (s_grid().replace('id="s@N@"', 'id="s1"')
+             .replace("@N@/@TOTAL@", src))
+    out_grid = os.path.join(ROOT, "notes", "vet-cpi-grid.html")
+    open(out_grid, "w").write(f"""<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vet bills vs inflation — single image</title>
+<style>{CSS}</style>
+<div class="deck"><div class="wrap">{alone}</div></div>
+<script>{JS}</script>
+""")
+    print("wrote", out_grid)
+
 
 if __name__ == "__main__":
     main()
