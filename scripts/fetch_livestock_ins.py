@@ -112,12 +112,116 @@ def agroseguro_discover():
     return out
 
 
+# ------------------------------------------------------------- extraction
+# Written against the discover dump of ar-2024.pdf: every report carries a
+# "Key Figures" table (label + 4 year-columns) and per-line tables whose data
+# rows read "YYYY n,nnn n,nnn n,nnn n,nnn n,nnn" (policies, sum insured,
+# premium, subsidy, paid loss) under an ALL-CAPS "<LINE> INSURANCE" section.
+TARSIM_BASE = "https://www.tarsim.gov.tr/staticweb/krm-web/dergi/faaliyet-raporlari/"
+TARSIM_REPORTS = ["ar-2016.pdf", "ar-2020.pdf", "ar-2024.pdf", "ar-2025.pdf"]
+
+KEY_LABELS = ["Sum Insured", "Total Premium", "Total Government Premium Subsidy",
+              "Total Paid Loss", "Total Loss Occurred", "Number of Policies",
+              "Number of Insured Cattle (Head)",
+              "Number of Insured Sheep and Goats (Head)"]
+
+NUM = r"([\d.,]{4,})"
+
+
+def _n(tok):
+    return int(tok.replace(",", "").replace(".", ""))
+
+
+def tarsim_extract():
+    import pdfplumber
+    out = {"key_figures": {}, "lines": {}, "provenance": {}}
+    for fname in TARSIM_REPORTS:
+        url = TARSIM_BASE + fname
+        try:
+            raw = get(url)
+        except Exception as ex:
+            out["provenance"][fname] = f"FETCH FAIL {type(ex).__name__}: {ex}"
+            continue
+        rep_year = int(re.search(r"(\d{4})", fname).group(1))
+        years = [rep_year - 3, rep_year - 2, rep_year - 1, rep_year]
+        found_labels = {}
+        section = None
+        with pdfplumber.open(io.BytesIO(raw)) as pdf:
+            for pageno, page in enumerate(pdf.pages, 1):
+                text = page.extract_text() or ""
+                # key-figures rows: label then 4 big numbers on one line
+                if "Key Figures" in text or "Number of Insured Cattle" in text:
+                    for lab in KEY_LABELS:
+                        m = re.search(re.escape(lab) +
+                                      r"\s+" + NUM + r"\s+" + NUM +
+                                      r"\s+" + NUM + r"\s+" + NUM, text)
+                        if m:
+                            found_labels[lab] = (pageno,
+                                                 [_n(m.group(i)) for i in range(1, 5)])
+                # per-line tables: track the current section header
+                for line in text.splitlines():
+                    ls = line.strip()
+                    m = re.match(r"^([A-Z][A-Z &]{2,40}) INSURANCE$", ls)
+                    if m:
+                        section = m.group(1).title()
+                    m = re.match(r"^(20\d\d)\s+" + NUM + r"\s+" + NUM +
+                                 r"\s+" + NUM + r"\s+" + NUM + r"\s+" + NUM, ls)
+                    if m and section:
+                        yr = int(m.group(1))
+                        row = {"policies": _n(m.group(2)),
+                               "sum_insured": _n(m.group(3)),
+                               "premium": _n(m.group(4)),
+                               "subsidy": _n(m.group(5)),
+                               "paid_loss": _n(m.group(6)),
+                               "src": f"{fname} p.{pageno}"}
+                        out["lines"].setdefault(section, {})[str(yr)] = row
+        for lab, (pageno, vals) in found_labels.items():
+            for yr, v in zip(years, vals):
+                prev = out["key_figures"].setdefault(lab, {}).get(str(yr))
+                if prev and prev["value"] != v:
+                    out.setdefault("overlap_conflicts", []).append(
+                        {"label": lab, "year": yr, "a": prev, "b": {"value": v, "src": fname}})
+                out["key_figures"][lab][str(yr)] = {"value": v,
+                                                    "src": f"{fname} p.{pageno}"}
+        out["provenance"][fname] = {"years": years,
+                                    "labels_found": sorted(found_labels)}
+    return out
+
+
+def rma_discover2():
+    """Dump EVERY href on the participation page — the filtered pass missed
+    the data files."""
+    out = {}
+    for u in ("https://www.rma.usda.gov/tools-reports/summary-business/livestock-dairy-participation",):
+        try:
+            html = get(u).decode("utf-8", "replace")
+            out[u] = re.findall(r'href="([^"]+)"', html)
+        except Exception as ex:
+            out[u] = f"{type(ex).__name__}: {ex}"
+    return out
+
+
+def spain_discover():
+    """Agroseguro 403s; try the ministry (ENESA) pages instead."""
+    out = {}
+    for u in ("https://www.mapa.gob.es/es/enesa/publicaciones/",
+              "https://www.mapa.gob.es/es/enesa/",
+              "https://www.mapa.gob.es/es/enesa/estadisticas-del-seguro-agrario/"):
+        try:
+            out[u] = links_on(u)
+        except Exception as ex:
+            out[u] = f"{type(ex).__name__}: {ex}"
+    return out
+
+
 def main():
-    if MODE != "discover":
-        raise SystemExit("extraction pass not written yet — run MODE=discover "
-                         "first and write the parser against its output")
-    for name, fn in (("tarsim", tarsim_discover), ("rma", rma_discover),
-                     ("agroseguro", agroseguro_discover)):
+    if MODE == "discover":
+        jobs = (("tarsim", tarsim_discover), ("rma", rma_discover),
+                ("agroseguro", agroseguro_discover))
+    else:
+        jobs = (("tarsim_series", tarsim_extract), ("rma2", rma_discover2),
+                ("spain", spain_discover))
+    for name, fn in jobs:
         try:
             report[name] = fn()
             print(f"[ok] {name}")
@@ -125,7 +229,8 @@ def main():
             report[name] = {"error": f"{type(ex).__name__}: {ex}"}
             print(f"[FAIL] {name}: {type(ex).__name__}: {ex}")
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
-    path = os.path.join(ROOT, "data", "livestock-ins-report.json")
+    suffix = "report" if MODE == "discover" else "tarsim"
+    path = os.path.join(ROOT, "data", f"livestock-ins-{suffix}.json")
     json.dump(report, open(path, "w"), indent=1, ensure_ascii=False)
     print("wrote", path)
 
