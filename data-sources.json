@@ -721,22 +721,19 @@
       "out": "data/vet-cpi-eu.json",
       "enabled": true,
       "source": "Eurostat HICP monthly index (2015=100): CP00 all-items, CP0934 pets and related products, CP0935 veterinary and other services for pets",
-      "note": "CONSUMER prices — pet vet services paid by households, not farm animal health costs. TR reports HICP to Eurostat as a candidate country; class-level coverage per geo to be confirmed by discovery. Codes CP0934/CP0935 to be confirmed by discovery."
+      "note": "CONSUMER prices — pet vet services paid by households, not farm animal health costs. Confirmed by 2026-08 fetch: TR publishes CP00 only (no CP0934/CP0935 — a TR vet series needs TÜİK/EVDS); IE CP0935 stops at 2023-12; all other geos current. Base years differ per country (earliest obs 1996-01 FR, 2016-12 for late joiners) — index everything to a common month before comparing."
     },
     {
       "name": "vet-cpi-us",
       "provider": "fred",
       "series": {
-        "vet_nsa": "CUUR0000SS62032",
-        "vet_sa": "CUSR0000SS62032",
         "pet_svcs_nsa": "CUUR0000SS62031",
-        "pet_svcs_sa": "CUSR0000SS62031",
         "cpi_nsa": "CPIAUCNS"
       },
       "out": "data/vet-cpi-us.json",
       "enabled": true,
-      "source": "BLS CPI via FRED: veterinarian services (SS62032), pet services incl. veterinary (SS62031), all-items NSA — all US city average, not seasonally adjusted",
-      "note": "CONSUMER prices, same object as vet-cpi-eu. NSA throughout so the vet/headline ratio is like-for-like. Series ids to be confirmed by discovery."
+      "source": "BLS CPI via FRED: pet services including veterinary (SS62031, 1997-12→) and all-items — US city average, not seasonally adjusted",
+      "note": "CONSUMER prices, same object as vet-cpi-eu: EU CP0935 is 'veterinary and OTHER services for pets', so the like-for-like US series is pet services INCLUDING veterinary, not veterinarian services alone (BLS SS62032 exists but is not mirrored on FRED — both CUUR/CUSR ids 404). NSA throughout so the vet/headline ratio is like-for-like."
     }
   ]
 }
