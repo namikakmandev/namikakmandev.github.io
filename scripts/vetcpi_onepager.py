@@ -126,7 +126,7 @@ def main():
     <div class="kpi"><div class="l">Sharpest move</div><div class="v">+24%</div>
       <div class="d">Germany, one month (Dec 2022)</div></div>
     <div class="kpi"><div class="l">United States</div><div class="v">+4 pts</div>
-      <div class="d">mid-table, despite the narrative</div></div>
+      <div class="d">11th of 20 markets by gap</div></div>
   </div>
 
   <div class="legend">
@@ -136,33 +136,23 @@ def main():
   </div>
   <div class="grid">{cells}</div>
 
-  <div class="cols">
+  <div class="cols notes">
     <div>
-      <h2>What the data shows</h2>
-      <ul class="story">
-        <li><b>The gap is a geography.</b> Vet prices ran far ahead of inflation
-        across Central, Northern and Eastern Europe (Bulgaria +65, Poland +51,
-        Slovakia +50, Sweden +35, Denmark +32) and fell behind it across the
-        South (Greece −16, Austria −7, Spain, Italy, Portugal).</li>
-        <li><b>Regulated prices jump, they don't drift.</b> Germany's vet fees
-        are set by the national GOT fee ordinance: the index was flat for years,
-        rose 24% in a single month when the November 2022 revision took effect,
-        and has been flat since (155.3 vs 154.8 three years later).</li>
-        <li><b>The loudest story is mid-table.</b> The US, origin of the "vet
-        costs are exploding" narrative, shows +4 points over inflation on the
-        like-for-like basket — less than Denmark, Germany or Sweden.</li>
-      </ul>
-    </div>
-    <div class="notes">
-      <h2>Scope, exclusions, sources</h2>
+      <h2>Scope and exclusions</h2>
       <p><b>Measure.</b> Consumer price indices: what households pay for
       veterinary and other pet services, versus all-items inflation. Not farm
       animal health spending.</p>
       <p><b>Excluded.</b> Türkiye — publishes no vet-services price index
-      (all-items HICP only). Ireland — vet series ends Dec 2023.</p>
-      <p><b>Known steps.</b> Germany +24% (Dec 2022) and Sweden +18%
-      (Oct 2022) are real repricings — fee-schedule revision and clinic-chain
-      consolidation — not data breaks.</p>
+      (all-items HICP only). Ireland — vet-services series ends Dec 2023.</p>
+      <p><b>Reading.</b> Both lines are indexed to Jan 2017 = 100; each panel
+      has its own vertical scale. The panel figure is vet-services inflation
+      minus all-items inflation over the window, in percentage points.</p>
+    </div>
+    <div>
+      <h2>Data notes and sources</h2>
+      <p><b>Known steps.</b> Germany +24% (Dec 2022, national fee-schedule
+      revision) and Sweden +18% (Oct 2022) are repricings in the underlying
+      series, not data breaks. No methodology break spans the window.</p>
       <p><b>Sources.</b> Eurostat prc_hicp_midx, monthly, 2015=100 — CP0935
       veterinary and other services for pets vs CP00 all items. US: BLS CPI
       via FRED, monthly, NSA — CUUR0000SS62031 pet services incl. veterinary
