@@ -266,18 +266,20 @@ def s_grid():
 
 # ----------------------------------------------------------------- slides
 def s1():
-    pl_v, pl_c = C.window("PL")
-    it_v, it_c = C.window("IT")
+    bg_v = C.pct(C.EU["BG|CP0935"], GRID_FRM, C.TO)
+    bg_c = C.pct(C.EU["BG|CP00"], GRID_FRM, C.TO)
+    el_v = C.pct(C.EU["EL|CP0935"], GRID_FRM, C.TO)
+    el_c = C.pct(C.EU["EL|CP00"], GRID_FRM, C.TO)
     return slide("Vet bills vs inflation · 20 markets", f"""
   <h1>Your vet bill beat inflation.<br><span class="blue">Or did it?</span></h1>
   <p class="lead">Prices of veterinary and other pet services versus all-items
   inflation, January&nbsp;2017 to December&nbsp;2025, in 19 European countries
   and the United States.</p>
   <div class="statrow">
-    <div class="stat"><div class="big green">+{pl_v:.0f}%</div>
-      <p>vet services, Poland.<br>Headline was +{pl_c:.0f}%.</p></div>
-    <div class="stat"><div class="big orange">+{it_v:.0f}%</div>
-      <p>vet services, Italy.<br>Headline was +{it_c:.0f}%.</p></div>
+    <div class="stat"><div class="big green">+{bg_v:.0f}%</div>
+      <p>vet services, Bulgaria.<br>Inflation was +{bg_c:.0f}%.</p></div>
+    <div class="stat"><div class="big orange">+{el_v:.0f}%</div>
+      <p>vet services, Greece.<br>Inflation was +{el_c:.0f}%.</p></div>
   </div>
   <hr>
   <p class="lead">Same period, same measure. In the North and East vet prices
@@ -343,16 +345,16 @@ def s5():
     return slide("What to do with this", """
   <h2>Three readers, three moves.</h2>
   <div class="move b-green"><h3 class="green">Pet owners — budget by geography.</h3>
-    <p>In Poland, Sweden, Denmark or Germany, index your pet budget to vet
-    prices, not to headline inflation — the gap has compounded to 14–32
-    points in five years.</p></div>
+    <p>In Bulgaria, Poland, Slovakia or Sweden, index your pet budget to vet
+    prices, not to headline inflation — the gap has compounded to 35–65
+    points since 2017.</p></div>
   <div class="move b-blue"><h3 class="blue">Insurers &amp; clinic operators — watch the fee schedules.</h3>
     <p>The big single moves were regulatory (Germany's GOT) or structural
     (Nordic chain consolidation). The next scheduled fee revision is the
     repricing event — not CPI drift.</p></div>
   <div class="move b-orange"><h3 class="orange">Analysts — don't import the US narrative.</h3>
-    <p>Vet inflation is a country story, not a global one. Italy, Spain,
-    Portugal and Austria sit below headline inflation. Check the local index
+    <p>Vet inflation is a country story, not a global one. Greece, Italy,
+    Spain and Austria sit below headline inflation. Check the local index
     before repeating the meme.</p></div>
   <p class="note">What would change this: a fee-schedule revision in a
   below-headline country, or a Southern-European consolidation wave, flips
@@ -365,8 +367,9 @@ def s6():
   <div class="block"><h4>Measure</h4><p>Consumer price indices: what households
     pay for veterinary and other pet services, versus all-items inflation.
     This is not farm animal health spending.</p></div>
-  <div class="block"><h4>Window</h4><p>Jan 2021 → Dec 2025 on every comparison,
-    all markets. The decade slide (US) is Jan 2015 → Dec 2025 and says so.</p></div>
+  <div class="block"><h4>Window</h4><p>Country grid: Jan 2017 → Dec 2025, the
+    longest span all 20 markets share. Jump slide: Jan 2021 = 100. US decade
+    slide: Jan 2015 → Dec 2025. Every slide states its own window.</p></div>
   <div class="block"><h4>Excluded</h4><p class="orange">Ireland — its
     vet-services index stops at Dec 2023. Türkiye — publishes only all-items
     HICP to Eurostat; a Turkish vet series would need TÜİK data.</p></div>
@@ -461,7 +464,7 @@ addEventListener('resize', fit); fit();
 
 
 def main():
-    deck = [s1(), s2(), s_grid(), s3(), s4(), s5(), s6()]
+    deck = [s1(), s_grid(), s3(), s4(), s5(), s6()]
     total = len(deck)
     slides = "\n".join(
         f'<div class="wrap">{sl.replace("@N@", str(i)).replace("@TOTAL@", str(total))}</div>'
