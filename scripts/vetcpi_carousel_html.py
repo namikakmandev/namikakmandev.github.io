@@ -24,15 +24,16 @@ def esc(t):
     return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def slide(n, kicker, body, kcolor="blue"):
+def slide(kicker, body, kcolor="blue"):
+    """Slide numbers are assigned at assembly time in main()."""
     return f"""
-<div class="slide" id="s{n}">
+<div class="slide" id="s@N@">
   <div class="rule"></div>
   <div class="kicker" style="color:var(--{kcolor})">{esc(kicker).upper()}</div>
   {body}
   <div class="footer">
     <div><b>Namık Akman</b><br><span>namikakmandev.github.io</span></div>
-    <div class="pageno">{n}/6</div>
+    <div class="pageno">@N@/@TOTAL@</div>
   </div>
 </div>"""
 
@@ -117,11 +118,72 @@ def line_svg(series_list, y_ticks, x_years, aria):
     return "".join(out)
 
 
+
+
+# ----------------------------------------------------------------- small multiples
+GRID_FRM = "2017-01"
+GRID_GEOS = ["PL", "SE", "DK", "HU", "CZ", "DE", "NL", "BE",
+             "FI", "FR", "RO", "PT", "ES", "AT", "IT"]
+
+
+def mini_svg(vet_kv, cpi_kv, colour):
+    """One panel: vet vs headline, indexed to GRID_FRM = 100, to Dec 2025."""
+    W, H = 230, 158
+    keys = sorted(k for k in vet_kv if GRID_FRM <= k <= C.TO)
+    v = [vet_kv[k] / vet_kv[GRID_FRM] * 100 for k in keys]
+    c = [cpi_kv[k] / cpi_kv[GRID_FRM] * 100 for k in keys]
+    ylo, yhi = min(v + c) - 4, max(v + c) + 4
+    xs = C.xpos(keys)
+    xlo, xhi = xs[0], xs[-1]
+
+    def X(t):
+        return (t - xlo) / (xhi - xlo) * W
+
+    def Y(val):
+        return H - 6 - (val - ylo) / (yhi - ylo) * (H - 12)
+
+    base = " ".join(f"{X(t):.1f},{Y(100):.1f}" for t in (xlo, xhi))
+    pc = " ".join(f"{X(t):.1f},{Y(val):.1f}" for t, val in zip(xs, c))
+    pv = " ".join(f"{X(t):.1f},{Y(val):.1f}" for t, val in zip(xs, v))
+    return (f'<svg viewBox="0 0 {W} {H}">'
+            f'<polyline points="{base}" fill="none" stroke="{S["grid"]}" stroke-width="1"/>'
+            f'<polyline points="{pc}" fill="none" stroke="{S["muted"]}" stroke-width="2"/>'
+            f'<polyline points="{pv}" fill="none" stroke="{colour}" stroke-width="2.5" '
+            f'stroke-linejoin="round"/></svg>')
+
+
+def s_grid():
+    panels = []
+    for g in GRID_GEOS:
+        vet_kv, cpi_kv = C.EU[f"{g}|CP0935"], C.EU[f"{g}|CP00"]
+        gap = (C.pct(vet_kv, GRID_FRM, C.TO) - C.pct(cpi_kv, GRID_FRM, C.TO))
+        panels.append((g, vet_kv, cpi_kv, gap))
+    panels.append(("US", C.US["pet_svcs_nsa"], C.US["cpi_nsa"],
+                   C.pct(C.US["pet_svcs_nsa"], GRID_FRM, C.TO)
+                   - C.pct(C.US["cpi_nsa"], GRID_FRM, C.TO)))
+    panels.sort(key=lambda r: -r[3])
+    cells = []
+    for g, vet_kv, cpi_kv, gap in panels:
+        colour = (S["violet"] if g == "US"
+                  else S["green"] if gap > 1 else S["orange"] if gap < -1 else S["ink2"])
+        cells.append(
+            f'<div class="cell"><div class="cellhead"><span>{esc(C.NAMES[g])}</span>'
+            f'<span style="color:{colour}">{gap:+.0f}</span></div>'
+            f'{mini_svg(vet_kv, cpi_kv, colour)}</div>')
+    return slide("Country by country · Jan 2017 → Dec 2025", f"""
+  <h2>Sixteen markets, one window.</h2>
+  <div class="grid">{"".join(cells)}</div>
+  <p class="note">Each panel: vet-services prices (coloured) vs all items (grey),
+  both Jan&nbsp;2017&nbsp;=&nbsp;100, to Dec&nbsp;2025, own scale — the number is
+  the gap in percentage points over the window. Sorted by gap. Purple = United
+  States. Ireland omitted (series ends 2023).</p>""")
+
+
 # ----------------------------------------------------------------- slides
 def s1():
     pl_v, pl_c = C.window("PL")
     it_v, it_c = C.window("IT")
-    return slide(1, "Vet bills vs inflation · 16 countries", f"""
+    return slide("Vet bills vs inflation · 16 countries", f"""
   <h1>Your vet bill beat inflation.<br><span class="blue">Or did it?</span></h1>
   <p class="lead">Prices of veterinary and other pet services versus all-items
   inflation, January&nbsp;2021 to December&nbsp;2025, in 15 European countries
@@ -141,7 +203,7 @@ def s1():
 
 
 def s2():
-    return slide(2, "The split · Jan 2021 → Dec 2025", f"""
+    return slide("The split · Jan 2021 → Dec 2025", f"""
   <h2>North and East: far ahead.<br>South: behind inflation.</h2>
   <div class="chart">{split_svg()}</div>
   <p class="note">Bar = vet-services inflation minus all-items inflation, in
@@ -158,7 +220,7 @@ def s3():
                     (de[0], de[1], S["blue"], "Germany", True)],
                    [100, 120, 140, 160], [2021, 2022, 2023, 2024, 2025],
                    "Vet-services price index, Jan 2021 = 100")
-    return slide(3, "How it happened", f"""
+    return slide("How it happened", f"""
   <h2>Not a drift. Two jumps.</h2>
   <div class="chart">{svg}</div>
   <p class="lead">Germany: <b>+{C.DE_STEP:.0f}% in a single month</b> (Dec 2022),
@@ -180,7 +242,7 @@ def s4():
                     (pet[0], pet[1], S["violet"], "Pet services\nincl. veterinary", True)],
                    [100, 120, 140], [2015, 2017, 2019, 2021, 2023, 2025],
                    "US pet services vs all items, Jan 2015 = 100")
-    return slide(4, "The United States · Jan 2015 → Dec 2025", f"""
+    return slide("The United States · Jan 2015 → Dec 2025", f"""
   <h2>The loudest story is mid-table.</h2>
   <div class="chart">{svg}</div>
   <p class="lead">US pet services incl. veterinary: <b>+{us_v15:.0f}%</b> over the
@@ -193,7 +255,7 @@ def s4():
 
 
 def s5():
-    return slide(5, "What to do with this", """
+    return slide("What to do with this", """
   <h2>Three readers, three moves.</h2>
   <div class="move b-green"><h3 class="green">Pet owners — budget by geography.</h3>
     <p>In Poland, Sweden, Denmark or Germany, index your pet budget to vet
@@ -213,7 +275,7 @@ def s5():
 
 
 def s6():
-    return slide(6, "What this covers", f"""
+    return slide("What this covers", f"""
   <h2>Scope and sources.</h2>
   <div class="block"><h4>Measure</h4><p>Consumer price indices: what households
     pay for veterinary and other pet services, versus all-items inflation.
@@ -271,6 +333,12 @@ hr { border:none; border-top:1px solid var(--grid); margin:10px 0 32px; }
 .note { position:absolute; left:86px; right:86px; bottom:150px;
   font-size:20px; color:var(--muted); line-height:1.4; }
 .chart { margin:6px 0 26px; }
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:30px 26px;
+  margin:10px 0 20px; }
+.cell svg { width:100%%; height:auto; display:block; }
+.cellhead { display:flex; justify-content:space-between; font-size:20px;
+  font-weight:700; margin-bottom:6px; }
+.cellhead span:last-child { font-variant-numeric:tabular-nums; }
 .chart svg { width:100%%; height:auto; max-height:790px; display:block; margin:0 auto; }
 .move { border-left:5px solid; border-radius:2px; padding:2px 0 6px 26px;
   margin-bottom:40px; }
@@ -298,8 +366,11 @@ addEventListener('resize', fit); fit();
 
 
 def main():
-    slides = "\n".join(f'<div class="wrap">{s}</div>'
-                       for s in (s1(), s2(), s3(), s4(), s5(), s6()))
+    deck = [s1(), s2(), s_grid(), s3(), s4(), s5(), s6()]
+    total = len(deck)
+    slides = "\n".join(
+        f'<div class="wrap">{sl.replace("@N@", str(i)).replace("@TOTAL@", str(total))}</div>'
+        for i, sl in enumerate(deck, 1))
     html = f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vet bills vs inflation — carousel draft</title>
