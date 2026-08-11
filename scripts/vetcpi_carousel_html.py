@@ -158,6 +158,20 @@ FLAGS = {
                  (0, 10.67, 24, 5.33, "#ED2939")),
     "IT": _rects((0, 0, 8, 16, "#008C45"), (8, 0, 8, 16, "#fff"),
                  (16, 0, 8, 16, "#CD212A")),
+    "BG": _rects((0, 0, 24, 5.33, "#fff"), (0, 5.33, 24, 5.33, "#00966E"),
+                 (0, 10.67, 24, 5.33, "#D62612")),
+    "SK": _rects((0, 0, 24, 5.33, "#fff"), (0, 5.33, 24, 5.33, "#0B4EA2"),
+                 (0, 10.67, 24, 5.33, "#EE1620")),
+    "EL": "".join(f'<rect x="0" y="{i * 16 / 9:.2f}" width="24" '
+                  f'height="{16 / 9:.2f}" fill="{"#0D5EAF" if i % 2 == 0 else "#fff"}"/>'
+                  for i in range(9))
+          + _rects((0, 0, 10, 8.89, "#0D5EAF"), (4.1, 0, 1.8, 8.89, "#fff"),
+                   (0, 3.55, 10, 1.8, "#fff")),
+    "TR": _rects((0, 0, 24, 16, "#E30A17"))
+          + '<circle cx="9" cy="8" r="4.2" fill="#fff"/>'
+          + '<circle cx="10.2" cy="8" r="3.4" fill="#E30A17"/>'
+          + '<polygon fill="#fff" points="15,6.1 15.44,7.39 16.81,7.41 15.71,8.23 '
+            '16.12,9.54 15,8.75 13.88,9.54 14.29,8.23 13.19,7.41 14.56,7.39"/>',
     "US": _rects((0, 0, 24, 16, "#B22234"))
           + "".join(f'<rect x="0" y="{i * 16 / 13:.2f}" width="24" '
                     f'height="{16 / 13:.2f}" fill="#fff"/>'
@@ -172,17 +186,19 @@ def flag(g):
 
 # ----------------------------------------------------------------- small multiples
 GRID_FRM = "2017-01"
-GRID_GEOS = ["PL", "SE", "DK", "HU", "CZ", "DE", "NL", "BE",
-             "FI", "FR", "RO", "PT", "ES", "AT", "IT"]
+GNAMES = {**C.NAMES, "EL": "Greece", "SK": "Slovakia", "BG": "Bulgaria",
+          "TR": "Türkiye", "US": "USA"}
+GRID_GEOS = ["PL", "SE", "DK", "HU", "CZ", "DE", "NL", "BE", "FI",
+             "FR", "RO", "PT", "ES", "AT", "IT", "BG", "SK", "EL"]
 
 
 def mini_svg(vet_kv, cpi_kv, colour):
     """One panel: vet vs headline, indexed to GRID_FRM = 100, to Dec 2025."""
-    W, H = 230, 148
-    LBL = 18  # room for the year labels under the lines
-    keys = sorted(k for k in vet_kv if GRID_FRM <= k <= C.TO)
-    v = [vet_kv[k] / vet_kv[GRID_FRM] * 100 for k in keys]
+    W, H = 230, 116
+    LBL = 16  # room for the year labels under the lines
+    keys = sorted(k for k in cpi_kv if GRID_FRM <= k <= C.TO)
     c = [cpi_kv[k] / cpi_kv[GRID_FRM] * 100 for k in keys]
+    v = ([vet_kv[k] / vet_kv[GRID_FRM] * 100 for k in keys] if vet_kv else [])
     ylo, yhi = min(v + c) - 4, max(v + c) + 4
     xs = C.xpos(keys)
     xlo, xhi = xs[0], xs[-1]
@@ -195,12 +211,20 @@ def mini_svg(vet_kv, cpi_kv, colour):
 
     base = " ".join(f"{X(t):.1f},{Y(100):.1f}" for t in (xlo, xhi))
     pc = " ".join(f"{X(t):.1f},{Y(val):.1f}" for t, val in zip(xs, c))
-    pv = " ".join(f"{X(t):.1f},{Y(val):.1f}" for t, val in zip(xs, v))
+    vet_line = ""
+    if v:
+        pv = " ".join(f"{X(t):.1f},{Y(val):.1f}" for t, val in zip(xs, v))
+        vet_line = (f'<polyline points="{pv}" fill="none" stroke="{colour}" '
+                    f'stroke-width="2.5" stroke-linejoin="round"/>')
+    else:
+        vet_line = (f'<text x="{W / 2}" y="{(H - LBL) * 0.42:.0f}" fill="{S["ink2"]}" '
+                    f'font-size="16" text-anchor="middle">no vet price index</text>'
+                    f'<text x="{W / 2}" y="{(H - LBL) * 0.42 + 20:.0f}" fill="{S["ink2"]}" '
+                    f'font-size="16" text-anchor="middle">published</text>')
     return (f'<svg viewBox="0 0 {W} {H}">'
             f'<polyline points="{base}" fill="none" stroke="{S["grid"]}" stroke-width="1"/>'
             f'<polyline points="{pc}" fill="none" stroke="{S["orange"]}" stroke-width="2.2"/>'
-            f'<polyline points="{pv}" fill="none" stroke="{colour}" stroke-width="2.5" '
-            f'stroke-linejoin="round"/>'
+            f'{vet_line}'
             f'<text x="0" y="{H - 3}" fill="{S["muted"]}" font-size="15">2017</text>'
             f'<text x="{W}" y="{H - 3}" fill="{S["muted"]}" font-size="15" '
             f'text-anchor="end">2025</text></svg>')
@@ -216,15 +240,17 @@ def s_grid():
                    C.pct(C.US["pet_svcs_nsa"], GRID_FRM, C.TO)
                    - C.pct(C.US["cpi_nsa"], GRID_FRM, C.TO)))
     panels.sort(key=lambda r: -r[3])
+    panels.append(("TR", None, C.EU["TR|CP00"], None))
     cells = []
     for g, vet_kv, cpi_kv, gap in panels:
+        gap_txt = "—" if gap is None else f"{gap:+.0f}"
         cells.append(
             f'<div class="cell"><div class="cellhead">'
-            f'<span>{flag(g)}{esc("USA" if g == "US" else C.NAMES[g])}</span>'
-            f'<span>{gap:+.0f}</span></div>'
+            f'<span>{flag(g)}{esc(GNAMES[g])}</span>'
+            f'<span>{gap_txt}</span></div>'
             f'{mini_svg(vet_kv, cpi_kv, S["blue"])}</div>')
     return slide("Country by country · Jan 2017 → Dec 2025", f"""
-  <h2>Sixteen markets, one window.</h2>
+  <h2>Twenty markets, one window.</h2>
   <div class="legend">
     <span><i style="background:{S["blue"]}"></i>vet prices</span>
     <span><i style="background:{S["orange"]}"></i>overall inflation</span>
@@ -233,18 +259,19 @@ def s_grid():
   <div class="grid">{"".join(cells)}</div>
   <p class="note">Both lines start at 100 in Jan&nbsp;2017; panels have their own
   scale — compare the two lines within a panel, the gap number across panels.
-  Sorted by gap. Ireland omitted (series ends 2023).</p>""")
+  Sorted by gap. Türkiye publishes no vet-services price index — shown for the
+  record. Ireland omitted (series ends 2023).</p>""")
 
 
 # ----------------------------------------------------------------- slides
 def s1():
     pl_v, pl_c = C.window("PL")
     it_v, it_c = C.window("IT")
-    return slide("Vet bills vs inflation · 16 countries", f"""
+    return slide("Vet bills vs inflation · 20 markets", f"""
   <h1>Your vet bill beat inflation.<br><span class="blue">Or did it?</span></h1>
   <p class="lead">Prices of veterinary and other pet services versus all-items
-  inflation, January&nbsp;2021 to December&nbsp;2025, in 15 European countries
-  and the United States.</p>
+  inflation in 18 European countries, the United States — and Türkiye, which
+  publishes no vet price index at all.</p>
   <div class="statrow">
     <div class="stat"><div class="big green">+{pl_v:.0f}%</div>
       <p>vet services, Poland.<br>Headline was +{pl_c:.0f}%.</p></div>
@@ -391,15 +418,15 @@ hr { border:none; border-top:1px solid var(--grid); margin:10px 0 32px; }
   font-size:20px; color:var(--muted); line-height:1.4; }
 .chart { margin:6px 0 26px; }
 .legend { display:flex; flex-wrap:wrap; gap:10px 34px; font-size:21px;
-  color:var(--ink2); margin:-6px 0 24px; align-items:center; }
+  color:var(--ink2); margin:-6px 0 18px; align-items:center; }
 .legend i { display:inline-block; width:34px; height:5px; border-radius:3px;
   margin-right:10px; vertical-align:middle; }
 .legend b { color:var(--ink); }
-.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:22px 26px;
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px 26px;
   margin:10px 0 20px; }
 .cell > svg { width:100%%; height:auto; display:block; }
-.cellhead { display:flex; justify-content:space-between; font-size:19px;
-  font-weight:700; margin-bottom:6px; align-items:center; }
+.cellhead { display:flex; justify-content:space-between; font-size:18px;
+  font-weight:700; margin-bottom:4px; align-items:center; }
 .cellhead span:last-child { margin-left:8px; }
 .cellhead span:first-child { display:flex; align-items:center; gap:9px;
   min-width:0; }
