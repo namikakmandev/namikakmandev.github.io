@@ -128,7 +128,8 @@ GRID_GEOS = ["PL", "SE", "DK", "HU", "CZ", "DE", "NL", "BE",
 
 def mini_svg(vet_kv, cpi_kv, colour):
     """One panel: vet vs headline, indexed to GRID_FRM = 100, to Dec 2025."""
-    W, H = 230, 158
+    W, H = 230, 148
+    LBL = 18  # room for the year labels under the lines
     keys = sorted(k for k in vet_kv if GRID_FRM <= k <= C.TO)
     v = [vet_kv[k] / vet_kv[GRID_FRM] * 100 for k in keys]
     c = [cpi_kv[k] / cpi_kv[GRID_FRM] * 100 for k in keys]
@@ -140,7 +141,7 @@ def mini_svg(vet_kv, cpi_kv, colour):
         return (t - xlo) / (xhi - xlo) * W
 
     def Y(val):
-        return H - 6 - (val - ylo) / (yhi - ylo) * (H - 12)
+        return H - LBL - 4 - (val - ylo) / (yhi - ylo) * (H - LBL - 10)
 
     base = " ".join(f"{X(t):.1f},{Y(100):.1f}" for t in (xlo, xhi))
     pc = " ".join(f"{X(t):.1f},{Y(val):.1f}" for t, val in zip(xs, c))
@@ -149,7 +150,10 @@ def mini_svg(vet_kv, cpi_kv, colour):
             f'<polyline points="{base}" fill="none" stroke="{S["grid"]}" stroke-width="1"/>'
             f'<polyline points="{pc}" fill="none" stroke="{S["muted"]}" stroke-width="2"/>'
             f'<polyline points="{pv}" fill="none" stroke="{colour}" stroke-width="2.5" '
-            f'stroke-linejoin="round"/></svg>')
+            f'stroke-linejoin="round"/>'
+            f'<text x="0" y="{H - 3}" fill="{S["muted"]}" font-size="15">2017</text>'
+            f'<text x="{W}" y="{H - 3}" fill="{S["muted"]}" font-size="15" '
+            f'text-anchor="end">2025</text></svg>')
 
 
 def s_grid():
@@ -172,11 +176,16 @@ def s_grid():
             f'{mini_svg(vet_kv, cpi_kv, colour)}</div>')
     return slide("Country by country · Jan 2017 → Dec 2025", f"""
   <h2>Sixteen markets, one window.</h2>
+  <div class="legend">
+    <span><i style="background:{S["green"]}"></i>vet prices — ran ahead</span>
+    <span><i style="background:{S["orange"]}"></i>vet prices — fell behind</span>
+    <span><i style="background:{S["muted"]}"></i>overall inflation</span>
+    <span><b>+51</b>&nbsp;= gap in points, vet minus inflation</span>
+  </div>
   <div class="grid">{"".join(cells)}</div>
-  <p class="note">Each panel: vet-services prices (coloured) vs all items (grey),
-  both Jan&nbsp;2017&nbsp;=&nbsp;100, to Dec&nbsp;2025, own scale — the number is
-  the gap in percentage points over the window. Sorted by gap. Purple = United
-  States. Ireland omitted (series ends 2023).</p>""")
+  <p class="note">Both lines start at 100 in Jan&nbsp;2017; panels have their own
+  scale — compare lines within a panel, gap numbers across panels. Sorted by gap.
+  Purple = United States. Ireland omitted (series ends 2023).</p>""")
 
 
 # ----------------------------------------------------------------- slides
@@ -333,7 +342,12 @@ hr { border:none; border-top:1px solid var(--grid); margin:10px 0 32px; }
 .note { position:absolute; left:86px; right:86px; bottom:150px;
   font-size:20px; color:var(--muted); line-height:1.4; }
 .chart { margin:6px 0 26px; }
-.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:30px 26px;
+.legend { display:flex; flex-wrap:wrap; gap:10px 34px; font-size:21px;
+  color:var(--ink2); margin:-6px 0 24px; align-items:center; }
+.legend i { display:inline-block; width:34px; height:5px; border-radius:3px;
+  margin-right:10px; vertical-align:middle; }
+.legend b { color:var(--ink); }
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:22px 26px;
   margin:10px 0 20px; }
 .cell svg { width:100%%; height:auto; display:block; }
 .cellhead { display:flex; justify-content:space-between; font-size:20px;
