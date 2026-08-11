@@ -23,36 +23,37 @@ Chromium; every figure is computed from `data/vet-cpi-eu.json` +
 
 ---
 
-## Post copy — recommended
+## Post copy — recommended (simple, corporate)
 
-> Your vet bill beat inflation. Or did it? Depends entirely on where you live.
+> Veterinary service prices vs. overall inflation, 2017–2025.
 >
-> One small chart per country: the price of veterinary and pet services
-> (blue) against overall inflation (orange), in 19 European countries and
-> the US, 2017 → 2025. The number is the gap, in points.
+> I compared consumer prices for veterinary and pet services with headline
+> inflation across 19 European countries and the United States, using
+> Eurostat HICP and BLS CPI data. One chart per country; the figure is the
+> gap in percentage points.
 >
-> 📈 Far ahead: Bulgaria +65, Poland +51, Slovakia +50, Sweden +35,
+> Three observations:
+>
+> 1. The gap is widest in Central, Northern and Eastern Europe: Bulgaria
+> +65 points above inflation, Poland +51, Slovakia +50, Sweden +35,
 > Denmark +32.
 >
-> 📉 Behind: in Greece, Italy, Spain and Austria, vet prices rose *less*
-> than inflation.
+> 2. In Southern Europe and Austria, veterinary prices rose more slowly
+> than inflation — Greece −16, Austria −7, Spain, Italy and Portugal all
+> below headline.
 >
-> The strangest chart is Germany's. Perfectly flat for years — vet fees are
-> fixed by a national fee schedule dating from 1999 — then +24% in a single
-> month when the 2022 revision landed, then flat again. Regulated prices
-> don't drift. They jump.
+> 3. Where fees are regulated, prices move in steps, not trends. Germany's
+> index was flat for years, rose 24% in one month when the revised fee
+> schedule took effect in late 2022, and has been flat since.
 >
-> Also: the US, home of the "vet costs are exploding" story, is mid-table
-> at +4. And Türkiye publishes no vet price index at all — the one country
-> I couldn't chart.
+> The United States sits mid-table at +4 points. Türkiye publishes no
+> veterinary price index.
 >
-> 📄 Eurostat HICP (veterinary & pet services vs all items) and BLS CPI,
-> monthly, Jan 2017 = 100. Sources on the image.
->
-> Personal analysis of public statistics. Views my own.
+> Sources and methodology on the chart. Personal analysis of public
+> statistics; views my own.
 
-~170 words. The first two lines carry the hook before LinkedIn truncates.
-Paste as plain text; the icons carry the structure.
+~140 words, no emoji, numbered structure. The first line states the topic
+plainly. Paste as plain text.
 
 ## Hashtags
 
