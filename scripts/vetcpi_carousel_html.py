@@ -198,7 +198,7 @@ def mini_svg(vet_kv, cpi_kv, colour):
     pv = " ".join(f"{X(t):.1f},{Y(val):.1f}" for t, val in zip(xs, v))
     return (f'<svg viewBox="0 0 {W} {H}">'
             f'<polyline points="{base}" fill="none" stroke="{S["grid"]}" stroke-width="1"/>'
-            f'<polyline points="{pc}" fill="none" stroke="{S["muted"]}" stroke-width="2"/>'
+            f'<polyline points="{pc}" fill="none" stroke="{S["orange"]}" stroke-width="2.2"/>'
             f'<polyline points="{pv}" fill="none" stroke="{colour}" stroke-width="2.5" '
             f'stroke-linejoin="round"/>'
             f'<text x="0" y="{H - 3}" fill="{S["muted"]}" font-size="15">2017</text>'
@@ -227,7 +227,7 @@ def s_grid():
   <h2>Sixteen markets, one window.</h2>
   <div class="legend">
     <span><i style="background:{S["blue"]}"></i>vet prices</span>
-    <span><i style="background:{S["muted"]}"></i>overall inflation</span>
+    <span><i style="background:{S["orange"]}"></i>overall inflation</span>
     <span><b>+51</b>&nbsp;= how much more vet prices rose, in points</span>
   </div>
   <div class="grid">{"".join(cells)}</div>
@@ -295,7 +295,7 @@ def s4():
     us_c15 = C.pct(C.US["cpi_nsa"], C.FRM15, C.TO)
     cpi = C.indexed(C.US["cpi_nsa"], C.FRM15)
     pet = C.indexed(C.US["pet_svcs_nsa"], C.FRM15)
-    svg = line_svg([(cpi[0], cpi[1], S["muted"], "All items", False),
+    svg = line_svg([(cpi[0], cpi[1], S["orange"], "All items", False),
                     (pet[0], pet[1], S["violet"], "Pet services\nincl. veterinary", True)],
                    [100, 120, 140], [2015, 2017, 2019, 2021, 2023, 2025],
                    "US pet services vs all items, Jan 2015 = 100")
