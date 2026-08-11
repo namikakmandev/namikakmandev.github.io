@@ -502,6 +502,33 @@ data/vet-cpi-us.json.</div>
 """)
     print("wrote", out_grid)
 
+    # public share page at the site root: the grid + one-pager download
+    out_pub = os.path.join(ROOT, "vet-cpi.html")
+    open(out_pub, "w").write(f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veterinary prices vs inflation — 20 markets, 2017–2025</title>
+<meta name="description" content="Consumer prices for veterinary and pet
+services versus all-items inflation, per country, Eurostat HICP and BLS CPI.">
+<style>{CSS}
+.bar {{ max-width:1080px; margin:0 auto 14px; padding:0 20px; display:flex;
+  justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }}
+.bar a {{ color:var(--blue); text-decoration:none; font-size:15px; }}
+.bar a:hover {{ text-decoration:underline; }}
+.bar .home {{ color:var(--ink2); }}</style></head><body>
+<div class="bar">
+  <a class="home" href="/">← namikakman — projects</a>
+  <a href="notes/vet-cpi-onepager.pdf" download>Download the one-pager (PDF)</a>
+</div>
+<div class="deck"><div class="wrap">{alone}</div></div>
+<div class="bar" style="margin-top:14px">
+  <span style="color:var(--muted);font-size:13px">Personal analysis of public
+  statistics · data files and code in the site repository</span>
+</div>
+<script>{JS}</script>
+</body></html>""")
+    print("wrote", out_pub)
+
 
 if __name__ == "__main__":
     main()
