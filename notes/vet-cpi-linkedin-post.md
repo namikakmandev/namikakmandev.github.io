@@ -23,7 +23,34 @@ Chromium; every figure is computed from `data/vet-cpi-eu.json` +
 
 ---
 
-## Post copy — recommended (simple, corporate)
+## Post copy — recommended (neutral, no commentary)
+
+Chosen because some covered markets fall under the author's professional
+responsibility: the post presents data only and explicitly declines
+commentary. Standard reply for comments inviting opinion on a specific
+market: "Sharing the public data only — no comment on specific markets."
+
+> Veterinary and pet-service prices vs. overall inflation, 2017–2025.
+> One chart per country, 20 markets.
+>
+> Data: Eurostat HICP (veterinary and other services for pets vs. all
+> items) and US BLS CPI, monthly, both indexed to January 2017 = 100.
+> The number on each panel is the difference in percentage points over
+> the window.
+>
+> Sources and method notes are on the image; every figure is reproducible
+> from the public series.
+>
+> Shared as data, without commentary — the charts speak for themselves.
+>
+> Personal analysis of public statistics, in a personal capacity.
+> Views my own.
+
+Note: the one-pager PDF contains a "What the data shows" commentary
+section — keep it internal or strip that section before sharing it
+anywhere public.
+
+## Post copy — alternative (simple, corporate, with observations)
 
 > Veterinary service prices vs. overall inflation, 2017–2025.
 >
