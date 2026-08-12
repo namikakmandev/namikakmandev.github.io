@@ -1,278 +1,982 @@
 {
  "rma_final": {
   "layouts": {
-   "lrp": [],
-   "lrp_dump": [
-    "Livestock Risk Protection – Summary of Business Data",
-    "The following table contains the elements included in the Livestock Risk Protection (LRP) file available for download via the RMA",
-    "Public Web Site. The files are created in a pipe delimited format.",
-    "The Format column specifies the maximum length and data type for each of the elements. A format of 9 indicates that the value can",
-    "only be numeric, while a format of X can be alpha-numeric values. Decimal formats will include a V with the number of places to the",
-    "left of the decimal specified to the left of the V, while the decimal precision is specified to the right of the V (e.g. 9(08)V9(02) would",
-    "be 00000000.00). An S as the first character in the specification of format, indicates that the value in that element can contain",
-    "negatives when applicable.",
-    "Element Name Format Description",
-    "1 Reinsurance Year 9(04) Year defined by the Standard Reinsurance agreement.",
-    "2 Commodity Year 9(04) The identifier that represents the year in which the crop is normally",
-    "harvested and indicates the policy year for which coverage was provided.",
-    "3 Location State Code X(02) A FIPS code indicating the state in which the commodity is located.",
-    "4 Location State Abbreviation X(02) Abbreviation for the Location State Code.",
-    "5 Location County Code X(03) A FIPS code indicating the county in which the crop is located.",
-    "6 Location County Name X(35) Name for the Location County Code.",
-    "7 Commodity Code X(04) The code that denotes the crop for which the policy is issued.",
-    "8 Commodity Name X(50) Name for the Commodity Code.",
-    "9 Insurance Plan Code X(02) A code that denotes the type of coverage selected for the crop insured",
-    "(e.g. revenue, dollar, yield, etc.).",
-    "10 Insurance Plan Name X(50) Name for the Insurance Plan Code.",
-    "11 Type Code X(03) A code that denotes the species livestock or livestock product that can be",
-    "insured under a Specific Coverage Endorsement.",
-    "12 Type Code Name X(100) Name of the Type Code.",
-    "13 Practice Code X(03) The code that denotes the calendar month name and the year index of",
-    "insurance coverage.",
-    "14 Practice Code Name X(50) Name of the Practice Code.",
-    "15 Sales Effective Date DATE Date in which the LRP endorsement was sold.",
-    "16 Endorsement Length 9(03) Policy Endorsement Length in weeks.",
-    "Page 1 of 2",
-    "As of 3/12/2026",
-    "Livestock Risk Protection – Summary of Business Data",
-    "Element Name Format Description",
-    "17 Coverage Price 9(04)V9(03) Dollar per hundredweight (cwt.).",
-    "18 Expected End Value 9(04)V9(03) The expected value of the livestock at the end of the coverage period on a",
-    "dollar per cwt basis.",
-    "19 Coverage Level Percent 9(01)V(06) The percent of the expected ending value that is the coverage provided by",
-    "the Specific Coverage Endorsement. Elected by the insured, its",
-    "complement is the deductible.",
-    "20 Rate 9(01)V9(06) Cost in hundredweight (cwt) divided by coverage price.",
-    "21 Cost Per Cwt 9(01)V9(03) Cost per hundredweight.",
-    "22 End Date DATE End Date in YYYY-MM-DD format. Maybe after submission date. Will",
-    "equal Effective Date plus Policy Endorsement Length.",
-    "23 Endorsements Earning Premium 9(12) Number of endorsements to the policy that are earning premium.",
-    "24 Endorsements Indemnified 9(12) Number of endorsements that have an indemnity.",
-    "25 Net Number of Head 9(08) Number of Head covered under this endorsement adjusted by the",
-    "insured’s share percent (e.g. number of head * insured’s share percent).",
-    "26 Total Weight 9(12)V9(02) Total Hundredweight (Target weight times the number of head).",
-    "27 Subsidy Amount 9(10) The total dollar amount of Federal premium subsidy authorized by the",
-    "FCIC act and applied against the base premium (total premium).",
-    "28 Total Premium Amount 9(10) Premium before application of any subsidies. In general, the base",
-    "premium rate times liability. Also called base premium.",
-    "29 Producer Premium Amount 9(10) The premium payable by the producer. It is calculated by subtracting all",
-    "available premium subsidies from the base premium (Total Premium).",
-    "30 Liability Amount 9(10) The maximum dollar amount of insurance for this crop unit line item.",
-    "31 Indemnity Amount S9(10) The total amount of the loss.",
-    "Page 2 of 2",
-    "As of 3/12/2026"
+   "lrp": [
+    "Reinsurance Year",
+    "Commodity Year",
+    "Location State Code",
+    "Location State Abbreviation",
+    "Location County Code",
+    "Location County Name",
+    "Commodity Code",
+    "Commodity Name",
+    "Insurance Plan Code",
+    "Insurance Plan Name",
+    "Type Code",
+    "Type Code Name",
+    "Practice Code",
+    "Practice Code Name",
+    "Sales Effective Date",
+    "Endorsement Length",
+    "Coverage Price",
+    "Expected End Value",
+    "Coverage Level Percent",
+    "Rate",
+    "Cost Per Cwt",
+    "End Date",
+    "Endorsements Earning Premium",
+    "Endorsements Indemnified",
+    "Net Number of Head",
+    "Total Weight",
+    "Subsidy Amount",
+    "Total Premium Amount",
+    "Producer Premium Amount",
+    "Liability Amount",
+    "Indemnity Amount"
    ],
-   "lgm": [],
-   "lgm_dump": [
-    "Livestock Gross Margin – Summary of Business Data",
-    "The following table contains the elements included in the Livestock Gross Margin (LGM) file available for download via the RMA",
-    "Public Web Site. The files are created in a pipe delimited format.",
-    "The Format column specifies the maximum length and data type for each of the elements. A format of 9 indicates that the value can",
-    "only be numeric, while a format of X can be alpha-numeric values. Decimal formats will include a V with the number of places to the",
-    "left of the decimal specified to the left of the V, while the decimal precision is specified to the right of the V (e.g. 9(08)V9(02) would",
-    "be 00000000.00). An S as the first character in the specification of format, indicates that the value in that element can contain",
-    "negatives when applicable.",
-    "Element Name Format Description",
-    "1 Reinsurance Year 9(04) Year defined by the Standard Reinsurance agreement.",
-    "2 Commodity Year 9(04) The identifier that represents the year in which the crop is normally",
-    "harvested and indicates the policy year for which coverage was provided.",
-    "3 Location State Code X(02) A FIPS code indicating the state in which the commodity is located.",
-    "4 Location State Abbreviation X(02) Abbreviation for the Location State Code.",
-    "5 Location County Code X(03) A FIPS code indicating the county in which the crop is located.",
-    "6 Location County Name X(35) Name for the Location County Code.",
-    "7 Commodity Code X(04) The code that denotes the crop for which the policy is issued.",
-    "8 Commodity Name X(50) Name for the Commodity Code.",
-    "9 Insurance Plan Code X(02) A code that denotes the type of coverage selected for the crop insured",
-    "(e.g. revenue, dollar, yield, etc.).",
-    "10 Insurance Plan Name X(50) Name for the Insurance Plan Code.",
-    "11 Type Code X(03) A code that denotes the species livestock or livestock product that can be",
-    "insured under a Specific Coverage Endorsement.",
-    "12 Type Code Name X(100) Name of the Type Code.",
-    "13 Practice Code X(03) The code that denotes the calendar month name and the year index of",
-    "insurance coverage.",
-    "14 Practice Code Name X(50) Name of the Practice Code.",
-    "15 Sales Effective Date DATE Date in which the LGM endorsement was sold.",
-    "Page 1 of 6",
-    "As of 3/12/2026",
-    "Livestock Gross Margin – Summary of Business Data",
-    "Element Name Format Description",
-    "16 Target Marketings 1 9(06) Target Marketings for First Month. Number of swine or cattle, or",
-    "hundredweight (CWT) of milk for dairy the insured expects to market in",
-    "the first month of the insurance period.",
-    "17 Target Marketings 2 9(06) Target Marketings for Second Month. Number of swine or cattle, or",
-    "hundredweight (CWT) of milk for dairy the insured expects to market in",
-    "the second month of the insurance period.",
-    "18 Target Marketings 3 9(06) Target Marketings for Third Month. Number of swine or cattle, or",
-    "hundredweight (CWT) of milk for dairy the insured expects to market in",
-    "the third month of the insurance period.",
-    "19 Target Marketings 4 9(06) Target Marketings for Fourth Month. Number of swine or cattle, or",
-    "hundredweight (CWT) of milk for dairy the insured expects to market in",
-    "the fourth month of the insurance period.",
-    "20 Target Marketings 5 9(06) Target Marketings for Fifth Month. Number of swine or cattle, or",
-    "hundredweight (CWT) of milk for dairy the insured expects to market in",
-    "the fifth month of the insurance period.",
-    "21 Target Marketings 6 9(06) Target Marketings for Sixth Month. Number of swine or cattle, or",
-    "hundredweight (CWT) of milk for dairy the insured expects to market in",
-    "the sixth month of the insurance period.",
-    "22 Target Marketings 7 9(06) Target Marketings for Seventh Month. Number of cattle or",
-    "hundredweight (CWT) of milk for dairy the insured expects to market in",
-    "the seventh month of the insurance period. Not applicable for swine.",
-    "23 Target Marketings 8 9(06) Target Marketings for Eighth Month. Number of cattle or hundredweight",
-    "(CWT) of milk for dairy the insured expects to market in the eighth",
-    "month of the insurance period. Not applicable for swine.",
-    "24 Target Marketings 9 9(06) Target Marketings for Ninth Month. Number of cattle or hundredweight",
-    "(CWT) of milk for dairy the insured expects to market in the ninth month",
-    "of the insurance period. Not applicable for swine.",
-    "Page 2 of 6",
-    "As of 3/12/2026",
-    "Livestock Gross Margin – Summary of Business Data",
-    "Element Name Format Description",
-    "25 Target Marketings 10 9(06) Target Marketings for Tenth Month. Number of cattle or hundredweight",
-    "(CWT) of milk for dairy the insured expects to market in the tenth month",
-    "of the insurance period. Not applicable for swine.",
-    "26 Target Marketings 11 9(06) Target Marketings for Eleventh Month. Number of cattle or",
-    "hundredweight (CWT) of milk for dairy the insured expects to market in",
-    "the eleventh month of the insurance period. Not applicable for swine.",
-    "27 Corn Equivalent 2 9(06)V9(06) Corn or Corn Equivalent for Second Month. Corn or corn equivalent in",
-    "tons that the insured expects to feed in the second month of the insurance",
-    "period. Only applicable for dairy.",
-    "28 Corn Equivalent 3 9(06)V9(06) Corn or Corn Equivalent for Third Month. Corn or corn equivalent in",
-    "tons that the insured expects to feed in the third month of the insurance",
-    "period. Only applicable for dairy.",
-    "29 Corn Equivalent 4 9(06)V9(06) Corn or Corn Equivalent for Fourth Month. Corn or corn equivalent in",
-    "tons that the insured expects to feed in the fourth month of the insurance",
-    "period. Only applicable for dairy.",
-    "30 Corn Equivalent 5 9(06)V9(06) Corn or Corn Equivalent for Fifth Month. Corn or corn equivalent in tons",
-    "that the insured expects to feed in the fifth month of the insurance period.",
-    "Only applicable for dairy.",
-    "31 Corn Equivalent 6 9(06)V9(06) Corn or Corn Equivalent for Sixth Month. Corn or corn equivalent in tons",
-    "that the insured expects to feed in the sixth month of the insurance period.",
-    "Only applicable for dairy.",
-    "32 Corn Equivalent 7 9(06)V9(06) Corn or Corn Equivalent for Seventh Month. Corn or corn equivalent in",
-    "tons that the insured expects to feed in the seventh month of the insurance",
-    "period. Only applicable for dairy.",
-    "33 Corn Equivalent 8 9(06)V9(06) Corn or Corn Equivalent for Eighth Month. Corn or corn equivalent in",
-    "tons that the insured expects to feed in the eighth month of the insurance",
-    "period. Only applicable for dairy.",
-    "Page 3 of 6",
-    "As of 3/12/2026",
-    "Livestock Gross Margin – Summary of Business Data",
-    "Element Name Format Description",
-    "34 Corn Equivalent 9 9(06)V9(06) Corn or Corn Equivalent for Ninth Month. Corn or corn equivalent in",
-    "tons that the insured expects to feed in the ninth month of the insurance",
-    "period. Only applicable for dairy.",
-    "35 Corn Equivalent 10 9(06)V9(06) Corn or Corn Equivalent for Tenth Month. Corn or corn equivalent in",
-    "tons that the insured expects to feed in the tenth month of the insurance",
-    "period. Only applicable for dairy.",
-    "36 Corn Equivalent 11 9(06)V9(06) Corn or Corn Equivalent for Eleventh Month. Corn or corn equivalent in",
-    "tons that the insured expects to feed in the eleventh month of the",
-    "insurance period. Only applicable for dairy.",
-    "37 Soybean meal Equivalent 2 9(06)V9(06) Soybean Meal or Soybean Meal Equivalent for Second Month. Soybean",
-    "meal or soybean meal equivalent in tons that the insured expects to feed",
-    "in the second month of the insurance period. Only applicable for dairy.",
-    "38 Soybean meal Equivalent 3 9(06)V9(06) Soybean Meal or Soybean Meal Equivalent for Third Month. Soybean",
-    "meal or soybean meal equivalent in tons that the insured expects to feed",
-    "in the third month of the insurance period. Only applicable for dairy.",
-    "39 Soybean meal Equivalent 4 9(06)V9(06) Soybean Meal or Soybean Meal Equivalent for Fourth Month. Soybean",
-    "meal or soybean meal equivalent in tons that the insured expects to feed",
-    "in the fourth month of the insurance period. Only applicable for dairy.",
-    "40 Soybean meal Equivalent 5 9(06)V9(06) Soybean Meal or Soybean Meal Equivalent for Fifth Month. Soybean",
-    "meal or soybean meal equivalent in tons that the insured expects to feed",
-    "in the fifth month of the insurance period. Only applicable for dairy.",
-    "41 Soybean meal Equivalent 6 9(06)V9(06) Soybean Meal or Soybean Meal Equivalent for Sixth Month. Soybean",
-    "meal or soybean meal equivalent in tons that the insured expects to feed",
-    "in the sixth month of the insurance period. Only applicable for dairy.",
-    "42 Soybean meal Equivalent 7 9(06)V9(06) Soybean Meal or Soybean Meal Equivalent for Seventh Month. Soybean",
-    "meal or soybean meal equivalent in tons that the insured expects to feed"
+   "lrp_colmap": {
+    "year": "Commodity Year",
+    "commodity": "Commodity Name",
+    "policies": "Endorsements Earning Premium",
+    "quantity": "Net Number of Head",
+    "liability": "Liability Amount",
+    "premium": "Total Premium Amount",
+    "subsidy": "Subsidy Amount",
+    "indemnity": "Indemnity Amount"
+   },
+   "lgm": [
+    "Reinsurance Year",
+    "Commodity Year",
+    "Location State Code",
+    "Location State Abbreviation",
+    "Location County Code",
+    "Location County Name",
+    "Commodity Code",
+    "Commodity Name",
+    "Insurance Plan Code",
+    "Insurance Plan Name",
+    "Type Code",
+    "Type Code Name",
+    "Practice Code",
+    "Practice Code Name",
+    "Sales Effective Date",
+    "Target Marketings 1",
+    "Target Marketings 2",
+    "Target Marketings 3",
+    "Target Marketings 4",
+    "Target Marketings 5",
+    "Target Marketings 6",
+    "Target Marketings 7",
+    "Target Marketings 8",
+    "Target Marketings 9",
+    "Target Marketings 10",
+    "Target Marketings 11",
+    "Corn Equivalent 2",
+    "Corn Equivalent 3",
+    "Corn Equivalent 4",
+    "Corn Equivalent 5",
+    "Corn Equivalent 6",
+    "Corn Equivalent 7",
+    "Corn Equivalent 8",
+    "Corn Equivalent 9",
+    "Corn Equivalent 10",
+    "Corn Equivalent 11",
+    "Soybean meal Equivalent 2",
+    "Soybean meal Equivalent 3",
+    "Soybean meal Equivalent 4",
+    "Soybean meal Equivalent 5",
+    "Soybean meal Equivalent 6",
+    "Soybean meal Equivalent 7",
+    "Soybean meal Equivalent 8",
+    "Soybean meal Equivalent 9",
+    "Soybean meal Equivalent 10",
+    "Soybean meal Equivalent 11",
+    "Endorsements Earning Premium",
+    "Endorsements Indemnified",
+    "Deductible",
+    "Live Cattle Target Weight",
+    "Feeder Cattle Target Weight",
+    "Corn Target Weight Quantity",
+    "Liability Amount",
+    "Total Premium Amount"
    ],
-   "drp": [],
-   "drp_dump": [
-    "Dairy Revenue Protection – Summary of Business Data",
-    "The following table contains the elements included in the Dairy Revenue Protection (DRP) file available for download via the RMA",
-    "Public Web Site. The files are created in a comma delimited format.",
-    "The Format column specifies the maximum length and data type for each of the elements. A format of 9 indicates that the value can",
-    "only be numeric, while a format of X can be alpha-numeric values. Decimal formats will include a V with the number of places to the",
-    "left of the decimal specified to the left of the V, while the decimal precision is specified to the right of the V (e.g. 9(08)V9(02) would",
-    "be 00000000.00). An S as the first character in the specification of format, indicates that the value in that element can contain",
-    "negatives when applicable.",
-    "Element Name Format Description",
-    "1 Reinsurance Year 9(04) Year defined by the Standard Reinsurance agreement.",
-    "2 Commodity Year 9(04) The identifier that represents the year in which the crop is normally",
-    "harvested and indicates the policy year for which coverage was provided.",
-    "3 Location State Code X(02) A FIPS code indicating the state in which the commodity is located.",
-    "4 Location State Abbreviation X(02) Abbreviation for the Location State Code.",
-    "5 Location County Code X(03) A FIPS code indicating the county in which the crop is located.",
-    "6 Location County Name X(35) Name for the Location County Code.",
-    "7 Commodity Code X(04) The code that denotes the crop for which the policy is issued.",
-    "8 Commodity Name X(50) Name for the Commodity Code.",
-    "9 Insurance Plan Code X(02) A code that denotes the type of coverage selected for the crop insured",
-    "(e.g. revenue, dollar, yield, etc.).",
-    "10 Insurance Plan Name X(50) Name for the Insurance Plan Code.",
-    "11 Coverage Type Code X(01) The identifier that represents the coverage level selected by the insured",
-    "identifying whether they purchased catastrophic, limited or additional",
-    "coverage.",
-    "12 Coverage Type Description X(50) Description of the Coverage Type Code.",
-    "13 Type Code X(03) A code that denotes Class Price Option or Component Price Option.",
-    "14 Type Code Name X(100) Name of the Type Code.",
-    "15 Practice Code X(03) The code that denotes the quarter of insurance coverage.",
-    "16 Practice Code Name X(50) Name of the Practice Code.",
-    "Page 1 of 3",
-    "As of 6/2/2021",
-    "Dairy Revenue Protection – Summary of Business Data",
-    "Element Name Format Description",
-    "17 Sales Effective Date DATE Date in which the DRP endorsement was sold.",
-    "18 Coverage Level Percent 9(05)V(04) Elected by the insured, its complement is the deductible. The base to",
-    "which it applies differs by insurance plan. Only valid for 2001 crop years",
-    "and forward. Prior years, this element was not collected until the acreage",
-    "is filed.",
-    "19 Protection Factor 9(03)V(02) Numeric value chosen by the insured for each type and practice in",
-    "accordance with section 3(c)(6)(i) of the Dairy Revenue Protection",
-    "Insurance Policy.",
-    "20 Class Price Weighting Factor 9(03)V(02) The percentage of class price used to identify Expected Class Price",
-    "Revenue.",
-    "21 Component Price Weighting 9(03)V(02) Factor used in the determination of Component Expected Revenue.",
-    "Factor",
-    "22 Declared Butterfat Test 9(03)V(02) The pounds of milkfat contained in 100 pounds of milk, as declared by",
-    "the insured in accordance with section 3(c)(ii)(A) of the Dairy Revenue",
-    "Protection Insurance Policy.",
-    "23 Declared Protein Test 9(03)V(02) The pounds of milk protein contained in 100 pounds of, as declared by",
-    "the insured in accordance with section 3(c)(1)(ii)(B) of the Dairy",
-    "Revenue Protection Insurance Policy.",
-    "24 Endorsements Earning Premium 9(12) Number of endorsements to the policy that are earning premium.",
-    "25 Endorsements Indemnified 9(12) Number of endorsements that have an indemnity.",
-    "26 Net Declared Covered Milk 9(10) The amount of Milk Production Declared by the producer to be covered",
-    "Production adjusted by the insured’s share percent (e.g. Declared Covered Milk",
-    "Production * insured’s share percent).",
-    "27 Subsidy Amount 9(10) The total dollar amount of Federal premium subsidy authorized by the",
-    "FCIC act and applied against the base premium (total premium).",
-    "28 Total Premium Amount 9(10) Premium before application of any subsidies. In general, the base",
-    "premium rate times liability. Also called base premium.",
-    "29 Producer Premium Amount 9(10) The premium payable by the producer. It is calculated by subtracting all",
-    "available premium subsidies from the base premium (Total Premium).",
-    "Page 2 of 3",
-    "As of 6/2/2021",
-    "Dairy Revenue Protection – Summary of Business Data",
-    "Element Name Format Description",
-    "30 Liability Amount 9(10) The maximum dollar amount of insurance for this crop unit line item.",
-    "31 Indemnity Amount S9(11) The total amount of the loss.",
-    "Page 3 of 3",
-    "As of 6/2/2021"
-   ]
+   "lgm_colmap": {
+    "year": "Commodity Year",
+    "commodity": "Commodity Name",
+    "policies": "Endorsements Earning Premium",
+    "quantity": "Target Marketings 1",
+    "liability": "Liability Amount",
+    "premium": "Total Premium Amount",
+    "subsidy": null,
+    "indemnity": null
+   },
+   "drp": [
+    "Reinsurance Year",
+    "Commodity Year",
+    "Location State Code",
+    "Location State Abbreviation",
+    "Location County Code",
+    "Location County Name",
+    "Commodity Code",
+    "Commodity Name",
+    "Insurance Plan Code",
+    "Insurance Plan Name",
+    "Coverage Type Code",
+    "Coverage Type Description",
+    "Type Code",
+    "Type Code Name",
+    "Practice Code",
+    "Practice Code Name",
+    "Sales Effective Date",
+    "Coverage Level Percent",
+    "Protection Factor",
+    "Class Price Weighting Factor",
+    "Component Price Weighting",
+    "Declared Butterfat Test",
+    "Declared Protein Test",
+    "Endorsements Earning Premium",
+    "Endorsements Indemnified",
+    "Net Declared Covered Milk",
+    "Subsidy Amount",
+    "Total Premium Amount",
+    "Producer Premium Amount",
+    "Liability Amount",
+    "Indemnity Amount"
+   ],
+   "drp_colmap": {
+    "year": "Commodity Year",
+    "commodity": "Commodity Name",
+    "policies": "Endorsements Earning Premium",
+    "quantity": "Declared Butterfat Test",
+    "liability": "Liability Amount",
+    "premium": "Total Premium Amount",
+    "subsidy": "Subsidy Amount",
+    "indemnity": "Indemnity Amount"
+   }
   },
-  "series": {},
+  "series": {
+   "2003": {
+    "LRP|Feeder Cattle": {
+     "policies": 38,
+     "quantity": 3419.0,
+     "liability": 2061984.0,
+     "premium": 30390.0,
+     "subsidy": 3952.0,
+     "indemnity": 0.0,
+     "src": "lrp_2003.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 4,
+     "quantity": 126.0,
+     "liability": 99819.0,
+     "premium": 1907.0,
+     "subsidy": 247.0,
+     "indemnity": 0.0,
+     "src": "lrp_2003.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 585,
+     "quantity": 178537.0,
+     "liability": 13241615.0,
+     "premium": 688349.0,
+     "subsidy": 89494.0,
+     "indemnity": 17865.0,
+     "src": "lrp_2003.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2004": {
+    "LRP|Fed Cattle": {
+     "policies": 982,
+     "quantity": 158058.0,
+     "liability": 148861357.0,
+     "premium": 4135631.0,
+     "subsidy": 537639.0,
+     "indemnity": 801642.0,
+     "src": "lrp_2004.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 398,
+     "quantity": 143604.0,
+     "liability": 15175457.0,
+     "premium": 573339.0,
+     "subsidy": 74549.0,
+     "indemnity": 22011.0,
+     "src": "lrp_2004.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Feeder Cattle": {
+     "policies": 633,
+     "quantity": 90824.0,
+     "liability": 60841307.0,
+     "premium": 1635226.0,
+     "subsidy": 212600.0,
+     "indemnity": 45189.0,
+     "src": "lrp_2004.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2005": {
+    "LRP|Feeder Cattle": {
+     "policies": 1447,
+     "quantity": 97798.0,
+     "liability": 69747682.0,
+     "premium": 1322297.0,
+     "subsidy": 171902.0,
+     "indemnity": 0.0,
+     "src": "lrp_2005.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 325,
+     "quantity": 22196.0,
+     "liability": 21230621.0,
+     "premium": 427542.0,
+     "subsidy": 55578.0,
+     "indemnity": 4317.0,
+     "src": "lrp_2005.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 298,
+     "quantity": 105746.0,
+     "liability": 13130637.0,
+     "premium": 471971.0,
+     "subsidy": 61360.0,
+     "indemnity": 125271.0,
+     "src": "lrp_2005.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2006": {
+    "LRP|Feeder Cattle": {
+     "policies": 1750,
+     "quantity": 142091.0,
+     "liability": 111093481.0,
+     "premium": 1433930.0,
+     "subsidy": 186426.0,
+     "indemnity": 955132.0,
+     "src": "lrp_2006.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 359,
+     "quantity": 110003.0,
+     "liability": 11967502.0,
+     "premium": 403970.0,
+     "subsidy": 52505.0,
+     "indemnity": 124906.0,
+     "src": "lrp_2006.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 314,
+     "quantity": 28188.0,
+     "liability": 28948242.0,
+     "premium": 485354.0,
+     "subsidy": 63102.0,
+     "indemnity": 300190.0,
+     "src": "lrp_2006.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2007": {
+    "LRP|Fed Cattle": {
+     "policies": 135,
+     "quantity": 12001.0,
+     "liability": 12741698.0,
+     "premium": 235756.0,
+     "subsidy": 30649.0,
+     "indemnity": 4965.0,
+     "src": "lrp_2007.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Feeder Cattle": {
+     "policies": 839,
+     "quantity": 63086.0,
+     "liability": 46808695.0,
+     "premium": 823181.0,
+     "subsidy": 107021.0,
+     "indemnity": 610989.0,
+     "src": "lrp_2007.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 162,
+     "quantity": 67457.0,
+     "liability": 7783355.0,
+     "premium": 213885.0,
+     "subsidy": 27806.0,
+     "indemnity": 110353.0,
+     "src": "lrp_2007.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2008": {
+    "LRP|Feeder Cattle": {
+     "policies": 1315,
+     "quantity": 93488.0,
+     "liability": 72440404.0,
+     "premium": 2043504.0,
+     "subsidy": 265689.0,
+     "indemnity": 3431946.0,
+     "src": "lrp_2008.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 155,
+     "quantity": 49273.0,
+     "liability": 6430383.0,
+     "premium": 291896.0,
+     "subsidy": 37944.0,
+     "indemnity": 446466.0,
+     "src": "lrp_2008.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 72,
+     "quantity": 5602.0,
+     "liability": 6544672.0,
+     "premium": 166490.0,
+     "subsidy": 21645.0,
+     "indemnity": 143530.0,
+     "src": "lrp_2008.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2009": {
+    "LRP|Feeder Cattle": {
+     "policies": 705,
+     "quantity": 55815.0,
+     "liability": 39886287.0,
+     "premium": 1367690.0,
+     "subsidy": 177814.0,
+     "indemnity": 2171147.0,
+     "src": "lrp_2009.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 102,
+     "quantity": 8595.0,
+     "liability": 9677194.0,
+     "premium": 371312.0,
+     "subsidy": 48270.0,
+     "indemnity": 605952.0,
+     "src": "lrp_2009.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 87,
+     "quantity": 27052.0,
+     "liability": 3497876.0,
+     "premium": 138393.0,
+     "subsidy": 17993.0,
+     "indemnity": 505200.0,
+     "src": "lrp_2009.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2010": {
+    "LRP|Feeder Cattle": {
+     "policies": 1455,
+     "quantity": 101261.0,
+     "liability": 77223707.0,
+     "premium": 2323177.0,
+     "subsidy": 301999.0,
+     "indemnity": 1273101.0,
+     "src": "lrp_2010.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 195,
+     "quantity": 56424.0,
+     "liability": 7224235.0,
+     "premium": 379104.0,
+     "subsidy": 49280.0,
+     "indemnity": 64287.0,
+     "src": "lrp_2010.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 153,
+     "quantity": 12813.0,
+     "liability": 14597237.0,
+     "premium": 482282.0,
+     "subsidy": 62700.0,
+     "indemnity": 70114.0,
+     "src": "lrp_2010.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2011": {
+    "LRP|Feeder Cattle": {
+     "policies": 2944,
+     "quantity": 194138.0,
+     "liability": 169349014.0,
+     "premium": 5300495.0,
+     "subsidy": 689080.0,
+     "indemnity": 937098.0,
+     "src": "lrp_2011.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 139,
+     "quantity": 60963.0,
+     "liability": 10242482.0,
+     "premium": 514307.0,
+     "subsidy": 66863.0,
+     "indemnity": 88407.0,
+     "src": "lrp_2011.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 142,
+     "quantity": 13106.0,
+     "liability": 17855958.0,
+     "premium": 652209.0,
+     "subsidy": 84788.0,
+     "indemnity": 77151.0,
+     "src": "lrp_2011.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2012": {
+    "LRP|Feeder Cattle": {
+     "policies": 2407,
+     "quantity": 172605.0,
+     "liability": 184055335.0,
+     "premium": 4444706.0,
+     "subsidy": 577817.0,
+     "indemnity": 5416056.0,
+     "src": "lrp_2012.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 79,
+     "quantity": 31110.0,
+     "liability": 5575340.0,
+     "premium": 286540.0,
+     "subsidy": 37252.0,
+     "indemnity": 135271.0,
+     "src": "lrp_2012.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 100,
+     "quantity": 7427.0,
+     "liability": 11169089.0,
+     "premium": 376127.0,
+     "subsidy": 48901.0,
+     "indemnity": 144233.0,
+     "src": "lrp_2012.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2013": {
+    "LRP|Feeder Cattle": {
+     "policies": 1595,
+     "quantity": 129250.0,
+     "liability": 140936773.0,
+     "premium": 3171511.0,
+     "subsidy": 412301.0,
+     "indemnity": 4194260.0,
+     "src": "lrp_2013.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 71,
+     "quantity": 7467.0,
+     "liability": 12013635.0,
+     "premium": 350865.0,
+     "subsidy": 45616.0,
+     "indemnity": 212008.0,
+     "src": "lrp_2013.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 44,
+     "quantity": 14521.0,
+     "liability": 2298450.0,
+     "premium": 73493.0,
+     "subsidy": 9556.0,
+     "indemnity": 13251.0,
+     "src": "lrp_2013.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2014": {
+    "LRP|Feeder Cattle": {
+     "policies": 4039,
+     "quantity": 302715.0,
+     "liability": 386780196.0,
+     "premium": 7642590.0,
+     "subsidy": 993563.0,
+     "indemnity": 422.0,
+     "src": "lrp_2014.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 232,
+     "quantity": 19759.0,
+     "liability": 35041625.0,
+     "premium": 766452.0,
+     "subsidy": 99637.0,
+     "indemnity": 0.0,
+     "src": "lrp_2014.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 18,
+     "quantity": 8476.0,
+     "liability": 1745589.0,
+     "premium": 68930.0,
+     "subsidy": 8962.0,
+     "indemnity": 36678.0,
+     "src": "lrp_2014.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2015": {
+    "LRP|Feeder Cattle": {
+     "policies": 2806,
+     "quantity": 209670.0,
+     "liability": 340683937.0,
+     "premium": 8325734.0,
+     "subsidy": 1082357.0,
+     "indemnity": 8757947.0,
+     "src": "lrp_2015.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 277,
+     "quantity": 18659.0,
+     "liability": 36352944.0,
+     "premium": 1071870.0,
+     "subsidy": 139341.0,
+     "indemnity": 1320092.0,
+     "src": "lrp_2015.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 43,
+     "quantity": 16876.0,
+     "liability": 2819291.0,
+     "premium": 139320.0,
+     "subsidy": 18112.0,
+     "indemnity": 207696.0,
+     "src": "lrp_2015.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2016": {
+    "LRP|Feeder Cattle": {
+     "policies": 1852,
+     "quantity": 138895.0,
+     "liability": 159593660.0,
+     "premium": 6154003.0,
+     "subsidy": 789794.0,
+     "indemnity": 8685001.0,
+     "src": "lrp_2016.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 236,
+     "quantity": 20835.0,
+     "liability": 32643462.0,
+     "premium": 1315340.0,
+     "subsidy": 167748.0,
+     "indemnity": 1105829.0,
+     "src": "lrp_2016.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 29,
+     "quantity": 8727.0,
+     "liability": 1099957.0,
+     "premium": 40002.0,
+     "subsidy": 5199.0,
+     "indemnity": 84542.0,
+     "src": "lrp_2016.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2017": {
+    "LRP|Feeder Cattle": {
+     "policies": 2559,
+     "quantity": 180475.0,
+     "liability": 173356546.0,
+     "premium": 7852989.0,
+     "subsidy": 1005741.0,
+     "indemnity": 1790665.0,
+     "src": "lrp_2017.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 221,
+     "quantity": 16613.0,
+     "liability": 23053083.0,
+     "premium": 992552.0,
+     "subsidy": 128945.0,
+     "indemnity": 73949.0,
+     "src": "lrp_2017.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 59,
+     "quantity": 17335.0,
+     "liability": 2058707.0,
+     "premium": 98679.0,
+     "subsidy": 13329.0,
+     "indemnity": 27444.0,
+     "src": "lrp_2017.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2018": {
+    "LRP|Feeder Cattle": {
+     "policies": 1385,
+     "quantity": 100886.0,
+     "liability": 110163486.0,
+     "premium": 4035875.0,
+     "subsidy": 520939.0,
+     "indemnity": 2263535.0,
+     "src": "lrp_2018.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 128,
+     "quantity": 9297.0,
+     "liability": 13328231.0,
+     "premium": 472930.0,
+     "subsidy": 61986.0,
+     "indemnity": 56541.0,
+     "src": "lrp_2018.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 47,
+     "quantity": 18870.0,
+     "liability": 2445140.0,
+     "premium": 91140.0,
+     "subsidy": 11846.0,
+     "indemnity": 76582.0,
+     "src": "lrp_2018.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    }
+   },
+   "2019": {
+    "LRP|Feeder Cattle": {
+     "policies": 1118,
+     "quantity": 86859.0,
+     "liability": 98693235.0,
+     "premium": 2767201.0,
+     "subsidy": 358557.0,
+     "indemnity": 4948018.0,
+     "src": "lrp_2019.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 68,
+     "quantity": 3882.0,
+     "liability": 5917245.0,
+     "premium": 185265.0,
+     "subsidy": 24084.0,
+     "indemnity": 211445.0,
+     "src": "lrp_2019.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 11,
+     "quantity": 7450.0,
+     "liability": 1063100.0,
+     "premium": 41266.0,
+     "subsidy": 5364.0,
+     "indemnity": 39002.0,
+     "src": "lrp_2019.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 9362,
+     "quantity": 12327.600000000015,
+     "liability": 5866172751.0,
+     "premium": 94981466.0,
+     "subsidy": 41827968.0,
+     "indemnity": 69384330.0,
+     "src": "drp_2019_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   },
+   "2020": {
+    "LRP|Feeder Cattle": {
+     "policies": 855,
+     "quantity": 78660.0,
+     "liability": 84575902.0,
+     "premium": 3099655.0,
+     "subsidy": 651536.0,
+     "indemnity": 4742093.0,
+     "src": "lrp_2020.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 109,
+     "quantity": 7836.0,
+     "liability": 11473056.0,
+     "premium": 417135.0,
+     "subsidy": 87724.0,
+     "indemnity": 595371.0,
+     "src": "lrp_2020.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 289,
+     "quantity": 219725.0,
+     "liability": 31253254.0,
+     "premium": 3067595.0,
+     "subsidy": 607666.0,
+     "indemnity": 6242224.0,
+     "src": "lrp_2020.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 16860,
+     "quantity": 11550.899999999974,
+     "liability": 12990537662.0,
+     "premium": 292727953.0,
+     "subsidy": 128659212.0,
+     "indemnity": 465037345.0,
+     "src": "drp_2020_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   },
+   "2021": {
+    "LRP|Feeder Cattle": {
+     "policies": 7076,
+     "quantity": 853711.0,
+     "liability": 991121449.0,
+     "premium": 42359381.0,
+     "subsidy": 14949111.0,
+     "indemnity": 15177184.0,
+     "src": "lrp_2021.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 1014,
+     "quantity": 176113.0,
+     "liability": 283635603.0,
+     "premium": 12626615.0,
+     "subsidy": 4434834.0,
+     "indemnity": 503277.0,
+     "src": "lrp_2021.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 3150,
+     "quantity": 6579715.0,
+     "liability": 1134022329.0,
+     "premium": 91295818.0,
+     "subsidy": 32064593.0,
+     "indemnity": 20771456.0,
+     "src": "lrp_2021.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 21011,
+     "quantity": 9992.450000000013,
+     "liability": 10929492585.0,
+     "premium": 397459324.0,
+     "subsidy": 175039201.0,
+     "indemnity": 108361125.0,
+     "src": "drp_2021_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   },
+   "2022": {
+    "LRP|Feeder Cattle": {
+     "policies": 14124,
+     "quantity": 2060987.0,
+     "liability": 2768086032.0,
+     "premium": 112665889.0,
+     "subsidy": 39834717.0,
+     "indemnity": 101194774.0,
+     "src": "lrp_2022.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 3025,
+     "quantity": 581118.0,
+     "liability": 1089636852.0,
+     "premium": 44253553.0,
+     "subsidy": 15581831.0,
+     "indemnity": 2710878.0,
+     "src": "lrp_2022.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 4896,
+     "quantity": 9916244.0,
+     "liability": 1868207739.0,
+     "premium": 151107609.0,
+     "subsidy": 54145439.0,
+     "indemnity": 66107134.0,
+     "src": "lrp_2022.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 23122,
+     "quantity": 8452.549999999997,
+     "liability": 13348944225.0,
+     "premium": 480344373.0,
+     "subsidy": 211677829.0,
+     "indemnity": 371666238.0,
+     "src": "drp_2022_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   },
+   "2023": {
+    "LRP|Feeder Cattle": {
+     "policies": 31786,
+     "quantity": 4129423.0,
+     "liability": 6897059387.0,
+     "premium": 257904108.0,
+     "subsidy": 90648693.0,
+     "indemnity": 70604781.0,
+     "src": "lrp_2023.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 4806,
+     "quantity": 842180.0,
+     "liability": 1862234392.0,
+     "premium": 65442242.0,
+     "subsidy": 23062389.0,
+     "indemnity": 2657416.0,
+     "src": "lrp_2023.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 6448,
+     "quantity": 22296083.0,
+     "liability": 4292133834.0,
+     "premium": 334909389.0,
+     "subsidy": 117900168.0,
+     "indemnity": 457567474.0,
+     "src": "lrp_2023.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 15776,
+     "quantity": 10906.150000000009,
+     "liability": 9525677007.0,
+     "premium": 338762093.0,
+     "subsidy": 149253646.0,
+     "indemnity": 594189353.0,
+     "src": "drp_2023_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   },
+   "2024": {
+    "LRP|Feeder Cattle": {
+     "policies": 41544,
+     "quantity": 4671960.0,
+     "liability": 9093837176.0,
+     "premium": 399276999.0,
+     "subsidy": 140719153.0,
+     "indemnity": 378055666.0,
+     "src": "lrp_2024.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 9352,
+     "quantity": 1566332.0,
+     "liability": 4061098947.0,
+     "premium": 162509209.0,
+     "subsidy": 57293592.0,
+     "indemnity": 50229580.0,
+     "src": "lrp_2024.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 9141,
+     "quantity": 27427172.0,
+     "liability": 5065923749.0,
+     "premium": 378747421.0,
+     "subsidy": 132820219.0,
+     "indemnity": 150771908.0,
+     "src": "lrp_2024.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 21739,
+     "quantity": 14024.750000000033,
+     "liability": 11222532426.0,
+     "premium": 379158622.0,
+     "subsidy": 167082524.0,
+     "indemnity": 118409512.0,
+     "src": "drp_2024_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   },
+   "2025": {
+    "LRP|Feeder Cattle": {
+     "policies": 61060,
+     "quantity": 6112407.0,
+     "liability": 12466250796.0,
+     "premium": 558730999.0,
+     "subsidy": 195975747.0,
+     "indemnity": 4748050.0,
+     "src": "lrp_2025.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 10379,
+     "quantity": 1386872.0,
+     "liability": 3837797906.0,
+     "premium": 168142525.0,
+     "subsidy": 58959108.0,
+     "indemnity": 48227.0,
+     "src": "lrp_2025.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 10471,
+     "quantity": 32172056.0,
+     "liability": 6014591171.0,
+     "premium": 458181775.0,
+     "subsidy": 160524640.0,
+     "indemnity": 30609806.0,
+     "src": "lrp_2025.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 18184,
+     "quantity": 2365.8000000000015,
+     "liability": 12250170353.0,
+     "premium": 392907086.0,
+     "subsidy": 173082349.0,
+     "indemnity": 545919989.0,
+     "src": "drp_2025_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   },
+   "2026": {
+    "LRP|Feeder Cattle": {
+     "policies": 56506,
+     "quantity": 5543123.0,
+     "liability": 13544212544.0,
+     "premium": 770053098.0,
+     "subsidy": 272646229.0,
+     "indemnity": 22273459.0,
+     "src": "lrp_2026.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 9786,
+     "quantity": 1493974.0,
+     "liability": 5001246567.0,
+     "premium": 263336904.0,
+     "subsidy": 92447992.0,
+     "indemnity": 22768630.0,
+     "src": "lrp_2026.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 7447,
+     "quantity": 25159525.0,
+     "liability": 4964209592.0,
+     "premium": 362820922.0,
+     "subsidy": 127023953.0,
+     "indemnity": 90367529.0,
+     "src": "lrp_2026.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 19531,
+     "quantity": 9632.499999999956,
+     "liability": 12865103427.0,
+     "premium": 504394963.0,
+     "subsidy": 222016845.0,
+     "indemnity": 146086099.0,
+     "src": "drp_2026_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   },
+   "2027": {
+    "LRP|Feeder Cattle": {
+     "policies": 2534,
+     "quantity": 270859.0,
+     "liability": 547294993.0,
+     "premium": 32237191.0,
+     "subsidy": 11277419.0,
+     "indemnity": 0.0,
+     "src": "lrp_2027.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Fed Cattle": {
+     "policies": 1885,
+     "quantity": 199991.0,
+     "liability": 625390368.0,
+     "premium": 37850049.0,
+     "subsidy": 13188748.0,
+     "indemnity": 0.0,
+     "src": "lrp_2027.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "LRP|Swine": {
+     "policies": 588,
+     "quantity": 1971238.0,
+     "liability": 384842436.0,
+     "premium": 25638823.0,
+     "subsidy": 8973858.0,
+     "indemnity": 0.0,
+     "src": "lrp_2027.zip (layout LRP_Summary_of_Business_All_Years.pdf)"
+    },
+    "DRP|Milk": {
+     "policies": 1426,
+     "quantity": 496.6499999999999,
+     "liability": 752881690.0,
+     "premium": 34218136.0,
+     "subsidy": 15057436.0,
+     "indemnity": 0.0,
+     "src": "drp_2027_0002.zip (layout DRP_Summary_of_Business_2019_forward.pdf)"
+    }
+   }
+  },
   "sanity": {},
   "skipped": [
    [
-    "lrp",
-    "layout parse too short"
-   ],
-   [
     "lgm",
-    "layout parse too short"
-   ],
-   [
-    "drp",
-    "layout parse too short"
+    "essential columns unmapped",
+    {
+     "year": 1,
+     "commodity": 7,
+     "policies": 46,
+     "quantity": 15,
+     "liability": 52,
+     "premium": 53,
+     "subsidy": null,
+     "indemnity": null
+    }
    ]
   ]
  }
