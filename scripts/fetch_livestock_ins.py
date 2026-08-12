@@ -412,13 +412,14 @@ def _layout_fields(pdf_url):
         for page in pdf.pages:
             for ln in (page.extract_text() or "").splitlines():
                 dump.append(ln)
-                m = re.match(r"^\s*(\d{1,2})\s+([A-Za-z][A-Za-z0-9 /()&.'-]{2,60}?)"
-                             r"\s{2,}|^\s*(\d{1,2})\s+([A-Za-z][A-Za-z0-9 /()&.'-]{2,60})$", ln)
+                # rows read: "N  Element Name  Format  Description" where
+                # Format is 9(..), X(..), S9(..) or DATE — single-spaced
+                m = re.match(r"^\s*(\d{1,2})\s+([A-Za-z][A-Za-z0-9 /()&.'-]+?)\s+"
+                             r"(?:S?9\(|X\(|DATE\b)", ln)
                 if m:
-                    idx = int(m.group(1) or m.group(3))
-                    name = (m.group(2) or m.group(4)).strip()
+                    idx = int(m.group(1))
                     if idx == len(fields) + 1:
-                        fields.append(name)
+                        fields.append(m.group(2).strip())
     return fields, dump[:120]
 
 
@@ -451,8 +452,9 @@ def rma_livestock_final():
         iy = find("commodity year")
         icom = find("commodity name")
         ipol = find("endorsements earning premium", "policies earning premium")
-        iqty = find("net number of head", "net head count", "declared butterfat",
-                    "milk production", "net quantity")
+        iqty = find("net number of head", "net head count", "target marketings",
+                    "declared milk production", "milk production",
+                    "declared butterfat", "net quantity")
         iliab = find("liability", "total insured value")
         iprem = find("total premium")
         isub = find("subsidy", "premium subsidy")
