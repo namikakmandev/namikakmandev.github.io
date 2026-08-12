@@ -401,6 +401,111 @@ def rma_livestock_extract():
     return out
 
 
+def _layout_fields(pdf_url):
+    """Parse the ordered field list from an RMA record-layout PDF: rows are
+    numbered 'N  Field Name  type...' lines."""
+    import pdfplumber
+    raw = get(pdf_url)
+    fields = []
+    dump = []
+    with pdfplumber.open(io.BytesIO(raw)) as pdf:
+        for page in pdf.pages:
+            for ln in (page.extract_text() or "").splitlines():
+                dump.append(ln)
+                m = re.match(r"^\s*(\d{1,2})\s+([A-Za-z][A-Za-z0-9 /()&.'-]{2,60}?)"
+                             r"\s{2,}|^\s*(\d{1,2})\s+([A-Za-z][A-Za-z0-9 /()&.'-]{2,60})$", ln)
+                if m:
+                    idx = int(m.group(1) or m.group(3))
+                    name = (m.group(2) or m.group(4)).strip()
+                    if idx == len(fields) + 1:
+                        fields.append(name)
+    return fields, dump[:120]
+
+
+def rma_livestock_final():
+    """Aggregate LRP/LGM/DRP using column maps parsed from RMA's own layout
+    PDFs (files are headerless). Parsed layouts are recorded for audit."""
+    import zipfile
+    products = {
+        "lrp": "LRP_Summary_of_Business_All_Years.pdf",
+        "lgm": "LGM_Summary_of_Business_All_Years.pdf",
+        "drp": "DRP_Summary_of_Business_2019_forward.pdf",
+    }
+    out = {"layouts": {}, "series": {}, "sanity": {}, "skipped": []}
+    html = get(LDP_DIR).decode("utf-8", "replace")
+    zips = sorted(l for l in re.findall(r'href="\./([^"]+)"', html)
+                  if l.endswith(".zip"))
+    for prod, layout_pdf in products.items():
+        try:
+            fields, dump = _layout_fields(LDP_DIR + layout_pdf)
+        except Exception as ex:
+            out["skipped"].append([prod, f"layout {type(ex).__name__}: {ex}"])
+            continue
+        out["layouts"][prod] = fields
+        if len(fields) < 10:
+            out["layouts"][prod + "_dump"] = dump
+            out["skipped"].append([prod, "layout parse too short"])
+            continue
+        def find(*cands):
+            return _hdr_find(fields, *cands)
+        iy = find("commodity year")
+        icom = find("commodity name")
+        ipol = find("endorsements earning premium", "policies earning premium")
+        iqty = find("net number of head", "net head count", "declared butterfat",
+                    "milk production", "net quantity")
+        iliab = find("liability", "total insured value")
+        iprem = find("total premium")
+        isub = find("subsidy", "premium subsidy")
+        iind = find("indemnity")
+        colmap = dict(year=iy, commodity=icom, policies=ipol, quantity=iqty,
+                      liability=iliab, premium=iprem, subsidy=isub, indemnity=iind)
+        out["layouts"][prod + "_colmap"] = {k: (fields[v] if v is not None else None)
+                                            for k, v in colmap.items()}
+        if None in (iy, icom, iprem, iind):
+            out["skipped"].append([prod, "essential columns unmapped", colmap])
+            continue
+        for z in zips:
+            if not z.startswith(prod + "_"):
+                continue
+            try:
+                zf = zipfile.ZipFile(io.BytesIO(get(LDP_DIR + z)))
+                text = zf.read(zf.namelist()[0]).decode("utf-8", "replace")
+            except Exception as ex:
+                out["skipped"].append([z, f"fetch {type(ex).__name__}: {ex}"])
+                continue
+            for ln in text.splitlines():
+                parts = [x.strip() for x in ln.split("|")]
+                if len(parts) < len(fields) - 2:
+                    continue
+                def num(i):
+                    if i is None or i >= len(parts) or not parts[i]:
+                        return 0.0
+                    try:
+                        return float(parts[i].replace(",", ""))
+                    except ValueError:
+                        return 0.0
+                yr = parts[iy][:4] if iy < len(parts) else ""
+                if not yr.startswith("20"):
+                    continue
+                key = f"{prod.upper()}|{parts[icom].title()}"
+                row = out["series"].setdefault(yr, {}).setdefault(
+                    key, {"policies": 0, "quantity": 0.0, "liability": 0.0,
+                          "premium": 0.0, "subsidy": 0.0, "indemnity": 0.0,
+                          "src": f"{z} (layout {layout_pdf})"})
+                row["policies"] += int(num(ipol))
+                row["quantity"] += num(iqty)
+                row["liability"] += num(iliab)
+                row["premium"] += num(iprem)
+                row["subsidy"] += num(isub)
+                row["indemnity"] += num(iind)
+    # sanity: subsidy should not exceed premium; note violations, don't hide
+    for yr, rows in out["series"].items():
+        for key, r in rows.items():
+            if r["premium"] and r["subsidy"] > r["premium"] * 1.001:
+                out["sanity"].setdefault("subsidy_gt_premium", []).append([yr, key])
+    return out
+
+
 def spain_discover():
     """Agroseguro 403s; try the ministry (ENESA) pages instead."""
     out = {}
@@ -426,6 +531,8 @@ def main():
         jobs = (("rma_dirs", rma_dir_listing),)
     elif MODE == "extract5":
         jobs = (("rma_livestock", rma_livestock_extract),)
+    elif MODE == "extract6":
+        jobs = (("rma_final", rma_livestock_final),)
     else:
         jobs = (("tarsim_series", tarsim_extract), ("rma2", rma_discover2),
                 ("spain", spain_discover))
@@ -439,7 +546,7 @@ def main():
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
     suffix = {"discover": "report", "extract2": "round3",
               "extract3": "round4", "extract4": "round5",
-              "extract5": "usa"}.get(MODE, "tarsim")
+              "extract5": "usa", "extract6": "usa"}.get(MODE, "tarsim")
     path = os.path.join(ROOT, "data", f"livestock-ins-{suffix}.json")
     json.dump(report, open(path, "w"), indent=1, ensure_ascii=False)
     print("wrote", path)
