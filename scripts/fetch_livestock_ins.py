@@ -282,6 +282,34 @@ def spain_dump_all():
             "tcm_assets": [l for l in uniq if "tcm" in l.lower()][:30]}
 
 
+def rma_dir_listing():
+    """pubfs answers direct probes — dump its directory listings to find the
+    livestock data files (sobcov contains no livestock plans; the 'Lamb'
+    matches were a Texas county)."""
+    out = {}
+    for u in ("https://pubfs-rma.fpac.usda.gov/pub/Web_Data_Files/Summary_of_Business/",
+              "https://pubfs-rma.fpac.usda.gov/pub/Web_Data_Files/",
+              "https://pubfs-rma.fpac.usda.gov/pub/"):
+        try:
+            html = get(u).decode("utf-8", "replace")
+            out[u] = re.findall(r'href="([^"]+)"', html)[:60]
+        except Exception as ex:
+            out[u] = f"{type(ex).__name__}: {ex}"
+    # follow anything that smells of livestock
+    base = "https://pubfs-rma.fpac.usda.gov"
+    for u, links in list(out.items()):
+        if isinstance(links, list):
+            for l in links:
+                if "livestock" in l.lower() or "lgm" in l.lower() or "lrp" in l.lower():
+                    full = l if l.startswith("http") else base + l
+                    try:
+                        html = get(full).decode("utf-8", "replace")
+                        out[full] = re.findall(r'href="([^"]+)"', html)[:80]
+                    except Exception as ex:
+                        out[full] = f"{type(ex).__name__}: {ex}"
+    return out
+
+
 def spain_discover():
     """Agroseguro 403s; try the ministry (ENESA) pages instead."""
     out = {}
@@ -303,6 +331,8 @@ def main():
         jobs = (("rma3", rma_discover3), ("spain2", spain_discover2))
     elif MODE == "extract3":
         jobs = (("rma_sob", rma_sob_probe), ("spain_all", spain_dump_all))
+    elif MODE == "extract4":
+        jobs = (("rma_dirs", rma_dir_listing),)
     else:
         jobs = (("tarsim_series", tarsim_extract), ("rma2", rma_discover2),
                 ("spain", spain_discover))
@@ -315,7 +345,7 @@ def main():
             print(f"[FAIL] {name}: {type(ex).__name__}: {ex}")
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
     suffix = {"discover": "report", "extract2": "round3",
-              "extract3": "round4"}.get(MODE, "tarsim")
+              "extract3": "round4", "extract4": "round5"}.get(MODE, "tarsim")
     path = os.path.join(ROOT, "data", f"livestock-ins-{suffix}.json")
     json.dump(report, open(path, "w"), indent=1, ensure_ascii=False)
     print("wrote", path)
