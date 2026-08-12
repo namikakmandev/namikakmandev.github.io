@@ -310,6 +310,97 @@ def rma_dir_listing():
     return out
 
 
+LDP_DIR = ("https://pubfs-rma.fpac.usda.gov/pub/Web_Data_Files/"
+           "Summary_of_Business/livestock_and_dairy_participation/")
+
+
+def _hdr_find(header, *cands):
+    """Return index of the first header column whose name contains all words
+    of one candidate (case-insensitive), else None."""
+    low = [h.lower() for h in header]
+    for cand in cands:
+        words = cand.lower().split()
+        for i, h in enumerate(low):
+            if all(w in h for w in words):
+                return i
+    return None
+
+
+def rma_livestock_extract():
+    """List the livestock/dairy participation directory, then parse every
+    per-year file whose first row is a header. Aggregates national totals by
+    year x plan x commodity. Headerless files are dumped, not guessed."""
+    import zipfile
+    html = get(LDP_DIR).decode("utf-8", "replace")
+    files = [l for l in re.findall(r'href="\./([^"]+)"', html)
+             if not l.endswith("index.html")]
+    out = {"dir_files": files, "series": {}, "layout": {}, "skipped": []}
+    for fname in files:
+        try:
+            raw = get(LDP_DIR + fname)
+        except Exception as ex:
+            out["skipped"].append([fname, f"fetch {type(ex).__name__}: {ex}"])
+            continue
+        texts = []
+        if fname.lower().endswith(".zip"):
+            zf = zipfile.ZipFile(io.BytesIO(raw))
+            for m in zf.namelist():
+                texts.append((m, zf.read(m).decode("utf-8", "replace")))
+        else:
+            texts.append((fname, raw.decode("utf-8", "replace")))
+        for member, text in texts:
+            lines = text.splitlines()
+            if not lines:
+                continue
+            delim = "|" if "|" in lines[0] else ","
+            header = [h.strip().strip('"') for h in lines[0].split(delim)]
+            if not any(c.isalpha() for c in header[0]):
+                out["skipped"].append([f"{fname}:{member}", "no header row",
+                                       lines[0][:200]])
+                continue
+            out["layout"][f"{fname}:{member}"] = header
+            iy = _hdr_find(header, "commodity year", "reinsurance year", "year")
+            iplan = _hdr_find(header, "insurance plan abbrev", "insurance plan name",
+                              "insurance plan")
+            icom = _hdr_find(header, "commodity name", "commodity")
+            ipol = _hdr_find(header, "policies earning prem", "endorsements earning",
+                             "policies sold")
+            iqty = _hdr_find(header, "net number of head", "head count",
+                             "net reported quantity", "quantity")
+            iliab = _hdr_find(header, "liability")
+            iprem = _hdr_find(header, "total premium", "premium")
+            isub = _hdr_find(header, "subsidy")
+            iind = _hdr_find(header, "indemnity")
+            if None in (iy, iplan, icom, iprem, iind):
+                out["skipped"].append([f"{fname}:{member}", "columns unmapped",
+                                       header])
+                continue
+            for ln in lines[1:]:
+                parts = [x.strip().strip('"') for x in ln.split(delim)]
+                if len(parts) < len(header):
+                    continue
+                try:
+                    yr = parts[iy][:4]
+                    key = f"{parts[iplan]}|{parts[icom]}"
+                    row = out["series"].setdefault(yr, {}).setdefault(
+                        key, {"policies": 0, "quantity": 0.0, "liability": 0.0,
+                              "premium": 0.0, "subsidy": 0.0, "indemnity": 0.0,
+                              "src": f"{fname}:{member}"})
+                    def num(i):
+                        if i is None or not parts[i]:
+                            return 0.0
+                        return float(parts[i].replace(",", ""))
+                    row["policies"] += int(num(ipol))
+                    row["quantity"] += num(iqty)
+                    row["liability"] += num(iliab)
+                    row["premium"] += num(iprem)
+                    row["subsidy"] += num(isub)
+                    row["indemnity"] += num(iind)
+                except (ValueError, IndexError):
+                    continue
+    return out
+
+
 def spain_discover():
     """Agroseguro 403s; try the ministry (ENESA) pages instead."""
     out = {}
@@ -333,6 +424,8 @@ def main():
         jobs = (("rma_sob", rma_sob_probe), ("spain_all", spain_dump_all))
     elif MODE == "extract4":
         jobs = (("rma_dirs", rma_dir_listing),)
+    elif MODE == "extract5":
+        jobs = (("rma_livestock", rma_livestock_extract),)
     else:
         jobs = (("tarsim_series", tarsim_extract), ("rma2", rma_discover2),
                 ("spain", spain_discover))
@@ -345,7 +438,8 @@ def main():
             print(f"[FAIL] {name}: {type(ex).__name__}: {ex}")
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
     suffix = {"discover": "report", "extract2": "round3",
-              "extract3": "round4", "extract4": "round5"}.get(MODE, "tarsim")
+              "extract3": "round4", "extract4": "round5",
+              "extract5": "usa"}.get(MODE, "tarsim")
     path = os.path.join(ROOT, "data", f"livestock-ins-{suffix}.json")
     json.dump(report, open(path, "w"), indent=1, ensure_ascii=False)
     print("wrote", path)
