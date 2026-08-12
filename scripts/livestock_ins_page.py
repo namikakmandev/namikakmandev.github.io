@@ -63,7 +63,7 @@ LR_CATTLE = {y: r["paid_loss"] / r["premium"] * 100 for y, r in sorted(CATTLE_LI
              if r.get("premium")}
 
 
-def line_chart(series_list, y_fmt, y_ticks, aria, W=940, H=430, PADR=230):
+def line_chart(series_list, y_fmt, y_ticks, aria, W=940, H=430, PADR=230, xstep=2):
     all_v = [v for _, d, *_ in series_list for v in d.values()]
     ylo, yhi = 0, max(all_v) * 1.12
     years = sorted({int(y) for _, d, *_ in series_list for y in d})
@@ -77,7 +77,7 @@ def line_chart(series_list, y_fmt, y_ticks, aria, W=940, H=430, PADR=230):
                    f'stroke="{S["grid"]}" stroke-width="1.2"/>')
         out.append(f'<text x="4" y="{Y(yt) - 7:.0f}" fill="{S["muted"]}" '
                    f'font-size="17">{y_fmt(yt)}</text>')
-    for yr in range(xlo, xhi + 1, 2):
+    for yr in range(xlo, xhi + 1, xstep):
         anchor = "start" if X(yr) < 30 else "middle"
         out.append(f'<text x="{X(yr):.0f}" y="{H - 8}" fill="{S["ink2"]}" '
                    f'font-size="18" text-anchor="{anchor}">{yr}</text>')
@@ -156,13 +156,13 @@ p.note {{ color:{S['muted']}; font-size:13.5px; line-height:1.45; max-width:80ch
   color:{S['ink2']}; font-size:13.5px; line-height:1.55; max-width:86ch; }}
 .src b {{ color:{S['ink']}; }}
 </style></head><body><div class="wrap">
-<span class="draft">DRAFT — INTERNAL REVIEW</span>
-<div class="kicker">LIVESTOCK INSURANCE · STUDY IN PROGRESS</div>
+<div class="kicker">LIVESTOCK INSURANCE · TÜRKİYE &amp; UNITED STATES</div>
 <h1>Who insures the herd?</h1>
 <p class="sub">Penetration, physical coverage and loss ratios of livestock
-insurance schemes, from the schemes' own published data. Türkiye first —
-TARSİM's annual reports are the best public dataset in this field; the US
-(USDA RMA) and Spain (ENESA) extractions are in progress.</p>
+insurance schemes, from the schemes' own published data: TARSİM annual
+reports for Türkiye, USDA RMA participation files for the United States.
+Spain is excluded — no machine-readable public series located — and
+Germany's compulsory public funds are a separate category by design.</p>
 
 <h2>Türkiye: from 3% of the herd to 41% in eleven years</h2>
 <p class="sub">Share of the national cattle herd covered by TARSİM
@@ -245,8 +245,7 @@ column maps parsed from RMA's own record-layout PDFs and recorded in
 (unmapped), commodity years 2026–27 excluded. Herd denominators: FAOSTAT
 cattle stocks via Our World in Data (<b>data/herd-cattle.json</b>).
 Loss ratio = paid loss (TR) or indemnity (US) ÷ written premium, as
-published. Data cut 12 Aug 2026. Personal analysis of public statistics;
-draft, not for distribution.</div>
+published. Data cut 12 Aug 2026. Personal analysis of public statistics.</div>
 </div></body></html>"""
 
 open(OUT, "w").write(html)
