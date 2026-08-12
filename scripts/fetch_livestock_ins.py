@@ -239,6 +239,49 @@ def spain_discover2():
     return out
 
 
+def rma_sob_probe():
+    """Inspect one sobcov ZIP: member names, delimiter, first rows, and the
+    distinct plan/commodity pairs that look like livestock programs — so the
+    final aggregation is written against the real layout."""
+    import zipfile
+    url = ("https://pubfs-rma.fpac.usda.gov/pub/Web_Data_Files/"
+           "Summary_of_Business/state_county_crop/sobcov_2024.zip")
+    raw = get(url)
+    zf = zipfile.ZipFile(io.BytesIO(raw))
+    out = {"members": zf.namelist()}
+    name = zf.namelist()[0]
+    text = zf.read(name).decode("utf-8", "replace")
+    lines = text.splitlines()
+    out["n_rows"] = len(lines)
+    out["first_rows"] = lines[:4]
+    plans = {}
+    for ln in lines:
+        parts = [p.strip().strip('"') for p in ln.split("|")]
+        joined = ln.upper()
+        if any(k in joined for k in ("LRP", "DRP", "LGM", "CATTLE", "SWINE",
+                                     "MILK", "DAIRY", "LAMB", "LIVESTOCK")):
+            # keep a compact signature: up to first 12 fields
+            plans.setdefault("|".join(parts[3:9]), 0)
+            plans["|".join(parts[3:9])] += 1
+    out["livestock_signatures"] = dict(sorted(plans.items(),
+                                              key=lambda kv: -kv[1])[:25])
+    return out
+
+
+def spain_dump_all():
+    """Unfiltered href dump — the filtered passes saw only language links."""
+    u = ("https://www.mapa.gob.es/es/enesa/datos_sobre_el_seguro/"
+         "informes_de_contratacion_del_seguro_agrario")
+    html = get(u).decode("utf-8", "replace")
+    links = re.findall(r'href="([^"]+)"', html)
+    uniq = []
+    for l in links:
+        if l not in uniq:
+            uniq.append(l)
+    return {"n": len(links), "hrefs": uniq[:80],
+            "tcm_assets": [l for l in uniq if "tcm" in l.lower()][:30]}
+
+
 def spain_discover():
     """Agroseguro 403s; try the ministry (ENESA) pages instead."""
     out = {}
@@ -258,6 +301,8 @@ def main():
                 ("agroseguro", agroseguro_discover))
     elif MODE == "extract2":
         jobs = (("rma3", rma_discover3), ("spain2", spain_discover2))
+    elif MODE == "extract3":
+        jobs = (("rma_sob", rma_sob_probe), ("spain_all", spain_dump_all))
     else:
         jobs = (("tarsim_series", tarsim_extract), ("rma2", rma_discover2),
                 ("spain", spain_discover))
@@ -269,7 +314,8 @@ def main():
             report[name] = {"error": f"{type(ex).__name__}: {ex}"}
             print(f"[FAIL] {name}: {type(ex).__name__}: {ex}")
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
-    suffix = {"discover": "report", "extract2": "round3"}.get(MODE, "tarsim")
+    suffix = {"discover": "report", "extract2": "round3",
+              "extract3": "round4"}.get(MODE, "tarsim")
     path = os.path.join(ROOT, "data", f"livestock-ins-{suffix}.json")
     json.dump(report, open(path, "w"), indent=1, ensure_ascii=False)
     print("wrote", path)
