@@ -201,6 +201,44 @@ def rma_discover2():
     return out
 
 
+def rma_discover3():
+    """Round 3: the state/county page should carry the real ZIP links, and
+    pubfs paths may allow direct HEAD probes."""
+    out = {}
+    for u in ("https://www.rma.usda.gov/tools-reports/summary-of-business/state-county-crop-summary-business",
+              "https://www.rma.usda.gov/tools-reports/summary-of-business/national-summary-of-business-reports"):
+        try:
+            html = get(u).decode("utf-8", "replace")
+            out[u] = [l for l in re.findall(r'href="([^"]+)"', html)
+                      if any(e in l.lower() for e in (".zip", ".xls", ".csv", "pubfs", "sob"))][:40]
+        except Exception as ex:
+            out[u] = f"{type(ex).__name__}: {ex}"
+    probes = {}
+    for y in (2015, 2020, 2024, 2025):
+        for pat in (f"https://pubfs-rma.fpac.usda.gov/pub/Web_Data_Files/Summary_of_Business/state_county_crop/sobcov_{y}.zip",
+                    f"https://pubfs-rma.fpac.usda.gov/pub/Web_Data_Files/Summary_of_Business/national_summary_of_business/sobscc_{y}.zip"):
+            ok, size = head_ok(pat)
+            if ok is True:
+                probes[pat] = size
+    out["pubfs_probes"] = probes
+    return out
+
+
+def spain_discover2():
+    """Round 3: the ENESA contracting-reports index found in round 2."""
+    out = {}
+    for u in ("https://www.mapa.gob.es/es/enesa/datos_sobre_el_seguro/informes_de_contratacion_del_seguro_agrario",
+              "https://www.mapa.gob.es/es/enesa/datos_sobre_el_seguro/informes_de_contratacion_del_seguro_agrario/",
+              "https://www.mapa.gob.es/es/enesa/becas_informes_contratacion"):
+        try:
+            html = get(u).decode("utf-8", "replace")
+            out[u] = [l for l in re.findall(r'href="([^"]+)"', html)
+                      if any(e in l.lower() for e in (".pdf", ".xls", ".csv", "informe", "contratacion"))][:40]
+        except Exception as ex:
+            out[u] = f"{type(ex).__name__}: {ex}"
+    return out
+
+
 def spain_discover():
     """Agroseguro 403s; try the ministry (ENESA) pages instead."""
     out = {}
@@ -218,6 +256,8 @@ def main():
     if MODE == "discover":
         jobs = (("tarsim", tarsim_discover), ("rma", rma_discover),
                 ("agroseguro", agroseguro_discover))
+    elif MODE == "extract2":
+        jobs = (("rma3", rma_discover3), ("spain2", spain_discover2))
     else:
         jobs = (("tarsim_series", tarsim_extract), ("rma2", rma_discover2),
                 ("spain", spain_discover))
@@ -229,7 +269,7 @@ def main():
             report[name] = {"error": f"{type(ex).__name__}: {ex}"}
             print(f"[FAIL] {name}: {type(ex).__name__}: {ex}")
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
-    suffix = "report" if MODE == "discover" else "tarsim"
+    suffix = {"discover": "report", "extract2": "round3"}.get(MODE, "tarsim")
     path = os.path.join(ROOT, "data", f"livestock-ins-{suffix}.json")
     json.dump(report, open(path, "w"), indent=1, ensure_ascii=False)
     print("wrote", path)
