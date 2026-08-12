@@ -18,9 +18,9 @@ uncovered — and shows penetration and claims only per scheme, product named.
 
 | Market | Source | What it publishes | Status |
 |---|---|---|---|
-| TR | TARSİM annual reports (PDF, EN) | insured head by species, premiums, claims paid, policy counts | discovery running |
-| US | USDA RMA Summary of Business — livestock/dairy participation | head insured, premiums, subsidies, indemnities per program/year/state | discovery running |
-| ES | Agroseguro annual reports | insured animals, premiums, claims (siniestralidad) by line | discovery running |
+| TR | TARSİM annual reports (PDF, EN) | insured head by species, premiums, claims paid, policy counts | DONE — zero overlap conflicts |
+| US | USDA RMA livestock/dairy participation files | head insured, premiums, subsidies, indemnities per program/year | DONE — LRP+DRP (LGM omitted, unmapped) |
+| ES | Agroseguro / ENESA | insured animals, premiums, claims by line | PARKED — site blocks bots; ministry pages script-rendered |
 | Denominators | TÜİK/FAOSTAT herd series | already committed: data/cattle-*.json, data/herd-cattle.json | done |
 
 Comparable metric across schemes: **loss ratio (claims ÷ premiums)** —

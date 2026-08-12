@@ -33,6 +33,30 @@ PREMIUM = {y: v["value"] for y, v in KF["Total Premium"].items()}
 PAID = {y: v["value"] for y, v in KF["Total Paid Loss"].items()}
 CATTLE_LINE = T["lines"].get("Cattle", {})
 
+US = json.load(open(os.path.join(ROOT, "data", "livestock-ins-usa.json")))["rma_final"]["series"]
+US_HERD = json.load(open(os.path.join(ROOT, "data", "herd-cattle.json")))["series"]["US"]
+
+def us_cattle(metric):
+    out = {}
+    for y, rows in US.items():
+        if not ("2003" <= y <= "2025"):
+            continue
+        v = sum(r[metric] for k, r in rows.items()
+                if k in ("LRP|Feeder Cattle", "LRP|Fed Cattle"))
+        if v:
+            out[y] = v
+    return out
+
+US_HEAD = us_cattle("quantity")
+US_PREM = us_cattle("premium")
+US_IND = us_cattle("indemnity")
+# loss ratio only through 2024: 2025 endorsements are still settling
+US_LR = {y: US_IND[y] / US_PREM[y] * 100 for y in sorted(US_PREM)
+         if y in US_IND and y <= "2024"}
+DRP_LR = {y: sum(r["indemnity"] for k, r in US[y].items() if k == "DRP|Milk")
+             / max(1, sum(r["premium"] for k, r in US[y].items() if k == "DRP|Milk")) * 100
+          for y in sorted(US) if "2019" <= y <= "2024"}
+
 PEN = {y: INS_CATTLE[y] / HERD[y] * 100 for y in sorted(INS_CATTLE) if y in HERD}
 LR_POOL = {y: PAID[y] / PREMIUM[y] * 100 for y in sorted(PAID) if y in PREMIUM}
 LR_CATTLE = {y: r["paid_loss"] / r["premium"] * 100 for y, r in sorted(CATTLE_LINE.items())
@@ -79,6 +103,21 @@ chartC = line_chart([("cattle", {y: v / 1e6 for y, v in INS_CATTLE.items()}, S["
                      ("sheep & goats", {y: v / 1e6 for y, v in INS_SHEEP.items()}, S["yellow"])],
                     lambda v: f"{v:.0f}M", [0, 5, 10, 15, 20],
                     "Insured animals, million head, 2013-2025")
+
+chartD = line_chart([("head insured (LRP)", {y: v / 1e6 for y, v in US_HEAD.items()}, S["blue"])],
+                    lambda v: f"{v:.0f}M", [0, 2, 4, 6],
+                    "US cattle head insured under LRP, 2003-2025")
+chartE = line_chart([("LRP cattle", US_LR, S["blue"]),
+                     ("DRP milk", DRP_LR, S["yellow"])],
+                    lambda v: f"{v:.0f}%", [0, 50, 100, 150],
+                    "US livestock program loss ratios")
+
+us_head24 = US_HEAD["2024"] / 1e6
+us_pen24 = US_HEAD["2024"] / US_HERD["2024"] * 100
+us_sub24 = sum(r["subsidy"] for k, r in US["2024"].items()
+               if k.startswith("LRP|F")) / max(1, US_PREM["2024"]) * 100
+us_sub15 = sum(r["subsidy"] for k, r in US["2015"].items()
+               if k.startswith("LRP|F")) / max(1, US_PREM["2015"]) * 100
 
 pen24 = PEN["2024"]; pen13 = PEN["2013"]
 ins25 = INS_CATTLE["2025"] / 1e6
@@ -151,20 +190,41 @@ premiums are written, not earned.</p>
 currency and inflation. Sheep &amp; goats shown without a penetration line:
 the herd denominator is not yet in the data set.</p>
 
+<h2>United States: the price-risk analogue took off too</h2>
+<p class="sub">Cattle head covered by Livestock Risk Protection (LRP) —
+price insurance, not mortality cover, so shown beside Türkiye, never
+summed with it.</p>
+<div class="chart">{chartD}</div>
+<p class="note">USDA RMA livestock participation files, national totals of
+net head, feeder + fed cattle. 2015: 0.2M head → 2024: {us_head24:.1f}M —
+roughly {us_pen24:.0f}% of the Jan-1 cattle inventory (a flow-vs-stock
+approximation, stated as such). The take-off follows the 2019–20 premium
+subsidy expansion: subsidy was {us_sub15:.0f}% of premium in 2015,
+{us_sub24:.0f}% in 2024 — from the same files.</p>
+
+<h2>US program loss ratios</h2>
+<div class="chart">{chartE}</div>
+<p class="note">Indemnity ÷ total premium, national, per commodity year.
+Shown through 2024 — 2025 endorsements are still settling, so its near-zero
+indemnities are an artefact of timing, not performance. DRP's 2020 spike is
+the pandemic milk-price collapse, visible in the source data.</p>
+
 <h2>One market ≠ one product</h2>
 <div class="typo">
   <div class="tcard"><span class="tag" style="background:{S['green']};color:#0f1419">DATA EXTRACTED</span>
     <h3>Türkiye — TARSİM</h3><p>State-subsidized pool. Mortality &amp; disease
     cover for registered animals; ~50% premium subsidy. Annual reports publish
     head counts, premiums, claims.</p></div>
-  <div class="tcard"><span class="tag" style="background:{S['yellow']};color:#0f1419">IN PROGRESS</span>
+  <div class="tcard"><span class="tag" style="background:{S['green']};color:#0f1419">DATA EXTRACTED</span>
     <h3>United States — USDA RMA</h3><p>Subsidized <i>price and margin</i>
-    programs (LRP, DRP, LGM), not mortality cover. Data served via the
-    Summary of Business application; extraction route being built.</p></div>
-  <div class="tcard"><span class="tag" style="background:{S['yellow']};color:#0f1419">IN PROGRESS</span>
+    programs. LRP and DRP extracted from RMA participation files (layouts
+    from RMA's own documentation); LGM omitted — field names unmapped,
+    smallest of the three programs.</p></div>
+  <div class="tcard"><span class="tag" style="background:{S['muted']};color:{S['ink']}">PARKED</span>
     <h3>Spain — Agroseguro / ENESA</h3><p>Subsidized pool incl. livestock
-    life lines. Insurer site blocks automated access; ministry (ENESA)
-    contracting reports identified as the route.</p></div>
+    life lines. No machine-readable public series located: the insurer's
+    site blocks automated access and the ministry pages are script-rendered.
+    Declared, not silently dropped.</p></div>
   <div class="tcard"><span class="tag" style="background:{S['muted']};color:{S['ink']}">NOT INSURANCE</span>
     <h3>Germany — Tierseuchenkassen</h3><p>Compulsory public epidemic funds
     levied per animal. Low private-insurance uptake does not mean unmanaged
@@ -179,11 +239,14 @@ ranked across schemes.</p>
 (tarsim.gov.tr, English PDFs) — key-figures tables give four years each;
 overlapping windows agreed with zero conflicts. Every extracted value
 carries its report and page in <b>data/livestock-ins-tarsim.json</b>.
-Herd denominator: FAOSTAT cattle stocks via Our World in Data
-(<b>data/herd-cattle.json</b>). Loss ratio = total paid loss ÷ total written
-premium, both as published; paid loss excludes outstanding claims.
-Data cut 11 Aug 2026. Personal analysis of public statistics; draft, not
-for distribution.</div>
+USDA RMA livestock &amp; dairy participation files (pubfs-rma.fpac.usda.gov),
+column maps parsed from RMA's own record-layout PDFs and recorded in
+<b>data/livestock-ins-usa.json</b>; LRP/DRP national aggregates, LGM omitted
+(unmapped), commodity years 2026–27 excluded. Herd denominators: FAOSTAT
+cattle stocks via Our World in Data (<b>data/herd-cattle.json</b>).
+Loss ratio = paid loss (TR) or indemnity (US) ÷ written premium, as
+published. Data cut 12 Aug 2026. Personal analysis of public statistics;
+draft, not for distribution.</div>
 </div></body></html>"""
 
 open(OUT, "w").write(html)
