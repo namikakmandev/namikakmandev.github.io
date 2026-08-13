@@ -724,6 +724,35 @@
       "note": "CONSUMER prices — pet vet services paid by households, not farm animal health costs. Confirmed by 2026-08 fetch: TR publishes CP00 only (no CP0934/CP0935 — a TR vet series needs TÜİK/EVDS); IE CP0935 stops at 2023-12; all other geos current. Base years differ per country (earliest obs 1996-01 FR, 2016-12 for late joiners) — index everything to a common month before comparing."
     },
     {
+      "name": "meat-cpi-eu",
+      "provider": "eurostat",
+      "dataset": "prc_hicp_midx",
+      "params": {
+        "unit": "I15",
+        "coicop": ["CP00", "CP011", "CP0112"],
+        "geo": ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PL", "CZ", "HU", "RO", "PT", "DK", "SE", "FI", "EA20", "TR", "EL", "SK", "SI", "HR", "BG", "LT", "LV", "EE", "NO", "IE", "LU"]
+      },
+      "group_dims": ["geo", "coicop"],
+      "out": "data/meat-cpi-eu.json",
+      "enabled": true,
+      "source": "Eurostat HICP monthly index (2015=100): CP00 all items, CP011 food, CP0112 meat",
+      "note": "CP0112 'Meat' (COICOP 01.1.2) includes fresh/frozen/processed meat and poultry. TR class-level coverage to be confirmed by the fetch report."
+    },
+    {
+      "name": "meat-cpi-us",
+      "provider": "fred",
+      "series": {
+        "meat_pfe_nsa": "CUUR0000SAF112",
+        "meats_poultry_fish_nsa": "CUUR0000SAF1121",
+        "food_home_nsa": "CUUR0000SAF11",
+        "cpi_nsa": "CPIAUCNS"
+      },
+      "out": "data/meat-cpi-us.json",
+      "enabled": true,
+      "source": "BLS CPI via FRED, NSA, US city average: SAF112 meats/poultry/fish/eggs, SAF1121 meats/poultry/fish, SAF11 food at home, all items",
+      "note": "US basket differs from EU CP0112 (includes fish; SAF112 also eggs) — the closer candidate that resolves wins, and the basket difference is stated wherever shown. Per-series 404s tolerated."
+    },
+    {
       "name": "vet-cpi-us",
       "provider": "fred",
       "series": {
