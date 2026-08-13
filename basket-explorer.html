@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Food Basket Explorer</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="description" content="Which foods outpaced the food basket in
 your country? Relative prices of every HICP food class, 27 European markets,
 from Eurostat data.">
@@ -10,7 +11,8 @@ from Eurostat data.">
 body { background:#06090c; color:#f4f6f8; font-family:"IBM Plex Sans","Segoe UI",
   system-ui,sans-serif; padding:28px 16px 60px; }
 .wrap { max-width:1020px; margin:0 auto; }
-.bar { display:flex; justify-content:space-between; margin-bottom:14px; }
+.bar { display:flex; justify-content:space-between; margin-bottom:14px; gap:12px;
+  flex-wrap:wrap; }
 .bar a { color:#9aa3ad; text-decoration:none; font-size:14px; }
 .bar a:hover { color:#3987e5; }
 .kicker { color:#3987e5; font-weight:700; letter-spacing:.06em;
@@ -25,14 +27,17 @@ p.sub { color:#9aa3ad; font-size:15.5px; line-height:1.5; max-width:75ch;
 .seg button { background:none; border:none; color:#9aa3ad; font:inherit;
   font-size:14px; padding:8px 14px; cursor:pointer; }
 .seg button.on { background:#3987e5; color:#0f1419; font-weight:700; }
+.seg button:focus-visible { outline:2px solid #3987e5; outline-offset:-2px; }
 select { background:#0f1419; color:#f4f6f8; border:1px solid #232a33;
   border-radius:8px; font:inherit; font-size:14px; padding:8px 10px; }
+select:focus-visible { outline:2px solid #3987e5; outline-offset:1px; }
 #headline { font-size:17px; margin:14px 0 4px; color:#f4f6f8; }
 #headline b.up { color:#d95926; } #headline b.down { color:#3987e5; }
+#headline .latest { color:#3d4654; font-size:13.5px; white-space:nowrap; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
   gap:16px 22px; margin-top:14px; }
 .cell { background:#0f1419; border-radius:8px; padding:10px 12px; }
-.cell svg.chart { width:100%; height:auto; display:block; }
+.cell svg.chart { width:100%; height:auto; display:block; touch-action:pan-y; }
 .ch { display:flex; justify-content:space-between; align-items:center;
   font-size:14.5px; font-weight:700; margin-bottom:4px; gap:6px; }
 .ch .nm { display:flex; align-items:center; gap:7px; min-width:0; }
@@ -46,6 +51,19 @@ select { background:#0f1419; color:#f4f6f8; border:1px solid #232a33;
   color:#3d4654; font-size:13px; line-height:1.5; max-width:90ch; }
 .src b { color:#9aa3ad; }
 #status { color:#3d4654; font-size:14px; margin-top:20px; }
+#tip { position:fixed; z-index:10; pointer-events:none; background:#1a212b;
+  border:1px solid #232a33; border-radius:6px; padding:5px 9px;
+  font-size:12.5px; color:#f4f6f8; font-variant-numeric:tabular-nums;
+  white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.45); }
+@media (max-width:520px) {
+  body { padding:20px 12px 48px; }
+  h1 { font-size:26px; }
+  .controls { gap:8px; }
+  .seg { display:flex; width:100%; }
+  .seg button { flex:1; min-height:44px; padding:8px 6px; }
+  select { width:100%; min-height:44px; }
+  .grid { gap:12px; }
+}
 </style></head><body><div class="wrap">
 <div class="bar"><a href="/">← namikakman — projects</a>
   <a href="meat-vs-food.html">the meat chart that started this →</a></div>
@@ -56,18 +74,18 @@ divided by the whole food index, re-based to 100 at the window start. Above
 100 — the category outpaced the basket; below — it fell behind. Ratios cancel
 the general inflation level, so every market is comparable, Türkiye included.</p>
 <div class="controls">
-  <span class="seg" id="viewSeg">
-    <button data-v="cat" class="on">One category, all countries</button>
-    <button data-v="geo">One country, all categories</button>
+  <span class="seg" id="viewSeg" role="group" aria-label="View">
+    <button data-v="cat" class="on" aria-pressed="true">One category, all countries</button>
+    <button data-v="geo" aria-pressed="false">One country, all categories</button>
   </span>
-  <select id="catSel"></select>
-  <select id="geoSel" style="display:none"></select>
-  <span class="seg" id="winSeg">
-    <button data-w="2021-01" class="on">since 2021</button>
-    <button data-w="2017-01">since 2017</button>
+  <select id="catSel" aria-label="Food category"></select>
+  <select id="geoSel" aria-label="Country" style="display:none"></select>
+  <span class="seg" id="winSeg" role="group" aria-label="Time window">
+    <button data-w="2021-01" class="on" aria-pressed="true">since 2021</button>
+    <button data-w="2017-01" aria-pressed="false">since 2017</button>
   </span>
 </div>
-<div id="headline"></div>
+<div id="headline" aria-live="polite"></div>
 <div class="grid" id="grid"><div id="status">Loading data…</div></div>
 <div class="src"><b>Method &amp; sources.</b> Eurostat HICP, monthly
 (prc_hicp_midx, 2015=100): food classes CP0111–CP0122 against CP011 food.
@@ -85,39 +103,101 @@ const NAMES = {"DE": "Germany", "FR": "France", "IT": "Italy", "ES": "Spain", "N
 const CLASSES = {"CP0111": "Bread & cereals", "CP0112": "Meat", "CP0113": "Fish & seafood", "CP0114": "Milk, cheese & eggs", "CP0115": "Oils & fats", "CP0116": "Fruit", "CP0117": "Vegetables", "CP0118": "Sugar & sweets", "CP0121": "Coffee, tea & cocoa", "CP0122": "Soft drinks & juices"};
 const ORANGE = "#d95926", BLUE = "#3987e5", INK2 = "#9aa3ad",
       GRID = "#232a33", MUTED = "#3d4654";
+const WINS = { "2021": "2021-01", "2017": "2017-01" };
 let DATA = null, view = "cat", cat = "CP0112", geo = "TR", win = "2021-01";
+let ROWS = [];  // rows of the current render, for the hover tooltip
+
+// --- restore state from the URL (?view=cat&cat=CP0112&win=2021) ---
+(function () {
+  const p = new URLSearchParams(location.search);
+  const v = p.get("view");
+  if (v === "cat" || v === "geo") view = v;
+  const c = (p.get("cat") || "").toUpperCase();
+  if (CLASSES[c]) cat = c;
+  const g = (p.get("geo") || "").toUpperCase();
+  if (NAMES[g]) geo = g;
+  const w = (p.get("win") || "").slice(0, 4);
+  if (WINS[w]) win = WINS[w];
+})();
+
+function syncURL() {
+  const p = new URLSearchParams();
+  p.set("view", view);
+  if (view === "cat") p.set("cat", cat); else p.set("geo", geo);
+  p.set("win", win.slice(0, 4));
+  history.replaceState(null, "", "?" + p.toString());
+}
 
 const catSel = document.getElementById("catSel");
 const geoSel = document.getElementById("geoSel");
 for (const [c, n] of Object.entries(CLASSES))
   catSel.add(new Option(n, c));
-catSel.value = cat;
 for (const g of Object.keys(NAMES).sort((a, b) => NAMES[a].localeCompare(NAMES[b])))
   geoSel.add(new Option(NAMES[g], g));
-geoSel.value = geo;
 
-function ratio(geoK, clsK) {
+function applyControls() {
+  catSel.value = cat;
+  geoSel.value = geo;
+  document.querySelectorAll("#viewSeg button").forEach(b => {
+    const on = b.dataset.v === view;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", on);
+  });
+  document.querySelectorAll("#winSeg button").forEach(b => {
+    const on = b.dataset.w === win;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", on);
+  });
+  catSel.style.display = view === "cat" ? "" : "none";
+  geoSel.style.display = view === "geo" ? "" : "none";
+}
+applyControls();
+
+// Ratio series, memoized per (geo, class, window). Same math as always:
+// class ÷ food, re-based so the window-start month = 100; a series needs the
+// window-start month in both indices and at least 12 usable months to count.
+const CACHE = new Map();
+function series(geoK, clsK) {
+  const key = geoK + "|" + clsK + "|" + win;
+  if (CACHE.has(key)) return CACHE.get(key);
+  let out = null;
   const c = DATA[geoK + "|" + clsK], f = DATA[geoK + "|CP011"];
-  if (!c || !f || !c[win] || !f[win]) return null;
-  const months = Object.keys(c).filter(m => m >= win && f[m]).sort();
-  if (months.length < 12) return null;
-  const base = c[win] / f[win];
-  return months.map(m => (c[m] / f[m]) / base * 100);
+  if (c && f && c[win] && f[win]) {
+    const months = Object.keys(c).filter(m => m >= win && f[m]).sort();
+    if (months.length >= 12) {
+      const base = c[win] / f[win];
+      out = { months, vals: months.map(m => (c[m] / f[m]) / base * 100) };
+    }
+  }
+  CACHE.set(key, out);
+  return out;
 }
 
 function mini(vals) {
   const W = 230, H = 96;
   const lo = Math.min(...vals, 98) - 2, hi = Math.max(...vals, 102) + 2;
-  const X = i => i / (vals.length - 1) * W;
+  const X = i => i / Math.max(vals.length - 1, 1) * W;
   const Y = v => H - 6 - (v - lo) / (hi - lo) * (H - 12);
   const pts = vals.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ");
   const end = vals[vals.length - 1] - 100;
   const colour = end > 1 ? ORANGE : end < -1 ? BLUE : INK2;
-  return { svg: `<svg class="chart" viewBox="0 0 ${W} ${H}">` +
-    `<line x1="0" y1="${Y(100).toFixed(1)}" x2="${W}" y2="${Y(100).toFixed(1)}"` +
+  const t = end.toFixed(0);  // avoid a signed "-0%" / "+0%" on flat panels
+  const disp = (t === "0" || t === "-0") ? "0%" : (end > 0 ? "+" : "") + t + "%";
+  return { pts, y100: Y(100).toFixed(1), end, colour, disp };
+}
+
+function chartSVG(r, label) {
+  const W = 230, H = 96, m = r.s.m;
+  const dir = m.end > 1 ? "above" : m.end < -1 ? "below" : "level with";
+  const alab = label + ": " + m.disp +
+    " vs the food basket since " + win.slice(0, 4) + ", " + dir +
+    " basket, latest month " + r.s.months[r.s.months.length - 1];
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"` +
+    ` aria-label="${alab}">` +
+    `<line x1="0" y1="${m.y100}" x2="${W}" y2="${m.y100}"` +
     ` stroke="${GRID}" stroke-width="1.2"/>` +
-    `<polyline points="${pts}" fill="none" stroke="${colour}"` +
-    ` stroke-width="2.3" stroke-linejoin="round"/></svg>`, end, colour };
+    `<polyline points="${m.pts}" fill="none" stroke="${m.colour}"` +
+    ` stroke-width="2.3" stroke-linejoin="round"/></svg>`;
 }
 
 function render() {
@@ -127,57 +207,89 @@ function render() {
   const rows = [];
   if (view === "cat") {
     for (const g of Object.keys(NAMES)) {
-      const vals = ratio(g, cat);
-      if (vals) rows.push({ key: g, label: NAMES[g], flag: FLAGS[g], vals });
+      const s = series(g, cat);
+      if (s) rows.push({ key: g, label: NAMES[g], flag: FLAGS[g], s });
     }
   } else {
     for (const c of Object.keys(CLASSES)) {
-      const vals = ratio(geo, c);
-      if (vals) rows.push({ key: c, label: CLASSES[c], flag: null, vals });
+      const s = series(geo, c);
+      if (s) rows.push({ key: c, label: CLASSES[c], flag: null, s });
     }
   }
-  rows.forEach(r => r.m = mini(r.vals));
-  rows.sort((a, b) => b.m.end - a.m.end);
-  const up = rows.filter(r => r.m.end > 1).length,
-        dn = rows.filter(r => r.m.end < -1).length;
+  rows.forEach(r => { if (!r.s.m) r.s.m = mini(r.s.vals); });
+  rows.sort((a, b) => b.s.m.end - a.s.m.end);
+  ROWS = rows;
+  const up = rows.filter(r => r.s.m.end > 1).length,
+        dn = rows.filter(r => r.s.m.end < -1).length;
   const what = view === "cat" ? CLASSES[cat] : NAMES[geo];
-  head.innerHTML = `<b>${what}</b>, since ${win.slice(0, 4)}: ` +
+  document.title = what + " · Food Basket Explorer";
+  const latest = rows.length ?
+    rows.map(r => r.s.months[r.s.months.length - 1]).sort().pop() : "";
+  head.innerHTML = rows.length ?
+    `<b>${what}</b>, since ${win.slice(0, 4)}: ` +
     `<b class="up">${up} above</b> the food basket, ` +
-    `<b class="down">${dn} below</b>, ${rows.length - up - dn} flat.`;
-  grid.innerHTML = rows.map(r =>
-    `<div class="cell"><div class="ch"><span class="nm">` +
-    (r.flag ? `<svg class="flag" viewBox="0 0 24 16">${r.flag}</svg>` : "") +
+    `<b class="down">${dn} below</b>, ${rows.length - up - dn} flat. ` +
+    `<span class="latest">latest month: ${latest}</span>` :
+    `<b>${what}</b>, since ${win.slice(0, 4)}:`;
+  grid.innerHTML = rows.map((r, i) =>
+    `<div class="cell" data-i="${i}"><div class="ch"><span class="nm">` +
+    (r.flag ? `<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">${r.flag}</svg>` : "") +
     `<em>${r.label}</em></span>` +
-    `<span class="v" style="color:${r.m.colour}">` +
-    (r.m.end > 0 ? "+" : "") + r.m.end.toFixed(0) + "%</span></div>" +
-    r.m.svg + "</div>").join("") ||
+    `<span class="v" style="color:${r.s.m.colour}">${r.s.m.disp}</span></div>` +
+    chartSVG(r, r.label) + "</div>").join("") ||
     `<div class="nodata">No data for this selection.</div>`;
 }
 
+// --- hover / tap tooltip: month and relative-price change at the cursor ---
+const tip = document.createElement("div");
+tip.id = "tip"; tip.hidden = true; document.body.appendChild(tip);
+function showTip(e) {
+  const cell = e.target.closest(".cell");
+  const r = cell && ROWS[+cell.dataset.i];
+  const svg = cell && cell.querySelector("svg.chart");
+  if (!r || !svg) { tip.hidden = true; return; }
+  const b = svg.getBoundingClientRect();
+  const frac = Math.min(1, Math.max(0, (e.clientX - b.left) / b.width));
+  const i = Math.round(frac * (r.s.vals.length - 1));
+  const d = r.s.vals[i] - 100;
+  tip.textContent = r.s.months[i] + " · " + (d > 0 ? "+" : "") +
+    d.toFixed(1) + "% vs basket";
+  tip.hidden = false;
+  const x = Math.max(4, Math.min(e.clientX + 12,
+    window.innerWidth - tip.offsetWidth - 8));
+  tip.style.left = x + "px";
+  tip.style.top = (e.clientY + 16) + "px";
+}
+const gridEl = document.getElementById("grid");
+gridEl.addEventListener("pointermove", showTip);
+gridEl.addEventListener("pointerdown", showTip);
+gridEl.addEventListener("pointerleave", () => { tip.hidden = true; });
+window.addEventListener("scroll", () => { tip.hidden = true; }, { passive: true });
+
 document.getElementById("viewSeg").addEventListener("click", e => {
-  if (!e.target.dataset.v) return;
-  view = e.target.dataset.v;
-  document.querySelectorAll("#viewSeg button").forEach(b =>
-    b.classList.toggle("on", b.dataset.v === view));
-  catSel.style.display = view === "cat" ? "" : "none";
-  geoSel.style.display = view === "geo" ? "" : "none";
-  render();
+  const b = e.target.closest("button[data-v]");
+  if (!b || b.dataset.v === view) return;
+  view = b.dataset.v;
+  applyControls(); syncURL(); render();
 });
 document.getElementById("winSeg").addEventListener("click", e => {
-  if (!e.target.dataset.w) return;
-  win = e.target.dataset.w;
-  document.querySelectorAll("#winSeg button").forEach(b =>
-    b.classList.toggle("on", b.dataset.w === win));
-  render();
+  const b = e.target.closest("button[data-w]");
+  if (!b || b.dataset.w === win) return;
+  win = b.dataset.w;
+  applyControls(); syncURL(); render();
 });
-catSel.addEventListener("change", () => { cat = catSel.value; render(); });
-geoSel.addEventListener("change", () => { geo = geoSel.value; render(); });
+catSel.addEventListener("change", () => { cat = catSel.value; syncURL(); render(); });
+geoSel.addEventListener("change", () => { geo = geoSel.value; syncURL(); render(); });
 
-fetch("data/food-cpi-eu.json").then(r => r.json()).then(j => {
-  DATA = j.series; render();
-}).catch(() => {
-  document.getElementById("status").textContent =
-    "Could not load data/food-cpi-eu.json.";
-});
+fetch("data/food-cpi-eu.json")
+  .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
+  .then(j => {
+    if (!j || !j.series) throw new Error("bad payload");
+    DATA = j.series; render();
+  })
+  .catch(() => {
+    const st = document.getElementById("status");
+    if (st) st.textContent = "Could not load data/food-cpi-eu.json.";
+  });
 </script>
 </body></html>
