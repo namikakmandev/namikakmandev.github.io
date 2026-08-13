@@ -724,6 +724,22 @@
       "note": "CONSUMER prices — pet vet services paid by households, not farm animal health costs. Confirmed by 2026-08 fetch: TR publishes CP00 only (no CP0934/CP0935 — a TR vet series needs TÜİK/EVDS); IE CP0935 stops at 2023-12; all other geos current. Base years differ per country (earliest obs 1996-01 FR, 2016-12 for late joiners) — index everything to a common month before comparing."
     },
     {
+      "name": "food-cpi-eu",
+      "provider": "eurostat",
+      "dataset": "prc_hicp_midx",
+      "params": {
+        "unit": "I15",
+        "coicop": ["CP00", "CP011", "CP0111", "CP0112", "CP0113", "CP0114", "CP0115", "CP0116", "CP0117", "CP0118", "CP0121", "CP0122"],
+        "geo": ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PL", "CZ", "HU", "RO", "PT", "DK", "SE", "FI", "TR", "EL", "SK", "SI", "HR", "BG", "LT", "LV", "EE", "NO", "IE", "LU"],
+        "sinceTimePeriod": "2016-12"
+      },
+      "group_dims": ["geo", "coicop"],
+      "out": "data/food-cpi-eu.json",
+      "enabled": true,
+      "source": "Eurostat HICP monthly index (2015=100), all food classes CP0111-CP0122 plus CP011 food and CP00 all items, since Dec 2016",
+      "note": "Feeds the Food Basket Explorer. Ratio metric (class ÷ CP011) computed client-side; sinceTimePeriod trims payload for page load."
+    },
+    {
       "name": "meat-cpi-eu",
       "provider": "eurostat",
       "dataset": "prc_hicp_midx",
