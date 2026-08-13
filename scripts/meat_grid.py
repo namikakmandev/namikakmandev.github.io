@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Draft post image: relative price of meat vs the rest of the food basket.
--> notes/meat-post-draft.html (one 1080x1350 slide, 28 panels)
+-> notes/meat-post.html (one 1080x1350 slide, 28 panels)
 
 Metric: ratio of HICP meat (CP0112) to HICP food (CP011), both re-based to
 Jan 2021 = 100 — unitless, so it is comparable across all inflation levels,
@@ -100,7 +100,7 @@ for g, r, endv in panels:
 
 html = f"""<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Meat vs the food basket — draft</title>
+<title>Meat vs the food basket</title>
 <style>
 * {{ margin:0; padding:0; box-sizing:border-box; }}
 body {{ background:#06090c; font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
@@ -148,5 +148,6 @@ p.lead b {{ color:{S['ink']}; }}
   </div>
 </div>
 """
-open(os.path.join(ROOT, "notes", "meat-post-draft.html"), "w").write(html)
-print("wrote notes/meat-post-draft.html —", len(panels), "panels")
+OUT_HTML = os.path.join(ROOT, "notes", "meat-post.html")
+open(OUT_HTML, "w").write(html)
+print("wrote", OUT_HTML, "—", len(panels), "panels")
