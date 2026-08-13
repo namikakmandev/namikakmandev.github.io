@@ -21,12 +21,12 @@ S = L.S
 tr_chart = L.line_chart([("share of herd", L.PEN, S["green"])],
                         lambda v: f"{v:.0f}%", [0, 10, 20, 30, 40],
                         "Share of Turkish cattle herd insured",
-                        W=940, H=300, PADR=230)
+                        W=940, H=258, PADR=230)
 us_chart = L.line_chart([("head insured", {y: v / 1e6 for y, v in L.US_HEAD.items()},
                           S["blue"])],
                         lambda v: f"{v:.0f}M", [0, 2, 4, 6],
                         "US cattle head insured under LRP",
-                        W=940, H=300, PADR=230, xstep=4)
+                        W=940, H=258, PADR=230, xstep=4)
 
 pen13, pen24 = L.PEN["2013"], L.PEN["2024"]
 us15 = L.US_HEAD["2015"] / 1e6
@@ -45,14 +45,21 @@ body {{ background:#06090c; font-family:"IBM Plex Sans","Segoe UI",system-ui,san
   border-radius:3px; background:{S['blue']}; }}
 .kicker {{ color:{S['blue']}; font-weight:700; font-size:23px; letter-spacing:.05em;
   margin:16px 0 20px; }}
-h1 {{ font-size:56px; line-height:1.15; margin-bottom:20px; }}
-p.lead {{ font-size:24px; line-height:1.4; color:{S['ink2']}; margin-bottom:20px; }}
+h1 {{ font-size:52px; line-height:1.15; margin-bottom:16px; }}
+p.lead {{ font-size:23px; line-height:1.4; color:{S['ink2']}; margin-bottom:16px; }}
 h2 {{ font-size:27px; margin:6px 0 4px; }}
 h2 small {{ font-size:19px; color:{S['ink2']}; font-weight:400; }}
 .chart svg {{ width:100%; height:auto; display:block; }}
-p.fig {{ font-size:19px; color:{S['ink2']}; margin:2px 0 14px; }}
+p.fig {{ font-size:19px; color:{S['ink2']}; margin:2px 0 12px; }}
+.strip {{ display:flex; gap:12px; margin-top:6px; }}
+.scard {{ flex:1; border:1px solid {S['grid']}; border-radius:8px;
+  padding:10px 12px; }}
+.scard b {{ display:block; font-size:19px; margin-bottom:3px; }}
+.scard span {{ font-size:15px; line-height:1.3; display:block; }}
+.ok {{ color:{S['green']}; }} .na {{ color:{S['orange']}; }}
+.alt {{ color:{S['ink2']}; }}
 p.fig b {{ color:{S['ink']}; }}
-.note {{ position:absolute; left:84px; right:84px; bottom:116px; font-size:17px;
+.note {{ position:absolute; left:84px; right:84px; bottom:108px; font-size:16px;
   color:{S['muted']}; line-height:1.42; }}
 .footer {{ position:absolute; left:84px; right:84px; bottom:36px; display:flex;
   justify-content:space-between; align-items:flex-end; color:{S['ink2']};
@@ -79,10 +86,18 @@ p.fig b {{ color:{S['ink']}; }}
   the Jan-1 cattle inventory. In both countries the take-off follows an
   expansion of the premium subsidy.</p>
 
-  <div class="note">Different products — never summed or ranked against each
-  other. Sources: TARSİM annual reports (insured head, key-figures tables) ·
-  TÜİK/FAOSTAT herd · USDA RMA livestock participation files (net head,
-  LRP feeder + fed cattle). Own analysis of public data.</div>
+  <div class="strip">
+    <div class="scard"><b>Türkiye</b><span class="ok">TARSİM — publishes data ✓</span></div>
+    <div class="scard"><b>United States</b><span class="ok">USDA RMA — publishes data ✓</span></div>
+    <div class="scard"><b>Spain</b><span class="na">no machine-readable public series</span></div>
+    <div class="scard"><b>Germany</b><span class="alt">public epidemic funds — not insurance</span></div>
+  </div>
+
+  <div class="note">No harmonized international dataset for livestock insurance
+  exists — these are the two schemes that publish usable series. Different
+  products, never summed or ranked. Sources: TARSİM annual reports ·
+  TÜİK/FAOSTAT herd · USDA RMA livestock participation files. Own analysis
+  of public data.</div>
   <div class="footer">
     <span><b>Namık Akman</b><br><small>namikakmandev.github.io/livestock-insurance.html</small></span>
   </div>
