@@ -361,11 +361,24 @@ function buildFxBasket() {
       `<input class="w" type="number" min="0" max="100" value="${FXB[c]}"` +
       ` ${on ? "" : "disabled"} aria-label="Weight of ${c}"><span class="pct">%</span>`;
     chip.querySelector("button").addEventListener("click", () => {
-      FXB[c] = FXB[c] > 0 ? 0 : 50;
+      if (FXB[c] > 0) FXB[c] = 0;
+      else {
+        // keep the basket total at 100: new leg gets an equal share,
+        // existing legs scale down to make room
+        const others = FX_CCYS.filter(x => x !== c && FXB[x] > 0);
+        const osum = others.reduce((s, x) => s + FXB[x], 0);
+        const share = Math.round(100 / (others.length + 1));
+        if (osum > 100 - share)
+          for (const x of others) FXB[x] = Math.round(FXB[x] * (100 - share) / osum);
+        FXB[c] = share;
+      }
       buildFxBasket(); render();
     });
     chip.querySelector("input").addEventListener("change", e => {
-      FXB[c] = Math.max(0, Math.min(100, +e.target.value || 0)); render();
+      const osum = FX_CCYS.filter(x => x !== c).reduce((s, x) => s + FXB[x], 0);
+      FXB[c] = Math.max(0, Math.min(100 - osum, +e.target.value || 0));
+      e.target.value = FXB[c];
+      render();
     });
     box.appendChild(chip);
   }
@@ -494,6 +507,9 @@ Promise.all([
       const [c, w] = part.split(":");
       if (FX_CCYS.includes(c)) FXB[c] = Math.max(0, Math.min(100, +w || 0));
     }
+    const tot = FX_CCYS.reduce((s, c) => s + FXB[c], 0);
+    if (tot > 100)
+      for (const c of FX_CCYS) FXB[c] = Math.round(FXB[c] * 100 / tot);
   }
   geoSel.value = geo;
   buildMap(); buildChips(); fillDates();
