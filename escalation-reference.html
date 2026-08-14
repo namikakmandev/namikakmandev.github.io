@@ -55,6 +55,9 @@ button.copy:hover { border-color:#3987e5; }
   color:#f4f6f8; font:inherit; font-size:13px; text-align:right; }
 .chip .w:disabled { opacity:.35; }
 .chip .pct { color:#3d4654; font-size:12px; }
+.fxb { margin:-8px 0 14px; }
+.fxb .lbl { color:#3d4654; font-size:12.5px; align-self:center; }
+.chip.dim { opacity:.4; }
 #headline { font-size:17px; margin:10px 0 4px; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
   gap:16px; margin-top:12px; }
@@ -104,6 +107,8 @@ into a <b>weighted blend</b>, the way escalation formulas are written.</p>
       <button class="copy" id="copyBtn">Copy summary</button>
     </div>
     <div class="chips" id="chips" role="group" aria-label="Factors"></div>
+    <div class="chips fxb" id="fxbasket" role="group" aria-label="FX basket currencies"
+      hidden></div>
     <div id="headline" aria-live="polite"></div>
     <div class="grid" id="grid"><div id="status">Loading data…</div></div>
   </div>
@@ -119,8 +124,12 @@ manufacturing, C total manufacturing, D energy supply. Electricity
 10 000–99 999 GJ): non-household prices excluding recoverable taxes, in
 national currency, semi-annual — the standard mid-size industrial bands — national currency on purpose, so the FX factor stays separate.
 HICP all items, monthly. Labour cost index, industry B–E, quarterly,
-seasonally and calendar adjusted (lc_lci_r2_q). Monthly average exchange
-rates (ert_bil_eur_m); Bulgaria's lev is pegged and not published monthly.
+seasonally and calendar adjusted (lc_lci_r2_q). Exchange rates: monthly
+averages (ert_bil_eur_m); the FX factor is a weighted basket of invoice
+currencies (EUR, USD, GBP, CHF) against the selected country's currency,
+combined geometrically the way effective-exchange-rate indices are built,
+with cross rates derived through the euro. Bulgaria's lev is pegged and not
+published monthly.
 Each factor is clamped to its own latest published period and the card says
 so. Countries not publishing a series say "not published" — including the
 pharma-specific index in several smaller markets. Türkiye, Switzerland and
@@ -155,9 +164,43 @@ const KPIS = [
      kind: "M", s: g => CPI[g + "|CP00"], on: 1, w: 15 },
   { id: "labour", n: "Labour costs, industry", d: "labour cost index, NACE B\u2013E",
      kind: "Q", s: g => LCI[g + "|B-E"], on: 1, w: 40 },
-  { id: "fx", n: "Exchange rate", d: "monthly average vs EUR",
-     kind: "M", s: g => LOCAL_FX[g] ? FX[LOCAL_FX[g]] : FX["USD"], on: 0, w: 0 },
+  { id: "fx", n: "Exchange rate", d: "monthly average \u2014 invoice-currency basket vs local currency",
+     kind: "M", s: g => fxSeries(g), on: 0, w: 0 },
 ];
+
+// FX basket: which invoice currencies count, and how much. Combined
+// geometrically (like effective-exchange-rate indices); cross rates via EUR.
+const FX_CCYS = ["EUR", "USD", "GBP", "CHF"];
+const FXB = { EUR: 100, USD: 0, GBP: 0, CHF: 0 };
+
+function fxLegs(g) {
+  const L = LOCAL_FX[g] || "EUR";
+  const legs = FX_CCYS.filter(c => c !== L && FXB[c] > 0);
+  const W = legs.reduce((s, c) => s + FXB[c], 0);
+  return { L, legs, W };
+}
+
+function fxSeries(g) {
+  const { L, legs, W } = fxLegs(g);
+  if (!legs.length || W <= 0) return null;
+  const need = legs.filter(c => c !== "EUR");
+  if (L !== "EUR") need.push(L);
+  let months = null;
+  for (const cur of need)
+    months = months === null ? Object.keys(FX[cur])
+      : months.filter(m => FX[cur][m] !== undefined);
+  const out = {};
+  for (const m of months || []) {
+    let ln = 0;
+    for (const c of legs) {
+      const r = c === "EUR" ? FX[L][m]
+        : L === "EUR" ? 1 / FX[c][m] : FX[L][m] / FX[c][m];
+      ln += FXB[c] / W * Math.log(r);
+    }
+    out[m] = Math.exp(ln);
+  }
+  return out;
+}
 
 const monthsOf = s => Object.keys(s).sort();
 const qOf = m => m.slice(0, 4) + "-Q" + (Math.floor((+m.slice(5, 7) - 1) / 3) + 1);
@@ -197,12 +240,12 @@ function evalKpi(k) {
   const kindNote = k.kind === "Q" ? " (quarterly)" : k.kind === "S" ? " (semi-annual)" : "";
   const clamped = k.kind !== "M" || r[0] !== from || r[1] !== to;
   let extra = "";
-  if (k.id === "fx" && v !== null) {
-    const cur = LOCAL_FX[geo];
-    extra = cur
-      ? (v > 0.5 ? cur + " per EUR \u2014 currency weakened" :
-         v < -0.5 ? cur + " per EUR \u2014 currency strengthened" : cur + " per EUR, stable")
-      : "USD per EUR (euro-area country, context)";
+  if (k.id === "fx") {
+    const { L, legs, W } = fxLegs(geo);
+    const b = legs.map(c => Math.round(FXB[c] / W * 100) + "% " + c).join(" + ");
+    extra = `${L} vs ${b}` +
+      (v > 0.5 ? ` \u2014 ${L} weakened` :
+       v < -0.5 ? ` \u2014 ${L} strengthened` : ", stable");
   }
   return { v,
     sub: [clamped ? r[0] + " \u2192 " + r[1] + kindNote : null, extra || null]
@@ -246,8 +289,11 @@ function render() {
   for (const k of KPIS) {
     if (!k.on) continue;
     const r = results[k.id];
+    const naTxt = k.id === "fx"
+      ? "Pick at least one basket currency other than the local currency."
+      : "Not published for this country.";
     const body = r.v === null
-      ? `<div class="na">Not published for this country.</div>`
+      ? `<div class="na">${naTxt}</div>`
       : `<div class="big ${r.v > 0.5 ? "up" : r.v < -0.5 ? "down" : "flat"}">` +
         `${fmt(r.v)}</div>` + r.spark +
         (r.sub ? `<div class="sub2">${r.sub}</div>` : "");
@@ -257,8 +303,12 @@ function render() {
   document.getElementById("grid").innerHTML = cards.join("") ||
     `<div id="status">Add at least one factor above.</div>`;
   const kparam = KPIS.filter(k => k.on).map(k => k.id + ":" + k.w).join(",");
+  const params = { geo, from, to, k: kparam };
+  if (KPIS.find(x => x.id === "fx").on)
+    params.fxb = FX_CCYS.filter(c => FXB[c] > 0)
+      .map(c => c + ":" + FXB[c]).join(",");
   history.replaceState(null, "",
-    location.pathname + "?" + new URLSearchParams({ geo, from, to, k: kparam }));
+    location.pathname + "?" + new URLSearchParams(params));
   document.title = `Cost Escalation Reference \u2014 ${NAMES[geo]}`;
   document.querySelectorAll("#map path[data-geo]").forEach(p =>
     p.classList.toggle("sel", p.dataset.geo === geo));
@@ -284,6 +334,40 @@ function buildChips() {
       k.w = Math.max(0, Math.min(100, +e.target.value || 0)); render();
     });
     box.appendChild(c);
+  }
+  buildFxBasket();
+}
+
+function buildFxBasket() {
+  const box = document.getElementById("fxbasket");
+  const fx = KPIS.find(k => k.id === "fx");
+  box.hidden = !fx.on;
+  box.innerHTML = "";
+  if (!fx.on) return;
+  const L = LOCAL_FX[geo] || "EUR";
+  const lbl = document.createElement("span");
+  lbl.className = "lbl";
+  lbl.textContent = "FX basket \u2014 invoice currencies vs " + L + ":";
+  box.appendChild(lbl);
+  for (const c of FX_CCYS) {
+    const isLocal = c === L, on = FXB[c] > 0 && !isLocal;
+    const chip = document.createElement("span");
+    chip.className = "chip" + (on ? " on" : "") + (isLocal ? " dim" : "");
+    if (isLocal)
+      chip.title = "Local currency \u2014 a currency can't move against itself";
+    chip.innerHTML = `<button aria-pressed="${on}" ${isLocal ? "disabled" : ""}` +
+      ` style="all:unset;cursor:${isLocal ? "not-allowed" : "pointer"}">` +
+      `${on ? "\u2713 " : "+ "}${c}</button>` +
+      `<input class="w" type="number" min="0" max="100" value="${FXB[c]}"` +
+      ` ${on ? "" : "disabled"} aria-label="Weight of ${c}"><span class="pct">%</span>`;
+    chip.querySelector("button").addEventListener("click", () => {
+      FXB[c] = FXB[c] > 0 ? 0 : 50;
+      buildFxBasket(); render();
+    });
+    chip.querySelector("input").addEventListener("change", e => {
+      FXB[c] = Math.max(0, Math.min(100, +e.target.value || 0)); render();
+    });
+    box.appendChild(chip);
   }
 }
 
@@ -314,7 +398,7 @@ function buildMap() {
     const p = e.target.closest("path[data-geo]");
     if (!p) return;
     geo = p.dataset.geo; document.getElementById("geoSel").value = geo;
-    fillDates(); render();
+    fillDates(); buildFxBasket(); render();
   });
   const hint = document.getElementById("maphint");
   const hintDefault = hint.innerHTML;
@@ -348,7 +432,8 @@ function fillDates() {
   if (from >= to) from = ms[0];
   fromSel.value = from; toSel.value = to;
 }
-geoSel.addEventListener("change", () => { geo = geoSel.value; fillDates(); render(); });
+geoSel.addEventListener("change", () => { geo = geoSel.value;
+  fillDates(); buildFxBasket(); render(); });
 fromSel.addEventListener("change", () => { from = fromSel.value;
   if (from >= to) { to = monthsOf(PPI[geo + "|C"]).slice(-1)[0]; toSel.value = to; }
   render(); });
@@ -402,6 +487,13 @@ Promise.all([
       if (k) { k.on = 1; k.w = Math.max(0, Math.min(100, +w || 0)); }
     }
     if (!KPIS.some(k => k.on)) { KPIS[0].on = 1; KPIS[0].w = 100; }
+  }
+  if (q.get("fxb")) {
+    for (const c of FX_CCYS) FXB[c] = 0;
+    for (const part of q.get("fxb").split(",")) {
+      const [c, w] = part.split(":");
+      if (FX_CCYS.includes(c)) FXB[c] = Math.max(0, Math.min(100, +w || 0));
+    }
   }
   geoSel.value = geo;
   buildMap(); buildChips(); fillDates();
