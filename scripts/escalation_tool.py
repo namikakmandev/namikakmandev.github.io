@@ -139,6 +139,8 @@ input::placeholder {{ color:#556070; }}
 #avgbar .qval.up {{ color:{S['orange']}; }} #avgbar .qval.down {{ color:{S['blue']}; }}
 #avgbar .qval.flat {{ color:{S['ink']}; }}
 #avgbar .qsub {{ color:{S['ink2']}; font-size:12px; }}
+#avgbar .qassess {{ color:{S['ink']}; font-size:14px; line-height:1.5;
+  margin-top:10px; max-width:660px; }}
 #avgbar .qbar svg {{ width:100%; max-width:660px; height:auto; display:block;
   margin-top:6px; }}
 #avgbar {{ background:{S['surface']}; border-left:3px solid {S['blue']};
@@ -473,6 +475,16 @@ function render() {{
         `<span class="qval ${{pcls(diff)}}">${{f1(diff)}} pp</span>` +
         `<span class="qsub">proposal is ${{f1(rel)}}% vs the index price</span></span>` +
         `</div>` + qBar(qOld, expected, qNew, fmtP);
+      const ad = (Math.round(Math.abs(diff) * 10) / 10).toFixed(1);
+      const assess = Math.abs(diff) <= 0.5
+        ? `The proposed ${{fmt(prop)}} is broadly in line with the ` +
+          `${{fmt(bl.val)}} the selected indices moved over this window; ` +
+          `the indices alone would take ${{fmtP(qOld)}} to ${{fmtP(expected)}}.`
+        : `The proposed ${{fmt(prop)}} is ${{ad}} points ` +
+          `${{diff > 0 ? "above" : "below"}} the ${{fmt(bl.val)}} the selected ` +
+          `indices moved over this window; the indices alone would take ` +
+          `${{fmtP(qOld)}} to ${{fmtP(expected)}}.`;
+      qc += `<div class="qassess">${{assess}}</div>`;
     }}
     bar.innerHTML = head +
       `<div class="val ${{cls}}">${{fmt(bl.val)}}</div>` +
@@ -725,10 +737,19 @@ document.getElementById("copyBtn").addEventListener("click", () => {{
       const expected = Math.round(qOld * (1 + bl.val / 100) * 100) / 100;
       const rel = (qNew / expected - 1) * 100;
       const f1 = v => (v > 0 ? "+" : "") + (Math.round(v * 10) / 10).toFixed(1);
+      const ad = (Math.round(Math.abs(diff) * 10) / 10).toFixed(1);
+      const assess = Math.abs(diff) <= 0.5
+        ? `The proposed ${{fmt(prop)}} is broadly in line with the ` +
+          `${{fmt(bl.val)}} the selected indices moved over this window; ` +
+          `the indices alone would take ${{qOld}} to ${{expected}}.`
+        : `The proposed ${{fmt(prop)}} is ${{ad}} points ` +
+          `${{diff > 0 ? "above" : "below"}} the ${{fmt(bl.val)}} the selected ` +
+          `indices moved over this window; the indices alone would take ` +
+          `${{qOld}} to ${{expected}}.`;
       lines.push(``, `Proposal check: ${{qOld}} \\u2192 ${{qNew}} = ${{fmt(prop)}};` +
         ` index blend ${{fmt(bl.val)}}; gap ${{f1(diff)}} pp.`,
         `Index-escalated price: ${{expected}} \\u2014 the proposal is ` +
-        `${{f1(rel)}}% vs that reference.`);
+        `${{f1(rel)}}% vs that reference.`, assess);
     }}
   }}
   lines.push(``, `Source: ${{location.href}}`);
