@@ -407,7 +407,7 @@ function fmt(v) {{
 
 // scale bar: agreed price -> index-escalated price -> proposed price.
 // Blue = the part the indices explain; orange = the part beyond them.
-function qBar(a, ex, p, fmtP) {{
+function qBar(a, ex, p, fmtP, offTxt) {{
   const W = 640, H = 66, L = 12, R = 12;
   const lo = Math.min(a, ex, p), hi = Math.max(a, ex, p);
   const span = (hi - lo) || 1;
@@ -426,7 +426,15 @@ function qBar(a, ex, p, fmtP) {{
   let s = `<rect x="${{L}}" y="${{y}}" width="${{W - L - R}}" height="${{h}}"` +
     ` rx="3" fill="#161c23"/>`;
   s += seg(Math.min(a, ex), Math.max(a, ex), BLUE);
-  if (p > ex) s += seg(ex, p, ORANGE);
+  if (p > ex) {{
+    s += seg(ex, p, ORANGE);
+    // label the deviation on the orange run when there is room for it
+    const mid = (x(ex) + x(p)) / 2;
+    if (x(p) - x(ex) > 100 && mid - cT(x(ex)) > 78)
+      s += `<text x="${{mid.toFixed(1)}}" y="${{y - 13}}" fill="${{ORANGE}}"` +
+        ` font-size="11.5" text-anchor="middle"` +
+        ` font-family="IBM Plex Sans,sans-serif">off by ${{offTxt}}</text>`;
+  }}
   s += tick(a, INK2) + tick(ex, BLUE) + tick(p, p > ex ? ORANGE : INK2);
   s += lbl(a, "agreed " + fmtP(a), INK2, false) +
        lbl(ex, "indices \\u2192 " + fmtP(ex), BLUE, true) +
@@ -471,23 +479,27 @@ function render() {{
       const diff = prop - bl.val;
       const expected = qOld * (1 + bl.val / 100);
       const rel = (qNew / expected - 1) * 100;
+      const off = qNew - expected;
       const pcls = v => v > 0.5 ? "up" : v < -0.5 ? "down" : "flat";
       const fmtP = x => (Math.round(x * 100) / 100).toLocaleString("en-US");
       const f1 = v => (v > 0 ? "+" : "") + (Math.round(v * 10) / 10).toFixed(1);
+      const offTxt = (off > 0 ? "+" : off < 0 ? "\\u2212" : "") +
+        fmtP(Math.abs(off));
       qc = `<div class="qc">` +
         `<span class="qcell"><span class="qlbl">PROPOSED</span>` +
         `<span class="qval ${{pcls(prop)}}">${{fmt(prop)}}</span>` +
         `<span class="qsub">${{fmtP(qOld)}} \\u2192 ${{fmtP(qNew)}}</span></span>` +
-        `<span class="qcell"><span class="qlbl">INDEX BLEND</span>` +
+        `<span class="qcell"><span class="qlbl">ACTUAL INDEX CHANGE</span>` +
         `<span class="qval ${{pcls(bl.val)}}">${{fmt(bl.val)}}</span>` +
         `<span class="qsub">same window, your weights</span></span>` +
         `<span class="qcell"><span class="qlbl">INDEX-ESCALATED PRICE</span>` +
         `<span class="qval flat">${{fmtP(expected)}}</span>` +
         `<span class="qsub">agreed ${{fmtP(qOld)}} moved by the blend</span></span>` +
-        `<span class="qcell"><span class="qlbl">GAP</span>` +
-        `<span class="qval ${{pcls(diff)}}">${{f1(diff)}} pp</span>` +
-        `<span class="qsub">proposal is ${{f1(rel)}}% vs the index price</span></span>` +
-        `</div>` + qBar(qOld, expected, qNew, fmtP);
+        `<span class="qcell"><span class="qlbl">OFF BY</span>` +
+        `<span class="qval ${{pcls(rel)}}">${{offTxt}}</span>` +
+        `<span class="qsub">${{f1(diff)}} pp vs the actual change \\u00b7 ` +
+        `${{f1(rel)}}% vs the index price</span></span>` +
+        `</div>` + qBar(qOld, expected, qNew, fmtP, offTxt);
       const ad = (Math.round(Math.abs(diff) * 10) / 10).toFixed(1);
       const assess = Math.abs(diff) <= 0.5
         ? `The proposed ${{fmt(prop)}} is broadly in line with the ` +
@@ -495,8 +507,9 @@ function render() {{
           `the indices alone would take ${{fmtP(qOld)}} to ${{fmtP(expected)}}.`
         : `The proposed ${{fmt(prop)}} is ${{ad}} points ` +
           `${{diff > 0 ? "above" : "below"}} the ${{fmt(bl.val)}} the selected ` +
-          `indices moved over this window; the indices alone would take ` +
-          `${{fmtP(qOld)}} to ${{fmtP(expected)}}.`;
+          `indices moved over this window. The indices alone would take ` +
+          `${{fmtP(qOld)}} to ${{fmtP(expected)}} \\u2014 the proposal sits ` +
+          `${{offTxt}} ${{off > 0 ? "above" : "below"}} that (${{f1(rel)}}%).`;
       qc += `<div class="qassess">${{assess}}</div>`;
     }}
     bar.innerHTML = head +
@@ -789,10 +802,12 @@ document.getElementById("copyBtn").addEventListener("click", () => {{
           `${{diff > 0 ? "above" : "below"}} the ${{fmt(bl.val)}} the selected ` +
           `indices moved over this window; the indices alone would take ` +
           `${{qOld}} to ${{expected}}.`;
+      const off = Math.round((qNew - expected) * 100) / 100;
       lines.push(``, `Proposal check: ${{qOld}} \\u2192 ${{qNew}} = ${{fmt(prop)}};` +
-        ` index blend ${{fmt(bl.val)}}; gap ${{f1(diff)}} pp.`,
+        ` actual index change ${{fmt(bl.val)}}; off by ${{f1(diff)}} pp.`,
         `Index-escalated price: ${{expected}} \\u2014 the proposal is ` +
-        `${{f1(rel)}}% vs that reference.`, assess);
+        `${{off > 0 ? "+" : ""}}${{off}} in price terms (${{f1(rel)}}%) vs that ` +
+        `reference.`, assess);
     }}
   }}
   lines.push(``, `Source: ${{location.href}}`);
