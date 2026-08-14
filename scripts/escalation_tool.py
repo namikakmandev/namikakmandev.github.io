@@ -28,6 +28,7 @@ LOCAL_FX = {"PL": "PLN", "CZ": "CZK", "HU": "HUF", "RO": "RON",
             "SE": "SEK", "DK": "DKK", "NO": "NOK"}
 
 names_js = json.dumps({g: M.NAMES[g] for g in GEOS})
+flags_js = json.dumps({g: M.FLAGS[g] for g in GEOS})
 fx_js = json.dumps(LOCAL_FX)
 
 html = f"""<!DOCTYPE html>
@@ -56,14 +57,18 @@ p.sub {{ color:{S['ink2']}; font-size:15.5px; line-height:1.5; max-width:78ch;
 .top {{ display:grid; grid-template-columns:minmax(280px,420px) 1fr; gap:22px;
   align-items:start; }}
 #map {{ background:{S['surface']}; border-radius:10px; padding:8px; }}
-#map svg {{ width:100%; height:auto; display:block; }}
-#map path {{ fill:#182028; stroke:#0b0f14; stroke-width:.6; cursor:pointer;
+#map > svg {{ width:100%; height:auto; display:block; }}
+#map path {{ fill:#2b3844; stroke:#0b0f14; stroke-width:.7; cursor:pointer;
   transition:fill .12s; }}
-#map path.ctx {{ fill:#10151b; cursor:not-allowed; }}
-#map path:hover {{ fill:#24303c; }}
-#map path.ctx:hover {{ fill:#151b22; }}
+#map path.ctx {{ fill:#161c23; cursor:not-allowed; }}
+#map path:hover {{ fill:#40546a; }}
+#map path.ctx:hover {{ fill:#1b232c; }}
 #map path.sel {{ fill:{S['blue']}; }}
-#maphint {{ color:{S['muted']}; font-size:12.5px; padding:6px 8px 2px; }}
+#maphint {{ color:{S['ink2']}; font-size:13px; padding:6px 8px 2px; min-height:24px;
+  display:flex; align-items:center; gap:7px; }}
+.flag {{ width:22px; height:15px; border-radius:2.5px; flex:none; vertical-align:-2px;
+  outline:1px solid rgba(255,255,255,.16); outline-offset:-1px; }}
+#headline .flag {{ width:26px; height:17px; margin-right:8px; }}
 .controls {{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;
   align-items:center; }}
 .controls label {{ color:{S['ink2']}; font-size:13.5px; }}
@@ -160,6 +165,7 @@ data/gas-eu.json. Personal analysis of public statistics; views my own.</div>
 </div>
 <script>
 const NAMES = {names_js};
+const FLAGS = {flags_js};
 const LOCAL_FX = {fx_js};
 const ORANGE = "{S['orange']}", BLUE = "{S['blue']}", INK2 = "{S['ink2']}",
       GRID = "{S['grid']}", MUTED = "{S['muted']}";
@@ -320,10 +326,12 @@ function buildMap() {{
   const W = 460, U = W / ((LON1 - LON0) * K), H = (LAT1 - LAT0) * U;
   const px = lon => ((lon - LON0) * K * U).toFixed(1);
   const py = lat => ((LAT1 - lat) * U).toFixed(1);
+  const inWin = r => r.some(c => c[0] > LON0 - 1 && c[0] < LON1 + 1 &&
+                                 c[1] > LAT0 - 1 && c[1] < LAT1 + 1);
   const ring = r => "M" + r.map(c => px(c[0]) + "," + py(c[1])).join("L") + "Z";
   const geom = f => f.geometry.type === "Polygon"
-    ? f.geometry.coordinates.map(ring).join("")
-    : f.geometry.coordinates.map(p => p.map(ring).join("")).join("");
+    ? (inWin(f.geometry.coordinates[0]) ? f.geometry.coordinates.map(ring).join("") : "")
+    : f.geometry.coordinates.filter(p => inWin(p[0])).map(p => p.map(ring).join("")).join("");
   const parts = [];
   for (const f of GEO.features) {{
     let code = f.properties.iso2 === "GR" ? "EL" : f.properties.iso2;
@@ -341,6 +349,19 @@ function buildMap() {{
     geo = p.dataset.geo; document.getElementById("geoSel").value = geo;
     fillDates(); render();
   }});
+  const hint = document.getElementById("maphint");
+  const hintDefault = hint.innerHTML;
+  document.getElementById("map").addEventListener("mousemove", e => {{
+    const p = e.target.closest("path");
+    if (!p) {{ hint.innerHTML = hintDefault; return; }}
+    const code = p.dataset.geo;
+    hint.innerHTML = code
+      ? `<svg class="flag" viewBox="0 0 24 16">${{FLAGS[code]}}</svg>` +
+        `<span>${{NAMES[code]}} \u2014 click to select</span>`
+      : `<span>${{p.querySelector("title").textContent}}</span>`;
+  }});
+  document.getElementById("map").addEventListener("mouseleave",
+    () => {{ hint.innerHTML = hintDefault; }});
 }}
 
 // ---- dates
