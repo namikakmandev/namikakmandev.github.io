@@ -714,10 +714,46 @@
       "dataset": "prc_hicp_midx",
       "params": {
         "unit": "I15",
-        "coicop": ["CP00", "CP0934", "CP0935"],
-        "geo": ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "IE", "PL", "CZ", "HU", "RO", "PT", "DK", "SE", "FI", "EA20", "TR", "EL", "SK", "SI", "HR", "BG", "LT", "LV", "EE", "LU", "NO"]
+        "coicop": [
+          "CP00",
+          "CP0934",
+          "CP0935"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "IE",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EA20",
+          "TR",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "LU",
+          "NO"
+        ]
       },
-      "group_dims": ["geo", "coicop"],
+      "group_dims": [
+        "geo",
+        "coicop"
+      ],
       "out": "data/vet-cpi-eu.json",
       "enabled": true,
       "source": "Eurostat HICP monthly index (2015=100): CP00 all-items, CP0934 pets and related products, CP0935 veterinary and other services for pets",
@@ -728,41 +764,130 @@
       "provider": "eurostat",
       "dataset": "sts_inppd_m",
       "params": {
-        "geo": ["PL", "DE"],
-        "nace_r2": ["C21", "C", "D"]
+        "indic_bt": "PRC_PRR_DOM",
+        "s_adj": "NSA",
+        "unit": "I21",
+        "nace_r2": [
+          "C21",
+          "C",
+          "D"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU"
+        ],
+        "sinceTimePeriod": "2015-01"
       },
-      "group_dims": ["geo", "nace_r2"],
+      "group_dims": [
+        "geo",
+        "nace_r2"
+      ],
       "out": "data/ppi-eu.json",
       "enabled": true,
-      "source": "Eurostat sts_inppd_m — producer prices in industry, domestic market, monthly. DISCOVERY CONFIG: params narrowed after the discovery run confirms indic_bt/s_adj/unit codes.",
-      "note": "Feeds the cost-escalation tool: pharma manufacturing (C21), total manufacturing (C), energy supply (D)."
+      "source": "Eurostat sts_inppd_m — domestic producer prices, monthly, 2021=100, unadjusted: pharma manufacturing (C21), total manufacturing (C), energy supply (D)",
+      "note": "Feeds the cost-escalation tool. C21 coverage varies by country — missing combos declared in the tool, never guessed. Türkiye not in Eurostat STS (declared gap)."
     },
     {
       "name": "lci-eu",
       "provider": "eurostat",
       "dataset": "lc_lci_r2_q",
       "params": {
-        "geo": ["PL", "DE"],
-        "nace_r2": ["B-E"]
+        "unit": "I20",
+        "s_adj": "SCA",
+        "lcstruct": "D1_D4_MD5",
+        "nace_r2": "B-E",
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU"
+        ],
+        "sinceTimePeriod": "2015"
       },
-      "group_dims": ["geo", "nace_r2"],
+      "group_dims": [
+        "geo",
+        "nace_r2"
+      ],
       "out": "data/lci-eu.json",
       "enabled": true,
-      "source": "Eurostat lc_lci_r2_q — labour cost index, quarterly. DISCOVERY CONFIG: unit/lcstruct/s_adj codes to be confirmed by discovery.",
-      "note": "Feeds the cost-escalation tool: industry labour costs (NACE B-E)."
+      "source": "Eurostat lc_lci_r2_q — labour cost index, industry (B-E), quarterly, 2020=100, seasonally and calendar adjusted, total labour cost",
+      "note": "Feeds the cost-escalation tool. SCA chosen so arbitrary quarter-to-quarter windows are not distorted by bonus seasonality — stated on the tool."
     },
     {
       "name": "fx-eur-m",
       "provider": "eurostat",
       "dataset": "ert_bil_eur_m",
       "params": {
-        "currency": ["USD", "PLN", "HUF", "CZK", "TRY", "RON", "BGN", "SEK", "DKK", "NOK", "CHF", "GBP"]
+        "statinfo": "AVG",
+        "unit": "NAC",
+        "currency": [
+          "USD",
+          "PLN",
+          "HUF",
+          "CZK",
+          "TRY",
+          "RON",
+          "SEK",
+          "DKK",
+          "NOK",
+          "CHF",
+          "GBP"
+        ],
+        "sinceTimePeriod": "2015-01"
       },
-      "group_dims": ["currency"],
+      "group_dims": [
+        "currency"
+      ],
       "out": "data/fx-eur-m.json",
       "enabled": true,
-      "source": "Eurostat ert_bil_eur_m — monthly average exchange rates, national currency per euro. DISCOVERY CONFIG: statinfo/unit codes to be confirmed by discovery.",
-      "note": "Feeds the cost-escalation tool: hard-currency argument."
+      "source": "Eurostat ert_bil_eur_m — monthly average exchange rates, national currency per euro",
+      "note": "Feeds the cost-escalation tool. BGN not published monthly (currency-board peg to EUR) — noted in the tool."
     },
     {
       "name": "food-cpi-eu",
@@ -770,11 +895,55 @@
       "dataset": "prc_hicp_midx",
       "params": {
         "unit": "I15",
-        "coicop": ["CP00", "CP011", "CP0111", "CP0112", "CP0113", "CP0114", "CP0115", "CP0116", "CP0117", "CP0118", "CP0121", "CP0122"],
-        "geo": ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PL", "CZ", "HU", "RO", "PT", "DK", "SE", "FI", "TR", "EL", "SK", "SI", "HR", "BG", "LT", "LV", "EE", "NO", "IE", "LU"],
+        "coicop": [
+          "CP00",
+          "CP011",
+          "CP0111",
+          "CP0112",
+          "CP0113",
+          "CP0114",
+          "CP0115",
+          "CP0116",
+          "CP0117",
+          "CP0118",
+          "CP0121",
+          "CP0122"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "TR",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU"
+        ],
         "sinceTimePeriod": "2016-12"
       },
-      "group_dims": ["geo", "coicop"],
+      "group_dims": [
+        "geo",
+        "coicop"
+      ],
       "out": "data/food-cpi-eu.json",
       "enabled": true,
       "source": "Eurostat HICP monthly index (2015=100), all food classes CP0111-CP0122 plus CP011 food and CP00 all items, since Dec 2016",
@@ -786,10 +955,46 @@
       "dataset": "prc_hicp_midx",
       "params": {
         "unit": "I15",
-        "coicop": ["CP00", "CP011", "CP0112"],
-        "geo": ["DE", "FR", "IT", "ES", "NL", "BE", "AT", "PL", "CZ", "HU", "RO", "PT", "DK", "SE", "FI", "EA20", "TR", "EL", "SK", "SI", "HR", "BG", "LT", "LV", "EE", "NO", "IE", "LU"]
+        "coicop": [
+          "CP00",
+          "CP011",
+          "CP0112"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EA20",
+          "TR",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU"
+        ]
       },
-      "group_dims": ["geo", "coicop"],
+      "group_dims": [
+        "geo",
+        "coicop"
+      ],
       "out": "data/meat-cpi-eu.json",
       "enabled": true,
       "source": "Eurostat HICP monthly index (2015=100): CP00 all items, CP011 food, CP0112 meat",
