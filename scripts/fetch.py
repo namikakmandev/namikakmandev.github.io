@@ -388,8 +388,42 @@ def _raw(v):
     return v if isinstance(v, (int, float)) else None
 
 
+def geojson_filter(entry):
+    """Download a GeoJSON, keep features whose `prop` is in `keep`, round
+    coordinates to `precision` decimals. Returns {"_geojson": subset} which
+    run() writes verbatim (not a time series)."""
+    j = json.loads(get(entry["url"]).decode("utf-8", "replace"))
+    prop = entry["prop"]
+    keep = set(entry["keep"])
+    prec = entry.get("precision", 2)
+    if MODE == "discover":
+        sample = j["features"][0]["properties"]
+        return {"_discover": {"n_features": len(j["features"]),
+                              "property_keys": sorted(sample.keys()),
+                              "sample_props": {k: sample[k] for k in list(sample)[:20]}}}
+
+    def rnd(c):
+        if isinstance(c, (int, float)):
+            return round(c, prec)
+        return [rnd(x) for x in c]
+
+    feats = []
+    for f in j["features"]:
+        code = f["properties"].get(prop)
+        if code in keep:
+            feats.append({"type": "Feature",
+                          "properties": {"iso2": code,
+                                         "name": f["properties"].get("NAME", code)},
+                          "geometry": {"type": f["geometry"]["type"],
+                                       "coordinates": rnd(f["geometry"]["coordinates"])}})
+    missing = sorted(keep - {f["properties"]["iso2"] for f in feats})
+    return {"_geojson": {"type": "FeatureCollection", "features": feats},
+            "_missing": missing}
+
+
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
-             "yahoo": yahoo, "yahoo_valuation": yahoo_valuation}
+             "yahoo": yahoo, "yahoo_valuation": yahoo_valuation,
+             "geojson_filter": geojson_filter}
 
 
 # ----------------------------------------------------------------- runner
@@ -400,6 +434,15 @@ def run(entry):
     if "_discover" in data:
         report[name] = {"mode": "discover", **data["_discover"]}
         print(json.dumps(data["_discover"], indent=1, default=str)[:24000])
+        return
+    if "_geojson" in data:
+        out_path = os.path.join(ROOT, entry["out"])
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        json.dump(data["_geojson"], open(out_path, "w"), separators=(",", ":"))
+        report[name] = {"ok": True, "n_features": len(data["_geojson"]["features"]),
+                        "missing_codes": data["_missing"]}
+        print(f"[ok]   {name}: {len(data['_geojson']['features'])} features; "
+              f"missing {data['_missing']}")
         return
     counts = {k: len(v) for k, v in data.items()}
     empty = [k for k, n in counts.items() if n == 0]
