@@ -724,6 +724,47 @@
       "note": "CONSUMER prices — pet vet services paid by households, not farm animal health costs. Confirmed by 2026-08 fetch: TR publishes CP00 only (no CP0934/CP0935 — a TR vet series needs TÜİK/EVDS); IE CP0935 stops at 2023-12; all other geos current. Base years differ per country (earliest obs 1996-01 FR, 2016-12 for late joiners) — index everything to a common month before comparing."
     },
     {
+      "name": "ppi-eu",
+      "provider": "eurostat",
+      "dataset": "sts_inppd_m",
+      "params": {
+        "geo": ["PL", "DE"],
+        "nace_r2": ["C21", "C", "D"]
+      },
+      "group_dims": ["geo", "nace_r2"],
+      "out": "data/ppi-eu.json",
+      "enabled": true,
+      "source": "Eurostat sts_inppd_m — producer prices in industry, domestic market, monthly. DISCOVERY CONFIG: params narrowed after the discovery run confirms indic_bt/s_adj/unit codes.",
+      "note": "Feeds the cost-escalation tool: pharma manufacturing (C21), total manufacturing (C), energy supply (D)."
+    },
+    {
+      "name": "lci-eu",
+      "provider": "eurostat",
+      "dataset": "lc_lci_r2_q",
+      "params": {
+        "geo": ["PL", "DE"],
+        "nace_r2": ["B-E"]
+      },
+      "group_dims": ["geo", "nace_r2"],
+      "out": "data/lci-eu.json",
+      "enabled": true,
+      "source": "Eurostat lc_lci_r2_q — labour cost index, quarterly. DISCOVERY CONFIG: unit/lcstruct/s_adj codes to be confirmed by discovery.",
+      "note": "Feeds the cost-escalation tool: industry labour costs (NACE B-E)."
+    },
+    {
+      "name": "fx-eur-m",
+      "provider": "eurostat",
+      "dataset": "ert_bil_eur_m",
+      "params": {
+        "currency": ["USD", "PLN", "HUF", "CZK", "TRY", "RON", "BGN", "SEK", "DKK", "NOK", "CHF", "GBP"]
+      },
+      "group_dims": ["currency"],
+      "out": "data/fx-eur-m.json",
+      "enabled": true,
+      "source": "Eurostat ert_bil_eur_m — monthly average exchange rates, national currency per euro. DISCOVERY CONFIG: statinfo/unit codes to be confirmed by discovery.",
+      "note": "Feeds the cost-escalation tool: hard-currency argument."
+    },
+    {
       "name": "food-cpi-eu",
       "provider": "eurostat",
       "dataset": "prc_hicp_midx",
