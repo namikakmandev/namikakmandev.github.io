@@ -139,6 +139,8 @@ input::placeholder {{ color:#556070; }}
 #avgbar .qval.up {{ color:{S['orange']}; }} #avgbar .qval.down {{ color:{S['blue']}; }}
 #avgbar .qval.flat {{ color:{S['ink']}; }}
 #avgbar .qsub {{ color:{S['ink2']}; font-size:12px; }}
+#avgbar .qbar svg {{ width:100%; max-width:660px; height:auto; display:block;
+  margin-top:6px; }}
 #avgbar {{ background:{S['surface']}; border-left:3px solid {S['blue']};
   border-radius:0 10px 10px 0; padding:16px 20px 14px; margin:16px 0 4px; }}
 #avgbar .toprow {{ display:flex; align-items:center; gap:9px; flex-wrap:wrap;
@@ -388,6 +390,37 @@ function fmt(v) {{
   return (r > 0 ? "+" : "") + r.toFixed(1) + "%";
 }}
 
+// scale bar: agreed price -> index-escalated price -> proposed price.
+// Blue = the part the indices explain; orange = the part beyond them.
+function qBar(a, ex, p, fmtP) {{
+  const W = 640, H = 66, L = 12, R = 12;
+  const lo = Math.min(a, ex, p), hi = Math.max(a, ex, p);
+  const span = (hi - lo) || 1;
+  const x = v => L + (v - lo) / span * (W - L - R);
+  const cT = v => Math.max(52, Math.min(W - 52, v));
+  const y = 30, h = 8;
+  const seg = (v1, v2, col) => v2 > v1
+    ? `<rect x="${{x(v1).toFixed(1)}}" y="${{y}}" width="` +
+      `${{(x(v2) - x(v1)).toFixed(1)}}" height="${{h}}" rx="3" fill="${{col}}"/>`
+    : "";
+  const tick = (v, col) => `<rect x="${{(x(v) - 1).toFixed(1)}}" y="${{y - 7}}"` +
+    ` width="2" height="${{h + 14}}" fill="${{col}}"/>`;
+  const lbl = (v, txt, col, above) => `<text x="${{cT(x(v)).toFixed(1)}}"` +
+    ` y="${{above ? y - 13 : y + h + 20}}" fill="${{col}}" font-size="11.5"` +
+    ` text-anchor="middle" font-family="IBM Plex Sans,sans-serif">${{txt}}</text>`;
+  let s = `<rect x="${{L}}" y="${{y}}" width="${{W - L - R}}" height="${{h}}"` +
+    ` rx="3" fill="#161c23"/>`;
+  s += seg(Math.min(a, ex), Math.max(a, ex), BLUE);
+  if (p > ex) s += seg(ex, p, ORANGE);
+  s += tick(a, INK2) + tick(ex, BLUE) + tick(p, p > ex ? ORANGE : INK2);
+  s += lbl(a, "agreed " + fmtP(a), INK2, false) +
+       lbl(ex, "indices \\u2192 " + fmtP(ex), BLUE, true) +
+       lbl(p, "proposed " + fmtP(p), p > ex ? ORANGE : INK2, false);
+  return `<div class="qbar"><svg viewBox="0 0 ${{W}} ${{H}}" role="img"` +
+    ` aria-label="Agreed price, index-escalated price and proposed price` +
+    ` on one scale">${{s}}</svg></div>`;
+}}
+
 function blend(results) {{
   const inc = KPIS.filter(k => k.on);
   const avail = inc.filter(k => results[k.id].v !== null && k.w > 0);
@@ -422,8 +455,10 @@ function render() {{
       const prop = (qNew / qOld - 1) * 100;
       const diff = prop - bl.val;
       const expected = qOld * (1 + bl.val / 100);
+      const rel = (qNew / expected - 1) * 100;
       const pcls = v => v > 0.5 ? "up" : v < -0.5 ? "down" : "flat";
       const fmtP = x => (Math.round(x * 100) / 100).toLocaleString("en-US");
+      const f1 = v => (v > 0 ? "+" : "") + (Math.round(v * 10) / 10).toFixed(1);
       qc = `<div class="qc">` +
         `<span class="qcell"><span class="qlbl">PROPOSED</span>` +
         `<span class="qval ${{pcls(prop)}}">${{fmt(prop)}}</span>` +
@@ -431,11 +466,13 @@ function render() {{
         `<span class="qcell"><span class="qlbl">INDEX BLEND</span>` +
         `<span class="qval ${{pcls(bl.val)}}">${{fmt(bl.val)}}</span>` +
         `<span class="qsub">same window, your weights</span></span>` +
-        `<span class="qcell"><span class="qlbl">DIFFERENCE</span>` +
-        `<span class="qval ${{pcls(diff)}}">${{(diff > 0 ? "+" : "") +
-          (Math.round(diff * 10) / 10).toFixed(1)}} pp</span>` +
-        `<span class="qsub">blend-escalated price: ${{fmtP(expected)}}</span></span>` +
-        `</div>`;
+        `<span class="qcell"><span class="qlbl">INDEX-ESCALATED PRICE</span>` +
+        `<span class="qval flat">${{fmtP(expected)}}</span>` +
+        `<span class="qsub">agreed ${{fmtP(qOld)}} moved by the blend</span></span>` +
+        `<span class="qcell"><span class="qlbl">GAP</span>` +
+        `<span class="qval ${{pcls(diff)}}">${{f1(diff)}} pp</span>` +
+        `<span class="qsub">proposal is ${{f1(rel)}}% vs the index price</span></span>` +
+        `</div>` + qBar(qOld, expected, qNew, fmtP);
     }}
     bar.innerHTML = head +
       `<div class="val ${{cls}}">${{fmt(bl.val)}}</div>` +
@@ -685,10 +722,13 @@ document.getElementById("copyBtn").addEventListener("click", () => {{
         ` per year over ${{months}} months`);
     if (qOld > 0 && qNew > 0) {{
       const prop = (qNew / qOld - 1) * 100, diff = prop - bl.val;
+      const expected = Math.round(qOld * (1 + bl.val / 100) * 100) / 100;
+      const rel = (qNew / expected - 1) * 100;
+      const f1 = v => (v > 0 ? "+" : "") + (Math.round(v * 10) / 10).toFixed(1);
       lines.push(``, `Proposal check: ${{qOld}} \\u2192 ${{qNew}} = ${{fmt(prop)}};` +
-        ` index blend ${{fmt(bl.val)}}; difference ` +
-        `${{(diff > 0 ? "+" : "") + (Math.round(diff * 10) / 10).toFixed(1)}} pp` +
-        ` (blend-escalated price: ${{Math.round(qOld * (1 + bl.val / 100) * 100) / 100}})`);
+        ` index blend ${{fmt(bl.val)}}; gap ${{f1(diff)}} pp.`,
+        `Index-escalated price: ${{expected}} \\u2014 the proposal is ` +
+        `${{f1(rel)}}% vs that reference.`);
     }}
   }}
   lines.push(``, `Source: ${{location.href}}`);
