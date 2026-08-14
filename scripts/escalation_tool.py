@@ -23,9 +23,9 @@ import meat_grid as M  # NAMES + palette
 ROOT = M.ROOT
 S = M.S
 
-GEOS = [g for g in M.GEOS if g != "TR"]
+GEOS = list(M.GEOS)
 LOCAL_FX = {"PL": "PLN", "CZ": "CZK", "HU": "HUF", "RO": "RON",
-            "SE": "SEK", "DK": "DKK", "NO": "NOK"}
+            "SE": "SEK", "DK": "DKK", "NO": "NOK", "TR": "TRY"}
 
 names_js = json.dumps({g: M.NAMES[g] for g in GEOS})
 flags_js = json.dumps({g: M.FLAGS[g] for g in GEOS})
@@ -165,9 +165,11 @@ with cross rates derived through the euro. Bulgaria's lev is pegged and not
 published monthly.
 Each factor is clamped to its own latest published period and the card says
 so. Countries not publishing a series say "not published" — including the
-pharma-specific index in several smaller markets. Türkiye, Switzerland and
-the UK appear on the map but are not covered by Eurostat short-term
-statistics. Map: Natural Earth (public domain). Data refreshes monthly via
+pharma-specific index in several smaller markets. Türkiye is covered through
+the same Eurostat datasets (candidate-country reporting, same definitions);
+its indices reflect a high-inflation economy, which is exactly why the FX
+factor exists as a separate lever. Switzerland and the UK appear on the map
+but are not covered. Map: Natural Earth (public domain). Data refreshes monthly via
 this site's pipeline; files: data/ppi-eu.json · data/lci-eu.json ·
 data/fx-eur-m.json · data/meat-cpi-eu.json · data/elec-eu.json ·
 data/gas-eu.json. Personal analysis of public statistics; views my own.</div>
