@@ -72,6 +72,18 @@ button.copy:hover { border-color:#3987e5; }
 .chip .w::-webkit-outer-spin-button, .chip .w::-webkit-inner-spin-button {
   -webkit-appearance:none; margin:0; }
 .chip .pct { color:#7e8a99; font-size:12px; }
+.chip .st { all:unset; cursor:pointer; width:16px; text-align:center;
+  color:#9aa3ad; font-size:14px; line-height:1; padding:6px 0; }
+.chip .st:hover { color:#f4f6f8; }
+#wmeter[hidden] { display:none; }
+#wmeter { display:flex; align-items:center; gap:10px; margin:-6px 0 14px;
+  color:#7e8a99; font-size:12px; }
+#wmeter b { color:#f4f6f8; font-weight:600;
+  font-variant-numeric:tabular-nums; }
+#wmeter .track { flex:0 1 220px; height:6px; background:#161c23;
+  border-radius:3px; overflow:hidden; }
+#wmeter .fill { display:block; height:100%; background:#3987e5;
+  border-radius:3px; transition:width .15s; }
 .fxb[hidden] { display:none; }
 .fxb { display:flex; flex-wrap:wrap; gap:8px; align-items:center;
   margin:-6px 0 14px 22px; border-left:2px solid #3987e5;
@@ -179,6 +191,7 @@ into a <b>weighted blend</b>, the way escalation formulas are written.</p>
       <button class="copy" id="copyBtn">Copy summary</button>
     </div>
     <div class="chips" id="chips" role="group" aria-label="Factors"></div>
+    <div id="wmeter" hidden></div>
     <div class="fxb" id="fxbasket" role="group" aria-label="FX basket currencies"
       hidden></div>
     <div class="quote" role="group" aria-label="Proposal check">
@@ -484,6 +497,18 @@ function render() {
     c.classList.toggle("warn",
       !!(k && k.on && results[k.id] && results[k.id].v === null));
   });
+  const wm = document.getElementById("wmeter");
+  const wtot = KPIS.filter(k => k.on).reduce((s, k) => s + k.w, 0);
+  wm.hidden = false;
+  wm.innerHTML = `<span>factor weights</span>` +
+    `<span class="track"><span class="fill" style="width:${wtot}%"></span></span>` +
+    `<b>${wtot} / 100%</b><span>allocated</span>`;
+  const fxlbl = document.querySelector("#fxbasket .lbl");
+  if (fxlbl && KPIS.find(x => x.id === "fx").on) {
+    const { L, W } = fxLegs(geo);
+    fxlbl.textContent = `FX BASKET \u00b7 INVOICE CURRENCIES VS ${L}` +
+      ` \u00b7 ${W} / 100 ALLOCATED`;
+  }
   const kparam = KPIS.filter(k => k.on).map(k => k.id + ":" + k.w).join(",");
   const params = { geo, from, to, k: kparam };
   if (KPIS.find(x => x.id === "fx").on)
@@ -508,10 +533,13 @@ function buildChips() {
     c.innerHTML = `<button aria-pressed="${!!k.on}" title="${k.on ?
         "Remove from" : "Add to"} the formula">` +
       `${k.on ? "\u2713 " : "+ "}${k.n}</button>` +
-      (k.on ? `<span class="wz"><input class="w" type="number" min="0" max="100"` +
+      (k.on ? `<span class="wz">` +
+        `<button class="st" data-d="-1" aria-label="Decrease weight of ${k.n}">\u2212</button>` +
+        `<input class="w" type="number" min="0" max="100"` +
         ` value="${k.w}" aria-label="Weight of ${k.n}">` +
+        `<button class="st" data-d="1" aria-label="Increase weight of ${k.n}">+</button>` +
         `<span class="pct">%</span></span>` : "");
-    c.querySelector("button").addEventListener("click", () => {
+    c.querySelector("button[aria-pressed]").addEventListener("click", () => {
       if (k.on) k.on = 0;
       else {
         // keep total enabled weight at <=100: incoming factor takes its
@@ -539,6 +567,12 @@ function buildChips() {
       e.target.value = k.w;
       render();
     });
+    c.querySelectorAll(".st").forEach(b => b.addEventListener("click", () => {
+      const osum = KPIS.filter(x => x.on && x !== k).reduce((s, x) => s + x.w, 0);
+      k.w = Math.max(0, Math.min(100 - osum, k.w + 5 * +b.dataset.d));
+      c.querySelector("input").value = k.w;
+      render();
+    }));
     box.appendChild(c);
   }
   buildFxBasket();
@@ -563,10 +597,13 @@ function buildFxBasket() {
       chip.title = "Local currency \u2014 a currency can't move against itself";
     chip.innerHTML = `<button aria-pressed="${on}" ${isLocal ? "disabled" : ""}>` +
       `${on ? "\u2713 " : "+ "}${c}</button>` +
-      (on ? `<span class="wz"><input class="w" type="number" min="0" max="100"` +
+      (on ? `<span class="wz">` +
+        `<button class="st" data-d="-1" aria-label="Decrease weight of ${c}">\u2212</button>` +
+        `<input class="w" type="number" min="0" max="100"` +
         ` value="${FXB[c]}" aria-label="Weight of ${c}">` +
+        `<button class="st" data-d="1" aria-label="Increase weight of ${c}">+</button>` +
         `<span class="pct">%</span></span>` : "");
-    chip.querySelector("button").addEventListener("click", () => {
+    chip.querySelector("button[aria-pressed]").addEventListener("click", () => {
       if (FXB[c] > 0) FXB[c] = 0;
       else {
         // keep the basket total at 100: new leg gets an equal share,
@@ -593,6 +630,12 @@ function buildFxBasket() {
       e.target.value = FXB[c];
       render();
     });
+    chip.querySelectorAll(".st").forEach(b => b.addEventListener("click", () => {
+      const osum = FX_CCYS.filter(x => x !== c).reduce((s, x) => s + FXB[x], 0);
+      FXB[c] = Math.max(0, Math.min(100 - osum, FXB[c] + 5 * +b.dataset.d));
+      chip.querySelector("input").value = FXB[c];
+      render();
+    }));
     box.appendChild(chip);
   }
 }
