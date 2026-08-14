@@ -82,6 +82,27 @@ button.copy:hover { border-color:#3987e5; }
 .fxb .chip > button { padding:5px 10px; }
 .fxb .chip .w { width:38px; font-size:12px; }
 .chip.dim { opacity:.4; }
+.quote { display:flex; gap:8px 14px; align-items:center; flex-wrap:wrap;
+  margin:0 0 14px; }
+.quote .qtitle { color:#7e8a99; font-size:11px; letter-spacing:.08em;
+  font-weight:600; width:100%; }
+.quote label { color:#9aa3ad; font-size:13.5px; }
+.quote input { width:110px; background:#0f1419; color:#f4f6f8;
+  border:1px solid #232a33; border-radius:8px; font:inherit;
+  font-size:14px; padding:7px 10px; appearance:textfield; }
+.quote input::-webkit-outer-spin-button,
+.quote input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+input::placeholder { color:#556070; }
+#avgbar .qc { display:flex; gap:10px 32px; flex-wrap:wrap;
+  border-top:1px solid #232a33; margin-top:12px; padding-top:12px; }
+#avgbar .qcell { display:flex; flex-direction:column; gap:1px; }
+#avgbar .qlbl { color:#7e8a99; font-size:11px; letter-spacing:.08em;
+  font-weight:600; }
+#avgbar .qval { font-size:22px; font-weight:650;
+  font-variant-numeric:tabular-nums; }
+#avgbar .qval.up { color:#d95926; } #avgbar .qval.down { color:#3987e5; }
+#avgbar .qval.flat { color:#f4f6f8; }
+#avgbar .qsub { color:#9aa3ad; font-size:12px; }
 #avgbar { background:#0f1419; border-left:3px solid #3987e5;
   border-radius:0 10px 10px 0; padding:16px 20px 14px; margin:16px 0 4px; }
 #avgbar .toprow { display:flex; align-items:center; gap:9px; flex-wrap:wrap;
@@ -156,6 +177,13 @@ into a <b>weighted blend</b>, the way escalation formulas are written.</p>
     <div class="chips" id="chips" role="group" aria-label="Factors"></div>
     <div class="fxb" id="fxbasket" role="group" aria-label="FX basket currencies"
       hidden></div>
+    <div class="quote" role="group" aria-label="Proposal check">
+      <span class="qtitle">CHECK A PROPOSAL · OPTIONAL</span>
+      <label>Agreed price <input id="qOld" type="number" min="0" step="any"
+        placeholder="100" aria-label="Agreed price at the start month"></label>
+      <label>Proposed price <input id="qNew" type="number" min="0" step="any"
+        placeholder="150" aria-label="Proposed new price"></label>
+    </div>
   </div>
 </div>
 <div id="avgbar" aria-live="polite" hidden></div>
@@ -208,6 +236,7 @@ const ORANGE = "#d95926", BLUE = "#3987e5", INK2 = "#9aa3ad",
       GRID = "#232a33", MUTED = "#3d4654";
 let PPI, LCI, FX, CPI, ELEC, GAS, GEO;
 let geo = "PL", from = null, to = null;
+let qOld = null, qNew = null;   // optional proposal check: agreed/proposed price
 
 // factor registry: id, label, definition, kind, series-getter, default state
 const KPIS = [
@@ -352,13 +381,33 @@ function render() {
       ? (Math.pow(1 + bl.val / 100, 12 / months) - 1) * 100 : null;
     const parts = bl.avail.map(k =>
       Math.round(k.w / bl.wsum * 100) + "% " + k.n.toLowerCase()).join(" + ");
+    let qc = "";
+    if (qOld > 0 && qNew > 0) {
+      const prop = (qNew / qOld - 1) * 100;
+      const diff = prop - bl.val;
+      const expected = qOld * (1 + bl.val / 100);
+      const pcls = v => v > 0.5 ? "up" : v < -0.5 ? "down" : "flat";
+      const fmtP = x => (Math.round(x * 100) / 100).toLocaleString("en-US");
+      qc = `<div class="qc">` +
+        `<span class="qcell"><span class="qlbl">PROPOSED</span>` +
+        `<span class="qval ${pcls(prop)}">${fmt(prop)}</span>` +
+        `<span class="qsub">${fmtP(qOld)} \u2192 ${fmtP(qNew)}</span></span>` +
+        `<span class="qcell"><span class="qlbl">INDEX BLEND</span>` +
+        `<span class="qval ${pcls(bl.val)}">${fmt(bl.val)}</span>` +
+        `<span class="qsub">same window, your weights</span></span>` +
+        `<span class="qcell"><span class="qlbl">DIFFERENCE</span>` +
+        `<span class="qval ${pcls(diff)}">${(diff > 0 ? "+" : "") +
+          (Math.round(diff * 10) / 10).toFixed(1)} pp</span>` +
+        `<span class="qsub">blend-escalated price: ${fmtP(expected)}</span></span>` +
+        `</div>`;
+    }
     bar.innerHTML = head +
       `<div class="val ${cls}">${fmt(bl.val)}</div>` +
       (ann !== null ? `<div class="ann">\u2248 ${fmt(ann)} per year over ` +
         `${months} months</div>` : "") +
       `<div class="recipe">${parts}` +
       (bl.dropped.length ? ` \u00b7 excluded (not published): ` +
-        bl.dropped.join(", ") + ` \u2014 weights renormalized` : "") + `</div>`;
+        bl.dropped.join(", ") + ` \u2014 weights renormalized` : "") + `</div>` + qc;
   } else {
     bar.innerHTML = head +
       `<div class="ann">Add at least one factor above to compute the average.</div>`;
@@ -391,6 +440,7 @@ function render() {
   if (KPIS.find(x => x.id === "fx").on)
     params.fxb = FX_CCYS.filter(c => FXB[c] > 0)
       .map(c => c + ":" + FXB[c]).join(",");
+  if (qOld > 0 && qNew > 0) { params.qo = qOld; params.qn = qNew; }
   history.replaceState(null, "",
     location.pathname + "?" + new URLSearchParams(params));
   document.title = `Cost Escalation Reference \u2014 ${NAMES[geo]}`;
@@ -572,6 +622,9 @@ fromSel.addEventListener("change", () => { from = fromSel.value;
 toSel.addEventListener("change", () => { to = toSel.value;
   if (to <= from) { from = monthsOf(PPI[geo + "|C"])[0]; fromSel.value = from; }
   render(); });
+for (const [id, set] of [["qOld", v => qOld = v], ["qNew", v => qNew = v]])
+  document.getElementById(id).addEventListener("input", e => {
+    set(+e.target.value > 0 ? +e.target.value : null); render(); });
 
 // ---- copy
 document.getElementById("copyBtn").addEventListener("click", () => {
@@ -594,6 +647,13 @@ document.getElementById("copyBtn").addEventListener("click", () => {
     if (months >= 12)
       lines.push(`\u2248 ${fmt((Math.pow(1 + bl.val / 100, 12 / months) - 1) * 100)}` +
         ` per year over ${months} months`);
+    if (qOld > 0 && qNew > 0) {
+      const prop = (qNew / qOld - 1) * 100, diff = prop - bl.val;
+      lines.push(``, `Proposal check: ${qOld} \u2192 ${qNew} = ${fmt(prop)};` +
+        ` index blend ${fmt(bl.val)}; difference ` +
+        `${(diff > 0 ? "+" : "") + (Math.round(diff * 10) / 10).toFixed(1)} pp` +
+        ` (blend-escalated price: ${Math.round(qOld * (1 + bl.val / 100) * 100) / 100})`);
+    }
   }
   lines.push(``, `Source: ${location.href}`);
   navigator.clipboard.writeText(lines.join("\n")).then(() => {
@@ -636,6 +696,11 @@ Promise.all([
     const tot = FX_CCYS.reduce((s, c) => s + FXB[c], 0);
     if (tot > 100)
       for (const c of FX_CCYS) FXB[c] = Math.round(FXB[c] * 100 / tot);
+  }
+  if (+q.get("qo") > 0 && +q.get("qn") > 0) {
+    qOld = +q.get("qo"); qNew = +q.get("qn");
+    document.getElementById("qOld").value = qOld;
+    document.getElementById("qNew").value = qNew;
   }
   geoSel.value = geo;
   buildMap(); buildChips(); fillDates();
