@@ -1178,17 +1178,51 @@
    "note": "Selector map for the escalation dashboard. ISO_A2_EH property (plain ISO_A2 is -99 for FR/NO in NE). GR→EL translated client-side."
   },
   {
-   "name": "hicp2-probe",
+   "name": "cpi-eu",
    "provider": "eurostat",
    "dataset": "prc_hicp_minr",
    "params": {
-    "geo": "DE",
-    "lastTimePeriod": "1"
+    "unit": "I15",
+    "coicop18": "TOTAL",
+    "geo": [
+     "DE",
+     "FR",
+     "IT",
+     "ES",
+     "NL",
+     "BE",
+     "AT",
+     "PL",
+     "CZ",
+     "HU",
+     "RO",
+     "PT",
+     "DK",
+     "SE",
+     "FI",
+     "EL",
+     "SK",
+     "SI",
+     "HR",
+     "BG",
+     "LT",
+     "LV",
+     "EE",
+     "NO",
+     "IE",
+     "LU",
+     "TR"
+    ],
+    "sinceTimePeriod": "2015-01"
    },
-   "out": "data/_probe-hicp2.json",
+   "group_dims": [
+    "geo",
+    "coicop18"
+   ],
+   "out": "data/cpi-eu.json",
    "enabled": true,
-   "source": "PROBE: ECOICOP2 monthly HICP — units and coicop codes",
-   "note": "one-off"
+   "source": "Eurostat prc_hicp_minr — HICP all items (ECOICOP2), monthly index, 2015=100",
+   "note": "Feeds the cost-escalation tool's CPI factor. Successor of prc_hicp_midx, which was archived at 2025-12 with the 2026 rebase (ECOICOP2, coicop18 dimension, all-items code TOTAL). meat-cpi-eu kept as the frozen pre-rebase file for the meat post and basket explorer."
   }
  ]
 }
