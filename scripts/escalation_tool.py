@@ -156,7 +156,8 @@ manufacturing, C total manufacturing, D energy supply. Electricity
 (nrg_pc_205, band IC: 500–1 999 MWh) and natural gas (nrg_pc_203, band I3:
 10 000–99 999 GJ): non-household prices excluding recoverable taxes, in
 national currency, semi-annual — the standard mid-size industrial bands — national currency on purpose, so the FX factor stays separate.
-HICP all items, monthly. Labour cost index, industry B–E, quarterly,
+HICP all items, monthly (prc_hicp_minr, ECOICOP ver. 2 — the series that
+continues past the 2026 rebase). Labour cost index, industry B–E, quarterly,
 seasonally and calendar adjusted (lc_lci_r2_q). Exchange rates: monthly
 averages (ert_bil_eur_m); the FX factor is a weighted basket of invoice
 currencies (EUR, USD, GBP, CHF) against the selected country's currency,
@@ -171,7 +172,7 @@ its indices reflect a high-inflation economy, which is exactly why the FX
 factor exists as a separate lever. Switzerland and the UK appear on the map
 but are not covered. Map: Natural Earth (public domain). Data refreshes monthly via
 this site's pipeline; files: data/ppi-eu.json · data/lci-eu.json ·
-data/fx-eur-m.json · data/meat-cpi-eu.json · data/elec-eu.json ·
+data/fx-eur-m.json · data/cpi-eu.json · data/elec-eu.json ·
 data/gas-eu.json. Personal analysis of public statistics; views my own.</div>
 </div>
 <script>
@@ -196,7 +197,7 @@ const KPIS = [
   {{ id: "gas", n: "Natural gas price", d: "non-household band I3 (10 000\u201399 999 GJ), excl. recoverable taxes, national currency",
      kind: "S", s: g => GAS[g], on: 1, w: 5 }},
   {{ id: "cpi", n: "Consumer prices", d: "HICP, all items",
-     kind: "M", s: g => CPI[g + "|CP00"], on: 1, w: 15 }},
+     kind: "M", s: g => CPI[g + "|TOTAL"], on: 1, w: 15 }},
   {{ id: "labour", n: "Labour costs, industry", d: "labour cost index, NACE B\\u2013E",
      kind: "Q", s: g => LCI[g + "|B-E"], on: 1, w: 40 }},
   {{ id: "fx", n: "Exchange rate", d: "monthly average \\u2014 invoice-currency basket vs local currency",
@@ -518,7 +519,7 @@ document.getElementById("copyBtn").addEventListener("click", () => {{
 // ---- boot
 Promise.all([
   "data/ppi-eu.json", "data/lci-eu.json", "data/fx-eur-m.json",
-  "data/meat-cpi-eu.json", "data/elec-eu.json", "data/gas-eu.json",
+  "data/cpi-eu.json", "data/elec-eu.json", "data/gas-eu.json",
   "data/europe-map.json",
 ].map(u => fetch(u).then(r => {{
   if (!r.ok) throw new Error(u); return r.json(); }}))
