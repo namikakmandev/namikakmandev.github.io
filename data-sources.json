@@ -798,7 +798,8 @@
      "EE",
      "NO",
      "IE",
-     "LU"
+     "LU",
+     "TR"
     ],
     "sinceTimePeriod": "2015-01"
    },
@@ -809,7 +810,7 @@
    "out": "data/ppi-eu.json",
    "enabled": true,
    "source": "Eurostat sts_inppd_m — domestic producer prices, monthly, 2021=100, unadjusted: pharma manufacturing (C21), total manufacturing (C), energy supply (D)",
-   "note": "Feeds the cost-escalation tool. C21 coverage varies by country — missing combos declared in the tool, never guessed. Türkiye not in Eurostat STS (declared gap)."
+   "note": "Feeds the cost-escalation tool. C21 coverage varies by country — missing combos declared in the tool, never guessed. Türkiye included (confirmed by value-level probe 2026-08: full series 2015-01 onward)."
   },
   {
    "name": "lci-eu",
@@ -846,7 +847,8 @@
      "EE",
      "NO",
      "IE",
-     "LU"
+     "LU",
+     "TR"
     ],
     "sinceTimePeriod": "2015"
    },
@@ -1062,7 +1064,8 @@
      "EE",
      "NO",
      "IE",
-     "LU"
+     "LU",
+     "TR"
     ]
    },
    "group_dims": [
@@ -1109,7 +1112,8 @@
      "EE",
      "NO",
      "IE",
-     "LU"
+     "LU",
+     "TR"
     ]
    },
    "group_dims": [
@@ -1172,104 +1176,6 @@
    "enabled": true,
    "source": "Natural Earth 110m admin-0 countries (public domain), filtered to Europe, coordinates rounded",
    "note": "Selector map for the escalation dashboard. ISO_A2_EH property (plain ISO_A2 is -99 for FR/NO in NE). GR→EL translated client-side."
-  },
-  {
-   "name": "tr-probe-cpc",
-   "provider": "eurostat",
-   "dataset": "cpc_insts",
-   "params": {
-    "lastTimePeriod": "2"
-   },
-   "out": "data/_probe-cpc.json",
-   "enabled": false,
-   "source": "PROBE: candidate-country STS — dimensions/coverage for Türkiye",
-   "note": "one-off discovery; remove after TR wiring"
-  },
-  {
-   "name": "tr-probe-ppi",
-   "provider": "eurostat",
-   "dataset": "sts_inppd_m",
-   "params": {
-    "indic_bt": "PRC_PRR_DOM",
-    "s_adj": "NSA",
-    "unit": "I21",
-    "nace_r2": [
-     "C21",
-     "C",
-     "D"
-    ],
-    "geo": "TR",
-    "sinceTimePeriod": "2015-01"
-   },
-   "out": "data/_probe-ppi.json",
-   "enabled": true,
-   "source": "PROBE: does sts_inppd_m carry TR at all",
-   "note": "one-off discovery",
-   "group_dims": [
-    "geo",
-    "nace_r2"
-   ]
-  },
-  {
-   "name": "tr-probe-lci",
-   "provider": "eurostat",
-   "dataset": "lc_lci_r2_q",
-   "params": {
-    "unit": "I20",
-    "s_adj": "SCA",
-    "lcstruct": "D1_D4_MD5",
-    "nace_r2": "B-E",
-    "geo": "TR",
-    "sinceTimePeriod": "2015"
-   },
-   "out": "data/_probe-lci.json",
-   "enabled": true,
-   "source": "PROBE: labour cost index geo coverage",
-   "note": "one-off discovery",
-   "group_dims": [
-    "geo",
-    "nace_r2"
-   ]
-  },
-  {
-   "name": "tr-probe-elec",
-   "provider": "eurostat",
-   "dataset": "nrg_pc_205",
-   "params": {
-    "siec": "E7000",
-    "nrg_cons": "MWH500-1999",
-    "unit": "KWH",
-    "tax": "X_VAT",
-    "currency": "NAC",
-    "geo": "TR"
-   },
-   "out": "data/_probe-elec.json",
-   "enabled": true,
-   "source": "PROBE: electricity price geo coverage",
-   "note": "one-off discovery",
-   "group_dims": [
-    "geo"
-   ]
-  },
-  {
-   "name": "tr-probe-gas",
-   "provider": "eurostat",
-   "dataset": "nrg_pc_203",
-   "params": {
-    "siec": "G3000",
-    "nrg_cons": "GJ10000-99999",
-    "unit": "GJ_GCV",
-    "tax": "X_VAT",
-    "currency": "NAC",
-    "geo": "TR"
-   },
-   "out": "data/_probe-gas.json",
-   "enabled": true,
-   "source": "PROBE: gas price geo coverage",
-   "note": "one-off discovery",
-   "group_dims": [
-    "geo"
-   ]
   }
  ]
 }
