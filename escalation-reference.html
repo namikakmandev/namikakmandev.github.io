@@ -90,6 +90,7 @@ button.copy:hover { border-color:#3987e5; }
   background:#0b1016; border-radius:0 8px 8px 0; padding:9px 12px; }
 .fxb .lbl { color:#7e8a99; font-size:11px; letter-spacing:.08em;
   font-weight:600; width:100%; }
+.fxb .note { color:#7e8a99; font-size:11.5px; width:100%; line-height:1.4; }
 .fxb .chip { font-size:12.5px; border-radius:8px; }
 .fxb .chip > button { padding:5px 10px; }
 .fxb .chip .w { width:38px; font-size:12px; }
@@ -155,6 +156,35 @@ input::placeholder { color:#556070; }
 .notice { background:#0f1419; border-left:3px solid #c98500;
   border-radius:0 8px 8px 0; padding:10px 14px; font-size:13.5px;
   color:#9aa3ad; line-height:1.5; margin:16px 0 4px; max-width:88ch; }
+#printhead { display:none; }
+@media print {
+  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body { background:#fff; color:#111; padding:0; font-size:12px; }
+  .bar, .kicker, h1, p.sub, #mapcol, .controls, .chips, .fxb, .quote,
+  #wmeter, .top { display:none !important; }
+  #printhead { display:block; color:#333; font-size:12px; line-height:1.5;
+    border-bottom:2px solid #111; padding-bottom:8px; margin-bottom:12px;
+    word-break:break-all; }
+  #printhead b { color:#111; font-size:16px; display:block;
+    word-break:normal; }
+  #avgbar { background:#f4f6f9; border-left:3px solid #3987e5;
+    break-inside:avoid; }
+  #avgbar .toprow, #avgbar .ann, #avgbar .qsub { color:#444; }
+  #avgbar .toprow b, #avgbar .qval.flat, #avgbar .qassess { color:#111; }
+  #avgbar .recipe, #avgbar .qlbl { color:#666; }
+  #avgbar .val.flat { color:#444; }
+  #avgbar .qc { border-top-color:#d8dde3; }
+  .grid { grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px; }
+  .card { background:#f4f6f9; break-inside:avoid; padding:10px 12px; }
+  .card .def, .card .na { color:#666; }
+  .card .sub2 { color:#555; }
+  .card .big.flat { color:#444; }
+  .card.empty { border-color:#c9cfd6; }
+  .notice { background:#f4f6f9; color:#444; break-inside:avoid; }
+  .src { color:#555; border-top-color:#d8dde3; font-size:10px;
+    margin-top:14px; }
+  .src b, .srcgrid .t { color:#333; }
+}
 @media (max-width:760px) {
   /* answer-first order: controls, average, cards; map last */
   .wrap { display:flex; flex-direction:column; }
@@ -168,6 +198,7 @@ input::placeholder { color:#556070; }
   .controls label { width:100%; }
 }
 </style></head><body><div class="wrap">
+<div id="printhead"></div>
 <div class="bar"><a href="/">← namikakman — projects</a>
   <a href="basket-explorer.html">Food Basket Explorer →</a></div>
 <div class="kicker">COST ESCALATION REFERENCE · EUROPEAN MARKETS</div>
@@ -189,6 +220,7 @@ into a <b>weighted blend</b>, the way escalation formulas are written.</p>
       <label>From <select id="fromSel" aria-label="Start month"></select></label>
       <label>To <select id="toSel" aria-label="End month"></select></label>
       <button class="copy" id="copyBtn">Copy summary</button>
+      <button class="copy" id="printBtn">Print / PDF</button>
     </div>
     <div class="chips" id="chips" role="group" aria-label="Factors"></div>
     <div id="wmeter" hidden></div>
@@ -230,7 +262,10 @@ industry B–E, quarterly, seasonally and calendar adjusted.</span>
 The FX factor is a weighted basket of invoice currencies (EUR, USD, GBP,
 CHF) against the selected country's currency, combined geometrically the
 way effective-exchange-rate indices are built; cross rates derived through
-the euro. Bulgaria's lev is pegged and not published monthly.</span>
+the euro. Bulgaria's lev is pegged and not published monthly. Note that
+local-currency indices already include imported inflation, so the FX factor
+partly overlaps them — comparing the blend with FX on and off shows the
+range.</span>
 <span class="t">Coverage</span><span>Each factor is clamped to its own
 latest published period and the card says so. Countries not publishing a
 series say "not published" — including the pharma-specific index in several
@@ -344,8 +379,9 @@ function spark(series, a, b, cls) {
 
 function evalKpi(k) {
   const ser = k.s(geo);
+  if (!ser) return { v: null, reason: "notpub", sub: null, spark: "" };
   const r = effRange(ser, from, to, k.kind);
-  if (!r) return { v: null, sub: null, spark: "" };
+  if (!r) return { v: null, reason: "window", sub: null, spark: "" };
   const v = (ser[r[1]] / ser[r[0]] - 1) * 100;
   const kindNote = k.kind === "Q" ? " (quarterly)" : k.kind === "S" ? " (semi-annual)" : "";
   const clamped = k.kind !== "M" || r[0] !== from || r[1] !== to;
@@ -490,8 +526,14 @@ function render() {
   const cards = [];
   for (const k of [...KPIS].filter(x => x.on).sort((a, b) => b.w - a.w)) {
     const r = results[k.id];
+    const kindTxt = k.kind === "S" ? "semi-annual" : k.kind === "Q" ? "quarterly" : "monthly";
     const naTxt = k.id === "fx"
       ? "Pick at least one basket currency other than the local currency."
+      : r.reason === "window"
+      ? `No two published ${kindTxt} readings fall inside this window.` +
+        (k.id === "elec" || k.id === "gas"
+          ? ` For short windows, the monthly energy-supply producer prices ` +
+            `factor (chip above) carries the energy signal instead.` : "")
       : "Not published for this country.";
     if (r.v === null) {
       cards.push(`<div class="card empty"><h3>${k.n}</h3>` +
@@ -531,6 +573,11 @@ function render() {
   history.replaceState(null, "",
     location.pathname + "?" + new URLSearchParams(params));
   document.title = `Cost Escalation Reference \u2014 ${NAMES[geo]}`;
+  document.getElementById("printhead").innerHTML =
+    `<b>Cost Escalation Reference \u2014 ${NAMES[geo]}, ${from} \u2192 ` +
+    `${to}</b>Eurostat data \u00b7 reference points, not a price formula ` +
+    `\u00b7 printed ${new Date().toISOString().slice(0, 10)} \u00b7 ` +
+    `${location.href}`;
   document.querySelectorAll("#map path[data-geo]").forEach(p =>
     p.classList.toggle("sel", p.dataset.geo === geo));
 }
@@ -651,6 +698,12 @@ function buildFxBasket() {
     }));
     box.appendChild(chip);
   }
+  const note = document.createElement("span");
+  note.className = "note";
+  note.textContent = "Local-currency indices already include imported " +
+    "inflation, so FX partly overlaps them \u2014 compare the blend with " +
+    "FX on and off.";
+  box.appendChild(note);
 }
 
 // ---- map
@@ -732,6 +785,8 @@ for (const [id, set] of [["qOld", v => qOld = v], ["qNew", v => qNew = v]])
     set(+e.target.value > 0 ? +e.target.value : null); render(); });
 
 // ---- copy
+document.getElementById("printBtn").addEventListener("click", () => window.print());
+
 document.getElementById("copyBtn").addEventListener("click", () => {
   const results = {};
   for (const k of KPIS) results[k.id] = k.on ? evalKpi(k) : null;
