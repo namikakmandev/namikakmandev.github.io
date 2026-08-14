@@ -92,6 +92,14 @@ button.copy:hover {{ border-color:{S['blue']}; }}
 .fxb .lbl {{ color:{S['muted']}; font-size:12.5px; align-self:center; }}
 .chip.dim {{ opacity:.4; }}
 #headline {{ font-size:17px; margin:10px 0 4px; }}
+#avgbar {{ background:{S['surface']}; border-left:3px solid {S['blue']};
+  border-radius:0 10px 10px 0; padding:12px 18px; margin:10px 0 2px;
+  display:flex; align-items:baseline; gap:8px 18px; flex-wrap:wrap; }}
+#avgbar .lbl {{ color:{S['ink2']}; font-size:13.5px; }}
+#avgbar .val {{ font-size:40px; font-weight:700; font-variant-numeric:tabular-nums; }}
+#avgbar .val.up {{ color:{S['orange']}; }} #avgbar .val.down {{ color:{S['blue']}; }}
+#avgbar .val.flat {{ color:{S['ink2']}; }}
+#avgbar .ann {{ color:{S['ink2']}; font-size:13.5px; }}
 .grid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
   gap:16px; margin-top:12px; }}
 .card {{ background:{S['surface']}; border-radius:10px; padding:14px 16px; }}
@@ -143,6 +151,7 @@ into a <b>weighted blend</b>, the way escalation formulas are written.</p>
     <div class="chips fxb" id="fxbasket" role="group" aria-label="FX basket currencies"
       hidden></div>
     <div id="headline" aria-live="polite"></div>
+    <div id="avgbar" hidden></div>
     <div class="grid" id="grid"><div id="status">Loading data…</div></div>
   </div>
 </div>
@@ -309,9 +318,24 @@ function render() {{
   const results = {{}};
   for (const k of KPIS) results[k.id] = k.on ? evalKpi(k) : null;
   document.getElementById("headline").innerHTML =
+    `<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">${{FLAGS[geo]}}</svg>` +
     `<b>${{NAMES[geo]}}</b>, ${{from}} \\u2192 ${{to}}:`;
   const cards = [];
   const bl = blend(results);
+  const bar = document.getElementById("avgbar");
+  if (bl) {{
+    const cls = bl.val > 0.5 ? "up" : bl.val < -0.5 ? "down" : "flat";
+    const months = (+to.slice(0, 4) - +from.slice(0, 4)) * 12 +
+                   (+to.slice(5, 7) - +from.slice(5, 7));
+    const ann = months >= 12
+      ? (Math.pow(1 + bl.val / 100, 12 / months) - 1) * 100 : null;
+    bar.hidden = false;
+    bar.innerHTML =
+      `<span class="lbl">Weighted average, ${{from}} \\u2192 ${{to}}</span>` +
+      `<span class="val ${{cls}}">${{fmt(bl.val)}}</span>` +
+      (ann !== null ? `<span class="ann">\\u2248 ${{fmt(ann)}} per year over ` +
+        `${{months}} months</span>` : "");
+  }} else {{ bar.hidden = true; bar.innerHTML = ""; }}
   if (bl) {{
     const cls = bl.val > 0.5 ? "up" : bl.val < -0.5 ? "down" : "flat";
     const parts = bl.avail.map(k =>
@@ -362,12 +386,31 @@ function buildChips() {{
       `<input class="w" type="number" min="0" max="100" value="${{k.w}}"` +
       ` ${{k.on ? "" : "disabled"}} aria-label="Weight of ${{k.n}}"><span class="pct">%</span>`;
     c.querySelector("button").addEventListener("click", () => {{
-      k.on = k.on ? 0 : 1;
-      if (k.on && k.w === 0) k.w = 10;
+      if (k.on) k.on = 0;
+      else {{
+        // keep total enabled weight at <=100: incoming factor takes its
+        // weight (default 10) and the others scale down to make room
+        k.on = 1;
+        const share = Math.min(k.w > 0 ? k.w : 10, 100);
+        const others = KPIS.filter(x => x.on && x !== k);
+        const osum = others.reduce((s, x) => s + x.w, 0);
+        if (osum + share > 100) {{
+          for (const x of others) x.w = Math.round(x.w * (100 - share) / osum);
+          let tot = others.reduce((s, x) => s + x.w, 0) + share;
+          while (tot > 100) {{
+            const big = others.reduce((a, b) => (a.w >= b.w ? a : b));
+            big.w--; tot--;
+          }}
+        }}
+        k.w = share;
+      }}
       buildChips(); render();
     }});
     c.querySelector("input").addEventListener("change", e => {{
-      k.w = Math.max(0, Math.min(100, +e.target.value || 0)); render();
+      const osum = KPIS.filter(x => x.on && x !== k).reduce((s, x) => s + x.w, 0);
+      k.w = Math.max(0, Math.min(100 - osum, +e.target.value || 0));
+      e.target.value = k.w;
+      render();
     }});
     box.appendChild(c);
   }}
@@ -404,8 +447,14 @@ function buildFxBasket() {{
         const others = FX_CCYS.filter(x => x !== c && FXB[x] > 0);
         const osum = others.reduce((s, x) => s + FXB[x], 0);
         const share = Math.round(100 / (others.length + 1));
-        if (osum > 100 - share)
+        if (osum > 100 - share) {{
           for (const x of others) FXB[x] = Math.round(FXB[x] * (100 - share) / osum);
+          let tot = others.reduce((s, x) => s + FXB[x], 0) + share;
+          while (tot > 100) {{
+            const big = others.reduce((a, b) => (FXB[a] >= FXB[b] ? a : b));
+            FXB[big]--; tot--;
+          }}
+        }}
         FXB[c] = share;
       }}
       buildFxBasket(); render();
@@ -506,7 +555,12 @@ document.getElementById("copyBtn").addEventListener("click", () => {{
   if (bl) {{
     const parts = bl.avail.map(k =>
       Math.round(k.w / bl.wsum * 100) + "% " + k.n.toLowerCase()).join(" + ");
-    lines.push(``, `Weighted blend (${{parts}}): ${{fmt(bl.val)}}`);
+    lines.push(``, `Weighted average, ${{from}} \\u2192 ${{to}} (${{parts}}): ${{fmt(bl.val)}}`);
+    const months = (+to.slice(0, 4) - +from.slice(0, 4)) * 12 +
+                   (+to.slice(5, 7) - +from.slice(5, 7));
+    if (months >= 12)
+      lines.push(`\\u2248 ${{fmt((Math.pow(1 + bl.val / 100, 12 / months) - 1) * 100)}}` +
+        ` per year over ${{months}} months`);
   }}
   lines.push(``, `Source: ${{location.href}}`);
   navigator.clipboard.writeText(lines.join("\\n")).then(() => {{
@@ -536,6 +590,9 @@ Promise.all([
       if (k) {{ k.on = 1; k.w = Math.max(0, Math.min(100, +w || 0)); }}
     }}
     if (!KPIS.some(k => k.on)) {{ KPIS[0].on = 1; KPIS[0].w = 100; }}
+    const ktot = KPIS.filter(k => k.on).reduce((s, k) => s + k.w, 0);
+    if (ktot > 100)
+      for (const k of KPIS) if (k.on) k.w = Math.round(k.w * 100 / ktot);
   }}
   if (q.get("fxb")) {{
     for (const c of FX_CCYS) FXB[c] = 0;
