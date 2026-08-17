@@ -126,6 +126,44 @@
   #noteClear{background:none;color:var(--muted);border:1px solid var(--line)!important}
   .note-saved{font-size:11.5px;color:var(--green);margin-left:6px;opacity:0;transition:.3s}
   .note-saved.show{opacity:1}
+  /* ---- Bugün paneli ---- */
+  section.today{background:linear-gradient(135deg,rgba(47,155,255,.10),rgba(25,195,125,.07));
+    border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:0 0 18px}
+  .t-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .t-greet{font-size:19px;font-weight:800}
+  .t-date{font-size:13px;color:var(--muted);margin-top:2px}
+  #tReportBtn{margin-left:auto;background:var(--blue);color:#fff;border:none;border-radius:10px;
+    padding:9px 15px;font-size:13.5px;font-weight:700;cursor:pointer}
+  #tReportBtn:disabled{opacity:.55;cursor:default}
+  .t-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .t-chip{font-size:12.5px;font-weight:700;border-radius:999px;padding:4px 13px;border:1px solid var(--line)}
+  .t-chip.up{color:var(--green);border-color:rgba(25,195,125,.4);background:rgba(25,195,125,.08)}
+  .t-chip.down{color:var(--red);border-color:rgba(255,90,106,.4);background:rgba(255,90,106,.07)}
+  .t-chip.mid{color:var(--gold);border-color:rgba(232,185,60,.4);background:rgba(232,185,60,.08)}
+  ul.t-hl{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:5px}
+  ul.t-hl li{font-size:13.5px;color:#c6cdd9;padding-left:18px;position:relative}
+  ul.t-hl li::before{content:"▸";position:absolute;left:2px;color:var(--blue)}
+  .t-report{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;font-size:13.5px;
+    color:#c6cdd9;white-space:pre-wrap;line-height:1.6}
+  /* ---- Portföyüm ---- */
+  #pfTable table{width:100%;border-collapse:collapse;font-size:13px}
+  #pfTable th{color:var(--muted);font-weight:600;text-align:right;padding:6px 6px;border-bottom:1px solid var(--line);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  #pfTable th:first-child,#pfTable td:first-child{text-align:left}
+  #pfTable td{padding:7px 6px;border-bottom:1px solid rgba(35,48,71,.6);text-align:right;font-variant-numeric:tabular-nums}
+  #pfTable td b{font-size:13.5px}
+  #pfTable .del{color:var(--red);cursor:pointer;font-weight:700;padding:0 5px}
+  .pf-tot{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .pf-tot .stat{flex:1;min-width:150px}
+  #pfForm{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  #pfForm select,#pfForm input{background:var(--bg);border:1px solid var(--line);border-radius:9px;
+    color:var(--text);padding:8px 10px;font-size:13.5px}
+  #pfForm select{flex:2;min-width:150px}
+  #pfForm input{flex:1;min-width:90px;width:100px}
+  #pfForm button{background:var(--green);color:#04140c;border:none;border-radius:9px;padding:8px 18px;font-weight:800;cursor:pointer}
+  #pfWarn{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+  #pfWarn .w{font-size:13px;border-radius:9px;padding:7px 11px;border:1px solid rgba(232,185,60,.4);
+    background:rgba(232,185,60,.07);color:var(--gold)}
+  #pfWarn .w.neg{border-color:rgba(255,90,106,.4);background:rgba(255,90,106,.06);color:var(--red)}
   tr.notable{cursor:pointer}
   tr.notable:hover td{background:rgba(47,155,255,.07)}
   .note-flag{margin-left:5px;font-size:11px}
@@ -192,6 +230,16 @@
 
   <div class="strip" id="strip"></div>
 
+  <section class="today" id="todaySec" hidden>
+    <div class="t-head">
+      <div><div class="t-greet" id="tGreet"></div><div class="t-date" id="tDate"></div></div>
+      <button id="tReportBtn"></button>
+    </div>
+    <div class="t-chips" id="tChips"></div>
+    <ul class="t-hl" id="tHl"></ul>
+    <div class="t-report" id="tReport" hidden></div>
+  </section>
+
   <div class="controls">
     <div class="chips" id="chips">
       <button class="chip on" data-f="tumu">Tümü</button>
@@ -213,6 +261,20 @@
   </div>
 
   <div id="list"></div>
+
+  <section class="notes-sec" id="pfSec">
+    <h2 id="pfH2"></h2>
+    <p class="hint" id="pfHint"></p>
+    <div id="pfTable"></div>
+    <div class="pf-tot" id="pfTot"></div>
+    <div id="pfWarn"></div>
+    <form id="pfForm">
+      <select id="pfSym"></select>
+      <input id="pfQty" type="number" step="any" min="0" />
+      <input id="pfCost" type="number" step="any" min="0" />
+      <button type="submit" id="pfAdd"></button>
+    </form>
+  </section>
 
   <section class="notes-sec" id="notesSec">
     <h2 id="notesH2">📝 Notlar &amp; Geri Bildirim</h2>
@@ -307,6 +369,24 @@ tr:{
      ob:"RSI aşırı alım bölgesinde — kısa vadede geri çekilme riski artmış olabilir.",
      os:"RSI aşırı satım bölgesinde — satış baskısı yorgun görünüyor.",
      total:(sc,lb)=>`Bileşik skor ${sc}/100 (${lb.toLowerCase()}).`},
+ tGreet:{m:"Günaydın",a:"İyi günler",e:"İyi akşamlar"},
+ tReady:"Bugünün radar özeti hazır",
+ tRegime:{bist:"BIST",us:"ABD",gold:"Altın",up:"yükseliş rejimi",down:"düşüş rejimi",mixed:"kararsız"},
+ tBtn:"🤖 Günlük rapor yaz",tBtnBusy:"Rapor yazılıyor…",
+ tTop:(n,sc)=>`Radarın lideri: ${n} (${sc} puan)`,
+ tBest:(n,v)=>`Günün en güçlüsü: ${n} ${v}`,
+ tWorst:(n,v)=>`Günün en zayıfı: ${n} ${v}`,
+ tOB:n=>`${n} varlık RSI aşırı alım bölgesinde — kâr koruması gözden geçirilebilir`,
+ tCross:n=>`Yeni sinyal: ${n} 200 günlük ortalamasını yukarı kesti`,
+ tCrossD:n=>`Dikkat: ${n} 200 günlük ortalamasının altına indi`,
+ pfH2:"💼 Portföyüm",
+ pfHint:"Pozisyonlarınızı ekleyin (adet + ortalama maliyet); değer ve kâr/zarar radar fiyatlarıyla — sayfa açıkken canlı — hesaplanır. Veriler yalnız bu cihazda saklanır, hiçbir yere gönderilmez.",
+ pfCols:["Varlık","Adet","Maliyet","Fiyat","Değer","K/Z","Bugün",""],
+ pfQtyPh:"Adet",pfCostPh:"Maliyet",pfAdd:"Ekle",
+ pfTotTL:"Toplam (TL karşılığı)",pfTotTRY:"TL pozisyonlar",pfTotUSD:"USD pozisyonlar",pfDay:"bugün",
+ pfEmpty:"Henüz pozisyon yok — aşağıdan ekleyin.",
+ pfRm:"Pozisyon silinsin mi?",
+ pfAiHdr:"KULLANICININ PORTFÖYÜ",
  notesH2:"📝 Notlar & Geri Bildirim",
  notesHint:"Araç hakkında genel not yazın, yukarıda bir varlığın kartını açıp not alın ya da detaydaki herhangi bir rasyo/gösterge satırına tıklayıp o kaleme özel not iliştirin. Notlar bu cihazda saklanır; hazır olunca tek tuşla gönderin.",
  genPh:"Genel notunuz / geliştirme öneriniz… (otomatik kaydedilir)",
@@ -372,6 +452,24 @@ en:{
      ob:"RSI is in overbought territory — short-term pullback risk may be elevated.",
      os:"RSI is in oversold territory — selling pressure looks exhausted.",
      total:(sc,lb)=>`Composite score ${sc}/100 (${lb.toLowerCase()}).`},
+ tGreet:{m:"Good morning",a:"Good afternoon",e:"Good evening"},
+ tReady:"Today's radar summary is ready",
+ tRegime:{bist:"BIST",us:"US",gold:"Gold",up:"uptrend regime",down:"downtrend regime",mixed:"mixed"},
+ tBtn:"🤖 Write daily report",tBtnBusy:"Writing report…",
+ tTop:(n,sc)=>`Radar leader: ${n} (${sc} pts)`,
+ tBest:(n,v)=>`Strongest today: ${n} ${v}`,
+ tWorst:(n,v)=>`Weakest today: ${n} ${v}`,
+ tOB:n=>`${n} assets are RSI-overbought — consider reviewing profit protection`,
+ tCross:n=>`New signal: ${n} crossed above its 200-day average`,
+ tCrossD:n=>`Watch out: ${n} fell below its 200-day average`,
+ pfH2:"💼 My Portfolio",
+ pfHint:"Add your positions (quantity + average cost); value and P/L are computed from radar prices — live while the page is open. Data is stored on this device only and never sent anywhere.",
+ pfCols:["Asset","Qty","Cost","Price","Value","P/L","Today",""],
+ pfQtyPh:"Qty",pfCostPh:"Cost",pfAdd:"Add",
+ pfTotTL:"Total (TRY equivalent)",pfTotTRY:"TRY positions",pfTotUSD:"USD positions",pfDay:"today",
+ pfEmpty:"No positions yet — add one below.",
+ pfRm:"Remove this position?",
+ pfAiHdr:"USER'S PORTFOLIO",
  notesH2:"📝 Notes & Feedback",
  notesHint:"Write a general note, open an asset card above to note on it, or click any ratio/indicator row in a detail view to attach a note to that specific item. Notes are stored on this device; send them with one tap when ready.",
  genPh:"Your general note / improvement idea… (saved automatically)",
@@ -420,10 +518,14 @@ function applyLang(){
   $("#aiText").placeholder=t.aiPh;$("#aiSend").textContent=t.aiSend;
   $("#aiFoot").textContent=t.aiFoot;
   $("#cnSave").textContent=t.cnSave;$("#cnDel").textContent=t.cnDel;$("#cnCancel").textContent=t.cnCancel;
+  $("#pfH2").textContent=t.pfH2;$("#pfHint").textContent=t.pfHint;
+  $("#pfQty").placeholder=t.pfQtyPh;$("#pfCost").placeholder=t.pfCostPh;
+  $("#pfAdd").textContent=t.pfAdd;
+  $("#tReportBtn").textContent=t.tBtn;
   if(DATA){
     const d=new Date(DATA.asof);
     $("#asof").innerHTML=t.asof(d.toLocaleString(LOC(),{dateStyle:"long",timeStyle:"short"}),DATA.assets.length);
-    renderStrip();render();renderNoteList();
+    renderStrip();render();renderNoteList();renderToday();renderPortfolio();
   }
 }
 
@@ -724,7 +826,7 @@ async function liveTick(){
 }
 
 function refreshPrices(){
-  renderStrip();
+  renderStrip();renderPortfolio();renderToday();
   document.querySelectorAll("#list .card").forEach(card=>{
     const a=DATA.assets.find(x=>x.symbol===card.dataset.sym);
     const pr=card.querySelector(".pr");
@@ -759,6 +861,7 @@ async function boot(){
   const d=new Date(DATA.asof);
   $("#asof").innerHTML=T().asof(d.toLocaleString(LOC(),{dateStyle:"long",timeStyle:"short"}),DATA.assets.length);
   renderStrip();render();
+  renderToday();renderPortfolio();
   $("#noteGeneral").value=getNotes()._genel||"";
   renderNoteList();
   liveTick();
@@ -827,6 +930,160 @@ $("#noteClear").addEventListener("click",()=>{
   localStorage.removeItem(NOTES_KEY);
   $("#noteGeneral").value="";renderNoteList();
   document.querySelectorAll(".note-ta").forEach(t=>t.value="");
+});
+
+/* ---- Bugün paneli: rejim + öne çıkanlar + AI günlük rapor ---- */
+function regime(sym){
+  const a=DATA.assets.find(x=>x.symbol===sym);
+  if(!a)return null;
+  const t=a.tech;
+  if(t.vs_sma200==null||t.sma200_slope20==null)return null;
+  const st=t.vs_sma200>0&&t.sma200_slope20>0?"up":(t.vs_sma200<0&&t.sma200_slope20<0?"down":"mid");
+  return {st,chg:t.chg1d};
+}
+function freshCross(a){
+  // spark 2 günde bir örneklenir; son ~4 nokta ≈ 8 gün içinde SMA200 kesişimi ara
+  const c=a.spark.close,m=a.spark.sma200;
+  if(!c||!m)return 0;
+  for(let i=c.length-1;i>Math.max(1,c.length-5);i--){
+    if(c[i]==null||m[i]==null||c[i-1]==null||m[i-1]==null)continue;
+    if(c[i-1]<=m[i-1]&&c[i]>m[i])return 1;
+    if(c[i-1]>=m[i-1]&&c[i]<m[i])return -1;
+  }
+  return 0;
+}
+function renderToday(){
+  if(!DATA)return;
+  const L=T();
+  $("#todaySec").hidden=false;
+  const h=new Date().getHours();
+  $("#tGreet").textContent=(h<12?L.tGreet.m:(h<18?L.tGreet.a:L.tGreet.e))+" 👋";
+  $("#tDate").textContent=new Date().toLocaleDateString(LOC(),{weekday:"long",day:"numeric",month:"long"})+" · "+L.tReady;
+  const chips=[];
+  for(const [sym,name] of [["XU100.IS",L.tRegime.bist],["^GSPC",L.tRegime.us],["GC=F",L.tRegime.gold]]){
+    const r=regime(sym);
+    if(r)chips.push(`<span class="t-chip ${r.st}">${name}: ${L.tRegime[r.st==="mid"?"mixed":r.st]} · ${fmtPct(r.chg)}</span>`);
+  }
+  $("#tChips").innerHTML=chips.join("");
+  const hl=[];
+  const top=DATA.assets[0];
+  hl.push(L.tTop(top.name,fmtN(top.score.total,0)));
+  const movers=DATA.assets.filter(a=>a.tech.chg1d!=null).slice().sort((x,y)=>y.tech.chg1d-x.tech.chg1d);
+  if(movers.length){
+    hl.push(L.tBest(movers[0].name,fmtPct(movers[0].tech.chg1d)));
+    hl.push(L.tWorst(movers[movers.length-1].name,fmtPct(movers[movers.length-1].tech.chg1d)));
+  }
+  const ob=DATA.assets.filter(a=>a.tech.rsi14>70).length;
+  if(ob)hl.push(L.tOB(ob));
+  for(const a of DATA.assets){
+    const x=freshCross(a);
+    if(x===1)hl.push(L.tCross(a.name));
+    else if(x===-1)hl.push(L.tCrossD(a.name));
+    if(hl.length>=7)break;
+  }
+  $("#tHl").innerHTML=hl.map(x=>`<li>${x}</li>`).join("");
+}
+let dailyBusy=false;
+$("#tReportBtn").addEventListener("click",async()=>{
+  if(dailyBusy||!DATA)return;
+  dailyBusy=true;
+  const L=T();
+  $("#tReportBtn").disabled=true;$("#tReportBtn").textContent=L.tBtnBusy;
+  const ask=LANG==="tr"
+    ?"Aşağıdaki radar verisinden bugünün kısa günlük raporunu yaz. Bölümler: 1) Piyasa rejimi (BIST ve ABD, birer cümle) 2) Öne çıkan 3 varlık ve nedeni 3) Dikkat edilmesi gerekenler (aşırı alım, zayıflayan trendler) 4) Kullanıcının portföyü verildiyse portföye özel iki cümlelik değerlendirme. Kısa madde işaretleri kullan, toplam ~180 kelime. Sonuna 'Yatırım tavsiyesi değildir.' ekle."
+    :"Write today's short daily report from the radar data below. Sections: 1) Market regime (BIST and US, one sentence each) 2) Top-3 standout assets and why 3) Things to watch (overbought, weakening trends) 4) If the user's portfolio is provided, two sentences specific to it. Use short bullets, ~180 words total. End with 'Not investment advice.'";
+  const prompt=`GÜNCEL RADAR VERİSİ\n${aiContext()}\n\n${ask}`;
+  try{
+    const r=await fetch(AI_PROXY_URL,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({prompt,system:AI_SYSTEM}),signal:AbortSignal.timeout(90000)});
+    const j=await r.json().catch(()=>({}));
+    $("#tReport").hidden=false;
+    $("#tReport").textContent=r.ok?(j.text||""):(j.error||T().aiErr);
+  }catch(e){
+    $("#tReport").hidden=false;$("#tReport").textContent=T().aiErr;
+  }
+  $("#tReportBtn").disabled=false;$("#tReportBtn").textContent=L.tBtn;
+  dailyBusy=false;
+});
+
+/* ---- Portföyüm: cihazda saklanır, radar fiyatlarıyla değerlenir ---- */
+const PF_KEY="radarPortfoy";
+function getPf(){try{return JSON.parse(localStorage.getItem(PF_KEY))||[]}catch(e){return[]}}
+function setPf(v){localStorage.setItem(PF_KEY,JSON.stringify(v));renderPortfolio();}
+function usdtry(){
+  const fx=DATA&&DATA.assets.find(x=>x.symbol==="USDTRY=X");
+  return fx?fx.tech.price:null;
+}
+function renderPortfolio(){
+  if(!DATA)return;
+  const L=T(),pf=getPf();
+  // sembol seçici
+  const sel=$("#pfSym");
+  const cur_v=sel.value;
+  sel.innerHTML=DATA.assets.slice().sort((a,b)=>a.name.localeCompare(b.name,LOC()))
+    .map(a=>`<option value="${a.symbol}">${a.name} (${a.symbol})</option>`).join("");
+  if(cur_v)sel.value=cur_v;
+  if(!pf.length){
+    $("#pfTable").innerHTML=`<p style="color:var(--muted);font-size:13px">${L.pfEmpty}</p>`;
+    $("#pfTot").innerHTML="";$("#pfWarn").innerHTML="";
+    return;
+  }
+  let rows="",totTRY=0,totUSD=0,dayTRY=0,dayUSD=0;
+  for(let i=0;i<pf.length;i++){
+    const h=pf[i],a=DATA.assets.find(x=>x.symbol===h.sym);
+    if(!a){continue;}
+    const p=a.tech.price,val=h.qty*p,cost=h.qty*h.cost;
+    const pl=val-cost,plp=cost?pl/cost:null;
+    const prev=a.tech.chg1d!=null?p/(1+a.tech.chg1d):p;
+    const day=h.qty*(p-prev);
+    const isTRY=a.currency==="TRY";
+    if(isTRY){totTRY+=val;dayTRY+=day;}else{totUSD+=val;dayUSD+=day;}
+    rows+=`<tr>
+      <td><b>${a.name}</b> <span style="color:var(--muted);font-size:11px">${a.symbol}</span></td>
+      <td>${fmtN(h.qty,h.qty%1?2:0)}</td>
+      <td>${fmtN(h.cost)}</td>
+      <td>${fmtN(p)}</td>
+      <td>${fmtN(val,0)} ${cur(a.currency)}</td>
+      <td class="${pl>=0?"up":"down"}">${fmtN(pl,0)} (${plp!=null?fmtPct(plp):"—"})</td>
+      <td class="${day>=0?"up":"down"}">${fmtN(day,0)}</td>
+      <td><span class="del" data-i="${i}" title="×">×</span></td></tr>`;
+  }
+  $("#pfTable").innerHTML=`<div style="overflow-x:auto"><table><tr>${L.pfCols.map(c=>`<th>${c}</th>`).join("")}</tr>${rows}</table></div>`;
+  const fx=usdtry();
+  const tl=totTRY+(fx?totUSD*fx:0);
+  const dayTl=dayTRY+(fx?dayUSD*fx:0);
+  let tot="";
+  if(fx&&(totTRY||totUSD))tot+=`<div class="stat"><div class="k">${L.pfTotTL}</div><div class="v">${fmtN(tl,0)} ₺</div><div class="c ${dayTl>=0?"up":"down"}">${(dayTl>=0?"+":"")+fmtN(dayTl,0)} ₺ ${L.pfDay}</div></div>`;
+  if(totTRY)tot+=`<div class="stat"><div class="k">${L.pfTotTRY}</div><div class="v">${fmtN(totTRY,0)} ₺</div><div class="c ${dayTRY>=0?"up":"down"}">${(dayTRY>=0?"+":"")+fmtN(dayTRY,0)} ₺</div></div>`;
+  if(totUSD)tot+=`<div class="stat"><div class="k">${L.pfTotUSD}</div><div class="v">${fmtN(totUSD,0)} $</div><div class="c ${dayUSD>=0?"up":"down"}">${(dayUSD>=0?"+":"")+fmtN(dayUSD,0)} $</div></div>`;
+  $("#pfTot").innerHTML=tot;
+  // pozisyon uyarıları — yalnız warn/neg sinyaller
+  const warns=[];
+  for(const h of pf){
+    const a=DATA.assets.find(x=>x.symbol===h.sym);
+    if(!a)continue;
+    for(const [k,txt] of signals(a))
+      if(k!=="pos")warns.push(`<div class="w ${k==="neg"?"neg":""}">${a.name}: ${txt}</div>`);
+  }
+  $("#pfWarn").innerHTML=warns.slice(0,6).join("");
+}
+$("#pfForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const sym=$("#pfSym").value,qty=parseFloat($("#pfQty").value),cost=parseFloat($("#pfCost").value);
+  if(!sym||!(qty>0)||!(cost>=0))return;
+  const pf=getPf();
+  const ex=pf.find(h=>h.sym===sym);
+  if(ex){ // aynı sembol: ağırlıklı ortalama maliyetle birleştir
+    ex.cost=(ex.qty*ex.cost+qty*cost)/(ex.qty+qty);ex.qty+=qty;
+  }else pf.push({sym,qty,cost});
+  setPf(pf);
+  $("#pfQty").value="";$("#pfCost").value="";
+});
+$("#pfTable").addEventListener("click",e=>{
+  const d=e.target.closest(".del");
+  if(!d)return;
+  if(!confirm(T().pfRm))return;
+  const pf=getPf();pf.splice(+d.dataset.i,1);setPf(pf);
 });
 
 /* ---- Bağlam notu: detaydaki rasyo/gösterge satırına tıklayınca açılır ---- */
@@ -902,6 +1159,16 @@ function aiContext(){
     if(f.debt_to_equity!=null)l+=` borç/özkaynak=%${f.debt_to_equity.toFixed(0)}`;
     L.push(l);
     if(a.news&&a.news.length)L.push(`  son haberler: ${a.news.map(n=>n.t).join(" | ")}`);
+  }
+  const pf=getPf();
+  if(pf.length){
+    L.push("",T().pfAiHdr+":");
+    for(const h of pf){
+      const a=DATA.assets.find(x=>x.symbol===h.sym);
+      if(!a)continue;
+      const val=h.qty*a.tech.price,pl=val-h.qty*h.cost;
+      L.push(`- ${a.name} [${h.sym}]: ${h.qty} adet, maliyet ${fmtN(h.cost)}, güncel ${fmtN(a.tech.price)} ${cur(a.currency)}, K/Z ${fmtN(pl,0)} ${cur(a.currency)}`);
+    }
   }
   return L.join("\n");
 }
