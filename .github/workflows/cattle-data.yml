@@ -12,6 +12,15 @@ on:
       wide:
         description: "discover modunda tüm katalogu tara (1/0)"
         default: "0"
+      il_output_id:
+        description: "İsrail CBS tarımsal ÜRETİCİ fiyat endeksi id (boş=katalogdan çöz)"
+        default: ""
+      il_fodder_id:
+        description: "İsrail CBS yem (fodder) girdi endeksi id (boş=katalogdan çöz)"
+        default: ""
+      sa_wpi_csv:
+        description: "S.Arabistan WPI CSV URL'si (month,series,value) — GASTAT API yoksa"
+        default: ""
 
 permissions:
   contents: write
@@ -32,6 +41,9 @@ jobs:
           MODE: ${{ inputs.mode }}
           CORN_TR_CODE: ${{ inputs.corn_tr_code }}
           WIDE: ${{ inputs.wide }}
+          IL_OUTPUT_ID: ${{ inputs.il_output_id }}
+          IL_FODDER_ID: ${{ inputs.il_fodder_id }}
+          SA_WPI_CSV: ${{ inputs.sa_wpi_csv }}
         run: |
           mkdir -p data
           python scripts/fetch_cattle_data.py
