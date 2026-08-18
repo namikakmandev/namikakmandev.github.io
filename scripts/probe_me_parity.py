@@ -172,7 +172,29 @@ def probe_saudi():
         probe(name, url, "Saudi WPI: any machine-readable endpoint?")
 
 
+def probe_israel_round3():
+    """Chapter b's XML defeated the round-2 regex (3 hits from 178KB), and the
+    single-series JSON is paginated. Save the raw payloads to files so the parser
+    can be written against reality without another blind round-trip."""
+    os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
+    for cid in ("b", "e"):
+        try:
+            _, raw = get("https://api.cbs.gov.il/index/data/price_all"
+                         f"?lang=en&chapter={cid}&format=json&download=false")
+            path = os.path.join(ROOT, "data", f"_probe-il-chapter-{cid}.xml")
+            with open(path, "wb") as fh:
+                fh.write(raw)
+            report[f"israel_raw_chapter_{cid}"] = {"saved": path, "bytes": len(raw)}
+            print(f"[il] saved chapter {cid}: {len(raw)} bytes")
+        except Exception as ex:  # noqa: BLE001
+            report[f"israel_raw_chapter_{cid}"] = {"error": f"{type(ex).__name__}: {ex}"}
+    probe("israel_fodder_page1",
+          "https://api.cbs.gov.il/index/data/price?id=260030&format=json&download=false&startPeriod=01-2010",
+          "fodder series page 1 — item shape + paging fields")
+
+
 def main():
+    probe_israel_round3()
     probe_israel_indices()
     probe_israel()
     probe_faostat()
