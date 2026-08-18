@@ -255,49 +255,53 @@ def _il_resolve(catalog_json, keywords, exclude=()):
 
 
 def _il_series(code):
-    """CBS price API -> {YYYY-MM: value}. Tolerant of the payload's exact shape."""
+    """CBS price API -> {YYYY-MM: value}. Paginated (100 rows/page); follows next_url.
+
+    Date items carry either year+month fields or a date string, and the figure sits
+    inside a wrapper dict (currBase etc.) — handle all shapes, assert none.
+    """
     url = ("https://api.cbs.gov.il/index/data/price?id=" + urllib.parse.quote(str(code))
            + "&format=json&download=false&startPeriod=01-2005")
-    j = json.loads(get(url).decode())
     out = {}
-    for rec in _walk(j, ("year", "month")):
-        y, m = _pick(rec, "year"), _pick(rec, "month")
-        v = _num(_pick(rec, "currbase", "value", "index"))
-        if y is None or m is None or v is None:
-            continue
-        try:
-            ym = f"{int(y):04d}-{int(m):02d}"
-        except (TypeError, ValueError):
-            continue
-        out[ym] = v
+    for _ in range(60):  # paging bound: 60 pages = 500 years of months
+        j = json.loads(get(url).decode())
+        for rec in _walk(j, ("month",)):
+            ym = None
+            y, m = _pick(rec, "year"), _pick(rec, "month")
+            try:
+                ym = f"{int(y):04d}-{int(m):02d}"
+            except (TypeError, ValueError):
+                d = _pick(rec, "date")
+                if isinstance(d, str):
+                    mt = re.match(r"(\d{4})-(\d{2})", d)
+                    if mt:
+                        ym = f"{mt.group(1)}-{mt.group(2)}"
+            if ym is None:
+                continue
+            v = _num(_pick(rec, "currbase", "value", "index"))
+            if v is not None:
+                out[ym] = v
+        paging = j.get("paging") or {}
+        nxt = paging.get("next_url")
+        if not nxt or paging.get("current_page") == paging.get("last_page"):
+            break
+        url = nxt if str(nxt).startswith("http") else urllib.parse.urljoin(url, str(nxt))
     return out
 
 
 def build_il():
-    """Israel: CBS agricultural OUTPUT price index / agricultural INPUT fodder index.
+    """Israel: CBS 'Beef, fresh' PPI (190030) / 'Fodder' agri-input index (260030).
 
-    Same object as the TR series — an output PPI over an input PPI from one national
-    office, monthly. The CBS index ids are not documented, so they are resolved from
-    the catalog by name at run time; pin them with IL_OUTPUT_ID / IL_FODDER_ID once
-    a run has printed them.
+    Codes were read from the raw chapter dumps (data/_probe-il-chapter-b.xml, -e.xml,
+    probe run 2026-08-18), not guessed: chapter b is the manufacturing PPI carrying
+    beef and prepared-animal-feeds product indices, chapter e the agricultural input
+    index carrying fodder. IL_OUTPUT_ID / IL_FODDER_ID override for experiments —
+    e.g. the exact TR-parallel pair 180073 (meat processing) / 180195 (prepared feeds).
     """
     import os
-    out_id, out_name = os.environ.get("IL_OUTPUT_ID", "").strip(), "pinned via IL_OUTPUT_ID"
-    fod_id, fod_name = os.environ.get("IL_FODDER_ID", "").strip(), "pinned via IL_FODDER_ID"
-    if not (out_id and fod_id):
-        cat = json.loads(get("https://api.cbs.gov.il/index/catalog/catalog"
-                             "?lang=en&format=json&download=false").decode())
-        if not out_id:
-            hit = _il_resolve(cat, ("agricultur", "output"))
-            if not hit:
-                raise RuntimeError("CBS catalog: no agricultural output price index found")
-            out_id, out_name = hit
-        if not fod_id:
-            hit = _il_resolve(cat, ("fodder",)) or _il_resolve(cat, ("agricultur", "input"))
-            if not hit:
-                raise RuntimeError("CBS catalog: no fodder / agricultural input index found")
-            fod_id, fod_name = hit
-    print(f"[il] output id={out_id} ({out_name}) | fodder id={fod_id} ({fod_name})")
+    out_id = os.environ.get("IL_OUTPUT_ID", "").strip() or "190030"
+    fod_id = os.environ.get("IL_FODDER_ID", "").strip() or "260030"
+    print(f"[il] output id={out_id} | fodder id={fod_id}")
     meat, feed = _il_series(out_id), _il_series(fod_id)
     months = sorted(set(meat) & set(feed))
     if not months:
@@ -305,9 +309,9 @@ def build_il():
     rows = [[m, round(meat[m], 2), round(feed[m], 2), round(meat[m] / feed[m], 4)]
             for m in months]
     return {
-        "source": f"Israel CBS: agricultural output price index (id {out_id}) / "
-                  f"agricultural input price index, fodder (id {fod_id})",
-        "columns": ["month", "output_idx", "fodder_idx", "parity_output_over_fodder"],
+        "source": f"Israel CBS index API: beef fresh PPI (id {out_id}) / "
+                  f"agricultural input fodder index (id {fod_id})",
+        "columns": ["month", "beef_ppi", "fodder_idx", "parity_beef_over_fodder"],
         "rows": rows,
     }
 
