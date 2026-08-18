@@ -125,6 +125,31 @@ replacement.
   claim the data supports is **Israel joins the panel; the Gulf is a different
   economy; the rest is not published at usable frequency.**
 
+## Status: implemented, not yet fetched
+
+`scripts/fetch_cattle_data.py` now builds both regions and `build_merged()` folds
+them into `data/cattle-parity.json` as `IL` and `SA`, rebased on exactly the same
+terms as the other three.
+
+- `build_il()` resolves the two CBS index ids **from the catalog by name at run
+  time**, because they are not documented. Pin them with `IL_OUTPUT_ID` /
+  `IL_FODDER_ID` once a run has printed them.
+- `build_sa()` probes the candidate GASTAT/open-data endpoints and accepts a
+  human-extracted CSV via `SA_WPI_CSV` (`month,series,value`). It **raises rather
+  than writing an empty region** — a silent zero would read on the chart as "Saudi
+  has no parity", which is a different claim from "we could not fetch it".
+- The Saudi imported-feed caveat is carried as a `caveat` field on the region
+  itself, so it travels with the data into whatever renders it.
+
+Both were validated end-to-end against mock payloads (resolver, series parser,
+CSV parser, merge, caveat propagation). **Neither has fetched a real number** —
+this sandbox has no egress. Run `.github/workflows/cattle-data.yml`.
+
+`parite-sigir.html`, the methodology page and the deck are deliberately untouched.
+They hardcode three regions plus derived constants — long-run means, historical
+dips, post-dip peaks — which can only be computed from real series. Wiring them
+before the fetch would mean inventing those numbers.
+
 ## Open questions the probe answers
 
 Run `.github/workflows/me-parity-probe.yml` (manual dispatch). It writes

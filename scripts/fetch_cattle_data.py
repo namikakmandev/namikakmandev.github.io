@@ -9,7 +9,7 @@ Runs inside GitHub Actions (open internet). Writes JSON files under data/:
 
 Each source is independent: a failure in one does not block the others.
 """
-import csv, io, json, sys, urllib.request
+import csv, io, json, re, sys, urllib.parse, urllib.request
 from collections import defaultdict
 
 UA = {"User-Agent": "namikakmandev-cattle-story/1.0 (github actions)"}
@@ -185,6 +185,219 @@ def build_tr():
         "rows": rows,
     }
 
+def _walk(obj, want_keys):
+    """Yield every dict in a nested JSON blob that carries all of want_keys (case-insensitive).
+
+    The CBS and GASTAT payload shapes are undocumented and have changed between
+    versions, so we search for the shape we need instead of asserting a key path.
+    """
+    if isinstance(obj, dict):
+        low = {k.lower(): k for k in obj}
+        if all(any(w in lk for lk in low) for w in want_keys):
+            yield obj
+        for v in obj.values():
+            yield from _walk(v, want_keys)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _walk(v, want_keys)
+
+
+def _pick(d, *fragments):
+    """First value in d whose key contains any fragment. None if nothing matches."""
+    for k, v in d.items():
+        if any(f in k.lower() for f in fragments):
+            return v
+    return None
+
+
+def _num(v, depth=0):
+    """Coerce to float, digging through wrapper dicts.
+
+    CBS nests the figure one level down (currBase: {value: ...}) and the wrapper key
+    varies by index, so unwrap rather than assert a path.
+    """
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return float(v)
+    if isinstance(v, str):
+        try:
+            return float(v.replace(",", "").strip())
+        except ValueError:
+            return None
+    if isinstance(v, dict) and depth < 3:
+        for frag in ("value", "index", "curr", "price"):
+            hit = _pick(v, frag)
+            if hit is not None:
+                n = _num(hit, depth + 1)
+                if n is not None:
+                    return n
+        for sub in v.values():
+            n = _num(sub, depth + 1)
+            if n is not None:
+                return n
+    return None
+
+
+def _il_resolve(catalog_json, keywords, exclude=()):
+    """Find a CBS index code by matching its English name. Returns (code, name)."""
+    best = None
+    for rec in _walk(catalog_json, ("name",)):
+        name = str(_pick(rec, "name") or "")
+        low = name.lower()
+        if not all(k in low for k in keywords) or any(x in low for x in exclude):
+            continue
+        code = _pick(rec, "code", "id")
+        if code is None:
+            continue
+        # prefer the shortest matching name: the parent index, not a sub-item
+        if best is None or len(name) < len(best[1]):
+            best = (str(code), name)
+    return best
+
+
+def _il_series(code):
+    """CBS price API -> {YYYY-MM: value}. Tolerant of the payload's exact shape."""
+    url = ("https://api.cbs.gov.il/index/data/price?id=" + urllib.parse.quote(str(code))
+           + "&format=json&download=false&startPeriod=01-2005")
+    j = json.loads(get(url).decode())
+    out = {}
+    for rec in _walk(j, ("year", "month")):
+        y, m = _pick(rec, "year"), _pick(rec, "month")
+        v = _num(_pick(rec, "currbase", "value", "index"))
+        if y is None or m is None or v is None:
+            continue
+        try:
+            ym = f"{int(y):04d}-{int(m):02d}"
+        except (TypeError, ValueError):
+            continue
+        out[ym] = v
+    return out
+
+
+def build_il():
+    """Israel: CBS agricultural OUTPUT price index / agricultural INPUT fodder index.
+
+    Same object as the TR series — an output PPI over an input PPI from one national
+    office, monthly. The CBS index ids are not documented, so they are resolved from
+    the catalog by name at run time; pin them with IL_OUTPUT_ID / IL_FODDER_ID once
+    a run has printed them.
+    """
+    import os
+    out_id, out_name = os.environ.get("IL_OUTPUT_ID", "").strip(), "pinned via IL_OUTPUT_ID"
+    fod_id, fod_name = os.environ.get("IL_FODDER_ID", "").strip(), "pinned via IL_FODDER_ID"
+    if not (out_id and fod_id):
+        cat = json.loads(get("https://api.cbs.gov.il/index/catalog/catalog"
+                             "?lang=en&format=json&download=false").decode())
+        if not out_id:
+            hit = _il_resolve(cat, ("agricultur", "output"))
+            if not hit:
+                raise RuntimeError("CBS catalog: no agricultural output price index found")
+            out_id, out_name = hit
+        if not fod_id:
+            hit = _il_resolve(cat, ("fodder",)) or _il_resolve(cat, ("agricultur", "input"))
+            if not hit:
+                raise RuntimeError("CBS catalog: no fodder / agricultural input index found")
+            fod_id, fod_name = hit
+    print(f"[il] output id={out_id} ({out_name}) | fodder id={fod_id} ({fod_name})")
+    meat, feed = _il_series(out_id), _il_series(fod_id)
+    months = sorted(set(meat) & set(feed))
+    if not months:
+        raise RuntimeError(f"CBS returned no overlapping months (output={len(meat)}, fodder={len(feed)})")
+    rows = [[m, round(meat[m], 2), round(feed[m], 2), round(meat[m] / feed[m], 4)]
+            for m in months]
+    return {
+        "source": f"Israel CBS: agricultural output price index (id {out_id}) / "
+                  f"agricultural input price index, fodder (id {fod_id})",
+        "columns": ["month", "output_idx", "fodder_idx", "parity_output_over_fodder"],
+        "rows": rows,
+    }
+
+
+def build_sa():
+    """Saudi Arabia: GASTAT Wholesale Price Index — live animals / cereals divisions.
+
+    CAVEAT THAT MUST TRAVEL WITH EVERY NUMBER: Saudi feed is almost entirely imported
+    and sat under a subsidy regime restructured in the mid-2010s. This ratio is
+    domestic meat price over imported feed cost, not the domestic grain cycle the
+    US/EU/TR series measure. Never plot it on the same axis unlabelled.
+
+    No machine-readable GASTAT endpoint is documented, so this probes candidates and
+    accepts a human-supplied CSV via SA_WPI_CSV. It raises rather than returning an
+    empty region — a silent zero would read as "Saudi has no parity", which is a
+    different claim from "we could not fetch it".
+    """
+    import os
+    csv_url = os.environ.get("SA_WPI_CSV", "").strip()
+    probes = ([csv_url] if csv_url else []) + [
+        "https://open.data.gov.sa/data/api/v1/datasets?q=wholesale%20price%20index",
+        "https://datasaudi.sa/en/api/indicators?search=wholesale%20price%20index",
+    ]
+    meat_kw = ("live animal", "animal product", "livestock")
+    feed_kw = ("cereal", "grain", "barley", "agricultur")
+    meat, feed, src = {}, {}, ""
+    for url in probes:
+        try:
+            raw = get(url).decode("utf-8", "replace")
+        except Exception as e:  # noqa: BLE001 — try the next shape
+            print("[sa] probe failed:", url[:70], repr(e))
+            continue
+        if raw.lstrip()[:1] in "{[":
+            try:
+                j = json.loads(raw)
+            except ValueError:
+                continue
+            for rec in _walk(j, ("name",)):
+                nm = str(_pick(rec, "name") or "").lower()
+                per, val = _pick(rec, "period", "date", "month"), _pick(rec, "value", "index")
+                if per is None or val is None:
+                    continue
+                ym = str(per)[:7].replace("/", "-")
+                if not re.match(r"^\d{4}-\d{2}$", ym):
+                    continue
+                val = _num(val)
+                if val is None:
+                    continue
+                if any(k in nm for k in meat_kw):
+                    meat[ym] = val
+                elif any(k in nm for k in feed_kw):
+                    feed[ym] = val
+        else:  # CSV: month,series,value
+            for row in csv.DictReader(io.StringIO(raw)):
+                low = {k.lower().strip(): (v or "").strip() for k, v in row.items() if k}
+                ym = (low.get("month") or low.get("period") or low.get("date") or "")[:7]
+                nm = (low.get("series") or low.get("name") or low.get("division") or "").lower()
+                try:
+                    val = float(low.get("value") or low.get("index") or "")
+                except ValueError:
+                    continue
+                if not re.match(r"^\d{4}-\d{2}$", ym):
+                    continue
+                if any(k in nm for k in meat_kw):
+                    meat[ym] = val
+                elif any(k in nm for k in feed_kw):
+                    feed[ym] = val
+        if meat and feed:
+            src = url
+            print(f"[sa] probe OK: {url[:70]} | meat={len(meat)} feed={len(feed)}")
+            break
+    months = sorted(set(meat) & set(feed))
+    if not months:
+        raise RuntimeError(
+            "GASTAT WPI not machine-readable from any probed endpoint. If the WPI is "
+            "bulletins-only, Saudi cannot join the panel — set SA_WPI_CSV to a CSV of "
+            "month,series,value if someone extracts one.")
+    rows = [[m, round(meat[m], 2), round(feed[m], 2), round(meat[m] / feed[m], 4)]
+            for m in months]
+    return {
+        "source": f"Saudi GASTAT Wholesale Price Index (2014=100) via {src}: "
+                  "live animals & animal products / cereals",
+        "caveat": "IMPORTED FEED — feed is not domestically priced and sat under a "
+                  "subsidy regime restructured mid-2010s. Not comparable to the "
+                  "US/EU/TR grain-cycle ratio; label it wherever it is shown.",
+        "columns": ["month", "meat_idx", "feed_idx", "parity_meat_over_feed"],
+        "rows": rows,
+    }
+
+
 def build_merged():
     """Apples-to-apples file: per region, meat & feed indexed to 2015=100 + parity index."""
     def load(path):
@@ -226,6 +439,28 @@ def build_merged():
                          for m in sorted(set(meat) & set(feed))]}
     except FileNotFoundError:
         pass
+    # Israel and Saudi Arabia join on exactly the terms the other three did: rebased
+    # to their own base-year mean, so only changes are compared, never levels.
+    for code, path, label in [("IL", "data/cattle-il.json", "Israel CBS: agri output / fodder input"),
+                              ("SA", "data/cattle-sa.json", "Saudi GASTAT WPI: live animals / cereals")]:
+        try:
+            raw = load(path)
+        except FileNotFoundError:
+            continue
+        meat = rebase({r[0]: r[1] for r in raw["rows"]})
+        feed = rebase({r[0]: r[2] for r in raw["rows"]})
+        months = sorted(set(meat) & set(feed))
+        if not months:
+            # rebase() needs base-year months; without them the region would vanish
+            # silently and the chart would just show four lines instead of five.
+            print(f"[WARN] {code}: no base-year overlap, region not merged")
+            continue
+        block = {"source": label,
+                 "columns": ["month", "meat_idx", "feed_idx", "parity_idx"],
+                 "rows": [[m, meat[m], feed[m], round(meat[m] / feed[m], 4)] for m in months]}
+        if raw.get("caveat"):
+            block["caveat"] = raw["caveat"]
+        out["regions"][code] = block
     with open("data/cattle-parity.json", "w") as f:
         json.dump(out, f, separators=(",", ":"))
     return out
@@ -310,7 +545,9 @@ def main():
     ok, fail = [], []
     for name, fn in [("data/cattle-us.json", build_us),
                      ("data/cattle-eu.json", build_eu),
-                     ("data/cattle-tr.json", build_tr)]:
+                     ("data/cattle-tr.json", build_tr),
+                     ("data/cattle-il.json", build_il),
+                     ("data/cattle-sa.json", build_sa)]:
         try:
             obj = fn()
             with open(name, "w") as f:
