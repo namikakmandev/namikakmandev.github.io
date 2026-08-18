@@ -254,6 +254,58 @@ def _il_resolve(catalog_json, keywords, exclude=()):
     return best
 
 
+_IL_CHAPTER_CACHE = {}
+
+
+def _il_chain_factors(code):
+    """Per-era divisors that put a CBS index's whole history on its newest base.
+
+    The series JSON reports each month on the base current AT THE TIME — the raw
+    series therefore has cliffs at every rebasing (observed: beef -42% at 2013-01,
+    fodder -48% at 2021-01). The chapter XML lists the bases with chaining
+    coefficients; dividing each era by the cumulative coefficient removes the
+    cliffs. Era rule (verified against the observed jump months): a base named
+    "Average YYYY" governs data from Jan(YYYY+1).
+    """
+    cat = json.loads(get("https://api.cbs.gov.il/index/catalog/catalog"
+                         "?lang=en&format=json&download=false").decode())
+    chapters = [c.get("chapterId") for c in cat.get("chapters", []) if isinstance(c, dict)]
+    # agriculture-relevant chapters first — the codes we use live in b and e
+    for cid in sorted(chapters, key=lambda c: (c not in ("b", "e"), c)):
+        if cid not in _IL_CHAPTER_CACHE:
+            try:
+                _IL_CHAPTER_CACHE[cid] = get(
+                    "https://api.cbs.gov.il/index/data/price_all"
+                    f"?lang=en&chapter={urllib.parse.quote(str(cid))}&format=json&download=false"
+                ).decode("utf-8", "replace")
+            except Exception:  # noqa: BLE001 — a dead chapter must not block the hunt
+                _IL_CHAPTER_CACHE[cid] = ""
+        m = re.search(rf'<index [^>]*code="{code}"[^>]*>.*?</index>',
+                      _IL_CHAPTER_CACHE[cid], re.S)
+        if not m:
+            continue
+        factors, cum = [], 1.0
+        for base, coeff in re.findall(
+                r'<index_base base="([^"]+)"(?: chaining_coefficient="([^"]+)")?>',
+                m.group(0)):
+            yr = re.search(r"(\d{4})", base)
+            if not yr:
+                continue
+            cum *= float(coeff) if coeff else 1.0
+            factors.append((int(yr.group(1)), cum))
+        if factors:
+            return factors  # newest base first
+    raise RuntimeError(f"CBS chapters: no base/coefficient block found for index {code}")
+
+
+def _il_rebase_era(factors, ym):
+    y = int(ym[:4])
+    for base_year, cum in factors:
+        if y >= base_year + 1:
+            return cum
+    return factors[-1][1]
+
+
 def _il_series(code):
     """CBS price API -> {YYYY-MM: value}. Paginated (100 rows/page); follows next_url.
 
@@ -286,7 +338,8 @@ def _il_series(code):
         if not nxt or paging.get("current_page") == paging.get("last_page"):
             break
         url = nxt if str(nxt).startswith("http") else urllib.parse.urljoin(url, str(nxt))
-    return out
+    factors = _il_chain_factors(code)
+    return {m: v / _il_rebase_era(factors, m) for m, v in out.items()}
 
 
 def build_il():
@@ -310,7 +363,8 @@ def build_il():
             for m in months]
     return {
         "source": f"Israel CBS index API: beef fresh PPI (id {out_id}) / "
-                  f"agricultural input fodder index (id {fod_id})",
+                  f"agricultural input fodder index (id {fod_id}), "
+                  "chained to the newest base across CBS rebasings",
         "columns": ["month", "beef_ppi", "fodder_idx", "parity_beef_over_fodder"],
         "rows": rows,
     }
