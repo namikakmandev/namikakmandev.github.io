@@ -37,14 +37,25 @@ Known limits, written down now:
 | Step | What | Status |
 |---|---|---|
 | 1 | `eu-ppp` entry in data-sources.json (`prc_ppp_ind`, one-year filter) | DONE |
-| 2 | `MODE=discover` via fetch-data.yml on this branch → real `na_item` + `ppp_cat` codes | RUNNING |
-| 3 | Pin codes: PLI + PPP indicators; GDP, actual individual consumption, and the published category list worth keeping (health, food, services groups) | after discover |
-| 4 | Widen `time` (full span per classification regime, respecting the 2021/22 break) and fetch for real | after 3 |
-| 5 | Sanity: EU27 PLI ≈ 100 by construction; PLI = PPP ÷ exchange rate × 100 spot-check for 2–3 countries against `fx-eur` data | after 4 |
+| 2 | `MODE=discover` via fetch-data.yml on this branch → real `na_item` + `ppp_cat` codes | DONE 2026-08-19 (dump in data/_fetch-report.json) |
+| 3 | Pin codes: `PLI_EU27_2020` + `PPP_EU27_2020`; ppp_cat GDP, A01, E011, A0101, A01010102 (meat), A0106 (health), A010603 (hospital), A0107, A0111, A0112, P0201 | DONE |
+| 4 | Full fetch → `data/eu-ppp.json` (404 KB) | DONE 2026-08-19 |
+| 5 | Sanity: EU27 PLI = 100 every year/category ✓; PLI = PPP ÷ fx × 100 exact for TR/PL/CZ 2024 vs `fx-eur.json` ✓ | DONE |
 
-The one-year `time=2024` filter in the committed entry exists only to keep
-the discovery request under the API size cap — the full dataset
-(37 geo × ~50 categories × several indicators × 30 years) would blow it.
+What the fetched data actually contains (verified, not assumed):
+
+- **50 geos with a 2024 GDP PLI** — EU-27, EFTA, UK, candidates incl. TR,
+  Western Balkans, plus US and JP and the EU/EA aggregates.
+- **Spans:** GDP / A01 / E011 run 1995–2024; category detail (food, meat,
+  health, transport, restaurants, misc, consumer services) runs 2003–2024;
+  hospital services 2006–2024. Series are continuous — no visible gap at
+  the 2021/22 COICOP change in this dataset, but treat pre-2022 category
+  values as back-estimates until the metadata says otherwise.
+- **No veterinary or pharmaceutical category exists** (61 ppp_cat codes
+  checked in the discover dump) — lowest health detail is A0106 Health /
+  A010603 Hospital services. Confirms the scope boundary above.
+- 2024 GDP PLI range for orientation: North Macedonia 50.7 / Türkiye 50.9
+  at the bottom; Iceland 152.9 / Switzerland 160.0 at the top (EU27 = 100).
 
 ## Integrity checklist for this study
 
