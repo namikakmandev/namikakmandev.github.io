@@ -1229,7 +1229,23 @@
    "provider": "eurostat",
    "dataset": "prc_ppp_ind",
    "params": {
-    "time": "2024"
+    "na_item": [
+     "PLI_EU27_2020",
+     "PPP_EU27_2020"
+    ],
+    "ppp_cat": [
+     "GDP",
+     "A01",
+     "E011",
+     "A0101",
+     "A01010102",
+     "A0106",
+     "A010603",
+     "A0107",
+     "A0111",
+     "A0112",
+     "P0201"
+    ]
    },
    "group_dims": [
     "geo",
@@ -1238,7 +1254,7 @@
    ],
    "out": "data/eu-ppp.json",
    "source": "Eurostat purchasing power parities and price level indices (prc_ppp_ind)",
-   "note": "DISCOVERY-FIRST: params hold one year only so the request stays under the API size cap; after MODE=discover, pin na_item (PLI/PPP) and ppp_cat codes and widen time before trusting output"
+   "note": "Codes pinned from MODE=discover run 2026-08-19. All 55 geos kept (incl. EU/EA aggregates, UK, US, JP, TR, Western Balkans). No veterinary/pharma category exists in this dataset — lowest health detail is A0106/A010603. COICOP 2018 rebase: category-level series may be short or broken around 2021/22 — check spans before charting."
   }
  ]
 }
