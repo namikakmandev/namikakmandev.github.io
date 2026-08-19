@@ -814,8 +814,8 @@ function scRace(p){
   sceneTitle(L.tRc);
   const M={l:64,r:78,t:H*0.13,b:H*0.55};
   const w=W-M.l-M.r,h=H-M.t-M.b;
-  const YMIN=30,YMAX=180;
-  grid(M.l,M.t,w,h,60,180,30,'');
+  const YMIN=30,YMAX=200;
+  grid(M.l,M.t,w,h,60,200,35,'');
   ctx.fillStyle=COL.dimmer;ctx.font='500 '+F(11)+'px "IBM Plex Mono",monospace';ctx.textAlign='right';
   ctx.fillText(L.axIdx,W-M.r,M.t-10);
   ctx.setLineDash([6,6]);ctx.strokeStyle='rgba(245,239,230,.3)';
@@ -827,6 +827,7 @@ function scRace(p){
   ctx.textAlign='center';ctx.fillStyle=COL.dimmer;
   for(const yr of [2012,2016,2020,2024])
     ctx.fillText(yr,M.l+w*(yr*12-t0)/(t1-t0),M.t+h+18);
+  const ends=[];
   for(const [k,c,g,lb] of sets){
     if(!PAR[k])continue;
     const rows=PAR[k].rows.filter(r=>r[0]>='2010');
@@ -843,10 +844,17 @@ function scRace(p){
     const x=M.l+w*(mi(last[0])-t0)/(t1-t0);
     const y=M.t+h*(1-(last[3]*100-YMIN)/(YMAX-YMIN));
     ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();
-    ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';ctx.textAlign='left';
-    const v=Math.round(last[3]*100-100);
-    const txt=`${lb} ${v>=0?'+':''}${v}%`;
-    ctx.fillText(txt,Math.min(x+8,W-ctx.measureText(txt).width-F(6)),y+4);
+    ends.push({x,y,c,v:Math.round(last[3]*100-100),lb});
+  }
+  /* uç etiketler: çakışanları alta kaydır */
+  ends.sort((a,b)=>a.y-b.y);
+  for(let i=1;i<ends.length;i++)
+    if(ends[i].y-ends[i-1].y<F(17))ends[i].y=ends[i-1].y+F(17);
+  ctx.font='700 '+F(12)+'px "IBM Plex Mono",monospace';ctx.textAlign='left';
+  for(const e of ends){
+    ctx.fillStyle=e.c;
+    const txt=`${e.lb} ${e.v>=0?'+':''}${e.v}%`;
+    ctx.fillText(txt,Math.min(e.x+8,W-ctx.measureText(txt).width-F(6)),e.y+4);
   }
 }
 function scPnl(p){
