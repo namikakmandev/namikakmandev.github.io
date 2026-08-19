@@ -47,9 +47,9 @@ def probe(name, url, note=""):
                 entry["structure"] = peek(json.loads(text))
             except ValueError as ex:
                 entry["parse_error"] = repr(ex)
-                entry["head"] = text[:1200]
+                entry["head"] = text[:6000]
         else:
-            entry["head"] = text[:1200]
+            entry["head"] = text[:6000]
     except urllib.error.HTTPError as ex:
         entry["http"] = ex.code
         entry["error"] = f"HTTPError: {ex.reason}"
@@ -61,8 +61,52 @@ def probe(name, url, note=""):
 
 
 # --------------------------------------------------------------- 1 · ISRAEL
-# Q: what are the index ids for agricultural OUTPUT price and FODDER input price,
-#    and does the keyless API serve them monthly?
+# Round-2 findings baked in: the catalog endpoint lists only 14 chapter NAMES
+# (chapter "e" = Price Indices of Input in Agriculture); the index codes live in
+# price_all per chapter, which returns XML regardless of format=json. So: walk
+# every chapter from the catalog, scan the XML for index codes + names, and test
+# whether the per-index endpoint really serves JSON with a monthly span.
+CHAPTER_KW = ("agricultur", "fodder", "feed", "output", "livestock", "meat",
+              "cattle", "producer", "farm")
+
+
+def probe_israel_indices():
+    try:
+        _, raw = get("https://api.cbs.gov.il/index/catalog/catalog?lang=en&format=json&download=false")
+        cat = json.loads(raw.decode("utf-8", "replace"))
+    except Exception as ex:  # noqa: BLE001
+        report["israel_chapters"] = {"error": f"{type(ex).__name__}: {ex}"}
+        return
+    chapters = {c.get("chapterId"): c.get("chapterName")
+                for c in cat.get("chapters", []) if isinstance(c, dict)}
+    report["israel_chapters"] = chapters
+    print("[il] chapters:", json.dumps(chapters))
+    found = {}
+    for cid, cname in chapters.items():
+        try:
+            _, raw = get("https://api.cbs.gov.il/index/data/price_all"
+                         f"?lang=en&chapter={urllib.parse.quote(str(cid))}&format=json&download=false")
+        except Exception as ex:  # noqa: BLE001
+            found[cid] = {"chapter": cname, "error": f"{type(ex).__name__}: {ex}"}
+            continue
+        text = raw.decode("utf-8", "replace")
+        # XML shape observed: <index ... code="260010"><index_name>NAME</index_name>
+        idx = dict(re.findall(r'code="(\d+)">\s*<index_name>([^<]+)</index_name>', text))
+        interesting = {c: n for c, n in idx.items()
+                       if any(k in n.lower() for k in CHAPTER_KW)}
+        found[cid] = {"chapter": cname, "n_indices": len(idx),
+                      "all" if len(idx) <= 30 else "interesting":
+                          interesting or dict(list(idx.items())[:30])}
+        print(f"[il] chapter {cid} ({cname}): {len(idx)} indices, "
+              f"{len(interesting)} keyword hits")
+    report["israel_indices_by_chapter"] = found
+    # Does the per-index endpoint serve JSON with a real monthly span? Use the one
+    # code confirmed to exist (input in agriculture - general).
+    probe("israel_series_json_check",
+          "https://api.cbs.gov.il/index/data/price?id=260010&format=json&download=false&startPeriod=01-2010",
+          "single-series endpoint: JSON or XML? monthly span?")
+
+
 def probe_israel():
     cat = probe("israel_catalog",
                 "https://api.cbs.gov.il/index/catalog/catalog?lang=en&format=json&download=false",
@@ -97,7 +141,7 @@ FAO_ITEMS = {"cattle_meat": 867, "maize": 56, "barley": 44}
 
 def probe_faostat():
     probe("faostat_pp_dimensions",
-          "https://faostatservices.fao.org/api/v1/en/dimensions/PP",
+          "https://faostatservices.fao.org/api/v1/en/definitions/domain/PP",
           "real dimension + element names for the Producer Prices domain")
     areas = ",".join(str(v) for v in FAO_AREAS.values())
     items = ",".join(str(v) for v in FAO_ITEMS.values())
@@ -128,7 +172,30 @@ def probe_saudi():
         probe(name, url, "Saudi WPI: any machine-readable endpoint?")
 
 
+def probe_israel_round3():
+    """Chapter b's XML defeated the round-2 regex (3 hits from 178KB), and the
+    single-series JSON is paginated. Save the raw payloads to files so the parser
+    can be written against reality without another blind round-trip."""
+    os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
+    for cid in ("b", "e"):
+        try:
+            _, raw = get("https://api.cbs.gov.il/index/data/price_all"
+                         f"?lang=en&chapter={cid}&format=json&download=false")
+            path = os.path.join(ROOT, "data", f"_probe-il-chapter-{cid}.xml")
+            with open(path, "wb") as fh:
+                fh.write(raw)
+            report[f"israel_raw_chapter_{cid}"] = {"saved": path, "bytes": len(raw)}
+            print(f"[il] saved chapter {cid}: {len(raw)} bytes")
+        except Exception as ex:  # noqa: BLE001
+            report[f"israel_raw_chapter_{cid}"] = {"error": f"{type(ex).__name__}: {ex}"}
+    probe("israel_fodder_page1",
+          "https://api.cbs.gov.il/index/data/price?id=260030&format=json&download=false&startPeriod=01-2010",
+          "fodder series page 1 — item shape + paging fields")
+
+
 def main():
+    probe_israel_round3()
+    probe_israel_indices()
     probe_israel()
     probe_faostat()
     probe_saudi()

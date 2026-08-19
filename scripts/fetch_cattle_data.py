@@ -254,50 +254,107 @@ def _il_resolve(catalog_json, keywords, exclude=()):
     return best
 
 
+_IL_CHAPTER_CACHE = {}
+
+
+def _il_chain_factors(code):
+    """Per-era divisors that put a CBS index's whole history on its newest base.
+
+    The series JSON reports each month on the base current AT THE TIME — the raw
+    series therefore has cliffs at every rebasing (observed: beef -42% at 2013-01,
+    fodder -48% at 2021-01). The chapter XML lists the bases with chaining
+    coefficients; dividing each era by the cumulative coefficient removes the
+    cliffs. Era rule (verified against the observed jump months): a base named
+    "Average YYYY" governs data from Jan(YYYY+1).
+    """
+    cat = json.loads(get("https://api.cbs.gov.il/index/catalog/catalog"
+                         "?lang=en&format=json&download=false").decode())
+    chapters = [c.get("chapterId") for c in cat.get("chapters", []) if isinstance(c, dict)]
+    # agriculture-relevant chapters first — the codes we use live in b and e
+    for cid in sorted(chapters, key=lambda c: (c not in ("b", "e"), c)):
+        if cid not in _IL_CHAPTER_CACHE:
+            try:
+                _IL_CHAPTER_CACHE[cid] = get(
+                    "https://api.cbs.gov.il/index/data/price_all"
+                    f"?lang=en&chapter={urllib.parse.quote(str(cid))}&format=json&download=false"
+                ).decode("utf-8", "replace")
+            except Exception:  # noqa: BLE001 — a dead chapter must not block the hunt
+                _IL_CHAPTER_CACHE[cid] = ""
+        m = re.search(rf'<index [^>]*code="{code}"[^>]*>.*?</index>',
+                      _IL_CHAPTER_CACHE[cid], re.S)
+        if not m:
+            continue
+        factors, cum = [], 1.0
+        for base, coeff in re.findall(
+                r'<index_base base="([^"]+)"(?: chaining_coefficient="([^"]+)")?>',
+                m.group(0)):
+            yr = re.search(r"(\d{4})", base)
+            if not yr:
+                continue
+            cum *= float(coeff) if coeff else 1.0
+            factors.append((int(yr.group(1)), cum))
+        if factors:
+            return factors  # newest base first
+    raise RuntimeError(f"CBS chapters: no base/coefficient block found for index {code}")
+
+
+def _il_rebase_era(factors, ym):
+    y = int(ym[:4])
+    for base_year, cum in factors:
+        if y >= base_year + 1:
+            return cum
+    return factors[-1][1]
+
+
 def _il_series(code):
-    """CBS price API -> {YYYY-MM: value}. Tolerant of the payload's exact shape."""
+    """CBS price API -> {YYYY-MM: value}. Paginated (100 rows/page); follows next_url.
+
+    Date items carry either year+month fields or a date string, and the figure sits
+    inside a wrapper dict (currBase etc.) — handle all shapes, assert none.
+    """
     url = ("https://api.cbs.gov.il/index/data/price?id=" + urllib.parse.quote(str(code))
            + "&format=json&download=false&startPeriod=01-2005")
-    j = json.loads(get(url).decode())
     out = {}
-    for rec in _walk(j, ("year", "month")):
-        y, m = _pick(rec, "year"), _pick(rec, "month")
-        v = _num(_pick(rec, "currbase", "value", "index"))
-        if y is None or m is None or v is None:
-            continue
-        try:
-            ym = f"{int(y):04d}-{int(m):02d}"
-        except (TypeError, ValueError):
-            continue
-        out[ym] = v
-    return out
+    for _ in range(60):  # paging bound: 60 pages = 500 years of months
+        j = json.loads(get(url).decode())
+        for rec in _walk(j, ("month",)):
+            ym = None
+            y, m = _pick(rec, "year"), _pick(rec, "month")
+            try:
+                ym = f"{int(y):04d}-{int(m):02d}"
+            except (TypeError, ValueError):
+                d = _pick(rec, "date")
+                if isinstance(d, str):
+                    mt = re.match(r"(\d{4})-(\d{2})", d)
+                    if mt:
+                        ym = f"{mt.group(1)}-{mt.group(2)}"
+            if ym is None:
+                continue
+            v = _num(_pick(rec, "currbase", "value", "index"))
+            if v is not None:
+                out[ym] = v
+        paging = j.get("paging") or {}
+        nxt = paging.get("next_url")
+        if not nxt or paging.get("current_page") == paging.get("last_page"):
+            break
+        url = nxt if str(nxt).startswith("http") else urllib.parse.urljoin(url, str(nxt))
+    factors = _il_chain_factors(code)
+    return {m: v / _il_rebase_era(factors, m) for m, v in out.items()}
 
 
 def build_il():
-    """Israel: CBS agricultural OUTPUT price index / agricultural INPUT fodder index.
+    """Israel: CBS 'Beef, fresh' PPI (190030) / 'Fodder' agri-input index (260030).
 
-    Same object as the TR series — an output PPI over an input PPI from one national
-    office, monthly. The CBS index ids are not documented, so they are resolved from
-    the catalog by name at run time; pin them with IL_OUTPUT_ID / IL_FODDER_ID once
-    a run has printed them.
+    Codes were read from the raw chapter dumps (data/_probe-il-chapter-b.xml, -e.xml,
+    probe run 2026-08-18), not guessed: chapter b is the manufacturing PPI carrying
+    beef and prepared-animal-feeds product indices, chapter e the agricultural input
+    index carrying fodder. IL_OUTPUT_ID / IL_FODDER_ID override for experiments —
+    e.g. the exact TR-parallel pair 180073 (meat processing) / 180195 (prepared feeds).
     """
     import os
-    out_id, out_name = os.environ.get("IL_OUTPUT_ID", "").strip(), "pinned via IL_OUTPUT_ID"
-    fod_id, fod_name = os.environ.get("IL_FODDER_ID", "").strip(), "pinned via IL_FODDER_ID"
-    if not (out_id and fod_id):
-        cat = json.loads(get("https://api.cbs.gov.il/index/catalog/catalog"
-                             "?lang=en&format=json&download=false").decode())
-        if not out_id:
-            hit = _il_resolve(cat, ("agricultur", "output"))
-            if not hit:
-                raise RuntimeError("CBS catalog: no agricultural output price index found")
-            out_id, out_name = hit
-        if not fod_id:
-            hit = _il_resolve(cat, ("fodder",)) or _il_resolve(cat, ("agricultur", "input"))
-            if not hit:
-                raise RuntimeError("CBS catalog: no fodder / agricultural input index found")
-            fod_id, fod_name = hit
-    print(f"[il] output id={out_id} ({out_name}) | fodder id={fod_id} ({fod_name})")
+    out_id = os.environ.get("IL_OUTPUT_ID", "").strip() or "190030"
+    fod_id = os.environ.get("IL_FODDER_ID", "").strip() or "260030"
+    print(f"[il] output id={out_id} | fodder id={fod_id}")
     meat, feed = _il_series(out_id), _il_series(fod_id)
     months = sorted(set(meat) & set(feed))
     if not months:
@@ -305,9 +362,10 @@ def build_il():
     rows = [[m, round(meat[m], 2), round(feed[m], 2), round(meat[m] / feed[m], 4)]
             for m in months]
     return {
-        "source": f"Israel CBS: agricultural output price index (id {out_id}) / "
-                  f"agricultural input price index, fodder (id {fod_id})",
-        "columns": ["month", "output_idx", "fodder_idx", "parity_output_over_fodder"],
+        "source": f"Israel CBS index API: beef fresh PPI (id {out_id}) / "
+                  f"agricultural input fodder index (id {fod_id}), "
+                  "chained to the newest base across CBS rebasings",
+        "columns": ["month", "beef_ppi", "fodder_idx", "parity_beef_over_fodder"],
         "rows": rows,
     }
 

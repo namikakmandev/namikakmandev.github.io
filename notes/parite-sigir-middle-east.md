@@ -125,7 +125,19 @@ replacement.
   claim the data supports is **Israel joins the panel; the Gulf is a different
   economy; the rest is not published at usable frequency.**
 
-## Status: implemented, not yet fetched
+## Status: ISRAEL IS LIVE · Saudi remains data-blocked
+
+Israel is fetched, verified and wired into the page: CBS beef fresh PPI
+(code 190030) over the fodder input index (260030), 259 months 2005-01 →
+2026-07, chained across CBS's rebasings (the raw feed carries fake cliffs of
+−42%/2013 and −48%/2021; the chained 2020 mean is exactly 100 on both sides).
+It appears in the four-market race, the risk bands and the P&L scene; the
+historical scene and the deep-narrative cards remain three-market analyses and
+say so. Saudi Arabia stays out: every candidate machine endpoint is dead
+(open-data portal times out, datasaudi 404), consistent with bulletins-only
+publishing — the SA_WPI_CSV route stands if a series is ever hand-extracted.
+
+## Superseded: original pre-fetch status
 
 `scripts/fetch_cattle_data.py` now builds both regions and `build_merged()` folds
 them into `data/cattle-parity.json` as `IL` and `SA`, rebased on exactly the same

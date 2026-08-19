@@ -75,8 +75,9 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);
 <tr><td><b>ABD</b></td><td data-i="r1a">Kesimlik sığır ÜFE<br><span class="mono">WPU0131</span></td><td data-i="r1b">Mısır ÜFE<br><span class="mono">WPU012202</span></td><td data-i="r1c">FRED / BLS · 1971-01 → 2026-06 · <b>666 ay</b></td></tr>
 <tr><td><b>AB</b></td><td data-i="r2a">Genç boğa karkas R3<br>EUR/100 kg</td><td data-i="r2b">Yem tahılı (mısır)<br>EUR/ton</td><td data-i="r2c">Avrupa Komisyonu Agri-food Data Portal · 2015-11 → 2026-07 · <b>129 ay</b></td></tr>
 <tr><td><b>Türkiye</b></td><td data-i="r3a">Et ve et ürünleri Yİ-ÜFE<br><span class="mono">TP.TUFE1YI.T17</span></td><td data-i="r3b">Hazır hayvan yemleri Yİ-ÜFE<br><span class="mono">TP.TUFE1YI.T25</span></td><td data-i="r3c">TCMB EVDS / TÜİK · 2010-01 → 2026-06 · <b>198 ay</b></td></tr>
+<tr><td><b>İsrail</b></td><td data-i="r3il_a">Taze sığır eti ÜFE<br><span class="mono">CBS 190030</span></td><td data-i="r3il_b">Yem (fodder) girdi endeksi<br><span class="mono">CBS 260030</span></td><td data-i="r3il_c">İsrail CBS endeks API · 2005-01 → 2026-07 · <b>259 ay</b> · baz zincirlemeli</td></tr>
 </tbody></table>
-<p data-i="p1">Veri otomatik çekiliyor: GitHub Actions ayda bir kaynakları sorguluyor, sonucu <span class="mono">/data/*.json</span> olarak yazıyor. Sayfa, film ve raporlar aynı dosyayı okuyor — yani üç üründe de tek bir gerçeklik var. AB serisi haftalık kotasyonların aylık ortalamasıdır.</p>
+<p data-i="p1">Veri otomatik çekiliyor: GitHub Actions ayda bir kaynakları sorguluyor, sonucu <span class="mono">/data/*.json</span> olarak yazıyor. Sayfa, film ve raporlar aynı dosyayı okuyor — yani üç üründe de tek bir gerçeklik var. AB serisi haftalık kotasyonların aylık ortalamasıdır. <b>İsrail serisi baz zincirlemelidir:</b> CBS her endeksi dönem dönem yeni baza geçirir ve API her ayı o günkü bazla verir — ham seride 2013'te −%42, 2021'de −%48'lik sahte uçurumlar oluşur. Çekim kodu, CBS'nin yayımladığı zincirleme katsayılarıyla tüm tarihi en yeni baza taşır; zincirlenmiş serinin 2020 ortalaması iki tarafta da tam 100'dür (taban yılı sağlaması).</p>
 
 <h2 data-i="s2">2 · PARİTE VE ENDEKS</h2>
 <div class="formula" data-i="f1">parite<sub>ay</sub> = <span>et fiyatı<sub>ay</sub></span> ÷ <span>yem fiyatı<sub>ay</sub></span></div>
@@ -160,7 +161,10 @@ const T={
   r3a:'Meat &amp; meat products PPI<br><span class="mono">TP.TUFE1YI.T17</span>',
   r3b:'Compound animal feed PPI<br><span class="mono">TP.TUFE1YI.T25</span>',
   r3c:'CBRT EVDS / TurkStat · 2010-01 → 2026-06 · <b>198 months</b>',
-  p1:'The data is fetched automatically: a GitHub Actions job queries the sources monthly and writes the result to <span class="mono">/data/*.json</span>. The page, the film and the reports all read the same file — one single source of truth across three products. The EU series is a monthly mean of weekly quotations.',
+  r3il_a:'Fresh beef PPI<br><span class="mono">CBS 190030</span>',
+  r3il_b:'Fodder input price index<br><span class="mono">CBS 260030</span>',
+  r3il_c:'Israel CBS index API · 2005-01 → 2026-07 · <b>259 months</b> · chained across rebasings',
+  p1:'The data is fetched automatically: a GitHub Actions job queries the sources monthly and writes the result to <span class="mono">/data/*.json</span>. The page, the film and the reports all read the same file — one single source of truth across three products. The EU series is a monthly mean of weekly quotations. <b>The Israel series is base-chained:</b> CBS rebases its indices periodically and the API reports each month on the base current at the time — the raw series carries fake cliffs of −42% (2013) and −48% (2021). The fetch code chains the whole history onto the newest base using CBS\'s published chaining coefficients; the chained series averages exactly 100 in 2020 on both sides (the base-year self-check).',
   s2:'2 · PARITY AND THE INDEX',
   f1:'parity<sub>month</sub> = <span>meat price<sub>month</sub></span> ÷ <span>feed price<sub>month</sub></span>',
   p2:'Parity is a unitless ratio measuring the <b>purchasing power of meat against feed</b>. Rising parity favours the feeder, falling parity hurts. Because the three regions use different measurement units, levels are not directly comparable; each series is therefore divided by its own <b>2016 mean</b> and set to 100:',
