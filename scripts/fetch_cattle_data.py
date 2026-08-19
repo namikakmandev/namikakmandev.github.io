@@ -399,17 +399,23 @@ def build_sa():
 
 
 def build_merged():
-    """Apples-to-apples file: per region, meat & feed indexed to 2015=100 + parity index."""
+    """Apples-to-apples file: per region, meat & feed indexed to 2016=100 + parity index.
+
+    2016, not 2015: the first year every series has all twelve months (EU starts
+    2015-11), and the base the methodology note and every chart label promise.
+    The file carried a 2015 base for a while with charts labelled 2016 — the
+    US "today" read +49% instead of +70% because of it.
+    """
     def load(path):
         with open(path) as f:
             return json.load(f)
-    def rebase(series):  # {m: v} -> 2015=100
-        base = [v for m, v in series.items() if m.startswith("2015") and v]
+    def rebase(series):  # {m: v} -> 2016=100
+        base = [v for m, v in series.items() if m.startswith("2016") and v]
         if not base:
             return {}
         b = sum(base) / len(base)
         return {m: round(v / b * 100, 2) for m, v in series.items() if v}
-    out = {"base": "2015=100", "regions": {}}
+    out = {"base": "2016=100", "regions": {}}
     us = load("data/cattle-us.json")["rows"]
     meat = rebase({r[0]: r[1] for r in us if r[0] >= "2010"})
     feed = rebase({r[0]: r[2] for r in us if r[0] >= "2010"})
