@@ -57,6 +57,17 @@ What the fetched data actually contains (verified, not assumed):
 - 2024 GDP PLI range for orientation: North Macedonia 50.7 / Türkiye 50.9
   at the bottom; Iceland 152.9 / Switzerland 160.0 at the top (EU27 = 100).
 
+## Built output
+
+`ppp-europe.html` — interactive explorer, listed on projects.html
+(card image `assets/ppp-europe.png`). Three views from `data/eu-ppp.json`:
+map + ranked bars (any category, any year), one-country category profile,
+and small-multiples PLI paths per country. Diverging blue↔orange around
+EU-27 = 100 (poles #4696ee / #e26b36, validated against the dark surface
+with the dataviz palette checker); Kosovo dropped from the country list —
+present in the dataset's geo dimension but publishes no PLI values, so the
+page honestly says 37 countries.
+
 ## Integrity checklist for this study
 
 - [ ] Indicator named on every figure: PLI (EU27_2020 = 100), year stated
