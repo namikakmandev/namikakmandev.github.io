@@ -1223,6 +1223,22 @@
    "enabled": true,
    "source": "Eurostat prc_hicp_minr — HICP all items (ECOICOP2), monthly index, 2015=100",
    "note": "Feeds the cost-escalation tool's CPI factor. Successor of prc_hicp_midx, which was archived at 2025-12 with the 2026 rebase (ECOICOP2, coicop18 dimension, all-items code TOTAL). meat-cpi-eu kept as the frozen pre-rebase file for the meat post and basket explorer."
+  },
+  {
+   "name": "eu-ppp",
+   "provider": "eurostat",
+   "dataset": "prc_ppp_ind",
+   "params": {
+    "time": "2024"
+   },
+   "group_dims": [
+    "geo",
+    "na_item",
+    "ppp_cat"
+   ],
+   "out": "data/eu-ppp.json",
+   "source": "Eurostat purchasing power parities and price level indices (prc_ppp_ind)",
+   "note": "DISCOVERY-FIRST: params hold one year only so the request stays under the API size cap; after MODE=discover, pin na_item (PLI/PPP) and ppp_cat codes and widen time before trusting output"
   }
  ]
 }
