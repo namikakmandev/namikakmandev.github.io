@@ -108,16 +108,23 @@ NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
 | Slovakia | YES (dual) — pharmacies dispense vet medicines under their pharmacy-care permit; separately, retail sale of vet medicines (incl. distance sale) runs on a permit from the regional veterinary and food administration — the route vets use | pharmacies dispense too | zákon č. 362/2011 Z. z. o liekoch; ŠVPS "Farmácia" pages (svps.sk); mediPRÁVNIK analysis "výdaj lekárňou vs. maloobchodný predaj veterinárnymi lekármi" |
 | Bulgaria | VET-STAFFED PHARMACIES — retail only via BFSA-licensed veterinary pharmacies; **the pharmacy manager and the persons selling must be veterinarians by law** | the licensed vet-pharmacy network IS the channel; BFSA controls wholesale + retail | Закон за ветеринарномедицинската дейност via BFSA (БАБХ) pages; bfsa.egov.bg licensing specimens; 1Legal.net summary of licensing requirements |
 
-Twenty-five rows now cover six distinct models: coupled (DE, UK, PL, TR,
-NL, BE, AT, CZ, CH, IE, SK, EL), dual-channel (FR), decoupled (DK, SE, NO),
-**dispense-at-cost (FI — vets may hand over medicines but only at their own
-purchase price, profit prohibited)**, prohibited (ES, likely IT), and the
-authorised-vet-pharmacy channel split (RO, HR, PT, BG — with Bulgaria
-requiring the pharmacy staff to BE veterinarians). The retail-margin actor
-differs country by country, and in FI/DK/SE/NO/ES a vet medicine margin is
-legally zero or non-existent. Still TO COMPILE: SI, Baltics (EE, LV, LT),
-Western Balkans (RS, BA, MK, ME, AL, XK); verifications open: HU article
-text, IT, RO/PT ownership-and-ceding nuances.
+| Slovenia | YES (hybrid) — retail via pharmacies, licensed specialised outlets (specializirane prodajalne; responsible person must hold a vet or pharmacy degree), AND veterinary organisations performing veterinary activities | pharmacies + specialised outlets | ZZdr-2 art. 126; Pravilnik o specializiranih prodajalnah (Uradni list 2003); JAZMP retail-marketing pages |
+| Estonia | LICENSED VET PHARMACY — the "veterinaarapteek" is a licensed pharmacy allowed to dispense only veterinary medicinal products; online sale only by licensed general/vet pharmacies. Vets' own hand-over right TO VERIFY in the Medicinal Products Act | general + veterinary pharmacies | Medicinal Products Act (Riigi Teataja consolidated EN); Ravimiamet pharmacy pages |
+| Latvia | LICENSED VET PHARMACY — veterinary pharmaceutical activity needs a special permit/licence from the Food and Veterinary Service (PVD); responsible official per the Pharmaceutical Law. Vets' own hand-over right TO VERIFY | licensed veterinary pharmacies | PVD "Special permit or licence for veterinary pharmaceutical activity" and "Veterināro zāļu mazumtirdzniecība" (pvd.gov.lv) |
+| Lithuania | LICENSED VET PHARMACY — pharmaceutical activity in veterinary medicine runs on permits/licences under the Law on Veterinary Activities; State Food and Veterinary Service oversight. Vets' own hand-over right TO VERIFY | licensed veterinarijos vaistinės | Law on Veterinary Activities (official translation, WTO/e-seimas); VMVT oversight |
+| Serbia | YES via registered pharmacy — veterinarska apoteka is the registered retail entity; veterinary stations/clinics may retail vet medicines (excluding state-programme injectables, sera, vaccines and diagnostics) IF they register a veterinary pharmacy, with a licensed vet employed | registered veterinarske apoteke (often clinic-attached) | Zakon o veterinarstvu (paragraf.rs consolidated text) |
+Thirty rows now cover six distinct models: coupled (DE, UK, PL, TR, NL,
+BE, AT, CZ, CH, IE, SK, EL, SI, RS) through dual-channel (FR), decoupled
+(DK, SE, NO), **dispense-at-cost (FI — vets may hand over medicines but
+only at their own purchase price, profit prohibited)**, prohibited (ES,
+likely IT), and the licensed-vet-pharmacy channel (RO, HR, PT, BG, EE, LV,
+LT — with Bulgaria requiring pharmacy staff to BE veterinarians). The
+retail-margin actor differs country by country, and in FI/DK/SE/NO/ES a
+vet medicine margin is legally zero or non-existent. Still TO COMPILE:
+BA, MK, ME, AL, XK (Western Balkans besides Serbia — next pass,
+local-language statutes). Open verifications: HU article text; IT; RO/PT
+ownership-and-ceding nuances; Baltic vets' own hand-over rights at
+statute level.
 
 ## Case study: UK — CMA market investigation (final report 24 Mar 2026)
 
