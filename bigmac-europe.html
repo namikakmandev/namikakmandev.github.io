@@ -509,7 +509,8 @@ function renderXCheck() {
   for (const p of pts) {
     const hot = p.g === "TR";
     svg += `<circle cx="${X(p.x)}" cy="${Yc(p.y)}" r="${hot ? 6 : 4.5}"` +
-      ` fill="${hot ? col(0.6) : col(-0.6)}" data-xtip="${p.g === "TR" ? "Türkiye" : p.g}` +
+      ` fill="${col(-0.6)}"${hot ? ' stroke="#f4f6f8" stroke-width="2"' : ""}` +
+      ` data-xtip="${p.g === "TR" ? "Türkiye" : p.g}` +
       ` · Eurostat ${p.x.toFixed(1)}% / Big Mac ${p.y.toFixed(1)}% vs euro area, ${Y}"/>` +
       `<text x="${X(p.x) + 7}" y="${Yc(p.y) - 6}" fill="${hot ? "#f4f6f8" : INK2}"` +
       ` font-size="10"${hot ? ' font-weight="700"' : ""}>${p.g}</text>`;
