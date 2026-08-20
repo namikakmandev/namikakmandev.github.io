@@ -107,24 +107,29 @@ NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
 | Croatia | CHANNEL-SPLIT — retail only via authorised veterinary pharmacies (veterinarske ljekarne), per-location approval, national register kept by the veterinary directorate; distance sale only through registered ljekarne | the registered vet-pharmacy network IS the channel | Zakon o veterinarsko-medicinskim proizvodima (zakon.hr); Uprava za veterinarstvo "Veterinarske ljekarne" register (veterinarstvo.hr) |
 | Slovakia | YES (dual) — pharmacies dispense vet medicines under their pharmacy-care permit; separately, retail sale of vet medicines (incl. distance sale) runs on a permit from the regional veterinary and food administration — the route vets use | pharmacies dispense too | zákon č. 362/2011 Z. z. o liekoch; ŠVPS "Farmácia" pages (svps.sk); mediPRÁVNIK analysis "výdaj lekárňou vs. maloobchodný predaj veterinárnymi lekármi" |
 | Bulgaria | VET-STAFFED PHARMACIES — retail only via BFSA-licensed veterinary pharmacies; **the pharmacy manager and the persons selling must be veterinarians by law** | the licensed vet-pharmacy network IS the channel; BFSA controls wholesale + retail | Закон за ветеринарномедицинската дейност via BFSA (БАБХ) pages; bfsa.egov.bg licensing specimens; 1Legal.net summary of licensing requirements |
-
 | Slovenia | YES (hybrid) — retail via pharmacies, licensed specialised outlets (specializirane prodajalne; responsible person must hold a vet or pharmacy degree), AND veterinary organisations performing veterinary activities | pharmacies + specialised outlets | ZZdr-2 art. 126; Pravilnik o specializiranih prodajalnah (Uradni list 2003); JAZMP retail-marketing pages |
 | Estonia | LICENSED VET PHARMACY — the "veterinaarapteek" is a licensed pharmacy allowed to dispense only veterinary medicinal products; online sale only by licensed general/vet pharmacies. Vets' own hand-over right TO VERIFY in the Medicinal Products Act | general + veterinary pharmacies | Medicinal Products Act (Riigi Teataja consolidated EN); Ravimiamet pharmacy pages |
 | Latvia | LICENSED VET PHARMACY — veterinary pharmaceutical activity needs a special permit/licence from the Food and Veterinary Service (PVD); responsible official per the Pharmaceutical Law. Vets' own hand-over right TO VERIFY | licensed veterinary pharmacies | PVD "Special permit or licence for veterinary pharmaceutical activity" and "Veterināro zāļu mazumtirdzniecība" (pvd.gov.lv) |
 | Lithuania | LICENSED VET PHARMACY — pharmaceutical activity in veterinary medicine runs on permits/licences under the Law on Veterinary Activities; State Food and Veterinary Service oversight. Vets' own hand-over right TO VERIFY | licensed veterinarijos vaistinės | Law on Veterinary Activities (official translation, WTO/e-seimas); VMVT oversight |
 | Serbia | YES via registered pharmacy — veterinarska apoteka is the registered retail entity; veterinary stations/clinics may retail vet medicines (excluding state-programme injectables, sera, vaccines and diagnostics) IF they register a veterinary pharmacy, with a licensed vet employed | registered veterinarske apoteke (often clinic-attached) | Zakon o veterinarstvu (paragraf.rs consolidated text) |
-Thirty rows now cover six distinct models: coupled (DE, UK, PL, TR, NL,
-BE, AT, CZ, CH, IE, SK, EL, SI, RS) through dual-channel (FR), decoupled
-(DK, SE, NO), **dispense-at-cost (FI — vets may hand over medicines but
-only at their own purchase price, profit prohibited)**, prohibited (ES,
-likely IT), and the licensed-vet-pharmacy channel (RO, HR, PT, BG, EE, LV,
-LT — with Bulgaria requiring pharmacy staff to BE veterinarians). The
+| Bosnia & Herzegovina | RETAIL VIA VETERINARSKE APOTEKE — registered under the veterinary law and inspected by the Federal inspection administration; qualified professional staff (stručni kadar) and prescription rules apply (inspectors have sanctioned dispensing without prescription / without qualified staff). Regulation is entity-split (FBiH / RS), so conditions can differ between the two entities | registered veterinarske apoteke | Zakon o veterinarstvu u BiH / FBiH (paragraf.ba; msb.gov.ba PDF); Federalna uprava za inspekcijske poslove enforcement notices |
+| North Macedonia | LICENSED VET PHARMACY — a dedicated Закон за ветеринарно-медицински препарати governs VMPs separately from human medicines; the Food and Veterinary Agency (FVA/АХВ) licenses both wholesale (veterinary wholesalers) and retail (ветеринарни аптеки), each outlet approved after an Expert Commission facility inspection. Vets' own hand-over right TO VERIFY in the law text | FVA-licensed ветеринарни аптеки ARE the retail channel | Закон за ветеринарно-медицински препарати (fva.gov.mk); FVA "Одобрување на правни лица кои вршат промет со ВМП" |
+| Montenegro | PHARMACY-ROUTE — veterinary medicines are regulated inside the single Zakon o ljekovima (Sl. list CG 14/26, human + vet in one act), administered by CInMED; the law counts a pharmacy supplying veterinary institutions under contract, for their patients, as retail trade. Nearly all VMPs imported — CInMED issued import consent for 260 vet medicines in 2025 and publishes the per-batch list. Vets' own hand-over right TO VERIFY | pharmacies + supply-to-veterinary-institutions route | Zakon o ljekovima 14/26 (cinmed.me PDF); CInMED annual report 2025 |
+| Albania | STATE-COMMISSION GATE, CHANNEL TO VERIFY — VMPs may be traded only after approval by the State Commission for Veterinary Medicinal Products under Law 10465/2011 on the veterinary service; a new VMP law aligned to EU Reg. 2019/6 is scheduled for adoption in 2026 (unlimited-validity trade authorisations; online sale legalised only for non-prescription products for non-food animals). Retail-licence mechanics (farmaci veterinare) exist as an e-Albania service but the statute-level channel rule is TO VERIFY | farmaci veterinare (licence service on e-Albania) — detail TO VERIFY | Ligj 10465/2011 (bujqesia.gov.al PDF / FAOLEX); RTSH report on the 2026 draft VMP law |
+| Kosovo | REGULATED, CHANNEL TO VERIFY — VMP marketing authorisation and pharmacovigilance run under Udhëzim Administrativ (MBPZHR) Nr. 12/2019 (successor to UA MA-Nr. 26/2006), with the Food and Veterinary Agency (AUV) as the veterinary authority; AKPPM licenses producers, wholesalers and retailers of medicinal products under Law 04/L-190. Which body licenses *veterinary* retail outlets and whether vets dispense is TO VERIFY | not yet documented | UA 26/2006 + UA (MBPZHR) 12/2019 (gzk.rks-gov.net); AUV legislation pages (auvk.rks-gov.net); AKPPM licensing department |
+Thirty-five rows — the map now covers every country on the study's list.
+Six distinct models: coupled (DE, UK, PL, TR, NL, BE, AT, CZ, CH, IE, SK,
+EL, SI, RS) through dual-channel (FR), decoupled (DK, SE, NO),
+**dispense-at-cost (FI — vets may hand over medicines but only at their
+own purchase price, profit prohibited)**, prohibited (ES, likely IT), and
+the licensed-vet-pharmacy channel (RO, HR, PT, BG, EE, LV, LT, MK, BA —
+with Bulgaria requiring pharmacy staff to BE veterinarians). ME routes
+through general pharmacies under a single medicines act; AL and XK are
+regulated but their retail-channel rule is TO VERIFY, not assumed. The
 retail-margin actor differs country by country, and in FI/DK/SE/NO/ES a
-vet medicine margin is legally zero or non-existent. Still TO COMPILE:
-BA, MK, ME, AL, XK (Western Balkans besides Serbia — next pass,
-local-language statutes). Open verifications: HU article text; IT; RO/PT
-ownership-and-ceding nuances; Baltic vets' own hand-over rights at
-statute level.
+vet medicine margin is legally zero or non-existent. Open verifications:
+HU article text; IT; RO/PT ownership-and-ceding nuances; Baltic + MK/ME
+vets' own hand-over rights at statute level; AL/XK retail channel.
 
 ## Case study: UK — CMA market investigation (final report 24 Mar 2026)
 
