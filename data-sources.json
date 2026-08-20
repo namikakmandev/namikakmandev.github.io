@@ -1255,6 +1255,37 @@
    "out": "data/eu-ppp.json",
    "source": "Eurostat purchasing power parities and price level indices (prc_ppp_ind)",
    "note": "Codes pinned from MODE=discover run 2026-08-19. All 55 geos kept (incl. EU/EA aggregates, UK, US, JP, TR, Western Balkans). No veterinary/pharma category exists in this dataset — lowest health detail is A0106/A010603. COICOP 2018 rebase: category-level series may be short or broken around 2021/22 — check spans before charting."
+  },
+  {
+   "name": "eu-vet-sbs",
+   "provider": "eurostat",
+   "dataset": "sbs_na_1a_se_r2",
+   "params": {
+    "nace_r2": "M75",
+    "time": "2020"
+   },
+   "group_dims": [
+    "geo",
+    "indic_sb"
+   ],
+   "out": "data/eu-vet-sbs.json",
+   "source": "Eurostat SBS annual detailed enterprise statistics for services, veterinary activities (NACE M75)",
+   "note": "DISCOVERY-FIRST: one-year filter for the discover pass; pin indic_sb codes (enterprises, turnover, persons employed, value added) and widen time after the dump. Legacy SBS series ends ~2021 — successor EBS dataset to be hunted for 2021+ years."
+  },
+  {
+   "name": "eu-vet-weight",
+   "provider": "eurostat",
+   "dataset": "prc_hicp_inw",
+   "params": {
+    "time": "2026"
+   },
+   "group_dims": [
+    "geo",
+    "coicop"
+   ],
+   "out": "data/eu-vet-weight.json",
+   "source": "Eurostat HICP item weights — share of veterinary and pet services in each country's consumption basket",
+   "note": "DISCOVERY-FIRST: dump the coicop dimension to find the vet-services code under the ECOICOP2 rebase (was CP0935), then pin it and widen time."
   }
  ]
 }
