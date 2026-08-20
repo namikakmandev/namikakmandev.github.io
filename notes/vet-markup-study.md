@@ -88,11 +88,20 @@ NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
 | Germany | YES — Dispensierrecht via the tierärztliche Hausapotheke (practice pharmacy, TÄHAV rules) | pharmacies a minor channel for vet meds | Bundestierärztekammer, "Das tierärztliche Dispensierrecht" (bundestieraerztekammer.de PDF) |
 | Denmark | NO — prescribing and dispensing decoupled since the early 1990s; vets may not profit on medicine sales; limited hand-over from pharmacy-sourced stock | pharmacy-only distribution | Danish Veterinary and Food Administration (en.foedevarestyrelsen.dk, "Distribution and use of veterinary medicinal products"); AASV summary of Danish controls |
 | Sweden | NO — therapeutic vet medicines incl. medicated feed dispensed through pharmacies only | pharmacy-only | Grave et al., Prev. Vet. Med. (2006), DK/NO/SE antimicrobial-use study (ScienceDirect S0167587706000559) |
+| Norway | NO — same Nordic model: therapeutic vet medicines dispensed through pharmacies | pharmacy-only | same Grave et al. (2006) study, which covers DK, NO and SE |
+| Türkiye | YES — vet clinics/polyclinics may hold and sell vet medicinal products under a retail-sale permit; sale outside authorised retail points prohibited; even own-treatment stock requires the permit | pharmacies are also authorised retail points | Veteriner Tıbbi Ürünler Hakkında Yönetmelik (mevzuat.gov.tr no. 15651); TVHB/İVHO guidance on illegal online sales |
+| Poland | YES — retail of prescription vet medicines only through veterinary treatment facilities (zakład leczniczy dla zwierząt); vet supplies meds together with the service | pet shops etc. may sell OTC only (Prawo farmaceutyczne art. 71(1a)) | Główny Inspektorat Weterynarii, "Farmacja weterynaryjna" (wetgiw.gov.pl); Prawo farmaceutyczne; Vetpol guidance |
+| Spain | **NO — prohibited.** Vets in clinical practice may not sell or dispense; they may only administer from a practice stock acquired via authorised channels ("cesión") | dispensing via pharmacies, authorised retailers (comerciales detallistas) and livestock entities (ADS) | Real Decreto 666/2023 (BOE-A-2023-16727); Consejo General de Colegios Veterinarios summary; MAPA Q&A on distribution/prescription/dispensing (mapa.gob.es) |
+| Italy | LIKELY NO — cited alongside Spain as a country where vet dispensing is prohibited; pharmacy-based retail | pharmacy-led | secondary only (IM Veterinaria comparison) — **TO VERIFY against D.Lgs. 193/2006 / current Italian law before use** |
 
-The five rows already span the whole structural spectrum — from fully
-coupled (DE, UK) through dual-channel (FR) to fully decoupled (DK, SE) —
-which is the core reason no single "vet markup" number can exist across
-Europe: in Denmark and Sweden there is no vet medicine margin at all.
+Eleven rows now span the whole structural spectrum: fully coupled (DE, UK,
+PL, TR) through dual-channel (FR) to decoupled-by-law (DK, SE, NO) and
+**prohibited outright (ES, likely IT)** — the strongest possible version of
+the study's core point: "vet markup on medicines" is not one object across
+Europe; in Spain and the Nordics it does not exist at all. Still TO
+COMPILE: NL, BE, AT, CH, IE, FI, CZ, HU, RO, BG, HR, SI, SK, Baltics,
+Western Balkans, EL, PT (searches this pass were inconclusive — need
+national law texts, not summaries).
 
 ## Case study: UK — CMA market investigation (final report 24 Mar 2026)
 
