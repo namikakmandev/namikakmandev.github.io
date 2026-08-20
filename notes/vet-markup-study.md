@@ -93,15 +93,22 @@ NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
 | Poland | YES — retail of prescription vet medicines only through veterinary treatment facilities (zakład leczniczy dla zwierząt); vet supplies meds together with the service | pet shops etc. may sell OTC only (Prawo farmaceutyczne art. 71(1a)) | Główny Inspektorat Weterynarii, "Farmacja weterynaryjna" (wetgiw.gov.pl); Prawo farmaceutyczne; Vetpol guidance |
 | Spain | **NO — prohibited.** Vets in clinical practice may not sell or dispense; they may only administer from a practice stock acquired via authorised channels ("cesión") | dispensing via pharmacies, authorised retailers (comerciales detallistas) and livestock entities (ADS) | Real Decreto 666/2023 (BOE-A-2023-16727); Consejo General de Colegios Veterinarios summary; MAPA Q&A on distribution/prescription/dispensing (mapa.gob.es) |
 | Italy | LIKELY NO — cited alongside Spain as a country where vet dispensing is prohibited; pharmacy-based retail | pharmacy-led | secondary only (IM Veterinaria comparison) — **TO VERIFY against D.Lgs. 193/2006 / current Italian law before use** |
+| Netherlands | YES — every registered vet holds a retail licence by law ("apotheekhoudende dierenarts"); may dispense only to clients whose animals are under their care; trading beyond own clients requires a separate licence. UDD class = vet-administered only | pharmacies dispense URA products on a vet's prescription | KNMvD kennisbank "Aan wie mag een dierenarts diergeneesmiddelen afleveren?"; CBG-MEB "Afleverstatus"; RVO diergeneesmiddelen page |
+| Belgium | YES — vets keep one registered medicines depot (dépôt/depot, numbered by the agency) and may supply ("fourniture/verschaffing") medicines to owners of animals under their care, quantity limited to the treatment | pharmacies dispense too | AFMPS/FAGG pages "Dépôt de médicaments pour les médecins vétérinaires" and "Fourniture de médicaments au responsable d'animaux" (afmps.be / fagg.be) |
+| Austria | YES — tierärztliche Hausapotheke under the Tierarzneimittelgesetz (TAMG); dispensing only to keepers of animals under the vet's treatment; opening notified to the district authority; chamber-supervised | public pharmacies a parallel channel | Österreichische Tierärztekammer, Berufsleitfaden "Tierärztliche Hausapotheke"; TAMG (ris.bka.gv.at); Apothekerkammer TAKG/TAMG merkblatt |
+| Czechia | YES — vets are authorised to dispense (výdej) veterinary medicinal products alongside pharmacists; sellers of reserved (OTC-class) products register with ÚSKVBL | pharmacies dispense too | Medicines Act 378/2007 Sb.; ÚSKVBL seller register (uskvbl.cz); VFU teaching materials on léčiva |
+| Hungary | PARTIAL — governing regulation identified: 128/2009. (X. 6.) FVM rendelet on veterinary products (prescribing, dispensing/kiadás and record rules for vets; Nébih oversight; 2023+ AMR amendments). The precise practice-sale rule needs the article text | vet pharmacies (állatgyógyszertár) retail channel | 128/2009 FVM rendelet (njt.hu / net.jogtar.hu); Nébih notice on changes — **TO PIN to specific §§ before use** |
+| Romania | CHANNEL-SPLIT — retail of vet medicinal products runs exclusively through ANSVSA-authorised veterinary pharmacies (farmacii veterinare) and pharmaceutical points; a vet practice as such is not a retail outlet — vets prescribe, authorised units dispense (whether/when vets own those units: nuance TO VERIFY) | the authorised vet-pharmacy network IS the channel; online sale only for non-prescription via registered retailers | ANSVSA "Precizări privind prescrierea, comercializarea, eliberarea si utilizarea produselor medicinale veterinare"; ANSVSA "Activitate farmaceutică veterinară" (ansvsa.ro) |
 
-Eleven rows now span the whole structural spectrum: fully coupled (DE, UK,
-PL, TR) through dual-channel (FR) to decoupled-by-law (DK, SE, NO) and
-**prohibited outright (ES, likely IT)** — the strongest possible version of
-the study's core point: "vet markup on medicines" is not one object across
-Europe; in Spain and the Nordics it does not exist at all. Still TO
-COMPILE: NL, BE, AT, CH, IE, FI, CZ, HU, RO, BG, HR, SI, SK, Baltics,
-Western Balkans, EL, PT (searches this pass were inconclusive — need
-national law texts, not summaries).
+Seventeen rows now cover every major model: fully coupled (DE, UK, PL, TR,
+NL, BE, AT, CZ) through dual-channel (FR) to decoupled-by-law (DK, SE, NO),
+prohibited outright (ES, likely IT), and Romania's authorised-vet-pharmacy
+channel split. The study's core point stands stronger with each row: "vet
+markup on medicines" is not one object across Europe — the actor earning
+the retail margin differs by country, and in the Nordics and Spain the vet
+margin does not exist at all. Still TO COMPILE: CH, IE, FI, PT, EL, BG,
+HR, SI, SK, Baltics, Western Balkans; plus pinning HU to article text and
+verifying IT and the RO ownership nuance.
 
 ## Case study: UK — CMA market investigation (final report 24 Mar 2026)
 
