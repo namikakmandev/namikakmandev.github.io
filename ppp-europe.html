@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>European price levels — PPP explorer, EU27 = 100</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="description" content="How expensive is each European country?
+Price level indices from Eurostat purchasing power parities, 37 countries,
+GDP and consumption categories, 1995–2024.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { background:#06090c; color:#f4f6f8; font-family:"IBM Plex Sans","Segoe UI",
+  system-ui,sans-serif; padding:28px 16px 60px; }
+.wrap { max-width:1020px; margin:0 auto; }
+.bar { display:flex; justify-content:space-between; margin-bottom:14px; gap:12px;
+  flex-wrap:wrap; }
+.bar a { color:#9aa3ad; text-decoration:none; font-size:14px; }
+.bar a:hover { color:#3987e5; }
+.kicker { color:#3987e5; font-weight:700; letter-spacing:.06em;
+  font-size:14px; margin-bottom:8px; }
+h1 { font-size:34px; line-height:1.15; margin-bottom:10px; }
+p.sub { color:#9aa3ad; font-size:15.5px; line-height:1.5; max-width:75ch;
+  margin-bottom:18px; }
+p.sub b { color:#f4f6f8; }
+.controls { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;
+  align-items:center; }
+.seg { display:inline-flex; border:1px solid #232a33; border-radius:8px;
+  overflow:hidden; }
+.seg button { background:none; border:none; color:#9aa3ad; font:inherit;
+  font-size:14px; padding:8px 14px; cursor:pointer; }
+.seg button.on { background:#3987e5; color:#0f1419; font-weight:700; }
+.seg button:focus-visible { outline:2px solid #3987e5; outline-offset:-2px; }
+select { background:#0f1419; color:#f4f6f8; border:1px solid #232a33;
+  border-radius:8px; font:inherit; font-size:14px; padding:8px 10px; }
+select:focus-visible { outline:2px solid #3987e5; outline-offset:1px; }
+.legend { display:flex; align-items:center; gap:12px; color:#9aa3ad;
+  font-size:13.5px; margin:4px 0 14px; flex-wrap:wrap; }
+.legend svg { display:block; }
+.panes { display:grid; grid-template-columns:minmax(0,5fr) minmax(0,4fr);
+  gap:22px; align-items:start; }
+#map { position:relative; background:#0f1419; border-radius:10px; padding:10px; }
+#map svg { width:100%; height:auto; display:block; }
+#map path { fill:#1a212b; stroke:#06090c; stroke-width:.7; }
+#map path[data-geo] { cursor:pointer; }
+#map path[data-geo]:hover { stroke:#f4f6f8; stroke-width:1; }
+#map path.ctx { fill:#12171e; }
+#maptip { position:absolute; display:flex; gap:8px; align-items:center;
+  pointer-events:none; background:#1a212b; border:1px solid #232a33;
+  border-radius:6px; padding:5px 9px; font-size:12.5px; white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.45); font-variant-numeric:tabular-nums; }
+#maptip[hidden] { display:none; }
+.rows { display:flex; flex-direction:column; gap:3px; }
+.row { display:grid; grid-template-columns:150px 1fr 46px; gap:10px;
+  align-items:center; font-size:13.5px; border-radius:5px; padding:1px 4px; }
+.row:hover { background:#0f1419; }
+.wide .row { grid-template-columns:220px 1fr 46px; }
+.row.click { cursor:pointer; }
+.row .nm { display:flex; align-items:center; gap:8px; min-width:0;
+  color:#9aa3ad; }
+.row .nm em { font-style:normal; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.row.hi .nm em { color:#f4f6f8; font-weight:700; }
+.flag { width:20px; height:13.3px; border-radius:2px; flex:none;
+  outline:1px solid rgba(255,255,255,.14); outline-offset:-1px; }
+.noflag { width:20px; flex:none; text-align:center; color:#3d4654;
+  font-size:10px; }
+.track { position:relative; height:13px; background:#0f1419; border-radius:3px; }
+.track i { position:absolute; left:0; top:0; bottom:0; border-radius:3px; }
+.track u { position:absolute; top:-2px; bottom:-2px; width:1.5px;
+  background:#3d4654; }
+.row .v { font-variant-numeric:tabular-nums; text-align:right;
+  color:#f4f6f8; }
+.row .v.na { color:#3d4654; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:16px 22px; margin-top:6px; }
+.cell { background:#0f1419; border-radius:8px; padding:10px 12px; }
+.cell > svg { width:100%; height:auto; display:block; touch-action:pan-y; }
+.ch { display:flex; justify-content:space-between; align-items:center;
+  font-size:14.5px; font-weight:700; margin-bottom:4px; gap:6px; }
+.ch .nm { display:flex; align-items:center; gap:7px; min-width:0; }
+.ch .nm em { font-style:normal; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.ch .v { font-variant-numeric:tabular-nums; flex:none; }
+details { margin-top:26px; color:#9aa3ad; font-size:14px; }
+summary { cursor:pointer; color:#9aa3ad; }
+table { border-collapse:collapse; margin-top:10px;
+  font-variant-numeric:tabular-nums; font-size:13.5px; }
+th, td { text-align:left; padding:4px 16px 4px 0; border-bottom:1px solid #171d25; }
+th { color:#3d4654; font-weight:400; }
+td.n { text-align:right; }
+.src { border-top:1px solid #232a33; margin-top:34px; padding-top:14px;
+  color:#3d4654; font-size:13px; line-height:1.5; max-width:90ch; }
+.src b { color:#9aa3ad; }
+#status { color:#3d4654; font-size:14px; margin-top:20px; }
+#tip { position:fixed; z-index:10; pointer-events:none; background:#1a212b;
+  border:1px solid #232a33; border-radius:6px; padding:5px 9px;
+  font-size:12.5px; color:#f4f6f8; font-variant-numeric:tabular-nums;
+  white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.45); }
+@media (max-width:820px) { .panes { grid-template-columns:1fr; } }
+@media (max-width:520px) {
+  body { padding:20px 12px 48px; }
+  h1 { font-size:26px; }
+  .seg { display:flex; width:100%; }
+  .seg button { flex:1; min-height:44px; padding:8px 6px; }
+  select { width:100%; min-height:44px; }
+  .row { grid-template-columns:118px 1fr 42px; }
+}
+</style></head><body><div class="wrap">
+<div class="bar"><a href="/">← namikakman — projects</a>
+  <a href="basket-explorer.html">food basket explorer →</a></div>
+<div class="kicker">EUROPEAN PRICE LEVELS · 37 COUNTRIES · EUROSTAT PPP</div>
+<h1>How expensive is each European country?</h1>
+<p class="sub">Every number is a <b>price level index</b>: what a common
+basket costs in a country, relative to the EU-27 average (= 100), at market
+exchange rates. Computed from Eurostat's purchasing power parities, so
+levels are comparable across countries — <b>orange is dearer than the EU
+average, blue is cheaper</b>. Price <i>levels</i> only: this says nothing
+about margins or markups anywhere in any supply chain.</p>
+<div class="controls">
+  <span class="seg" id="viewSeg" role="group" aria-label="View">
+    <button data-v="rank" class="on" aria-pressed="true">Map &amp; ranking</button>
+    <button data-v="profile" aria-pressed="false">One country</button>
+    <button data-v="time" aria-pressed="false">Over time</button>
+  </span>
+  <select id="catSel" aria-label="Category"></select>
+  <select id="geoSel" aria-label="Country"></select>
+  <select id="yearSel" aria-label="Year"></select>
+</div>
+<div class="legend" id="legend">
+  <svg width="180" height="12" aria-hidden="true">
+    <defs><linearGradient id="dv" x1="0" x2="1">
+      <stop offset="0" stop-color="#4696ee"/>
+      <stop offset=".5" stop-color="#49525f"/>
+      <stop offset="1" stop-color="#e26b36"/>
+    </linearGradient></defs>
+    <rect width="180" height="8" y="2" rx="4" fill="url(#dv)"/>
+    <rect x="89" y="0" width="2" height="12" fill="#f4f6f8"/>
+  </svg>
+  <span>← cheaper · <b style="color:#f4f6f8">100 = EU-27</b> · dearer →</span>
+</div>
+
+<div id="rankView" class="panes">
+  <div>
+    <div id="map"><div id="maptip" hidden></div></div>
+  </div>
+  <div class="rows" id="rankRows"></div>
+</div>
+<div id="profileView" hidden>
+  <div class="rows wide" id="profRows" style="max-width:640px"></div>
+</div>
+<div id="timeView" hidden>
+  <div class="grid" id="timeGrid"></div>
+</div>
+
+<details><summary>View as table</summary><div id="tbl"></div></details>
+<p id="status">Loading data…</p>
+
+<p class="src"><b>Source:</b> Eurostat, purchasing power parities and price
+level indices (<b>prc_ppp_ind</b>), indicator PLI_EU27_2020; annual;
+fetched via this repo's Actions pipeline (<span id="fetched"></span>).
+GDP and the two consumption aggregates run from 1995; category detail from
+2003 (hospital services 2006). Values for earlier years at category level
+are Eurostat back-estimates around the COICOP 2018 revision — treat long
+category series with care. Candidate-country figures (TR, RS, MK, ME, AL,
+BA) follow Eurostat's published series; Kosovo sits in the dataset's country dimension but publishes no price level values. The data file also carries the
+US and Japan for context; this page keeps to Europe. A price level index
+compares a whole basket — it is not a cost-of-living ranking for any single
+household, and it measures no distribution margin: markups are a separate
+assessment with a separate evidence base.</p>
+</div>
+<div id="tip" hidden></div>
+<script>
+const FLAGS = {
+"DE":"<rect width=\"24\" height=\"5.33\" fill=\"#000\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#DD0000\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#FFCE00\"/>",
+"FR":"<rect width=\"8\" height=\"16\" fill=\"#0055A4\"/><rect x=\"8\" width=\"8\" height=\"16\" fill=\"#fff\"/><rect x=\"16\" width=\"8\" height=\"16\" fill=\"#EF4135\"/>",
+"IT":"<rect width=\"8\" height=\"16\" fill=\"#008C45\"/><rect x=\"8\" width=\"8\" height=\"16\" fill=\"#fff\"/><rect x=\"16\" width=\"8\" height=\"16\" fill=\"#CD212A\"/>",
+"ES":"<rect width=\"24\" height=\"4\" fill=\"#AA151B\"/><rect y=\"4\" width=\"24\" height=\"8\" fill=\"#F1BF00\"/><rect y=\"12\" width=\"24\" height=\"4\" fill=\"#AA151B\"/>",
+"NL":"<rect width=\"24\" height=\"5.33\" fill=\"#AE1C28\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#21468B\"/>",
+"BE":"<rect width=\"8\" height=\"16\" fill=\"#000\"/><rect x=\"8\" width=\"8\" height=\"16\" fill=\"#FDDA24\"/><rect x=\"16\" width=\"8\" height=\"16\" fill=\"#EF3340\"/>",
+"AT":"<rect width=\"24\" height=\"5.33\" fill=\"#ED2939\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#ED2939\"/>",
+"PL":"<rect width=\"24\" height=\"8\" fill=\"#fff\"/><rect y=\"8\" width=\"24\" height=\"8\" fill=\"#DC143C\"/>",
+"CZ":"<rect width=\"24\" height=\"8\" fill=\"#fff\"/><rect y=\"8\" width=\"24\" height=\"8\" fill=\"#D7141A\"/><path d=\"M0,0 L11,8 L0,16 Z\" fill=\"#11457E\"/>",
+"HU":"<rect width=\"24\" height=\"5.33\" fill=\"#CE2939\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#477050\"/>",
+"RO":"<rect width=\"8\" height=\"16\" fill=\"#002B7F\"/><rect x=\"8\" width=\"8\" height=\"16\" fill=\"#FCD116\"/><rect x=\"16\" width=\"8\" height=\"16\" fill=\"#CE1126\"/>",
+"PT":"<rect width=\"9.6\" height=\"16\" fill=\"#046A38\"/><rect x=\"9.6\" width=\"14.4\" height=\"16\" fill=\"#DA291C\"/><circle cx=\"9.6\" cy=\"8\" r=\"3.2\" fill=\"#F1BF00\"/>",
+"DK":"<rect width=\"24\" height=\"16\" fill=\"#C8102E\"/><rect x=\"7\" width=\"3.2\" height=\"16\" fill=\"#fff\"/><rect y=\"6.4\" width=\"24\" height=\"3.2\" fill=\"#fff\"/>",
+"SE":"<rect width=\"24\" height=\"16\" fill=\"#006AA7\"/><rect x=\"7\" width=\"3.4\" height=\"16\" fill=\"#FECC02\"/><rect y=\"6.3\" width=\"24\" height=\"3.4\" fill=\"#FECC02\"/>",
+"FI":"<rect width=\"24\" height=\"16\" fill=\"#fff\"/><rect x=\"7\" width=\"3.6\" height=\"16\" fill=\"#002F6C\"/><rect y=\"6.2\" width=\"24\" height=\"3.6\" fill=\"#002F6C\"/>",
+"TR":"<rect width=\"24\" height=\"16\" fill=\"#E30A17\"/><circle cx=\"9\" cy=\"8\" r=\"4.2\" fill=\"#fff\"/><circle cx=\"10.2\" cy=\"8\" r=\"3.4\" fill=\"#E30A17\"/><polygon fill=\"#fff\" points=\"15,6.1 15.44,7.39 16.81,7.41 15.71,8.23 16.12,9.54 15,8.75 13.88,9.54 14.29,8.23 13.19,7.41 14.56,7.39\"/>",
+"EL":"<rect width=\"24\" height=\"16\" fill=\"#0D5EAF\"/><g fill=\"#fff\"><rect y=\"1.78\" width=\"24\" height=\"1.78\"/><rect y=\"5.33\" width=\"24\" height=\"1.78\"/><rect y=\"8.89\" width=\"24\" height=\"1.78\"/><rect y=\"12.44\" width=\"24\" height=\"1.78\"/></g><rect width=\"10\" height=\"8.89\" fill=\"#0D5EAF\"/><rect x=\"4.1\" width=\"1.8\" height=\"8.89\" fill=\"#fff\"/><rect y=\"3.55\" width=\"10\" height=\"1.8\" fill=\"#fff\"/>",
+"SK":"<rect width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#0B4EA2\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#EE1620\"/><path d=\"M5,4.5 h4.6 v4.6 l-2.3,2.2 l-2.3,-2.2 Z\" fill=\"#EE1620\" stroke=\"#fff\" stroke-width=\"0.5\"/>",
+"SI":"<rect width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#005DA4\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#ED1C24\"/><path d=\"M4.5,2.5 h4.6 v3.6 l-2.3,2.4 l-2.3,-2.4 Z\" fill=\"#005DA4\" stroke=\"#fff\" stroke-width=\"0.5\"/>",
+"HR":"<rect width=\"24\" height=\"5.33\" fill=\"#FF0000\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#171796\"/>",
+"BG":"<rect width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#00966E\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#D62612\"/>",
+"LT":"<rect width=\"24\" height=\"5.33\" fill=\"#FDB913\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#006A44\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#C1272D\"/>",
+"LV":"<rect width=\"24\" height=\"6.4\" fill=\"#9E3039\"/><rect y=\"6.4\" width=\"24\" height=\"3.2\" fill=\"#fff\"/><rect y=\"9.6\" width=\"24\" height=\"6.4\" fill=\"#9E3039\"/>",
+"EE":"<rect width=\"24\" height=\"5.33\" fill=\"#0072CE\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#000\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#fff\"/>",
+"NO":"<rect width=\"24\" height=\"16\" fill=\"#BA0C2F\"/><rect x=\"6\" width=\"5\" height=\"16\" fill=\"#fff\"/><rect y=\"5.5\" width=\"24\" height=\"5\" fill=\"#fff\"/><rect x=\"7.25\" width=\"2.5\" height=\"16\" fill=\"#00205B\"/><rect y=\"6.75\" width=\"24\" height=\"2.5\" fill=\"#00205B\"/>",
+"IE":"<rect width=\"8\" height=\"16\" fill=\"#169B62\"/><rect x=\"8\" width=\"8\" height=\"16\" fill=\"#fff\"/><rect x=\"16\" width=\"8\" height=\"16\" fill=\"#FF883E\"/>",
+"LU":"<rect width=\"24\" height=\"5.33\" fill=\"#EF3340\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#00A2E1\"/>",
+"IS":"<rect width=\"24\" height=\"16\" fill=\"#02529C\"/><rect x=\"6\" width=\"5\" height=\"16\" fill=\"#fff\"/><rect y=\"5.5\" width=\"24\" height=\"5\" fill=\"#fff\"/><rect x=\"7.25\" width=\"2.5\" height=\"16\" fill=\"#DC1E35\"/><rect y=\"6.75\" width=\"24\" height=\"2.5\" fill=\"#DC1E35\"/>",
+"CH":"<rect width=\"24\" height=\"16\" fill=\"#DA291C\"/><rect x=\"10\" y=\"3\" width=\"4\" height=\"10\" fill=\"#fff\"/><rect x=\"7\" y=\"6\" width=\"10\" height=\"4\" fill=\"#fff\"/>",
+"UK":"<rect width=\"24\" height=\"16\" fill=\"#012169\"/><path d=\"M0,0 L24,16 M24,0 L0,16\" stroke=\"#fff\" stroke-width=\"3.2\"/><path d=\"M0,0 L24,16 M24,0 L0,16\" stroke=\"#C8102E\" stroke-width=\"1.3\"/><rect x=\"9.5\" width=\"5\" height=\"16\" fill=\"#fff\"/><rect y=\"5.5\" width=\"24\" height=\"5\" fill=\"#fff\"/><rect x=\"10.75\" width=\"2.5\" height=\"16\" fill=\"#C8102E\"/><rect y=\"6.75\" width=\"24\" height=\"2.5\" fill=\"#C8102E\"/>",
+"CY":"<rect width=\"24\" height=\"16\" fill=\"#fff\"/><ellipse cx=\"12\" cy=\"7\" rx=\"5.2\" ry=\"2.4\" fill=\"#D57800\"/><path d=\"M9,11 q3,1.6 6,0\" stroke=\"#4E5B31\" stroke-width=\"1\" fill=\"none\"/>",
+"MT":"<rect width=\"12\" height=\"16\" fill=\"#fff\"/><rect x=\"12\" width=\"12\" height=\"16\" fill=\"#CF142B\"/><path d=\"M3,2 h1.4 v1.4 h1.4 v1.4 h-1.4 v1.4 h-1.4 v-1.4 h-1.4 v-1.4 h1.4 Z\" fill=\"#9aa3ad\"/>",
+"AL":"<rect width=\"24\" height=\"16\" fill=\"#E41E20\"/><path d=\"M12,3.2 l1.4,1.8 3.2,-1.2 -1.4,2.6 2.8,1.6 -2.8,1.6 1.4,2.6 -3.2,-1.2 -1.4,1.8 -1.4,-1.8 -3.2,1.2 1.4,-2.6 -2.8,-1.6 2.8,-1.6 -1.4,-2.6 3.2,1.2 Z\" fill=\"#000\"/>",
+"BA":"<rect width=\"24\" height=\"16\" fill=\"#002395\"/><path d=\"M8,0 L20,0 L8,16 Z\" fill=\"#FECB00\"/><g fill=\"#fff\"><circle cx=\"7.2\" cy=\"2.4\" r=\"0.9\"/><circle cx=\"10.2\" cy=\"6.4\" r=\"0.9\"/><circle cx=\"13.2\" cy=\"10.4\" r=\"0.9\"/><circle cx=\"16.2\" cy=\"14.4\" r=\"0.9\"/></g>",
+"ME":"<rect width=\"24\" height=\"16\" fill=\"#D3AE3B\"/><rect x=\"1\" y=\"1\" width=\"22\" height=\"14\" fill=\"#C40308\"/><circle cx=\"12\" cy=\"8\" r=\"3\" fill=\"#D3AE3B\"/>",
+"MK":"<rect width=\"24\" height=\"16\" fill=\"#D20000\"/><g fill=\"#FFE600\"><polygon points=\"0,0 12,8 5,0\"/><polygon points=\"24,0 12,8 19,0\"/><polygon points=\"0,16 12,8 5,16\"/><polygon points=\"24,16 12,8 19,16\"/><polygon points=\"0,6.4 12,8 0,9.6\"/><polygon points=\"24,6.4 12,8 24,9.6\"/><circle cx=\"12\" cy=\"8\" r=\"3\" stroke=\"#D20000\" stroke-width=\"0.8\"/></g>",
+"RS":"<rect width=\"24\" height=\"5.33\" fill=\"#C6363C\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#0C4076\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#fff\"/>",
+"XK":"<rect width=\"24\" height=\"16\" fill=\"#244AA5\"/><path d=\"M10,10.5 l1,-2.6 -0.9,-1.4 1.3,-1 1.2,0.6 1.1,1.2 -0.4,1.6 0.7,1.6 -2,0.9 Z\" fill=\"#D0A650\"/><g fill=\"#fff\"><circle cx=\"7.5\" cy=\"3.4\" r=\"0.75\"/><circle cx=\"10.5\" cy=\"2.7\" r=\"0.75\"/><circle cx=\"13.5\" cy=\"2.7\" r=\"0.75\"/><circle cx=\"16.5\" cy=\"3.4\" r=\"0.75\"/></g>"
+};
+const NAMES = {
+  AT:"Austria", BE:"Belgium", BG:"Bulgaria", HR:"Croatia", CY:"Cyprus",
+  CZ:"Czechia", DK:"Denmark", EE:"Estonia", FI:"Finland", FR:"France",
+  DE:"Germany", EL:"Greece", HU:"Hungary", IE:"Ireland", IT:"Italy",
+  LV:"Latvia", LT:"Lithuania", LU:"Luxembourg", MT:"Malta", NL:"Netherlands",
+  PL:"Poland", PT:"Portugal", RO:"Romania", SK:"Slovakia", SI:"Slovenia",
+  ES:"Spain", SE:"Sweden", IS:"Iceland", NO:"Norway", CH:"Switzerland",
+  UK:"United Kingdom", AL:"Albania", BA:"Bosnia and Herzegovina",
+  ME:"Montenegro", MK:"North Macedonia", RS:"Serbia", TR:"Türkiye"
+};
+const CATS = {
+  GDP:"GDP — whole economy", A01:"Actual individual consumption",
+  E011:"Household consumption", A0101:"Food & non-alcoholic beverages",
+  A01010102:"Meat", A0106:"Health", A010603:"Hospital services",
+  A0107:"Transport", A0111:"Restaurants & hotels",
+  A0112:"Misc. goods & services", P0201:"Consumer services"
+};
+const BLUE = [70,150,238], ORANGE = [226,107,54], NEUT = [73,82,95];
+const INK2 = "#9aa3ad", GRID = "#232a33", MUTED = "#3d4654";
+
+let DATA = null, META = null, GEOMAP = null;
+let view = "rank", cat = "GDP", geo = "TR", year = null;
+
+(function () {
+  const p = new URLSearchParams(location.search);
+  const v = p.get("view");
+  if (["rank","profile","time"].includes(v)) view = v;
+  const c = (p.get("cat") || "").toUpperCase();
+  if (CATS[c]) cat = c;
+  const g = (p.get("geo") || "").toUpperCase();
+  if (NAMES[g]) geo = g;
+  const y = p.get("year");
+  if (/^\d{4}$/.test(y)) year = y;
+})();
+
+function syncURL() {
+  const p = new URLSearchParams();
+  p.set("view", view); p.set("cat", cat);
+  if (view === "profile") p.set("geo", geo);
+  if (view !== "time" && year) p.set("year", year);
+  history.replaceState(null, "", "?" + p.toString());
+}
+
+const pli = (g, c) => DATA[g + "|PLI_EU27_2020|" + c];
+const ppp = (g, c) => DATA[g + "|PPP_EU27_2020|" + c];
+
+// diverging color: neutral gray at 100, poles saturate over ±50 points
+function col(v) {
+  const t = Math.max(-1, Math.min(1, (v - 100) / 50));
+  const pole = t < 0 ? BLUE : ORANGE, a = Math.abs(t);
+  const mix = pole.map((p, i) => Math.round(NEUT[i] + (p - NEUT[i]) * a));
+  return "rgb(" + mix.join(",") + ")";
+}
+const fmt = v => v == null ? "—" : v.toFixed(v >= 100 ? 0 : 1);
+
+// ---- controls
+const catSel = document.getElementById("catSel"),
+      geoSel = document.getElementById("geoSel"),
+      yearSel = document.getElementById("yearSel");
+for (const [c, n] of Object.entries(CATS)) catSel.add(new Option(n, c));
+for (const g of Object.keys(NAMES).sort((a, b) => NAMES[a].localeCompare(NAMES[b])))
+  geoSel.add(new Option(NAMES[g], g));
+
+function yearsFor(c) {
+  const s = pli("EU27_2020", c) || {};
+  return Object.keys(s).sort();
+}
+function fillYears() {
+  const ys = yearsFor(cat), old = year;
+  yearSel.innerHTML = "";
+  for (const y of [...ys].reverse()) yearSel.add(new Option(y, y));
+  year = ys.includes(old) ? old : ys[ys.length - 1];
+  yearSel.value = year;
+}
+function applyControls() {
+  catSel.value = cat; geoSel.value = geo;
+  document.querySelectorAll("#viewSeg button").forEach(b => {
+    const on = b.dataset.v === view;
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
+  });
+  geoSel.style.display = view === "profile" ? "" : "none";
+  catSel.style.display = view === "profile" ? "none" : "";
+  yearSel.style.display = view === "time" ? "none" : "";
+  document.getElementById("legend").style.display =
+    view === "time" ? "none" : "";
+}
+document.querySelectorAll("#viewSeg button").forEach(b =>
+  b.addEventListener("click", () => { view = b.dataset.v; update(); }));
+catSel.addEventListener("change", () => { cat = catSel.value; fillYears(); update(); });
+geoSel.addEventListener("change", () => { geo = geoSel.value; update(); });
+yearSel.addEventListener("change", () => { year = yearSel.value; update(); });
+
+// ---- flag helper
+const flagHTML = g => FLAGS[g]
+  ? `<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">${FLAGS[g]}</svg>`
+  : `<span class="noflag">${g}</span>`;
+
+// ---- bar row (shared by ranking and profile)
+function rowHTML(o) {
+  // o: {key,label,flag,v,ppp,max,click,hi}
+  const w = o.v == null ? 0 : Math.min(100, o.v / o.max * 100);
+  const mark = (100 / o.max * 100).toFixed(2);
+  const al = `${o.label}: price level ${fmt(o.v)}, EU27 = 100`;
+  return `<div class="row${o.click ? " click" : ""}${o.hi ? " hi" : ""}"` +
+    ` ${o.click ? `data-geo="${o.key}"` : ""} data-tip="${o.tip || ""}"` +
+    ` role="img" aria-label="${al}">` +
+    `<span class="nm">${o.flag}<em>${o.label}</em></span>` +
+    `<span class="track"><i style="width:${w}%;background:${o.v == null ? MUTED : col(o.v)}"></i>` +
+    `<u style="left:${mark}%"></u></span>` +
+    `<span class="v${o.v == null ? " na" : ""}">${fmt(o.v)}</span></div>`;
+}
+
+// ---- map
+function buildMap() {
+  const LON0 = -25, LON1 = 46, LAT0 = 34, LAT1 = 71.5,
+        K = Math.cos(52.5 * Math.PI / 180);
+  const W = 460, U = W / ((LON1 - LON0) * K), H = (LAT1 - LAT0) * U;
+  const px = lon => ((lon - LON0) * K * U).toFixed(1);
+  const py = lat => ((LAT1 - lat) * U).toFixed(1);
+  const inWin = r => r.some(c => c[0] > LON0 - 1 && c[0] < LON1 + 1 &&
+                                 c[1] > LAT0 - 1 && c[1] < LAT1 + 1);
+  const ring = r => "M" + r.map(c => px(c[0]) + "," + py(c[1])).join("L") + "Z";
+  const geom = f => f.geometry.type === "Polygon"
+    ? (inWin(f.geometry.coordinates[0]) ? f.geometry.coordinates.map(ring).join("") : "")
+    : f.geometry.coordinates.filter(p => inWin(p[0])).map(p => p.map(ring).join("")).join("");
+  const parts = [];
+  for (const f of GEOMAP.features) {
+    let code = f.properties.iso2;
+    if (code === "GR") code = "EL"; if (code === "GB") code = "UK";
+    const covered = !!NAMES[code];
+    parts.push(`<path d="${geom(f)}" ` +
+      `${covered ? `data-geo="${code}"` : 'class="ctx"'} ` +
+      `data-name="${covered ? NAMES[code] : (f.properties.name || code)}"></path>`);
+  }
+  const mapEl = document.getElementById("map");
+  mapEl.insertAdjacentHTML("afterbegin",
+    `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" role="group"` +
+    ` aria-label="Europe map colored by price level; click a country">` +
+    parts.join("") + `</svg>`);
+  mapEl.addEventListener("click", e => {
+    const p = e.target.closest("path[data-geo]");
+    if (!p) return;
+    geo = p.dataset.geo; view = "profile"; update();
+  });
+  const tip = document.getElementById("maptip");
+  mapEl.addEventListener("mousemove", e => {
+    const p = e.target.closest("path");
+    if (!p) { tip.hidden = true; return; }
+    const code = p.dataset.geo;
+    const v = code ? (pli(code, cat) || {})[year] : null;
+    tip.innerHTML = (code && FLAGS[code]
+      ? `<svg class="flag" viewBox="0 0 24 16">${FLAGS[code]}</svg>` : "") +
+      `<span>${p.dataset.name}${code ? " · " + fmt(v) : " — not in dataset"}</span>`;
+    const r = mapEl.getBoundingClientRect();
+    tip.style.left = Math.max(4, Math.min(e.clientX - r.left + 14,
+      r.width - tip.offsetWidth - 8)) + "px";
+    tip.style.top = (e.clientY - r.top + 16) + "px";
+    tip.hidden = false;
+  });
+  mapEl.addEventListener("mouseleave", () => { tip.hidden = true; });
+}
+function paintMap() {
+  document.querySelectorAll("#map path[data-geo]").forEach(p => {
+    const v = (pli(p.dataset.geo, cat) || {})[year];
+    p.style.fill = v == null ? "#1a212b" : col(v);
+    p.setAttribute("aria-label",
+      `${p.dataset.name}: price level ${fmt(v)} (${CATS[cat]}, ${year})`);
+  });
+}
+
+// ---- views
+function renderRank() {
+  const rows = [];
+  for (const g of Object.keys(NAMES)) {
+    const v = (pli(g, cat) || {})[year];
+    if (v != null) rows.push({ g, v });
+  }
+  rows.sort((a, b) => b.v - a.v);
+  const max = Math.max(160, ...rows.map(r => r.v)) * 1.02;
+  document.getElementById("rankRows").innerHTML = rows.map(r =>
+    rowHTML({ key: r.g, label: NAMES[r.g], flag: flagHTML(r.g), v: r.v,
+      max, click: true,
+      tip: `${NAMES[r.g]} ${year} · PLI ${fmt(r.v)} · basket ` +
+           `${r.v > 100 ? "+" + (r.v - 100).toFixed(0) + "% dearer than" :
+             r.v < 100 ? (100 - r.v).toFixed(0) + "% cheaper than" : "at"}` +
+           ` the EU-27 average` })).join("");
+  paintMap();
+  tableHTML(
+    ["Country", "PLI (EU27=100)", "PPP (nat. curr. per PPS)"],
+    rows.map(r => [NAMES[r.g], fmt(r.v),
+      ((ppp(r.g, cat) || {})[year] ?? "—")]));
+  document.getElementById("status").textContent =
+    `${CATS[cat]}, ${year} — ${rows.length} countries. Click a country for its profile.`;
+}
+
+function renderProfile() {
+  const rows = Object.keys(CATS).map(c => {
+    const ys = pli(geo, c) || {};
+    const y = ys[year] != null ? year : null;
+    return { c, v: y ? ys[y] : null };
+  });
+  const max = Math.max(160, ...rows.map(r => r.v || 0)) * 1.02;
+  document.getElementById("profRows").innerHTML = rows.map(r =>
+    rowHTML({ key: r.c, label: CATS[r.c], flag: "", v: r.v, max,
+      tip: r.v == null ? `${CATS[r.c]}: not published for ${year}` :
+        `${NAMES[geo]} · ${CATS[r.c]} · ${year} · PLI ${fmt(r.v)}` +
+        ((ppp(geo, r.c) || {})[year] != null
+          ? ` · PPP ${(ppp(geo, r.c))[year]}` : "") })).join("");
+  tableHTML(["Category", `PLI ${year} (EU27=100)`],
+    rows.map(r => [CATS[r.c], fmt(r.v)]));
+  document.getElementById("status").textContent =
+    `${NAMES[geo]}, ${year} — price level by category, whole-basket` +
+    ` comparisons vs the EU-27 average (100).`;
+}
+
+function mini(years, vals) {
+  const W = 230, H = 96;
+  const lo = Math.min(...vals, 95) - 3, hi = Math.max(...vals, 105) + 3;
+  const X = i => i / Math.max(vals.length - 1, 1) * W;
+  const Y = v => H - 6 - (v - lo) / (hi - lo) * (H - 12);
+  const pts = vals.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ");
+  const end = vals[vals.length - 1];
+  const colour = end > 102 ? col(130) : end < 98 ? col(70) : INK2;
+  return { pts, y100: Y(100).toFixed(1), end, colour };
+}
+
+function renderTime() {
+  const cells = [];
+  const ROWS = [];
+  for (const g of Object.keys(NAMES)) {
+    const s = pli(g, cat) || {};
+    const ys = Object.keys(s).sort();
+    if (ys.length < 5) continue;
+    const vals = ys.map(y => s[y]);
+    const m = mini(ys, vals);
+    ROWS.push({ g, ys, vals, first: vals[0], last: m.end });
+    cells.push(`<div class="cell" data-g="${g}">` +
+      `<div class="ch"><span class="nm">${flagHTML(g)}<em>${NAMES[g]}</em></span>` +
+      `<span class="v" style="color:${m.colour}">${fmt(m.end)}</span></div>` +
+      `<svg viewBox="0 0 230 96" role="img" aria-label="${NAMES[g]}:` +
+      ` price level ${fmt(vals[0])} in ${ys[0]}, ${fmt(m.end)} in ${ys[ys.length - 1]},` +
+      ` EU27 = 100"><line x1="0" y1="${m.y100}" x2="230" y2="${m.y100}"` +
+      ` stroke="${GRID}" stroke-width="1.2"/>` +
+      `<polyline points="${m.pts}" fill="none" stroke="${m.colour}"` +
+      ` stroke-width="2.3" stroke-linejoin="round"/></svg></div>`);
+  }
+  const grid = document.getElementById("timeGrid");
+  grid.innerHTML = cells.join("");
+  grid._rows = ROWS;
+  const ys0 = yearsFor(cat);
+  tableHTML(["Country", `PLI ${ys0[0]}`, `PLI ${ys0[ys0.length - 1]}`, "Change"],
+    ROWS.map(r => [NAMES[r.g], fmt(r.first), fmt(r.last),
+      (r.last - r.first > 0 ? "+" : "") + (r.last - r.first).toFixed(0)]));
+  document.getElementById("status").textContent =
+    `${CATS[cat]} — price level relative to EU-27 (grid line = 100), ` +
+    `${ROWS.length} countries, ${ys0[0]}–${ys0[ys0.length - 1]}.` +
+    ` The grid line is the moving EU average, so a flat line means` +
+    ` moving exactly with it.`;
+}
+
+// hover tooltip for sparklines and bar rows
+const tip = document.getElementById("tip");
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.hidden = false;
+  const w = tip.offsetWidth;
+  tip.style.left = Math.max(4, Math.min(x + 14, innerWidth - w - 8)) + "px";
+  tip.style.top = (y + 18) + "px";
+}
+document.addEventListener("mousemove", e => {
+  const cell = e.target.closest("#timeGrid .cell");
+  if (cell) {
+    const rows = document.getElementById("timeGrid")._rows || [];
+    const r = rows.find(x => x.g === cell.dataset.g);
+    const svg = cell.querySelector("svg");
+    if (r && svg) {
+      const b = svg.getBoundingClientRect();
+      const i = Math.max(0, Math.min(r.ys.length - 1,
+        Math.round((e.clientX - b.left) / b.width * (r.ys.length - 1))));
+      showTip(`${NAMES[r.g]} · ${r.ys[i]} · PLI ${fmt(r.vals[i])}`,
+        e.clientX, e.clientY);
+      return;
+    }
+  }
+  const row = e.target.closest(".row[data-tip]");
+  if (row && row.dataset.tip) { showTip(row.dataset.tip, e.clientX, e.clientY); return; }
+  tip.hidden = true;
+});
+document.getElementById("rankRows").addEventListener("click", e => {
+  const r = e.target.closest(".row[data-geo]");
+  if (r) { geo = r.dataset.geo; view = "profile"; update(); }
+});
+
+function tableHTML(head, rows) {
+  document.getElementById("tbl").innerHTML =
+    `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead>` +
+    `<tbody>${rows.map(r => `<tr>${r.map((c, i) =>
+      `<td${i ? ' class="n"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function update() {
+  applyControls(); syncURL();
+  document.getElementById("rankView").hidden = view !== "rank";
+  document.getElementById("profileView").hidden = view !== "profile";
+  document.getElementById("timeView").hidden = view !== "time";
+  if (!DATA) return;
+  if (view === "rank") renderRank();
+  else if (view === "profile") renderProfile();
+  else renderTime();
+}
+
+Promise.all([
+  fetch("data/eu-ppp.json").then(r => r.json()),
+  fetch("data/europe-map.json").then(r => r.json())
+]).then(([d, m]) => {
+  META = d; DATA = d.series; GEOMAP = m;
+  document.getElementById("fetched").textContent = d.fetched_at;
+  buildMap(); fillYears(); update();
+}).catch(err => {
+  document.getElementById("status").textContent =
+    "Could not load data: " + err;
+});
+</script></body></html>

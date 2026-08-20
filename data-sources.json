@@ -1223,6 +1223,38 @@
    "enabled": true,
    "source": "Eurostat prc_hicp_minr — HICP all items (ECOICOP2), monthly index, 2015=100",
    "note": "Feeds the cost-escalation tool's CPI factor. Successor of prc_hicp_midx, which was archived at 2025-12 with the 2026 rebase (ECOICOP2, coicop18 dimension, all-items code TOTAL). meat-cpi-eu kept as the frozen pre-rebase file for the meat post and basket explorer."
+  },
+  {
+   "name": "eu-ppp",
+   "provider": "eurostat",
+   "dataset": "prc_ppp_ind",
+   "params": {
+    "na_item": [
+     "PLI_EU27_2020",
+     "PPP_EU27_2020"
+    ],
+    "ppp_cat": [
+     "GDP",
+     "A01",
+     "E011",
+     "A0101",
+     "A01010102",
+     "A0106",
+     "A010603",
+     "A0107",
+     "A0111",
+     "A0112",
+     "P0201"
+    ]
+   },
+   "group_dims": [
+    "geo",
+    "na_item",
+    "ppp_cat"
+   ],
+   "out": "data/eu-ppp.json",
+   "source": "Eurostat purchasing power parities and price level indices (prc_ppp_ind)",
+   "note": "Codes pinned from MODE=discover run 2026-08-19. All 55 geos kept (incl. EU/EA aggregates, UK, US, JP, TR, Western Balkans). No veterinary/pharma category exists in this dataset — lowest health detail is A0106/A010603. COICOP 2018 rebase: category-level series may be short or broken around 2021/22 — check spans before charting."
   }
  ]
 }
