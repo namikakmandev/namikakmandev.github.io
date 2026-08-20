@@ -78,8 +78,43 @@ NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
   sale allowed? source (law or FVE doc + year).
 - Every cell sourced or left blank — a blank cell is a finding ("not
   documented"), a guessed cell is a fabrication.
-- No row is prefilled here: as of this draft the table has zero entries,
-  by design.
+- First sourced rows (research pass 2026-08-20). Every claim below has a
+  named source; unlisted countries remain TO COMPILE, not assumed.
+
+| Country | May vets sell/supply meds? | Pharmacy role | Source |
+|---|---|---|---|
+| UK | YES — vets prescribe AND supply POM-V (coupled); SQPs limited to POM-VPS | pharmacies dispense POM-V against a vet's prescription | RCVS supporting guidance ch. 4 (rcvs.org.uk) + VMD guidance |
+| France | YES — vets may dispense, without holding an open pharmacy, for animals under their care ("ayants droit") | pharmacies dispense too (dual channel) | Code de la santé publique art. L5143-2 (Légifrance) + Ordre national des vétérinaires, fiche "Délivrance" |
+| Germany | YES — Dispensierrecht via the tierärztliche Hausapotheke (practice pharmacy, TÄHAV rules) | pharmacies a minor channel for vet meds | Bundestierärztekammer, "Das tierärztliche Dispensierrecht" (bundestieraerztekammer.de PDF) |
+| Denmark | NO — prescribing and dispensing decoupled since the early 1990s; vets may not profit on medicine sales; limited hand-over from pharmacy-sourced stock | pharmacy-only distribution | Danish Veterinary and Food Administration (en.foedevarestyrelsen.dk, "Distribution and use of veterinary medicinal products"); AASV summary of Danish controls |
+| Sweden | NO — therapeutic vet medicines incl. medicated feed dispensed through pharmacies only | pharmacy-only | Grave et al., Prev. Vet. Med. (2006), DK/NO/SE antimicrobial-use study (ScienceDirect S0167587706000559) |
+
+The five rows already span the whole structural spectrum — from fully
+coupled (DE, UK) through dual-channel (FR) to fully decoupled (DK, SE) —
+which is the core reason no single "vet markup" number can exist across
+Europe: in Denmark and Sweden there is no vet medicine margin at all.
+
+## Case study: UK — CMA market investigation (final report 24 Mar 2026)
+
+The only deep public margin evidence anywhere. Figures verified against
+multiple summaries of the final report; pin to report paragraphs before
+any figure enters a chart:
+
+- Prescription fee cap: **£21** for the first medicine, **£12.50** per
+  additional medicine in the same consultation (incl. VAT), raised from
+  the £16 draft proposal; via CMA Order, remedies due implemented by
+  23 Sep 2026. (Bird & Bird, Fieldfisher, Vet Times summaries of the
+  final report; gov.uk case page: "Veterinary services for household
+  pets".)
+- **No medicine price control imposed** — the CMA relied on transparency
+  remedies (tell owners medicines may be cheaper online, right to a
+  written prescription) rather than capping medicine mark-ups, calling
+  general price controls ill-suited to a multi-product clinical sector.
+- Context finding: average vet service prices **+63% from Jan 2016 to
+  Dec 2023** vs **+32%** general services inflation.
+- TO EXTRACT next: the practice-level medicine margin percentages from
+  the final report appendices (not carried in the press summaries) —
+  requires the full report PDF from the gov.uk case page.
 
 ## Integrity checklist for this study
 
