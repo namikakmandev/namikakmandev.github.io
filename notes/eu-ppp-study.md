@@ -68,6 +68,30 @@ with the dataviz palette checker); Kosovo dropped from the country list —
 present in the dataset's geo dimension but publishes no PLI values, so the
 page honestly says 37 countries.
 
+## Timeliness complement — Big Mac index (added 2026-08)
+
+Eurostat PPP is annual with an ~18-month lag (no 2025 served as of
+2026-08). For "how expensive is a country RIGHT NOW", the repo now carries
+The Economist's Big Mac index (open data, semi-annual Jan+Jul, 2000→,
+56 countries): `data/bigmac-usd.json` (burger price in USD) and
+`data/bigmac-eur.json` (valuation vs the euro area). It is one item, not a
+basket — never present it as a PPP replacement, only as the timely signal.
+
+What it shows for the Türkiye timeliness question, verified from the data:
+TR burger vs euro area went **−54% (Jul 2021) → −23% (Jul 2024) → −15%
+(Jan 2026) → −2.4% (Jul 2026)**. The 2024 Eurostat PLI (50.9) and the
+2026 lived impression ("almost Western prices") are both right — the real
+appreciation between them is the story. Candidate for an official monthly
+confirmation: CPI-deflated real effective exchange rate (Eurostat
+ert_eff_ic_m), not yet wired in.
+
+Built output: `bigmac-europe.html` — map + diverging ranking vs the
+euro-area price (any edition back to 2000) and per-country over-time small
+multiples with parity as the grid line. Euro members painted as one bloc,
+era-correctly from each country's adoption year (Greece 2001 … Bulgaria
+2026); Russia's series ends Jan 2022 and is left out. Listed on
+projects.html (card `assets/bigmac-europe.png`).
+
 ## Integrity checklist for this study
 
 - [ ] Indicator named on every figure: PLI (EU27_2020 = 100), year stated

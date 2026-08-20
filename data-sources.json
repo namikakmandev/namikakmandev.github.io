@@ -1255,6 +1255,68 @@
    "out": "data/eu-ppp.json",
    "source": "Eurostat purchasing power parities and price level indices (prc_ppp_ind)",
    "note": "Codes pinned from MODE=discover run 2026-08-19. All 55 geos kept (incl. EU/EA aggregates, UK, US, JP, TR, Western Balkans). No veterinary/pharma category exists in this dataset — lowest health detail is A0106/A010603. COICOP 2018 rebase: category-level series may be short or broken around 2021/22 — check spans before charting."
+  },
+  {
+   "name": "eu-vet-sbs",
+   "provider": "eurostat",
+   "dataset": "sbs_na_1a_se_r2",
+   "params": {
+    "nace_r2": "M75",
+    "indic_sb": [
+     "V11110",
+     "V12110",
+     "V12150",
+     "V16110",
+     "V91100"
+    ]
+   },
+   "group_dims": [
+    "geo",
+    "indic_sb"
+   ],
+   "out": "data/eu-vet-sbs.json",
+   "source": "Eurostat SBS annual detailed enterprise statistics for services, veterinary activities (NACE M75)",
+   "note": "Codes pinned from discover 2026-08-20: V11110 enterprises, V12110 turnover (M EUR), V12150 value added (M EUR), V16110 persons employed, V91100 turnover per person employed (k EUR). 39 geos. Legacy SBS series — check the fetched span; 2021+ lives in the successor EBS dataset (separate hunt)."
+  },
+  {
+   "name": "eu-vet-weight",
+   "provider": "eurostat",
+   "dataset": "prc_hicp_inw",
+   "params": {
+    "coicop": [
+     "CP0934",
+     "CP0935"
+    ]
+   },
+   "group_dims": [
+    "geo",
+    "coicop"
+   ],
+   "out": "data/eu-vet-weight.json",
+   "source": "Eurostat HICP item weights — share of veterinary and pet services in each country's consumption basket",
+   "note": "HICP item weights, per-mille of total basket: CP0934 pets and related products, CP0935 veterinary and other services for pets. Dataset serves no 2026 (checked in discover — ECOICOP2 rebase); weights for 2026+ need the successor dataset once Eurostat publishes it."
+  },
+  {
+   "name": "bigmac-usd",
+   "provider": "csv",
+   "url": "https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv",
+   "group_col": "iso_a3",
+   "key_col": "date",
+   "value_col": "dollar_price",
+   "out": "data/bigmac-usd.json",
+   "source": "The Economist Big Mac index (open data, github.com/TheEconomist/big-mac-data) — Big Mac price converted to USD at market rates",
+   "note": "Semi-annual (Jan+Jul), 2000->today; a one-item price level, current within ~6 months — the timeliness complement to Eurostat PPP (annual, ~18-month lag). One burger is not a consumption basket."
+  },
+  {
+   "name": "bigmac-eur",
+   "provider": "csv",
+   "url": "https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv",
+   "group_col": "iso_a3",
+   "key_col": "date",
+   "value_col": "EUR_raw",
+   "out": "data/bigmac-eur.json",
+   "source": "The Economist Big Mac index — raw valuation vs the euro (0 = burger costs the same as in the euro area; +0.10 = 10% dearer)",
+   "note": "Same file as bigmac-usd, euro-relative column; fractions, not percent."
   }
  ]
 }
