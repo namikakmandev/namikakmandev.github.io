@@ -44,6 +44,8 @@ select:focus-visible { outline:2px solid #3987e5; outline-offset:1px; }
 #map path[data-geo] { cursor:default; }
 #map path[data-geo]:hover { stroke:#f4f6f8; stroke-width:1; }
 #map path.ctx { fill:#12171e; }
+#map path.sm { stroke:#93c1f0; stroke-width:1.05; }
+#map path[data-geo]:hover { stroke:#f4f6f8; stroke-width:1.5; }
 #maptip { position:absolute; display:flex; gap:8px; align-items:center;
   pointer-events:none; background:#1a212b; border:1px solid #232a33;
   border-radius:6px; padding:5px 9px; font-size:12.5px; white-space:nowrap;
@@ -131,6 +133,11 @@ the PPP map as the rigorous one.</p>
     <rect x="89" y="0" width="2" height="12" fill="#f4f6f8"/>
   </svg>
   <span>← cheaper · <b style="color:#f4f6f8">0 = euro-area price</b> · dearer →</span>
+  <span><svg width="22" height="14" aria-hidden="true" style="vertical-align:middle">
+    <rect x="2" y="2" width="18" height="10" rx="2" fill="#1a212b"
+      stroke="#93c1f0" stroke-width="1.5"/></svg>
+    outlined = EU/EEA single market — parallel trade legally protected;
+    outside it, EU exhaustion does not apply</span>
 </div>
 
 <div id="rankView" class="panes">
@@ -144,9 +151,15 @@ the PPP map as the rigorous one.</p>
 <details><summary>View as table</summary><div id="tbl"></div></details>
 <p id="status">Loading data…</p>
 
-<p class="src"><b>Source:</b> The Economist Big Mac index — open data
+<p class="src"><b>Source:</b> The Economist Big Mac index — prices collected
+by The Economist from McDonald's in each country and converted at the
+market exchange rate on the survey date; published as open data
 (github.com/TheEconomist/big-mac-data), semi-annual January &amp; July
-editions since 2000, fetched via this repo's pipeline. The Economist's
+editions since 2000, fetched via this repo's pipeline. The light-blue
+outline marks the EU/EEA single market (EU-27 plus Norway and Iceland),
+where EU-wide exhaustion makes parallel trade between member states
+lawful; Switzerland and the UK sit outside it, as do all candidate and
+Middle-East economies shown. The Economist's
 <b>headline index</b> reports the euro area as a single price; this page
 additionally uses the member-level source prices published in the same
 repository, so euro countries appear individually where those exist.
@@ -203,6 +216,11 @@ const EURO_NAMES = { AUT:"Austria", BEL:"Belgium", BGR:"Bulgaria",
   LVA:"Latvia", NLD:"Netherlands", PRT:"Portugal", SVK:"Slovakia",
   SVN:"Slovenia" };
 const FROM2E = Object.fromEntries(Object.entries(EURO_M).map(([k,v]) => [v,k]));
+// EU/EEA single market members (2026): EU-27 + Norway, Iceland (Liechtenstein off-map).
+// Switzerland and the UK are outside; so are all candidates and MEA economies.
+const SINGLE_MKT = new Set(["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR",
+  "DE","EL","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI",
+  "ES","SE","IS","NO"]);
 // euro adoption year per map country; founders count from the data's start
 const EURO_FROM = { AT:2000, BE:2000, DE:2000, ES:2000, FI:2000, FR:2000,
   IE:2000, IT:2000, LU:2000, NL:2000, PT:2000, GR:2001, SI:2007, CY:2008,
@@ -281,6 +299,7 @@ function buildMap() {
   for (const f of GEOMAP.features) {
     let c2 = f.properties.iso2 === "GB" ? "UK" : f.properties.iso2;
     parts.push(`<path d="${geom(f)}" data-geo="${c2}"` +
+      `${SINGLE_MKT.has(c2) ? ' class="sm"' : ""}` +
       ` data-name="${f.properties.name || c2}"></path>`);
   }
   const mapEl = document.getElementById("map");
@@ -293,8 +312,10 @@ function buildMap() {
     const p = e.target.closest("path");
     if (!p) { tip.hidden = true; return; }
     const info = geoValue(p.dataset.geo);
+    const sm = SINGLE_MKT.has(p.dataset.geo)
+      ? " · EU/EEA single market" : " · outside the single market";
     tip.innerHTML = `<span>${p.dataset.name}${info ? " · " + info.text
-      : " — not priced in this edition"}</span>`;
+      : " — not priced in this edition"}${sm}</span>`;
     const r = mapEl.getBoundingClientRect();
     tip.style.left = Math.max(4, Math.min(e.clientX - r.left + 14,
       r.width - tip.offsetWidth - 8)) + "px";
