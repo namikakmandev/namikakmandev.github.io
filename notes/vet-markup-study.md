@@ -72,6 +72,17 @@ with the EU-27 as a dashed reference line. Transmitted zero weights
 Each view carries its own metric definition box stating what the metric is
 NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
 
+`vet-dispensing.html` — the dispensing-rights map below rendered as an
+interactive page (card image `assets/vet-dispensing.png`): Europe map
+colored by retail channel (vet practice sells / pharmacy channel sells /
+prohibited for vets / to verify — three hues validated all-pairs against
+the dark surface with the dataviz checker, plus neutral gray; Italy
+hatched because its classification is secondary-sourced only), a grouped
+country list with TO VERIFY badges, a per-country detail panel quoting
+the rule and its named source, and a full table view. States its own
+limits: a legal map, not a metric; no margin sizes; LU/IS/CY/MT not
+compiled; Kosovo present in list and table but absent from the basemap.
+
 ## Dispensing-rights map — fill rules
 
 - One row per country; columns: may vets dispense? may pharmacies? online
@@ -117,7 +128,9 @@ NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
 | Montenegro | PHARMACY-ROUTE — veterinary medicines are regulated inside the single Zakon o ljekovima (Sl. list CG 14/26, human + vet in one act), administered by CInMED; the law counts a pharmacy supplying veterinary institutions under contract, for their patients, as retail trade. Nearly all VMPs imported — CInMED issued import consent for 260 vet medicines in 2025 and publishes the per-batch list. Vets' own hand-over right TO VERIFY | pharmacies + supply-to-veterinary-institutions route | Zakon o ljekovima 14/26 (cinmed.me PDF); CInMED annual report 2025 |
 | Albania | STATE-COMMISSION GATE, CHANNEL TO VERIFY — VMPs may be traded only after approval by the State Commission for Veterinary Medicinal Products under Law 10465/2011 on the veterinary service; a new VMP law aligned to EU Reg. 2019/6 is scheduled for adoption in 2026 (unlimited-validity trade authorisations; online sale legalised only for non-prescription products for non-food animals). Retail-licence mechanics (farmaci veterinare) exist as an e-Albania service but the statute-level channel rule is TO VERIFY | farmaci veterinare (licence service on e-Albania) — detail TO VERIFY | Ligj 10465/2011 (bujqesia.gov.al PDF / FAOLEX); RTSH report on the 2026 draft VMP law |
 | Kosovo | REGULATED, CHANNEL TO VERIFY — VMP marketing authorisation and pharmacovigilance run under Udhëzim Administrativ (MBPZHR) Nr. 12/2019 (successor to UA MA-Nr. 26/2006), with the Food and Veterinary Agency (AUV) as the veterinary authority; AKPPM licenses producers, wholesalers and retailers of medicinal products under Law 04/L-190. Which body licenses *veterinary* retail outlets and whether vets dispense is TO VERIFY | not yet documented | UA 26/2006 + UA (MBPZHR) 12/2019 (gzk.rks-gov.net); AUV legislation pages (auvk.rks-gov.net); AKPPM licensing department |
-Thirty-five rows — the map now covers every country on the study's list.
+Thirty-four rows — the map now covers every country on the study's list
+except four small markets never compiled (LU, IS, CY, MT — TO COMPILE
+only if a use appears).
 Six distinct models: coupled (DE, UK, PL, TR, NL, BE, AT, CZ, CH, IE, SK,
 EL, SI, RS) through dual-channel (FR), decoupled (DK, SE, NO),
 **dispense-at-cost (FI — vets may hand over medicines but only at their
