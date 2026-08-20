@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Who sells the medicine? — veterinary dispensing rights in Europe</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="description" content="A sourced legal map of who may sell
+veterinary medicines at retail in 34 European countries: vet practices,
+licensed veterinary pharmacies, general pharmacies — or nobody with a
+white coat. Every cell cites a statute or regulator.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { background:#06090c; color:#f4f6f8; font-family:"IBM Plex Sans","Segoe UI",
+  system-ui,sans-serif; padding:28px 16px 60px; }
+.wrap { max-width:1020px; margin:0 auto; }
+.bar { display:flex; justify-content:space-between; margin-bottom:14px; gap:12px;
+  flex-wrap:wrap; }
+.bar a { color:#9aa3ad; text-decoration:none; font-size:14px; }
+.bar a:hover { color:#3987e5; }
+.kicker { color:#3987e5; font-weight:700; letter-spacing:.06em;
+  font-size:14px; margin-bottom:8px; }
+h1 { font-size:34px; line-height:1.15; margin-bottom:10px; }
+p.sub { color:#9aa3ad; font-size:15.5px; line-height:1.5; max-width:75ch;
+  margin-bottom:18px; }
+p.sub b { color:#f4f6f8; }
+.legend { display:flex; align-items:center; gap:16px; color:#9aa3ad;
+  font-size:13.5px; margin:4px 0 14px; flex-wrap:wrap; }
+.legend .k { display:inline-flex; align-items:center; gap:6px; }
+.legend .sw { width:14px; height:14px; border-radius:3px; flex:none; }
+.panes { display:grid; grid-template-columns:minmax(0,5fr) minmax(0,4fr);
+  gap:22px; align-items:start; }
+#map { position:relative; background:#0f1419; border-radius:10px; padding:10px; }
+#map svg { width:100%; height:auto; display:block; }
+#map path { fill:#1a212b; stroke:#06090c; stroke-width:.7; }
+#map path[data-geo] { cursor:pointer; }
+#map path[data-geo]:hover { stroke:#f4f6f8; stroke-width:1; }
+#map path.sel { stroke:#f4f6f8; stroke-width:1.4; }
+#map path.ctx { fill:#12171e; }
+#maptip { position:absolute; display:flex; gap:8px; align-items:center;
+  pointer-events:none; background:#1a212b; border:1px solid #232a33;
+  border-radius:6px; padding:5px 9px; font-size:12.5px; white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.45); }
+#maptip[hidden] { display:none; }
+#detail { background:#0f1419; border-radius:10px; padding:14px 16px;
+  margin-top:14px; font-size:14px; line-height:1.55; color:#9aa3ad; }
+#detail .dh { display:flex; align-items:center; gap:9px; margin-bottom:7px;
+  flex-wrap:wrap; }
+#detail .dh em { font-style:normal; font-weight:700; font-size:16.5px;
+  color:#f4f6f8; }
+.chip { display:inline-flex; align-items:center; gap:6px; font-size:12px;
+  font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:20px;
+  color:#0f1419; }
+.chip.tbd { color:#f4f6f8; }
+.vbadge { display:inline-block; font-size:11px; font-weight:700;
+  letter-spacing:.05em; color:#e8b04a; border:1px solid #5a4a26;
+  border-radius:4px; padding:2px 6px; }
+#detail .dsrc { color:#3d4654; font-size:12.5px; margin-top:8px; }
+#detail .dsrc b { color:#9aa3ad; font-weight:600; }
+.groups { display:flex; flex-direction:column; gap:14px; }
+.gh { display:flex; align-items:center; gap:8px; font-size:13px;
+  font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  color:#9aa3ad; }
+.gh .sw { width:12px; height:12px; border-radius:3px; flex:none; }
+.gh .n { color:#3d4654; font-weight:400; }
+.rows { display:flex; flex-direction:column; gap:2px; margin-top:5px; }
+.row { display:flex; align-items:center; gap:8px; font-size:13.5px;
+  border-radius:5px; padding:2px 6px; cursor:pointer; color:#9aa3ad;
+  min-height:24px; }
+.row:hover { background:#0f1419; }
+.row.hi { background:#0f1419; }
+.row.hi em { color:#f4f6f8; font-weight:700; }
+.row em { font-style:normal; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.row .vb { margin-left:auto; color:#e8b04a; font-size:11px;
+  letter-spacing:.05em; flex:none; }
+.flag { width:20px; height:13.3px; border-radius:2px; flex:none;
+  outline:1px solid rgba(255,255,255,.14); outline-offset:-1px; }
+details { margin-top:26px; color:#9aa3ad; font-size:14px; }
+summary { cursor:pointer; color:#9aa3ad; }
+table { border-collapse:collapse; margin-top:10px; font-size:13.5px; }
+th, td { text-align:left; padding:6px 16px 6px 0; vertical-align:top;
+  border-bottom:1px solid #171d25; }
+th { color:#3d4654; font-weight:400; }
+td.f { max-width:52ch; line-height:1.45; }
+.src { border-top:1px solid #232a33; margin-top:34px; padding-top:14px;
+  color:#3d4654; font-size:13px; line-height:1.5; max-width:90ch; }
+.src b { color:#9aa3ad; }
+.src a { color:#9aa3ad; }
+#status { color:#3d4654; font-size:14px; margin-top:20px; }
+@media (max-width:820px) { .panes { grid-template-columns:1fr; } }
+@media (max-width:520px) {
+  body { padding:20px 12px 48px; }
+  h1 { font-size:26px; }
+}
+</style></head><body><div class="wrap">
+<div class="bar"><a href="/">← namikakman — projects</a>
+  <a href="vet-sector.html">the veterinary sector in numbers →</a></div>
+<div class="kicker">VETERINARY MEDICINES · DISPENSING RIGHTS · 34 COUNTRIES</div>
+<h1>Who is allowed to sell the animal's medicine?</h1>
+<p class="sub">A <b>legal map, not a metric</b>: which channel may sell
+veterinary medicines at retail in each country — the <b>vet practice
+itself</b>, a <b>licensed pharmacy</b>, or (in Spain) <b>neither, for the
+vet</b>. This is the structural fact behind any question about veterinary
+distribution margins: where the law decouples prescribing from selling, the
+vet has no medicine margin at all. Every cell below cites a statute or
+regulator; where a rule could not be pinned to its legal text, the country
+says <b>to&nbsp;verify</b> instead of guessing. Nothing here is computed
+from the price-level study — channel rules and price levels are separate
+assessments.</p>
+<div class="legend" id="legend"></div>
+
+<div class="panes">
+  <div>
+    <div id="map"><div id="maptip" hidden></div></div>
+    <div id="detail"></div>
+  </div>
+  <div class="groups" id="groups"></div>
+</div>
+
+<details><summary>View as table (all 34 rows)</summary><div id="tbl"></div></details>
+<p id="status"></p>
+
+<p class="src"><b>Sources:</b> one statute or regulator per country, named
+in each country's panel and in the table — among them RCVS/VMD and the CMA
+final report (UK), Code de la santé publique L5143-2 (FR), TÄHAV (DE),
+Real Decreto 666/2023 (ES), Animal Medication Act 387/2014 (FI),
+Zakon o veterinarstvu (RS), Закон за ветеринарно-медицински препарати (MK)
+and Zakon o ljekovima 14/26 (ME). Compiled August 2026 in this repo's
+research note
+(<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/notes/vet-markup-study.md">notes/vet-markup-study.md</a>),
+country by country, with every claim carrying a named source and open
+questions flagged rather than filled. Four small markets were not
+compiled (LU, IS, CY, MT) and are left dark on the map. Kosovo has no
+separate shape on this basemap — its row lives in the list and table. Classifications
+group each country's statute by its retail channel; within the pharmacy
+channel, national variants differ (Bulgaria's vet pharmacies must be
+staffed by veterinarians; Finland's vets may hand over medicines but only
+at their own purchase price). This page makes no claim about margin
+<i>sizes</i> anywhere — the only deep public margin evidence is the UK
+CMA investigation, summarised in the research note.</p>
+</div>
+<script src="js/vet-flags.js"></script>
+<script>
+const C = { vet:"#3987e5", pharm:"#199e70", proh:"#d95926", tbd:"#49525f" };
+const GROUPS = [
+  { id:"coupled", cls:"vet", t:"Vet practice dispenses (coupled)" },
+  { id:"dual", cls:"vet", t:"Dual channel — vet and pharmacy" },
+  { id:"vetpharm", cls:"pharm", t:"Licensed veterinary pharmacies" },
+  { id:"pharm", cls:"pharm", t:"General pharmacy channel — no vet margin" },
+  { id:"proh", cls:"proh", t:"Vet dispensing prohibited" },
+  { id:"tbd", cls:"tbd", t:"Channel to verify" }
+];
+const D = {
+UK:{g:"coupled",n:"United Kingdom",f:"Vets prescribe AND supply POM-V medicines; SQPs may supply the POM-VPS class. The CMA's 2026 remedies cap prescription fees (£21 first medicine, £12.50 each further) but impose no medicine price control.",s:"RCVS supporting guidance ch. 4; VMD; CMA final report, Mar 2026"},
+DE:{g:"coupled",n:"Germany",f:"Dispensing right (Dispensierrecht) through the practice pharmacy — the tierärztliche Hausapotheke under TÄHAV rules; public pharmacies are a minor channel for vet medicines.",s:"Bundestierärztekammer, “Das tierärztliche Dispensierrecht”"},
+FR:{g:"dual",n:"France",f:"Vets may dispense, without holding an open pharmacy, to animals under their care (the “ayants droit”); pharmacies dispense in parallel — a genuine dual channel.",s:"Code de la santé publique art. L5143-2; Ordre national des vétérinaires"},
+TR:{g:"coupled",n:"Türkiye",f:"Veterinary clinics and polyclinics may hold and sell veterinary medicinal products under a retail-sale permit; sale outside authorised retail points is prohibited. Pharmacies are also authorised retail points.",s:"Veteriner Tıbbi Ürünler Hakkında Yönetmelik (mevzuat no. 15651); TVHB"},
+PL:{g:"coupled",n:"Poland",f:"Retail of prescription veterinary medicines runs only through veterinary treatment facilities — the vet supplies the medicine together with the service; other outlets are OTC-only.",s:"Główny Inspektorat Weterynarii; Prawo farmaceutyczne art. 71(1a)"},
+NL:{g:"coupled",n:"Netherlands",f:"Every registered vet holds a retail licence by law (apotheekhoudende dierenarts) — dispensing only to clients whose animals are under their care; the UDD class is vet-administered only.",s:"KNMvD kennisbank; CBG-MEB; RVO"},
+BE:{g:"coupled",n:"Belgium",f:"Vets keep one registered medicines depot and may supply owners of animals under their care, with quantity limited to the treatment.",s:"AFMPS/FAGG, dépôt & fourniture pages"},
+AT:{g:"coupled",n:"Austria",f:"Tierärztliche Hausapotheke under the TAMG — dispensing to keepers of animals under the vet's treatment; opening notified to the district authority, chamber-supervised.",s:"Österreichische Tierärztekammer; TAMG"},
+CZ:{g:"coupled",n:"Czechia",f:"Vets are authorised to dispense veterinary medicines alongside pharmacists; sellers of the OTC (reserved) class register with ÚSKVBL.",s:"Medicines Act 378/2007 Sb.; ÚSKVBL"},
+CH:{g:"coupled",n:"Switzerland",f:"Vets may run a tierärztliche Privatapotheke for their own clients; it needs both a professional-practice and a retail-trade authorisation, inspected by the cantons.",s:"TAMV; BLV “Verschreibung, Abgabe und Anwendung”"},
+IE:{g:"coupled",n:"Ireland",f:"Vets supply POM to animals under their care; supply classes route products to vet, pharmacist or licensed retailer; internet sale only via DAFM-registered suppliers.",s:"HPRA classification guide; Veterinary Medicinal Products Act 2023"},
+SK:{g:"coupled",n:"Slovakia",f:"Pharmacies dispense under their pharmacy-care permit; separately, retail sale (incl. distance sale) runs on a permit from the regional veterinary and food administration — the route vets use.",s:"Act 362/2011 Z. z.; ŠVPS"},
+EL:{g:"coupled",n:"Greece",f:"Private clinics and production-animal vet offices may supply products to owners after issuing the prescription; dedicated retail shops need a licence and a responsible scientist with a veterinary degree.",s:"minagric.gr; national licence registry (mitos.gov.gr)"},
+SI:{g:"coupled",n:"Slovenia",f:"Retail via pharmacies, licensed specialised outlets (responsible person with a vet or pharmacy degree) AND veterinary organisations performing veterinary activity.",s:"ZZdr-2 art. 126; Pravilnik o specializiranih prodajalnah; JAZMP"},
+RS:{g:"coupled",n:"Serbia",f:"The veterinarska apoteka is the registered retail entity; veterinary stations and clinics may retail vet medicines (excluding state-programme biologicals) if they register one, with a licensed vet employed.",s:"Zakon o veterinarstvu (paragraf.rs consolidated text)"},
+DK:{g:"pharm",n:"Denmark",f:"Prescribing and dispensing decoupled since the early 1990s: vets may not profit on medicine sales; only limited hand-over from pharmacy-sourced stock.",s:"Danish Veterinary and Food Administration"},
+SE:{g:"pharm",n:"Sweden",f:"Therapeutic veterinary medicines, including medicated feed, are dispensed through pharmacies only.",s:"Grave et al. 2006, Prev. Vet. Med. (DK/NO/SE study)"},
+NO:{g:"pharm",n:"Norway",f:"Same Nordic model: therapeutic veterinary medicines are dispensed through pharmacies.",s:"Grave et al. 2006, Prev. Vet. Med."},
+FI:{g:"pharm",n:"Finland",f:"Dispense at cost: vets may hand over medicines only for treatment needs and must charge exactly their own purchase price — profit on medicine sales is prohibited. Pharmacies are the normal retail channel.",s:"Animal Medication Act 387/2014; MMM 17/2014; Ruokavirasto"},
+ES:{g:"proh",n:"Spain",f:"Prohibited: vets in clinical practice may not sell or dispense — they may only administer from a practice stock acquired via authorised channels (cesión). Dispensing runs through pharmacies, authorised retailers and livestock entities (ADS).",s:"Real Decreto 666/2023; Consejo General de Colegios Veterinarios; MAPA"},
+IT:{g:"proh",n:"Italy",v:1,f:"LIKELY prohibited — cited alongside Spain as a country with pharmacy-based retail where vets do not dispense; the classification is not yet pinned to the Italian statute.",s:"secondary only (IM Veterinaria comparison) — TO VERIFY vs D.Lgs. 193/2006"},
+HU:{g:"tbd",n:"Hungary",v:1,f:"Governing regulation identified — 128/2009 (X. 6.) FVM rendelet with prescribing, dispensing and record rules under Nébih oversight, and a vet-pharmacy (állatgyógyszertár) retail channel — but the precise practice-sale rule still needs the article text.",s:"128/2009. (X. 6.) FVM rendelet (njt.hu) — TO PIN to specific §§"},
+RO:{g:"vetpharm",n:"Romania",f:"Retail runs exclusively through ANSVSA-authorised veterinary pharmacies and pharmaceutical points — vets prescribe, authorised units dispense; online sale only for non-prescription products via registered retailers.",s:"ANSVSA, prescriere/comercializare guidance"},
+PT:{g:"vetpharm",n:"Portugal",f:"Dispensing entities are pharmacies and DGAV-authorised retail sale points (postos de venda); the vet practice is not a named retail channel — vets administer.",s:"DGAV retail-sale FAQ; Decreto-Lei 148/2008"},
+HR:{g:"vetpharm",n:"Croatia",f:"Retail only via authorised veterinary pharmacies (veterinarske ljekarne) with per-location approval and a national register; distance sale only through registered ljekarne.",s:"Zakon o veterinarsko-medicinskim proizvodima; veterinarstvo.hr register"},
+BG:{g:"vetpharm",n:"Bulgaria",f:"Retail only via BFSA-licensed veterinary pharmacies — and by law both the pharmacy manager and the persons selling must be veterinarians.",s:"Закон за ветеринарномедицинската дейност; БАБХ (BFSA)"},
+EE:{g:"vetpharm",n:"Estonia",v:1,f:"The veterinaarapteek is a licensed pharmacy restricted to veterinary medicines; online sale only by licensed general or veterinary pharmacies. Vets' own hand-over right TO VERIFY.",s:"Medicinal Products Act; Ravimiamet"},
+LV:{g:"vetpharm",n:"Latvia",v:1,f:"Veterinary pharmaceutical activity requires a special permit from the Food and Veterinary Service (PVD) with a responsible official. Vets' own hand-over right TO VERIFY.",s:"PVD, veterinary pharmaceutical licensing (pvd.gov.lv)"},
+LT:{g:"vetpharm",n:"Lithuania",v:1,f:"Pharmaceutical activity in veterinary medicine runs on licences under the Law on Veterinary Activities, with State Food and Veterinary Service oversight. Vets' own hand-over right TO VERIFY.",s:"Law on Veterinary Activities; VMVT"},
+MK:{g:"vetpharm",n:"North Macedonia",f:"A dedicated law on veterinary-medical products, separate from human medicines; the Food and Veterinary Agency licenses wholesale and retail — ветеринарни аптеки approved after an Expert Commission facility inspection.",s:"Закон за ветеринарно-медицински препарати; fva.gov.mk"},
+BA:{g:"vetpharm",n:"Bosnia & Herzegovina",f:"Retail via registered veterinarske apoteke under the veterinary law, with qualified-staff and prescription rules enforced by the federal inspectorate. Regulation is entity-split (FBiH / RS), so conditions can differ inside the country.",s:"Zakon o veterinarstvu FBiH; Federalna uprava za inspekcijske poslove"},
+ME:{g:"pharm",n:"Montenegro",v:1,f:"Veterinary medicines sit inside the single medicines act (Sl. list 14/26) under CInMED; a pharmacy supplying veterinary institutions under contract counts as retail trade. Nearly all products imported (260 import consents in 2025). Vets' own hand-over right TO VERIFY.",s:"Zakon o ljekovima 14/26; CInMED annual report 2025"},
+AL:{g:"tbd",n:"Albania",v:1,f:"Products trade only after approval by the State Commission for Veterinary Medicinal Products (Law 10465/2011); an EU-2019/6-aligned VMP law is due in 2026. The statute-level retail-channel rule is TO VERIFY.",s:"Ligj 10465/2011; RTSH on the 2026 draft law"},
+XK:{g:"tbd",n:"Kosovo",v:1,f:"Marketing authorisation and pharmacovigilance run under Administrative Instruction (MBPZHR) 12/2019, with AUV as the veterinary authority and AKPPM licensing medicine retailers generally. Which body licenses veterinary retail, and whether vets dispense, is TO VERIFY.",s:"UA 26/2006 + UA 12/2019 (gzk.rks-gov.net); AUV; AKPPM"}
+};
+const GRPBY = id => GROUPS.find(g => g.id === id);
+const colOf = k => C[GRPBY(D[k].g).cls];
+
+let GEOMAP = null;
+let sel = (new URLSearchParams(location.search).get("geo") || "").toUpperCase();
+if (!D[sel]) sel = "ES";
+
+const flagHTML = g => (typeof FLAGS !== "undefined" && FLAGS[g])
+  ? `<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">${FLAGS[g]}</svg>` : "";
+
+// ---- legend
+document.getElementById("legend").innerHTML = [
+  ["vet", "vet practice sells"], ["pharm", "pharmacy channel sells"],
+  ["proh", "prohibited for vets"], ["tbd", "channel to verify"]
+].map(([c, t]) =>
+  `<span class="k"><span class="sw" style="background:${C[c]}"></span>${t}</span>`
+).join("") +
+`<span class="k"><svg width="14" height="14" style="border-radius:3px">` +
+`<rect width="14" height="14" fill="url(#hatchL)"/></svg>classification unverified</span>` +
+`<svg width="0" height="0" style="position:absolute"><defs>` +
+`<pattern id="hatchL" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
+`<rect width="6" height="6" fill="${C.proh}"/>` +
+`<line x1="1" y1="0" x2="1" y2="6" stroke="#0f1419" stroke-width="2.4"/></pattern>` +
+`</defs></svg>`;
+
+// ---- map (same frame as ppp-europe.html)
+function buildMap() {
+  const LON0 = -25, LON1 = 46, LAT0 = 34, LAT1 = 71.5,
+        K = Math.cos(52.5 * Math.PI / 180);
+  const W = 460, U = W / ((LON1 - LON0) * K), H = (LAT1 - LAT0) * U;
+  const px = lon => ((lon - LON0) * K * U).toFixed(1);
+  const py = lat => ((LAT1 - lat) * U).toFixed(1);
+  const inWin = r => r.some(c => c[0] > LON0 - 1 && c[0] < LON1 + 1 &&
+                                 c[1] > LAT0 - 1 && c[1] < LAT1 + 1);
+  const ring = r => "M" + r.map(c => px(c[0]) + "," + py(c[1])).join("L") + "Z";
+  const geom = f => f.geometry.type === "Polygon"
+    ? (inWin(f.geometry.coordinates[0]) ? f.geometry.coordinates.map(ring).join("") : "")
+    : f.geometry.coordinates.filter(p => inWin(p[0])).map(p => p.map(ring).join("")).join("");
+  const parts = [`<defs><pattern id="hatch" width="6" height="6"` +
+    ` patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
+    `<rect width="6" height="6" fill="${C.proh}"/>` +
+    `<line x1="1" y1="0" x2="1" y2="6" stroke="#0f1419" stroke-width="2.4"/>` +
+    `</pattern></defs>`];
+  for (const f of GEOMAP.features) {
+    let code = f.properties.iso2;
+    if (code === "GR") code = "EL"; if (code === "GB") code = "UK";
+    const d = D[code];
+    parts.push(`<path d="${geom(f)}" ` +
+      `${d ? `data-geo="${code}"` : 'class="ctx"'} ` +
+      `data-name="${d ? d.n : (f.properties.name || code)}"` +
+      `${d ? ` aria-label="${d.n}: ${GRPBY(d.g).t}"` : ""}></path>`);
+  }
+  const mapEl = document.getElementById("map");
+  mapEl.insertAdjacentHTML("afterbegin",
+    `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" role="group"` +
+    ` aria-label="Europe map colored by who may sell veterinary medicines;` +
+    ` click a country for its rule">` + parts.join("") + `</svg>`);
+  document.querySelectorAll("#map path[data-geo]").forEach(p => {
+    const k = p.dataset.geo, d = D[k];
+    p.style.fill = (k === "IT") ? "url(#hatch)" : colOf(k);
+    if (d.g === "tbd") p.style.fill = C.tbd;
+  });
+  mapEl.addEventListener("click", e => {
+    const p = e.target.closest("path[data-geo]");
+    if (p) select(p.dataset.geo);
+  });
+  const tip = document.getElementById("maptip");
+  mapEl.addEventListener("mousemove", e => {
+    const p = e.target.closest("path");
+    if (!p) { tip.hidden = true; return; }
+    const k = p.dataset.geo;
+    tip.innerHTML = (k ? flagHTML(k) : "") +
+      `<span>${p.dataset.name} · ${k ? GRPBY(D[k].g).t.toLowerCase()
+        : "not compiled"}</span>`;
+    const r = mapEl.getBoundingClientRect();
+    tip.style.left = Math.max(4, Math.min(e.clientX - r.left + 14,
+      r.width - tip.offsetWidth - 8)) + "px";
+    tip.style.top = (e.clientY - r.top + 16) + "px";
+    tip.hidden = false;
+  });
+  mapEl.addEventListener("mouseleave", () => { tip.hidden = true; });
+}
+
+// ---- grouped list
+function renderGroups() {
+  const box = document.getElementById("groups");
+  box.innerHTML = GROUPS.map(g => {
+    const ks = Object.keys(D).filter(k => D[k].g === g.id)
+      .sort((a, b) => D[a].n.localeCompare(D[b].n));
+    return `<div><div class="gh"><span class="sw"` +
+      ` style="background:${C[g.cls]}"></span>${g.t}` +
+      ` <span class="n">· ${ks.length}</span></div><div class="rows">` +
+      ks.map(k => `<div class="row${k === sel ? " hi" : ""}" data-geo="${k}"` +
+        ` role="button" tabindex="0" aria-label="${D[k].n}: ${g.t}">` +
+        `${flagHTML(k)}<em>${D[k].n}</em>` +
+        `${D[k].v ? `<span class="vb">TO VERIFY</span>` : ""}</div>`).join("") +
+      `</div></div>`;
+  }).join("");
+  box.querySelectorAll(".row").forEach(r => {
+    r.addEventListener("click", () => select(r.dataset.geo));
+    r.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(r.dataset.geo); }
+    });
+  });
+}
+
+// ---- detail panel
+function renderDetail() {
+  const d = D[sel], g = GRPBY(d.g);
+  document.getElementById("detail").innerHTML =
+    `<div class="dh">${flagHTML(sel)}<em>${d.n}</em>` +
+    `<span class="chip${g.cls === "tbd" ? " tbd" : ""}"` +
+    ` style="background:${C[g.cls]}">${g.t.toUpperCase()}</span>` +
+    `${d.v ? `<span class="vbadge">OPEN POINT — TO VERIFY</span>` : ""}</div>` +
+    `${d.f}` +
+    `<div class="dsrc"><b>Source:</b> ${d.s}</div>`;
+}
+
+function select(k) {
+  sel = k;
+  document.querySelectorAll("#map path.sel").forEach(p => p.classList.remove("sel"));
+  const p = document.querySelector(`#map path[data-geo="${k}"]`);
+  if (p) p.classList.add("sel");
+  document.querySelectorAll("#groups .row").forEach(r =>
+    r.classList.toggle("hi", r.dataset.geo === k));
+  renderDetail();
+  const q = new URLSearchParams(); q.set("geo", k);
+  history.replaceState(null, "", "?" + q.toString());
+}
+
+// ---- table view
+function renderTable() {
+  const rows = GROUPS.flatMap(g =>
+    Object.keys(D).filter(k => D[k].g === g.id)
+      .sort((a, b) => D[a].n.localeCompare(D[b].n))
+      .map(k => [D[k].n, g.t, D[k].f, D[k].s]));
+  document.getElementById("tbl").innerHTML =
+    `<table><thead><tr><th>Country</th><th>Channel</th><th>Rule</th>` +
+    `<th>Source</th></tr></thead><tbody>` +
+    rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td>` +
+      `<td class="f">${r[2]}</td><td class="f">${r[3]}</td></tr>`).join("") +
+    `</tbody></table>`;
+}
+
+renderGroups(); renderDetail(); renderTable();
+document.getElementById("status").textContent =
+  "34 countries, six regulatory models grouped into four retail channels." +
+  " Click any country — on the map or in the list — for its rule and source.";
+
+fetch("data/europe-map.json").then(r => r.json()).then(m => {
+  GEOMAP = m; buildMap(); select(sel);
+}).catch(() => {
+  document.getElementById("status").textContent =
+    "Map could not load — the country list and table above carry the full content.";
+});
+</script></body></html>
