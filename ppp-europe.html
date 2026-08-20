@@ -472,6 +472,18 @@ function renderTime() {
 
 // hover tooltip for sparklines and bar rows
 const tip = document.getElementById("tip");
+function markSpark(svg, i) {
+  const pl = svg.querySelector("polyline");
+  if (!pl) return;
+  const pt = pl.points.getItem(Math.min(i, pl.points.numberOfItems - 1));
+  let dot = svg.querySelector("circle.hovdot");
+  if (!dot) {
+    dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute("class", "hovdot"); dot.setAttribute("r", "3.4");
+    dot.setAttribute("fill", "#f4f6f8"); svg.appendChild(dot);
+  }
+  dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+}
 function showTip(html, x, y) {
   tip.innerHTML = html; tip.hidden = false;
   const w = tip.offsetWidth;
@@ -483,11 +495,12 @@ document.addEventListener("mousemove", e => {
   if (cell) {
     const rows = document.getElementById("timeGrid")._rows || [];
     const r = rows.find(x => x.g === cell.dataset.g);
-    const svg = cell.querySelector("svg");
+    const svg = cell.querySelector(":scope > svg");
     if (r && svg) {
       const b = svg.getBoundingClientRect();
       const i = Math.max(0, Math.min(r.ys.length - 1,
         Math.round((e.clientX - b.left) / b.width * (r.ys.length - 1))));
+      markSpark(svg, i);
       showTip(`${NAMES[r.g]} · ${r.ys[i]} · PLI ${fmt(r.vals[i])}`,
         e.clientX, e.clientY);
       return;

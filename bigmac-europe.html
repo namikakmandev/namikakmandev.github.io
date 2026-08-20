@@ -502,6 +502,10 @@ function renderXCheck() {
   }
   svg += `<line x1="${X(lo)}" y1="${Yc(lo)}" x2="${X(hi)}" y2="${Yc(hi)}"` +
     ` stroke="${INK2}" stroke-width="1" stroke-dasharray="5 5"/>`;
+  svg += `<text x="${M + 14}" y="72" fill="#f4f6f8" font-size="30"` +
+    ` font-weight="700">r = ${r.toFixed(2)}</text>` +
+    `<text x="${M + 14}" y="92" fill="${INK2}" font-size="11">correlation, ` +
+    `${pts.length} countries, ${Y} — 1.0 would be perfect agreement</text>`;
   for (const p of pts) {
     const hot = p.g === "TR";
     svg += `<circle cx="${X(p.x)}" cy="${Yc(p.y)}" r="${hot ? 6 : 4.5}"` +
@@ -526,6 +530,20 @@ function renderXCheck() {
 }
 
 const tip = document.getElementById("tip");
+// highlight the hovered point on a sparkline so movement is visible even
+// where the underlying values plateau
+function markSpark(svg, i, n) {
+  const pl = svg.querySelector("polyline:last-of-type");
+  if (!pl) return;
+  const pt = pl.points.getItem(Math.min(i, pl.points.numberOfItems - 1));
+  let dot = svg.querySelector("circle.hovdot");
+  if (!dot) {
+    dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    dot.setAttribute("class", "hovdot"); dot.setAttribute("r", "3.4");
+    dot.setAttribute("fill", "#f4f6f8"); svg.appendChild(dot);
+  }
+  dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+}
 function showTip(html, x, y) {
   tip.innerHTML = html; tip.hidden = false;
   const w = tip.offsetWidth;
@@ -537,11 +555,12 @@ document.addEventListener("mousemove", e => {
   if (cell) {
     const rows = document.getElementById("timeGrid")._rows || [];
     const r = rows.find(x => x.k === cell.dataset.g);
-    const svg = cell.querySelector("svg");
+    const svg = cell.querySelector(":scope > svg");
     if (r && svg) {
       const b = svg.getBoundingClientRect();
       const i = Math.max(0, Math.min(r.ds.length - 1,
         Math.round((e.clientX - b.left) / b.width * (r.ds.length - 1))));
+      markSpark(svg, i, r.vals.length);
       showTip(`${r.nm} · ${edLabel(r.ds[i])} · ${pct(r.vals[i])} vs euro area`,
         e.clientX, e.clientY);
       return;
