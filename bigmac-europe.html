@@ -119,6 +119,7 @@ the PPP map as the rigorous one.</p>
   <span class="seg" id="viewSeg" role="group" aria-label="View">
     <button data-v="rank" class="on" aria-pressed="true">Map &amp; ranking</button>
     <button data-v="time" aria-pressed="false">Over time</button>
+    <button data-v="xcheck" aria-pressed="false">vs Eurostat PPP</button>
   </span>
   <select id="edSel" aria-label="Edition"></select>
 </div>
@@ -147,6 +148,19 @@ the PPP map as the rigorous one.</p>
   <div class="rows" id="rankRows"></div>
 </div>
 <div id="timeView" hidden><div class="grid" id="timeGrid"></div></div>
+<div id="xView" hidden>
+  <div id="xChart" style="max-width:720px;background:#0f1419;border-radius:10px;
+    padding:14px"></div>
+  <div class="src" style="border:none;margin-top:14px;padding-top:0;color:#9aa3ad">
+  <b style="color:#f4f6f8">Do the two surveys agree?</b> Each dot is a country
+  at the latest year both sources cover: horizontally, Eurostat's full-basket
+  <i>restaurants &amp; hotels</i> price level (re-based to the euro area);
+  vertically, the Big Mac's July-edition parity. Points on the dashed line =
+  perfect agreement. Strong rank agreement justifies reading the burger as the
+  timely extension of the PPP series; the off-line points (Denmark,
+  Switzerland — McDonald's prices far below their restaurant sectors) show
+  exactly where a single item misleads.</div>
+</div>
 
 <details><summary>View as table</summary><div id="tbl"></div></details>
 <p id="status">Loading data…</p>
@@ -228,12 +242,12 @@ const EURO_FROM = { AT:2000, BE:2000, DE:2000, ES:2000, FI:2000, FR:2000,
 const BLUE = [70,150,238], ORANGE = [226,107,54], NEUT = [73,82,95];
 const INK2 = "#9aa3ad", GRID = "#232a33", MUTED = "#3d4654";
 
-let USD = null, EURR = null, SRC = null, GEOMAP = null;
+let USD = null, EURR = null, SRC = null, GEOMAP = null, PPP = null;
 let view = "rank", ed = null, EDS = [];
 
 (function () {
   const p = new URLSearchParams(location.search);
-  if (["rank","time"].includes(p.get("view"))) view = p.get("view");
+  if (["rank","time","xcheck"].includes(p.get("view"))) view = p.get("view");
   const e = p.get("ed");
   if (/^\d{4}-\d{2}-\d{2}$/.test(e)) ed = e;
 })();
@@ -274,6 +288,8 @@ function applyControls() {
     b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
   });
   edSel.style.display = view === "rank" ? "" : "none";
+  document.getElementById("legend").style.display =
+    view === "xcheck" ? "none" : "";
 }
 document.querySelectorAll("#viewSeg button").forEach(b =>
   b.addEventListener("click", () => { view = b.dataset.v; update(); }));
@@ -442,6 +458,73 @@ function renderTime() {
     `toward parity is the recent standout.`;
 }
 
+// ---- cross-check vs Eurostat PPP (latest common year, auto-updates)
+const XMAP = { GBR:"UK", CHE:"CH", NOR:"NO", SWE:"SE", DNK:"DK", POL:"PL",
+  CZE:"CZ", HUN:"HU", TUR:"TR", ROU:"RO" };
+function renderXCheck() {
+  const pliOf = (g, y) => (PPP[g + "|PLI_EU27_2020|A0111"] || {})[y];
+  const years = Object.keys(PPP["EA20|PLI_EU27_2020|A0111"] || {})
+    .filter(y => EDS.includes(y + "-07-01")).sort();
+  const Y = years[years.length - 1], EDX = Y + "-07-01";
+  const ea = pliOf("EA20", Y), euz = (SRC.EUZ || {})[EDX];
+  const pts = [];
+  for (const [k3, g] of Object.entries(XMAP)) {
+    const b = (EURR[k3] || {})[EDX], p = pliOf(g, Y);
+    if (b != null && p) pts.push({ g, x: (p / ea - 1) * 100, y: b * 100 });
+  }
+  for (const [k3, g] of Object.entries(EURO_M)) {
+    const sp = (SRC[k3] || {})[EDX], p = pliOf(g, Y);
+    if (sp && euz && p)
+      pts.push({ g, x: (p / ea - 1) * 100, y: (sp / euz - 1) * 100 });
+  }
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+  const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+  const mx = mean(xs), my = mean(ys);
+  const r = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
+    Math.sqrt(pts.reduce((s, p) => s + (p.x - mx) ** 2, 0) *
+              pts.reduce((s, p) => s + (p.y - my) ** 2, 0));
+  const lo = Math.min(...xs, ...ys) - 8, hi = Math.max(...xs, ...ys) + 8;
+  const W2 = 680, H2 = 560, M = 44;
+  const X = v => M + (v - lo) / (hi - lo) * (W2 - M - 14);
+  const Yc = v => H2 - M - (v - lo) / (hi - lo) * (H2 - M - 30);
+  let svg = `<svg viewBox="0 0 ${W2} ${H2}" style="width:100%;height:auto"` +
+    ` role="img" aria-label="Scatter: Eurostat restaurant price level vs Big` +
+    ` Mac parity, ${Y}; correlation ${r.toFixed(2)}">`;
+  for (let t = Math.ceil(lo / 20) * 20; t <= hi; t += 20) {
+    svg += `<line x1="${X(t)}" y1="${Yc(lo)}" x2="${X(t)}" y2="${Yc(hi)}"` +
+      ` stroke="${GRID}" stroke-width="${t === 0 ? 1.4 : 0.6}"/>` +
+      `<line x1="${X(lo)}" y1="${Yc(t)}" x2="${X(hi)}" y2="${Yc(t)}"` +
+      ` stroke="${GRID}" stroke-width="${t === 0 ? 1.4 : 0.6}"/>` +
+      `<text x="${X(t)}" y="${H2 - M + 16}" fill="${MUTED}" font-size="10"` +
+      ` text-anchor="middle">${t}</text>` +
+      `<text x="${M - 8}" y="${Yc(t) + 3}" fill="${MUTED}" font-size="10"` +
+      ` text-anchor="end">${t}</text>`;
+  }
+  svg += `<line x1="${X(lo)}" y1="${Yc(lo)}" x2="${X(hi)}" y2="${Yc(hi)}"` +
+    ` stroke="${INK2}" stroke-width="1" stroke-dasharray="5 5"/>`;
+  for (const p of pts) {
+    const hot = p.g === "TR";
+    svg += `<circle cx="${X(p.x)}" cy="${Yc(p.y)}" r="${hot ? 6 : 4.5}"` +
+      ` fill="${hot ? col(0.6) : col(-0.6)}" data-xtip="${p.g === "TR" ? "Türkiye" : p.g}` +
+      ` · Eurostat ${p.x.toFixed(1)}% / Big Mac ${p.y.toFixed(1)}% vs euro area, ${Y}"/>` +
+      `<text x="${X(p.x) + 7}" y="${Yc(p.y) - 6}" fill="${hot ? "#f4f6f8" : INK2}"` +
+      ` font-size="10"${hot ? ' font-weight="700"' : ""}>${p.g}</text>`;
+  }
+  svg += `<text x="${W2 / 2}" y="${H2 - 6}" fill="${INK2}" font-size="11" text-anchor="middle">` +
+    `Eurostat PLI ${Y} — restaurants &amp; hotels, % vs euro area</text>` +
+    `<text x="14" y="${H2 / 2}" fill="${INK2}" font-size="11" text-anchor="middle"` +
+    ` transform="rotate(-90 14 ${H2 / 2})">Big Mac parity, Jul ${Y} — % vs euro area</text></svg>`;
+  document.getElementById("xChart").innerHTML = svg;
+  tableHTML(["Country", `Eurostat PLI ${Y} (restaurants, % vs EA)`,
+    `Big Mac Jul ${Y} (% vs EA)`, "Gap (pp)"],
+    pts.sort((a, b) => b.y - a.y).map(p => [p.g === "TR" ? "Türkiye" : p.g,
+      p.x.toFixed(1), p.y.toFixed(1), (p.y - p.x).toFixed(1)]));
+  document.getElementById("status").textContent =
+    `${pts.length} countries at ${Y} (latest year both sources cover) — ` +
+    `correlation r = ${r.toFixed(2)}. When Eurostat publishes a newer PPP ` +
+    `year, this view re-computes automatically.`;
+}
+
 const tip = document.getElementById("tip");
 function showTip(html, x, y) {
   tip.innerHTML = html; tip.hidden = false;
@@ -466,6 +549,8 @@ document.addEventListener("mousemove", e => {
   }
   const row = e.target.closest(".row[data-tip]");
   if (row && row.dataset.tip) { showTip(row.dataset.tip, e.clientX, e.clientY); return; }
+  const dot = e.target.closest("[data-xtip]");
+  if (dot) { showTip(dot.dataset.xtip, e.clientX, e.clientY); return; }
   tip.hidden = true;
 });
 
@@ -480,17 +565,21 @@ function update() {
   applyControls(); syncURL();
   document.getElementById("rankView").hidden = view !== "rank";
   document.getElementById("timeView").hidden = view !== "time";
+  document.getElementById("xView").hidden = view !== "xcheck";
   if (!USD) return;
-  if (view === "rank") renderRank(); else renderTime();
+  if (view === "rank") renderRank();
+  else if (view === "time") renderTime();
+  else renderXCheck();
 }
 
 Promise.all([
   fetch("data/bigmac-usd.json").then(r => r.json()),
   fetch("data/bigmac-eur.json").then(r => r.json()),
   fetch("data/bigmac-src-eur.json").then(r => r.json()),
-  fetch("data/europe-map.json").then(r => r.json())
-]).then(([u, e, c, m]) => {
-  USD = u.series; EURR = e.series; SRC = c.series; GEOMAP = m;
+  fetch("data/europe-map.json").then(r => r.json()),
+  fetch("data/eu-ppp.json").then(r => r.json())
+]).then(([u, e, c, m, pp]) => {
+  USD = u.series; EURR = e.series; SRC = c.series; GEOMAP = m; PPP = pp.series;
   fillEditions(); buildMap(); update();
 }).catch(err => {
   document.getElementById("status").textContent = "Could not load data: " + err;
