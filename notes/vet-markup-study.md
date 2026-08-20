@@ -41,6 +41,25 @@ country" table would be fabricated. What CAN be built honestly:
 Rows marked TO VERIFY/TO EXTRACT carry **no numbers into any chart** until
 pinned to a primary source with page/paragraph reference.
 
+## Structural context datasets (fetched and verified 2026-08-20)
+
+Committed via the standard pipeline — industry structure, not markups; they
+size the channel, they do not measure a margin:
+
+- **`data/eu-vet-sbs.json`** — Eurostat SBS, veterinary activities (NACE
+  M75): enterprises, turnover, value added, persons employed, turnover per
+  person, 39 geos, **2005–2020**. Legacy SBS series ends 2020; 2021+ needs
+  the successor EBS dataset (open hunt). Sanity: DE 2020 = 10,652
+  enterprises, €4.66bn turnover, 55,349 employed; EU-27 = 80,000
+  enterprises.
+- **`data/eu-vet-weight.json`** — HICP item weights CP0934 (pets and
+  related products) + CP0935 (veterinary and other services for pets),
+  per-mille of the consumption basket, 43 geos, **1996–2025**. 2025 vet+pet
+  services weight: FR 5.49‰ (highest), EU-27 2.88‰, DE 2.61‰. **Türkiye
+  transmits no CP0934/CP0935 weight at all** — a real gap, not an
+  oversight. No 2026 in the dataset yet (ECOICOP2 rebase; successor to
+  watch).
+
 ## Dispensing-rights map — fill rules
 
 - One row per country; columns: may vets dispense? may pharmacies? online
