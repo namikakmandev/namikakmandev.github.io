@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Big Mac parity map — Europe vs the euro area</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="description" content="Where a Big Mac costs more or less than in
+the euro area — the timely one-item price signal, semi-annual since 2000,
+from The Economist's open data. Türkiye's convergence included.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { background:#06090c; color:#f4f6f8; font-family:"IBM Plex Sans","Segoe UI",
+  system-ui,sans-serif; padding:28px 16px 60px; }
+.wrap { max-width:1020px; margin:0 auto; }
+.bar { display:flex; justify-content:space-between; margin-bottom:14px; gap:12px;
+  flex-wrap:wrap; }
+.bar a { color:#9aa3ad; text-decoration:none; font-size:14px; }
+.bar a:hover { color:#3987e5; }
+.kicker { color:#3987e5; font-weight:700; letter-spacing:.06em;
+  font-size:14px; margin-bottom:8px; }
+h1 { font-size:34px; line-height:1.15; margin-bottom:10px; }
+p.sub { color:#9aa3ad; font-size:15.5px; line-height:1.5; max-width:75ch;
+  margin-bottom:18px; }
+p.sub b { color:#f4f6f8; }
+.controls { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;
+  align-items:center; }
+.seg { display:inline-flex; border:1px solid #232a33; border-radius:8px;
+  overflow:hidden; }
+.seg button { background:none; border:none; color:#9aa3ad; font:inherit;
+  font-size:14px; padding:8px 14px; cursor:pointer; }
+.seg button.on { background:#3987e5; color:#0f1419; font-weight:700; }
+.seg button:focus-visible { outline:2px solid #3987e5; outline-offset:-2px; }
+select { background:#0f1419; color:#f4f6f8; border:1px solid #232a33;
+  border-radius:8px; font:inherit; font-size:14px; padding:8px 10px; }
+select:focus-visible { outline:2px solid #3987e5; outline-offset:1px; }
+.legend { display:flex; align-items:center; gap:12px; color:#9aa3ad;
+  font-size:13.5px; margin:4px 0 14px; flex-wrap:wrap; }
+.legend svg { display:block; }
+.panes { display:grid; grid-template-columns:minmax(0,5fr) minmax(0,4fr);
+  gap:22px; align-items:start; }
+#map { position:relative; background:#0f1419; border-radius:10px; padding:10px; }
+#map svg { width:100%; height:auto; display:block; }
+#map path { fill:#1a212b; stroke:#06090c; stroke-width:.7; }
+#map path[data-geo] { cursor:default; }
+#map path[data-geo]:hover { stroke:#f4f6f8; stroke-width:1; }
+#map path.ctx { fill:#12171e; }
+#maptip { position:absolute; display:flex; gap:8px; align-items:center;
+  pointer-events:none; background:#1a212b; border:1px solid #232a33;
+  border-radius:6px; padding:5px 9px; font-size:12.5px; white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,0,0,.45); font-variant-numeric:tabular-nums; }
+#maptip[hidden] { display:none; }
+.rows { display:flex; flex-direction:column; gap:3px; }
+.row { display:grid; grid-template-columns:120px 1fr 108px; gap:10px;
+  align-items:center; font-size:13.5px; border-radius:5px; padding:1px 4px; }
+.row:hover { background:#0f1419; }
+.row .nm { display:flex; align-items:center; gap:8px; min-width:0;
+  color:#9aa3ad; }
+.row .nm em { font-style:normal; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.flag { width:20px; height:13.3px; border-radius:2px; flex:none;
+  outline:1px solid rgba(255,255,255,.14); outline-offset:-1px; }
+.track { position:relative; height:13px; background:#0f1419; border-radius:3px; }
+.track i { position:absolute; top:0; bottom:0; }
+.track u { position:absolute; top:-2px; bottom:-2px; width:1.5px;
+  left:50%; background:#9aa3ad; }
+.row .v { font-variant-numeric:tabular-nums; text-align:right;
+  color:#f4f6f8; white-space:nowrap; }
+.row .v s { text-decoration:none; color:#3d4654; font-size:11.5px;
+  margin-left:6px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:16px 22px; margin-top:6px; }
+.cell { background:#0f1419; border-radius:8px; padding:10px 12px; }
+.cell > svg { width:100%; height:auto; display:block; touch-action:pan-y; }
+.ch { display:flex; justify-content:space-between; align-items:center;
+  font-size:14.5px; font-weight:700; margin-bottom:4px; gap:6px; }
+.ch .nm { display:flex; align-items:center; gap:7px; min-width:0; }
+.ch .nm em { font-style:normal; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.ch .v { font-variant-numeric:tabular-nums; flex:none; }
+details { margin-top:26px; color:#9aa3ad; font-size:14px; }
+summary { cursor:pointer; color:#9aa3ad; }
+table { border-collapse:collapse; margin-top:10px;
+  font-variant-numeric:tabular-nums; font-size:13.5px; }
+th, td { text-align:left; padding:4px 16px 4px 0; border-bottom:1px solid #171d25; }
+th { color:#3d4654; font-weight:400; }
+td.n { text-align:right; }
+.src { border-top:1px solid #232a33; margin-top:34px; padding-top:14px;
+  color:#3d4654; font-size:13px; line-height:1.5; max-width:90ch; }
+.src b { color:#9aa3ad; }
+#status { color:#3d4654; font-size:14px; margin-top:20px; }
+#tip { position:fixed; z-index:10; pointer-events:none; background:#1a212b;
+  border:1px solid #232a33; border-radius:6px; padding:5px 9px;
+  font-size:12.5px; color:#f4f6f8; font-variant-numeric:tabular-nums;
+  white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.45); }
+@media (max-width:820px) { .panes { grid-template-columns:1fr; } }
+@media (max-width:520px) {
+  body { padding:20px 12px 48px; }
+  h1 { font-size:26px; }
+  .seg { display:flex; width:100%; }
+  .seg button { flex:1; min-height:44px; padding:8px 6px; }
+  select { width:100%; min-height:44px; }
+  .row { grid-template-columns:104px 1fr 96px; }
+}
+</style></head><body><div class="wrap">
+<div class="bar"><a href="/">← namikakman — projects</a>
+  <a href="ppp-europe.html">the full-basket PPP map →</a></div>
+<div class="kicker">BIG MAC PARITY · EUROPE · THE ECONOMIST OPEN DATA</div>
+<h1>Where does a Big Mac cost more than in the euro area?</h1>
+<p class="sub">The timeliness complement to the <a href="ppp-europe.html"
+style="color:#3987e5">PPP map</a>: Eurostat's full-basket price levels run
+~18 months behind, this one-item index is <b>current to the latest
+half-year</b>. Each bar: how much the same burger costs versus the euro
+area, at market exchange rates — <b>orange dearer, blue cheaper</b>. One
+burger is <b>not</b> a consumption basket; treat this as the fast signal,
+the PPP map as the rigorous one.</p>
+<div class="controls">
+  <span class="seg" id="viewSeg" role="group" aria-label="View">
+    <button data-v="rank" class="on" aria-pressed="true">Map &amp; ranking</button>
+    <button data-v="time" aria-pressed="false">Over time</button>
+  </span>
+  <select id="edSel" aria-label="Edition"></select>
+</div>
+<div class="legend" id="legend">
+  <svg width="180" height="12" aria-hidden="true">
+    <defs><linearGradient id="dv" x1="0" x2="1">
+      <stop offset="0" stop-color="#4696ee"/>
+      <stop offset=".5" stop-color="#49525f"/>
+      <stop offset="1" stop-color="#e26b36"/>
+    </linearGradient></defs>
+    <rect width="180" height="8" y="2" rx="4" fill="url(#dv)"/>
+    <rect x="89" y="0" width="2" height="12" fill="#f4f6f8"/>
+  </svg>
+  <span>← cheaper · <b style="color:#f4f6f8">0 = euro-area price</b> · dearer →</span>
+</div>
+
+<div id="rankView" class="panes">
+  <div>
+    <div id="map"><div id="maptip" hidden></div></div>
+  </div>
+  <div class="rows" id="rankRows"></div>
+</div>
+<div id="timeView" hidden><div class="grid" id="timeGrid"></div></div>
+
+<details><summary>View as table</summary><div id="tbl"></div></details>
+<p id="status">Loading data…</p>
+
+<p class="src"><b>Source:</b> The Economist Big Mac index — open data
+(github.com/TheEconomist/big-mac-data), semi-annual January &amp; July
+editions since 2000, fetched via this repo's pipeline. The Economist
+reports the <b>euro area as a single price</b>, so euro countries are
+painted as one bloc — each country only from the year it adopted the euro
+(Greece 2001 … Croatia 2023, Bulgaria 2026); before that, if it was not
+priced individually, it shows as no data. Individually priced in Europe:
+UK, Switzerland, Norway, Sweden, Denmark, Poland, Czechia, Hungary,
+Türkiye, Romania, Ukraine, Moldova (Russia until Jan 2022, then
+discontinued). Percentages are raw valuations at market exchange rates —
+no GDP adjustment. A single item cannot represent a consumption basket:
+use the PPP map for structural comparisons and this page for the current
+direction of travel.</p>
+</div>
+<div id="tip" hidden></div>
+<script src="js/vet-flags.js"></script>
+<script>
+FLAGS.EUZ = "<rect width=\"24\" height=\"16\" fill=\"#003399\"/><g fill=\"#FFCC00\"><circle cx=\"12\" cy=\"3.4\" r=\"0.75\"/><circle cx=\"12\" cy=\"12.6\" r=\"0.75\"/><circle cx=\"7.4\" cy=\"8\" r=\"0.75\"/><circle cx=\"16.6\" cy=\"8\" r=\"0.75\"/><circle cx=\"8.7\" cy=\"4.7\" r=\"0.75\"/><circle cx=\"15.3\" cy=\"4.7\" r=\"0.75\"/><circle cx=\"8.7\" cy=\"11.3\" r=\"0.75\"/><circle cx=\"15.3\" cy=\"11.3\" r=\"0.75\"/></g>";
+FLAGS.UA = "<rect width=\"24\" height=\"8\" fill=\"#0057B7\"/><rect y=\"8\" width=\"24\" height=\"8\" fill=\"#FFD700\"/>";
+FLAGS.MD = "<rect width=\"8\" height=\"16\" fill=\"#003DA5\"/><rect x=\"8\" width=\"8\" height=\"16\" fill=\"#FFD200\"/><rect x=\"16\" width=\"8\" height=\"16\" fill=\"#CC092F\"/>";
+
+const NAMES = { EUZ:"Euro area", GBR:"United Kingdom", CHE:"Switzerland",
+  NOR:"Norway", SWE:"Sweden", DNK:"Denmark", POL:"Poland", CZE:"Czechia",
+  HUN:"Hungary", TUR:"Türkiye", ROU:"Romania", UKR:"Ukraine", MDA:"Moldova" };
+const ISO2 = { EUZ:"EUZ", GBR:"UK", CHE:"CH", NOR:"NO", SWE:"SE", DNK:"DK",
+  POL:"PL", CZE:"CZ", HUN:"HU", TUR:"TR", ROU:"RO", UKR:"UA", MDA:"MD" };
+// map iso2 -> big mac key (for painting + tooltips)
+const FROM2 = Object.fromEntries(Object.entries(ISO2).map(([k,v]) => [v,k]));
+// euro adoption year per map country; founders count from the data's start
+const EURO_FROM = { AT:2000, BE:2000, DE:2000, ES:2000, FI:2000, FR:2000,
+  IE:2000, IT:2000, LU:2000, NL:2000, PT:2000, GR:2001, SI:2007, CY:2008,
+  SK:2009, EE:2011, LV:2014, LT:2015, HR:2023, BG:2026 };
+const BLUE = [70,150,238], ORANGE = [226,107,54], NEUT = [73,82,95];
+const INK2 = "#9aa3ad", GRID = "#232a33", MUTED = "#3d4654";
+
+let USD = null, EURR = null, GEOMAP = null;
+let view = "rank", ed = null, EDS = [];
+
+(function () {
+  const p = new URLSearchParams(location.search);
+  if (["rank","time"].includes(p.get("view"))) view = p.get("view");
+  const e = p.get("ed");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(e)) ed = e;
+})();
+function syncURL() {
+  const p = new URLSearchParams();
+  p.set("view", view);
+  if (view === "rank" && ed) p.set("ed", ed);
+  history.replaceState(null, "", "?" + p.toString());
+}
+
+// diverging color around 0 (euro-area parity), poles saturate at ±60%
+function col(v) {
+  const t = Math.max(-1, Math.min(1, v / 0.6));
+  const pole = t < 0 ? BLUE : ORANGE, a = Math.abs(t);
+  return "rgb(" + pole.map((p, i) =>
+    Math.round(NEUT[i] + (p - NEUT[i]) * a)).join(",") + ")";
+}
+const MONTHS = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const edLabel = d => MONTHS[+d.slice(5,7)] + " " + d.slice(0,4);
+const pct = v => (v > 0 ? "+" : "") + (v * 100).toFixed(1) + "%";
+
+const edSel = document.getElementById("edSel");
+function fillEditions() {
+  EDS = Object.keys(EURR.EUZ).sort();
+  edSel.innerHTML = "";
+  for (const d of [...EDS].reverse()) edSel.add(new Option(edLabel(d), d));
+  if (!ed || !EDS.includes(ed)) ed = EDS[EDS.length - 1];
+  edSel.value = ed;
+}
+function applyControls() {
+  document.querySelectorAll("#viewSeg button").forEach(b => {
+    const on = b.dataset.v === view;
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
+  });
+  edSel.style.display = view === "rank" ? "" : "none";
+}
+document.querySelectorAll("#viewSeg button").forEach(b =>
+  b.addEventListener("click", () => { view = b.dataset.v; update(); }));
+edSel.addEventListener("change", () => { ed = edSel.value; update(); });
+
+const flagHTML = k => `<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">` +
+  `${FLAGS[ISO2[k]] || ""}</svg>`;
+
+// ---- map (same projection as ppp-europe)
+function buildMap() {
+  const LON0 = -25, LON1 = 46, LAT0 = 34, LAT1 = 71.5,
+        K = Math.cos(52.5 * Math.PI / 180);
+  const W = 460, U = W / ((LON1 - LON0) * K), H = (LAT1 - LAT0) * U;
+  const px = lon => ((lon - LON0) * K * U).toFixed(1);
+  const py = lat => ((LAT1 - lat) * U).toFixed(1);
+  const inWin = r => r.some(c => c[0] > LON0 - 1 && c[0] < LON1 + 1 &&
+                                 c[1] > LAT0 - 1 && c[1] < LAT1 + 1);
+  const ring = r => "M" + r.map(c => px(c[0]) + "," + py(c[1])).join("L") + "Z";
+  const geom = f => f.geometry.type === "Polygon"
+    ? (inWin(f.geometry.coordinates[0]) ? f.geometry.coordinates.map(ring).join("") : "")
+    : f.geometry.coordinates.filter(p => inWin(p[0])).map(p => p.map(ring).join("")).join("");
+  const parts = [];
+  for (const f of GEOMAP.features) {
+    let c2 = f.properties.iso2 === "GB" ? "UK" : f.properties.iso2;
+    parts.push(`<path d="${geom(f)}" data-geo="${c2}"` +
+      ` data-name="${f.properties.name || c2}"></path>`);
+  }
+  const mapEl = document.getElementById("map");
+  mapEl.insertAdjacentHTML("afterbegin",
+    `<svg viewBox="0 0 ${W} ${H.toFixed(0)}" role="group"` +
+    ` aria-label="Europe map colored by Big Mac price vs the euro area">` +
+    parts.join("") + `</svg>`);
+  const tip = document.getElementById("maptip");
+  mapEl.addEventListener("mousemove", e => {
+    const p = e.target.closest("path");
+    if (!p) { tip.hidden = true; return; }
+    const info = geoValue(p.dataset.geo);
+    tip.innerHTML = `<span>${p.dataset.name}${info ? " · " + info.text
+      : " — not priced in this edition"}</span>`;
+    const r = mapEl.getBoundingClientRect();
+    tip.style.left = Math.max(4, Math.min(e.clientX - r.left + 14,
+      r.width - tip.offsetWidth - 8)) + "px";
+    tip.style.top = (e.clientY - r.top + 16) + "px";
+    tip.hidden = false;
+  });
+  mapEl.addEventListener("mouseleave", () => { tip.hidden = true; });
+}
+// value shown for a map country in the selected edition, or null
+function geoValue(c2) {
+  const yr = +ed.slice(0, 4);
+  if (EURO_FROM[c2] != null && yr >= EURO_FROM[c2]) {
+    return { v: 0, text: "euro area — reported as one price ($" +
+      (USD.EUZ[ed] || 0).toFixed(2) + ")" };
+  }
+  const k = FROM2[c2];
+  if (k && k !== "EUZ" && EURR[k] && EURR[k][ed] != null) {
+    return { v: EURR[k][ed],
+      text: pct(EURR[k][ed]) + " vs euro area · $" + USD[k][ed].toFixed(2) };
+  }
+  return null;
+}
+function paintMap() {
+  document.querySelectorAll("#map path[data-geo]").forEach(p => {
+    const info = geoValue(p.dataset.geo);
+    p.classList.toggle("ctx", !info);
+    p.style.fill = info ? col(info.v) : "";
+    p.setAttribute("aria-label", p.dataset.name + ": " +
+      (info ? info.text : "not priced"));
+  });
+}
+
+// ---- ranking (center-anchored diverging bars)
+function renderRank() {
+  const rows = [];
+  for (const k of Object.keys(NAMES)) {
+    const v = (EURR[k] || {})[ed];
+    if (v != null) rows.push({ k, v, usd: USD[k][ed] });
+  }
+  rows.sort((a, b) => b.v - a.v);
+  const max = Math.max(0.6, ...rows.map(r => Math.abs(r.v)));
+  document.getElementById("rankRows").innerHTML = rows.map(r => {
+    const w = Math.abs(r.v) / max * 50;
+    const left = r.v < 0 ? (50 - w) : 50;
+    return `<div class="row" data-tip="${NAMES[r.k]} ${edLabel(ed)} · Big Mac ` +
+      `$${r.usd.toFixed(2)} · ${pct(r.v)} vs the euro-area price" role="img"` +
+      ` aria-label="${NAMES[r.k]}: ${pct(r.v)} vs euro area, $${r.usd.toFixed(2)}">` +
+      `<span class="nm">${flagHTML(r.k)}<em>${NAMES[r.k]}</em></span>` +
+      `<span class="track"><i style="left:${left}%;width:${w}%;` +
+      `background:${col(r.v)};border-radius:3px"></i><u></u></span>` +
+      `<span class="v">${pct(r.v)}<s>$${r.usd.toFixed(2)}</s></span></div>`;
+  }).join("");
+  paintMap();
+  tableHTML(["Country", `vs euro area, ${edLabel(ed)}`, "Big Mac in USD"],
+    rows.map(r => [NAMES[r.k], pct(r.v), "$" + r.usd.toFixed(2)]));
+  document.getElementById("status").textContent =
+    `${edLabel(ed)} — ${rows.length} European economies (euro area counted ` +
+    `as one). 0 = the euro-area burger price in that edition.`;
+}
+
+// ---- over time
+function mini(vals) {
+  const W2 = 230, H = 96;
+  const lo = Math.min(...vals, -0.05) - 0.05, hi = Math.max(...vals, 0.05) + 0.05;
+  const X = i => i / Math.max(vals.length - 1, 1) * W2;
+  const Y = v => H - 6 - (v - lo) / (hi - lo) * (H - 12);
+  const pts = vals.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ");
+  const end = vals[vals.length - 1];
+  const colour = end > 0.02 ? col(0.6) : end < -0.02 ? col(-0.6) : INK2;
+  return { pts, y0: Y(0).toFixed(1), end, colour };
+}
+function renderTime() {
+  const cells = [], ROWS = [];
+  for (const k of Object.keys(NAMES)) {
+    if (k === "EUZ") continue;  // the zero line IS the euro area
+    const s = EURR[k] || {};
+    const ds = Object.keys(s).sort();
+    if (ds.length < 6) continue;
+    const vals = ds.map(d => s[d]);
+    const m = mini(vals);
+    ROWS.push({ k, ds, vals, first: vals[0], last: m.end });
+    cells.push(`<div class="cell" data-g="${k}">` +
+      `<div class="ch"><span class="nm">${flagHTML(k)}<em>${NAMES[k]}</em></span>` +
+      `<span class="v" style="color:${m.colour}">${pct(m.end)}</span></div>` +
+      `<svg viewBox="0 0 230 96" role="img" aria-label="${NAMES[k]}: Big Mac ` +
+      `${pct(vals[0])} vs euro area in ${ds[0].slice(0,4)}, ${pct(m.end)} in ` +
+      `${ds[ds.length-1].slice(0,4)}; the grid line is euro-area parity">` +
+      `<line x1="0" y1="${m.y0}" x2="230" y2="${m.y0}" stroke="${GRID}"` +
+      ` stroke-width="1.2"/>` +
+      `<polyline points="${m.pts}" fill="none" stroke="${m.colour}"` +
+      ` stroke-width="2.3" stroke-linejoin="round"/></svg></div>`);
+  }
+  const grid = document.getElementById("timeGrid");
+  grid.innerHTML = cells.join("");
+  grid._rows = ROWS;
+  tableHTML(["Country", "First edition", "First", "Latest", "Now"],
+    ROWS.map(r => [NAMES[r.k], edLabel(r.ds[0]), pct(r.first),
+      edLabel(r.ds[r.ds.length - 1]), pct(r.last)]));
+  document.getElementById("status").textContent =
+    `Big Mac price vs the euro area, every edition since 2000 — the grid ` +
+    `line is euro-area parity (0). ${ROWS.length} economies. Türkiye's climb ` +
+    `toward parity is the recent standout.`;
+}
+
+const tip = document.getElementById("tip");
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.hidden = false;
+  const w = tip.offsetWidth;
+  tip.style.left = Math.max(4, Math.min(x + 14, innerWidth - w - 8)) + "px";
+  tip.style.top = (y + 18) + "px";
+}
+document.addEventListener("mousemove", e => {
+  const cell = e.target.closest("#timeGrid .cell");
+  if (cell) {
+    const rows = document.getElementById("timeGrid")._rows || [];
+    const r = rows.find(x => x.k === cell.dataset.g);
+    const svg = cell.querySelector("svg");
+    if (r && svg) {
+      const b = svg.getBoundingClientRect();
+      const i = Math.max(0, Math.min(r.ds.length - 1,
+        Math.round((e.clientX - b.left) / b.width * (r.ds.length - 1))));
+      showTip(`${NAMES[r.k]} · ${edLabel(r.ds[i])} · ${pct(r.vals[i])} vs euro area`,
+        e.clientX, e.clientY);
+      return;
+    }
+  }
+  const row = e.target.closest(".row[data-tip]");
+  if (row && row.dataset.tip) { showTip(row.dataset.tip, e.clientX, e.clientY); return; }
+  tip.hidden = true;
+});
+
+function tableHTML(head, rows) {
+  document.getElementById("tbl").innerHTML =
+    `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead>` +
+    `<tbody>${rows.map(r => `<tr>${r.map((c, i) =>
+      `<td${i ? ' class="n"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function update() {
+  applyControls(); syncURL();
+  document.getElementById("rankView").hidden = view !== "rank";
+  document.getElementById("timeView").hidden = view !== "time";
+  if (!USD) return;
+  if (view === "rank") renderRank(); else renderTime();
+}
+
+Promise.all([
+  fetch("data/bigmac-usd.json").then(r => r.json()),
+  fetch("data/bigmac-eur.json").then(r => r.json()),
+  fetch("data/europe-map.json").then(r => r.json())
+]).then(([u, e, m]) => {
+  USD = u.series; EURR = e.series; GEOMAP = m;
+  fillEditions(); buildMap(); update();
+}).catch(err => {
+  document.getElementById("status").textContent = "Could not load data: " + err;
+});
+</script></body></html>

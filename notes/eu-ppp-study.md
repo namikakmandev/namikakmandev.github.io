@@ -85,6 +85,13 @@ appreciation between them is the story. Candidate for an official monthly
 confirmation: CPI-deflated real effective exchange rate (Eurostat
 ert_eff_ic_m), not yet wired in.
 
+Built output: `bigmac-europe.html` — map + diverging ranking vs the
+euro-area price (any edition back to 2000) and per-country over-time small
+multiples with parity as the grid line. Euro members painted as one bloc,
+era-correctly from each country's adoption year (Greece 2001 … Bulgaria
+2026); Russia's series ends Jan 2022 and is left out. Listed on
+projects.html (card `assets/bigmac-europe.png`).
+
 ## Integrity checklist for this study
 
 - [ ] Indicator named on every figure: PLI (EU27_2020 = 100), year stated
