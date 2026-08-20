@@ -104,7 +104,7 @@ td.n { text-align:right; }
 </style></head><body><div class="wrap">
 <div class="bar"><a href="/">← namikakman — projects</a>
   <a href="ppp-europe.html">the full-basket PPP map →</a></div>
-<div class="kicker">BIG MAC PARITY · EUROPE · THE ECONOMIST OPEN DATA</div>
+<div class="kicker">BIG MAC PARITY · EUROPE &amp; MIDDLE EAST · THE ECONOMIST OPEN DATA</div>
 <h1>Where does a Big Mac cost more than in the euro area?</h1>
 <p class="sub">The timeliness complement to the <a href="ppp-europe.html"
 style="color:#3987e5">PPP map</a>: Eurostat's full-basket price levels run
@@ -150,10 +150,16 @@ editions since 2000, fetched via this repo's pipeline. The Economist
 reports the <b>euro area as a single price</b>, so euro countries are
 painted as one bloc — each country only from the year it adopted the euro
 (Greece 2001 … Croatia 2023, Bulgaria 2026); before that, if it was not
-priced individually, it shows as no data. Individually priced in Europe:
+priced individually, it shows as no data. Individually priced here:
 UK, Switzerland, Norway, Sweden, Denmark, Poland, Czechia, Hungary,
-Türkiye, Romania, Ukraine, Moldova (Russia until Jan 2022, then
-discontinued). Percentages are raw valuations at market exchange rates —
+Türkiye, Romania, Ukraine, Moldova, and — off the map frame but in the
+ranking — Israel, Egypt, Saudi Arabia, the UAE, Qatar, Kuwait, Bahrain and
+Oman (Russia until Jan 2022, then discontinued). <b>Never included in the
+index:</b> Albania, Bosnia and Herzegovina, Montenegro, Kosovo, North
+Macedonia, Serbia, Georgia and Iraq — The Economist has not priced them in
+any edition, so no honest value can be shown. Slovenia, Croatia, the
+Baltics, Slovakia and Bulgaria sit inside the single euro-area price from
+their adoption dates. Percentages are raw valuations at market exchange rates —
 no GDP adjustment. A single item cannot represent a consumption basket:
 use the PPP map for structural comparisons and this page for the current
 direction of travel.</p>
@@ -163,13 +169,25 @@ direction of travel.</p>
 <script>
 FLAGS.EUZ = "<rect width=\"24\" height=\"16\" fill=\"#003399\"/><g fill=\"#FFCC00\"><circle cx=\"12\" cy=\"3.4\" r=\"0.75\"/><circle cx=\"12\" cy=\"12.6\" r=\"0.75\"/><circle cx=\"7.4\" cy=\"8\" r=\"0.75\"/><circle cx=\"16.6\" cy=\"8\" r=\"0.75\"/><circle cx=\"8.7\" cy=\"4.7\" r=\"0.75\"/><circle cx=\"15.3\" cy=\"4.7\" r=\"0.75\"/><circle cx=\"8.7\" cy=\"11.3\" r=\"0.75\"/><circle cx=\"15.3\" cy=\"11.3\" r=\"0.75\"/></g>";
 FLAGS.UA = "<rect width=\"24\" height=\"8\" fill=\"#0057B7\"/><rect y=\"8\" width=\"24\" height=\"8\" fill=\"#FFD700\"/>";
+FLAGS.IL = "<rect width=\"24\" height=\"16\" fill=\"#fff\"/><rect y=\"1.6\" width=\"24\" height=\"2.2\" fill=\"#0038B8\"/><rect y=\"12.2\" width=\"24\" height=\"2.2\" fill=\"#0038B8\"/><path d=\"M12,4.6 l2.6,4.5 h-5.2 Z M12,11.4 l-2.6,-4.5 h5.2 Z\" fill=\"none\" stroke=\"#0038B8\" stroke-width=\"0.9\"/>";
+FLAGS.EG = "<rect width=\"24\" height=\"5.33\" fill=\"#CE1126\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#000\"/><circle cx=\"12\" cy=\"8\" r=\"1.6\" fill=\"#C09300\"/>";
+FLAGS.SA = "<rect width=\"24\" height=\"16\" fill=\"#165d31\"/><rect x=\"5\" y=\"6\" width=\"14\" height=\"1.6\" fill=\"#fff\"/><rect x=\"7\" y=\"10\" width=\"10\" height=\"1.2\" fill=\"#fff\"/>";
+FLAGS.AE = "<rect width=\"24\" height=\"5.33\" fill=\"#00843D\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#000\"/><rect width=\"7\" height=\"16\" fill=\"#FF0000\"/>";
+FLAGS.QA = "<rect width=\"24\" height=\"16\" fill=\"#8A1538\"/><polygon points=\"0,0 7,0 9,1.8 7,3.6 9,5.4 7,7.2 9,9 7,10.8 9,12.6 7,14.4 9,16 0,16\" fill=\"#fff\"/>";
+FLAGS.KW = "<rect width=\"24\" height=\"5.33\" fill=\"#007A3D\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#CE1126\"/><polygon points=\"0,0 7,5.33 7,10.67 0,16\" fill=\"#000\"/>";
+FLAGS.BH = "<rect width=\"24\" height=\"16\" fill=\"#CE1126\"/><polygon points=\"0,0 7,0 9,1.6 7,3.2 9,4.8 7,6.4 9,8 7,9.6 9,11.2 7,12.8 9,14.4 7,16 0,16\" fill=\"#fff\"/>";
+FLAGS.OM = "<rect width=\"24\" height=\"5.33\" fill=\"#fff\"/><rect y=\"5.33\" width=\"24\" height=\"5.33\" fill=\"#DB161B\"/><rect y=\"10.67\" width=\"24\" height=\"5.33\" fill=\"#008751\"/><rect width=\"6\" height=\"16\" fill=\"#DB161B\"/>";
 FLAGS.MD = "<rect width=\"8\" height=\"16\" fill=\"#003DA5\"/><rect x=\"8\" width=\"8\" height=\"16\" fill=\"#FFD200\"/><rect x=\"16\" width=\"8\" height=\"16\" fill=\"#CC092F\"/>";
 
 const NAMES = { EUZ:"Euro area", GBR:"United Kingdom", CHE:"Switzerland",
   NOR:"Norway", SWE:"Sweden", DNK:"Denmark", POL:"Poland", CZE:"Czechia",
-  HUN:"Hungary", TUR:"Türkiye", ROU:"Romania", UKR:"Ukraine", MDA:"Moldova" };
+  HUN:"Hungary", TUR:"Türkiye", ROU:"Romania", UKR:"Ukraine", MDA:"Moldova",
+  ISR:"Israel", EGY:"Egypt", SAU:"Saudi Arabia", ARE:"UAE", QAT:"Qatar",
+  KWT:"Kuwait", BHR:"Bahrain", OMN:"Oman" };
 const ISO2 = { EUZ:"EUZ", GBR:"UK", CHE:"CH", NOR:"NO", SWE:"SE", DNK:"DK",
-  POL:"PL", CZE:"CZ", HUN:"HU", TUR:"TR", ROU:"RO", UKR:"UA", MDA:"MD" };
+  POL:"PL", CZE:"CZ", HUN:"HU", TUR:"TR", ROU:"RO", UKR:"UA", MDA:"MD",
+  ISR:"IL", EGY:"EG", SAU:"SA", ARE:"AE", QAT:"QA", KWT:"KW", BHR:"BH",
+  OMN:"OM" };
 // map iso2 -> big mac key (for painting + tooltips)
 const FROM2 = Object.fromEntries(Object.entries(ISO2).map(([k,v]) => [v,k]));
 // euro adoption year per map country; founders count from the data's start
@@ -315,7 +333,7 @@ function renderRank() {
   tableHTML(["Country", `vs euro area, ${edLabel(ed)}`, "Big Mac in USD"],
     rows.map(r => [NAMES[r.k], pct(r.v), "$" + r.usd.toFixed(2)]));
   document.getElementById("status").textContent =
-    `${edLabel(ed)} — ${rows.length} European economies (euro area counted ` +
+    `${edLabel(ed)} — ${rows.length} economies (euro area counted ` +
     `as one). 0 = the euro-area burger price in that edition.`;
 }
 
