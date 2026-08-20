@@ -60,6 +60,18 @@ size the channel, they do not measure a margin:
   oversight. No 2026 in the dataset yet (ECOICOP2 rebase; successor to
   watch).
 
+## Built output
+
+`vet-sector.html` — interactive explorer over the two structural datasets,
+listed on projects.html (card image `assets/vet-sector.png`). Three views:
+basket-weight ranking (‰, EU-27 reference marker), industry structure
+(absolutes labelled size-dependent; published and derived ratios labelled
+as such, per-row reference years), and weight-over-time small multiples
+with the EU-27 as a dashed reference line. Transmitted zero weights
+(IE some years, XK throughout) render as "not reported", never as zero.
+Each view carries its own metric definition box stating what the metric is
+NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
+
 ## Dispensing-rights map — fill rules
 
 - One row per country; columns: may vets dispense? may pharmacies? online

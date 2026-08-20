@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The veterinary sector in Europe — spend share and industry structure</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="description" content="How much of the household basket goes to
+vets, and what the veterinary industry looks like per European country —
+practices, turnover, employment. Eurostat HICP weights and structural
+business statistics.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { background:#06090c; color:#f4f6f8; font-family:"IBM Plex Sans","Segoe UI",
+  system-ui,sans-serif; padding:28px 16px 60px; }
+.wrap { max-width:1020px; margin:0 auto; }
+.bar { display:flex; justify-content:space-between; margin-bottom:14px; gap:12px;
+  flex-wrap:wrap; }
+.bar a { color:#9aa3ad; text-decoration:none; font-size:14px; }
+.bar a:hover { color:#3987e5; }
+.kicker { color:#3987e5; font-weight:700; letter-spacing:.06em;
+  font-size:14px; margin-bottom:8px; }
+h1 { font-size:34px; line-height:1.15; margin-bottom:10px; }
+p.sub { color:#9aa3ad; font-size:15.5px; line-height:1.5; max-width:75ch;
+  margin-bottom:18px; }
+p.sub b { color:#f4f6f8; }
+.controls { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;
+  align-items:center; }
+.seg { display:inline-flex; border:1px solid #232a33; border-radius:8px;
+  overflow:hidden; }
+.seg button { background:none; border:none; color:#9aa3ad; font:inherit;
+  font-size:14px; padding:8px 14px; cursor:pointer; }
+.seg button.on { background:#3987e5; color:#0f1419; font-weight:700; }
+.seg button:focus-visible { outline:2px solid #3987e5; outline-offset:-2px; }
+select { background:#0f1419; color:#f4f6f8; border:1px solid #232a33;
+  border-radius:8px; font:inherit; font-size:14px; padding:8px 10px; }
+select:focus-visible { outline:2px solid #3987e5; outline-offset:1px; }
+.legend { color:#9aa3ad; font-size:13.5px; margin:4px 0 14px; }
+.legend i { display:inline-block; width:26px; height:4px; border-radius:2px;
+  background:#4696ee; vertical-align:middle; margin-right:8px; }
+.legend u { display:inline-block; width:2px; height:14px;
+  background:#9aa3ad; vertical-align:middle; margin:0 8px 0 22px;
+  text-decoration:none; }
+.rows { display:flex; flex-direction:column; gap:3px; max-width:760px; }
+.row { display:grid; grid-template-columns:170px 1fr 92px; gap:10px;
+  align-items:center; font-size:13.5px; border-radius:5px; padding:1px 4px; }
+.row:hover { background:#0f1419; }
+.row .nm { display:flex; align-items:center; gap:8px; min-width:0;
+  color:#9aa3ad; }
+.row .nm em { font-style:normal; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.flag { width:20px; height:13.3px; border-radius:2px; flex:none;
+  outline:1px solid rgba(255,255,255,.14); outline-offset:-1px; }
+.noflag { width:20px; flex:none; text-align:center; color:#3d4654;
+  font-size:10px; }
+.track { position:relative; height:13px; background:#0f1419; border-radius:3px; }
+.track i { position:absolute; left:0; top:0; bottom:0; border-radius:3px;
+  background:#4696ee; }
+.track u { position:absolute; top:-2px; bottom:-2px; width:1.5px;
+  background:#9aa3ad; }
+.row .v { font-variant-numeric:tabular-nums; text-align:right;
+  color:#f4f6f8; white-space:nowrap; }
+.row .v s { text-decoration:none; color:#3d4654; font-size:11.5px;
+  margin-left:5px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:16px 22px; margin-top:6px; }
+.cell { background:#0f1419; border-radius:8px; padding:10px 12px; }
+.cell > svg { width:100%; height:auto; display:block; touch-action:pan-y; }
+.ch { display:flex; justify-content:space-between; align-items:center;
+  font-size:14.5px; font-weight:700; margin-bottom:4px; gap:6px; }
+.ch .nm { display:flex; align-items:center; gap:7px; min-width:0; }
+.ch .nm em { font-style:normal; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.ch .v { font-variant-numeric:tabular-nums; flex:none; color:#4696ee; }
+.metric { background:#0f1419; border-radius:10px; padding:16px 18px;
+  margin:26px 0 0; max-width:90ch; }
+.metric h3 { font-size:16px; margin-bottom:8px; }
+.metric p { color:#9aa3ad; font-size:14px; line-height:1.55; margin-bottom:8px; }
+.metric b { color:#f4f6f8; }
+details { margin-top:26px; color:#9aa3ad; font-size:14px; }
+summary { cursor:pointer; color:#9aa3ad; }
+table { border-collapse:collapse; margin-top:10px;
+  font-variant-numeric:tabular-nums; font-size:13.5px; }
+th, td { text-align:left; padding:4px 16px 4px 0; border-bottom:1px solid #171d25; }
+th { color:#3d4654; font-weight:400; }
+td.n { text-align:right; }
+.src { border-top:1px solid #232a33; margin-top:34px; padding-top:14px;
+  color:#3d4654; font-size:13px; line-height:1.5; max-width:90ch; }
+.src b { color:#9aa3ad; }
+#status { color:#3d4654; font-size:14px; margin-top:20px; }
+#tip { position:fixed; z-index:10; pointer-events:none; background:#1a212b;
+  border:1px solid #232a33; border-radius:6px; padding:5px 9px;
+  font-size:12.5px; color:#f4f6f8; font-variant-numeric:tabular-nums;
+  white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.45); }
+@media (max-width:520px) {
+  body { padding:20px 12px 48px; }
+  h1 { font-size:26px; }
+  .seg { display:flex; width:100%; }
+  .seg button { flex:1; min-height:44px; padding:8px 6px; }
+  select { width:100%; min-height:44px; }
+  .row { grid-template-columns:124px 1fr 84px; }
+}
+</style></head><body><div class="wrap">
+<div class="bar"><a href="/">← namikakman — projects</a>
+  <a href="vet-cpi.html">vet prices vs inflation →</a></div>
+<div class="kicker">VETERINARY SECTOR · EUROPE · EUROSTAT</div>
+<h1>Vets in the household budget — and as an industry</h1>
+<p class="sub">Two separate lenses, two separate datasets. <b>Basket
+weight</b>: out of every 1,000 units households spend, how much goes to
+veterinary &amp; pet services — a <b>spending share</b>, not a price.
+<b>Industry</b>: the veterinary sector itself — practices, turnover,
+employment per country. Neither measures a margin or markup anywhere;
+that is a separate assessment.</p>
+<div class="controls">
+  <span class="seg" id="viewSeg" role="group" aria-label="View">
+    <button data-v="weight" class="on" aria-pressed="true">Basket weight</button>
+    <button data-v="industry" aria-pressed="false">Industry</button>
+    <button data-v="time" aria-pressed="false">Weight over time</button>
+  </span>
+  <select id="catSel" aria-label="Weight category"></select>
+  <select id="metricSel" aria-label="Industry metric"></select>
+  <select id="yearSel" aria-label="Year"></select>
+</div>
+<div class="legend" id="legend"><i></i>country
+  <u></u>EU-27 reference where shown</div>
+
+<div id="weightView" class="rows"></div>
+<div id="industryView" class="rows" hidden></div>
+<div id="timeView" hidden><div class="grid" id="timeGrid"></div></div>
+
+<div class="metric" id="metricNote"></div>
+
+<details><summary>View as table</summary><div id="tbl"></div></details>
+<p id="status">Loading data…</p>
+
+<p class="src"><b>Sources:</b> Eurostat. Basket weights:
+<b>prc_hicp_inw</b> — HICP item weights, categories CP0934 (pets and
+related products) and CP0935 (veterinary and other services for pets),
+annual, per-mille of each country's total consumption basket, 1996–2025;
+<b>Türkiye transmits no weight for these categories</b>, and a transmitted
+zero (Ireland in some years, Kosovo throughout) is treated as "not
+separately reported", never as a real zero. Industry: <b>sbs_na_1a_se_r2</b> — structural business
+statistics, veterinary activities (NACE M75); legacy series, most
+countries end at <b>2020</b> (UK earlier) — each row shows its own
+reference year; later years live in Eurostat's successor business
+statistics and are not yet wired in. Turnover per person employed is
+Eurostat's published indicator; turnover per enterprise and staff per
+enterprise are simple ratios derived on this page and labelled as such.
+Nothing here measures veterinary prices (see the vet-CPI page for price
+trends) or distribution margins.</p>
+</div>
+<div id="tip" hidden></div>
+<script src="js/vet-flags.js"></script>
+<script>
+const NAMES = {
+  AT:"Austria", BE:"Belgium", BG:"Bulgaria", HR:"Croatia", CY:"Cyprus",
+  CZ:"Czechia", DK:"Denmark", EE:"Estonia", FI:"Finland", FR:"France",
+  DE:"Germany", EL:"Greece", HU:"Hungary", IE:"Ireland", IT:"Italy",
+  LV:"Latvia", LT:"Lithuania", LU:"Luxembourg", MT:"Malta", NL:"Netherlands",
+  PL:"Poland", PT:"Portugal", RO:"Romania", SK:"Slovakia", SI:"Slovenia",
+  ES:"Spain", SE:"Sweden", IS:"Iceland", NO:"Norway", CH:"Switzerland",
+  UK:"United Kingdom", AL:"Albania", BA:"Bosnia and Herzegovina",
+  ME:"Montenegro", MK:"North Macedonia", RS:"Serbia", TR:"Türkiye",
+  XK:"Kosovo*"
+};
+const WCATS = { CP0935: "Veterinary & pet services",
+                CP0934: "Pets & related products" };
+const METRICS = {
+  V11110: { n: "Veterinary enterprises", u: "practices", f: v => fmtInt(v) },
+  V12110: { n: "Turnover", u: "M€", f: v => fmtInt(v) },
+  V12150: { n: "Value added", u: "M€", f: v => fmtInt(v) },
+  V16110: { n: "Persons employed", u: "people", f: v => fmtInt(v) },
+  V91100: { n: "Turnover per person employed", u: "k€ / person", f: v => v.toFixed(1) },
+  D_TPE:  { n: "Turnover per enterprise (derived)", u: "k€ / practice", f: v => fmtInt(v) },
+  D_SPE:  { n: "Staff per enterprise (derived)", u: "people / practice", f: v => v.toFixed(1) }
+};
+const NOTES = {
+  weight: `<h3>Metric: basket weight (‰)</h3>
+    <p>The HICP item weight: of every <b>1,000 units of money households
+    spend on consumption</b> in a year, how many go to this category. It is
+    taken from each country's own consumer-price-index weighting, which
+    Eurostat harmonises, so it is comparable across countries.</p>
+    <p><b>What it is not:</b> it is not a price and not a price level. A
+    high weight can mean many pets, expensive vets, or both — the weight
+    alone cannot separate them. The reference line is the EU-27 weight.</p>`,
+  industry: `<h3>Metric: industry structure (NACE M75)</h3>
+    <p>Eurostat's structural business statistics for enterprises whose main
+    activity is <b>veterinary services</b>: how many exist, their combined
+    turnover and value added, and how many people they employ. The absolute
+    counts scale with country size — use them for sizing, not for
+    "better/worse" comparisons. The per-practice and per-person ratios are
+    size-independent and comparable.</p>
+    <p><b>What it is not:</b> turnover is revenue, not profit and not a
+    markup; nothing here says what share of a vet bill is medicines. Each
+    row shows its own reference year — the legacy series ends around
+    2020.</p>`,
+  time: `<h3>Metric: basket weight over time (‰)</h3>
+    <p>The same HICP weight, per year. Weights are re-set annually from
+    household spending patterns, so a rising line means vet &amp; pet
+    spending grew <b>faster than total consumption</b> in that country —
+    from more pets, higher vet prices, or both. The dashed line is the
+    EU-27 weight for the same year.</p>`
+};
+const BLUE = "#4696ee", INK2 = "#9aa3ad", GRID = "#232a33", MUTED = "#3d4654";
+const fmtInt = v => Math.round(v).toLocaleString("en-US");
+
+let W = null, S = null;
+let view = "weight", wcat = "CP0935", metric = "V11110", year = null;
+
+(function () {
+  const p = new URLSearchParams(location.search);
+  const v = p.get("view");
+  if (["weight","industry","time"].includes(v)) view = v;
+  const c = (p.get("cat") || "").toUpperCase();
+  if (WCATS[c]) wcat = c;
+  const m = (p.get("metric") || "").toUpperCase();
+  if (METRICS[m]) metric = m;
+  const y = p.get("year");
+  if (/^\d{4}$/.test(y)) year = y;
+})();
+function syncURL() {
+  const p = new URLSearchParams();
+  p.set("view", view);
+  if (view !== "industry") p.set("cat", wcat);
+  if (view === "industry") p.set("metric", metric);
+  if (view === "weight" && year) p.set("year", year);
+  history.replaceState(null, "", "?" + p.toString());
+}
+
+const catSel = document.getElementById("catSel"),
+      metricSel = document.getElementById("metricSel"),
+      yearSel = document.getElementById("yearSel");
+for (const [c, n] of Object.entries(WCATS)) catSel.add(new Option(n, c));
+for (const [m, o] of Object.entries(METRICS)) metricSel.add(new Option(o.n, m));
+
+function wYears() {
+  const s = W["EU27_2020|" + wcat] || {};
+  return Object.keys(s).sort();
+}
+function fillYears() {
+  const ys = wYears(), old = year;
+  yearSel.innerHTML = "";
+  for (const y of [...ys].reverse()) yearSel.add(new Option(y, y));
+  year = ys.includes(old) ? old : ys[ys.length - 1];
+  yearSel.value = year;
+}
+function applyControls() {
+  catSel.value = wcat; metricSel.value = metric;
+  document.querySelectorAll("#viewSeg button").forEach(b => {
+    const on = b.dataset.v === view;
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
+  });
+  catSel.style.display = view === "industry" ? "none" : "";
+  metricSel.style.display = view === "industry" ? "" : "none";
+  yearSel.style.display = view === "weight" ? "" : "none";
+  document.getElementById("legend").style.display =
+    view === "industry" && !metric.startsWith("V9") && !metric.startsWith("D_")
+      ? "none" : "";
+  document.getElementById("metricNote").innerHTML = NOTES[view];
+}
+document.querySelectorAll("#viewSeg button").forEach(b =>
+  b.addEventListener("click", () => { view = b.dataset.v; update(); }));
+catSel.addEventListener("change", () => { wcat = catSel.value; fillYears(); update(); });
+metricSel.addEventListener("change", () => { metric = metricSel.value; update(); });
+yearSel.addEventListener("change", () => { year = yearSel.value; update(); });
+
+const flagHTML = g => FLAGS[g]
+  ? `<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">${FLAGS[g]}</svg>`
+  : `<span class="noflag">${g}</span>`;
+
+function rowHTML(o) {
+  // o: {label, flag, v, disp, sub, max, ref, tip}
+  const w = Math.min(100, o.v / o.max * 100);
+  const mark = o.ref != null ? Math.min(100, o.ref / o.max * 100).toFixed(2) : null;
+  return `<div class="row" data-tip="${o.tip || ""}" role="img"` +
+    ` aria-label="${o.label}: ${o.disp}${o.sub ? " (" + o.sub + ")" : ""}">` +
+    `<span class="nm">${o.flag}<em>${o.label}</em></span>` +
+    `<span class="track"><i style="width:${w}%"></i>` +
+    (mark != null ? `<u style="left:${mark}%"></u>` : "") + `</span>` +
+    `<span class="v">${o.disp}${o.sub ? `<s>${o.sub}</s>` : ""}</span></div>`;
+}
+
+function renderWeight() {
+  const rows = [];
+  for (const g of Object.keys(NAMES)) {
+    const v = (W[g + "|" + wcat] || {})[year];
+    if (v) rows.push({ g, v });  // a transmitted 0 means "not separately weighted", not a real zero
+  }
+  rows.sort((a, b) => b.v - a.v);
+  const ref = (W["EU27_2020|" + wcat] || {})[year];
+  const max = Math.max(...rows.map(r => r.v), ref || 0) * 1.06;
+  document.getElementById("weightView").innerHTML = rows.map(r =>
+    rowHTML({ label: NAMES[r.g], flag: flagHTML(r.g), v: r.v,
+      disp: r.v.toFixed(2) + "‰", max, ref,
+      tip: `${NAMES[r.g]} ${year} · ${WCATS[wcat]} · ${r.v.toFixed(2)}‰ of the ` +
+           `household basket · EU-27: ${ref != null ? ref.toFixed(2) + "‰" : "—"}` })).join("");
+  tableHTML(["Country", `${WCATS[wcat]} weight ${year} (‰)`],
+    rows.map(r => [NAMES[r.g], r.v.toFixed(2)]));
+  const absent = Object.keys(NAMES).filter(g => !(W[g + "|" + wcat] || {})[year]);
+  document.getElementById("status").textContent =
+    `${WCATS[wcat]}, ${year} — ${rows.length} countries, per-mille of each ` +
+    `country's consumption basket. EU-27 = ${ref != null ? ref.toFixed(2) + "‰" : "—"}.` +
+    (absent.length ? ` No usable weight (none or zero transmitted): ${absent.map(g => NAMES[g]).join(", ")}.` : "");
+}
+
+function renderIndustry() {
+  const val = (g) => {
+    const pick = k => S[g + "|" + k] || {};
+    let series;
+    if (metric === "D_TPE" || metric === "D_SPE") {
+      const num = pick(metric === "D_TPE" ? "V12110" : "V16110"), den = pick("V11110");
+      const ys = Object.keys(num).filter(y => den[y]).sort();
+      if (!ys.length) return null;
+      const y = ys[ys.length - 1];
+      return { y, v: metric === "D_TPE" ? num[y] * 1000 / den[y] : num[y] / den[y] };
+    }
+    series = pick(metric);
+    const ys = Object.keys(series).sort();
+    if (!ys.length) return null;
+    const y = ys[ys.length - 1];
+    return { y, v: series[y] };
+  };
+  const rows = [];
+  for (const g of Object.keys(NAMES)) {
+    const r = val(g);
+    if (r) rows.push({ g, ...r });
+  }
+  rows.sort((a, b) => b.v - a.v);
+  const M = METRICS[metric];
+  const isRatio = metric === "V91100" || metric.startsWith("D_");
+  const refR = isRatio ? val("EU27_2020") : null;
+  const max = Math.max(...rows.map(r => r.v), refR ? refR.v : 0) * 1.06;
+  document.getElementById("industryView").innerHTML = rows.map(r =>
+    rowHTML({ label: NAMES[r.g], flag: flagHTML(r.g), v: r.v,
+      disp: M.f(r.v), sub: r.y, max, ref: refR ? refR.v : null,
+      tip: `${NAMES[r.g]} ${r.y} · ${M.n}: ${M.f(r.v)} ${M.u}` +
+           (refR ? ` · EU-27: ${M.f(refR.v)}` : "") })).join("");
+  tableHTML(["Country", `${M.n} (${M.u})`, "Year"],
+    rows.map(r => [NAMES[r.g], M.f(r.v), r.y]));
+  document.getElementById("status").textContent =
+    `${M.n}, latest available year per country (shown in grey next to each ` +
+    `value; most end 2020 — legacy SBS series). ${rows.length} countries.` +
+    (isRatio ? " Ratio — comparable across country sizes."
+             : " Absolute figure — scales with country size; use for sizing only.");
+}
+
+function mini(ys, vals, refVals) {
+  const W2 = 230, H = 96;
+  const all = vals.concat(refVals.filter(v => v != null));
+  const lo = Math.min(...all) * 0.9, hi = Math.max(...all) * 1.08;
+  const X = i => i / Math.max(vals.length - 1, 1) * W2;
+  const Y = v => H - 6 - (v - lo) / (hi - lo || 1) * (H - 12);
+  const pts = vals.map((v, i) => X(i).toFixed(1) + "," + Y(v).toFixed(1)).join(" ");
+  const rpts = refVals.map((v, i) => v == null ? null :
+    X(i).toFixed(1) + "," + Y(v).toFixed(1)).filter(Boolean).join(" ");
+  return { pts, rpts };
+}
+
+function renderTime() {
+  const ref = W["EU27_2020|" + wcat] || {};
+  const cells = [], ROWS = [];
+  for (const g of Object.keys(NAMES)) {
+    const s = W[g + "|" + wcat] || {};
+    const ys = Object.keys(s).filter(y => s[y]).sort();  // drop transmitted zeros
+    if (ys.length < 5) continue;
+    const vals = ys.map(y => s[y]);
+    const refVals = ys.map(y => ref[y] ?? null);
+    const m = mini(ys, vals, refVals);
+    const last = vals[vals.length - 1];
+    ROWS.push({ g, ys, vals, first: vals[0], last });
+    cells.push(`<div class="cell" data-g="${g}">` +
+      `<div class="ch"><span class="nm">${flagHTML(g)}<em>${NAMES[g]}</em></span>` +
+      `<span class="v">${last.toFixed(1)}‰</span></div>` +
+      `<svg viewBox="0 0 230 96" role="img" aria-label="${NAMES[g]}: ` +
+      `${WCATS[wcat]} weight ${vals[0].toFixed(2)} per mille in ${ys[0]}, ` +
+      `${last.toFixed(2)} in ${ys[ys.length - 1]}; dashed line is the EU-27 weight">` +
+      (m.rpts ? `<polyline points="${m.rpts}" fill="none" stroke="${MUTED}"` +
+        ` stroke-width="1.6" stroke-dasharray="4 4"/>` : "") +
+      `<polyline points="${m.pts}" fill="none" stroke="${BLUE}"` +
+      ` stroke-width="2.3" stroke-linejoin="round"/></svg></div>`);
+  }
+  const grid = document.getElementById("timeGrid");
+  grid.innerHTML = cells.join("");
+  grid._rows = ROWS;
+  tableHTML(["Country", "First year", "First ‰", "Latest year", "Latest ‰"],
+    ROWS.map(r => [NAMES[r.g], r.ys[0], r.first.toFixed(2),
+      r.ys[r.ys.length - 1], r.last.toFixed(2)]));
+  document.getElementById("status").textContent =
+    `${WCATS[wcat]} — weight in the household basket per year, ` +
+    `${ROWS.length} countries. Solid line: country; dashed: EU-27.`;
+}
+
+const tip = document.getElementById("tip");
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.hidden = false;
+  const w = tip.offsetWidth;
+  tip.style.left = Math.max(4, Math.min(x + 14, innerWidth - w - 8)) + "px";
+  tip.style.top = (y + 18) + "px";
+}
+document.addEventListener("mousemove", e => {
+  const cell = e.target.closest("#timeGrid .cell");
+  if (cell) {
+    const rows = document.getElementById("timeGrid")._rows || [];
+    const r = rows.find(x => x.g === cell.dataset.g);
+    const svg = cell.querySelector("svg");
+    if (r && svg) {
+      const b = svg.getBoundingClientRect();
+      const i = Math.max(0, Math.min(r.ys.length - 1,
+        Math.round((e.clientX - b.left) / b.width * (r.ys.length - 1))));
+      showTip(`${NAMES[r.g]} · ${r.ys[i]} · ${r.vals[i].toFixed(2)}‰`,
+        e.clientX, e.clientY);
+      return;
+    }
+  }
+  const row = e.target.closest(".row[data-tip]");
+  if (row && row.dataset.tip) { showTip(row.dataset.tip, e.clientX, e.clientY); return; }
+  tip.hidden = true;
+});
+
+function tableHTML(head, rows) {
+  document.getElementById("tbl").innerHTML =
+    `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead>` +
+    `<tbody>${rows.map(r => `<tr>${r.map((c, i) =>
+      `<td${i ? ' class="n"' : ""}>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function update() {
+  applyControls(); syncURL();
+  document.getElementById("weightView").hidden = view !== "weight";
+  document.getElementById("industryView").hidden = view !== "industry";
+  document.getElementById("timeView").hidden = view !== "time";
+  if (!W || !S) return;
+  if (view === "weight") renderWeight();
+  else if (view === "industry") renderIndustry();
+  else renderTime();
+}
+
+Promise.all([
+  fetch("data/eu-vet-weight.json").then(r => r.json()),
+  fetch("data/eu-vet-sbs.json").then(r => r.json())
+]).then(([w, s]) => {
+  W = w.series; S = s.series;
+  fillYears(); update();
+}).catch(err => {
+  document.getElementById("status").textContent = "Could not load data: " + err;
+});
+</script></body></html>
