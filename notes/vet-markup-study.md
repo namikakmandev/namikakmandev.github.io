@@ -99,16 +99,25 @@ NOT (no prices, no margins). Shared mini-flags moved to `js/vet-flags.js`.
 | Czechia | YES — vets are authorised to dispense (výdej) veterinary medicinal products alongside pharmacists; sellers of reserved (OTC-class) products register with ÚSKVBL | pharmacies dispense too | Medicines Act 378/2007 Sb.; ÚSKVBL seller register (uskvbl.cz); VFU teaching materials on léčiva |
 | Hungary | PARTIAL — governing regulation identified: 128/2009. (X. 6.) FVM rendelet on veterinary products (prescribing, dispensing/kiadás and record rules for vets; Nébih oversight; 2023+ AMR amendments). The precise practice-sale rule needs the article text | vet pharmacies (állatgyógyszertár) retail channel | 128/2009 FVM rendelet (njt.hu / net.jogtar.hu); Nébih notice on changes — **TO PIN to specific §§ before use** |
 | Romania | CHANNEL-SPLIT — retail of vet medicinal products runs exclusively through ANSVSA-authorised veterinary pharmacies (farmacii veterinare) and pharmaceutical points; a vet practice as such is not a retail outlet — vets prescribe, authorised units dispense (whether/when vets own those units: nuance TO VERIFY) | the authorised vet-pharmacy network IS the channel; online sale only for non-prescription via registered retailers | ANSVSA "Precizări privind prescrierea, comercializarea, eliberarea si utilizarea produselor medicinale veterinare"; ANSVSA "Activitate farmaceutică veterinară" (ansvsa.ro) |
+| Switzerland | YES — vets may run a "tierärztliche Privatapotheke" for their own clients; needs professional-practice AND retail-trade authorisation; cantons inspect | pharmacies and some specialist shops sell defined categories | TAMV (Tierarzneimittelverordnung); BLV "Verschreibung, Abgabe und Anwendung" (blv.admin.ch); canton Zürich licensing page |
+| Ireland | YES — vets supply POM to animals under their care; classes route supply to vet / pharmacist / licensed retailer (LR) / registered CAM outlets | pharmacies + DAFM-licensed retailers; internet sale only via DAFM-registered suppliers | HPRA "Classification of veterinary medicines in Ireland"; Veterinary Medicinal Products Act 2023; DAFM internet-supply list |
+| Finland | **YES BUT AT COST — zero profit.** Vets may hand over (luovuttaa) medicines only for treatment needs and must charge exactly their own purchase price; economic profit on medicine sales is prohibited | pharmacies the normal retail channel | Animal Medication Act 387/2014; MMM regulation 17/2014; Ruokavirasto Q&A "Lääkkeiden hankkiminen ja hinnoittelu" |
+| Portugal | CHANNEL-SPLIT — dispensing entities are pharmacies and DGAV-authorised retail sale points (postos de venda); the vet practice is not a named retail channel (vets administer; ceding detail TO VERIFY in DL 148/2008) | pharmacies + authorised retail points; simplified regime for non-POM outlets | DGAV retail-sale FAQ (2023) and Manual de Dispensa; Decreto-Lei 148/2008 as amended |
+| Greece | YES (hybrid) — private vet clinics/production-animal vet offices may supply products to owners after issuing the prescription; dedicated vet-medicine retail shops require a licence AND a responsible scientist holding a veterinary degree | pharmacies may sell vet POM on prescription after notifying the regional veterinary service | minagric.gr vet-pharmaceuticals pages; national licence registry (mitos.gov.gr / EUGO, "Άδεια λιανικής πώλησης κτηνιατρικών φαρμακευτικών προϊόντων"); Kilkis pharmacists' association FAQ |
+| Croatia | CHANNEL-SPLIT — retail only via authorised veterinary pharmacies (veterinarske ljekarne), per-location approval, national register kept by the veterinary directorate; distance sale only through registered ljekarne | the registered vet-pharmacy network IS the channel | Zakon o veterinarsko-medicinskim proizvodima (zakon.hr); Uprava za veterinarstvo "Veterinarske ljekarne" register (veterinarstvo.hr) |
+| Slovakia | YES (dual) — pharmacies dispense vet medicines under their pharmacy-care permit; separately, retail sale of vet medicines (incl. distance sale) runs on a permit from the regional veterinary and food administration — the route vets use | pharmacies dispense too | zákon č. 362/2011 Z. z. o liekoch; ŠVPS "Farmácia" pages (svps.sk); mediPRÁVNIK analysis "výdaj lekárňou vs. maloobchodný predaj veterinárnymi lekármi" |
+| Bulgaria | VET-STAFFED PHARMACIES — retail only via BFSA-licensed veterinary pharmacies; **the pharmacy manager and the persons selling must be veterinarians by law** | the licensed vet-pharmacy network IS the channel; BFSA controls wholesale + retail | Закон за ветеринарномедицинската дейност via BFSA (БАБХ) pages; bfsa.egov.bg licensing specimens; 1Legal.net summary of licensing requirements |
 
-Seventeen rows now cover every major model: fully coupled (DE, UK, PL, TR,
-NL, BE, AT, CZ) through dual-channel (FR) to decoupled-by-law (DK, SE, NO),
-prohibited outright (ES, likely IT), and Romania's authorised-vet-pharmacy
-channel split. The study's core point stands stronger with each row: "vet
-markup on medicines" is not one object across Europe — the actor earning
-the retail margin differs by country, and in the Nordics and Spain the vet
-margin does not exist at all. Still TO COMPILE: CH, IE, FI, PT, EL, BG,
-HR, SI, SK, Baltics, Western Balkans; plus pinning HU to article text and
-verifying IT and the RO ownership nuance.
+Twenty-five rows now cover six distinct models: coupled (DE, UK, PL, TR,
+NL, BE, AT, CZ, CH, IE, SK, EL), dual-channel (FR), decoupled (DK, SE, NO),
+**dispense-at-cost (FI — vets may hand over medicines but only at their own
+purchase price, profit prohibited)**, prohibited (ES, likely IT), and the
+authorised-vet-pharmacy channel split (RO, HR, PT, BG — with Bulgaria
+requiring the pharmacy staff to BE veterinarians). The retail-margin actor
+differs country by country, and in FI/DK/SE/NO/ES a vet medicine margin is
+legally zero or non-existent. Still TO COMPILE: SI, Baltics (EE, LV, LT),
+Western Balkans (RS, BA, MK, ME, AL, XK); verifications open: HU article
+text, IT, RO/PT ownership-and-ceding nuances.
 
 ## Case study: UK — CMA market investigation (final report 24 Mar 2026)
 
