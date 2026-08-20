@@ -146,20 +146,23 @@ the PPP map as the rigorous one.</p>
 
 <p class="src"><b>Source:</b> The Economist Big Mac index — open data
 (github.com/TheEconomist/big-mac-data), semi-annual January &amp; July
-editions since 2000, fetched via this repo's pipeline. The Economist
-reports the <b>euro area as a single price</b>, so euro countries are
-painted as one bloc — each country only from the year it adopted the euro
-(Greece 2001 … Croatia 2023, Bulgaria 2026); before that, if it was not
-priced individually, it shows as no data. Individually priced here:
+editions since 2000, fetched via this repo's pipeline. The Economist's
+<b>headline index</b> reports the euro area as a single price; this page
+additionally uses the member-level source prices published in the same
+repository, so euro countries appear individually where those exist.
+Individually priced in the headline index:
 UK, Switzerland, Norway, Sweden, Denmark, Poland, Czechia, Hungary,
 Türkiye, Romania, Ukraine, Moldova, and — off the map frame but in the
 ranking — Israel, Egypt, Saudi Arabia, the UAE, Qatar, Kuwait, Bahrain and
 Oman (Russia until Jan 2022, then discontinued). <b>Never included in the
 index:</b> Albania, Bosnia and Herzegovina, Montenegro, Kosovo, North
 Macedonia, Serbia, Georgia and Iraq — The Economist has not priced them in
-any edition, so no honest value can be shown. Slovenia, Croatia, the
-Baltics, Slovakia and Bulgaria sit inside the single euro-area price from
-their adoption dates. Percentages are raw valuations at market exchange rates —
+any edition, so no honest value can be shown. Euro members are shown
+<b>individually</b> using The Economist's own source prices (collected per
+country to build the euro-area average): most members from July 2011,
+Lithuania 2014, Latvia/Slovakia/Slovenia 2018, Croatia 2023, Bulgaria 2026
+— in editions before a member's first source price it falls back to the
+bloc average on the map. Percentages are raw valuations at market exchange rates —
 no GDP adjustment. A single item cannot represent a consumption basket:
 use the PPP map for structural comparisons and this page for the current
 direction of travel.</p>
@@ -190,6 +193,16 @@ const ISO2 = { EUZ:"EUZ", GBR:"UK", CHE:"CH", NOR:"NO", SWE:"SE", DNK:"DK",
   OMN:"OM" };
 // map iso2 -> big mac key (for painting + tooltips)
 const FROM2 = Object.fromEntries(Object.entries(ISO2).map(([k,v]) => [v,k]));
+// euro members with individual SOURCE prices (iso3 -> map iso2)
+const EURO_M = { AUT:"AT", BEL:"BE", BGR:"BG", DEU:"DE", ESP:"ES", EST:"EE",
+  FIN:"FI", FRA:"FR", GRC:"EL", HRV:"HR", IRL:"IE", ITA:"IT", LTU:"LT",
+  LVA:"LV", NLD:"NL", PRT:"PT", SVK:"SK", SVN:"SI" };
+const EURO_NAMES = { AUT:"Austria", BEL:"Belgium", BGR:"Bulgaria",
+  DEU:"Germany", ESP:"Spain", EST:"Estonia", FIN:"Finland", FRA:"France",
+  GRC:"Greece", HRV:"Croatia", IRL:"Ireland", ITA:"Italy", LTU:"Lithuania",
+  LVA:"Latvia", NLD:"Netherlands", PRT:"Portugal", SVK:"Slovakia",
+  SVN:"Slovenia" };
+const FROM2E = Object.fromEntries(Object.entries(EURO_M).map(([k,v]) => [v,k]));
 // euro adoption year per map country; founders count from the data's start
 const EURO_FROM = { AT:2000, BE:2000, DE:2000, ES:2000, FI:2000, FR:2000,
   IE:2000, IT:2000, LU:2000, NL:2000, PT:2000, GR:2001, SI:2007, CY:2008,
@@ -197,7 +210,7 @@ const EURO_FROM = { AT:2000, BE:2000, DE:2000, ES:2000, FI:2000, FR:2000,
 const BLUE = [70,150,238], ORANGE = [226,107,54], NEUT = [73,82,95];
 const INK2 = "#9aa3ad", GRID = "#232a33", MUTED = "#3d4654";
 
-let USD = null, EURR = null, GEOMAP = null;
+let USD = null, EURR = null, SRC = null, GEOMAP = null;
 let view = "rank", ed = null, EDS = [];
 
 (function () {
@@ -213,6 +226,11 @@ function syncURL() {
   history.replaceState(null, "", "?" + p.toString());
 }
 
+// euro-member parity from source prices: member EUR price / EUZ EUR price - 1
+function memberVal(k, d) {
+  const p = (SRC[k] || {})[d], z = (SRC.EUZ || {})[d];
+  return p != null && z ? { v: p / z - 1, eur: p } : null;
+}
 // diverging color around 0 (euro-area parity), poles saturate at ±60%
 function col(v) {
   const t = Math.max(-1, Math.min(1, v / 0.6));
@@ -288,9 +306,15 @@ function buildMap() {
 // value shown for a map country in the selected edition, or null
 function geoValue(c2) {
   const yr = +ed.slice(0, 4);
+  const mk = FROM2E[c2];
+  if (mk) {
+    const m = memberVal(mk, ed);
+    if (m) return { v: m.v, text: pct(m.v) + " vs euro-area avg · €" +
+      m.eur.toFixed(2) + " (source price)" };
+  }
   if (EURO_FROM[c2] != null && yr >= EURO_FROM[c2]) {
-    return { v: 0, text: "euro area — reported as one price ($" +
-      (USD.EUZ[ed] || 0).toFixed(2) + ")" };
+    return { v: 0, text: "euro area — bloc average ($" +
+      (USD.EUZ[ed] || 0).toFixed(2) + "), no member price this edition" };
   }
   const k = FROM2[c2];
   if (k && k !== "EUZ" && EURR[k] && EURR[k][ed] != null) {
@@ -314,24 +338,32 @@ function renderRank() {
   const rows = [];
   for (const k of Object.keys(NAMES)) {
     const v = (EURR[k] || {})[ed];
-    if (v != null) rows.push({ k, v, usd: USD[k][ed] });
+    if (v != null) rows.push({ k, v, disp: "$" + USD[k][ed].toFixed(2),
+      nm: NAMES[k], f: ISO2[k] });
+  }
+  for (const k of Object.keys(EURO_M)) {
+    const m = memberVal(k, ed);
+    if (m) rows.push({ k, v: m.v, disp: "€" + m.eur.toFixed(2),
+      nm: EURO_NAMES[k], f: EURO_M[k], src: true });
   }
   rows.sort((a, b) => b.v - a.v);
   const max = Math.max(0.6, ...rows.map(r => Math.abs(r.v)));
   document.getElementById("rankRows").innerHTML = rows.map(r => {
     const w = Math.abs(r.v) / max * 50;
     const left = r.v < 0 ? (50 - w) : 50;
-    return `<div class="row" data-tip="${NAMES[r.k]} ${edLabel(ed)} · Big Mac ` +
-      `$${r.usd.toFixed(2)} · ${pct(r.v)} vs the euro-area price" role="img"` +
-      ` aria-label="${NAMES[r.k]}: ${pct(r.v)} vs euro area, $${r.usd.toFixed(2)}">` +
-      `<span class="nm">${flagHTML(r.k)}<em>${NAMES[r.k]}</em></span>` +
+    return `<div class="row" data-tip="${r.nm} ${edLabel(ed)} · Big Mac ` +
+      `${r.disp} · ${pct(r.v)} vs the euro-area average` +
+      `${r.src ? " · member source price" : ""}" role="img"` +
+      ` aria-label="${r.nm}: ${pct(r.v)} vs euro area, ${r.disp}">` +
+      `<span class="nm"><svg class="flag" viewBox="0 0 24 16"` +
+      ` aria-hidden="true">${FLAGS[r.f] || ""}</svg><em>${r.nm}</em></span>` +
       `<span class="track"><i style="left:${left}%;width:${w}%;` +
       `background:${col(r.v)};border-radius:3px"></i><u></u></span>` +
-      `<span class="v">${pct(r.v)}<s>$${r.usd.toFixed(2)}</s></span></div>`;
+      `<span class="v">${pct(r.v)}<s>${r.disp}</s></span></div>`;
   }).join("");
   paintMap();
-  tableHTML(["Country", `vs euro area, ${edLabel(ed)}`, "Big Mac in USD"],
-    rows.map(r => [NAMES[r.k], pct(r.v), "$" + r.usd.toFixed(2)]));
+  tableHTML(["Country", `vs euro area, ${edLabel(ed)}`, "Big Mac price"],
+    rows.map(r => [r.nm + (r.src ? " (member source price)" : ""), pct(r.v), r.disp]));
   document.getElementById("status").textContent =
     `${edLabel(ed)} — ${rows.length} economies (euro area counted ` +
     `as one). 0 = the euro-area burger price in that edition.`;
@@ -350,18 +382,26 @@ function mini(vals) {
 }
 function renderTime() {
   const cells = [], ROWS = [];
-  for (const k of Object.keys(NAMES)) {
-    if (k === "EUZ") continue;  // the zero line IS the euro area
-    const s = EURR[k] || {};
+  const ALLK = [...Object.keys(NAMES).filter(k => k !== "EUZ"),
+                ...Object.keys(EURO_M)];
+  for (const k of ALLK) {
+    let s, nm, fl;
+    if (EURO_M[k]) {
+      s = {};
+      for (const d of Object.keys(SRC[k] || {}))
+        { const m = memberVal(k, d); if (m) s[d] = m.v; }
+      nm = EURO_NAMES[k]; fl = EURO_M[k];
+    } else { s = EURR[k] || {}; nm = NAMES[k]; fl = ISO2[k]; }
     const ds = Object.keys(s).sort();
     if (ds.length < 6) continue;
     const vals = ds.map(d => s[d]);
     const m = mini(vals);
-    ROWS.push({ k, ds, vals, first: vals[0], last: m.end });
+    ROWS.push({ k, nm, ds, vals, first: vals[0], last: m.end });
     cells.push(`<div class="cell" data-g="${k}">` +
-      `<div class="ch"><span class="nm">${flagHTML(k)}<em>${NAMES[k]}</em></span>` +
+      `<div class="ch"><span class="nm"><svg class="flag" viewBox="0 0 24 16"` +
+      ` aria-hidden="true">${FLAGS[fl] || ""}</svg><em>${nm}</em></span>` +
       `<span class="v" style="color:${m.colour}">${pct(m.end)}</span></div>` +
-      `<svg viewBox="0 0 230 96" role="img" aria-label="${NAMES[k]}: Big Mac ` +
+      `<svg viewBox="0 0 230 96" role="img" aria-label="${nm}: Big Mac ` +
       `${pct(vals[0])} vs euro area in ${ds[0].slice(0,4)}, ${pct(m.end)} in ` +
       `${ds[ds.length-1].slice(0,4)}; the grid line is euro-area parity">` +
       `<line x1="0" y1="${m.y0}" x2="230" y2="${m.y0}" stroke="${GRID}"` +
@@ -373,7 +413,7 @@ function renderTime() {
   grid.innerHTML = cells.join("");
   grid._rows = ROWS;
   tableHTML(["Country", "First edition", "First", "Latest", "Now"],
-    ROWS.map(r => [NAMES[r.k], edLabel(r.ds[0]), pct(r.first),
+    ROWS.map(r => [r.nm, edLabel(r.ds[0]), pct(r.first),
       edLabel(r.ds[r.ds.length - 1]), pct(r.last)]));
   document.getElementById("status").textContent =
     `Big Mac price vs the euro area, every edition since 2000 — the grid ` +
@@ -398,7 +438,7 @@ document.addEventListener("mousemove", e => {
       const b = svg.getBoundingClientRect();
       const i = Math.max(0, Math.min(r.ds.length - 1,
         Math.round((e.clientX - b.left) / b.width * (r.ds.length - 1))));
-      showTip(`${NAMES[r.k]} · ${edLabel(r.ds[i])} · ${pct(r.vals[i])} vs euro area`,
+      showTip(`${r.nm} · ${edLabel(r.ds[i])} · ${pct(r.vals[i])} vs euro area`,
         e.clientX, e.clientY);
       return;
     }
@@ -426,9 +466,10 @@ function update() {
 Promise.all([
   fetch("data/bigmac-usd.json").then(r => r.json()),
   fetch("data/bigmac-eur.json").then(r => r.json()),
+  fetch("data/bigmac-src-eur.json").then(r => r.json()),
   fetch("data/europe-map.json").then(r => r.json())
-]).then(([u, e, m]) => {
-  USD = u.series; EURR = e.series; GEOMAP = m;
+]).then(([u, e, c, m]) => {
+  USD = u.series; EURR = e.series; SRC = c.series; GEOMAP = m;
   fillEditions(); buildMap(); update();
 }).catch(err => {
   document.getElementById("status").textContent = "Could not load data: " + err;
