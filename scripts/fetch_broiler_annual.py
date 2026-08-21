@@ -142,20 +142,39 @@ def main():
         coverage[cc] = cov
     report["coverage"] = coverage
 
-    # build the KPI per country: chicken LCU/t over preferred feed grain LCU/t
-    def pick(items, kws):
-        """Longest annual LCU series among items matching kws; (item, el, {yr: v})."""
-        best = None
+    # build the KPI per country: chicken LCU/t over the best-covering feed grain
+    def lcu_series(items, kws):
         for item, elements in items.items():
-            if not keyword(item, kws):
+            if not keyword(item, kws) or "buckwheat" in item.lower():
                 continue
             for el, slot in elements.items():
-                if "producer price" not in el.lower() or "lcu" not in el.lower():
-                    continue
-                ann = slot["months"].get("Annual value", {})
-                if ann and (best is None or len(ann) > len(best[2])):
-                    best = (item, el, ann)
-        return best
+                if "producer price" in el.lower() and "lcu" in el.lower():
+                    ann = slot["months"].get("Annual value", {})
+                    if ann:
+                        yield item, el, ann
+
+    def in_window(years):
+        return sum(1 for y in years if NORM_WINDOW[0] <= y <= NORM_WINDOW[1])
+
+    def pick_meat(items):
+        """Recent coverage beats raw length: TR's chicken series is split across a
+        reclassification (plain ends 2012, '(biological)' runs 2011->), and the
+        longest-series rule picks the dead half."""
+        return max(lcu_series(items, MEAT_KW),
+                   key=lambda s: (in_window(s[2]), max(s[2]), len(s[2])),
+                   default=None)
+
+    def pick_feed(items, meat_years):
+        """Maximize overlap with the meat series (SA: maize is 3 years but wheat
+        is 25 — a fixed maize-first order throws the market away); maize only
+        breaks ties, since it is the standard broiler-energy proxy."""
+        best = None
+        for item, el, ann in lcu_series(items, FEED_PREFERENCE):
+            ov = set(ann) & meat_years
+            key = (in_window(ov), len(ov), item.lower().startswith("maize"))
+            if ov and (best is None or key > best[0]):
+                best = (key, (item, el, ann))
+        return best and best[1]
 
     out = {"meta": {
         "source": "FAOSTAT Producer Prices (PP), annual, farm-gate, LCU/tonne — bulk download",
@@ -176,12 +195,8 @@ def main():
 
     decisions = {}
     for cc, items in found.items():
-        meat = pick(items, MEAT_KW)
-        feed = None
-        for kw in FEED_PREFERENCE:
-            feed = pick(items, (kw,))
-            if feed:
-                break
+        meat = pick_meat(items)
+        feed = meat and pick_feed(items, set(meat[2]))
         dec = {"meat": meat and {"item": meat[0], "element": meat[1],
                                  "span": [min(meat[2]), max(meat[2])]},
                "feed": feed and {"item": feed[0], "element": feed[1],
