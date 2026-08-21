@@ -27,17 +27,28 @@ jobs:
           if [ -n "$URLS" ]; then
             printf '%s\n' $URLS > /tmp/want.txt
           else
-            : > /tmp/pages.html
-            for p in \
-              "https://www.gov.uk/cma-cases/veterinary-services-for-household-pets" \
-              "https://www.gov.uk/cma-cases/veterinary-services-market-investigation" \
-              "https://www.gov.uk/government/news/cma-concludes-market-investigation-with-major-reforms-to-veterinary-sector"; do
-              curl -sL --max-time 60 "$p" >> /tmp/pages.html || true
-            done
-            grep -oE 'https://assets\.publishing\.service\.gov\.uk/media/[a-z0-9]+/[^"]+\.pdf' /tmp/pages.html \
+            # find the case page(s) via the gov.uk search API, then read each
+            # page's content-API JSON, which lists every attachment asset URL
+            : > /tmp/pages.txt
+            curl -s --max-time 60 "https://www.gov.uk/api/search.json?q=veterinary+services+household+pets+market+investigation&count=30" \
+              | grep -oE '"link":"[^"]+"' | cut -d'"' -f4 | sort -u > /tmp/links.txt
+            echo "gov.uk pages found:"; cat /tmp/links.txt
+            while read -r l; do
+              case "$l" in /*) curl -s --max-time 60 "https://www.gov.uk/api/content$l" >> /tmp/pages.txt || true;; esac
+            done < /tmp/links.txt
+            grep -oE 'https://assets\.publishing\.service\.gov\.uk/media/[a-z0-9]+/[^"]+\.pdf' /tmp/pages.txt \
               | sort -u > "$DIR/manifest.txt"
             wc -l < "$DIR/manifest.txt" | xargs echo "PDF links found:"
             grep -iE '/[^/]*(final|appendi|summary|remed|profit|medicin)[^/]*\.pdf$' "$DIR/manifest.txt" > /tmp/want.txt || true
+            # known direct links (from public search) in case the API misses them
+            cat >> /tmp/want.txt <<'KNOWN'
+          https://assets.publishing.service.gov.uk/media/69c2ad8d13f1436476e44382/Final_decision_report_-_Part_B_24.3.26.pdf
+          https://assets.publishing.service.gov.uk/media/69c22ac8d588c92c483e4c01/Summary_of_final_report_24.3.26.pdf
+          https://assets.publishing.service.gov.uk/media/69020088e6e3290939a1d0dd/Provisional_Findings_Part_A_29_October_2025__2_.pdf
+          https://assets.publishing.service.gov.uk/media/68130b11c47c2060a912172b/Remedies_-_vets_market_investigation_working_paper__1_.pdf
+          KNOWN
+            sed -i 's/^ *//' /tmp/want.txt
+            sort -u /tmp/want.txt -o /tmp/want.txt
           fi
           echo "downloading:"; cat /tmp/want.txt
           while read -r u; do
