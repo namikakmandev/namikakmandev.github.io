@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The vet pricing story — every fact on one screen</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="description" content="One master chart, four separate facts per
+European country: overall price level (Eurostat PPP), the vet &amp; pet share
+of the household budget, how vet prices moved against all prices since 2020,
+and who is legally allowed to sell the medicine — plus the UK's measured
+margin as the anchor. No combined score, ever.">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { background:#06090c; color:#f4f6f8; font-family:"IBM Plex Sans","Segoe UI",
+  system-ui,sans-serif; padding:28px 16px 60px; }
+.wrap { max-width:1020px; margin:0 auto; }
+.bar { display:flex; justify-content:space-between; margin-bottom:14px; gap:12px;
+  flex-wrap:wrap; }
+.bar a { color:#9aa3ad; text-decoration:none; font-size:14px; }
+.bar a:hover { color:#3987e5; }
+.kicker { color:#3987e5; font-weight:700; letter-spacing:.06em;
+  font-size:14px; margin-bottom:8px; }
+h1 { font-size:34px; line-height:1.15; margin-bottom:10px; }
+p.sub { color:#9aa3ad; font-size:15.5px; line-height:1.5; max-width:78ch;
+  margin-bottom:18px; }
+p.sub b { color:#f4f6f8; }
+.controls { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;
+  align-items:center; color:#9aa3ad; font-size:13.5px; }
+.seg { display:inline-flex; border:1px solid #232a33; border-radius:8px;
+  overflow:hidden; }
+.seg button { background:none; border:none; color:#9aa3ad; font:inherit;
+  font-size:14px; padding:8px 14px; cursor:pointer; }
+.seg button.on { background:#3987e5; color:#0f1419; font-weight:700; }
+.seg button:focus-visible { outline:2px solid #3987e5; outline-offset:-2px; }
+.scrollwrap { overflow-x:auto; }
+.master { min-width:960px; }
+.mhead, .mrow { display:grid; align-items:center; gap:10px;
+  grid-template-columns:158px minmax(90px,1fr) 40px minmax(74px,1fr) 44px
+    minmax(74px,1fr) 52px 196px; }
+.mhead { color:#3d4654; font-size:11.5px; text-transform:uppercase;
+  letter-spacing:.05em; padding:0 4px 8px; line-height:1.3; }
+.mhead span:nth-child(2n) { }
+.mrow { font-size:13.5px; border-radius:5px; padding:1.5px 4px; }
+.mrow:hover { background:#0f1419; }
+.mrow .nm { display:flex; align-items:center; gap:8px; min-width:0;
+  color:#9aa3ad; }
+.mrow .nm em { font-style:normal; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; }
+.flag { width:20px; height:13.3px; border-radius:2px; flex:none;
+  outline:1px solid rgba(255,255,255,.14); outline-offset:-1px; }
+.track { position:relative; height:13px; background:#0f1419; border-radius:3px; }
+.mrow:hover .track { background:#151c24; }
+.track i { position:absolute; top:0; bottom:0; border-radius:3px; }
+.track u { position:absolute; top:-2px; bottom:-2px; width:1.5px;
+  background:#3d4654; }
+.v { font-variant-numeric:tabular-nums; text-align:right; color:#f4f6f8; }
+.v.na { color:#3d4654; }
+.chip { font-size:11px; letter-spacing:.04em; color:#9aa3ad;
+  border:1px solid #232a33; border-radius:4px; padding:2px 7px;
+  white-space:nowrap; justify-self:start; text-decoration:none; }
+.chip:hover { color:#f4f6f8; border-color:#3d4654; }
+.chip.na { border-style:dashed; color:#3d4654; }
+.cma-badge { font-size:10.5px; color:#e8b04a; border:1px solid #5a4a26;
+  border-radius:4px; padding:1.5px 5px; margin-left:5px; white-space:nowrap; }
+.defs { margin-top:26px; color:#9aa3ad; font-size:13.5px; line-height:1.55;
+  max-width:86ch; }
+.defs h2 { font-size:16px; color:#f4f6f8; margin-bottom:8px; }
+.defs li { margin:0 0 8px 18px; }
+.defs b { color:#f4f6f8; }
+details { margin-top:26px; color:#9aa3ad; font-size:14px; }
+summary { cursor:pointer; color:#9aa3ad; }
+table { border-collapse:collapse; margin-top:10px;
+  font-variant-numeric:tabular-nums; font-size:13.5px; }
+th, td { text-align:left; padding:4px 16px 4px 0; border-bottom:1px solid #171d25; }
+th { color:#3d4654; font-weight:400; }
+td.n { text-align:right; }
+.src { border-top:1px solid #232a33; margin-top:34px; padding-top:14px;
+  color:#3d4654; font-size:13px; line-height:1.5; max-width:90ch; }
+.src b { color:#9aa3ad; }
+.src a { color:#9aa3ad; }
+#status { color:#3d4654; font-size:14px; margin-top:20px; }
+#tip { position:fixed; z-index:10; pointer-events:none; background:#1a212b;
+  border:1px solid #232a33; border-radius:6px; padding:5px 9px;
+  font-size:12.5px; color:#f4f6f8; font-variant-numeric:tabular-nums;
+  white-space:nowrap; box-shadow:0 4px 14px rgba(0,0,0,.45); }
+@media (max-width:520px) {
+  body { padding:20px 12px 48px; }
+  h1 { font-size:26px; }
+  .seg { display:flex; width:100%; }
+  .seg button { flex:1; min-height:44px; padding:8px 6px; }
+}
+</style></head><body><div class="wrap">
+<div class="bar"><a href="/">← namikakman — projects</a>
+  <a href="vet-dispensing.html">who sells the medicine →</a></div>
+<div class="kicker">VET PRICING STORY · ONE SCREEN · FOUR SEPARATE FACTS</div>
+<h1>The vet pricing story, country by country</h1>
+<p class="sub">Four facts per country, side by side — <b>never combined
+into a score</b>, because they measure different things from different
+sources. <b>Price level</b>: how expensive the country is overall
+(Eurostat PPP, EU-27&nbsp;=&nbsp;100). <b>Budget share</b>: how much of
+household spending goes to vet &amp; pet services (‰). <b>Vet-price
+gap</b>: how far vet-service prices have outrun the country's own overall
+inflation since 2020 — the pattern that triggered the UK investigation.
+<b>Channel</b>: who is legally allowed to sell the medicine. The missing
+number — the actual markup — exists publicly for one country only:
+the UK's CMA measured practice prices at <b>2–5× purchase cost
+(100–400%)</b>. That row wears its badge below.</p>
+
+<div class="controls">
+  <span>Sort by</span>
+  <span class="seg" id="sortSeg" role="group" aria-label="Sort">
+    <button data-s="pli" class="on" aria-pressed="true">Price level</button>
+    <button data-s="w" aria-pressed="false">Budget share</button>
+    <button data-s="gap" aria-pressed="false">Vet-price gap</button>
+    <button data-s="nm" aria-pressed="false">A–Z</button>
+  </span>
+</div>
+
+<div class="scrollwrap"><div class="master">
+  <div class="mhead">
+    <span>Country</span>
+    <span>Price level (GDP)<br>EU-27 = 100 · 2024</span><span></span>
+    <span>Vet &amp; pet share<br>‰ of budget · 2025</span><span></span>
+    <span>Vet vs all prices<br>since 2020 · derived</span><span></span>
+    <span>Who sells the medicine</span>
+  </div>
+  <div id="rows"></div>
+</div></div>
+
+<div class="defs">
+<h2>What each column is — and is not</h2>
+<ul>
+<li><b>Price level</b> — Eurostat PLI for GDP, whole-economy basket at
+market exchange rates, latest published year (2024). It is not a vet
+price: no veterinary PPP category exists anywhere.</li>
+<li><b>Budget share</b> — HICP weight of "veterinary and other services
+for pets" (CP0935), per mille of household consumption. Market size in
+the wallet, not a price.</li>
+<li><b>Vet-price gap</b> — <i>derived</i>: the CP0935 vet-services index
+divided by the country's own all-items index, both rebased to Jan 2020,
+minus 1. Positive = vet prices outran the country's general inflation.
+It is <b>consistent with</b> pricing power, but it is not proof of
+margin — wages, rents and consolidation move it too. And it does not
+line up neatly with the channel column: decoupled Sweden sits high,
+vet-banned Spain sits low, but so do coupled France and Ireland. That
+non-pattern is itself worth seeing.</li>
+<li><b>Channel</b> — the sourced classification from the
+<a href="vet-dispensing.html" style="color:#9aa3ad">dispensing-rights map</a>;
+click a chip for the country's rule and statute. The <b>UK badge</b> is
+the one measured margin in Europe (CMA final report, Mar 2026: retail
+2–5× purchase cost; no medicine price cap imposed).</li>
+<li><b>Blanks are findings</b> — Türkiye publishes no vet CPI sub-index
+(TÜİK series needed), Ireland's stops at Dec 2023 (gap shown to then),
+the UK left the HICP system in 2020, Kosovo publishes almost nothing,
+and IS/CY/MT/LU were not compiled in the dispensing map. "—" means not
+published, never zero.</li>
+</ul>
+</div>
+
+<details><summary>View as table</summary><div id="tbl"></div></details>
+<p id="status">Loading data…</p>
+
+<p class="src"><b>Sources, one per column:</b> Eurostat purchasing power
+parities (<b>prc_ppp_ind</b>, PLI_EU27_2020, GDP, 2024) · Eurostat HICP
+item weights (<b>prc_hicp_inw</b>, CP0935, 2025, ‰) · Eurostat HICP
+monthly indices (<b>prc_hicp_midx</b>, CP0935 vs CP00, rebased Jan 2020,
+to the latest common month per country — derived ratio, labelled as
+such) · dispensing-rights research note
+(<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/notes/vet-markup-study.md">notes/vet-markup-study.md</a>,
+every cell sourced to a statute or regulator) · CMA final decision
+report Part A §11 (24 Mar 2026), PDFs archived in-repo. All Eurostat
+data fetched via this repo's Actions pipeline (<span id="fetched"></span>).
+The four columns are deliberately not combined: a price level, a budget
+weight, an inflation gap and a legal classification measure four
+different objects, and any single "score" built from them would imply a
+relationship the data cannot show.</p>
+</div>
+<div id="tip" hidden></div>
+<script src="js/vet-flags.js"></script>
+<script>
+const NAMES = {
+  AT:"Austria", BE:"Belgium", BG:"Bulgaria", HR:"Croatia", CY:"Cyprus",
+  CZ:"Czechia", DK:"Denmark", EE:"Estonia", FI:"Finland", FR:"France",
+  DE:"Germany", EL:"Greece", HU:"Hungary", IE:"Ireland", IT:"Italy",
+  LV:"Latvia", LT:"Lithuania", LU:"Luxembourg", MT:"Malta", NL:"Netherlands",
+  PL:"Poland", PT:"Portugal", RO:"Romania", SK:"Slovakia", SI:"Slovenia",
+  ES:"Spain", SE:"Sweden", IS:"Iceland", NO:"Norway", CH:"Switzerland",
+  UK:"United Kingdom", AL:"Albania", BA:"Bosnia & Herzegovina",
+  ME:"Montenegro", MK:"North Macedonia", RS:"Serbia", TR:"Türkiye",
+  XK:"Kosovo"
+};
+// channel classification — sourced country by country in the research note
+const CH_ = {
+  vet:["DE","UK","PL","TR","NL","BE","AT","CZ","CH","IE","SK","EL","SI","RS","HU"],
+  dual:["FR"], vetph:["RO","HR","PT","BG","EE","LV","LT","MK","BA","AL"],
+  ph:["DK","SE","NO","FI","ME","IT"], ban:["ES"], tbd:["XK"]
+};
+const CHIP = { vet:"vet sells", dual:"vet + pharmacy", vetph:"vet pharmacies",
+  ph:"pharmacy channel", ban:"banned for vets", tbd:"to verify" };
+const CHAN = {};
+for (const [c, ks] of Object.entries(CH_)) for (const k of ks) CHAN[k] = c;
+
+const BLUE = [70,150,238], ORANGE = [226,107,54], NEUT = [73,82,95];
+function mix(pole, a) {
+  return "rgb(" + pole.map((p,i) => Math.round(NEUT[i]+(p-NEUT[i])*a)).join(",") + ")";
+}
+const colPli = v => { const t = Math.max(-1, Math.min(1, (v-100)/50));
+  return mix(t < 0 ? BLUE : ORANGE, Math.abs(t)); };
+const colGap = v => { const t = Math.max(-1, Math.min(1, v/30));
+  return mix(t < 0 ? BLUE : ORANGE, Math.abs(t)); };
+
+let ROWS = [], sort = "pli";
+(function(){ const s = new URLSearchParams(location.search).get("sort");
+  if (["pli","w","gap","nm"].includes(s)) sort = s; })();
+
+const flagHTML = g => (typeof FLAGS !== "undefined" && FLAGS[g])
+  ? `<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">${FLAGS[g]}</svg>`
+  : `<span style="width:20px;flex:none"></span>`;
+const fmt1 = v => v == null ? "—" : v.toFixed(1);
+
+function build(ppp, wgt, cpi) {
+  const P = ppp.series, W = wgt.series, C = cpi.series;
+  const pliYr = "2024", wYr = "2025", BASE = "2020-01";
+  ROWS = Object.keys(NAMES).map(g => {
+    const pli = (P[g + "|PLI_EU27_2020|GDP"] || {})[pliYr] ?? null;
+    const w = (W[g + "|CP0935"] || {})[wYr] || null;   // transmitted 0 = not reported
+    let gap = null, gapTo = null;
+    const c0 = C[g + "|CP00"], c5 = C[g + "|CP0935"];
+    if (c0 && c5 && c0[BASE] && c5[BASE]) {
+      const last = [Object.keys(c0).sort().pop(), Object.keys(c5).sort().pop()]
+        .sort()[0];
+      if (c0[last] && c5[last]) {
+        gap = ((c5[last]/c5[BASE]) / (c0[last]/c0[BASE]) - 1) * 100;
+        gapTo = last;
+      }
+    }
+    return { g, nm: NAMES[g], pli, w, gap, gapTo,
+      ch: CHAN[g] || null };
+  }).filter(r => r.pli != null || r.w != null || r.gap != null || r.ch);
+  const euW = (W["EU27_2020|CP0935"] || {})[wYr] || null;
+  render(euW);
+}
+
+function render(euW) {
+  const key = { pli:"pli", w:"w", gap:"gap" }[sort];
+  const rows = [...ROWS].sort((a, b) => sort === "nm"
+    ? a.nm.localeCompare(b.nm)
+    : (b[key] ?? -1e9) - (a[key] ?? -1e9));
+  const PMAX = 170, WMAX = 6, GLIM = 45;
+  document.getElementById("rows").innerHTML = rows.map(r => {
+    const pw = r.pli == null ? 0 : Math.min(100, r.pli/PMAX*100);
+    const ww = r.w == null ? 0 : Math.min(100, r.w/WMAX*100);
+    const g0 = 50, gw = r.gap == null ? 0 :
+      Math.min(50, Math.abs(r.gap)/GLIM*50);
+    const gl = r.gap == null ? g0 : (r.gap < 0 ? g0-gw : g0);
+    return `<div class="mrow">` +
+      `<span class="nm">${flagHTML(r.g)}<em>${r.nm}</em></span>` +
+      `<span class="track" data-tip="${r.pli == null
+        ? r.nm + ": no published price level (Eurostat PPP)"
+        : r.nm + " · price level " + fmt1(r.pli) + " (EU-27 = 100, GDP, 2024)"}">` +
+        `${r.pli != null ? `<i style="left:0;width:${pw}%;background:${colPli(r.pli)}"></i>` : ""}` +
+        `<u style="left:${100/PMAX*100}%"></u></span>` +
+      `<span class="v${r.pli == null ? " na" : ""}">${r.pli == null ? "—" : Math.round(r.pli)}</span>` +
+      `<span class="track" data-tip="${r.w == null
+        ? r.nm + ": vet & pet weight not reported to Eurostat"
+        : r.nm + " · " + fmt1(r.w) + "‰ of household spending (2025); EU-27 " + fmt1(euW) + "‰"}">` +
+        `${r.w != null ? `<i style="left:0;width:${ww}%;background:#4696ee"></i>` : ""}` +
+        `${euW ? `<u style="left:${euW/WMAX*100}%"></u>` : ""}</span>` +
+      `<span class="v${r.w == null ? " na" : ""}">${fmt1(r.w)}</span>` +
+      `<span class="track" data-tip="${r.gap == null
+        ? r.nm + ": no vet-services CPI published" + (r.g === "TR" ? " (TÜİK series needed)" : r.g === "UK" ? " (left HICP in 2020)" : "")
+        : r.nm + " · vet services " + (r.gap >= 0 ? "+" : "") + fmt1(r.gap) + "% vs own all-items inflation, Jan 2020 → " + r.gapTo + " (derived)"}">` +
+        `${r.gap != null ? `<i style="left:${gl}%;width:${Math.max(gw,.8)}%;background:${colGap(r.gap)}"></i>` : ""}` +
+        `<u style="left:50%"></u></span>` +
+      `<span class="v${r.gap == null ? " na" : ""}">${r.gap == null ? "—" : (r.gap >= 0 ? "+" : "") + fmt1(r.gap) + "%"}</span>` +
+      `<span style="display:flex;align-items:center">` +
+        (r.ch ? `<a class="chip" href="vet-dispensing.html?geo=${r.g}">${CHIP[r.ch]}</a>`
+              : `<span class="chip na">not compiled</span>`) +
+        (r.g === "UK" ? `<span class="cma-badge" title="CMA final report 2026: retail 2–5× purchase cost">CMA 100–400%</span>` : "") +
+      `</span></div>`;
+  }).join("");
+  document.querySelectorAll("#sortSeg button").forEach(b => {
+    const on = b.dataset.s === sort;
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
+  });
+  const p = new URLSearchParams(); p.set("sort", sort);
+  history.replaceState(null, "", "?" + p.toString());
+  document.getElementById("tbl").innerHTML =
+    `<table><thead><tr><th>Country</th><th>PLI 2024 (EU27=100)</th>` +
+    `<th>Vet &amp; pet ‰ 2025</th><th>Vet vs all prices since 2020</th>` +
+    `<th>Channel</th></tr></thead><tbody>` +
+    rows.map(r => `<tr><td>${r.nm}</td><td class="n">${r.pli == null ? "—" : fmt1(r.pli)}</td>` +
+      `<td class="n">${fmt1(r.w)}</td>` +
+      `<td class="n">${r.gap == null ? "—" : (r.gap >= 0 ? "+" : "") + fmt1(r.gap) + "% (to " + r.gapTo + ")"}</td>` +
+      `<td>${r.ch ? CHIP[r.ch] : "not compiled"}</td></tr>`).join("") +
+    `</tbody></table>`;
+  document.getElementById("status").textContent =
+    `${rows.length} countries. Four separate facts — sort by any column; ` +
+    `a dash is "not published", never zero.`;
+}
+
+document.querySelectorAll("#sortSeg button").forEach(b =>
+  b.addEventListener("click", () => { sort = b.dataset.s;
+    render(ROWS._euW); }));
+
+const tip = document.getElementById("tip");
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest("[data-tip]");
+  if (t && t.dataset.tip) {
+    tip.innerHTML = t.dataset.tip; tip.hidden = false;
+    const w = tip.offsetWidth;
+    tip.style.left = Math.max(4, Math.min(e.clientX + 14, innerWidth - w - 8)) + "px";
+    tip.style.top = (e.clientY + 18) + "px";
+  } else tip.hidden = true;
+});
+
+Promise.all([
+  fetch("data/eu-ppp.json").then(r => r.json()),
+  fetch("data/eu-vet-weight.json").then(r => r.json()),
+  fetch("data/vet-cpi-eu.json").then(r => r.json())
+]).then(([p, w, c]) => {
+  document.getElementById("fetched").textContent =
+    "latest fetch " + (c.fetched_at || "").slice(0, 10);
+  const euW = (w.series["EU27_2020|CP0935"] || {})["2025"] || null;
+  build(p, w, c);
+  ROWS._euW = euW;
+}).catch(err => {
+  document.getElementById("status").textContent = "Could not load data: " + err;
+});
+</script></body></html>
