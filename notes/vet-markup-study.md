@@ -187,49 +187,53 @@ it — CMA finding vs sector submission):
   represent **25–40% of turnover** for independent practices and
   cross-subsidise consultation fees — practices expect to raise service
   prices if dispensing volume falls. Use only with that attribution.
-**EXTRACTED 2026-08-21** — the practice-level medicine margin figures,
-pulled from the report PDFs themselves (fetched via the repo's Actions
-runner into `notes/sources/cma/`, since gov.uk is egress-blocked from
-the editing sandbox). The definitive quantitative analysis sits in the
-provisional decision report Part A (29 Oct 2025), Section 11, whose
-finding the final report carries forward qualitatively:
+**EXTRACTED 2026-08-21, confirmed against the FINAL report** — the
+practice-level medicine margin figures, pulled from the report PDFs
+themselves (fetched via the repo's Actions runner into
+`notes/sources/cma/`, since gov.uk is egress-blocked from the editing
+sandbox). All ¶-references below are to the **final decision report
+Part A (24 Mar 2026)**, Section 11 — the final text carries the same
+paragraph numbers as the provisional decision for the core finding:
 
 - **Mark-up on purchase costs ("net net" prices): retail prices at
   LVG-owned AND independent practices average 2–5× purchase cost =
-  100–400% average mark-up** (Provisional decision Part A ¶11.12(a),
-  ¶11.192–11.194). The spread across practices reflects differences in
-  buying power, not in retail prices. Earlier working-paper cut (May
-  2025): LVGs ~4–5× (300–400%), independents ~2× (~100%).
+  100–400% average mark-up** (final Part A ¶11.12(a), restated
+  ¶11.204). The spread across practices reflects differences in buying
+  power, not in retail prices. Earlier working-paper cut (May 2025):
+  LVGs ~4–5× (300–400%), independents ~2× (~100%). The CMA itself
+  labels the estimate indicative, not a precise "true" mark-up
+  (¶11.205).
 - **Mark-up on manufacturer LIST prices**: LVGs [50–60%] to [90–100%]
-  weighted average; independents 50–60%; injectables higher (~[100–200%]
-  at one LVG, for wastage) (¶11.194; working paper §3.22). List-price
-  mark-ups understate true margin because groups buy at [30–40%] to
-  [60–70%] below list via wholesale discounts + manufacturer rebates
-  (¶11.195–11.196; working paper §3.23).
+  weighted average; independents 50–60%; injectables higher
+  (~[100–200%] at one LVG, for wastage) (¶11.201; working paper §3.22).
+  List prices are also the pricing base in practice, so manufacturer
+  list increases pass straight through to owners (¶11.202 + fn. 1095).
+- **The rebate wedge (final report, previously redacted tiering)**:
+  wholesalers obtain a 15% discount from manufacturers and pass most of
+  it on; **LVGs obtain manufacturer rebates of ~50% on average** (data
+  from the nine largest UK manufacturers); independents in a buying
+  group's Preferred Product scheme get [40–50%], those outside such
+  schemes [20–30%] (¶11.203). This wedge is why a ~60% list mark-up
+  becomes a 100–400% margin on real cost — and why mark-ups differ by
+  buying power.
 - **Medicine profits "account for a large proportion of the overall
   level of profitability of a FOP"** including administration and
-  dispensing fees (¶11.12(b)); the final report calls the medicine
-  mark-up "currently a substantial driver of FOP profits" (final
-  decision Part B, fn. 887).
-- **Cross-subsidy verdict (final report)**: high mark-ups "occur across
-  the industry", and the CMA rejected preserving a status quo in which
+  dispensing fees (¶11.12(b)); Part B calls the medicine mark-up
+  "currently a substantial driver of FOP profits" (fn. 887).
+- **Cross-subsidy verdict (final)**: no probative evidence of a true
+  cross-subsidy (prices below incremental cost) — what the sector calls
+  cross-subsidy is medicine revenue contributing to common costs
+  (¶11.14–11.15); and the CMA rejected preserving a status quo in which
   owners of chronically ill pets "pay more than necessary for veterinary
   medicines in order to subsidise the professional fees paid by all pet
-  owners" (Summary of final report ¶125–126). It also found many
-  businesses earned profits materially exceeding the cost of capital, so
-  medicine revenue partly funds profits, not just cheaper services
-  (¶11.13).
+  owners" (Summary of final report ¶125–126).
 - Price trend: average unit prices for medicines +[60–70%] 2014–2024 vs
   ONS services CPI +35% 2015–2023 (working paper, provisional figures
   disputed by LVGs).
-- Source PDFs in-repo: `notes/sources/cma/` (76 documents incl. the
+- Source PDFs in-repo: `notes/sources/cma/` (77 documents incl. the
   medicines working paper, Appendices C/I/N, provisional decision
-  Part A, final decision Part B, final summary; full link manifest).
-  One gap: the final decision report **Part A** PDF exceeded the
-  fetcher's 40MB cap and is not in the set — the ¶-references above are
-  to the provisional decision Part A, whose Section 11 analysis the
-  final report affirms; re-fetch Part A with a higher cap if exact
-  final-report paragraph numbers are ever needed.
+  Part A, **final decision Part A (62MB) and Part B**, final summary;
+  full link manifest).
 
 ## Integrity checklist for this study
 
