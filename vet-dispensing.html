@@ -123,7 +123,7 @@ assessments.</p>
 <p class="src"><b>Sources:</b> one statute or regulator per country, named
 in each country's panel and in the table — among them RCVS/VMD and the CMA
 final report (UK), Code de la santé publique L5143-2 (FR), TÄHAV (DE),
-Real Decreto 666/2023 (ES), Animal Medication Act 387/2014 (FI),
+Real Decreto 666/2023 (ES), D.Lgs. 218/2023 (IT), Animal Medication Act 387/2014 (FI),
 Zakon o veterinarstvu (RS), Закон за ветеринарно-медицински препарати (MK)
 and Zakon o ljekovima 14/26 (ME). Compiled August 2026 in this repo's
 research note
@@ -146,12 +146,12 @@ const GROUPS = [
   { id:"coupled", cls:"vet", t:"Vet practice dispenses (coupled)" },
   { id:"dual", cls:"vet", t:"Dual channel — vet and pharmacy" },
   { id:"vetpharm", cls:"pharm", t:"Licensed veterinary pharmacies" },
-  { id:"pharm", cls:"pharm", t:"General pharmacy channel — no vet margin" },
+  { id:"pharm", cls:"pharm", t:"General pharmacy channel" },
   { id:"proh", cls:"proh", t:"Vet dispensing prohibited" },
   { id:"tbd", cls:"tbd", t:"Channel to verify" }
 ];
 const D = {
-UK:{g:"coupled",n:"United Kingdom",f:"Vets prescribe AND supply POM-V medicines; SQPs may supply the POM-VPS class. The CMA's 2026 remedies cap prescription fees (£21 first medicine, £12.50 each further) but impose no medicine price control.",s:"RCVS supporting guidance ch. 4; VMD; CMA final report, Mar 2026"},
+UK:{g:"coupled",n:"United Kingdom",f:"Vets prescribe AND supply POM-V medicines; SQPs may supply the POM-VPS class. The CMA's 2026 remedies cap prescription fees (£21 first medicine, £12.50 each further) but impose no medicine price control — it found medicines are often 50–60% cheaper online and requires practices to say so.",s:"RCVS supporting guidance ch. 4; VMD; CMA final report, Mar 2026"},
 DE:{g:"coupled",n:"Germany",f:"Dispensing right (Dispensierrecht) through the practice pharmacy — the tierärztliche Hausapotheke under TÄHAV rules; public pharmacies are a minor channel for vet medicines.",s:"Bundestierärztekammer, “Das tierärztliche Dispensierrecht”"},
 FR:{g:"dual",n:"France",f:"Vets may dispense, without holding an open pharmacy, to animals under their care (the “ayants droit”); pharmacies dispense in parallel — a genuine dual channel.",s:"Code de la santé publique art. L5143-2; Ordre national des vétérinaires"},
 TR:{g:"coupled",n:"Türkiye",f:"Veterinary clinics and polyclinics may hold and sell veterinary medicinal products under a retail-sale permit; sale outside authorised retail points is prohibited. Pharmacies are also authorised retail points.",s:"Veteriner Tıbbi Ürünler Hakkında Yönetmelik (mevzuat no. 15651); TVHB"},
@@ -171,20 +171,20 @@ SE:{g:"pharm",n:"Sweden",f:"Therapeutic veterinary medicines, including medicate
 NO:{g:"pharm",n:"Norway",f:"Same Nordic model: therapeutic veterinary medicines are dispensed through pharmacies.",s:"Grave et al. 2006, Prev. Vet. Med."},
 FI:{g:"pharm",n:"Finland",f:"Dispense at cost: vets may hand over medicines only for treatment needs and must charge exactly their own purchase price — profit on medicine sales is prohibited. Pharmacies are the normal retail channel.",s:"Animal Medication Act 387/2014; MMM 17/2014; Ruokavirasto"},
 ES:{g:"proh",n:"Spain",f:"Prohibited: vets in clinical practice may not sell or dispense — they may only administer from a practice stock acquired via authorised channels (cesión). Dispensing runs through pharmacies, authorised retailers and livestock entities (ADS).",s:"Real Decreto 666/2023; Consejo General de Colegios Veterinarios; MAPA"},
-IT:{g:"proh",n:"Italy",v:1,f:"LIKELY prohibited — cited alongside Spain as a country with pharmacy-based retail where vets do not dispense; the classification is not yet pinned to the Italian statute.",s:"secondary only (IM Veterinaria comparison) — TO VERIFY vs D.Lgs. 193/2006"},
-HU:{g:"tbd",n:"Hungary",v:1,f:"Governing regulation identified — 128/2009 (X. 6.) FVM rendelet with prescribing, dispensing and record rules under Nébih oversight, and a vet-pharmacy (állatgyógyszertár) retail channel — but the precise practice-sale rule still needs the article text.",s:"128/2009. (X. 6.) FVM rendelet (njt.hu) — TO PIN to specific §§"},
-RO:{g:"vetpharm",n:"Romania",f:"Retail runs exclusively through ANSVSA-authorised veterinary pharmacies and pharmaceutical points — vets prescribe, authorised units dispense; online sale only for non-prescription products via registered retailers.",s:"ANSVSA, prescriere/comercializare guidance"},
-PT:{g:"vetpharm",n:"Portugal",f:"Dispensing entities are pharmacies and DGAV-authorised retail sale points (postos de venda); the vet practice is not a named retail channel — vets administer.",s:"DGAV retail-sale FAQ; Decreto-Lei 148/2008"},
+IT:{g:"pharm",n:"Italy",f:"Retail is pharmacist-led: sale by a pharmacist in pharmacies and authorised outlets, under the responsibility of a person registered with the Order of Pharmacists. Art. 37 lets the vet hand over medicines from their own stock only to start or continue the prescribed therapy, with traceability duties.",s:"D.Lgs. 218/2023 art. 37 (implementing Reg. (EU) 2019/6, in force Jan 2024)"},
+HU:{g:"coupled",n:"Hungary",f:"The treating vet may supply the medicine personally from their own pre-purchased stock in the course of treatment; outside that, registered products may be dispensed only by or under the supervision of a vet or pharmacist, with vet pharmacies (állatgyógyszertár) as the retail channel.",s:"128/2009. (X. 6.) FVM rendelet; Nébih FAQ on veterinary products"},
+RO:{g:"vetpharm",n:"Romania",f:"Retail runs exclusively through ANSVSA-authorised veterinary pharmacies and pharmaceutical points — and the pharmacies are vet-run: the titular of a farmacie veterinară is a veterinary physician. Pharmaceutical points sell non-prescription products only; distributors may supply only authorised pharmacies, points and vet cabinets/clinics.",s:"ANSVSA; Ordin ANSVSA 83/2014; Norma sanitară veterinară 2006/2008"},
+PT:{g:"vetpharm",n:"Portugal",f:"Dispensing entities are pharmacies and DGAV-authorised retail sale points (postos de venda); vets may acquire medicines directly from wholesalers for administering to, or ceding to, animals under their care — but retail sale to the public stays with the authorised outlets.",s:"Decreto-Lei 148/2008 (consolidated); DGAV retail-sale pages"},
 HR:{g:"vetpharm",n:"Croatia",f:"Retail only via authorised veterinary pharmacies (veterinarske ljekarne) with per-location approval and a national register; distance sale only through registered ljekarne.",s:"Zakon o veterinarsko-medicinskim proizvodima; veterinarstvo.hr register"},
 BG:{g:"vetpharm",n:"Bulgaria",f:"Retail only via BFSA-licensed veterinary pharmacies — and by law both the pharmacy manager and the persons selling must be veterinarians.",s:"Закон за ветеринарномедицинската дейност; БАБХ (BFSA)"},
-EE:{g:"vetpharm",n:"Estonia",v:1,f:"The veterinaarapteek is a licensed pharmacy restricted to veterinary medicines; online sale only by licensed general or veterinary pharmacies. Vets' own hand-over right TO VERIFY.",s:"Medicinal Products Act; Ravimiamet"},
-LV:{g:"vetpharm",n:"Latvia",v:1,f:"Veterinary pharmaceutical activity requires a special permit from the Food and Veterinary Service (PVD) with a responsible official. Vets' own hand-over right TO VERIFY.",s:"PVD, veterinary pharmaceutical licensing (pvd.gov.lv)"},
-LT:{g:"vetpharm",n:"Lithuania",v:1,f:"Pharmaceutical activity in veterinary medicine runs on licences under the Law on Veterinary Activities, with State Food and Veterinary Service oversight. Vets' own hand-over right TO VERIFY.",s:"Law on Veterinary Activities; VMVT"},
-MK:{g:"vetpharm",n:"North Macedonia",f:"A dedicated law on veterinary-medical products, separate from human medicines; the Food and Veterinary Agency licenses wholesale and retail — ветеринарни аптеки approved after an Expert Commission facility inspection.",s:"Закон за ветеринарно-медицински препарати; fva.gov.mk"},
+EE:{g:"vetpharm",n:"Estonia",f:"The veterinaarapteek is a licensed pharmacy restricted to veterinary medicines; online sale only by licensed pharmacies. The vet may hand medicines to the keeper of an animal they have examined — but only stock sourced from a wholesaler or pharmacy, and never hormonal or prostaglandin products.",s:"Medicinal Products Act; Riigi Teataja veterinary-dispensing regulations; Ravimiamet"},
+LV:{g:"vetpharm",n:"Latvia",v:1,f:"Veterinary pharmaceutical activity requires a special permit from the Food and Veterinary Service (PVD); prescription medicines reach the owner only against a practicing vet's prescription. The domestic own-hand-over rule at statute level is TO VERIFY.",s:"PVD (pvd.gov.lv); MK noteikumi on VMP distribution; Veterinārmedicīnas likums"},
+LT:{g:"vetpharm",n:"Lithuania",f:"Veterinary pharmacy licence holders sell to animal owners — prescription products only against a vet's prescription or request; wholesalers may also sell against a prescription. The vet practice is not a named retail channel: vets prescribe, licence holders dispense.",s:"Veterinarinių vaistų įstatymas (implements Reg. (EU) 2019/6); VMVT"},
+MK:{g:"vetpharm",n:"North Macedonia",v:1,f:"A dedicated law on veterinary-medical products, separate from human medicines; the Food and Veterinary Agency licenses wholesale and retail — ветеринарни аптеки approved after an Expert Commission facility inspection. Vets' own hand-over right TO VERIFY.",s:"Закон за ветеринарно-медицински препарати; fva.gov.mk"},
 BA:{g:"vetpharm",n:"Bosnia & Herzegovina",f:"Retail via registered veterinarske apoteke under the veterinary law, with qualified-staff and prescription rules enforced by the federal inspectorate. Regulation is entity-split (FBiH / RS), so conditions can differ inside the country.",s:"Zakon o veterinarstvu FBiH; Federalna uprava za inspekcijske poslove"},
 ME:{g:"pharm",n:"Montenegro",v:1,f:"Veterinary medicines sit inside the single medicines act (Sl. list 14/26) under CInMED; a pharmacy supplying veterinary institutions under contract counts as retail trade. Nearly all products imported (260 import consents in 2025). Vets' own hand-over right TO VERIFY.",s:"Zakon o ljekovima 14/26; CInMED annual report 2025"},
-AL:{g:"tbd",n:"Albania",v:1,f:"Products trade only after approval by the State Commission for Veterinary Medicinal Products (Law 10465/2011); an EU-2019/6-aligned VMP law is due in 2026. The statute-level retail-channel rule is TO VERIFY.",s:"Ligj 10465/2011; RTSH on the 2026 draft law"},
-XK:{g:"tbd",n:"Kosovo",v:1,f:"Marketing authorisation and pharmacovigilance run under Administrative Instruction (MBPZHR) 12/2019, with AUV as the veterinary authority and AKPPM licensing medicine retailers generally. Which body licenses veterinary retail, and whether vets dispense, is TO VERIFY.",s:"UA 26/2006 + UA 12/2019 (gzk.rks-gov.net); AUV; AKPPM"}
+AL:{g:"vetpharm",n:"Albania",v:1,f:"The national veterinary authority AKVMB licenses and publishes the official registers of veterinary pharmacies (farmaci veterinare) and wholesale depots per regional veterinary service; products trade only after State Commission approval (Law 10465/2011). An EU-2019/6-aligned VMP law is due in 2026. Vets' own hand-over right TO VERIFY.",s:"AKVMB licence registers (akvmb.gov.al); Ligj 10465/2011"},
+XK:{g:"tbd",n:"Kosovo",v:1,f:"Marketing authorisation and pharmacovigilance run under Administrative Instruction (MBPZHR) 12/2019, with AUV as the veterinary authority and AKPPM licensing medicine retailers generally (the central licence register carries a retail-pharmacy licence). Which body licenses veterinary retail, and whether vets dispense, is TO VERIFY — public search exhausted; needs a direct register check.",s:"UA 26/2006 + UA 12/2019 (gzk.rks-gov.net); AUV; AKPPM; RQLL register"}
 };
 const GRPBY = id => GROUPS.find(g => g.id === id);
 const colOf = k => C[GRPBY(D[k].g).cls];
@@ -202,14 +202,7 @@ document.getElementById("legend").innerHTML = [
   ["proh", "prohibited for vets"], ["tbd", "channel to verify"]
 ].map(([c, t]) =>
   `<span class="k"><span class="sw" style="background:${C[c]}"></span>${t}</span>`
-).join("") +
-`<span class="k"><svg width="14" height="14" style="border-radius:3px">` +
-`<rect width="14" height="14" fill="url(#hatchL)"/></svg>classification unverified</span>` +
-`<svg width="0" height="0" style="position:absolute"><defs>` +
-`<pattern id="hatchL" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
-`<rect width="6" height="6" fill="${C.proh}"/>` +
-`<line x1="1" y1="0" x2="1" y2="6" stroke="#0f1419" stroke-width="2.4"/></pattern>` +
-`</defs></svg>`;
+).join("");
 
 // ---- map (same frame as ppp-europe.html)
 function buildMap() {
@@ -224,11 +217,7 @@ function buildMap() {
   const geom = f => f.geometry.type === "Polygon"
     ? (inWin(f.geometry.coordinates[0]) ? f.geometry.coordinates.map(ring).join("") : "")
     : f.geometry.coordinates.filter(p => inWin(p[0])).map(p => p.map(ring).join("")).join("");
-  const parts = [`<defs><pattern id="hatch" width="6" height="6"` +
-    ` patternUnits="userSpaceOnUse" patternTransform="rotate(45)">` +
-    `<rect width="6" height="6" fill="${C.proh}"/>` +
-    `<line x1="1" y1="0" x2="1" y2="6" stroke="#0f1419" stroke-width="2.4"/>` +
-    `</pattern></defs>`];
+  const parts = [];
   for (const f of GEOMAP.features) {
     let code = f.properties.iso2;
     if (code === "GR") code = "EL"; if (code === "GB") code = "UK";
@@ -244,9 +233,7 @@ function buildMap() {
     ` aria-label="Europe map colored by who may sell veterinary medicines;` +
     ` click a country for its rule">` + parts.join("") + `</svg>`);
   document.querySelectorAll("#map path[data-geo]").forEach(p => {
-    const k = p.dataset.geo, d = D[k];
-    p.style.fill = (k === "IT") ? "url(#hatch)" : colOf(k);
-    if (d.g === "tbd") p.style.fill = C.tbd;
+    p.style.fill = colOf(p.dataset.geo);
   });
   mapEl.addEventListener("click", e => {
     const p = e.target.closest("path[data-geo]");
