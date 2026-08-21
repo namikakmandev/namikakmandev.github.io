@@ -75,6 +75,34 @@ p.sub b { color:#f4f6f8; }
   letter-spacing:.05em; flex:none; }
 .flag { width:20px; height:13.3px; border-radius:2px; flex:none;
   outline:1px solid rgba(255,255,255,.14); outline-offset:-1px; }
+.cma { margin-top:34px; }
+.cma h2 { font-size:21px; margin-bottom:8px; }
+.csub { color:#9aa3ad; font-size:14.5px; line-height:1.55; max-width:80ch;
+  margin-bottom:16px; }
+.csub b { color:#f4f6f8; }
+.cnote { color:#3d4654; font-size:12.5px; margin-top:10px; max-width:80ch; }
+.cnote a { color:#9aa3ad; }
+#cmaChart { background:#0f1419; border-radius:10px; padding:16px 18px 10px;
+  max-width:760px; }
+.crow { display:grid; grid-template-columns:250px 1fr 84px; gap:12px;
+  align-items:center; font-size:13.5px; min-height:30px; }
+.crow .cl { color:#9aa3ad; text-align:right; line-height:1.25; }
+.chead2 { color:#3d4654; font-size:12px; text-transform:uppercase;
+  letter-spacing:.05em; margin:10px 0 4px; }
+.ctrack { position:relative; height:26px; }
+.ctrack .cline { position:absolute; top:-3px; bottom:-3px; width:2px;
+  background:#f4f6f8; opacity:.85; }
+.ctrack .cbar { position:absolute; top:8px; height:10px; border-radius:5px;
+  background:#4696ee; }
+.crow .cv { font-variant-numeric:tabular-nums; color:#f4f6f8; }
+.cax { display:grid; grid-template-columns:250px 1fr 84px; gap:12px;
+  color:#3d4654; font-size:11.5px; margin-top:6px; }
+.cax .axl { position:relative; height:14px; }
+.cax .axl span { position:absolute; transform:translateX(-50%); }
+@media (max-width:640px) {
+  .crow, .cax { grid-template-columns:1fr; gap:2px; }
+  .crow .cl { text-align:left; }
+}
 details { margin-top:26px; color:#9aa3ad; font-size:14px; }
 summary { cursor:pointer; color:#9aa3ad; }
 table { border-collapse:collapse; margin-top:10px; font-size:13.5px; }
@@ -115,6 +143,26 @@ assessments.</p>
     <div id="detail"></div>
   </div>
   <div class="groups" id="groups"></div>
+</div>
+
+<div class="cma">
+<h2>The one measured market: UK medicine mark-ups (CMA, 2026)</h2>
+<p class="csub">The UK competition authority's market investigation is the only
+regulator-grade measurement of the vet-channel medicine margin anywhere in
+Europe. Everything below sits on one scale — <b>% of the manufacturer's
+list price</b> — from the CMA's final decision report, Part A, Section 11
+(24 Mar 2026). Practices buy below list through wholesaler discounts and
+manufacturer rebates, then price above it: retail ends up <b>2–5× what the
+practice paid</b>, a 100–400% mark-up on real cost (¶11.204) — the spread
+driven by buying power, not shelf prices. The CMA calls the estimate
+indicative, imposed no medicine price cap, and found medicines often
+50–60% cheaper online. UK evidence only — no other country publishes
+this.</p>
+<div id="cmaChart"></div>
+<p class="cnote">Bars are CMA-reported ranges (¶11.201 mark-ups on list;
+¶11.203 rebates); the white line is the manufacturer list price (=100).
+Sources in <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/notes/vet-markup-study.md">the research note</a>,
+report PDFs archived in-repo.</p>
 </div>
 
 <details><summary>View as table (all 34 rows)</summary><div id="tbl"></div></details>
@@ -317,7 +365,35 @@ function renderTable() {
     `</tbody></table>`;
 }
 
-renderGroups(); renderDetail(); renderTable();
+// ---- CMA measured mark-ups (UK) — all values as % of manufacturer list price
+function renderCMA() {
+  const MAX = 210, X = v => v / MAX * 100;
+  const rows = [
+    { h: "What the practice pays (after discounts & rebates)" },
+    { l: "Large veterinary group (≈50% manufacturer rebate)", lo: 50, hi: 50, v: "≈50" },
+    { l: "Independent in a buying-group scheme (40–50% rebate)", lo: 50, hi: 60, v: "50–60" },
+    { l: "Unaffiliated independent (20–30% rebate)", lo: 70, hi: 80, v: "70–80" },
+    { h: "What the owner pays at the practice counter" },
+    { l: "Large-group practice (50–100% mark-up on list)", lo: 150, hi: 200, v: "150–200" },
+    { l: "Independent practice (50–60% mark-up on list)", lo: 150, hi: 160, v: "150–160" }
+  ];
+  document.getElementById("cmaChart").innerHTML = rows.map(r => {
+    if (r.h) return `<div class="chead2">${r.h}</div>`;
+    const lo = X(r.lo), w = Math.max(X(r.hi) - X(r.lo), 1.4);
+    return `<div class="crow" role="img"` +
+      ` aria-label="${r.l}: ${r.v} percent of manufacturer list price">` +
+      `<span class="cl">${r.l}</span>` +
+      `<span class="ctrack"><span class="cline" style="left:${X(100)}%"></span>` +
+      `<span class="cbar" style="left:${lo}%;width:${w}%"></span></span>` +
+      `<span class="cv">${r.v}</span></div>`;
+  }).join("") +
+  `<div class="cax"><span></span><span class="axl">` +
+  [0, 50, 100, 150, 200].map(t =>
+    `<span style="left:${X(t)}%">${t === 100 ? "100 = list price" : t}</span>`).join("") +
+  `</span><span></span></div>`;
+}
+
+renderGroups(); renderDetail(); renderTable(); renderCMA();
 document.getElementById("status").textContent =
   "34 countries, six regulatory models grouped into four retail channels." +
   " Click any country — on the map or in the list — for its rule and source.";

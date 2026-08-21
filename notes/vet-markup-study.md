@@ -81,8 +81,15 @@ hatch was removed 2026-08-21 when D.Lgs. 218/2023 settled its
 classification as pharmacy-led), a grouped
 country list with TO VERIFY badges, a per-country detail panel quoting
 the rule and its named source, and a full table view. States its own
-limits: a legal map, not a metric; no margin sizes; LU/IS/CY/MT not
-compiled; Kosovo present in list and table but absent from the basemap.
+limits: a legal map, not a metric; no margin sizes in the map itself;
+LU/IS/CY/MT not compiled; Kosovo present in list and table but absent
+from the basemap. Below the map, a **"one measured market" section**
+(added 2026-08-21) charts the CMA's UK mark-up evidence on a single
+% -of-manufacturer-list-price axis: what practices pay after rebates
+(LVG ≈50, buying-group 50–60, unaffiliated 70–80) left of the list-price
+line, what owners pay at the counter (150–200 LVG, 150–160 independent)
+right of it — every bar a CMA-reported range (final Part A ¶11.201,
+¶11.203), UK-only and labelled as such.
 
 ## Dispensing-rights map — fill rules
 
