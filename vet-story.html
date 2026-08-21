@@ -114,12 +114,17 @@ the UK's CMA measured practice prices at <b>2–5× purchase cost
     <button data-s="gap" aria-pressed="false">Vet-price gap</button>
     <button data-s="nm" aria-pressed="false">A–Z</button>
   </span>
+  <span>Price outlook</span>
+  <span class="seg" id="lvlSeg" role="group" aria-label="Price level outlook">
+    <button data-l="off" class="on" aria-pressed="true">Official · 2024</button>
+    <button data-l="now" aria-pressed="false">Big Mac now-cast</button>
+  </span>
 </div>
 
 <div class="scrollwrap"><div class="master">
   <div class="mhead">
     <span><b>Country</b></span>
-    <span><b>Price level (GDP)</b>EU-27 = 100 · 2024</span><span></span>
+    <span id="lvlHead"><b>Price level (GDP)</b>EU-27 = 100 · 2024</span><span></span>
     <span><b>Vet &amp; pet share</b>‰ of budget · 2025</span><span></span>
     <span><b>Vet vs all prices</b>since 2020 · derived</span><span></span>
     <span><b>Who sells the medicine</b></span>
@@ -132,7 +137,15 @@ the UK's CMA measured practice prices at <b>2–5× purchase cost
 <ul>
 <li><b>Price level</b> — Eurostat PLI for GDP, whole-economy basket at
 market exchange rates, latest published year (2024). It is not a vet
-price: no veterinary PPP category exists anywhere.</li>
+price: no veterinary PPP category exists anywhere. The <b>outlook
+toggle</b> swaps this column for the Big Mac now-cast — the same
+country's burger price vs the euro-area average in the latest Economist
+edition. One item, not a basket, and a different reference (euro area,
+not EU-27): use it to see where the 2024 official level has gone stale
+(Türkiye, Hungary dearer; the official view remains the defensible
+baseline). The two never appear in the same column at once. Their
+relationship is validated: r = 0.87–0.97 in every overlapping year
+since 2011.</li>
 <li><b>Budget share</b> — HICP weight of "veterinary and other services
 for pets" (CP0935), per mille of household consumption. Market size in
 the wallet, not a price.</li>
@@ -165,7 +178,9 @@ parities (<b>prc_ppp_ind</b>, PLI_EU27_2020, GDP, 2024) · Eurostat HICP
 item weights (<b>prc_hicp_inw</b>, CP0935, 2025, ‰) · Eurostat HICP
 monthly indices (<b>prc_hicp_midx</b>, CP0935 vs CP00, rebased Jan 2020,
 to the latest common month per country — derived ratio, labelled as
-such) · dispensing-rights research note
+such) · The Economist Big Mac index, open data (now-cast toggle:
+deviation vs the euro-area average price, latest edition; euro members
+from the source-data file) · dispensing-rights research note
 (<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/notes/vet-markup-study.md">notes/vet-markup-study.md</a>,
 every cell sourced to a statute or regulator) · CMA final decision
 report Part A §11 (24 Mar 2026), PDFs archived in-repo. All Eurostat
@@ -209,18 +224,42 @@ const colPli = v => { const t = Math.max(-1, Math.min(1, (v-100)/50));
 const colGap = v => { const t = Math.max(-1, Math.min(1, v/30));
   return mix(t < 0 ? BLUE : ORANGE, Math.abs(t)); };
 
-let ROWS = [], sort = "pli";
-(function(){ const s = new URLSearchParams(location.search).get("sort");
-  if (["pli","w","gap","nm"].includes(s)) sort = s; })();
+// iso2 -> iso3 for the Big Mac files
+const ISO3 = { AT:"AUT", BE:"BEL", BG:"BGR", HR:"HRV", CY:"CYP", CZ:"CZE",
+  DK:"DNK", EE:"EST", FI:"FIN", FR:"FRA", DE:"DEU", EL:"GRC", HU:"HUN",
+  IE:"IRL", IT:"ITA", LV:"LVA", LT:"LTU", LU:"LUX", MT:"MLT", NL:"NLD",
+  PL:"POL", PT:"PRT", RO:"ROU", SK:"SVK", SI:"SVN", ES:"ESP", SE:"SWE",
+  IS:"ISL", NO:"NOR", CH:"CHE", UK:"GBR", AL:"ALB", BA:"BIH", ME:"MNE",
+  MK:"MKD", RS:"SRB", TR:"TUR", XK:"XKX" };
+
+let ROWS = [], sort = "pli", lvl = "off", NOWTO = "";
+(function(){ const p = new URLSearchParams(location.search);
+  const s = p.get("sort");
+  if (["pli","w","gap","nm"].includes(s)) sort = s;
+  if (p.get("lvl") === "now") lvl = "now"; })();
 
 const flagHTML = g => (typeof FLAGS !== "undefined" && FLAGS[g])
   ? `<svg class="flag" viewBox="0 0 24 16" aria-hidden="true">${FLAGS[g]}</svg>`
   : `<span style="width:20px;flex:none"></span>`;
 const fmt1 = v => v == null ? "—" : v.toFixed(1);
 
-function build(ppp, wgt, cpi) {
+function build(ppp, wgt, cpi, bm, bmsrc) {
   const P = ppp.series, W = wgt.series, C = cpi.series;
+  const B = bm.series, S = bmsrc.series;
   const pliYr = "2024", wYr = "2025", BASE = "2020-01";
+  // latest Big Mac edition = newest date in the euro-area source series
+  const euz = S.EUZ || {};
+  const ed = Object.keys(euz).sort().pop() || "";
+  NOWTO = ed.slice(0, 7);
+  const nowDev = g => {
+    const i3 = ISO3[g];
+    if (!i3) return null;
+    const d = (B[i3] || {})[ed];
+    if (d != null) return d * 100;               // direct deviation vs euro area
+    const p = (S[i3] || {})[ed];
+    if (p != null && euz[ed]) return (p / euz[ed] - 1) * 100;  // euro member
+    return null;
+  };
   ROWS = Object.keys(NAMES).map(g => {
     const pli = (P[g + "|PLI_EU27_2020|GDP"] || {})[pliYr] ?? null;
     const w = (W[g + "|CP0935"] || {})[wYr] || null;   // transmitted 0 = not reported
@@ -234,7 +273,7 @@ function build(ppp, wgt, cpi) {
         gapTo = last;
       }
     }
-    return { g, nm: NAMES[g], pli, w, gap, gapTo,
+    return { g, nm: NAMES[g], pli, now: nowDev(g), w, gap, gapTo,
       ch: CHAN[g] || null };
   }).filter(r => r.pli != null || r.w != null || r.gap != null || r.ch);
   const euW = (W["EU27_2020|CP0935"] || {})[wYr] || null;
@@ -242,25 +281,44 @@ function build(ppp, wgt, cpi) {
 }
 
 function render(euW) {
-  const key = { pli:"pli", w:"w", gap:"gap" }[sort];
+  const lv = r => lvl === "now" ? r.now : r.pli;
+  const key = { pli: lv, w: r => r.w, gap: r => r.gap }[sort];
   const rows = [...ROWS].sort((a, b) => sort === "nm"
     ? a.nm.localeCompare(b.nm)
-    : (b[key] ?? -1e9) - (a[key] ?? -1e9));
-  const PMAX = 170, WMAX = 6, GLIM = 45;
-  document.getElementById("rows").innerHTML = rows.map(r => {
+    : (key(b) ?? -1e9) - (key(a) ?? -1e9));
+  const PMAX = 170, WMAX = 6, GLIM = 45, NLIM = 65;
+  document.getElementById("lvlHead").innerHTML = lvl === "now"
+    ? `<b>Burger now-cast</b>vs euro area · ${NOWTO}`
+    : `<b>Price level (GDP)</b>EU-27 = 100 · 2024`;
+  const lvlCell = r => {
+    if (lvl === "now") {
+      const v = r.now;
+      const nw = v == null ? 0 : Math.min(50, Math.abs(v)/NLIM*50);
+      const nl = v == null ? 50 : (v < 0 ? 50-nw : 50);
+      return `<span class="track" data-tip="${v == null
+          ? r.nm + ": not in the Big Mac index"
+          : r.nm + " · burger " + (v >= 0 ? "+" : "") + fmt1(v) +
+            "% vs the euro-area price (" + NOWTO + ") — one item, not a basket"}">` +
+        `${v != null ? `<i style="left:${nl}%;width:${Math.max(nw,.8)}%;background:${colGap(v/1.5)}"></i>` : ""}` +
+        `<u style="left:50%"></u></span>` +
+        `<span class="v${v == null ? " na" : ""}">${v == null ? "—" : (v >= 0 ? "+" : "") + Math.round(v) + "%"}</span>`;
+    }
     const pw = r.pli == null ? 0 : Math.min(100, r.pli/PMAX*100);
+    return `<span class="track" data-tip="${r.pli == null
+        ? r.nm + ": no published price level (Eurostat PPP)"
+        : r.nm + " · price level " + fmt1(r.pli) + " (EU-27 = 100, GDP, 2024)"}">` +
+      `${r.pli != null ? `<i style="left:0;width:${pw}%;background:${colPli(r.pli)}"></i>` : ""}` +
+      `<u style="left:${100/PMAX*100}%"></u></span>` +
+      `<span class="v${r.pli == null ? " na" : ""}">${r.pli == null ? "—" : Math.round(r.pli)}</span>`;
+  };
+  document.getElementById("rows").innerHTML = rows.map(r => {
     const ww = r.w == null ? 0 : Math.min(100, r.w/WMAX*100);
     const g0 = 50, gw = r.gap == null ? 0 :
       Math.min(50, Math.abs(r.gap)/GLIM*50);
     const gl = r.gap == null ? g0 : (r.gap < 0 ? g0-gw : g0);
     return `<div class="mrow">` +
       `<span class="nm">${flagHTML(r.g)}<em>${r.nm}</em></span>` +
-      `<span class="track" data-tip="${r.pli == null
-        ? r.nm + ": no published price level (Eurostat PPP)"
-        : r.nm + " · price level " + fmt1(r.pli) + " (EU-27 = 100, GDP, 2024)"}">` +
-        `${r.pli != null ? `<i style="left:0;width:${pw}%;background:${colPli(r.pli)}"></i>` : ""}` +
-        `<u style="left:${100/PMAX*100}%"></u></span>` +
-      `<span class="v${r.pli == null ? " na" : ""}">${r.pli == null ? "—" : Math.round(r.pli)}</span>` +
+      lvlCell(r) +
       `<span class="track" data-tip="${r.w == null
         ? r.nm + ": vet & pet weight not reported to Eurostat"
         : r.nm + " · " + fmt1(r.w) + "‰ of household spending (2025); EU-27 " + fmt1(euW) + "‰"}">` +
@@ -283,13 +341,20 @@ function render(euW) {
     const on = b.dataset.s === sort;
     b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
   });
+  document.querySelectorAll("#lvlSeg button").forEach(b => {
+    const on = b.dataset.l === lvl;
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
+  });
   const p = new URLSearchParams(); p.set("sort", sort);
+  if (lvl === "now") p.set("lvl", "now");
   history.replaceState(null, "", "?" + p.toString());
   document.getElementById("tbl").innerHTML =
     `<table><thead><tr><th>Country</th><th>PLI 2024 (EU27=100)</th>` +
+    `<th>Big Mac vs euro area (${NOWTO})</th>` +
     `<th>Vet &amp; pet ‰ 2025</th><th>Vet vs all prices since 2020</th>` +
     `<th>Channel</th></tr></thead><tbody>` +
     rows.map(r => `<tr><td>${r.nm}</td><td class="n">${r.pli == null ? "—" : fmt1(r.pli)}</td>` +
+      `<td class="n">${r.now == null ? "—" : (r.now >= 0 ? "+" : "") + fmt1(r.now) + "%"}</td>` +
       `<td class="n">${fmt1(r.w)}</td>` +
       `<td class="n">${r.gap == null ? "—" : (r.gap >= 0 ? "+" : "") + fmt1(r.gap) + "% (to " + r.gapTo + ")"}</td>` +
       `<td>${r.ch ? CHIP[r.ch] : "not compiled"}</td></tr>`).join("") +
@@ -301,6 +366,9 @@ function render(euW) {
 
 document.querySelectorAll("#sortSeg button").forEach(b =>
   b.addEventListener("click", () => { sort = b.dataset.s;
+    render(ROWS._euW); }));
+document.querySelectorAll("#lvlSeg button").forEach(b =>
+  b.addEventListener("click", () => { lvl = b.dataset.l;
     render(ROWS._euW); }));
 
 const tip = document.getElementById("tip");
@@ -317,12 +385,14 @@ document.addEventListener("mousemove", e => {
 Promise.all([
   fetch("data/eu-ppp.json").then(r => r.json()),
   fetch("data/eu-vet-weight.json").then(r => r.json()),
-  fetch("data/vet-cpi-eu.json").then(r => r.json())
-]).then(([p, w, c]) => {
+  fetch("data/vet-cpi-eu.json").then(r => r.json()),
+  fetch("data/bigmac-eur.json").then(r => r.json()),
+  fetch("data/bigmac-src-eur.json").then(r => r.json())
+]).then(([p, w, c, bm, bmsrc]) => {
   document.getElementById("fetched").textContent =
     "latest fetch " + (c.fetched_at || "").slice(0, 10);
   const euW = (w.series["EU27_2020|CP0935"] || {})["2025"] || null;
-  build(p, w, c);
+  build(p, w, c, bm, bmsrc);
   ROWS._euW = euW;
 }).catch(err => {
   document.getElementById("status").textContent = "Could not load data: " + err;

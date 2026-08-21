@@ -106,6 +106,18 @@ vet-banned ES low, but coupled FR/IE low too). Gap range at build:
 BG +41% … EL −11%, EA20 +1.2%, sanity-checked in-session against the
 raw series before publishing.
 
+Price-outlook toggle (added 2026-08-21): the price-level column can be
+switched between **Official · 2024** (Eurostat PLI, the default and the
+defensible baseline) and **Big Mac now-cast** (deviation vs the
+euro-area average, latest Economist edition, auto-refreshing). The two
+views never share a column; header, scale, reference and tooltips all
+swap; the defs bullet states the caveats (one item, euro-area
+reference) and the validation (r = 0.87–0.97 in every overlapping year
+2011–2024 — computed in-session from the committed files, euro-member
+sample n = 8–10/yr; drift ≥10pp since the 2024 vintage: IL +34, TR +20,
+HU +10 dearer; SA −12, KW −12 cheaper). The table view carries both
+columns side by side for lifting into decks.
+
 ## Dispensing-rights map — fill rules
 
 - One row per country; columns: may vets dispense? may pharmacies? online
