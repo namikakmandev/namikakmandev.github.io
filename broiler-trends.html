@@ -55,7 +55,7 @@
   <p class="sub">Each market against <b>its own history</b>: chicken-meat producer price over feed-grain
   producer price, annual, farm-gate, in local currency. The dashed line is that country's own
   2015–2024 norm — above it margins are fat, below it producers are squeezed. Panels are not
-  cross-comparable by design: feed mixes, price bases and subsidy regimes differ.</p>
+  cross-comparable by design: feed mixes and price bases differ.</p>
 
   <div class="toolbar">
     <button class="btn" data-r="2012">2012 →</button>
@@ -70,19 +70,19 @@
   <div class="method">
     <b>Method &amp; honesty notes.</b> Source: FAOSTAT Producer Prices (annual, LCU/tonne), fetched by
     <code>scripts/fetch_broiler_annual.py</code>. Parity = tonnes of the named feed grain one tonne of
-    chicken buys. The grain is a proxy for compound feed — soymeal and premix sit outside it. Egypt and
-    Saudi Arabia import most feed, so their domestic grain price understates true feed-cost swings; Saudi
-    Arabia's denominator is wheat because its maize series is too short. Türkiye's meat series is on a
-    "biological" (live-weight) basis, so its level is not a carcass ratio — read the trend. Lines break
-    where FAOSTAT has no observation; gaps are gaps, not zeros. FAOSTAT lags ~2 years; for a live
-    Türkiye read use the monthly <a href="broiler-margin.html" style="color:var(--blue)">Broiler Margin Monitor</a>.
+    chicken buys. The grain is a proxy for compound feed — soymeal and premix sit outside it. Türkiye's
+    meat series is on a "biological" (live-weight) basis, so its level is not a carcass ratio — read the
+    trend. Egypt and Saudi Arabia were evaluated and left out: recent-year gaps, a ~2-year lag and
+    heavily imported feed make their annual series a weak read (the data stays in
+    <code>data/broiler-annual.json</code>). FAOSTAT lags ~2 years; for a live Türkiye read use the
+    monthly <a href="broiler-margin.html" style="color:var(--blue)">Broiler Margin Monitor</a>.
   </div>
 
   <footer>Sources: FAOSTAT PP via bulk download · Analysis &amp; build: Namık Akman · August 2026</footer>
 </div>
 
 <script>
-const ORDER=["TR","PL","EG","SA"];
+const ORDER=["TR","PL"];
 const W=480,H=280,M={l:44,r:14,t:14,b:26};
 let DATA=null, from='all';
 

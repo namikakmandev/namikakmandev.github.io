@@ -73,3 +73,12 @@ Level sanity: TR's raw parity (~17–24 t maize per t chicken) sits far above
 PL/EG/SA (~6–8). The TR "(biological)" item is priced on a different basis —
 one more reason the page must show `parity_idx`, never raw levels, across
 countries.
+
+## Published scope: TR + PL only (owner's call, 2026-08-21)
+
+`broiler-trends.html` ships Türkiye and Poland. Egypt and Saudi Arabia were
+evaluated and deliberately left out — recent-year gaps (EG 2019–20, SA
+2016–17), the ~2-year FAOSTAT lag and the imported-feed caveat make their
+annual read too weak to publish. Their series remain in
+`data/broiler-annual.json` and the fetch keeps refreshing them, so the
+decision is reversible without re-engineering.
