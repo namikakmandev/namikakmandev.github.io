@@ -54,9 +54,9 @@ jobs:
           while read -r u; do
             [ -z "$u" ] && continue
             f="$DIR/$(basename "$u")"
-            curl -sL --max-time 300 --max-filesize 41943040 -o "$f" "$u" \
+            curl -sL --max-time 600 --max-filesize 99614720 -o "$f" "$u" \
               && echo "ok  $f ($(stat -c%s "$f") bytes)" \
-              || { echo "SKIP $u"; rm -f "$f"; }
+              || { echo "SKIP (curl exit $?) $u"; rm -f "$f"; }
           done < /tmp/want.txt
           ls -la "$DIR"
       - name: Commit
