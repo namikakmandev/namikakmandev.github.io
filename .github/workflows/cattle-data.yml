@@ -1,10 +1,12 @@
 name: Fetch cattle parity data
 
 on:
+  schedule:
+    - cron: "17 6 3 * *"   # her ayın 3'ü 06:17 UTC — kaynaklar aylık yayımlıyor
   workflow_dispatch:
     inputs:
       mode:
-        description: "boş=tam çekim | discover=EVDS mısır kataloğu | corn=hepsi-mısır sağlamlık verisi"
+        description: "boş=tam çekim | discover=EVDS mısır kataloğu | corn=hepsi-mısır sağlamlık | il_alt=İsrail TR-paralel çift"
         default: ""
       corn_tr_code:
         description: "TR mısır EVDS seri kodu (corn modu için)"

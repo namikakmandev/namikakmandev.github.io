@@ -601,6 +601,20 @@ def main():
                     print("CORN-CANDIDATE:", s.get("code"), "|", s.get("name"), "| group:", g.get("group"))
         print("discovery done,", len(cat["groups"]), "groups scanned")
         return
+    if mode == "il_alt":
+        # Robustness: the exact TR-parallel Israeli pair — meat processing PPI over
+        # prepared animal feeds PPI (both chapter b). Written to its OWN file so it
+        # can never overwrite the primary beef/fodder series or the merged panel.
+        os.environ.setdefault("IL_OUTPUT_ID", "180073")
+        os.environ.setdefault("IL_FODDER_ID", "180195")
+        obj = build_il()
+        obj["note"] = ("robustness pair, TR-parallel: 180073 processing & preserving of meat "
+                       "/ 180195 prepared animal feeds — never merged into cattle-parity.json")
+        with open("data/cattle-il-alt.json", "w") as fh:
+            json.dump(obj, fh, separators=(",", ":"))
+        print("OK data/cattle-il-alt.json:", len(obj["rows"]), "rows",
+              obj["rows"][0][0], "->", obj["rows"][-1][0])
+        return
     if mode == "corn":
         obj = build_corn()
         print("OK corn-parity regions:", ",".join(obj["regions"]),
