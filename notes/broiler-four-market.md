@@ -51,8 +51,25 @@ the per-country read but must not share an unlabelled axis.
 - Whatever countries the fetch report excludes stay excluded — the script
   raises the exclusion into `decisions` rather than silently dropping.
 
-## Status
+## Status: ALL FOUR MARKETS LIVE (annual)
 
-Fetch wired and mock-validated (long+wide formats, feed-grain fallback
-order maize→wheat→barley→sorghum, exclusion guards, caveat propagation).
-First real run: see `data/_broiler-annual-report.json` on this branch.
+First real run landed 2026-08-21 (`data/broiler-annual.json`). What the
+data actually gave, after fixing two selection traps the mock could not
+predict (TR's chicken series is split across a reclassification; SA's
+maize series is 3 years but its wheat series is 25):
+
+| | numerator / denominator | parity years | last | gaps |
+|---|---|---|---|---|
+| TR | chicken (biological) / maize | 2011–2024 | 2024 | none |
+| PL | chicken (biological) / maize | 1991–2024 | 2024 | none |
+| EG | chicken / maize | 1991–2023 | 2023 | 2019–20, 2023 patchy |
+| SA | chicken / **wheat** | 1999–2023 | 2023 | 2016–17 |
+
+Cross-validation: TR `parity_idx` says 2023–24 were the two fattest years
+(135, 144) and 2015 a squeeze — the same shape the independent TÜİK-based
+`broiler-margin.html` shows. Two sources, one story.
+
+Level sanity: TR's raw parity (~17–24 t maize per t chicken) sits far above
+PL/EG/SA (~6–8). The TR "(biological)" item is priced on a different basis —
+one more reason the page must show `parity_idx`, never raw levels, across
+countries.
