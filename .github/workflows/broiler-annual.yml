@@ -1,0 +1,28 @@
+name: Fetch broiler annual parity data
+
+# FAOSTAT bulk route (API is 401 from Actions). Writes the series and a
+# coverage report; the report decides what any page may honestly claim.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch FAOSTAT producer prices
+        run: python scripts/fetch_broiler_annual.py
+      - name: Commit data
+        run: |
+          git config user.name "broiler-data-bot"
+          git config user.email "actions@github.com"
+          git add data/broiler-annual.json data/_broiler-annual-report.json
+          git diff --cached --quiet || git commit -m "data: broiler annual parity fetch [skip ci]"
+          git push
