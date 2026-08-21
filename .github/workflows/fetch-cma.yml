@@ -1,0 +1,57 @@
+name: Fetch CMA vet report PDFs
+
+# One-off document fetcher: the sandbox that edits this repo cannot reach
+# gov.uk, so the runner downloads the CMA final-report documents instead.
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "Boş = case sayfalarını tara. Ya da tam PDF URL listesi (boşlukla ayrılmış)."
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download
+        env:
+          URLS: ${{ inputs.urls }}
+        run: |
+          set -u
+          DIR=notes/sources/cma
+          mkdir -p "$DIR"
+          if [ -n "$URLS" ]; then
+            printf '%s\n' $URLS > /tmp/want.txt
+          else
+            : > /tmp/pages.html
+            for p in \
+              "https://www.gov.uk/cma-cases/veterinary-services-for-household-pets" \
+              "https://www.gov.uk/cma-cases/veterinary-services-market-investigation" \
+              "https://www.gov.uk/government/news/cma-concludes-market-investigation-with-major-reforms-to-veterinary-sector"; do
+              curl -sL --max-time 60 "$p" >> /tmp/pages.html || true
+            done
+            grep -oE 'https://assets\.publishing\.service\.gov\.uk/media/[a-z0-9]+/[^"]+\.pdf' /tmp/pages.html \
+              | sort -u > "$DIR/manifest.txt"
+            wc -l < "$DIR/manifest.txt" | xargs echo "PDF links found:"
+            grep -iE '/[^/]*(final|appendi|summary|remed|profit|medicin)[^/]*\.pdf$' "$DIR/manifest.txt" > /tmp/want.txt || true
+          fi
+          echo "downloading:"; cat /tmp/want.txt
+          while read -r u; do
+            [ -z "$u" ] && continue
+            f="$DIR/$(basename "$u")"
+            curl -sL --max-time 300 --max-filesize 41943040 -o "$f" "$u" \
+              && echo "ok  $f ($(stat -c%s "$f") bytes)" \
+              || { echo "SKIP $u"; rm -f "$f"; }
+          done < /tmp/want.txt
+          ls -la "$DIR"
+      - name: Commit
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add notes/sources/cma/
+          git diff --cached --quiet || git commit -m "notes: CMA vet final-report source PDFs via Actions [skip ci]"
+          git push
