@@ -5,6 +5,13 @@ name: Fetch broiler annual parity data
 
 on:
   workflow_dispatch:
+  # dispatch-by-filename 404s until the workflow exists on the default branch,
+  # so the branch push itself triggers the fetch; the bot commit says [skip ci]
+  push:
+    branches: [claude/broiler-index-egypt-poland-turkey-zvbhx3]
+    paths:
+      - scripts/fetch_broiler_annual.py
+      - .github/workflows/broiler-annual.yml
 
 permissions:
   contents: write
