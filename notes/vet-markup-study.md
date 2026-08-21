@@ -91,6 +91,21 @@ line, what owners pay at the counter (150–200 LVG, 150–160 independent)
 right of it — every bar a CMA-reported range (final Part A ¶11.201,
 ¶11.203), UK-only and labelled as such.
 
+`vet-story.html` — the suite's master chart (card
+`assets/vet-story.png`): one row per country, four separate facts side
+by side, never combined into a score — PLI (GDP, 2024), vet & pet HICP
+weight (‰, 2025), the **vet-price gap** (CP0935 vs CP00, both rebased
+Jan 2020, derived and labelled; per-country end month — IE to 2023-12),
+and the dispensing-channel chip linking to vet-dispensing.html. UK row
+carries the CMA 100–400% badge. Sortable per column; dashes are "not
+published" (TR no vet CPI; UK left HICP 2020; XK nearly empty;
+IS/CY/MT/LU not in the dispensing map). The gap column's definition box
+states it is consistent-with, not proof-of, pricing power, and points
+out that the gap does NOT sort by channel model (decoupled SE high,
+vet-banned ES low, but coupled FR/IE low too). Gap range at build:
+BG +41% … EL −11%, EA20 +1.2%, sanity-checked in-session against the
+raw series before publishing.
+
 ## Dispensing-rights map — fill rules
 
 - One row per country; columns: may vets dispense? may pharmacies? online
