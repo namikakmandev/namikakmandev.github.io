@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broiler Margin Trends · Four Markets</title>
+<style>
+  :root{
+    --bg:#0B1220; --card:#121B2C; --card2:#0F1726; --line:#1E2A40;
+    --ink:#E8EEF7; --ink2:#9FB0C8; --ink3:#64748B;
+    --blue:#2F9BFF; --green:#19C37D; --orange:#FF6500;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif;padding:32px 16px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .kicker{color:var(--blue);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
+  .sub{color:var(--ink2);max-width:780px}
+  .toolbar{display:flex;gap:6px;margin:20px 0 14px;flex-wrap:wrap}
+  .btn{background:var(--card2);border:1px solid var(--line);color:var(--ink2);font-size:12.5px;font-weight:600;
+       padding:5px 12px;border-radius:8px;cursor:pointer}
+  .btn.on{background:rgba(47,155,255,.14);border-color:rgba(47,155,255,.5);color:var(--blue)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px 12px}
+  .p-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .p-title{font-weight:700;font-size:16px}
+  .p-latest{font-variant-numeric:tabular-nums;text-align:right}
+  .p-latest b{font-size:20px;color:var(--blue)}
+  .p-latest span{display:block;font-size:11.5px;color:var(--ink3)}
+  .p-sub{font-size:12px;color:var(--ink3);margin:2px 0 6px}
+  .p-note{font-size:11.5px;color:var(--ink3);margin-top:4px;border-top:1px solid var(--line);padding-top:6px}
+  .chartbox{position:relative}
+  svg{display:block;width:100%;height:auto}
+  .tt{position:absolute;pointer-events:none;background:#0A1424;border:1px solid var(--line);border-radius:10px;
+      padding:7px 11px;font-size:12.5px;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5);white-space:nowrap;z-index:5}
+  .tt b{font-size:14px}
+  .hidden{display:none}
+  #tablebox{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:14px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{color:var(--ink3);text-transform:uppercase;font-size:11px;letter-spacing:.08em;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:6px 10px;text-align:right;border-bottom:1px solid rgba(30,42,64,.5);font-variant-numeric:tabular-nums}
+  .method{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-top:14px;
+          font-size:13px;color:var(--ink2)}
+  .method b{color:var(--ink)}
+  footer{color:var(--ink3);font-size:12.5px;margin-top:10px}
+  @media(max-width:640px){ h1{font-size:23px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Poultry Economics · Annual · FAOSTAT</div>
+  <h1>Broiler Margin Trends</h1>
+  <p class="sub">Each market against <b>its own history</b>: chicken-meat producer price over feed-grain
+  producer price, annual, farm-gate, in local currency. The dashed line is that country's own
+  2015–2024 norm — above it margins are fat, below it producers are squeezed. Panels are not
+  cross-comparable by design: feed mixes, price bases and subsidy regimes differ.</p>
+
+  <div class="toolbar">
+    <button class="btn" data-r="2012">2012 →</button>
+    <button class="btn on" data-r="all">All years</button>
+    <button class="btn" id="tglTable">Table</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div id="tablebox" class="hidden"></div>
+
+  <div class="method">
+    <b>Method &amp; honesty notes.</b> Source: FAOSTAT Producer Prices (annual, LCU/tonne), fetched by
+    <code>scripts/fetch_broiler_annual.py</code>. Parity = tonnes of the named feed grain one tonne of
+    chicken buys. The grain is a proxy for compound feed — soymeal and premix sit outside it. Egypt and
+    Saudi Arabia import most feed, so their domestic grain price understates true feed-cost swings; Saudi
+    Arabia's denominator is wheat because its maize series is too short. Türkiye's meat series is on a
+    "biological" (live-weight) basis, so its level is not a carcass ratio — read the trend. Lines break
+    where FAOSTAT has no observation; gaps are gaps, not zeros. FAOSTAT lags ~2 years; for a live
+    Türkiye read use the monthly <a href="broiler-margin.html" style="color:var(--blue)">Broiler Margin Monitor</a>.
+  </div>
+
+  <footer>Sources: FAOSTAT PP via bulk download · Analysis &amp; build: Namık Akman · August 2026</footer>
+</div>
+
+<script>
+const ORDER=["TR","PL","EG","SA"];
+const W=480,H=280,M={l:44,r:14,t:14,b:26};
+let DATA=null, from='all';
+
+const fmt1=v=>v.toFixed(1), fmt2=v=>v.toFixed(2);
+
+function panel(cc,c){
+  const div=document.createElement('div'); div.className='panel';
+  const yrs=Object.keys(c.parity).map(Number).sort((a,b)=>a-b);
+  const last=yrs[yrs.length-1], idx=c.parity_idx[last];
+  div.innerHTML=`
+    <div class="p-head">
+      <div class="p-title">${c.name}</div>
+      <div class="p-latest"><b>${fmt2(c.parity[last])}</b><span>${last} · ${idx>=100?'+':''}${(idx-100).toFixed(0)}% vs norm</span></div>
+    </div>
+    <div class="p-sub">${c.meat_item.replace(', fresh or chilled','')} ÷ ${c.feed_item} · t grain per t chicken</div>
+    <div class="chartbox"><svg viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="${c.name} annual broiler parity trend"></svg><div class="tt"></div></div>
+    ${c.caveat?`<div class="p-note">⚠ ${c.caveat}</div>`:
+      cc==='TR'?`<div class="p-note">live-weight (biological) price basis — trend, not a carcass ratio</div>`:''}`;
+  return div;
+}
+
+function draw(div,c){
+  const svg=div.querySelector('svg'), tt=div.querySelector('.tt'), box=div.querySelector('.chartbox');
+  const all=Object.keys(c.parity).map(Number).sort((a,b)=>a-b);
+  const yrs=from==='all'?all:all.filter(y=>y>=+from);
+  const vals=yrs.map(y=>c.parity[y]);
+  const lo=Math.min(...vals,c.norm_mean), hi=Math.max(...vals,c.norm_mean);
+  const pad=(hi-lo)*0.12||1, y0=lo-pad, y1=hi+pad;
+  const X=y=>M.l+(y-yrs[0])/((yrs[yrs.length-1]-yrs[0])||1)*(W-M.l-M.r);
+  const Y=v=>M.t+(y1-v)/(y1-y0)*(H-M.t-M.b);
+  let g='';
+  const step=(y1-y0)/4;
+  for(let i=0;i<=4;i++){
+    const v=y0+i*step, yy=Y(v);
+    g+=`<line x1="${M.l}" y1="${yy}" x2="${W-M.r}" y2="${yy}" stroke="#1E2A40" stroke-width="1"/>`+
+       `<text x="${M.l-7}" y="${yy+4}" fill="#64748B" font-size="10.5" text-anchor="end">${fmt1(v)}</text>`;
+  }
+  const tickN=Math.min(6,yrs.length);
+  for(let i=0;i<tickN;i++){
+    const y=yrs[Math.round(i*(yrs.length-1)/((tickN-1)||1))];
+    g+=`<text x="${X(y)}" y="${H-8}" fill="#64748B" font-size="10.5" text-anchor="middle">${y}</text>`;
+  }
+  // own norm line
+  const ny=Y(c.norm_mean);
+  g+=`<line x1="${M.l}" y1="${ny}" x2="${W-M.r}" y2="${ny}" stroke="#9FB0C8" stroke-width="1" stroke-dasharray="4,4" opacity=".55"/>`+
+     `<text x="${W-M.r}" y="${ny-5}" fill="#9FB0C8" font-size="10.5" text-anchor="end" opacity=".8">norm ${fmt1(c.norm_mean)}</text>`;
+  // segments broken at gaps — a missing FAOSTAT year must not be interpolated
+  let seg=[];
+  const flush=()=>{ if(seg.length>1)
+      g+=`<path d="M${seg.map(p=>p.join(',')).join(' L')}" fill="none" stroke="#2F9BFF" stroke-width="2" stroke-linejoin="round"/>`;
+    seg=[]; };
+  yrs.forEach((y,i)=>{
+    if(i>0&&y-yrs[i-1]>1) flush();
+    seg.push([X(y).toFixed(1),Y(c.parity[y]).toFixed(1)]);
+  });
+  flush();
+  yrs.forEach(y=>{ g+=`<circle cx="${X(y)}" cy="${Y(c.parity[y])}" r="3" fill="#2F9BFF"/>`; });
+  const ly=yrs[yrs.length-1];
+  g+=`<circle cx="${X(ly)}" cy="${Y(c.parity[ly])}" r="4.5" fill="#2F9BFF" stroke="#0B1220" stroke-width="2"/>`;
+  g+=`<line class="ch" x1="0" y1="${M.t}" x2="0" y2="${H-M.b}" stroke="#9FB0C8" stroke-width="1" stroke-dasharray="3,3" style="display:none"/>`;
+  svg.innerHTML=g;
+
+  svg.onmousemove=e=>{
+    const r=svg.getBoundingClientRect(), sx=(e.clientX-r.left)*W/r.width;
+    let best=yrs[0]; yrs.forEach(y=>{ if(Math.abs(X(y)-sx)<Math.abs(X(best)-sx)) best=y; });
+    const ch=svg.querySelector('.ch');
+    ch.style.display='block'; ch.setAttribute('x1',X(best)); ch.setAttribute('x2',X(best));
+    tt.style.display='block';
+    tt.innerHTML=`<b>${fmt2(c.parity[best])}</b> t grain / t chicken<br>`+
+      `<span style="color:#9FB0C8">${best} · ${c.parity_idx[best]>=100?'+':''}${(c.parity_idx[best]-100).toFixed(0)}% vs norm</span>`;
+    const bx=box.getBoundingClientRect();
+    let tx=(X(best)/W)*bx.width+12; if(tx+tt.offsetWidth>bx.width-6) tx=(X(best)/W)*bx.width-tt.offsetWidth-12;
+    tt.style.left=tx+'px'; tt.style.top=((Y(c.parity[best])/H)*bx.height-10)+'px';
+  };
+  svg.onmouseleave=()=>{ tt.style.display='none'; svg.querySelector('.ch').style.display='none'; };
+}
+
+function table(){
+  const box=document.getElementById('tablebox');
+  const years=[...new Set(ORDER.flatMap(cc=>Object.keys(DATA.countries[cc]?.parity||{})))].sort().reverse();
+  let h='<table><thead><tr><th>Year</th>'+ORDER.map(cc=>DATA.countries[cc]?`<th>${DATA.countries[cc].name}</th>`:'').join('')+'</tr></thead><tbody>';
+  years.forEach(y=>{ h+=`<tr><td>${y}</td>`+ORDER.map(cc=>{const c=DATA.countries[cc];
+    return c?`<td>${c.parity[y]!==undefined?fmt2(c.parity[y]):'—'}</td>`:'';}).join('')+'</tr>'; });
+  box.innerHTML=h+'</tbody></table>';
+}
+
+function render(){
+  const grid=document.getElementById('grid'); grid.innerHTML='';
+  ORDER.forEach(cc=>{ const c=DATA.countries[cc]; if(!c) return;
+    const div=panel(cc,c); grid.appendChild(div); draw(div,c); });
+}
+
+fetch('data/broiler-annual.json').then(r=>r.json()).then(d=>{ DATA=d; render(); table(); });
+
+document.querySelectorAll('.btn[data-r]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.btn[data-r]').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); from=b.dataset.r; render();
+});
+document.getElementById('tglTable').onclick=function(){
+  const tb=document.getElementById('tablebox');
+  tb.classList.toggle('hidden'); this.classList.toggle('on',!tb.classList.contains('hidden'));
+};
+</script>
+</body>
+</html>
