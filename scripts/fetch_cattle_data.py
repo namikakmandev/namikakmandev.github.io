@@ -612,6 +612,9 @@ def main():
         if not os.environ.get("IL_FODDER_ID", "").strip():
             os.environ["IL_FODDER_ID"] = "180195"
         obj = build_il()
+        obj["source"] = ("Israel CBS index API: processing & preserving of meat PPI (id "
+                         + os.environ["IL_OUTPUT_ID"] + ") / prepared animal feeds PPI (id "
+                         + os.environ["IL_FODDER_ID"] + "), chained to the newest base")
         obj["note"] = ("robustness pair, TR-parallel: 180073 processing & preserving of meat "
                        "/ 180195 prepared animal feeds — never merged into cattle-parity.json")
         with open("data/cattle-il-alt.json", "w") as fh:
