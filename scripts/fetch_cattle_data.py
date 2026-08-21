@@ -605,8 +605,12 @@ def main():
         # Robustness: the exact TR-parallel Israeli pair — meat processing PPI over
         # prepared animal feeds PPI (both chapter b). Written to its OWN file so it
         # can never overwrite the primary beef/fodder series or the merged panel.
-        os.environ.setdefault("IL_OUTPUT_ID", "180073")
-        os.environ.setdefault("IL_FODDER_ID", "180195")
+        # the workflow exports these as empty strings, which setdefault would keep —
+        # force the alt codes unless a non-empty override was actually provided
+        if not os.environ.get("IL_OUTPUT_ID", "").strip():
+            os.environ["IL_OUTPUT_ID"] = "180073"
+        if not os.environ.get("IL_FODDER_ID", "").strip():
+            os.environ["IL_FODDER_ID"] = "180195"
         obj = build_il()
         obj["note"] = ("robustness pair, TR-parallel: 180073 processing & preserving of meat "
                        "/ 180195 prepared animal feeds — never merged into cattle-parity.json")
