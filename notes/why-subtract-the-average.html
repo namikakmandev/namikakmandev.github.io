@@ -1,0 +1,455 @@
+<title>Why Subtract the Average</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Companion to "Two Walks Uphill" — same committed night-bench palette. */
+:root{
+  --ground:#0b0906; --panel:#141009; --panel-2:#1b1509;
+  --ink:#f5efe6; --dim:#cbbfa8; --dimmer:#8a7c62;
+  --line:rgba(203,191,168,.18); --soft:rgba(203,191,168,.09);
+  --amber:#ffb056; --blue:#8aa0d8; --red:#e2574c; --teal:#46c8b2;
+  --sans:"IBM Plex Sans",-apple-system,"Segoe UI",sans-serif;
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 5vw 90px}
+header.top{padding:66px 0 36px;border-bottom:1px solid var(--line)}
+.kick{font:600 11px/1 var(--mono);letter-spacing:.16em;color:var(--amber);text-transform:uppercase}
+h1{font-family:var(--serif);font-weight:600;letter-spacing:-.015em;
+  font-size:clamp(32px,5.4vw,58px);line-height:1.05;margin:16px 0 0;text-wrap:balance}
+h1 em{font-style:italic;color:var(--amber)}
+.standfirst{color:var(--dim);font-size:clamp(16px,1.9vw,19px);max-width:58ch;margin-top:16px}
+section.station{padding:58px 0 6px;border-bottom:1px solid var(--soft)}
+section.station:last-of-type{border-bottom:0}
+.st-num{font:700 11px/1 var(--mono);letter-spacing:.18em;color:var(--dimmer);
+  display:flex;align-items:center;gap:12px}
+.st-num::after{content:"";flex:1;height:1px;background:var(--soft)}
+h2{font-family:var(--serif);font-weight:600;font-size:clamp(24px,3.4vw,36px);
+  line-height:1.12;letter-spacing:-.012em;margin:14px 0 0;text-wrap:balance}
+p{max-width:64ch;color:var(--dim);margin:14px 0}
+p strong{color:var(--ink);font-weight:600}
+p em{color:var(--ink);font-style:italic}
+.lede{font-size:18px;color:var(--ink)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+.rig{margin:28px 0 8px;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;overflow:hidden}
+.rig-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px;
+  padding:14px 18px;border-bottom:1px solid var(--soft);background:var(--panel-2)}
+.rig-title{font:600 11px/1.4 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+.rig-note{font:400 12px/1.4 var(--mono);color:var(--dimmer);margin-left:auto}
+.stage{position:relative;width:100%}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;
+  padding:14px 18px;border-top:1px solid var(--soft)}
+button{font:600 12px/1 var(--mono);letter-spacing:.06em;color:var(--ink);background:transparent;
+  border:1px solid rgba(255,176,86,.45);border-radius:999px;padding:9px 16px;cursor:pointer;
+  transition:background .16s,color .16s}
+button:hover{background:rgba(255,176,86,.14)}
+button.on{background:var(--amber);color:#150f06;border-color:var(--amber)}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.readout{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;
+  color:var(--amber);font-size:15px;white-space:nowrap}
+.readout small{font-weight:500;color:var(--dimmer);font-size:11px;letter-spacing:.08em;margin-left:5px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;
+  background:var(--soft);border-top:1px solid var(--soft)}
+.stat{background:var(--panel);padding:13px 18px}
+.stat dt{font:600 10px/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer)}
+.stat dd{margin:6px 0 0;font-family:var(--mono);font-variant-numeric:tabular-nums;
+  font-size:21px;font-weight:700;color:var(--ink);line-height:1.1}
+.stat.good dd{color:var(--teal)} .stat.hot dd{color:var(--red)} .stat.key dd{color:var(--amber)}
+.callout{margin:28px 0;padding:20px 22px;border-left:3px solid var(--amber);
+  background:linear-gradient(90deg,rgba(255,176,86,.09),rgba(255,176,86,0));border-radius:0 10px 10px 0}
+.callout p{margin:0;max-width:60ch;color:var(--ink)}
+.callout p+p{margin-top:10px}
+.fx{display:block;margin:20px 0;padding:18px 20px;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;overflow-x:auto;font:600 clamp(14px,1.7vw,19px)/1.5 var(--mono);color:var(--ink)}
+.fx small{display:block;margin-top:10px;font:400 12px/1.6 var(--mono);color:var(--dimmer)}
+.tbl-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:480px}
+caption{text-align:left;padding:14px 18px;font:600 11px/1.4 var(--mono);letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);background:var(--panel-2);border-bottom:1px solid var(--soft)}
+th{text-align:left;padding:11px 18px;font:600 10px/1.4 var(--mono);letter-spacing:.09em;
+  text-transform:uppercase;color:var(--dimmer);border-bottom:1px solid var(--line);background:var(--panel)}
+td{padding:11px 18px;border-bottom:1px solid var(--soft);color:var(--dim);background:var(--panel);
+  font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:0}
+td.k{color:var(--ink);font:600 13px var(--mono)}
+td .pos{color:var(--teal);font-weight:600} td .neg{color:var(--red);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;padding:0 18px 14px;font:500 11px/1 var(--mono);
+  letter-spacing:.06em;color:var(--dim)}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{width:12px;height:12px;border-radius:3px;display:block}
+footer{padding:50px 0 0;border-top:1px solid var(--line);margin-top:60px}
+footer p{font:400 12.5px/1.8 var(--mono);color:var(--dimmer);max-width:70ch}
+footer a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(255,176,86,.35)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:640px){.rig-note{margin-left:0;width:100%}.stat dd{font-size:18px}}
+</style>
+<div class="wrap">
+
+<header class="top">
+  <div class="kick">Concept 1 · companion note</div>
+  <h1>Why subtract the <em>average</em></h1>
+  <p class="standfirst">Every measurement in this study — the correlation, the slope, the ADF statistic — starts by turning each number into its distance from the average. Here is what that step does, and what happens if you skip it.</p>
+</header>
+
+<!-- 01 -->
+<section class="station">
+  <div class="st-num">Station 01</div>
+  <h2>What raw numbers cannot tell you</h2>
+  <p class="lede">Three sets of six points. In the first, y climbs as x climbs. In the second, y falls as x climbs — the opposite. In the third there is no pattern at all.</p>
+  <p>Now multiply x by y for each point and add them up, using the numbers exactly as they are. Press <strong>Measure from zero</strong>.</p>
+
+  <div class="rig">
+    <div class="rig-head">
+      <span class="rig-title">Three patterns, one measurement</span>
+      <span class="rig-note">x = 2, 4, 6, 8, 10, 12 in all three</span>
+    </div>
+    <div class="stage" style="height:min(46vh,330px)"><canvas id="cv-three"></canvas></div>
+    <div class="controls">
+      <button id="b-zero" class="on">Measure from zero</button>
+      <button id="b-avg">Measure from the average</button>
+    </div>
+    <dl class="stats">
+      <div class="stat"><dt>Rising</dt><dd id="s-rise">—</dd></div>
+      <div class="stat"><dt>Falling</dt><dd id="s-fall">—</dd></div>
+      <div class="stat"><dt>No pattern</dt><dd id="s-flat">—</dd></div>
+      <div class="stat key"><dt>Can it tell them apart?</dt><dd id="s-verdict" style="font-size:14px">—</dd></div>
+    </dl>
+  </div>
+
+  <p><strong>Measured from zero, all three totals come out large and positive</strong> — 348, 268, 288. The rising set and the falling set, which are opposites, produce almost the same answer. The measurement is useless: it is mostly reporting that all the numbers happen to be positive.</p>
+  <p>Switch to <strong>measuring from the average</strong> and the same three sets give <span class="num">+40</span>, <span class="num">−40</span> and <span class="num">−6</span>. Now the rising set and the falling set are exact opposites, and the patternless one sits near zero. <em>Same data, same multiplication — only the starting point moved.</em></p>
+
+  <div class="callout">
+    <p><strong>That is the whole reason.</strong> Raw values answer “how big is this number?” Distances from the average answer “<em>is this number unusually high or unusually low?</em>” — and only the second question can reveal a pattern.</p>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="station">
+  <div class="st-num">Station 02</div>
+  <h2>The crosshair, and the four corners it makes</h2>
+  <p class="lede">Draw a vertical line at the average x, and a horizontal line at the average y. That crosshair splits the picture into four corners — and the corner a point falls into is the whole story.</p>
+  <p><strong>Drag any dot.</strong> Watch its corner change, its contribution flip sign, and the total move.</p>
+
+  <div class="rig">
+    <div class="rig-head">
+      <span class="rig-title">Six points · drag them</span>
+      <span class="rig-note">crosshair sits at the average of each axis</span>
+    </div>
+    <div class="stage" style="height:min(56vh,420px)"><canvas id="cv-quad"></canvas></div>
+    <div class="legend">
+      <span><i style="background:rgba(70,200,178,.32)"></i>agree — both unusual the same way (contributes +)</span>
+      <span><i style="background:rgba(226,87,76,.28)"></i>disagree — unusual opposite ways (contributes −)</span>
+    </div>
+    <div class="controls">
+      <button id="b-reset">Reset the points</button>
+      <span class="readout" id="ro-sum">sum = +40.00<small>TOTAL OF ALL SIX</small></span>
+      <span class="readout" id="ro-r">r = 0.828<small>CORRELATION</small></span>
+    </div>
+  </div>
+
+  <p>Each point contributes <span class="num">(x − x̄) × (y − ȳ)</span>. Two negatives multiply to a positive, so a point that is <em>low on both</em> counts exactly like one that is <em>high on both</em> — both are evidence the two move together. A point high on one and low on the other counts against.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <caption>Live contributions</caption>
+      <thead><tr><th>Point</th><th>x</th><th>y</th><th>x − x̄</th><th>y − ȳ</th><th>Product</th><th>Corner</th></tr></thead>
+      <tbody id="tb-quad"></tbody>
+      <tfoot id="tf-quad"></tfoot>
+    </table>
+  </div>
+
+  <p>Add the six products and you get the total. Divide that total by the spread of x and you have the <strong>slope</strong>. Divide it by both spreads and you have the <strong>correlation</strong>. Two different questions, one shared sum.</p>
+</section>
+
+<!-- 03 -->
+<section class="station">
+  <div class="st-num">Station 03</div>
+  <h2>Your data in the same crosshair</h2>
+  <p class="lede">666 months of US parity. Horizontal: where parity stood that month, against its own long-run average. Vertical: what happened the month after, against the average change.</p>
+  <p>This is the Station 04 scatter from the main page, with the crosshair drawn in — so you can see where the downward tilt actually comes from.</p>
+
+  <div class="rig">
+    <div class="rig-head">
+      <span class="rig-title">US parity · level now vs change next month</span>
+      <span class="rig-note">1971–2026 · ln(cattle PPI ÷ corn PPI)</span>
+    </div>
+    <div class="stage" style="height:min(58vh,430px)"><canvas id="cv-real"></canvas></div>
+    <div class="legend">
+      <span><i style="background:rgba(226,87,76,.28)"></i>pulled back — high then fell, or low then rose (contributes −)</span>
+      <span><i style="background:rgba(70,200,178,.32)"></i>pushed further out (contributes +)</span>
+    </div>
+    <div class="controls">
+      <button id="b-real-cross" class="on">Show crosshair</button>
+      <button id="b-real-shade" class="on">Shade the corners</button>
+    </div>
+    <dl class="stats">
+      <div class="stat hot"><dt>High &amp; then fell</dt><dd id="q-hf">180</dd></div>
+      <div class="stat good"><dt>High &amp; then rose</dt><dd id="q-hr">168</dd></div>
+      <div class="stat good"><dt>Low &amp; then fell</dt><dd id="q-lf">154</dd></div>
+      <div class="stat hot"><dt>Low &amp; then rose</dt><dd id="q-lr">164</dd></div>
+    </dl>
+  </div>
+
+  <p><strong>344 months pulled back toward the middle; 322 pushed further out.</strong> That is a thin majority — not a dramatic one. And that thinness <em>is</em> the shallow slope: a pull that exists, but only just.</p>
+  <p>The sum of all 666 products comes to <span class="num">−2.15</span>. Negative, because the pull-back corners outweigh the others. Divide by the spread of the horizontal axis and you get <span class="num">−0.0284</span> — the γ from the main page, the 2.8% of the gap that closes each month.</p>
+
+  <div class="callout">
+    <p>Nothing new was introduced here. The ADF statistic, the slope and the correlation are all built from this one picture: <strong>count each month by which corner it lands in, weight it by how far out it sits, add them up.</strong></p>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="station">
+  <div class="st-num">Station 04</div>
+  <h2>In a spreadsheet</h2>
+  <p>Nothing here needs software. With x in column A and y in column B:</p>
+
+  <div class="fx">C2 = A2 − AVERAGE($A$2:$A$100)<br>
+    D2 = B2 − AVERAGE($B$2:$B$100)<br>
+    E2 = C2 * D2<br>
+    <br>
+    total = SUM(E2:E100)
+    <small>slope = total ÷ SUM(C2:C100^2) &nbsp;·&nbsp; or just SLOPE(B:B, A:A)<br>
+    correlation = CORREL(A:A, B:B)</small></div>
+
+  <p>Column C answers “how unusual was x that month.” Column D, the same for y. Column E multiplies them, so it is positive when the two were unusual in the same direction and negative when they were not. Everything downstream is that column, added up and rescaled.</p>
+</section>
+
+<footer>
+  <p>Companion to <a href="https://claude.ai/code/artifact/c7811ab3-2bb2-427a-80e9-97961faada83">Two Walks Uphill</a>. Real-data panel computed from <span style="color:#cbbfa8">data/cattle-us.json</span> — 666 monthly observations, Jan 1971 to Jul 2026.</p>
+</footer>
+
+</div>
+<script>
+const D={"m":["1971-01","1971-02","1971-03","1971-04","1971-05","1971-06","1971-07","1971-08","1971-09","1971-10","1971-11","1971-12","1972-01","1972-02","1972-03","1972-04","1972-05","1972-06","1972-07","1972-08","1972-09","1972-10","1972-11","1972-12","1973-01","1973-02","1973-03","1973-04","1973-05","1973-06","1973-07","1973-08","1973-09","1973-10","1973-11","1973-12","1974-01","1974-02","1974-03","1974-04","1974-05","1974-06","1974-07","1974-08","1974-09","1974-10","1974-11","1974-12","1975-01","1975-02","1975-03","1975-04","1975-05","1975-06","1975-07","1975-08","1975-09","1975-10","1975-11","1975-12","1976-01","1976-02","1976-03","1976-04","1976-05","1976-06","1976-07","1976-08","1976-09","1976-10","1976-11","1976-12","1977-01","1977-02","1977-03","1977-04","1977-05","1977-06","1977-07","1977-08","1977-09","1977-10","1977-11","1977-12","1978-01","1978-02","1978-03","1978-04","1978-05","1978-06","1978-07","1978-08","1978-09","1978-10","1978-11","1978-12","1979-01","1979-02","1979-03","1979-04","1979-05","1979-06","1979-07","1979-08","1979-09","1979-10","1979-11","1979-12","1980-01","1980-02","1980-03","1980-04","1980-05","1980-06","1980-07","1980-08","1980-09","1980-10","1980-11","1980-12","1981-01","1981-02","1981-03","1981-04","1981-05","1981-06","1981-07","1981-08","1981-09","1981-10","1981-11","1981-12","1982-01","1982-02","1982-03","1982-04","1982-05","1982-06","1982-07","1982-08","1982-09","1982-10","1982-11","1982-12","1983-01","1983-02","1983-03","1983-04","1983-05","1983-06","1983-07","1983-08","1983-09","1983-10","1983-11","1983-12","1984-01","1984-02","1984-03","1984-04","1984-05","1984-06","1984-07","1984-08","1984-09","1984-10","1984-11","1984-12","1985-01","1985-02","1985-03","1985-04","1985-05","1985-06","1985-07","1985-08","1985-09","1985-10","1985-11","1985-12","1986-01","1986-02","1986-03","1986-04","1986-05","1986-06","1986-07","1986-08","1986-09","1986-10","1986-11","1986-12","1987-01","1987-02","1987-03","1987-04","1987-05","1987-06","1987-07","1987-08","1987-09","1987-10","1987-11","1987-12","1988-01","1988-02","1988-03","1988-04","1988-05","1988-06","1988-07","1988-08","1988-09","1988-10","1988-11","1988-12","1989-01","1989-02","1989-03","1989-04","1989-05","1989-06","1989-07","1989-08","1989-09","1989-10","1989-11","1989-12","1990-01","1990-02","1990-03","1990-04","1990-05","1990-06","1990-07","1990-08","1990-09","1990-10","1990-11","1990-12","1991-01","1991-02","1991-03","1991-04","1991-05","1991-06","1991-07","1991-08","1991-09","1991-10","1991-11","1991-12","1992-01","1992-02","1992-03","1992-04","1992-05","1992-06","1992-07","1992-08","1992-09","1992-10","1992-11","1992-12","1993-01","1993-02","1993-03","1993-04","1993-05","1993-06","1993-07","1993-08","1993-09","1993-10","1993-11","1993-12","1994-01","1994-02","1994-03","1994-04","1994-05","1994-06","1994-07","1994-08","1994-09","1994-10","1994-11","1994-12","1995-01","1995-02","1995-03","1995-04","1995-05","1995-06","1995-07","1995-08","1995-09","1995-10","1995-11","1995-12","1996-01","1996-02","1996-03","1996-04","1996-05","1996-06","1996-07","1996-08","1996-09","1996-10","1996-11","1996-12","1997-01","1997-02","1997-03","1997-04","1997-05","1997-06","1997-07","1997-08","1997-09","1997-10","1997-11","1997-12","1998-01","1998-02","1998-03","1998-04","1998-05","1998-06","1998-07","1998-08","1998-09","1998-10","1998-11","1998-12","1999-01","1999-02","1999-03","1999-04","1999-05","1999-06","1999-07","1999-08","1999-09","1999-10","1999-11","1999-12","2000-01","2000-02","2000-03","2000-04","2000-05","2000-06","2000-07","2000-08","2000-09","2000-10","2000-11","2000-12","2001-01","2001-02","2001-03","2001-04","2001-05","2001-06","2001-07","2001-08","2001-09","2001-10","2001-11","2001-12","2002-01","2002-02","2002-03","2002-04","2002-05","2002-06","2002-07","2002-08","2002-09","2002-10","2002-11","2002-12","2003-01","2003-02","2003-03","2003-04","2003-05","2003-06","2003-07","2003-08","2003-09","2003-10","2003-11","2003-12","2004-01","2004-02","2004-03","2004-04","2004-05","2004-06","2004-07","2004-08","2004-09","2004-10","2004-11","2004-12","2005-01","2005-02","2005-03","2005-04","2005-05","2005-06","2005-07","2005-08","2005-09","2005-10","2005-11","2005-12","2006-01","2006-02","2006-03","2006-04","2006-05","2006-06","2006-07","2006-08","2006-09","2006-10","2006-11","2006-12","2007-01","2007-02","2007-03","2007-04","2007-05","2007-06","2007-07","2007-08","2007-09","2007-10","2007-11","2007-12","2008-01","2008-02","2008-03","2008-04","2008-05","2008-06","2008-07","2008-08","2008-09","2008-10","2008-11","2008-12","2009-01","2009-02","2009-03","2009-04","2009-05","2009-06","2009-07","2009-08","2009-09","2009-10","2009-11","2009-12","2010-01","2010-02","2010-03","2010-04","2010-05","2010-06","2010-07","2010-08","2010-09","2010-10","2010-11","2010-12","2011-01","2011-02","2011-03","2011-04","2011-05","2011-06","2011-07","2011-08","2011-09","2011-10","2011-11","2011-12","2012-01","2012-02","2012-03","2012-04","2012-05","2012-06","2012-07","2012-08","2012-09","2012-10","2012-11","2012-12","2013-01","2013-02","2013-03","2013-04","2013-05","2013-06","2013-07","2013-08","2013-09","2013-10","2013-11","2013-12","2014-01","2014-02","2014-03","2014-04","2014-05","2014-06","2014-07","2014-08","2014-09","2014-10","2014-11","2014-12","2015-01","2015-02","2015-03","2015-04","2015-05","2015-06","2015-07","2015-08","2015-09","2015-10","2015-11","2015-12","2016-01","2016-02","2016-03","2016-04","2016-05","2016-06","2016-07","2016-08","2016-09","2016-10","2016-11","2016-12","2017-01","2017-02","2017-03","2017-04","2017-05","2017-06","2017-07","2017-08","2017-09","2017-10","2017-11","2017-12","2018-01","2018-02","2018-03","2018-04","2018-05","2018-06","2018-07","2018-08","2018-09","2018-10","2018-11","2018-12","2019-01","2019-02","2019-03","2019-04","2019-05","2019-06","2019-07","2019-08","2019-09","2019-10","2019-11","2019-12","2020-01","2020-02","2020-03","2020-04","2020-05","2020-06","2020-07","2020-08","2020-09","2020-10","2020-11","2020-12","2021-01","2021-02","2021-03","2021-04","2021-05","2021-06","2021-07","2021-08","2021-09","2021-10","2021-11","2021-12","2022-01","2022-02","2022-03","2022-04","2022-05","2022-06","2022-07","2022-08","2022-09","2022-10","2022-11","2022-12","2023-01","2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06"],"x":[-0.34729,-0.23067,-0.20715,-0.16405,-0.14641,-0.2015,-0.14607,0.01351,0.10796,0.14833,0.1931,0.06363,0.12478,0.18057,0.16373,0.12071,0.11796,0.17999,0.18007,0.14133,0.04066,0.13967,0.07027,-0.08371,0.0,0.08443,0.2018,0.11172,-0.07742,-0.25825,-0.11216,-0.40467,-0.21555,-0.34658,-0.39053,-0.54335,-0.40977,-0.46617,-0.5017,-0.43032,-0.48127,-0.70725,-0.64474,-0.73814,-0.74845,-0.9113,-0.92306,-0.9271,-0.87779,-0.86204,-0.76443,-0.58053,-0.44754,-0.42373,-0.47868,-0.62717,-0.50137,-0.47482,-0.41294,-0.42114,-0.51116,-0.5727,-0.62867,-0.45193,-0.55182,-0.62717,-0.70745,-0.67197,-0.67374,-0.53854,-0.45303,-0.48939,-0.52509,-0.52831,-0.52831,-0.49512,-0.36904,-0.37804,-0.26501,-0.16925,-0.16499,-0.10569,-0.28968,-0.28728,-0.26618,-0.20838,-0.21778,-0.22065,-0.15106,-0.10881,-0.0715,-0.08632,0.00588,0.00568,-0.06177,-0.01359,0.05401,0.10517,0.15999,0.16263,0.10984,0.03498,-0.12636,-0.11822,-0.01664,-0.045,0.02117,-0.02153,0.0373,0.02147,0.02849,-0.03729,-0.05203,-0.03087,-0.14862,-0.18874,-0.24309,-0.26098,-0.26188,-0.30043,-0.35925,-0.33449,-0.3267,-0.30625,-0.26945,-0.26188,-0.28011,-0.20273,-0.0744,-0.08905,-0.10292,-0.06433,-0.11194,-0.0493,-0.02706,-0.0009,0.00995,-0.0018,-0.02563,0.04622,0.14436,0.13094,-0.02255,-0.06465,-0.07032,-0.15982,-0.15572,-0.18717,-0.2085,-0.24552,-0.29639,-0.38802,-0.4245,-0.39973,-0.46204,-0.33366,-0.28289,-0.22214,-0.25903,-0.32352,-0.33142,-0.36442,-0.31732,-0.27839,-0.24245,-0.18092,-0.1267,-0.07969,-0.12409,-0.11755,-0.16996,-0.21023,-0.21394,-0.23534,-0.25631,-0.19906,-0.21146,0.00787,-0.00723,-0.04531,-0.07915,-0.12579,-0.10681,-0.15397,-0.16275,-0.21518,0.07529,0.28005,0.42403,0.46675,0.36596,0.30218,0.4076,0.4475,0.45432,0.43922,0.37377,0.36762,0.44109,0.56104,0.4836,0.42527,0.33511,0.31086,0.34309,0.30122,0.34819,0.36769,0.37679,0.07344,-0.10392,-0.07505,-0.04353,-0.04009,0.02936,0.02235,-0.01157,0.03614,0.03864,0.09285,0.04746,0.09349,0.07881,0.2018,0.16331,0.18174,0.16144,0.2193,0.22928,0.22458,0.22881,0.1428,0.09249,0.04698,0.05107,0.21873,0.24051,0.29862,0.3135,0.29065,0.26144,0.24702,0.21624,0.20498,0.21002,0.22546,0.24811,0.04955,0.10607,0.11743,0.09112,0.12204,0.10535,0.14289,0.09458,0.13689,0.11974,0.06072,0.16152,0.25371,0.24928,0.31386,0.31445,0.31591,0.33911,0.3679,0.35213,0.2917,0.31159,0.34409,0.21091,0.21325,0.21568,0.11743,0.05562,-0.0553,-0.08023,-0.05235,0.00698,0.06053,0.02645,-0.11698,0.08195,0.16152,0.1269,0.17806,0.21511,0.14341,0.17345,0.17421,0.09758,0.01587,-0.06806,-0.11406,-0.18104,-0.16487,-0.1832,-0.23902,-0.23598,-0.3117,-0.38935,-0.45571,-0.53495,-0.66689,-0.81171,-0.75226,-0.78812,-0.68796,-0.35169,-0.14076,-0.05119,-0.10048,-0.1162,-0.14249,-0.17984,-0.14318,-0.12126,-0.15654,-0.09497,-0.07042,-0.07429,-0.1171,-0.08002,-0.10237,-0.10614,-0.15036,-0.13823,0.0,0.00827,0.04239,-0.0022,0.11083,0.20953,0.10823,0.08103,0.02479,0.08911,0.09695,0.13967,0.14833,0.11065,0.1931,0.36242,0.20579,0.29349,0.40693,0.31159,0.33468,0.28187,0.20065,0.20147,0.26528,0.20449,0.32476,0.44795,0.47586,0.39575,0.33189,0.30099,0.34671,0.3113,0.4046,0.37391,0.408,0.41838,0.4336,0.30734,0.23222,0.2639,0.29491,0.19934,0.15606,0.20961,0.31386,0.33289,0.28931,0.19803,0.18731,0.05799,-0.10458,-0.14804,-0.02542,0.07483,0.1305,0.22074,0.16093,0.17244,0.17957,0.14211,0.15666,0.25224,0.27665,0.30077,0.6154,0.46618,0.36804,0.11315,0.06738,0.11386,0.06588,0.11485,0.17261,0.26413,0.3421,0.3969,0.5703,0.56781,0.51163,0.55366,0.55584,0.48575,0.57166,0.56127,0.46329,0.37274,0.43793,0.63938,0.73616,0.65107,0.59592,0.55262,0.50778,0.46147,0.33519,0.27695,0.31284,0.24616,0.43152,0.45146,0.17193,-0.09861,-0.09047,-0.04322,-0.16134,-0.09014,0.05126,0.00628,-0.14076,0.00827,0.06307,0.09513,0.07631,-0.07602,-0.20641,-0.38699,-0.34432,-0.48646,-0.55009,-0.49627,-0.61434,-0.50733,-0.32781,-0.3292,-0.16029,-0.0849,-0.03801,-0.13125,-0.18693,-0.22077,-0.14989,-0.27615,-0.366,-0.13136,-0.12025,-0.06241,-0.16972,-0.17841,-0.20359,-0.13273,-0.04793,-0.00874,0.06401,0.01774,-0.01827,-0.01491,-0.04061,-0.18501,-0.35254,-0.37702,-0.40497,-0.37994,-0.46331,-0.37819,-0.46904,-0.48841,-0.60221,-0.52155,-0.50451,-0.51684,-0.37469,-0.35882,-0.29841,-0.33645,-0.28928,-0.3415,-0.32559,-0.28011,-0.30952,-0.53256,-0.54663,-0.49939,-0.47465,-0.45808,-0.46825,-0.48094,-0.44006,-0.45366,-0.33687,-0.39705,-0.45256,-0.41794,-0.17638,-0.07796,0.11306,0.1291,0.12328,0.20539,0.19211,0.17429,0.10066,0.10012,0.2245,0.46587,0.49902,0.58389,0.6285,0.59377,0.49017,0.50047,0.46574,0.47213,0.49604,0.52426,0.48218,0.32476,0.43858,0.33982,0.3135,0.32729,0.18855,0.34649,0.34153,0.36116,0.33968,0.29267,0.08544,0.28096,0.36762,0.31255,0.17563,0.22442,0.19901,0.24561,0.21358,0.29743,0.29282,0.35199,0.29691,0.1824,0.23862,0.23665,0.27193,0.3349,0.30483,0.27437,0.29543,0.24951,0.18132,0.1127,0.14497,0.24263,0.17973,0.21107,0.19926,0.16305,0.15495,0.22474,0.21188,0.28088,0.25363,0.18224,-0.0023,-0.04993,0.07139,0.0543,0.03363,0.09331,0.12734,0.12584,0.12857,0.06335,0.23389,0.31218,0.2217,0.1622,0.28224,0.111,0.04564,-0.02675,-0.07861,-0.25968,-0.28236,-0.28289,-0.27734,-0.54922,-0.41946,-0.36197,-0.33575,-0.1702,-0.13593,-0.16217,-0.20212,-0.21778,-0.20764,-0.34574,-0.39824,-0.41825,-0.39675,-0.31143,-0.26188,-0.33491,-0.2776,-0.23105,-0.20371,-0.18597,-0.1885,-0.06667,-0.04437,-0.01928,0.03845,0.19622,0.28848,0.37011,0.37315,0.33024,0.29118,0.3503,0.46317,0.5088,0.51252,0.46568,0.50422,0.63906,0.66099,0.60677,0.63848,0.5173,0.50162,0.51049,0.51438,0.55446,0.54139,0.68834,0.74279,0.81133,0.93098,0.86167,0.87062,0.75349,0.7288,0.80496,0.81881,0.75706,0.81337,0.7895,0.89216],"y":[0.11662,0.02352,0.0431,0.01764,-0.05509,0.05544,0.15958,0.09445,0.04038,0.04476,-0.12946,0.06115,0.05579,-0.01684,-0.04302,-0.00275,0.06202,8e-05,-0.03874,-0.10066,0.09901,-0.0694,-0.15398,0.08371,0.08443,0.11736,-0.09008,-0.18914,-0.18083,0.14609,-0.2925,0.18912,-0.13104,-0.04394,-0.15282,0.13357,-0.0564,-0.03553,0.07138,-0.05095,-0.22598,0.06251,-0.09341,-0.0103,-0.16285,-0.01176,-0.00404,0.04931,0.01575,0.09761,0.1839,0.133,0.02381,-0.05495,-0.14849,0.1258,0.02656,0.06187,-0.00819,-0.09002,-0.06154,-0.05597,0.17674,-0.09989,-0.07535,-0.08028,0.03548,-0.00176,0.1352,0.08551,-0.03636,-0.0357,-0.00322,0.0,0.03319,0.12608,-0.00901,0.11304,0.09576,0.00425,0.0593,-0.18399,0.0024,0.0211,0.0578,-0.0094,-0.00286,0.06959,0.04224,0.03731,-0.01482,0.0922,-0.0002,-0.06745,0.04818,0.06761,0.05116,0.05482,0.00264,-0.05279,-0.07486,-0.16134,0.00814,0.10158,-0.02836,0.06617,-0.0427,0.05883,-0.01583,0.00702,-0.06578,-0.01474,0.02116,-0.11774,-0.04013,-0.05435,-0.01788,-0.00091,-0.03855,-0.05882,0.02476,0.00779,0.02045,0.0368,0.00756,-0.01823,0.07738,0.12833,-0.01465,-0.01387,0.03859,-0.04761,0.06264,0.02223,0.02616,0.01085,-0.01175,-0.02382,0.07184,0.09814,-0.01342,-0.15349,-0.04209,-0.00567,-0.0895,0.0041,-0.03145,-0.02133,-0.03702,-0.05087,-0.09163,-0.03648,0.02476,-0.0623,0.12838,0.05076,0.06075,-0.03689,-0.06449,-0.00791,-0.03299,0.0471,0.03892,0.03594,0.06153,0.05422,0.047,-0.0444,0.00654,-0.05241,-0.04027,-0.00371,-0.02141,-0.02097,0.05725,-0.0124,0.21933,-0.0151,-0.03809,-0.03384,-0.04664,0.01898,-0.04716,-0.00879,-0.05242,0.29047,0.20476,0.14397,0.04272,-0.10079,-0.06379,0.10542,0.03991,0.00682,-0.0151,-0.06545,-0.00614,0.07346,0.11995,-0.07745,-0.05833,-0.09015,-0.02425,0.03223,-0.04188,0.04697,0.0195,0.0091,-0.30335,-0.17735,0.02887,0.03151,0.00344,0.06946,-0.00702,-0.03392,0.04771,0.0025,0.05421,-0.0454,0.04603,-0.01468,0.12299,-0.03849,0.01843,-0.0203,0.05786,0.00999,-0.0047,0.00422,-0.08601,-0.05031,-0.04551,0.00409,0.16766,0.02178,0.05811,0.01487,-0.02284,-0.02921,-0.01442,-0.03078,-0.01126,0.00504,0.01544,0.02265,-0.19856,0.05652,0.01136,-0.02631,0.03092,-0.01669,0.03754,-0.0483,0.04231,-0.01715,-0.05902,0.1008,0.09219,-0.00443,0.06458,0.00058,0.00146,0.02321,0.02879,-0.01577,-0.06044,0.01989,0.03249,-0.13318,0.00235,0.00242,-0.09825,-0.0618,-0.11093,-0.02493,0.02789,0.05932,0.05355,-0.03408,-0.14343,0.19893,0.07957,-0.03463,0.05117,0.03705,-0.0717,0.03004,0.00076,-0.07663,-0.08171,-0.08394,-0.046,-0.06698,0.01617,-0.01833,-0.05582,0.00304,-0.07573,-0.07764,-0.06636,-0.07924,-0.13195,-0.14481,0.05945,-0.03586,0.10016,0.33627,0.21093,0.08957,-0.0493,-0.01571,-0.02629,-0.03736,0.03667,0.02191,-0.03527,0.06157,0.02455,-0.00387,-0.0428,0.03708,-0.02235,-0.00377,-0.04422,0.01213,0.13823,0.00827,0.03412,-0.04459,0.11303,0.09871,-0.1013,-0.0272,-0.05624,0.06432,0.00784,0.04273,0.00866,-0.03769,0.08245,0.16932,-0.15662,0.0877,0.11344,-0.09534,0.02309,-0.05282,-0.08121,0.00082,0.06381,-0.06079,0.12027,0.12319,0.02791,-0.08011,-0.06386,-0.0309,0.04571,-0.0354,0.0933,-0.03069,0.03409,0.01039,0.01522,-0.12626,-0.07512,0.03168,0.031,-0.09556,-0.04328,0.05355,0.10425,0.01903,-0.04359,-0.09127,-0.01072,-0.12932,-0.16257,-0.04345,0.12262,0.10025,0.05567,0.09024,-0.05981,0.01151,0.00713,-0.03746,0.01455,0.09557,0.02441,0.02412,0.31463,-0.14922,-0.09814,-0.25489,-0.04577,0.04649,-0.04798,0.04896,0.05776,0.09152,0.07797,0.0548,0.17341,-0.00249,-0.05619,0.04203,0.00218,-0.07008,0.0859,-0.01039,-0.09798,-0.09056,0.0652,0.20144,0.09678,-0.08508,-0.05515,-0.0433,-0.04484,-0.04631,-0.12628,-0.05824,0.03589,-0.06668,0.18537,0.01994,-0.27952,-0.27054,0.00813,0.04725,-0.11812,0.0712,0.14141,-0.04498,-0.14704,0.14902,0.0548,0.03206,-0.01882,-0.15233,-0.13039,-0.18058,0.04266,-0.14214,-0.06363,0.05382,-0.11807,0.107,0.17952,-0.00139,0.16891,0.07538,0.04689,-0.09323,-0.05568,-0.03384,0.07088,-0.12626,-0.08986,0.23464,0.01111,0.05784,-0.10731,-0.00869,-0.02518,0.07085,0.0848,0.03919,0.07275,-0.04627,-0.03601,0.00336,-0.0257,-0.14439,-0.16754,-0.02448,-0.02794,0.02502,-0.08336,0.08512,-0.09085,-0.01937,-0.1138,0.08066,0.01704,-0.01233,0.14215,0.01587,0.06041,-0.03805,0.04717,-0.05222,0.01591,0.04548,-0.02941,-0.22304,-0.01407,0.04723,0.02474,0.01658,-0.01017,-0.0127,0.04089,-0.0136,0.11679,-0.06018,-0.05551,0.03461,0.24156,0.09842,0.19102,0.01604,-0.00582,0.08211,-0.01328,-0.01782,-0.07363,-0.00054,0.12439,0.24137,0.03315,0.08487,0.04461,-0.03473,-0.10359,0.0103,-0.03473,0.00638,0.02391,0.02822,-0.04208,-0.15742,0.11382,-0.09875,-0.02633,0.01379,-0.13874,0.15794,-0.00496,0.01963,-0.02148,-0.04701,-0.20723,0.19552,0.08667,-0.05508,-0.13691,0.04879,-0.02541,0.04659,-0.03203,0.08386,-0.00462,0.05918,-0.05508,-0.11451,0.05622,-0.00197,0.03528,0.06297,-0.03007,-0.03047,0.02106,-0.04591,-0.06819,-0.06862,0.03226,0.09767,-0.0629,0.03134,-0.01181,-0.03621,-0.0081,0.06979,-0.01286,0.069,-0.02725,-0.0714,-0.18454,-0.04762,0.12132,-0.01709,-0.02067,0.05968,0.03403,-0.0015,0.00273,-0.06522,0.17054,0.07829,-0.09048,-0.0595,0.12004,-0.17124,-0.06536,-0.0724,-0.05186,-0.18107,-0.02269,-0.00053,0.00556,-0.27188,0.12976,0.05749,0.02622,0.16556,0.03426,-0.02623,-0.03995,-0.01567,0.01014,-0.1381,-0.05251,-0.02001,0.02149,0.08532,0.04954,-0.07303,0.05731,0.04655,0.02734,0.01774,-0.00253,0.12183,0.0223,0.02509,0.05774,0.15777,0.09226,0.08163,0.00303,-0.04291,-0.03906,0.05913,0.11286,0.04564,0.00372,-0.04684,0.03854,0.13484,0.02192,-0.05421,0.03171,-0.12118,-0.01568,0.00886,0.00389,0.04008,-0.01307,0.14694,0.05446,0.06854,0.11965,-0.06932,0.00896,-0.11713,-0.02469,0.07615,0.01385,-0.06175,0.05631,-0.02387,0.10266,-0.0835],"mx":0.01973,"my":0.001736,"q":[168,164,154,180]};
+const C={ink:'#f5efe6',dim:'#cbbfa8',dimmer:'#8a7c62',amber:'#ffb056',blue:'#8aa0d8',
+         red:'#e2574c',teal:'#46c8b2',line:'rgba(203,191,168,.18)',soft:'rgba(203,191,168,.09)'};
+const MONO='"IBM Plex Mono",monospace';
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rigs=[];
+function rig(id,draw){
+  const cv=document.getElementById(id); if(!cv)return null;
+  const ctx=cv.getContext('2d'); const R={cv,ctx,w:0,h:0,draw,live:false};
+  R.fit=()=>{const r=cv.parentElement.getBoundingClientRect();
+    const d=Math.min(window.devicePixelRatio||1,2);
+    cv.width=Math.max(1,Math.round(r.width*d)); cv.height=Math.max(1,Math.round(r.height*d));
+    ctx.setTransform(d,0,0,d,0,0); R.w=r.width; R.h=r.height; R.draw(R);};
+  rigs.push(R);
+  new IntersectionObserver(es=>es.forEach(e=>{R.live=e.isIntersecting;}),{threshold:.05}).observe(cv);
+  return R;
+}
+addEventListener('resize',()=>rigs.forEach(r=>r.fit()));
+function txt(ctx,s,x,y,{size=11,col=C.dimmer,weight=600,align='left'}={}){
+  ctx.save(); ctx.font=`${weight} ${size}px ${MONO}`; ctx.fillStyle=col;
+  ctx.textAlign=align; ctx.textBaseline='middle'; ctx.fillText(s,x,y); ctx.restore();
+}
+const mean=a=>a.reduce((s,v)=>s+v,0)/a.length;
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const fmt=(v,d=2)=>(v<0?'−':'+')+Math.abs(v).toFixed(d);
+
+/* ================= 01 · three patterns ================= */
+const XS=[2,4,6,8,10,12];
+const SETS=[{k:'rising',lab:'RISING',y:[5,4,8,7,11,9]},
+            {k:'falling',lab:'FALLING',y:[9,11,7,8,4,5]},
+            {k:'flat',lab:'NO PATTERN',y:[7,8,6,8,7,6]}];
+const TH={t:0,target:0};
+function sums(y,centred){
+  const mx=centred?mean(XS):0, my=centred?mean(y):0;
+  let s=0; for(let i=0;i<6;i++) s+=(XS[i]-mx)*(y[i]-my);
+  return s;
+}
+const rThree=rig('cv-three',R=>{
+  const ctx=R.ctx; ctx.clearRect(0,0,R.w,R.h);
+  const e=ease(TH.t);
+  const gap=14, pad=18;
+  const bw=(R.w-pad*2-gap*2)/3, bh=R.h-56-28;
+  SETS.forEach((S,k)=>{
+    const x0=pad+k*(bw+gap), y0=56;
+    const mx=mean(XS)*e, my=mean(S.y)*e;
+    const X=v=>x0+8+(bw-16)*(v-0)/14, Y=v=>y0+bh-8-(bh-16)*(v-0)/13;
+    ctx.strokeStyle=C.soft; ctx.lineWidth=1; ctx.strokeRect(x0,y0,bw,bh);
+    // shading appears as the crosshair slides onto the averages
+    if(e>0.02){
+      const cx=X(mx), cy=Y(my), a=0.30*e;
+      ctx.fillStyle=`rgba(70,200,178,${a})`;
+      ctx.fillRect(cx,y0,x0+bw-cx,cy-y0); ctx.fillRect(x0,cy,cx-x0,y0+bh-cy);
+      ctx.fillStyle=`rgba(226,87,76,${a*0.9})`;
+      ctx.fillRect(x0,y0,cx-x0,cy-y0); ctx.fillRect(cx,cy,x0+bw-cx,y0+bh-cy);
+      ctx.strokeStyle=`rgba(255,176,86,${.25+.55*e})`; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(cx,y0); ctx.lineTo(cx,y0+bh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x0,cy); ctx.lineTo(x0+bw,cy); ctx.stroke(); ctx.setLineDash([]);
+    }
+    for(let i=0;i<6;i++){
+      const prod=(XS[i]-mx)*(S.y[i]-my);
+      ctx.fillStyle=e>.02?(prod>=0?C.teal:C.red):C.amber;
+      ctx.beginPath(); ctx.arc(X(XS[i]),Y(S.y[i]),4.2,0,7); ctx.fill();
+    }
+    txt(ctx,S.lab,x0+bw/2,y0-15,{size:10.5,col:C.dim,align:'center'});
+    const tot=sums(S.y,e>.5);
+    txt(ctx,(e>.5?fmt(tot,2):tot.toFixed(0)),x0+bw/2,y0+bh+16,
+        {size:14,weight:700,align:'center',col:e>.5?(tot>0?C.teal:C.red):C.amber});
+  });
+  const lab=TH.t<.5?'measuring from ZERO — every point counts as “big”'
+                   :'measuring from the AVERAGE — every point counts as “unusual”';
+  txt(ctx,lab,R.w/2,17,{size:11,col:C.dim,align:'center'});
+});
+function threeStats(){
+  const c=TH.target>.5;
+  const v=SETS.map(S=>sums(S.y,c));
+  ['s-rise','s-fall','s-flat'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.textContent=c?fmt(v[i],0):v[i].toFixed(0);
+    el.parentElement.className='stat'+(c?(v[i]>0?' good':' hot'):'');
+  });
+  const ver=document.getElementById('s-verdict');
+  ver.textContent=c?'yes — opposite signs':'no — all look alike';
+  ver.parentElement.className='stat '+(c?'good':'hot');
+}
+document.getElementById('b-zero').onclick=e=>{TH.target=0;
+  e.currentTarget.classList.add('on'); document.getElementById('b-avg').classList.remove('on'); threeStats();};
+document.getElementById('b-avg').onclick=e=>{TH.target=1;
+  e.currentTarget.classList.add('on'); document.getElementById('b-zero').classList.remove('on'); threeStats();};
+function threeTick(){
+  if(!rThree)return;
+  if(Math.abs(TH.t-TH.target)>.001){TH.t+=(TH.target-TH.t)*(REDUCED?1:.06); rThree.draw(rThree);}
+}
+
+/* ================= 02 · draggable crosshair ================= */
+const START=[[2,5],[4,4],[6,8],[8,7],[10,11],[12,9]];
+let PTS=START.map(p=>p.slice());
+const Q={drag:-1};
+function qgeom(R){
+  const PL=52,PR=20,PT=22,PB=38;
+  return {PL,PR,PT,PB,w:R.w-PL-PR,h:R.h-PT-PB,
+          X:v=>PL+(R.w-PL-PR)*(v-0)/14, Y:v=>PT+(R.h-PT-PB)*(1-(v-0)/14),
+          iX:px=>(px-PL)/(R.w-PL-PR)*14, iY:py=>(1-(py-PT)/(R.h-PT-PB))*14};
+}
+const rQuad=rig('cv-quad',R=>{
+  const ctx=R.ctx; ctx.clearRect(0,0,R.w,R.h);
+  const g=qgeom(R);
+  const xs=PTS.map(p=>p[0]), ys=PTS.map(p=>p[1]);
+  const mx=mean(xs), my=mean(ys);
+  const cx=g.X(mx), cy=g.Y(my);
+  ctx.fillStyle='rgba(70,200,178,.13)';
+  ctx.fillRect(cx,g.PT,g.PL+g.w-cx,cy-g.PT); ctx.fillRect(g.PL,cy,cx-g.PL,g.PT+g.h-cy);
+  ctx.fillStyle='rgba(226,87,76,.11)';
+  ctx.fillRect(g.PL,g.PT,cx-g.PL,cy-g.PT); ctx.fillRect(cx,cy,g.PL+g.w-cx,g.PT+g.h-cy);
+  ctx.strokeStyle=C.soft; ctx.lineWidth=1; ctx.strokeRect(g.PL,g.PT,g.w,g.h);
+  ctx.strokeStyle=C.amber; ctx.lineWidth=1.4; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(cx,g.PT); ctx.lineTo(cx,g.PT+g.h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(g.PL,cy); ctx.lineTo(g.PL+g.w,cy); ctx.stroke(); ctx.setLineDash([]);
+  txt(ctx,'x̄ = '+mx.toFixed(2),cx+6,g.PT+10,{size:10.5,col:C.amber});
+  txt(ctx,'ȳ = '+my.toFixed(2),g.PL+6,cy-10,{size:10.5,col:C.amber});
+  let sum=0,sxx=0,syy=0;
+  PTS.forEach(([x,y],i)=>{
+    const dx=x-mx, dy=y-my, prod=dx*dy; sum+=prod; sxx+=dx*dx; syy+=dy*dy;
+    ctx.strokeStyle=prod>=0?'rgba(70,200,178,.45)':'rgba(226,87,76,.4)'; ctx.lineWidth=1;
+    ctx.setLineDash([2,3]);
+    ctx.beginPath(); ctx.moveTo(g.X(x),cy); ctx.lineTo(g.X(x),g.Y(y)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,g.Y(y)); ctx.lineTo(g.X(x),g.Y(y)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=prod>=0?C.teal:C.red;
+    ctx.beginPath(); ctx.arc(g.X(x),g.Y(y),Q.drag===i?8:6.5,0,7); ctx.fill();
+    ctx.fillStyle='#0b0906'; txt(ctx,String(i+1),g.X(x),g.Y(y)+.5,{size:10.5,col:'#0b0906',align:'center',weight:700});
+  });
+  txt(ctx,'x →',g.PL+g.w/2,R.h-12,{size:10,align:'center',col:C.dim});
+  ctx.save(); ctx.translate(16,g.PT+g.h/2); ctx.rotate(-Math.PI/2);
+  txt(ctx,'y →',0,0,{size:10,align:'center',col:C.dim}); ctx.restore();
+  txt(ctx,'drag a dot',g.PL+g.w-6,g.PT+12,{size:10,col:C.dimmer,align:'right'});
+  const r=sum/Math.sqrt(sxx*syy||1);
+  document.getElementById('ro-sum').innerHTML=`sum = ${fmt(sum,2)}<small>TOTAL OF ALL SIX</small>`;
+  document.getElementById('ro-sum').style.color=sum>=0?C.teal:C.red;
+  document.getElementById('ro-r').innerHTML=`r = ${r.toFixed(3)}<small>CORRELATION</small>`;
+  const tb=document.getElementById('tb-quad');
+  tb.innerHTML=PTS.map(([x,y],i)=>{
+    const dx=x-mx, dy=y-my, p=dx*dy;
+    const corner=(dx>=0?(dy>=0?'high · high':'high · low'):(dy>=0?'low · high':'low · low'));
+    return `<tr><td class="k">${i+1}</td><td>${x.toFixed(1)}</td><td>${y.toFixed(1)}</td>`+
+      `<td>${fmt(dx,2)}</td><td>${fmt(dy,2)}</td>`+
+      `<td><span class="${p>=0?'pos':'neg'}">${fmt(p,2)}</span></td><td>${corner}</td></tr>`;
+  }).join('');
+  document.getElementById('tf-quad').innerHTML=
+    `<tr><td class="k" colspan="5">Total</td>`+
+    `<td><span class="${sum>=0?'pos':'neg'}">${fmt(sum,2)}</span></td><td>—</td></tr>`;
+});
+(function(){
+  const cv=document.getElementById('cv-quad'); if(!cv)return;
+  const pos=ev=>{const r=cv.getBoundingClientRect(); return [ev.clientX-r.left,ev.clientY-r.top];};
+  cv.addEventListener('pointerdown',ev=>{
+    const R=rigs.find(r=>r.cv===cv), g=qgeom(R), [px,py]=pos(ev);
+    let best=-1,bd=1e9;
+    PTS.forEach(([x,y],i)=>{const d=Math.hypot(g.X(x)-px,g.Y(y)-py); if(d<bd){bd=d;best=i;}});
+    if(bd<22){Q.drag=best; cv.setPointerCapture(ev.pointerId); R.draw(R);}
+  });
+  cv.addEventListener('pointermove',ev=>{
+    if(Q.drag<0)return;
+    const R=rigs.find(r=>r.cv===cv), g=qgeom(R), [px,py]=pos(ev);
+    PTS[Q.drag]=[Math.max(.5,Math.min(13.5,g.iX(px))),Math.max(.5,Math.min(13.5,g.iY(py)))];
+    R.draw(R);
+  });
+  const end=ev=>{if(Q.drag>=0){Q.drag=-1; const R=rigs.find(r=>r.cv===cv); R.draw(R);}};
+  cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
+})();
+document.getElementById('b-reset').onclick=()=>{PTS=START.map(p=>p.slice()); rQuad.draw(rQuad);};
+
+/* ================= 03 · the real data ================= */
+const RE={cross:true,shade:true,n:0};
+const rReal=rig('cv-real',R=>{
+  const ctx=R.ctx; ctx.clearRect(0,0,R.w,R.h);
+  const PL=54,PR=20,PT=20,PB=42, w=R.w-PL-PR, h=R.h-PT-PB;
+  const xlo=Math.min(...D.x), xhi=Math.max(...D.x);
+  let yl=0; for(const v of D.y) yl=Math.max(yl,Math.abs(v)); yl*=1.05;
+  const X=v=>PL+w*(v-xlo)/(xhi-xlo), Y=v=>PT+h*(1-(v+yl)/(2*yl));
+  const cx=X(D.mx), cy=Y(D.my);
+  if(RE.shade){
+    ctx.fillStyle='rgba(226,87,76,.10)';
+    ctx.fillRect(cx,cy,PL+w-cx,PT+h-cy); ctx.fillRect(PL,PT,cx-PL,cy-PT);
+    ctx.fillStyle='rgba(70,200,178,.09)';
+    ctx.fillRect(cx,PT,PL+w-cx,cy-PT); ctx.fillRect(PL,cy,cx-PL,PT+h-cy);
+  }
+  ctx.strokeStyle=C.soft; ctx.lineWidth=1; ctx.strokeRect(PL,PT,w,h);
+  const N=REDUCED?D.x.length:RE.n;
+  for(let i=0;i<N;i++){
+    const dx=D.x[i]-D.mx, dy=D.y[i]-D.my;
+    ctx.fillStyle=(dx*dy>=0)?'rgba(70,200,178,.42)':'rgba(226,87,76,.42)';
+    ctx.beginPath(); ctx.arc(X(D.x[i]),Y(D.y[i]),1.9,0,7); ctx.fill();
+  }
+  if(RE.cross){
+    ctx.strokeStyle=C.amber; ctx.lineWidth=1.4; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(cx,PT); ctx.lineTo(cx,PT+h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PL,cy); ctx.lineTo(PL+w,cy); ctx.stroke(); ctx.setLineDash([]);
+    txt(ctx,'average level',cx+7,PT+11,{size:10,col:C.amber});
+    txt(ctx,'average change',PL+6,cy-10,{size:10,col:C.amber});
+  }
+  txt(ctx,'← parity below average',PL,R.h-25,{size:10});
+  txt(ctx,'parity above average →',PL+w,R.h-25,{size:10,align:'right'});
+  txt(ctx,'where parity stood that month',PL+w/2,R.h-10,{size:10,align:'center',col:C.dim});
+  ctx.save(); ctx.translate(15,PT+h/2); ctx.rotate(-Math.PI/2);
+  txt(ctx,'what happened next month',0,0,{size:10,align:'center',col:C.dim}); ctx.restore();
+  txt(ctx,'rose',PL-16,PT+12,{size:9.5,align:'right'});
+  txt(ctx,'fell',PL-16,PT+h-12,{size:9.5,align:'right'});
+});
+document.getElementById('b-real-cross').onclick=e=>{RE.cross=!RE.cross;
+  e.currentTarget.classList.toggle('on',RE.cross); rReal.draw(rReal);};
+document.getElementById('b-real-shade').onclick=e=>{RE.shade=!RE.shade;
+  e.currentTarget.classList.toggle('on',RE.shade); rReal.draw(rReal);};
+function realTick(){
+  if(rReal&&rReal.live&&RE.n<D.x.length&&!REDUCED){RE.n=Math.min(D.x.length,RE.n+7); rReal.draw(rReal);}
+}
+(function(){
+  document.getElementById('q-hf').textContent=D.q[3];
+  document.getElementById('q-hr').textContent=D.q[0];
+  document.getElementById('q-lf').textContent=D.q[2];
+  document.getElementById('q-lr').textContent=D.q[1];
+})();
+
+/* boot */
+threeStats(); rigs.forEach(r=>r.fit());
+(function loop(){ threeTick(); realTick(); requestAnimationFrame(loop); })();
+</script>
