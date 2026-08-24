@@ -183,8 +183,15 @@ longer ones.
 
 ## What should change on the study page
 
-1. **Qualify the grain-cycle claim to US/EU.** Currently the strongest, most
-   quotable line in the deck, and it is wrong for half the sample.
+1. ~~**Qualify the grain-cycle claim to US/EU.**~~ **Done.** On the study's own
+   year-on-year basis the feed share is 84% (US), 97% (EU), 60% (Israel) and
+   **5% (Turkey)** — the US figure reproduces exactly, and Turkey is almost
+   entirely the meat side. Applied to `parite-sigir-deck.html` slide 5 (headline,
+   per-market split, implication line, footer), `parite-sigir-metodoloji.html`
+   (TR and EN), and `parite-sigir-brief.html`. The Israel robustness sentence was
+   softened at the same time in `parite-sigir.html` and the standalone copy:
+   annual agreement 0.886 holds, monthly is only 0.555, and the two pairs are not
+   cointegrated (p = 0.692).
 2. **Drop or bound any "returns to its mean in N months" language.** Only the US
    has a finite upper bound, and it is 73 months wide.
 3. **Describe the ratio as an index convention, not an equilibrium.** β ≠ 1 in four
