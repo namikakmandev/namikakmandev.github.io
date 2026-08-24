@@ -470,11 +470,12 @@ const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 function dlog(a){const o=[]; for(let i=1;i<a.length;i++) o.push(Math.log(a[i]/a[i-1])); return o;}
 
 /* ================= 01 · random walks ================= */
-const W={A:[],B:[],i:0,auto:false};
+const W={A:[],B:[],i:0,auto:true,hold:0};
 function walkReset(){
   W.A=[0]; W.B=[0]; W.i=1;
   for(let t=1;t<200;t++){W.A.push(W.A[t-1]+gauss()); W.B.push(W.B[t-1]+gauss());}
   if(REDUCED) W.i=200;
+  W.hold=0;
 }
 const rWalk=rig('cv-walk',R=>{
   clear(R); const ctx=R.ctx, PL=44, PR=14, PT=16, PB=22;
@@ -501,24 +502,31 @@ const rWalk=rig('cv-walk',R=>{
   el.style.color=Math.abs(r)>.5?C.red:C.amber;
 });
 function walkTick(){
-  if(rWalk&&rWalk.live&&W.i<200&&!REDUCED){W.i+=2; rWalk.draw(rWalk);}
-  else if(rWalk&&W.auto&&W.i>=200){W.hold=(W.hold||0)+1; if(W.hold>70){W.hold=0; walkReset(); }}
+  if(!rWalk||!rWalk.live||REDUCED)return;
+  if(W.i<200){W.i+=1; rWalk.draw(rWalk); return;}
+  if(W.auto){W.hold++; if(W.hold>100){W.hold=0; walkReset(); rWalk.draw(rWalk);}}
 }
-document.getElementById('btn-walk').onclick=()=>{walkReset(); rWalk.draw(rWalk);};
-document.getElementById('btn-walk-auto').onclick=e=>{W.auto=!W.auto; e.currentTarget.classList.toggle('on',W.auto);};
+document.getElementById('btn-walk').onclick=()=>{walkReset(); W.hold=0; rWalk.draw(rWalk);};
+const bAuto=document.getElementById('btn-walk-auto');
+bAuto.classList.toggle('on',W.auto);
+bAuto.onclick=e=>{W.auto=!W.auto; e.currentTarget.classList.toggle('on',W.auto);};
 
 /* ================= 02 · histogram ================= */
 const NB=20, H={bins:new Array(NB).fill(0),n:0,sum:0,hi:0,vhi:0,queue:0};
 function onePair(){
   let a=0,b=0; const A=[],B=[];
   for(let t=0;t<200;t++){a+=gauss(); b+=gauss(); A.push(a); B.push(b);}
-  const r=Math.abs(corr(A,B));
+  const r=Math.abs(corr(A,B)); H.last=r;
   H.bins[Math.min(NB-1,Math.floor(r*NB))]++; H.n++; H.sum+=r;
   if(r>.5)H.hi++; if(r>.8)H.vhi++;
 }
 function histStats(){
   document.getElementById('s-hist-n').textContent=H.n.toLocaleString();
-  document.getElementById('ro-hist').innerHTML=`${H.n.toLocaleString()}<small>PAIRS RUN</small>`;
+  const ro=document.getElementById('ro-hist');
+  ro.innerHTML=H.queue&&H.last!==undefined
+    ?`r = ${H.last.toFixed(3)}<small>THIS PAIR &middot; ${H.n.toLocaleString()} RUN</small>`
+    :`${H.n.toLocaleString()}<small>PAIRS RUN</small>`;
+  if(H.queue&&H.last!==undefined) ro.style.color=H.last>.5?C.red:C.amber; else ro.style.color=C.amber;
   document.getElementById('s-hist-mean').textContent=H.n?(H.sum/H.n).toFixed(2):'—';
   document.getElementById('s-hist-hi').innerHTML=H.n?`${Math.round(100*H.hi/H.n)}<span class="unit">%</span>`:'—';
   document.getElementById('s-hist-vhi').innerHTML=H.n?`${Math.round(100*H.vhi/H.n)}<span class="unit">%</span>`:'—';
@@ -545,10 +553,11 @@ const rHist=rig('cv-hist',R=>{
 });
 document.getElementById('btn-hist').onclick=()=>{H.queue+=1000;};
 document.getElementById('btn-hist-reset').onclick=()=>{
-  H.bins.fill(0); H.n=0; H.sum=0; H.hi=0; H.vhi=0; H.queue=0; histStats(); rHist.draw(rHist);};
+  H.bins.fill(0); H.n=0; H.sum=0; H.hi=0; H.vhi=0; H.queue=0; H.last=undefined; histStats(); rHist.draw(rHist);};
 function histTick(){
+  if(rHist&&rHist.live&&!H.started){H.started=true; H.queue+=1000;}
   if(!H.queue)return;
-  const batch=REDUCED?H.queue:Math.min(H.queue,25);
+  const batch=REDUCED?H.queue:Math.min(H.queue,6);
   for(let i=0;i<batch;i++) onePair();
   H.queue-=batch; histStats(); rHist.draw(rHist);
 }
