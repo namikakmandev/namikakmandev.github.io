@@ -1,0 +1,48 @@
+name: Broiler parity PL
+
+# Poland leg of the broiler feed/meat parity (notes/broiler-parity-poland.md).
+# Runs the source probes (discovery dump -> data/_pl-parity-probe.json), then the
+# real fetch, then the builder. Each stage tolerates the previous one failing so
+# a bad Eurostat code still ships a probe report to read instead of a dead run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      probe_only:
+        description: "1 = discovery dump only, skip fetch+build"
+        default: "0"
+  schedule:
+    - cron: "47 5 2 * *"   # 2nd of month, after fetch-data.yml on the 1st
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Probe sources (discovery)
+        run: |
+          MODE=discover python scripts/fetch.py pl-ppi-probe pl-anchor-out-probe pl-anchor-in-probe
+          cp data/_fetch-report.json data/_pl-parity-probe.json
+      - name: Fetch Poland PPI pair + anchor prices
+        if: ${{ inputs.probe_only != '1' }}
+        run: python scripts/fetch.py pl-broiler-ppi pl-anchor-chicken pl-anchor-feed
+      - name: Build parity series
+        if: ${{ inputs.probe_only != '1' }}
+        run: python scripts/build_broiler_parity_pl.py
+      - name: Commit
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add data/_pl-parity-probe.json
+          git add data/pl-broiler-ppi.json data/pl-anchor-chicken.json data/pl-anchor-feed.json data/broiler-parity-pl.json 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "data: broiler parity PL probe/refresh [skip ci]"
+          for i in 1 2 3 4; do
+            git push origin HEAD && break
+            git pull --rebase || exit 1
+          done
