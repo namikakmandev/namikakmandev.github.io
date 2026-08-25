@@ -8,6 +8,10 @@ description: Checks whether a data finding is actually real before it gets publi
 Every rule below comes from a real error that shipped and had to be corrected.
 Run them before a number leaves the workspace.
 
+`scripts/corr_check.py` runs rules 2, 3, 6 and 8 against any two series in `data/`,
+with no dependencies. Every figure quoted below is reproducible with the command
+printed under it.
+
 ## 1. Is the level meaningful, or only the change?
 
 An **index** is not a quantity. `WPU0131 / WPU012202` is the ratio of two BLS price
@@ -33,6 +37,26 @@ by HICP it was **−0.12**. The first number was two trends passing each other.
 - After deflating, re-run the correlation. Report the real one.
 - If two series both trend, assume the correlation is spurious until detrended.
 
+Reproduce it:
+
+```bash
+python3 scripts/corr_check.py data/eu-vet-expenses.json EU27_2020 \
+    data/herd-cattle.json EU \
+    --per-x data/herd-cattle.json:EU --deflate-x data/eu-hicp.json:hicp
+```
+
+Nominal **-0.937**, deflated **-0.124**. The correction stands.
+
+**But the deflator was not the only thing wrong with it.** Spend per head is spend
+divided by herd, and it was being correlated against herd. The denominator *is* the
+other variable, so part of that -0.94 was arithmetic, not economics (rule 6). Drop the
+shared denominator - total real spend against herd - and the correlation is **+0.766**.
+The sign flips. The direction of the original finding came from the division.
+
+Neither figure survives an honest sample count (rule 8). The truthful statement is that
+EU vet spend and herd size have **no detectable relationship** in this data - which is
+still an outcome, and the one rule 11 already reaches for the EU.
+
 ## 3. Look for methodology breaks before comparing endpoints
 
 USDA ERS changed its cow-calf survey basis in 2008: a **−29% step** in one year that is
@@ -41,6 +65,18 @@ not economic. A 1996→2025 comparison across it is meaningless.
 - Plot or print year-over-year change and look for a single implausible step.
 - Check the source's own base/vintage column if it has one.
 - Split the series at the break and analyse within each regime.
+
+`corr_check.py` finds these by median absolute deviation, so a break cannot widen the
+threshold that would catch it. On the ERS veterinary line it reports
+`X: 2007 -> 2008  -28.9%` without being told where to look. It also trips on genuine
+shocks - the March 2022 grain spike sets it off - so read what it flags rather than
+obeying it. Analyse one regime with `--from` / `--to`:
+
+```bash
+python3 scripts/corr_check.py "data/vetcost-us.json" "Veterinary and medicine" \
+    data/cattle-us.json parity_cattle_over_corn \
+    --deflate-x "data/vetcost-us.json:cpi" --from 2009
+```
 
 ## 4. Publish the definition of every derived measure
 
@@ -66,9 +102,31 @@ A peak correlation at a non-zero lag is only a lead if it is **clearly** higher 
 lag zero. TR→US was r = 0.60 at −4 months versus 0.58 at 0. That is noise, and calling
 it a four-month lead was wrong.
 
+Scanning lags is itself a multiple test: k lags examined and the best one kept is k
+tests, not one. `--scan-lags` prints the whole profile and applies the correction.
+
+```bash
+python3 scripts/corr_check.py data/cattle-tr.json parity_meat_over_feed \
+    data/cattle-us.json parity_cattle_over_corn --scan-lags 6
+```
+
+In levels the profile is flat - 0.544 to 0.615 across all 13 lags - which is what
+trending series always look like, and is why a levels lag profile can never establish a
+lead. In changes there is a peak at +4 months, r = 0.192 against 0.060 at lag zero.
+It still fails: p = 0.0073 against a Bonferroni threshold of 0.0038. Noise, confirmed a
+second way.
+
 Also ask what is driving a high correlation. US–EU parity correlated at 0.87, but US
 corn vs EU feed grain alone correlated at 0.81 — most of it was the shared denominator,
 not a synchronised cattle cycle.
+
+Re-run on changes and the conclusion is stronger than first recorded: US-EU parity
+correlates at 0.333, while US corn against EU feed alone correlates at **0.449**. The
+shared feed input does not merely explain most of the co-movement - it explains more
+than all of it. Nothing is left over for a synchronised cattle cycle.
+
+The general form of this fault: **never correlate a series against something it is
+divided by.** `corr_check.py` warns when `--per-x` names the series on the other side.
 
 ## 7. Decompose before naming the cause
 
@@ -82,10 +140,39 @@ cov = covariance(dlog(numerator), dlog(denominator))
 share_den = (var_den - cov) / (var_num + var_den - 2*cov)
 ```
 
-## 8. Small samples
+## 8. Small samples, and samples that only look large
 
 Five cycles is five observations. "Every one" out of five is a pattern, not a law. Say
 the sample size out loud, and say what would falsify the claim.
+
+**A long series is not a large sample.** Every significance test assumes the
+observations are independent. Economic series are nothing of the kind - each month is
+mostly last month - so the software counts every row, returns a spectacular p-value, and
+answers a question nobody asked. Discount the sample for autocorrelation before
+believing any p:
+
+```
+n_eff = n * (1 - r1*r2) / (1 + r1*r2)      r1, r2 = lag-1 autocorrelations
+```
+
+`corr_check.py` prints `n_eff` and a corrected `p_adj` beside every r. What that
+correction does to the numbers in this file:
+
+| Series | n | n_eff | r | p | p adjusted |
+|---|---|---|---|---|---|
+| US cattle vs corn PPI, levels | 667 | 7.6 | +0.588 | 2e-63 | 0.14 n.s. |
+| EU vet spend/head vs herd, real | 20 | 5.1 | -0.124 | 0.60 | 0.84 n.s. |
+| US real vet spend vs parity, 2009- | 17 | 6.2 | +0.738 | 7e-04 | 0.084 n.s. |
+
+Fifty-five years of monthly prices carry about eight independent facts. A p-value of
+2e-63 on that series is not strong evidence; it is a broken assumption printed to sixty
+decimal places.
+
+**If `p_adj` is not significant there is no finding, whatever r and p say.**
+
+Sanity check for any method that claims to protect you: `corr_check.py --demo`
+correlates two independently generated random walks at r = 0.96, p = 1e-68. Anything
+that calls that a finding cannot be trusted with real data.
 
 ## 9. Name the data in the heading, not only in the footnote
 
@@ -151,6 +238,22 @@ they can repeat is a number, the ending failed.
 | EU spend per head is flat; herd &minus;1.4%/yr | **Defend the volume** — no cycle upside or downside, the erosion is structural |
 | T&uuml;rkiye herd growing, spend unmeasurable | **Grow, and get visibility** — the only market where head count adds |
 
+**The first row no longer holds.** That r = 0.70 reproduces as **+0.738**, but only in
+levels, only inside the post-2008 regime, and it is not significant even there: 17
+annual points carry about 6 independent facts, `p_adj` = 0.084. In changes it falls to
+0.374 at p = 0.19. Across the full 1996-2025 span, which straddles the ERS break, it is
+0.162. (Tested against the US parity index as the margin proxy; no explicit margin
+series is committed. If one exists, re-run against it - but the sample problem applies
+to any 17-point annual series.)
+
+The instruction may still be right. It has no statistical support, and must not be
+published with a correlation attached to it. Either argue the timing from mechanism, or
+get monthly or state-level US data so `n_eff` stops being 6.
+
+This is what rule 11 costs when the number underneath goes unchecked: an outcome already
+presented to a room has to be withdrawn. Run rule 8 on a correlation **before** it
+becomes an instruction, not after.
+
 Rules for the closing slide or section:
 
 - **One instruction per market or segment**, in the imperative. Not "consider", not
@@ -176,7 +279,10 @@ just stops has produced nothing.
 - [ ] Derived measures have published definitions
 - [ ] Base-year / normalisation choices are stated for every series
 - [ ] Correlations were checked for common trend and for what drives them
+- [ ] No series is correlated against anything it is divided by
+- [ ] Lag scans are corrected for the number of lags tested
 - [ ] Sample sizes are stated where they are small
+- [ ] Effective sample size is computed; `p_adj`, not `p`, decides whether it is real
 - [ ] Every claim is reproducible from the committed data files
 - [ ] Every heading names the market and period it covers
 - [ ] Sources are printed on the artefact, with publisher, series code, unit and span
