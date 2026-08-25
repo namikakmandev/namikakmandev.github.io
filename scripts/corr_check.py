@@ -199,6 +199,7 @@ def find_breaks(series, keys, name):
     step. Correlations spanning it are comparing two different definitions.
     Uses median absolute deviation, so the break cannot hide the threshold.
     """
+    is_abs = crosses_zero(series)        # pct_change fell back to differences
     ch = pct_change(series)
     if len(ch) < 8:
         return []
@@ -207,10 +208,13 @@ def find_breaks(series, keys, name):
     mad = devs[len(devs) // 2]
     if mad == 0:
         return []
+    # the size floor and the label depend on which form pct_change returned
+    floor = 0.10 * (max(series) - min(series)) if is_abs else 0.10
     out = []
     for i, c in enumerate(ch):
-        if abs(c - med) > 6 * mad and abs(c) > 0.10:
-            out.append(f"{name}: {keys[i]} -> {keys[i+1]}  {c:+.1%}")
+        if abs(c - med) > 6 * mad and abs(c) > floor:
+            step = f"{c:+.1f} (absolute)" if is_abs else f"{c:+.1%}"
+            out.append(f"{name}: {keys[i]} -> {keys[i+1]}  {step}")
     return out
 
 
