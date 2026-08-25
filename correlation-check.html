@@ -159,6 +159,48 @@
             </table>
           </div>
 
+          <details class="howto">
+            <summary>What each column means</summary>
+            <div class="howto-body">
+              <p>The same correlation is computed twice, on two forms of your data:</p>
+              <ol>
+                <li><strong>Levels</strong> &mdash; the raw values exactly as you pasted them.
+                  Two series that both grow over time will correlate here even when they have
+                  nothing to do with each other &mdash; that is shared trend, not a
+                  relationship.</li>
+                <li><strong>Changes</strong> &mdash; each period&rsquo;s move (percent change,
+                  or year-on-year if ticked). Differencing removes the trend, so what is left
+                  is genuine co-movement. <strong>When the two rows disagree, trust this
+                  one.</strong></li>
+              </ol>
+              <p>And the columns, left to right:</p>
+              <ol>
+                <li><strong>n</strong> &mdash; how many observations that form has.</li>
+                <li><strong>r</strong> &mdash; the Pearson correlation, from &minus;1 to +1:
+                  how tightly the points hug a straight line. It says nothing about how steep
+                  the line is, and nothing about cause.</li>
+                <li><strong>R&sup2;</strong> &mdash; r squared: the share of one series&rsquo;
+                  variation the other accounts for. r&nbsp;=&nbsp;0.5 sounds strong but
+                  explains only 25%.</li>
+                <li><strong>p (naive)</strong> &mdash; the chance of seeing an |r| this large
+                  by pure luck, <em>if every row were an independent observation</em>. In time
+                  series each month is mostly last month, so this assumption fails and the
+                  naive p flatters the result.</li>
+                <li><strong>n effective</strong> &mdash; how many genuinely independent
+                  observations the sample carries once that autocorrelation is discounted.
+                  120 monthly readings of a slow-moving series can carry as few as 3.</li>
+                <li><strong>p (adjusted)</strong> &mdash; the same test recomputed on
+                  n&nbsp;effective. <strong>This is the p-value the verdict is based
+                  on.</strong></li>
+                <li><strong>95% CI</strong> &mdash; the range the true correlation plausibly
+                  lies in. If it straddles zero, the sign itself is not established.</li>
+                <li><strong>verdict</strong> &mdash; <em>significant</em> only when the
+                  adjusted p is below 0.05. A huge r with a spectacular naive p can still be
+                  <em>not significant</em> &mdash; that is the whole trap.</li>
+              </ol>
+            </div>
+          </details>
+
           <div id="cc-verdict"></div>
 
           <div id="cc-regbox" hidden class="cc-input-card">
