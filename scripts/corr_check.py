@@ -21,6 +21,8 @@ Money series MUST be deflated before correlating (data-integrity rule 2):
 
   --from PERIOD / --to PERIOD     restrict the span, e.g. to one side of a
                                   methodology break
+  --yoy                           measure change year-on-year (12 months) rather
+                                  than month-on-month, as the artefacts do
   --lag N                         correlate X at t against Y at t+N
   --scan-lags K                   print r at every lag from -K to +K, and judge
                                   whether any peak is a real lead or just noise
@@ -162,15 +164,20 @@ def crosses_zero(s):
     return min(s) <= 0 <= max(s)
 
 
-def pct_change(s):
-    """Period-on-period change, as a ratio where that is defined.
+def pct_change(s, h=1):
+    """Change over h periods, as a ratio where that is defined.
+
+    h=1 is period-on-period. h=12 on monthly data is year-on-year, which is what
+    "annual change" means in the published artefacts. Note that consecutive
+    year-on-year values share 11 of their 12 months, so the resulting series is
+    heavily autocorrelated by construction - n_eff matters more here, not less.
 
     Falls back to absolute differences when the series crosses zero. Correlation
     is scale-free, so the two forms mix safely; only the slope changes units.
     """
     if crosses_zero(s):
-        return [b - a for a, b in zip(s, s[1:])]
-    return [(b - a) / a for a, b in zip(s, s[1:])]
+        return [s[i + h] - s[i] for i in range(len(s) - h)]
+    return [(s[i + h] - s[i]) / s[i] for i in range(len(s) - h)]
 
 
 def _crit_r(n, alpha):
@@ -260,7 +267,7 @@ def verdict(lev, chg):
     print("    confounders, out-of-sample. See .claude/skills/data-integrity/SKILL.md")
 
 
-def scan_lags(xs, ys, span):
+def scan_lags(xs, ys, span, h=1):
     """r at every lag from -span to +span, in levels AND in changes.
 
     Positive lag = X leads Y. A peak away from zero is only a lead if it is
@@ -268,14 +275,15 @@ def scan_lags(xs, ys, span):
     only for comparison: on trending series every lag correlates, so the
     changes column is the one to read.
     """
-    dx, dy = pct_change(xs), pct_change(ys)
+    dx, dy = pct_change(xs, h), pct_change(ys, h)
 
     def at(a, b, L):
         p, q = (a[:-L or None], b[L:]) if L >= 0 else (a[-L:], b[:L])
         return (pearson(p, q), len(p)) if len(p) >= 10 else (None, len(p))
 
+    lbl = "r YoY chg" if h > 1 else "r CHANGES"
     print("\n  LAG PROFILE (positive lag = X leads Y)")
-    print("    lag     n      r levels    r CHANGES")
+    print(f"    lag     n      r levels    {lbl}")
     rows = []
     for L in range(-span, span + 1):
         rl, n = at(xs, ys, L)
@@ -319,7 +327,7 @@ def scan_lags(xs, ys, span):
         print("    Survives. Worth investigating — with a mechanism and out-of-sample.")
 
 
-def analyse(name, xs, ys, unit_x="", unit_y=""):
+def analyse(name, xs, ys, h=1):
     print(f"\n{name}")
     print("=" * len(name))
     lev = report("LEVELS", xs, ys)
@@ -327,8 +335,8 @@ def analyse(name, xs, ys, unit_x="", unit_y=""):
         if crosses_zero(ser):
             print(f"  note: {side} crosses zero (min {min(ser):.1f}, max {max(ser):.1f}); "
                   f"CHANGES uses absolute differences, not percent.")
-    dx, dy = pct_change(xs), pct_change(ys)
-    chg = report("CHANGES", dx, dy)
+    dx, dy = pct_change(xs, h), pct_change(ys, h)
+    chg = report("YoY CHG" if h > 1 else "CHANGES", dx, dy)
     b = slope(dx, dy)
     if b is not None:
         print(f"\n  Slope (changes): a 1% move in X goes with a {b:+.2f}% move in Y")
@@ -426,12 +434,16 @@ def main(argv):
     if "--demo" in argv:
         return demo()
 
+    BOOL_FLAGS = {"--yoy"}
     opts, pos = {}, []
     i = 0
     while i < len(argv):
-        if argv[i].startswith("--"):
+        if argv[i] in BOOL_FLAGS:
+            opts[argv[i]] = True
+            i += 1
+        elif argv[i].startswith("--"):
             if i + 1 >= len(argv):
-                sys.exit(f"{argv[i]} needs a FILE:COLUMN argument")
+                sys.exit(f"{argv[i]} needs an argument")
             opts[argv[i]] = argv[i + 1]
             i += 2
         else:
@@ -516,10 +528,16 @@ def main(argv):
         for n in notes:
             print(n)
 
+    h = 1
+    if "--yoy" in opts:
+        h = 12 if any("-" in k for k in keys) else 1
+        if h > 1:
+            print(f"\n  year-on-year mode: change measured over {h} months")
+
     if "--scan-lags" in opts:
         print(f"\n{title}")
         print("=" * len(title))
-        scan_lags(xs, ys, int(opts["--scan-lags"]))
+        scan_lags(xs, ys, int(opts["--scan-lags"]), h)
         return
 
     if "--lag" in opts:
@@ -527,7 +545,7 @@ def main(argv):
         xs, ys = (xs[:-L or None], ys[L:]) if L >= 0 else (xs[-L:], ys[:L])
         title += f"   [X leads by {L}]" if L else ""
 
-    analyse(title, xs, ys)
+    analyse(title, xs, ys, h)
 
 
 if __name__ == "__main__":
