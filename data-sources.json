@@ -1331,6 +1331,85 @@
    "out": "data/bigmac-src-eur.json",
    "source": "The Economist Big Mac index SOURCE data — euro-denominated prices: individual euro members (from 2011-07) plus the EUZ weighted average, in EUR",
    "note": "Member prices are The Economist's collected source prices, not headline index rows; parity vs the euro area = member price / EUZ price - 1, computed per edition on the page."
+  },
+  {
+   "name": "pl-ppi-probe",
+   "provider": "eurostat",
+   "dataset": "sts_inppd_m",
+   "params": {
+    "geo": "PL",
+    "sinceTimePeriod": "2025-01"
+   },
+   "out": "data/_pl-ppi-probe.json",
+   "source": "PROBE: Eurostat industrial producer prices, domestic market — which NACE codes does Poland actually report? (notes/broiler-parity-poland.md)",
+   "note": "Discovery helper for the broiler parity build; run with MODE=discover. Tiny time window on purpose so the monthly full fetch stays cheap if it sweeps this."
+  },
+  {
+   "name": "pl-farmgate-out-probe",
+   "provider": "eurostat",
+   "dataset": "apri_pi20_outq",
+   "params": {
+    "geo": "PL"
+   },
+   "out": "data/_pl-farmgate-out-probe.json",
+   "source": "PROBE: Eurostat quarterly agricultural OUTPUT price index — product codes for poultry, Poland",
+   "note": "Farm-gate fallback for the broiler parity build; MODE=discover first."
+  },
+  {
+   "name": "pl-farmgate-in-probe",
+   "provider": "eurostat",
+   "dataset": "apri_pi20_inq",
+   "params": {
+    "geo": "PL"
+   },
+   "out": "data/_pl-farmgate-in-probe.json",
+   "source": "PROBE: Eurostat quarterly agricultural INPUT price index — product codes for feedingstuffs, Poland",
+   "note": "Farm-gate fallback for the broiler parity build; MODE=discover first."
+  },
+  {
+   "name": "pl-anchor-out-probe",
+   "provider": "eurostat",
+   "dataset": "apri_ap_anouta",
+   "params": {
+    "geo": "PL"
+   },
+   "out": "data/_pl-anchor-out-probe.json",
+   "source": "PROBE: Eurostat annual absolute selling prices of animal products — live-chicken price, Poland (parity anchor numerator)",
+   "note": "MODE=discover first; dataset id itself is a best guess — a 404 here is an answer, not a failure."
+  },
+  {
+   "name": "pl-anchor-in-probe",
+   "provider": "eurostat",
+   "dataset": "apri_ap_ina",
+   "params": {
+    "geo": "PL"
+   },
+   "out": "data/_pl-anchor-in-probe.json",
+   "source": "PROBE: Eurostat annual absolute purchase prices of the means of production — broiler feed price, Poland (parity anchor denominator)",
+   "note": "MODE=discover first; dataset id itself is a best guess — a 404 here is an answer, not a failure."
+  },
+  {
+   "name": "pl-broiler-ppi",
+   "provider": "eurostat",
+   "dataset": "sts_inppd_m",
+   "params": {
+    "freq": "M",
+    "indic_bt": "PRIN",
+    "s_adj": "NSA",
+    "unit": "I21",
+    "nace_r2": [
+     "C1012",
+     "C1091"
+    ],
+    "geo": "PL",
+    "sinceTimePeriod": "2010-01"
+   },
+   "group_dims": [
+    "nace_r2"
+   ],
+   "out": "data/pl-broiler-ppi.json",
+   "source": "Eurostat sts_inppd_m: Poland domestic producer price index, processing & preserving of poultry meat (C1012) and prepared feeds for farm animals (C1091)",
+   "note": "The Polish leg of the broiler parity — same NACE pair as the TR series (TÜİK C10.12/C10.91). Params written before the probe confirmed them; if this errors, read data/_pl-parity-probe.json and fix codes, do not guess."
   }
  ]
 }
