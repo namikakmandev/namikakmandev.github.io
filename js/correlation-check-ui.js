@@ -26,14 +26,11 @@ function parseTable(text) {
 
   // Column roles are positional, as the instructions state: with two columns
   // both are data; with three or more, the first is the label column and the
-  // next two are the data. Guessing from content fails on year columns —
-  // "1996" is a perfectly good number.
+  // rest are data, selectable as X, Y and an optional control. Guessing roles
+  // from content fails on year columns — "1996" is a perfectly good number.
   const labelCol = width >= 3 ? 0 : -1;
-  const dataCols = width >= 3 ? [1, 2] : [0, 1];
-  if (width > 3) {
-    // more columns exist; say which two we used rather than silently picking
-    var extraNote = "Using columns \"" + (hasHeader ? header[1] + "\" and \"" + header[2] : "2\" and \"3") + "\"; further columns ignored.";
-  }
+  const dataCols = [];
+  for (let i = 0; i < width; i++) if (i !== labelCol) dataCols.push(i);
 
   const toNum = (s) => parseFloat(clean(s));
   const labels = [], cols = dataCols.map(() => []);
@@ -48,7 +45,6 @@ function parseTable(text) {
     names: dataCols.map((c) => header[c]),
     cols: cols,
     monthly: /^\d{4}-\d{2}/.test(labels[0]),
-    note: typeof extraNote !== "undefined" ? extraNote : null,
   };
 }
 
@@ -138,6 +134,27 @@ function drawScatter(cv, dx, dy, nameA, nameB) {
   x.fillText("change in " + String(nameB).slice(0, 20), 0, 0); x.restore();
 }
 
+// Residuals against fitted values. A healthy fit is a structureless band
+// around zero; any curve, funnel or drift is what the model got wrong.
+function drawResiduals(cv, reg) {
+  const [x, W, H] = fitCanvas(cv);
+  const L = 34, R = 12, T = 14, B = 30;
+  const f = reg.fitted, e = reg.resid;
+  const lof = Math.min.apply(null, f), hif = Math.max.apply(null, f);
+  const m = Math.max.apply(null, e.map(Math.abs)) || 1;
+  const px = (v) => L + ((v - lof) / (hif - lof || 1)) * (W - L - R);
+  const py = (v) => T + (1 - (v + m) / (2 * m)) * (H - T - B);
+  x.strokeStyle = COL.grid; x.lineWidth = 1;
+  x.beginPath(); x.moveTo(L, py(0)); x.lineTo(W - R, py(0)); x.stroke();
+  x.fillStyle = COL.x; x.globalAlpha = 0.55;
+  for (let i = 0; i < f.length; i++) { x.beginPath(); x.arc(px(f[i]), py(e[i]), 3.5, 0, 7); x.fill(); }
+  x.globalAlpha = 1;
+  x.fillStyle = COL.dim; x.font = "11px " + getComputedStyle(document.body).fontFamily;
+  x.textAlign = "center"; x.fillText("fitted value", (L + W - R) / 2, H - 8);
+  x.save(); x.translate(11, (T + H - B) / 2); x.rotate(-Math.PI / 2);
+  x.fillText("residual", 0, 0); x.restore();
+}
+
 /* ------------------------------ pipeline ------------------------------ */
 const CC = window.CC; // statistics module, attached below
 
@@ -147,13 +164,30 @@ function run() {
   errBox.textContent = ""; out.hidden = true;
   if (parsed.error) { errBox.textContent = parsed.error; return; }
 
-  let xs = parsed.cols[0], ys = parsed.cols[1];
-  const nameA = parsed.names[0], nameB = parsed.names[1], labels = parsed.labels;
+  // Column pickers: shown whenever a third data column exists (a control
+  // candidate). Options are rebuilt only when the column set changes, so the
+  // user's selection survives re-runs on the same data.
+  const key = parsed.names.join("\u0001");
+  const pickers = ["cc-colx", "cc-coly", "cc-colz"].map($);
+  if ($("cc-colbar").dataset.key !== key) {
+    $("cc-colbar").dataset.key = key;
+    pickers.forEach((sel, which) => {
+      sel.innerHTML = (which === 2 ? '<option value="-1">none</option>' : "") +
+        parsed.names.map((nm, i) => `<option value="${i}">${esc(nm)}</option>`).join("");
+      sel.value = which === 2 ? "-1" : String(which);
+    });
+  }
+  $("cc-colbar").hidden = parsed.names.length <= 2;
+  const xi = +pickers[0].value, yi = +pickers[1].value, zi = +pickers[2].value;
+  if (xi === yi) { errBox.textContent = "X and Y are the same column."; return; }
+  let xs = parsed.cols[xi], ys = parsed.cols[yi];
+  const zs = zi >= 0 && zi !== xi && zi !== yi ? parsed.cols[zi] : null;
+  const nameA = parsed.names[xi], nameB = parsed.names[yi], labels = parsed.labels;
+  const nameZ = zs ? parsed.names[zi] : null;
   const h = parsed.monthly && $("cc-yoy").checked ? 12 : 1;
 
   // 1 · warnings first: breaks and zero crossings
   const warns = [];
-  if (parsed.note) warns.push(esc(parsed.note));
   CC.findBreaks(xs, labels, esc(nameA)).forEach((b) => warns.push("Possible methodology break — " + b));
   CC.findBreaks(ys, labels, esc(nameB)).forEach((b) => warns.push("Possible methodology break — " + b));
   if (CC.crossesZero(xs)) warns.push(esc(nameA) + " crosses zero — changes use absolute differences, not percent.");
@@ -189,6 +223,65 @@ function run() {
   }
   $("cc-verdict").innerHTML = v.map((t) => `<p>${t}</p>`).join("");
 
+  // 3b · regression on changes — the slope is the number someone can act on
+  const reg = CC.ols(dx, dy);
+  const unitX = CC.crossesZero(xs) ? " units" : "%";
+  const unitY = CC.crossesZero(ys) ? " units" : "%";
+  if (reg) {
+    const rv = [];
+    rv.push(`<p class="cc-eq">Δ${esc(nameB)} = ${fmtR(reg.a)} ${reg.b >= 0 ? "+" : "−"} ${Math.abs(reg.b).toFixed(3)} · Δ${esc(nameA)}</p>`);
+    rv.push(`<p>A 1${unitX} move in ${esc(nameA)} goes with a <b>${(reg.b >= 0 ? "+" : "") + reg.b.toFixed(2)}${unitY}</b> move in ${esc(nameB)} &mdash; 95% CI [${reg.ciB[0].toFixed(2)}, ${reg.ciB[1].toFixed(2)}], adjusted p = ${fmtP(reg.pAdj)} ${reg.pAdj < 0.05 ? '<span class="cc-sig">(slope distinguishable from zero)</span>' : '<span class="cc-ns">(slope NOT distinguishable from zero — do not quote it as an effect)</span>'}.</p>`);
+    rv.push(`<p>The regression explains ${(reg.r2 * 100).toFixed(0)}% of the variance in the changes; the other ${(100 - reg.r2 * 100).toFixed(0)}% is something this pair does not capture.</p>`);
+    if (reg.dw < 1.2 || reg.dw > 2.8)
+      rv.push(`<p>Durbin&ndash;Watson = ${reg.dw.toFixed(2)} &mdash; the residuals are ${reg.dw < 1.2 ? "positively" : "negatively"} autocorrelated, so even these adjusted errors are on the optimistic side. Whatever the model misses, it misses persistently.</p>`);
+    $("cc-regbody").innerHTML = rv.join("");
+    $("cc-regbox").hidden = false;
+  } else $("cc-regbox").hidden = true;
+
+  // 3c · confounder control: does X survive holding Z constant?
+  if (zs && reg) {
+    const dz = CC.change(zs, h);
+    const m = CC.ols2(dx, dz, dy), pr = CC.partialR(dx, dy, dz);
+    if (m && pr !== null) {
+      const collapse = Math.abs(m.bx) < Math.abs(reg.b) * 0.5 || m.p >= 0.05;
+      $("cc-ctrlbody").innerHTML =
+        `<p>Alone, the ${esc(nameA)} slope is <b>${reg.b.toFixed(3)}</b>. Holding ${esc(nameZ)} constant it becomes <b>${m.bx.toFixed(3)}</b> (p = ${fmtP(m.p)}); the partial correlation is ${fmtR(pr)} against a raw ${fmtR(chg ? chg.r : 0)}.</p>` +
+        (collapse
+          ? `<p><b>The ${esc(nameA)} effect does not survive the control.</b> Most of what it appeared to explain is carried by ${esc(nameZ)} — treat ${esc(nameA)} as a proxy until something rules that out.</p>`
+          : `<p>The ${esc(nameA)} effect survives the control &mdash; whatever ${esc(nameZ)} contributes, it does not account for this relationship.</p>`);
+      $("cc-ctrlbox").hidden = false;
+    } else {
+      $("cc-ctrlbody").innerHTML = `<p>${esc(nameZ)} is collinear with ${esc(nameA)} — the control cannot be separated.</p>`;
+      $("cc-ctrlbox").hidden = false;
+    }
+  } else $("cc-ctrlbox").hidden = true;
+
+  // 3d · robustness: four ways one number can be fragile
+  {
+    const rows = [];
+    const sp = CC.spearman(dx, dy);
+    if (sp !== null && chg) {
+      const gap = Math.abs(sp - chg.r);
+      rows.push(["Rank (Spearman)", fmtR(sp),
+        gap > 0.15 ? "far from Pearson — the relationship is nonlinear or outlier-driven; plot it" : "close to Pearson — the linear reading is fair"]);
+    }
+    const inf = CC.influence(dx, dy);
+    if (inf) rows.push(["Drop-one influence", "±" + inf.maxShift.toFixed(3),
+      inf.maxShift > 0.1 ? "one observation (" + esc(labels[Math.min(inf.index + h, labels.length - 1)]) + ") moves r by this much — fragile" : "no single observation controls the result"]);
+    const sh = CC.splitHalf(dx, dy);
+    if (sh && sh.first !== null && sh.second !== null) {
+      const agree = sh.first * sh.second > 0 && Math.abs(sh.first - sh.second) < 0.35;
+      rows.push(["Split-half", fmtR(sh.first) + " / " + fmtR(sh.second),
+        agree ? "both halves agree" : "the halves disagree — the finding may be one period, not a relationship"]);
+    }
+    const oos = CC.outOfSample(dx, dy);
+    if (oos) rows.push(["Out-of-sample R²", (oos.r2 * 100).toFixed(0) + "%",
+      oos.r2 <= 0 ? "fit on the first " + oos.nTrain + ", the model does WORSE than guessing the mean on the last " + oos.nTest : "fit on the first " + oos.nTrain + " points, holds up on the last " + oos.nTest]);
+    $("cc-robtbody").innerHTML = rows.map((r) =>
+      `<tr><th scope="row">${r[0]}</th><td>${r[1]}</td><td class="cc-note">${r[2]}</td></tr>`).join("");
+    $("cc-robbox").hidden = !rows.length;
+  }
+
   // 4 · lag scan
   const span = Math.min(6, Math.floor(labels.length / 8));
   const lagBox = $("cc-lagbox");
@@ -211,6 +304,8 @@ function run() {
   out.hidden = false;
   drawSeries($("cc-chart-series"), labels, xs, ys, nameA, nameB);
   drawScatter($("cc-chart-scatter"), dx, dy, nameA, nameB);
+  $("cc-resid-card").hidden = !reg;      // unhide BEFORE drawing: zero width inside display:none
+  if (reg) drawResiduals($("cc-chart-resid"), reg);
 
   out.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -234,6 +329,8 @@ function demoData() {
 /* ------------------------------ wiring ------------------------------ */
 document.addEventListener("DOMContentLoaded", () => {
   $("cc-run").addEventListener("click", run);
+  ["cc-colx", "cc-coly", "cc-colz"].forEach((id) =>
+    $(id).addEventListener("change", () => { if (!$("cc-results").hidden) run(); }));
   $("cc-demo").addEventListener("click", () => { $("cc-input").value = demoData(); $("cc-yoy").checked = false; run(); });
   $("cc-file").addEventListener("change", (e) => {
     const f = e.target.files[0];

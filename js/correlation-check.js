@@ -166,6 +166,140 @@ function findBreaks(series, labels, name) {
   return out;
 }
 
+/* ------------------------- regression & robustness ------------------------- */
+
+// OLS of y on x with intercept. Standard errors both naive and discounted for
+// autocorrelation via the same effective-n used for correlation, so the
+// regression cannot claim confidence the correlation was already denied.
+function ols(x, y) {
+  const n = x.length;
+  if (n < 4) return null;
+  const b = slope(x, y);
+  if (b === null) return null;
+  let mx = 0, my = 0;
+  for (let i = 0; i < n; i++) { mx += x[i]; my += y[i]; }
+  mx /= n; my /= n;
+  const a = my - b * mx;
+  let sse = 0, sst = 0, sxx = 0;
+  const resid = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const e = y[i] - (a + b * x[i]);
+    resid[i] = e; sse += e * e; sst += (y[i] - my) ** 2; sxx += (x[i] - mx) ** 2;
+  }
+  const df = n - 2;
+  const seB = Math.sqrt(sse / df / sxx);
+  const nEff = effectiveN(x, y), dfAdj = Math.max(1, nEff - 2);
+  const seBAdj = seB * Math.sqrt(df / dfAdj);        // fewer real facts, wider error
+  const t = seB > 0 ? b / seB : Infinity;
+  const tAdj = seBAdj > 0 ? b / seBAdj : Infinity;
+  // Durbin-Watson: ~2 means independent residuals; near 0, they trend together
+  let dwNum = 0;
+  for (let i = 1; i < n; i++) dwNum += (resid[i] - resid[i - 1]) ** 2;
+  const dw = sse > 0 ? dwNum / sse : 2;
+  const tcrit = 1.96 * Math.sqrt(df / dfAdj);        // rough, matched to seBAdj
+  return {
+    a: a, b: b, n: n, nEff: nEff, r2: sst > 0 ? 1 - sse / sst : 0,
+    seB: seB, seBAdj: seBAdj,
+    p: tPValue(t, df), pAdj: tPValue(tAdj, dfAdj),
+    ciB: [b - 1.96 * seBAdj, b + 1.96 * seBAdj],
+    dw: dw, resid: resid,
+    fitted: x.map((v) => a + b * v),
+  };
+}
+
+// Two-predictor OLS: y on x controlling for z. This answers the question
+// correlation cannot: does x still matter once z is held constant?
+function ols2(x, z, y) {
+  const n = y.length;
+  if (n < 5) return null;
+  const mean = (s) => s.reduce((t, v) => t + v, 0) / n;
+  const mx = mean(x), mz = mean(z), my = mean(y);
+  let sxx = 0, szz = 0, sxz = 0, sxy = 0, szy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = x[i] - mx, dz = z[i] - mz, dy = y[i] - my;
+    sxx += dx * dx; szz += dz * dz; sxz += dx * dz; sxy += dx * dy; szy += dz * dy;
+  }
+  const det = sxx * szz - sxz * sxz;
+  if (Math.abs(det) < 1e-12) return null;            // x and z collinear
+  const bx = (szz * sxy - sxz * szy) / det;
+  const bz = (sxx * szy - sxz * sxy) / det;
+  const a = my - bx * mx - bz * mz;
+  let sse = 0, sst = 0;
+  for (let i = 0; i < n; i++) {
+    const e = y[i] - (a + bx * x[i] + bz * z[i]);
+    sse += e * e; sst += (y[i] - my) ** 2;
+  }
+  const df = n - 3;
+  const seBx = df > 0 ? Math.sqrt(sse / df * szz / det) : Infinity;
+  return { a: a, bx: bx, bz: bz, seBx: seBx,
+           p: tPValue(seBx > 0 ? bx / seBx : Infinity, df),
+           r2: sst > 0 ? 1 - sse / sst : 0 };
+}
+
+// Partial correlation of x and y with z held constant.
+function partialR(x, y, z) {
+  const rxy = pearson(x, y), rxz = pearson(x, z), ryz = pearson(y, z);
+  if (rxy === null || rxz === null || ryz === null) return null;
+  const den = Math.sqrt((1 - rxz * rxz) * (1 - ryz * ryz));
+  return den > 0 ? (rxy - rxz * ryz) / den : null;
+}
+
+// Spearman rank correlation. Far from Pearson => nonlinear or outlier-driven.
+function spearman(x, y) {
+  const rank = (s) => {
+    const idx = s.map((v, i) => [v, i]).sort((a, b) => a[0] - b[0]);
+    const rk = new Array(s.length);
+    let i = 0;
+    while (i < idx.length) {
+      let j = i;
+      while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++;
+      const avg = (i + j) / 2 + 1;                    // average rank over ties
+      for (let k = i; k <= j; k++) rk[idx[k][1]] = avg;
+      i = j + 1;
+    }
+    return rk;
+  };
+  return pearson(rank(x), rank(y));
+}
+
+// Drop each point once; report how far r can be moved by one observation.
+function influence(x, y) {
+  const full = pearson(x, y);
+  if (full === null || x.length < 6) return null;
+  let worst = 0, at = -1;
+  for (let i = 0; i < x.length; i++) {
+    const xs = x.slice(0, i).concat(x.slice(i + 1));
+    const ys = y.slice(0, i).concat(y.slice(i + 1));
+    const r = pearson(xs, ys);
+    if (r !== null && Math.abs(r - full) > worst) { worst = Math.abs(r - full); at = i; }
+  }
+  return { full: full, maxShift: worst, index: at };
+}
+
+// r in each half of the sample. A finding that lives in only one half is a period.
+function splitHalf(x, y) {
+  const m = Math.floor(x.length / 2);
+  if (m < 5) return null;
+  return { first: pearson(x.slice(0, m), y.slice(0, m)),
+           second: pearson(x.slice(m), y.slice(m)) };
+}
+
+// Fit on the first 70%, score on the last 30%. R2 out of sample can be
+// negative: the model does worse than guessing the mean. That is a verdict.
+function outOfSample(x, y) {
+  const cut = Math.floor(x.length * 0.7);
+  if (cut < 6 || x.length - cut < 4) return null;
+  const fit = ols(x.slice(0, cut), y.slice(0, cut));
+  if (!fit) return null;
+  const hold = y.slice(cut), mh = hold.reduce((t, v) => t + v, 0) / hold.length;
+  let sse = 0, sst = 0;
+  for (let i = cut; i < x.length; i++) {
+    sse += (y[i] - (fit.a + fit.b * x[i])) ** 2;
+    sst += (y[i] - mh) ** 2;
+  }
+  return { r2: sst > 0 ? 1 - sse / sst : 0, nTrain: cut, nTest: x.length - cut };
+}
+
 // One row of the results table.
 function describe(label, x, y) {
   const r = pearson(x, y);
@@ -214,6 +348,7 @@ function scanLags(xs, ys, span, h) {
 }
 
 const CC_API = { pearson, slope, tPValue, tStat, fisherCI, critR, effectiveN,
-                 crossesZero, change, permPValue, findBreaks, describe, scanLags, lag1 };
+                 crossesZero, change, permPValue, findBreaks, describe, scanLags, lag1,
+                 ols, ols2, partialR, spearman, influence, splitHalf, outOfSample };
 if (typeof module !== "undefined" && module.exports) module.exports = CC_API;
 if (typeof window !== "undefined") window.CC = CC_API;

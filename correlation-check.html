@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Correlation Check — is that correlation real? — Namık Akman</title>
-  <meta name="description" content="Free correlation checker. Paste two data series and instantly see whether the correlation is real: levels vs changes, effective sample size, adjusted significance, confidence interval, methodology breaks and lag analysis. Runs entirely in your browser — no data leaves the page." />
-  <meta name="keywords" content="correlation checker, spurious correlation, correlation significance, effective sample size, autocorrelation correction, time series correlation, data validation tool" />
+  <title>Correlation &amp; Regression Check — is that relationship real? — Namık Akman</title>
+  <meta name="description" content="Free correlation and regression checker. Paste two or three data series and instantly see whether the relationship is real: levels vs changes, effective sample size, adjusted significance, regression slope with honest errors, confounder control, residual diagnostics, robustness checks, methodology breaks and lag analysis. Runs entirely in your browser — no data leaves the page." />
+  <meta name="keywords" content="correlation checker, regression checker, spurious correlation, correlation significance, effective sample size, autocorrelation correction, confounder control, residual diagnostics, out-of-sample validation, time series correlation, data validation tool" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
   <meta property="og:title" content="Correlation Check — is that correlation real?" />
@@ -40,6 +40,11 @@
     #cc-verdict p{margin:.5em 0}
     .cc-bar{display:inline-block;height:9px;background:var(--accent);border-radius:2px;vertical-align:middle;margin-right:6px}
     .cc-peak td{background:var(--surface-2)}
+    .cc-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block}
+    .cc-note{text-align:left!important;white-space:normal!important;color:var(--text-dim)}
+    #cc-colbar select{background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+      border-radius:6px;padding:6px 8px;font-size:.9rem}
   </style>
 </head>
 <body class="tool-light">
@@ -62,7 +67,7 @@
       <div class="container cc-grid">
         <div class="tool-head">
           <a href="projects.html" class="tool-back">&larr; Back to projects</a>
-          <h2 class="section-title">Correlation Check</h2>
+          <h2 class="section-title">Correlation &amp; Regression Check</h2>
         </div>
 
         <p class="data-note">
@@ -71,11 +76,13 @@
           it happen. Then paste your own two series and see whether your correlation survives the
           checks that catch it: levels against changes, sample size discounted for autocorrelation,
           confidence intervals, methodology breaks, and lag analysis corrected for how many lags
-          you looked at. <strong>Everything runs in your browser &mdash; no data leaves the page.</strong>
+          you looked at. Then it fits the regression &mdash; the slope with honest errors, a
+          confounder control if you give it a third column, residual diagnostics, and four
+          robustness checks including out-of-sample validation. <strong>Everything runs in your browser &mdash; no data leaves the page.</strong>
         </p>
 
         <details class="howto">
-          <summary>How this checker works &mdash; the five traps it tests for</summary>
+          <summary>How this checker works &mdash; the eight traps it tests for</summary>
           <div class="howto-body">
             <ol>
               <li><strong>Shared trend.</strong> Any two series that both drift correlate for free.
@@ -94,6 +101,18 @@
               <li><strong>Fake leads.</strong> Scanning 13 lags and keeping the best is 13 tests,
                 not one. The lag table applies a Bonferroni correction, and a peak barely above
                 lag zero is called what it is: noise.</li>
+              <li><strong>A slope with dishonest errors.</strong> The regression is fitted on
+                changes, and its standard errors are widened by the same effective-sample-size
+                discount as the correlation &mdash; the slope cannot claim confidence the
+                correlation was denied. Durbin&ndash;Watson flags autocorrelated residuals.</li>
+              <li><strong>Confounders.</strong> Give it a third column and it re-fits holding that
+                variable constant. If the X coefficient collapses, X was a proxy &mdash; this is
+                the question correlation alone can never answer.</li>
+              <li><strong>Fragile findings.</strong> Spearman vs Pearson (nonlinearity), drop-one
+                influence (one point moving the result), split-half agreement (a period, not a
+                relationship), and out-of-sample R&sup2; &mdash; fit on the first 70%, scored on
+                the last 30%, where a negative score means the model does worse than guessing
+                the mean.</li>
             </ol>
             <p>Statistics: Pearson r; two-sided p from the exact t distribution; 95% CI by
               Fisher z; a 2,000-draw permutation test as an assumption-free cross-check.
@@ -107,8 +126,13 @@
             Monthly dates (<code>2024-01</code>) unlock year-on-year mode.</label>
           <textarea id="cc-input" spellcheck="false"
             placeholder="period,revenue,marketing_spend&#10;2022-01,1240,310&#10;2022-02,1198,305&#10;2022-03,1315,342&#10;..."></textarea>
+          <div class="cc-controls" id="cc-colbar" hidden>
+            <label>X <select id="cc-colx"></select></label>
+            <label>Y <select id="cc-coly"></select></label>
+            <label>control for <select id="cc-colz"></select></label>
+          </div>
           <div class="cc-controls">
-            <button class="cc-btn" id="cc-run">Check the correlation</button>
+            <button class="cc-btn" id="cc-run">Check the relationship</button>
             <button class="cc-btn ghost" id="cc-demo">Load the trap</button>
             <label class="cc-btn ghost" style="cursor:pointer">Upload file
               <input type="file" id="cc-file" accept=".csv,.tsv,.txt" hidden></label>
@@ -137,6 +161,25 @@
 
           <div id="cc-verdict"></div>
 
+          <div id="cc-regbox" hidden class="cc-input-card">
+            <strong>Regression &mdash; the number you can act on</strong>
+            <div id="cc-regbody"></div>
+          </div>
+
+          <div id="cc-ctrlbox" hidden class="cc-input-card">
+            <strong>Confounder control</strong>
+            <div id="cc-ctrlbody"></div>
+          </div>
+
+          <div id="cc-robbox" hidden class="cc-input-card">
+            <strong>Robustness &mdash; four ways one number can be fragile</strong>
+            <div class="cc-table-wrap">
+              <table class="cc-table">
+                <tbody id="cc-robtbody"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="cc-charts">
             <div class="cc-chart-card">
               <canvas id="cc-chart-series"></canvas>
@@ -147,6 +190,11 @@
               <canvas id="cc-chart-scatter"></canvas>
               <div class="cap">The changes, against each other, with the fitted line. This cloud is
                 what your correlation actually is once trend is removed.</div>
+            </div>
+            <div class="cc-chart-card" id="cc-resid-card" hidden>
+              <canvas id="cc-chart-resid"></canvas>
+              <div class="cap">Residuals against fitted values. A healthy fit is a structureless band
+                around zero &mdash; a curve, funnel or drift here is what the regression got wrong.</div>
             </div>
           </div>
 
@@ -166,7 +214,10 @@
           Method &middot; Pearson correlation; exact t-distribution p-values; Fisher-z confidence
           intervals; effective sample size n&middot;(1&minus;r&#8321;r&#8322;)/(1+r&#8321;r&#8322;)
           from lag-1 autocorrelations; permutation test with a fixed seed; break detection at
-          6&nbsp;MAD and &gt;10% single-period change; Bonferroni-corrected lag scan.
+          6&nbsp;MAD and &gt;10% single-period change; Bonferroni-corrected lag scan; OLS on
+          changes with slope errors widened by &radic;(df/df<sub>eff</sub>); two-predictor OLS and
+          partial correlation for the control; Durbin&ndash;Watson; Spearman by average ranks;
+          jackknife drop-one influence; 70/30 out-of-sample split.
           Open source on <a href="https://github.com/namikakmandev/namikakmandev.github.io">GitHub</a>
           &mdash; the same engine that re-validated the correlations in the
           <a href="parite-sigir-brief.html">cattle margin study</a>.
