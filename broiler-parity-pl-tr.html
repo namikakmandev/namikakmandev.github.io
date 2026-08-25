@@ -112,6 +112,24 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="story" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+      <div class="s" style="background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--ink2)">
+        <b style="color:var(--ink);display:block;margin-bottom:3px;font-size:14px"><span class="dot" style="background:var(--pl)"></span>A decade in a groove</b>
+        Through 2010–19 Poland's parity held a 2.2–2.9 band while Türkiye's swung 2.8–4.6 —
+        two and a half times the volatility. The stability of an export machine against boom-and-bust
+        broiler cycles.</div>
+      <div class="s" style="background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--ink2)">
+        <b style="color:var(--ink);display:block;margin-bottom:3px;font-size:14px"><span class="dot" style="background:var(--tr)"></span>2021–22: one shock, two outcomes</b>
+        The grain shock crushed Türkiye's margin to crisis lows. Polish chicken prices kept pace with
+        feed — 2022 parity actually <i>firmed</i> to ≈2.7. Same storm, different boats.</div>
+      <div class="s" style="background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--ink2)">
+        <b style="color:var(--ink);display:block;margin-bottom:3px;font-size:14px"><span class="dot" style="background:var(--green)"></span>2024–26: Poland's best run on record</b>
+        Feed disinflation with firm chicken prices lifted Poland to a record 3.56 (Nov 2025) — and, on
+        this anchoring, above Türkiye continuously since May 2025.</div>
+    </div>
+  </div>
+
   <div class="card method">
     <b>Method &amp; honesty notes.</b>
     <span id="mAnchor"></span>
@@ -162,6 +180,10 @@ function lineChart(boxId,svgId,seriesList,opts){
   const n=win.length, tick=Math.max(1,Math.round(n/6));
   for(let i=0;i<n;i+=tick)
     g+=`<text x="${xs[i]}" y="${H-10}" fill="#64748B" font-size="11" text-anchor="middle">${fmt(win[i])}</text>`;
+  // the series whose line ends higher gets the label above its point
+  const lastVals=seriesList.map((s,si)=>{
+    const m=[...win].reverse().find(m=>maps[si].get(m)!=null);
+    return m?maps[si].get(m):-Infinity});
   seriesList.forEach((s,si)=>{
     let seg=[],paths=[];
     win.forEach((m,i)=>{const v=maps[si].get(m);
@@ -172,8 +194,9 @@ function lineChart(boxId,svgId,seriesList,opts){
     // direct label + endpoint at the line's last visible point
     const last=[...win].reverse().find(m=>maps[si].get(m)!=null);
     if(last){const i=win.indexOf(last),v=maps[si].get(last);
+      const above=lastVals[si]===Math.max(...lastVals);
       g+=`<circle cx="${xs[i]}" cy="${Y(v)}" r="4" fill="${s.color}" stroke="#0B1220" stroke-width="2"/>`+
-         `<text x="${xs[i]-8}" y="${Y(v)+(si?16:-9)}" fill="#E8EEF7" font-size="12" font-weight="700" text-anchor="end">${s.label} ${v.toFixed(dp)}</text>`}
+         `<text x="${xs[i]-8}" y="${Y(v)+(above?-9:16)}" fill="#E8EEF7" font-size="12" font-weight="700" text-anchor="end">${s.label} ${v.toFixed(dp)}</text>`}
   });
   g+=`<line class="ch" x1="0" y1="${M.t}" x2="0" y2="${H-M.b}" stroke="#9FB0C8" stroke-width="1" stroke-dasharray="3,3" style="display:none"/>`;
   seriesList.forEach((s,si)=>{g+=`<circle class="cp cp${si}" r="4.5" fill="${s.color}" stroke="#0B1220" stroke-width="2" style="display:none"/>`});
@@ -292,7 +315,7 @@ function setBanner(state){
     state==='anchored'&&a&&a.year
       ?`Poland anchored to <b>${a.kg_feed_per_kg_chicken} kg/kg</b> in ${a.year} (${a.source}). The Eurostat chicken
         price is per kg <b>live weight</b> (${a.live_weight_parity} kg feed per live kg); it is converted to
-        carcass-equivalent (${a.basis}) so the level is comparable with the TR anchor, which is per kg meat —
+        carcass-equivalent (${(a.basis||'').replace(/^carcass-equivalent:\s*/,'')}) so the level is comparable with the TR anchor, which is per kg meat —
         an approximation that ignores processing margin, disclosed here rather than hidden. `
       :'';
 }

@@ -32,7 +32,8 @@ view, never the headline.
 ## Feasibility
 
 ```
-PARTIAL until the Actions probe confirms Poland's NACE detail
+FEASIBLE — probe confirmed and series BUILT 2026-08-25 (see probe results below);
+the block underneath is the pre-probe assessment, kept for the record
 
 Variable:      chicken-meat PPI ÷ prepared-feeds PPI, monthly, anchored to kg/kg
 TR:            TÜİK Yİ-ÜFE C10.12 ÷ C10.91 · 2010-01→ · monthly · TEPGE 2023
