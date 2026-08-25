@@ -12,6 +12,16 @@ Stdlib only, so it runs anywhere.
   python3 scripts/corr_check.py data/cattle-us.json meat_idx data/cattle-eu.json meat_idx
   python3 scripts/corr_check.py --demo      # the spurious-correlation trap, shown
 
+Money series MUST be deflated before correlating (data-integrity rule 2):
+
+  python3 scripts/corr_check.py data/eu-vet-expenses.json EU27_2020 \
+      data/herd-cattle.json EU \
+      --per-x data/herd-cattle.json:EU \
+      --deflate-x data/eu-hicp.json:hicp
+
+  --per-x / --per-y FILE:COL      divide that side through (e.g. to get per head)
+  --deflate-x / --deflate-y F:C   divide by a price index, and name it in the output
+
 Reading the output:
   p          probability of seeing an |r| this big if the true correlation were zero
   95% CI     range the true r plausibly lies in; if it straddles 0, you have nothing
@@ -214,18 +224,58 @@ def analyse(name, xs, ys, unit_x="", unit_y=""):
 # ---------------------------------------------------------------- data loading
 
 def load(path):
-    """Read a data/*.json file into {column: {key: value}} keyed on the first column."""
+    """Read a data/*.json file into ({column: {period: value}}, source).
+
+    Handles both shapes in data/: the {columns, rows} table used by the cattle
+    files, and the {series: {name: {period: value}}} dict used by the Eurostat
+    and FRED fetches.
+    """
     d = json.load(open(path))
-    if "rows" not in d:
-        sys.exit(f"{path}: no 'rows' key. Expected the data/*.json shape.")
-    cols, rows = d["columns"], d["rows"]
-    out = {c: {} for c in cols[1:]}
-    for row in rows:
-        key = row[0]
-        for c, v in zip(cols[1:], row[1:]):
-            if isinstance(v, (int, float)):
-                out[c][key] = float(v)
-    return out, cols
+    src = d.get("source", "")
+    if "rows" in d and "columns" in d:
+        cols, rows = d["columns"], d["rows"]
+        out = {c: {} for c in cols[1:]}
+        for row in rows:
+            for c, v in zip(cols[1:], row[1:]):
+                if isinstance(v, (int, float)):
+                    out[c][row[0]] = float(v)
+        return out, src
+    if "series" in d and isinstance(d["series"], dict):
+        out = {}
+        for name, obj in d["series"].items():
+            if isinstance(obj, dict):
+                out[name] = {k: float(v) for k, v in obj.items()
+                             if isinstance(v, (int, float))}
+        return out, src
+    sys.exit(f"{path}: unrecognised shape. Expected 'rows' or 'series'.")
+
+
+def spec(text, what):
+    """Parse a FILE:COL argument into its series, plus the source line."""
+    if ":" not in text:
+        sys.exit(f"{what}: expected FILE:COLUMN, got '{text}'")
+    path, col = text.rsplit(":", 1)
+    data, src = load(path)
+    if col not in data:
+        sys.exit(f"{path}: no column '{col}'. Available: {', '.join(data)}")
+    return data[col], f"{path}:{col} — {src}"
+
+
+def to_annual(series):
+    """Collapse monthly YYYY-MM keys to annual means. Annual input passes through."""
+    if not any("-" in k for k in series):
+        return series
+    buckets = {}
+    for k, v in series.items():
+        buckets.setdefault(k.split("-")[0], []).append(v)
+    return {y: sum(vs) / len(vs) for y, vs in buckets.items()}
+
+
+def divide(num, den):
+    """Elementwise ratio on the overlapping periods, matching annual to monthly."""
+    if any("-" in k for k in num) != any("-" in k for k in den):
+        num, den = to_annual(num), to_annual(den)
+    return {k: num[k] / den[k] for k in set(num) & set(den) if den[k]}
 
 
 def align(a, b):
@@ -249,25 +299,84 @@ def demo():
 def main(argv):
     if "--demo" in argv:
         return demo()
-    if len(argv) == 3:                       # one file, two columns
-        f1, c1, c2 = argv[0], argv[1], argv[2]
-        f2 = f1
-    elif len(argv) == 4:                     # two files, one column each
-        f1, c1, f2, c2 = argv
+
+    opts, pos = {}, []
+    i = 0
+    while i < len(argv):
+        if argv[i].startswith("--"):
+            if i + 1 >= len(argv):
+                sys.exit(f"{argv[i]} needs a FILE:COLUMN argument")
+            opts[argv[i]] = argv[i + 1]
+            i += 2
+        else:
+            pos.append(argv[i])
+            i += 1
+
+    if len(pos) == 3:                        # one file, two columns
+        f1, c1, f2, c2 = pos[0], pos[1], pos[0], pos[2]
+    elif len(pos) == 4:                      # two files, one column each
+        f1, c1, f2, c2 = pos
     else:
         sys.exit(__doc__)
-    d1, cols1 = load(f1)
-    d2, cols2 = load(f2)
+
+    d1, _ = load(f1)
+    d2, _ = load(f2)
     if c1 not in d1:
         sys.exit(f"{f1}: no column '{c1}'. Available: {', '.join(d1)}")
     if c2 not in d2:
         sys.exit(f"{f2}: no column '{c2}'. Available: {', '.join(d2)}")
-    xs, ys, keys = align(d1[c1], d2[c2])
+
+    X, Y = d1[c1], d2[c2]
+    notes = []
+    for flag, side in (("--per-x", "X"), ("--per-y", "Y")):
+        if flag in opts:
+            den, src = spec(opts[flag], flag)
+            if side == "X":
+                X = divide(X, den)
+            else:
+                Y = divide(Y, den)
+            notes.append(f"  {side} divided by  {src}")
+    for flag, side in (("--deflate-x", "X"), ("--deflate-y", "Y")):
+        if flag in opts:
+            defl, src = spec(opts[flag], flag)
+            if side == "X":
+                X = divide(X, defl)
+            else:
+                Y = divide(Y, defl)
+            notes.append(f"  {side} DEFLATED by  {src}")
+
+    # data-integrity rule 6: dividing X by the very series you correlate it
+    # against manufactures a negative correlation out of arithmetic alone.
+    shared = []
+    if opts.get("--per-x", "").replace(":", "|") == f"{f2}|{c2}":
+        shared.append(f"X is divided by {f2}:{c2}, which IS Y")
+    if opts.get("--per-y", "").replace(":", "|") == f"{f1}|{c1}":
+        shared.append(f"Y is divided by {f1}:{c1}, which IS X")
+    if shared:
+        print()
+        print("  !! SHARED DENOMINATOR")
+        for line in shared:
+            print(f"     {line}.")
+        print("     Part of any correlation here is arithmetic, not economics.")
+        print("     Re-run without --per to see how much of it survives.")
+
+    xs, ys, keys = align(X, Y)
     if len(xs) < 5:
         sys.exit(f"Only {len(xs)} overlapping periods. Too few to test.")
-    title = f"{f1}:{c1}  vs  {f2}:{c2}   [{keys[0]} to {keys[-1]}]"
+    label_x = f"{f1}:{c1}" + (" per unit" if "--per-x" in opts else "") + \
+              (" (real)" if "--deflate-x" in opts else " (NOMINAL)" if "--deflate-y" in opts else "")
+    label_y = f"{f2}:{c2}" + (" per unit" if "--per-y" in opts else "")
+    title = f"{label_x}  vs  {label_y}   [{keys[0]} to {keys[-1]}]"
+    if notes:
+        print()
+        print("Transformations applied:")
+        for n in notes:
+            print(n)
     analyse(title, xs, ys)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    try:
+        main(sys.argv[1:])
+    except BrokenPipeError:          # piping into head/less is not an error
+        sys.stderr.close()
