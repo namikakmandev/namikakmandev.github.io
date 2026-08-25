@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broiler Parity: Poland vs Türkiye</title>
+<style>
+  :root{
+    --bg:#0B1220; --card:#121B2C; --card2:#0F1726; --line:#1E2A40;
+    --ink:#E8EEF7; --ink2:#9FB0C8; --ink3:#64748B;
+    --tr:#2A8FEF; --pl:#F05E00; --green:#19C37D; --dn:#E8637A;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif;padding:32px 16px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .kicker{color:var(--tr);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
+  .sub{color:var(--ink2);max-width:760px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:26px 0 18px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .tile .lab{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .tile .val{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+  .tile .note{font-size:12.5px;color:var(--ink3);margin-top:2px}
+  .val.tr{color:var(--tr)} .val.pl{color:var(--pl)} .val.dim{color:var(--ink2)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  .chart-head{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .chart-title{font-weight:700;font-size:17px}
+  .chart-sub{color:var(--ink3);font-size:12.5px}
+  .btns{display:flex;gap:6px}
+  .btn{background:var(--card2);border:1px solid var(--line);color:var(--ink2);font-size:12.5px;font-weight:600;
+       padding:5px 12px;border-radius:8px;cursor:pointer}
+  .btn.on{background:rgba(42,143,239,.14);border-color:rgba(42,143,239,.5);color:var(--tr)}
+  .legend{display:flex;gap:16px;font-size:12.5px;color:var(--ink2);margin:2px 0 6px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+  .chartbox{position:relative}
+  svg{display:block;width:100%;height:auto}
+  .tt{position:absolute;pointer-events:none;background:#0A1424;border:1px solid var(--line);border-radius:10px;
+      padding:8px 12px;font-size:12.5px;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5);white-space:nowrap;z-index:5}
+  .tt b{font-size:14px}
+  .banner{background:var(--card2);border:1px dashed var(--line);border-radius:12px;padding:12px 16px;
+          font-size:13.5px;color:var(--ink2);margin-bottom:18px}
+  .banner b{color:var(--ink)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{color:var(--ink3);text-transform:uppercase;font-size:11px;letter-spacing:.08em;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:7px 10px;text-align:right;border-bottom:1px solid rgba(30,42,64,.5);font-variant-numeric:tabular-nums}
+  tr:hover td{background:rgba(42,143,239,.05)}
+  .hidden{display:none}
+  .method{font-size:13px;color:var(--ink2)}
+  .method b{color:var(--ink)}
+  footer{color:var(--ink3);font-size:12.5px;margin-top:8px}
+  @media(max-width:640px){ h1{font-size:23px} .tile .val{font-size:24px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Poland × Türkiye · Poultry Economics · Monthly</div>
+  <h1>Broiler Parity: Poland vs Türkiye</h1>
+  <p class="sub">One ratio decides whether a chicken farm makes money: the price of chicken meat versus the
+  price of feed. This page puts Europe's largest broiler producer and Türkiye on the <b>same metric, built the
+  same way</b> — the producer price index for poultry-meat processing divided by the index for prepared
+  animal feeds (NACE C10.12 ÷ C10.91 in both countries).</p>
+
+  <div id="plBanner" class="banner hidden"></div>
+
+  <div class="tiles">
+    <div class="tile"><div class="lab">Türkiye · latest</div><div class="val tr" id="t-tr">—</div>
+      <div class="note" id="t-tr-note">kg of feed one kg of chicken buys</div></div>
+    <div class="tile"><div class="lab">Poland · latest</div><div class="val pl" id="t-pl">—</div>
+      <div class="note" id="t-pl-note">pipeline pending</div></div>
+    <div class="tile"><div class="lab" id="t-div-lab">Divergence</div><div class="val dim" id="t-div">—</div>
+      <div class="note" id="t-div-note">indexed parity, PL minus TR</div></div>
+    <div class="tile"><div class="lab">Metric</div><div class="val dim" style="font-size:19px;line-height:1.3">same NACE pair,<br>both countries</div>
+      <div class="note">TÜİK Yİ-ÜFE · Eurostat sts_inppd_m</div></div>
+  </div>
+
+  <div class="card">
+    <div class="chart-head">
+      <div>
+        <div class="chart-title">Feed/meat parity — kg of feed one kg of chicken buys</div>
+        <div class="chart-sub" id="absSub">Higher = fatter producer margin · Hover for values</div>
+      </div>
+      <div class="btns">
+        <button class="btn" data-r="all">2010 →</button>
+        <button class="btn" data-r="60">5 yrs</button>
+        <button class="btn on" data-r="30">30 mo</button>
+        <button class="btn" id="tglTable">Table</button>
+      </div>
+    </div>
+    <div class="legend" id="absLegend"></div>
+    <div class="chartbox" id="absBox">
+      <svg id="absSvg" viewBox="0 0 1040 420" role="img" aria-label="Monthly broiler parity, kilograms of feed per kilogram of chicken, by country"></svg>
+      <div class="tt"></div>
+    </div>
+    <div id="tablebox" class="hidden" style="max-height:420px;overflow:auto;margin-top:6px">
+      <table id="tbl"><thead><tr><th>Month</th><th>TR parity</th><th>TR vs yr ago</th><th id="plColHead">PL</th><th>PL vs yr ago</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+
+  <div class="card" id="idxCard">
+    <div class="chart-head">
+      <div>
+        <div class="chart-title">Same metric, indexed — dynamics side by side</div>
+        <div class="chart-sub" id="idxSub">Average of the latest full year covered by both = 100 · Above 100 = margin better than that year</div>
+      </div>
+    </div>
+    <div class="legend" id="idxLegend"></div>
+    <div class="chartbox" id="idxBox">
+      <svg id="idxSvg" viewBox="0 0 1040 420" role="img" aria-label="Broiler parity indexed to a common base year, Poland and Türkiye"></svg>
+      <div class="tt"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="story" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+      <div class="s" style="background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--ink2)">
+        <b style="color:var(--ink);display:block;margin-bottom:3px;font-size:14px"><span class="dot" style="background:var(--pl)"></span>A decade in a groove</b>
+        Through 2010–19 Poland's parity held a 2.2–2.9 band while Türkiye's swung 2.8–4.6 —
+        two and a half times the volatility. The stability of an export machine against boom-and-bust
+        broiler cycles.</div>
+      <div class="s" style="background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--ink2)">
+        <b style="color:var(--ink);display:block;margin-bottom:3px;font-size:14px"><span class="dot" style="background:var(--tr)"></span>2021–22: one shock, two outcomes</b>
+        The grain shock crushed Türkiye's margin to crisis lows. Polish chicken prices kept pace with
+        feed — 2022 parity actually <i>firmed</i> to ≈2.7. Same storm, different boats.</div>
+      <div class="s" style="background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:13.5px;color:var(--ink2)">
+        <b style="color:var(--ink);display:block;margin-bottom:3px;font-size:14px"><span class="dot" style="background:var(--green)"></span>2024–26: Poland's best run on record</b>
+        Feed disinflation with firm chicken prices lifted Poland to a record 3.56 (Nov 2025) — and, on
+        this anchoring, above Türkiye continuously since May 2025.</div>
+    </div>
+  </div>
+
+  <div class="card method">
+    <b>Method &amp; honesty notes.</b>
+    <span id="mAnchor"></span>
+    Türkiye: TÜİK domestic PPI, <i>processed &amp; preserved poultry meat</i> (C10.12) ÷ <i>prepared farm-animal
+    feeds</i> (C10.91), scaled to TEPGE's official 2023 parity (3.48 kg feed per kg chicken) — the series behind
+    <a href="broiler-margin.html" style="color:var(--tr)">the TR monitor</a>. Poland: the same NACE pair from
+    Eurostat <i>sts_inppd_m</i> (domestic output prices, 2021&nbsp;=&nbsp;100), fetched and rebuilt monthly by
+    GitHub Actions (probe report: <code>data/_pl-parity-probe.json</code>).
+    Both series are <b>factory-gate, not farm-gate</b> — one step removed from the grower; for integrated
+    producers the two move together, but levels are indicative. The indexed chart compares dynamics only and is
+    valid regardless of anchoring; the kg/kg chart shows a country only when its absolute level is anchored to
+    an official parity. Base-year changes (Eurostat rebases, TÜİK 2003=100) affect levels, not the ratio's movement.
+  </div>
+
+  <footer>Sources: TÜİK Yİ-ÜFE (C10.12, C10.91) · TEPGE Tavuk Eti Piyasa Raporu · Eurostat sts_inppd_m ·
+  Analysis &amp; build: Namık Akman · Aug 2026</footer>
+</div>
+
+<script src="js/broiler-data.js"></script>
+<script>
+const C={tr:'#2A8FEF',pl:'#F05E00'};
+const TR=(window.BROILER_DATA||[]).map(d=>[d[0],d[1]]);   // [month, kg/kg]
+let PL=null, PLMETA=null;                                  // filled from JSON if present
+const W=1040,H=420,M={l:50,r:16,t:18,b:34};
+let range=30;
+
+function fmt(p){const[y,m]=p.split('-');return['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]+' '+y}
+
+// ---- generic multi-series line chart with crosshair + tooltip ---------------
+function lineChart(boxId,svgId,seriesList,opts){
+  const svg=document.getElementById(svgId), box=document.getElementById(boxId),
+        tt=box.querySelector('.tt'), dp=opts.dp??2;
+  const months=[...new Set(seriesList.flatMap(s=>s.data.map(d=>d[0])))].sort();
+  const win=range==='all'?months:months.slice(-range);
+  const maps=seriesList.map(s=>new Map(s.data));
+  const xs=win.map((_,i)=>M.l+i*(W-M.l-M.r)/Math.max(1,win.length-1));
+  const vals=win.flatMap((m)=>maps.map(mp=>mp.get(m)).filter(v=>v!=null));
+  if(!vals.length){svg.innerHTML='';return}
+  const lo=Math.min(...vals),hi=Math.max(...vals),pad=(hi-lo)*0.08||0.1;
+  const y0=lo-pad,y1=hi+pad, Y=v=>M.t+(y1-v)/(y1-y0)*(H-M.t-M.b);
+  let g='';
+  const step=(y1-y0)/5;
+  for(let k=0;k<=5;k++){
+    const v=y0+k*step, yy=Y(v);
+    g+=`<line x1="${M.l}" y1="${yy}" x2="${W-M.r}" y2="${yy}" stroke="#1E2A40" stroke-width="1"/>`+
+       `<text x="${M.l-8}" y="${yy+4}" fill="#64748B" font-size="11" text-anchor="end">${v.toFixed(dp)}</text>`;
+  }
+  const n=win.length, tick=Math.max(1,Math.round(n/6));
+  for(let i=0;i<n;i+=tick)
+    g+=`<text x="${xs[i]}" y="${H-10}" fill="#64748B" font-size="11" text-anchor="middle">${fmt(win[i])}</text>`;
+  // the series whose line ends higher gets the label above its point
+  const lastVals=seriesList.map((s,si)=>{
+    const m=[...win].reverse().find(m=>maps[si].get(m)!=null);
+    return m?maps[si].get(m):-Infinity});
+  seriesList.forEach((s,si)=>{
+    let seg=[],paths=[];
+    win.forEach((m,i)=>{const v=maps[si].get(m);
+      if(v==null){if(seg.length>1)paths.push(seg);seg=[]}
+      else seg.push([xs[i],Y(v)])});
+    if(seg.length>1)paths.push(seg);
+    paths.forEach(p=>{g+=`<path d="M${p.map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' L')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`});
+    // direct label + endpoint at the line's last visible point
+    const last=[...win].reverse().find(m=>maps[si].get(m)!=null);
+    if(last){const i=win.indexOf(last),v=maps[si].get(last);
+      const above=lastVals[si]===Math.max(...lastVals);
+      g+=`<circle cx="${xs[i]}" cy="${Y(v)}" r="4" fill="${s.color}" stroke="#0B1220" stroke-width="2"/>`+
+         `<text x="${xs[i]-8}" y="${Y(v)+(above?-9:16)}" fill="#E8EEF7" font-size="12" font-weight="700" text-anchor="end">${s.label} ${v.toFixed(dp)}</text>`}
+  });
+  g+=`<line class="ch" x1="0" y1="${M.t}" x2="0" y2="${H-M.b}" stroke="#9FB0C8" stroke-width="1" stroke-dasharray="3,3" style="display:none"/>`;
+  seriesList.forEach((s,si)=>{g+=`<circle class="cp cp${si}" r="4.5" fill="${s.color}" stroke="#0B1220" stroke-width="2" style="display:none"/>`});
+  svg.innerHTML=g;
+  svg.onmousemove=e=>{
+    const r=svg.getBoundingClientRect(), sx=(e.clientX-r.left)*W/r.width;
+    let i=0,best=1e9; xs.forEach((x,k)=>{const d=Math.abs(x-sx);if(d<best){best=d;i=k}});
+    const m=win[i],x=xs[i],ch=svg.querySelector('.ch');
+    ch.style.display='block';ch.setAttribute('x1',x);ch.setAttribute('x2',x);
+    let rows='';
+    seriesList.forEach((s,si)=>{
+      const v=maps[si].get(m),cp=svg.querySelector('.cp'+si);
+      if(v==null){cp.style.display='none';return}
+      cp.style.display='block';cp.setAttribute('cx',x);cp.setAttribute('cy',Y(v));
+      rows+=`<span style="color:${s.color}">●</span> ${s.label} <b>${v.toFixed(dp)}</b>${opts.unit?' '+opts.unit:''}<br>`;
+    });
+    tt.style.display='block';
+    tt.innerHTML=rows+`<span style="color:#9FB0C8">${fmt(m)}</span>`;
+    const bx=box.getBoundingClientRect();
+    let tx=(x/W)*bx.width+14; if(tx+tt.offsetWidth>bx.width-8)tx=(x/W)*bx.width-tt.offsetWidth-14;
+    tt.style.left=tx+'px'; tt.style.top='24px';
+  };
+  svg.onmouseleave=()=>{tt.style.display='none';
+    svg.querySelectorAll('.ch,.cp').forEach(el=>el.style.display='none')};
+}
+
+function legend(id,seriesList){
+  document.getElementById(id).innerHTML=seriesList.map(s=>
+    `<span><span class="dot" style="background:${s.color}"></span>${s.label}</span>`).join('');
+}
+
+// index each series to (mean of latest calendar year fully covered by both) = 100
+function indexed(a,b){
+  const yrs=y=>new Set(a.filter(d=>d[0].startsWith(y)).map(d=>d[0].slice(5)));
+  const years=[...new Set(a.map(d=>d[0].slice(0,4)))].sort().reverse();
+  const base=years.find(y=>yrs(y).size===12&&b.filter(d=>d[0].startsWith(y)).length===12);
+  if(!base)return null;
+  const mean=s=>s.filter(d=>d[0].startsWith(base)).reduce((t,d)=>t+d[1],0)/12;
+  const ma=mean(a),mb=mean(b);
+  return {base,a:a.map(d=>[d[0],d[1]/ma*100]),b:b.map(d=>[d[0],d[1]/mb*100])};
+}
+
+function drawAll(){
+  const absSeries=[{label:'Türkiye',color:C.tr,data:TR}];
+  const plAnchored=PLMETA&&PLMETA.anchored;
+  if(plAnchored)absSeries.push({label:'Poland',color:C.pl,data:PL});
+  legend('absLegend',absSeries);
+  lineChart('absBox','absSvg',absSeries,{dp:2});
+  document.getElementById('absSub').textContent=
+    plAnchored?'Higher = fatter producer margin · Hover for values'
+             :'Türkiye only — Poland joins this chart once its absolute anchor is validated · Hover for values';
+  const card=document.getElementById('idxCard');
+  if(PL&&PL.length){
+    const ix=indexed(TR,PL.map(d=>[d[0],d[1]]));
+    if(ix){
+      card.classList.remove('hidden');
+      document.getElementById('idxSub').textContent=`Average of ${ix.base} = 100 · Above 100 = margin better than ${ix.base}`;
+      const s=[{label:'Türkiye',color:C.tr,data:ix.a},{label:'Poland',color:C.pl,data:ix.b}];
+      legend('idxLegend',s);
+      lineChart('idxBox','idxSvg',s,{dp:1});
+      const la=ix.a[ix.a.length-1],lb=ix.b[ix.b.length-1];
+      if(la&&lb&&la[0]===lb[0]){
+        document.getElementById('t-div').textContent=(lb[1]-la[1]>0?'+':'')+(lb[1]-la[1]).toFixed(1);
+        document.getElementById('t-div-note').textContent=`index points, PL minus TR, ${fmt(la[0])} (base ${ix.base}=100)`;
+      }
+    } else card.classList.add('hidden');
+  } else card.classList.add('hidden');
+}
+
+function fillTable(){
+  const tb=document.querySelector('#tbl tbody');tb.innerHTML='';
+  const plMap=new Map((PL||[]).map(d=>[d[0],d[1]]));
+  const anch=PLMETA&&PLMETA.anchored;
+  document.getElementById('plColHead').textContent=anch?'PL parity':'PL (index ratio)';
+  const yoy=(arr,map,m)=>{const[y,mo]=m.split('-');const p=map.get((+y-1)+'-'+mo);
+    return p?((map.get(m)/p-1)*100):null};
+  const trMap=new Map(TR);
+  [...TR].reverse().forEach(d=>{
+    const m=d[0],tv=d[1],pv=plMap.get(m);
+    const ty=yoy(TR,trMap,m),py=pv!=null?yoy(PL,plMap,m):null;
+    const cell=v=>v===null?'—':`<span style="color:${v>0?'var(--green)':'var(--dn)'}">${v>0?'+':''}${v.toFixed(1)}%</span>`;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${fmt(m)}</td><td><b>${tv.toFixed(2)}</b></td><td>${cell(ty)}</td>`+
+      `<td>${pv!=null?'<b>'+pv.toFixed(anch?2:3)+'</b>':'—'}</td><td>${cell(py)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function setTiles(){
+  document.getElementById('t-tr').textContent=TR.length?TR[TR.length-1][1].toFixed(2):'—';
+  if(TR.length)document.getElementById('t-tr-note').textContent=
+    `kg feed / kg chicken · ${fmt(TR[TR.length-1][0])}`;
+  const el=document.getElementById('t-pl'),note=document.getElementById('t-pl-note');
+  if(PL&&PL.length){
+    const last=PL[PL.length-1];
+    if(PLMETA.anchored){el.textContent=last[1].toFixed(2);
+      note.textContent=`kg feed / kg chicken · ${fmt(last[0])}`}
+    else{el.textContent='—';
+      note.textContent=`unanchored — dynamics in the indexed chart · data to ${fmt(last[0])}`}
+  }
+}
+
+function setBanner(state){
+  const b=document.getElementById('plBanner');
+  if(state==='missing'){b.classList.remove('hidden');
+    b.innerHTML='<b>Poland series not built yet.</b> The Eurostat probe/fetch (Actions workflow '+
+      '“Broiler parity PL”) hasn’t committed <code>data/broiler-parity-pl.json</code>. '+
+      'Türkiye renders from the existing monitor; this page fills in automatically once the data lands.'}
+  else if(state==='unanchored'){b.classList.remove('hidden');
+    b.innerHTML='<b>Poland is unanchored so far:</b> its monthly movement is real (Eurostat C1012÷C1091), '+
+      'but the absolute kg/kg level awaits validation against Eurostat annual prices. Until then Poland '+
+      'appears in the indexed chart only.'}
+  else b.classList.add('hidden');
+  const a=PLMETA&&PLMETA.anchor;
+  document.getElementById('mAnchor').innerHTML=
+    state==='anchored'&&a&&a.year
+      ?`Poland anchored to <b>${a.kg_feed_per_kg_chicken} kg/kg</b> in ${a.year} (${a.source}). The Eurostat chicken
+        price is per kg <b>live weight</b> (${a.live_weight_parity} kg feed per live kg); it is converted to
+        carcass-equivalent (${(a.basis||'').replace(/^carcass-equivalent:\s*/,'')}) so the level is comparable with the TR anchor, which is per kg meat —
+        an approximation that ignores processing margin, disclosed here rather than hidden. `
+      :'';
+}
+
+document.querySelectorAll('.btn[data-r]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.btn[data-r]').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');range=b.dataset.r==='all'?'all':+b.dataset.r;drawAll();
+}));
+document.getElementById('tglTable').addEventListener('click',function(){
+  const tb=document.getElementById('tablebox'),cb=document.getElementById('absBox'),
+        lg=document.getElementById('absLegend');
+  const show=tb.classList.contains('hidden');
+  tb.classList.toggle('hidden',!show);cb.style.display=show?'none':'block';
+  lg.style.display=show?'none':'flex';
+  this.classList.toggle('on',show);this.textContent=show?'Chart':'Table';
+});
+
+fetch('data/broiler-parity-pl.json')
+  .then(r=>{if(!r.ok)throw 0;return r.json()})
+  .then(j=>{PLMETA=j.meta;PL=j.series.map(d=>[d[0],d[1]]);
+    setBanner(PLMETA.anchored?'anchored':'unanchored')})
+  .catch(()=>setBanner('missing'))
+  .finally(()=>{setTiles();drawAll();fillTable()});
+</script>
+</body>
+</html>
