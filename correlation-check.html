@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Correlation &amp; Regression Check — is that relationship real? — Namık Akman</title>
+  <meta name="description" content="Free correlation and regression checker. Paste two or three data series and instantly see whether the relationship is real: levels vs changes, effective sample size, adjusted significance, regression slope with honest errors, confounder control, residual diagnostics, robustness checks, methodology breaks and lag analysis. Runs entirely in your browser — no data leaves the page." />
+  <meta name="keywords" content="correlation checker, regression checker, spurious correlation, correlation significance, effective sample size, autocorrelation correction, confounder control, residual diagnostics, out-of-sample validation, time series correlation, data validation tool" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="Correlation Check — is that correlation real?" />
+  <meta property="og:description" content="Two random walks correlate at r = 0.96. Paste your own data and see whether your correlation survives the checks that catch that." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    [hidden]{display:none!important}
+    .cc-grid{display:grid;gap:18px}
+    .cc-input-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+    #cc-input{width:100%;min-height:180px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;
+      background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical}
+    .cc-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+    .cc-controls label{font-size:.9rem;color:var(--text-dim);display:flex;align-items:center;gap:6px}
+    .cc-btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 22px;font-weight:600;cursor:pointer;font-size:1rem}
+    .cc-btn.ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+    #cc-error{color:var(--loss);font-weight:600;margin-top:10px;min-height:1.2em}
+    #cc-warnbox{border-left:3px solid var(--accent-3);background:var(--surface);border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px}
+    #cc-warnbox li{margin:.3em 0}
+    .cc-table-wrap{overflow-x:auto}
+    .cc-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .cc-table th,.cc-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .cc-table th[scope=row],.cc-table thead th:first-child{text-align:left}
+    .cc-sig{color:var(--accent-2);font-weight:600}
+    .cc-ns{color:var(--text-dim)}
+    .cc-charts{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    @media(max-width:760px){.cc-charts{grid-template-columns:1fr}}
+    .cc-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+    .cc-chart-card canvas{width:100%;height:220px;display:block}
+    .cc-chart-card .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    #cc-verdict{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+    #cc-verdict p{margin:.5em 0}
+    .cc-bar{display:inline-block;height:9px;background:var(--accent);border-radius:2px;vertical-align:middle;margin-right:6px}
+    .cc-peak td{background:var(--surface-2)}
+    .cc-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block}
+    .cc-note{text-align:left!important;white-space:normal!important;color:var(--text-dim)}
+    #cc-colbar select{background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+      border-radius:6px;padding:6px 8px;font-size:.9rem}
+  </style>
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container cc-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Correlation &amp; Regression Check</h2>
+        </div>
+
+        <p class="data-note">
+          Two completely unrelated random walks correlate at <strong>r&nbsp;=&nbsp;0.96</strong>
+          with p&nbsp;=&nbsp;10<sup>&minus;68</sup> &mdash; press <em>Load the trap</em> and watch
+          it happen. Then paste your own two series and see whether your correlation survives the
+          checks that catch it: levels against changes, sample size discounted for autocorrelation,
+          confidence intervals, methodology breaks, and lag analysis corrected for how many lags
+          you looked at. Then it fits the regression &mdash; the slope with honest errors, a
+          confounder control if you give it a third column, residual diagnostics, and four
+          robustness checks including out-of-sample validation. <strong>Everything runs in your browser &mdash; no data leaves the page.</strong>
+        </p>
+
+        <details class="howto">
+          <summary>How this checker works &mdash; the eight traps it tests for</summary>
+          <div class="howto-body">
+            <ol>
+              <li><strong>Shared trend.</strong> Any two series that both drift correlate for free.
+                The checker recomputes r on period-to-period <em>changes</em>; if the correlation
+                only exists in levels, it was two trends passing each other.</li>
+              <li><strong>Sample size that only looks large.</strong> 120 monthly observations of a
+                slow-moving series are not 120 independent facts &mdash; each month is mostly last
+                month. The checker discounts n for autocorrelation (Bartlett/Quenouille) and
+                recomputes the p-value on that effective sample size.</li>
+              <li><strong>Methodology breaks.</strong> A single implausible step (a survey basis
+                change, a redefinition) is flagged by median absolute deviation before you compare
+                anything across it.</li>
+              <li><strong>Zero-crossing series.</strong> Percent change is undefined on a series
+                that changes sign (margins, net flows). The checker detects this and switches to
+                absolute differences.</li>
+              <li><strong>Fake leads.</strong> Scanning 13 lags and keeping the best is 13 tests,
+                not one. The lag table applies a Bonferroni correction, and a peak barely above
+                lag zero is called what it is: noise.</li>
+              <li><strong>A slope with dishonest errors.</strong> The regression is fitted on
+                changes, and its standard errors are widened by the same effective-sample-size
+                discount as the correlation &mdash; the slope cannot claim confidence the
+                correlation was denied. Durbin&ndash;Watson flags autocorrelated residuals.</li>
+              <li><strong>Confounders.</strong> Give it a third column and it re-fits holding that
+                variable constant. If the X coefficient collapses, X was a proxy &mdash; this is
+                the question correlation alone can never answer.</li>
+              <li><strong>Fragile findings.</strong> Spearman vs Pearson (nonlinearity), drop-one
+                influence (one point moving the result), split-half agreement (a period, not a
+                relationship), and out-of-sample R&sup2; &mdash; fit on the first 70%, scored on
+                the last 30%, where a negative score means the model does worse than guessing
+                the mean.</li>
+            </ol>
+            <p>Statistics: Pearson r; two-sided p from the exact t distribution; 95% CI by
+              Fisher z; a 2,000-draw permutation test as an assumption-free cross-check.
+              The engine is validated against a reference implementation on published data.</p>
+          </div>
+        </details>
+
+        <div class="cc-input-card">
+          <label for="cc-input"><strong>Paste your data</strong> &mdash; CSV or TSV, straight from
+            Excel or Sheets. Two numeric columns; an optional first column with dates or labels.
+            Monthly dates (<code>2024-01</code>) unlock year-on-year mode.</label>
+          <textarea id="cc-input" spellcheck="false"
+            placeholder="period,revenue,marketing_spend&#10;2022-01,1240,310&#10;2022-02,1198,305&#10;2022-03,1315,342&#10;..."></textarea>
+          <div class="cc-controls" id="cc-colbar" hidden>
+            <label>X <select id="cc-colx"></select></label>
+            <label>Y <select id="cc-coly"></select></label>
+            <label>control for <select id="cc-colz"></select></label>
+          </div>
+          <div class="cc-controls">
+            <button class="cc-btn" id="cc-run">Check the relationship</button>
+            <button class="cc-btn ghost" id="cc-demo">Load the trap</button>
+            <label class="cc-btn ghost" style="cursor:pointer">Upload file
+              <input type="file" id="cc-file" accept=".csv,.tsv,.txt" hidden></label>
+            <label><input type="checkbox" id="cc-yoy" checked> year-on-year (monthly data)</label>
+          </div>
+          <div id="cc-error" role="alert"></div>
+        </div>
+
+        <div id="cc-results" hidden class="cc-grid">
+          <div id="cc-warnbox" hidden>
+            <strong>Check these before believing anything below:</strong>
+            <ul id="cc-warnings"></ul>
+          </div>
+
+          <div class="cc-table-wrap">
+            <table class="cc-table">
+              <caption class="sr-only">Correlation results in levels and in changes</caption>
+              <thead><tr>
+                <th>Form</th><th>n</th><th>r</th><th>R&sup2;</th>
+                <th>p (naive)</th><th>n effective</th><th>p (adjusted)</th>
+                <th>95% CI</th><th>verdict</th>
+              </tr></thead>
+              <tbody id="cc-tbody"></tbody>
+            </table>
+          </div>
+
+          <div id="cc-verdict"></div>
+
+          <div id="cc-regbox" hidden class="cc-input-card">
+            <strong>Regression &mdash; the number you can act on</strong>
+            <div id="cc-regbody"></div>
+          </div>
+
+          <div id="cc-ctrlbox" hidden class="cc-input-card">
+            <strong>Confounder control</strong>
+            <div id="cc-ctrlbody"></div>
+          </div>
+
+          <div id="cc-robbox" hidden class="cc-input-card">
+            <strong>Robustness &mdash; four ways one number can be fragile</strong>
+            <div class="cc-table-wrap">
+              <table class="cc-table">
+                <tbody id="cc-robtbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="cc-charts">
+            <div class="cc-chart-card">
+              <canvas id="cc-chart-series"></canvas>
+              <div class="cap">Both series, each scaled to its own min&ndash;max range on one axis.
+                Parallel drift here is exactly what the levels correlation rewards.</div>
+            </div>
+            <div class="cc-chart-card">
+              <canvas id="cc-chart-scatter"></canvas>
+              <div class="cap">The changes, against each other, with the fitted line. This cloud is
+                what your correlation actually is once trend is removed.</div>
+            </div>
+            <div class="cc-chart-card" id="cc-resid-card" hidden>
+              <canvas id="cc-chart-resid"></canvas>
+              <div class="cap">Residuals against fitted values. A healthy fit is a structureless band
+                around zero &mdash; a curve, funnel or drift here is what the regression got wrong.</div>
+            </div>
+          </div>
+
+          <div id="cc-lagbox" hidden class="cc-input-card">
+            <strong>Lag analysis</strong> &mdash; does one series lead the other?
+            <div class="cc-table-wrap">
+              <table class="cc-table">
+                <thead><tr><th>lag</th><th>r levels</th><th>r changes</th><th></th></tr></thead>
+                <tbody id="cc-lagtbody"></tbody>
+              </table>
+            </div>
+            <p id="cc-lagverdict" style="color:var(--text-dim)"></p>
+          </div>
+        </div>
+
+        <p class="data-note" style="font-size:.85rem">
+          Method &middot; Pearson correlation; exact t-distribution p-values; Fisher-z confidence
+          intervals; effective sample size n&middot;(1&minus;r&#8321;r&#8322;)/(1+r&#8321;r&#8322;)
+          from lag-1 autocorrelations; permutation test with a fixed seed; break detection at
+          6&nbsp;MAD and &gt;10% single-period change; Bonferroni-corrected lag scan; OLS on
+          changes with slope errors widened by &radic;(df/df<sub>eff</sub>); two-predictor OLS and
+          partial correlation for the control; Durbin&ndash;Watson; Spearman by average ranks;
+          jackknife drop-one influence; 70/30 out-of-sample split.
+          Open source on <a href="https://github.com/namikakmandev/namikakmandev.github.io">GitHub</a>
+          &mdash; the same engine that re-validated the correlations in the
+          <a href="parite-sigir-brief.html">cattle margin study</a>.
+          Your data stays in this tab; there is no server.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/correlation-check.js"></script>
+  <script src="js/correlation-check-ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

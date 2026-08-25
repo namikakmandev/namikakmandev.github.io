@@ -143,9 +143,9 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
 <section class="slide">
   <div class="kick">4 &middot; DOES THE SPEND FOLLOW? &middot; UNITED STATES</div>
   <h2>More per animal. Fewer animals. Total flat.</h2>
-  <div class="read">US cow-calf vet &amp; medicine spending, inflation-adjusted. <b>Per animal it rises with the margin (r = +0.70) &mdash; the shrinking herd cancels it out.</b></div>
+  <div class="read">US cow-calf vet &amp; medicine spending, inflation-adjusted. <b>Per animal it rises with the margin, but only loosely &mdash; and the shrinking herd cancels it out.</b></div>
   <div class="chart"><canvas id="c8"></canvas></div>
-  <div class="foot">USDA ERS COW-CALF COSTS, US TOTAL &middot; 2008 = 100, REAL 2025 DOLLARS &middot; STARTS 2008: ERS CHANGED SURVEY BASIS THAT YEAR</div>
+  <div class="foot">USDA ERS COW-CALF COSTS, US TOTAL &middot; 2008 = 100, REAL 2025 DOLLARS &middot; STARTS 2008: ERS CHANGED SURVEY BASIS THAT YEAR &middot; SPEND AGAINST MARGIN RE-TESTS AT r = +0.60 IN LEVELS 2009&ndash;2025, NOT SIGNIFICANT ON 17 ANNUAL OBSERVATIONS, AND +0.17 YEAR TO YEAR; AN EARLIER +0.70 DOES NOT SURVIVE RE-TESTING</div>
 </section>
 
 <section class="slide">
@@ -205,7 +205,7 @@ ul.pts.cols li span{max-width:none;font-size:.72em}
   <h2>Four markets. Four different instructions.</h2>
   <div class="read">Same cycle everywhere, three different consequences. <b>The US is a timing problem. The EU is a volume problem. T&uuml;rkiye is a visibility problem. Israel is the benchmark.</b></div>
   <div class="chart"><canvas id="c9"></canvas></div>
-  <div class="foot">HERD: FAOSTAT &middot; SPEND SENSITIVITY = CORRELATION OF REAL VET SPEND PER HEAD WITH PRODUCER MARGIN &middot; US MARGIN = GROSS VALUE OF PRODUCTION LESS OPERATING COSTS PER COW, USDA ERS COW-CALF, REAL 2025 DOLLARS, 2022 AND 2025 &middot; VET SHARE = VETERINARY AND MEDICINE OVER GROSS VALUE OF PRODUCTION; 2.34% IS THE LOWEST OF THE 2008&ndash;2025 SERIES, WHICH RANGES 2.34&ndash;4.88% &middot; NO PER-HEAD COSTS PUBLISHED FOR TR</div>
+  <div class="foot">HERD: FAOSTAT &middot; SPEND SENSITIVITY = CORRELATION OF REAL VET SPEND PER HEAD WITH PRODUCER MARGIN, IN LEVELS; NEITHER THE US NOR THE EU FIGURE CLEARS SIGNIFICANCE ON ~17&ndash;20 ANNUAL OBSERVATIONS, SO READ THEM AS DIRECTION, NOT AS A TIMING SIGNAL &middot; US MARGIN = GROSS VALUE OF PRODUCTION LESS OPERATING COSTS PER COW, USDA ERS COW-CALF, REAL 2025 DOLLARS, 2022 AND 2025 &middot; VET SHARE = VETERINARY AND MEDICINE OVER GROSS VALUE OF PRODUCTION; 2.34% IS THE LOWEST OF THE 2008&ndash;2025 SERIES, WHICH RANGES 2.34&ndash;4.88% &middot; NO PER-HEAD COSTS PUBLISHED FOR TR</div>
 </section>
 
 <section class="slide">
@@ -573,11 +573,11 @@ function ch9(){
   const cv=document.getElementById('c9');const [x,W0,H0,k]=fit(cv);
   const cols=[
     {n:'US',c:C.amber,herd:-34,herdT:'87m \u00b7 bottom 2024',hd:'down',
-     r:0.70,rl:'cyclical',pool:'+4%',poolT:'17-yr real pool',
+     r:0.60,sig:false,rl:'weak, n.s.',pool:'+4%',poolT:'17-yr real pool',
      v:'TIME THE PRICE MOVE',
      vs:'Margin per cow ran $22 to $732 while vet fell to 2.34% of revenue, an 18-year low. The opening is price, not volume.',vc:'#c98a2e'},
     {n:'EU',c:C.blue,herd:-33,herdT:'72m \u00b7 \u22121.4%/yr',hd:'down',
-     r:0.00,rl:'flat',pool:'\u22125%',poolT:'20-yr real pool',
+     r:-0.12,sig:false,rl:'flat',pool:'\u22125%',poolT:'20-yr real pool',
      v:'DEFEND THE VOLUME',
      vs:'2027 is not a bad year \u2014 it is the same year, ~1.5% smaller. No cycle upside, no cycle hit; the herd erodes regardless.',vc:'#8aa0d8'},
     {n:'T\u00dcRK\u0130YE',c:C.red,herd:-6,herdT:'17m \u00b7 +2.4% 2024',hd:'up',
@@ -617,9 +617,9 @@ function ch9(){
     const gx=PX, gw=cw-36*k, gy=R(0.545), gh=12*k;
     x.fillStyle='rgba(203,191,168,.13)';x.fillRect(gx,gy,gw,gh);
     if(d.r!==null){
-      x.fillStyle=d.r>0.4?'#c98a2e':'rgba(203,191,168,.35)';
-      x.fillRect(gx,gy,gw*Math.max(0.02,d.r),gh);
-      mono(x,21*k,700);x.textAlign='left';x.fillStyle=d.r>0.4?C.amber:C.dim;
+      x.fillStyle=d.sig?'#c98a2e':'rgba(203,191,168,.35)';
+      x.fillRect(gx,gy,gw*Math.max(0.02,Math.abs(d.r)),gh);
+      mono(x,21*k,700);x.textAlign='left';x.fillStyle=d.sig?C.amber:C.dim;
       x.fillText('r = '+d.r.toFixed(2),gx,R(0.625));
     }else{
       mono(x,21*k,700);x.textAlign='left';x.fillStyle=C.dimmer;x.fillText('\u2014',gx,R(0.625));
