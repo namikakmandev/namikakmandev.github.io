@@ -238,13 +238,28 @@ they can repeat is a number, the ending failed.
 | EU spend per head is flat; herd &minus;1.4%/yr | **Defend the volume** — no cycle upside or downside, the erosion is structural |
 | T&uuml;rkiye herd growing, spend unmeasurable | **Grow, and get visibility** — the only market where head count adds |
 
-**The first row no longer holds.** That r = 0.70 reproduces as **+0.738**, but only in
-levels, only inside the post-2008 regime, and it is not significant even there: 17
-annual points carry about 6 independent facts, `p_adj` = 0.084. In changes it falls to
-0.374 at p = 0.19. Across the full 1996-2025 span, which straddles the ERS break, it is
-0.162. (Tested against the US parity index as the margin proxy; no explicit margin
-series is committed. If one exists, re-run against it - but the sample problem applies
-to any 17-point annual series.)
+**The first row no longer holds.** Tested against the margin the deck actually
+defines - `Value of production less operating costs`, both sides deflated by CPI:
+
+```bash
+python3 scripts/corr_check.py data/us-cowcalf-costs.json "Veterinary and medicine" \
+    data/us-cowcalf-costs.json "Value of production less operating costs" \
+    --deflate-x "data/vetcost-us.json:cpi" --deflate-y "data/vetcost-us.json:cpi" \
+    --from 2009
+```
+
+r = **+0.604** in levels, and it is not significant: 17 annual points carry about 7
+independent facts, `p_adj` = 0.16. In changes it falls to **+0.167**, p = 0.54, with a
+permutation p of 0.53. Over the full 1996-2025 span, which straddles the ERS break, the
+levels correlation is **-0.412** - the opposite sign. There is no spend-margin
+relationship in this data at any specification.
+
+Two traps sit inside this one series. It straddles the 2008 break (rule 3), and the
+margin **crosses zero** - it runs from -160 to +731 dollars per cow, because a margin is
+a small difference between two large numbers. Percent change is undefined across a sign
+flip, so `corr_check.py` switches to absolute differences and says so. A year-on-year
+percentage on a series that crosses zero is always meaningless; check the range before
+computing one.
 
 The instruction may still be right. It has no statistical support, and must not be
 published with a correlation attached to it. Either argue the timing from mechanism, or

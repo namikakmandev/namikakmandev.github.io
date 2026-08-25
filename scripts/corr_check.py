@@ -152,12 +152,25 @@ def effective_n(x, y):
 
 # ---------------------------------------------------------------- reporting
 
+def crosses_zero(s):
+    """True if the series changes sign or touches zero.
+
+    Percent change is undefined on such a series: the denominator passes
+    through zero and the sign flips, so the ratio is noise. A margin - a small
+    difference between two large numbers - is the usual case.
+    """
+    return min(s) <= 0 <= max(s)
+
+
 def pct_change(s):
-    """Period-on-period change. The form most economic series should be read in."""
-    out = []
-    for a, b in zip(s, s[1:]):
-        out.append((b - a) / a if a not in (0, None) else 0.0)
-    return out
+    """Period-on-period change, as a ratio where that is defined.
+
+    Falls back to absolute differences when the series crosses zero. Correlation
+    is scale-free, so the two forms mix safely; only the slope changes units.
+    """
+    if crosses_zero(s):
+        return [b - a for a, b in zip(s, s[1:])]
+    return [(b - a) / a for a, b in zip(s, s[1:])]
 
 
 def _crit_r(n, alpha):
@@ -310,6 +323,10 @@ def analyse(name, xs, ys, unit_x="", unit_y=""):
     print(f"\n{name}")
     print("=" * len(name))
     lev = report("LEVELS", xs, ys)
+    for side, ser in (("X", xs), ("Y", ys)):
+        if crosses_zero(ser):
+            print(f"  note: {side} crosses zero (min {min(ser):.1f}, max {max(ser):.1f}); "
+                  f"CHANGES uses absolute differences, not percent.")
     dx, dy = pct_change(xs), pct_change(ys)
     chg = report("CHANGES", dx, dy)
     b = slope(dx, dy)
