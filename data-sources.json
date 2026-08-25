@@ -1345,28 +1345,6 @@
    "note": "Discovery helper for the broiler parity build; run with MODE=discover. Tiny time window on purpose so the monthly full fetch stays cheap if it sweeps this."
   },
   {
-   "name": "pl-farmgate-out-probe",
-   "provider": "eurostat",
-   "dataset": "apri_pi20_outq",
-   "params": {
-    "geo": "PL"
-   },
-   "out": "data/_pl-farmgate-out-probe.json",
-   "source": "PROBE: Eurostat quarterly agricultural OUTPUT price index — product codes for poultry, Poland",
-   "note": "Farm-gate fallback for the broiler parity build; MODE=discover first."
-  },
-  {
-   "name": "pl-farmgate-in-probe",
-   "provider": "eurostat",
-   "dataset": "apri_pi20_inq",
-   "params": {
-    "geo": "PL"
-   },
-   "out": "data/_pl-farmgate-in-probe.json",
-   "source": "PROBE: Eurostat quarterly agricultural INPUT price index — product codes for feedingstuffs, Poland",
-   "note": "Farm-gate fallback for the broiler parity build; MODE=discover first."
-  },
-  {
    "name": "pl-anchor-out-probe",
    "provider": "eurostat",
    "dataset": "apri_ap_anouta",
@@ -1394,7 +1372,7 @@
    "dataset": "sts_inppd_m",
    "params": {
     "freq": "M",
-    "indic_bt": "PRIN",
+    "indic_bt": "PRC_PRR_DOM",
     "s_adj": "NSA",
     "unit": "I21",
     "nace_r2": [
@@ -1409,7 +1387,33 @@
    ],
    "out": "data/pl-broiler-ppi.json",
    "source": "Eurostat sts_inppd_m: Poland domestic producer price index, processing & preserving of poultry meat (C1012) and prepared feeds for farm animals (C1091)",
-   "note": "The Polish leg of the broiler parity — same NACE pair as the TR series (TÜİK C10.12/C10.91). Params written before the probe confirmed them; if this errors, read data/_pl-parity-probe.json and fix codes, do not guess."
+   "note": "The Polish leg of the broiler parity — same NACE pair as the TR series (TÜİK C10.12/C10.91). Codes confirmed by the 2026-08 probe (data/_pl-parity-probe.json)."
+  },
+  {
+   "name": "pl-anchor-chicken",
+   "provider": "eurostat",
+   "dataset": "apri_ap_anouta",
+   "params": {
+    "prod_ani": "11510000",
+    "currency": "NAC",
+    "geo": "PL"
+   },
+   "out": "data/pl-anchor-chicken.json",
+   "source": "Eurostat annual selling prices: chickens (live, 1st choice), Poland, PLN per 100 kg LIVE weight",
+   "note": "Parity anchor numerator. LIVE weight — the builder converts to carcass-equivalent with a disclosed yield before anchoring, because the TR anchor (TEPGE) is per kg meat."
+  },
+  {
+   "name": "pl-anchor-feed",
+   "provider": "eurostat",
+   "dataset": "apri_ap_ina",
+   "params": {
+    "prod_inp": "20624502",
+    "currency": "NAC",
+    "geo": "PL"
+   },
+   "out": "data/pl-anchor-feed.json",
+   "source": "Eurostat annual purchase prices: complete feed for broiler production (in bulk), Poland, PLN per 100 kg",
+   "note": "Parity anchor denominator. Product code confirmed by the 2026-08 probe."
   }
  ]
 }

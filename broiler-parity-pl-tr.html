@@ -287,9 +287,13 @@ function setBanner(state){
       'but the absolute kg/kg level awaits validation against Eurostat annual prices. Until then Poland '+
       'appears in the indexed chart only.'}
   else b.classList.add('hidden');
+  const a=PLMETA&&PLMETA.anchor;
   document.getElementById('mAnchor').innerHTML=
-    state==='anchored'&&PLMETA&&PLMETA.anchor&&PLMETA.anchor.year
-      ?`Poland anchored to ${PLMETA.anchor.kg_feed_per_kg_chicken} kg/kg (${PLMETA.anchor.year}, ${PLMETA.anchor.source}). `
+    state==='anchored'&&a&&a.year
+      ?`Poland anchored to <b>${a.kg_feed_per_kg_chicken} kg/kg</b> in ${a.year} (${a.source}). The Eurostat chicken
+        price is per kg <b>live weight</b> (${a.live_weight_parity} kg feed per live kg); it is converted to
+        carcass-equivalent (${a.basis}) so the level is comparable with the TR anchor, which is per kg meat —
+        an approximation that ignores processing margin, disclosed here rather than hidden. `
       :'';
 }
 

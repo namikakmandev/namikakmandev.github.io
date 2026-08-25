@@ -27,11 +27,11 @@ jobs:
           python-version: "3.12"
       - name: Probe sources (discovery)
         run: |
-          MODE=discover python scripts/fetch.py pl-ppi-probe pl-farmgate-out-probe pl-farmgate-in-probe pl-anchor-out-probe pl-anchor-in-probe
+          MODE=discover python scripts/fetch.py pl-ppi-probe pl-anchor-out-probe pl-anchor-in-probe
           cp data/_fetch-report.json data/_pl-parity-probe.json
-      - name: Fetch Poland PPI pair
+      - name: Fetch Poland PPI pair + anchor prices
         if: ${{ inputs.probe_only != '1' }}
-        run: python scripts/fetch.py pl-broiler-ppi
+        run: python scripts/fetch.py pl-broiler-ppi pl-anchor-chicken pl-anchor-feed
       - name: Build parity series
         if: ${{ inputs.probe_only != '1' }}
         run: python scripts/build_broiler_parity_pl.py
@@ -40,7 +40,7 @@ jobs:
           git config user.name "data-bot"
           git config user.email "actions@github.com"
           git add data/_pl-parity-probe.json
-          git add data/pl-broiler-ppi.json data/broiler-parity-pl.json 2>/dev/null || true
+          git add data/pl-broiler-ppi.json data/pl-anchor-chicken.json data/pl-anchor-feed.json data/broiler-parity-pl.json 2>/dev/null || true
           git diff --cached --quiet || git commit -m "data: broiler parity PL probe/refresh [skip ci]"
           for i in 1 2 3 4; do
             git push origin HEAD && break

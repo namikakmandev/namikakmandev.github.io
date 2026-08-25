@@ -66,7 +66,22 @@ Honest scope:  dynamics comparison (indexed) from day one; level (kg/kg)
 - `broiler-parity-pl-tr.html`: TR (from `js/broiler-data.js`) vs PL; renders
   honestly in all three states (PL missing / unanchored / anchored).
 
-Open items after the first probe run: confirm C1012/C1091 for PL, pick the
-longest unit base (I21 vs I15 chain), fill real product codes for the anchor
-entries, validate the anchor against KIPDiP/IERiGŻ published relations if
-findable.
+## Probe results (run 2026-08-25, data/_pl-parity-probe.json)
+
+- `sts_inppd_m` PL: **C1012 and C1091 both reported.** indic_bt is
+  `PRC_PRR_DOM` (not `PRIN` — the blind guess was wrong, the probe caught it).
+  Units I21/I15/I10 all served; NSA only. → fetch entry fixed, FEASIBLE.
+- Anchor: `apri_ap_anouta` prod_ani **11510000** = chickens live 1st choice,
+  PLN/100 kg **live weight**; `apri_ap_ina` prod_inp **20624502** = complete
+  feed for broiler production (bulk), PLN/100 kg. Both annual, 25 years,
+  NAC+EUR. → anchor entries added.
+- Comparability catch: the PL anchor is per kg LIVE weight, the TR anchor
+  (TEPGE) per kg meat. The builder converts live → carcass-equivalent with a
+  disclosed 0.76 yield; both the converted and raw live-based parities land in
+  the output meta and the page states the assumption.
+- Quarterly farm-gate fallback: `apri_pi20_outq` / `apri_pi20_inq` **404** —
+  those dataset ids don't exist. Fallback dropped; primary path confirmed, so
+  no hunt needed.
+
+Remaining open item: cross-check the anchored PL level against any published
+Polish relation (KIPDiP/IERiGŻ) if one turns up.

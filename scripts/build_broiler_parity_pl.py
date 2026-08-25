@@ -2,17 +2,23 @@
 """Build the Poland broiler feed/meat parity series from fetched Eurostat data.
 
 Input   data/pl-broiler-ppi.json      (scripts/fetch.py pl-broiler-ppi)
-        data/pl-broiler-anchor.json   (optional; {"chicken": {year: PLN/100kg},
-                                       "feed": {year: PLN/100kg}} — written by a
-                                       later fetch entry once the probe confirms
-                                       the apri_ap product codes)
+        data/pl-anchor-chicken.json   (optional; Eurostat apri_ap_anouta
+                                       11510000 — live chickens, PLN/100 kg
+                                       LIVE weight, annual)
+        data/pl-anchor-feed.json      (optional; Eurostat apri_ap_ina
+                                       20624502 — complete broiler feed in
+                                       bulk, PLN/100 kg, annual)
 Output  data/broiler-parity-pl.json   {"meta": ..., "series": [[YYYY-MM, parity,
                                        meat_idx, feed_idx], ...]}
 
 Anchoring, mirroring the TR construction (broiler-margin.html): the monthly
 movement is the C1012÷C1091 index ratio; the level is scaled so the anchor
 year's average equals the absolute kg-feed-per-kg-chicken parity from Eurostat
-annual prices. Without an anchor the ratio is published as-is with
+annual prices. The Eurostat chicken price is per kg LIVE weight while the TR
+anchor (TEPGE) is per kg meat, so the live price is converted to
+carcass-equivalent with a disclosed yield constant before anchoring — the
+approximation and the raw live-based value both land in meta so the page can
+state them. Without an anchor the ratio is published as-is with
 meta.anchored=false — the page then uses it for the indexed comparison only and
 must NOT label it kg/kg.
 
@@ -22,10 +28,15 @@ import json, os, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "data", "pl-broiler-ppi.json")
-ANCHOR = os.path.join(ROOT, "data", "pl-broiler-anchor.json")
+ANCHOR_CHICKEN = os.path.join(ROOT, "data", "pl-anchor-chicken.json")
+ANCHOR_FEED = os.path.join(ROOT, "data", "pl-anchor-feed.json")
 OUT = os.path.join(ROOT, "data", "broiler-parity-pl.json")
 
 MEAT, FEED = "C1012", "C1091"
+# EU broiler carcass yield (eviscerated, ~65% grillers to 78% w/ giblets; the
+# conventional planning figure is ~0.75-0.77). Any change must also change the
+# method note on broiler-parity-pl-tr.html.
+CARCASS_YIELD = 0.76
 
 
 def main():
@@ -50,15 +61,17 @@ def main():
         if (yb - ya) * 12 + (mb - ma) != 1:
             gaps.append(f"{a}->{b}")
 
-    anchored, anchor_year, anchor_value, scale = False, None, None, None
-    if os.path.exists(ANCHOR):
-        anc = json.load(open(ANCHOR)).get("series", {})
-        chicken, feed_abs = anc.get("chicken") or {}, anc.get("feed") or {}
+    anchored, anchor_year, anchor_value, live_value, scale = False, None, None, None, None
+    if os.path.exists(ANCHOR_CHICKEN) and os.path.exists(ANCHOR_FEED):
+        # both files are single-series, keyed by geo ("PL": {year: PLN/100kg})
+        first = lambda p: next(iter(json.load(open(p)).get("series", {}).values()), {})
+        chicken, feed_abs = first(ANCHOR_CHICKEN), first(ANCHOR_FEED)
         yrs = [y for y in sorted(set(chicken) & set(feed_abs), reverse=True)
                if feed_abs[y] and len([m for m in months if m[:4] == str(y)]) == 12]
         if yrs:
             anchor_year = yrs[0]
-            anchor_value = chicken[anchor_year] / feed_abs[anchor_year]
+            live_value = chicken[anchor_year] / feed_abs[anchor_year]
+            anchor_value = live_value / CARCASS_YIELD
             yr_mean = (sum(ratio[m] for m in months if m[:4] == str(anchor_year))
                        / 12)
             scale = anchor_value / yr_mean
@@ -72,7 +85,11 @@ def main():
         "anchored": anchored,
         "anchor": ({"year": anchor_year, "kg_feed_per_kg_chicken":
                     round(anchor_value, 3),
-                    "source": "Eurostat annual absolute prices (apri_ap)"}
+                    "basis": f"carcass-equivalent: live-weight price / "
+                             f"{CARCASS_YIELD} yield",
+                    "live_weight_parity": round(live_value, 3),
+                    "source": "Eurostat annual prices: live chickens 11510000 / "
+                              "complete broiler feed 20624502, PLN"}
                    if anchored else
                    "NONE — values are an index ratio (base-year ~1.0), NOT kg/kg;"
                    " dynamics only"),
