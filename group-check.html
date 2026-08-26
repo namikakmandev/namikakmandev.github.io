@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Group &amp; Category Check — is that difference real? — Namık Akman</title>
+  <meta name="description" content="Free group comparison and crosstab checker. Paste your data and instantly see whether a difference between groups is real: Welch's t-test, effect sizes with confidence intervals, rank-based and permutation alternatives, chi-square with bias-corrected Cramér's V, outlier and normality checks. Runs entirely in your browser — no data leaves the page." />
+  <meta name="keywords" content="t-test calculator, welch t test, effect size calculator, hedges g, mann whitney, anova calculator, chi square calculator, cramers v, permutation test, group comparison tool" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="Group &amp; Category Check — is that difference real?" />
+  <meta property="og:description" content="Paste two groups and see whether the difference is real — effect sizes, honest defaults, assumption checks, no data leaves your browser." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    [hidden]{display:none!important}
+    .cc-grid{display:grid;gap:18px}
+    .cc-input-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+    #cc-input,#gc-input{width:100%;min-height:180px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;
+      background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical}
+    .cc-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+    .cc-controls label{font-size:.9rem;color:var(--text-dim);display:flex;align-items:center;gap:6px}
+    .cc-btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 22px;font-weight:600;cursor:pointer;font-size:1rem}
+    .cc-btn.ghost{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+    #cc-error{color:var(--loss);font-weight:600;margin-top:10px;min-height:1.2em}
+    #cc-warnbox{border-left:3px solid var(--accent-3);background:var(--surface);border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px}
+    #cc-warnbox li{margin:.3em 0}
+    .cc-table-wrap{overflow-x:auto}
+    .cc-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .cc-table th,.cc-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .cc-table th[scope=row],.cc-table thead th:first-child{text-align:left}
+    .cc-sig{color:var(--accent-2);font-weight:600}
+    .cc-ns{color:var(--text-dim)}
+    .cc-charts{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    @media(max-width:760px){.cc-charts{grid-template-columns:1fr}}
+    .cc-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+    .cc-chart-card canvas{width:100%;height:220px;display:block}
+    .cc-chart-card .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    #cc-verdict{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+    #cc-verdict p{margin:.5em 0}
+    .cc-bar{display:inline-block;height:9px;background:var(--accent);border-radius:2px;vertical-align:middle;margin-right:6px}
+    .cc-peak td{background:var(--surface-2)}
+    .cc-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block}
+    .cc-note{text-align:left!important;white-space:normal!important;color:var(--text-dim)}
+    #cc-colbar select,#gc-mode{background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+      border-radius:6px;padding:6px 8px;font-size:.9rem}
+  </style>
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container cc-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Group &amp; Category Check</h2>
+        </div>
+
+        <p class="data-note">
+          Averages lie by omission. A mean can be moved by two invoices; a t-test can be
+          significant and meaningless at the same time; a &chi;&sup2; can be
+          p&nbsp;&lt;&nbsp;0.001 for an association too weak to act on. Paste your data and this
+          checker runs the comparison with <strong>honest defaults</strong>: Welch's t-test (no
+          equal-variance assumption), effect sizes with confidence intervals on every result,
+          rank-based and label-shuffle alternatives beside every formula, and outlier, skew and
+          expected-count checks that run whether or not you ask.
+          <strong>Everything runs in your browser &mdash; no data leaves the page.</strong>
+        </p>
+
+        <details class="howto">
+          <summary>How this checker works &mdash; honest defaults, explained</summary>
+          <div class="howto-body">
+            <ol>
+              <li><strong>Welch, not Student.</strong> The classic t-test assumes both groups have
+                equal spread; real groups rarely do. Welch's version drops the assumption and
+                costs nothing when it happens to hold, so it is the default here, not an option
+                three menus deep.</li>
+              <li><strong>Effect size is not optional.</strong> A p-value says a difference is
+                detectable; it says nothing about whether it is big enough to matter. Every
+                comparison reports Hedges' g (bias-corrected), &omega;&sup2;, or bias-corrected
+                Cram&eacute;r's V, each with plain-language calibration. A tiny p with a tiny
+                effect means "definitely real, definitely irrelevant" &mdash; common at large n,
+                and worth saying out loud.</li>
+              <li><strong>Three routes to every answer.</strong> Each comparison runs the
+                classical formula, a rank-based test that ignores outliers and shape, and a
+                label-shuffle permutation test that assumes nothing at all. When they agree, the
+                verdict is safe. When they disagree, the disagreement is diagnostic &mdash;
+                usually outliers or skew &mdash; and the checker says which line to trust.</li>
+              <li><strong>Assumption checks run themselves.</strong> Outliers by the MAD rule
+                (robust, so the outliers cannot hide the threshold), skew and kurtosis,
+                Jarque&ndash;Bera normality, variance ratios, and expected cell counts in
+                crosstabs. In most software these are optional extras; here they print before
+                the tests do.</li>
+              <li><strong>A significant ANOVA names no culprit.</strong> "Not all groups are
+                equal" is all F can say. Comparing every pair afterwards is k(k&minus;1)/2 tests,
+                and the checker prints the Bonferroni bar those comparisons must clear.</li>
+              <li><strong>The ledger.</strong> Every check you run this session raises the honest
+                significance bar, and the checker shows it. Slicing data until something turns
+                significant is the oldest trick in the book; here the book keeps count.</li>
+            </ol>
+          </div>
+        </details>
+
+        <div class="cc-input-card">
+          <label for="gc-input"><strong>Paste your data</strong> &mdash; CSV or TSV, straight from
+            Excel or Sheets. Formats it understands: a <code>group,value</code> column pair; one
+            numeric column per group side by side; two categorical columns for a crosstab; or a
+            single numeric column for a distribution check.</label>
+          <textarea id="gc-input" spellcheck="false"
+            placeholder="treatment,recovery_days&#10;drug,10.9&#10;drug,12.1&#10;placebo,13.0&#10;placebo,12.2&#10;..."></textarea>
+          <div class="cc-controls">
+            <button class="cc-btn" id="gc-run">Check the difference</button>
+            <button class="cc-btn ghost" id="gc-demo-groups">Demo: two groups</button>
+            <button class="cc-btn ghost" id="gc-demo-crosstab">Demo: crosstab</button>
+            <button class="cc-btn ghost" id="gc-demo-dist">Demo: one skewed column</button>
+            <label class="cc-btn ghost" style="cursor:pointer">Upload file
+              <input type="file" id="gc-file" accept=".csv,.tsv,.txt" hidden></label>
+            <button class="cc-btn ghost" id="gc-report">Export report</button>
+            <label>analysis <select id="gc-mode">
+              <option value="auto">auto-detect</option>
+              <option value="groups-long">compare groups (group,value)</option>
+              <option value="groups-wide">compare groups (columns)</option>
+              <option value="crosstab">crosstab (two categorical)</option>
+              <option value="distribution">distribution (one column)</option>
+            </select></label>
+          </div>
+          <p id="gc-error" class="cc-error" role="alert"></p>
+        </div>
+
+        <div id="gc-results" hidden>
+          <div class="cc-input-card">
+            <div id="gc-body"></div>
+          </div>
+          <div class="cc-charts">
+            <div class="cc-chart-card" id="gc-chart-card" hidden>
+              <canvas id="gc-chart"></canvas>
+              <div class="cap" id="gc-chart-cap"></div>
+            </div>
+          </div>
+        </div>
+
+        <p class="data-note" style="margin-top:2rem">
+          Method &middot; Welch's t with Welch&ndash;Satterthwaite df; Hedges' g (small-sample
+          corrected) with CI; Mann&ndash;Whitney with tie-corrected normal approximation and
+          probability of superiority; label-shuffle permutation tests with fixed seeds; one-way
+          ANOVA with &omega;&sup2;; Kruskal&ndash;Wallis with tie correction;
+          &chi;&sup2; with bias-corrected Cram&eacute;r's V and expected-count checks;
+          MAD outlier rule at 3.5; Jarque&ndash;Bera normality. p-values via exact t, F
+          (incomplete beta) and &chi;&sup2; (incomplete gamma) distributions, validated against
+          textbook critical values. Companion tool for paired series:
+          <a href="correlation-check.html">Correlation &amp; Regression Check</a>.
+          Your data stays in this tab; there is no server.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/correlation-check.js"></script>
+  <script src="js/group-check.js"></script>
+  <script src="js/group-check-ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
