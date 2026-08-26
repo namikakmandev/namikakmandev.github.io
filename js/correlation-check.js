@@ -166,6 +166,237 @@ function findBreaks(series, labels, name) {
   return out;
 }
 
+/* ------------------------- matrix OLS with honest errors ------------------- */
+
+// Solve A b = v for symmetric positive-definite A by Gaussian elimination.
+// k is small (predictors + intercept), so no numerical heroics needed.
+function solveSym(A, v) {
+  const k = v.length;
+  const M = A.map((row, i) => row.concat([v[i]]));
+  for (let c = 0; c < k; c++) {
+    let piv = c;
+    for (let r = c + 1; r < k; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+    if (Math.abs(M[piv][c]) < 1e-12) return null;               // singular: collinear
+    [M[c], M[piv]] = [M[piv], M[c]];
+    for (let r = 0; r < k; r++) {
+      if (r === c) continue;
+      const f = M[r][c] / M[c][c];
+      for (let j = c; j <= k; j++) M[r][j] -= f * M[c][j];
+    }
+  }
+  return M.map((row, i) => row[k] / M[i][i]);
+}
+
+function invSym(A) {
+  const k = A.length, out = [];
+  for (let j = 0; j < k; j++) {
+    const e = new Array(k).fill(0); e[j] = 1;
+    const col = solveSym(A, e);
+    if (!col) return null;
+    out.push(col);
+  }
+  // out is columns; transpose to rows (symmetric anyway)
+  return out[0].map((_, i) => out.map((c) => c[i]));
+}
+
+// OLS of y on any number of predictors, with intercept.
+// Reports BOTH classic standard errors and Newey-West (HAC) errors, which stay
+// honest when the residuals are autocorrelated - the normal state of affairs
+// in time series. The HAC ones drive the p-values shown.
+function olsK(Xcols, y) {
+  const n = y.length, k = Xcols.length + 1;
+  if (n < k + 3) return null;
+  const row = (t) => [1].concat(Xcols.map((c) => c[t]));
+  // X'X and X'y
+  const XtX = Array.from({ length: k }, () => new Array(k).fill(0));
+  const Xty = new Array(k).fill(0);
+  for (let t = 0; t < n; t++) {
+    const x = row(t);
+    for (let i = 0; i < k; i++) {
+      Xty[i] += x[i] * y[t];
+      for (let j = i; j < k; j++) XtX[i][j] += x[i] * x[j];
+    }
+  }
+  for (let i = 0; i < k; i++) for (let j = 0; j < i; j++) XtX[i][j] = XtX[j][i];
+  const beta = solveSym(XtX.map((r) => r.slice()), Xty);
+  if (!beta) return null;
+  const XtXinv = invSym(XtX.map((r) => r.slice()));
+  if (!XtXinv) return null;
+
+  const my = y.reduce((a, b) => a + b, 0) / n;
+  let sse = 0, sst = 0;
+  const resid = new Array(n), fitted = new Array(n);
+  for (let t = 0; t < n; t++) {
+    const x = row(t);
+    let f = 0;
+    for (let i = 0; i < k; i++) f += beta[i] * x[i];
+    fitted[t] = f; resid[t] = y[t] - f;
+    sse += resid[t] * resid[t]; sst += (y[t] - my) ** 2;
+  }
+  const df = n - k;
+  const sigma2 = sse / df;
+  const se = beta.map((_, i) => Math.sqrt(Math.max(0, sigma2 * XtXinv[i][i])));
+
+  // Newey-West: sandwich (X'X)^-1 S (X'X)^-1 with Bartlett-weighted
+  // autocovariances of the score x_t * e_t. Standard bandwidth rule.
+  const L = Math.max(1, Math.floor(4 * Math.pow(n / 100, 2 / 9)));
+  const S = Array.from({ length: k }, () => new Array(k).fill(0));
+  const score = (t) => { const x = row(t); return x.map((v) => v * resid[t]); };
+  for (let t = 0; t < n; t++) {
+    const g = score(t);
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) S[i][j] += g[i] * g[j];
+  }
+  for (let l = 1; l <= L; l++) {
+    const w = 1 - l / (L + 1);
+    for (let t = l; t < n; t++) {
+      const g = score(t), h = score(t - l);
+      for (let i = 0; i < k; i++) for (let j = 0; j < k; j++)
+        S[i][j] += w * (g[i] * h[j] + h[i] * g[j]);
+    }
+  }
+  const tmp = XtXinv.map((r) => {
+    return r.map((_, j) => r.reduce((acc, v, m) => acc + v * S[m][j], 0));
+  });
+  const seNW = beta.map((_, i) => {
+    let v = 0;
+    for (let m = 0; m < k; m++) v += tmp[i][m] * XtXinv[m][i];
+    return Math.sqrt(Math.max(0, v));
+  });
+
+  let dwNum = 0;
+  for (let t = 1; t < n; t++) dwNum += (resid[t] - resid[t - 1]) ** 2;
+
+  const p = beta.map((b, i) => se[i] > 0 ? tPValue(b / se[i], df) : 1);
+  const pNW = beta.map((b, i) => seNW[i] > 0 ? tPValue(b / seNW[i], df) : 1);
+
+  // VIF per predictor (excluding intercept), from the predictor correlation
+  // matrix inverse: how much each predictor is explained by the others.
+  let vif = null;
+  if (Xcols.length >= 2) {
+    const kp = Xcols.length;
+    const C = Array.from({ length: kp }, () => new Array(kp).fill(0));
+    for (let i = 0; i < kp; i++) for (let j = 0; j < kp; j++)
+      C[i][j] = i === j ? 1 : (pearson(Xcols[i], Xcols[j]) ?? 0);
+    const Cinv = invSym(C.map((r) => r.slice()));
+    if (Cinv) vif = Cinv.map((r, i) => r[i]);
+  }
+
+  return { beta, se, seNW, p, pNW, nwLags: L,
+           r2: sst > 0 ? 1 - sse / sst : 0,
+           adjR2: sst > 0 ? 1 - (sse / df) / (sst / (n - 1)) : 0,
+           dw: sse > 0 ? dwNum / sse : 2,
+           resid, fitted, n, k, vif };
+}
+
+/* ------------------------ block bootstrap CI for r -------------------------- */
+
+// Resample the paired series in contiguous blocks, so the autocorrelation
+// inside each block survives into the resample. The percentile spread of r
+// across resamples is a confidence interval that does not assume independence.
+function blockBootstrapCI(x, y, iters, h) {
+  const n = x.length;
+  if (n < 20) return null;
+  iters = iters || 2000;
+  // Blocks must be long enough to contain the dependence. Year-on-year
+  // changes overlap by h-1 periods by construction, so the block has to
+  // span at least 2h or the resample destroys exactly the autocorrelation
+  // it exists to preserve, and the interval comes out flattering.
+  const b = Math.min(Math.max(2, Math.round(Math.pow(n, 1 / 3)), 2 * (h || 1)),
+                     Math.floor(n / 4));
+  let seed = 987654321;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const rs = [];
+  for (let it = 0; it < iters; it++) {
+    const bx = [], by = [];
+    while (bx.length < n) {
+      const start = Math.floor(rnd() * (n - b + 1));
+      for (let j = 0; j < b && bx.length < n; j++) { bx.push(x[start + j]); by.push(y[start + j]); }
+    }
+    const r = pearson(bx, by);
+    if (r !== null) rs.push(r);
+  }
+  if (rs.length < 100) return null;
+  rs.sort((a, c) => a - c);
+  return { lo: rs[Math.floor(rs.length * 0.025)],
+           hi: rs[Math.floor(rs.length * 0.975)],
+           blockLen: b, iters: rs.length };
+}
+
+/* --------------------- Engle-Granger cointegration test --------------------- */
+
+// Augmented Dickey-Fuller t-statistic on a series, no constant (used on
+// regression residuals, which are mean zero by construction).
+function adfStat(u, lags) {
+  const n = u.length;
+  const du = [];
+  for (let t = 1; t < n; t++) du.push(u[t] - u[t - 1]);
+  const T = du.length - lags;
+  if (T < 10) return null;
+  const yv = [], cols = [[]];
+  for (let l = 0; l < lags; l++) cols.push([]);
+  for (let t = lags; t < du.length; t++) {
+    yv.push(du[t]);
+    cols[0].push(u[t]);                       // u_{t-1} relative to du index
+    for (let l = 1; l <= lags; l++) cols[l].push(du[t - l]);
+  }
+  // no-constant OLS: strip the intercept by demeaning nothing - build manually
+  const k = cols.length;
+  const XtX = Array.from({ length: k }, () => new Array(k).fill(0));
+  const Xty = new Array(k).fill(0);
+  for (let t = 0; t < yv.length; t++) {
+    for (let i = 0; i < k; i++) {
+      Xty[i] += cols[i][t] * yv[t];
+      for (let j = i; j < k; j++) XtX[i][j] += cols[i][t] * cols[j][t];
+    }
+  }
+  for (let i = 0; i < k; i++) for (let j = 0; j < i; j++) XtX[i][j] = XtX[j][i];
+  const beta = solveSym(XtX.map((r) => r.slice()), Xty);
+  const XtXinv = invSym(XtX.map((r) => r.slice()));
+  if (!beta || !XtXinv) return null;
+  let sse = 0;
+  for (let t = 0; t < yv.length; t++) {
+    let f = 0;
+    for (let i = 0; i < k; i++) f += beta[i] * cols[i][t];
+    sse += (yv[t] - f) ** 2;
+  }
+  const sig2 = sse / (yv.length - k);
+  const seb = Math.sqrt(Math.max(1e-300, sig2 * XtXinv[0][0]));
+  return beta[0] / seb;
+}
+
+// Two series cointegrate when a linear combination of their LEVELS is
+// stationary - they are tied together long-run even though each one trends.
+// That is the one honest exception to "do not trust a levels correlation".
+// Critical values: MacKinnon (1991) response surface for the two-variable
+// case with a constant in the cointegrating regression. Finite-sample:
+// CV(T) = b_inf + b1/T + b2/T^2, more negative for short samples.
+function egCrit(T) {
+  const rs = { p01: [-3.9001, -10.534, -30.03],
+               p05: [-3.3377, -5.967, -8.98],
+               p10: [-3.0462, -4.069, -5.73] };
+  const out = {};
+  for (const k in rs) out[k] = rs[k][0] + rs[k][1] / T + rs[k][2] / (T * T);
+  return out;
+}
+
+function engleGranger(x, y) {
+  if (x.length < 30) return null;
+  const b = slope(x, y);
+  if (b === null) return null;
+  const my = y.reduce((a, c) => a + c, 0) / y.length;
+  const mx = x.reduce((a, c) => a + c, 0) / x.length;
+  const a = my - b * mx;
+  const u = x.map((v, t) => y[t] - (a + b * v));
+  const tau = adfStat(u, 1);
+  if (tau === null) return null;
+  const crit = egCrit(x.length);
+  // Tiered on purpose: a bare 5% pass is the level at which 1 in 20 pairs of
+  // unrelated random walks also passes, so it is reported as borderline,
+  // never as a finding.
+  const verdict = tau < crit.p01 ? "strong" : tau < crit.p05 ? "borderline" : "none";
+  return { tau, crit, verdict, cointegrated: verdict === "strong" };
+}
+
 /* ------------------------- regression & robustness ------------------------- */
 
 // OLS of y on x with intercept. Standard errors both naive and discounted for
@@ -349,6 +580,7 @@ function scanLags(xs, ys, span, h) {
 
 const CC_API = { pearson, slope, tPValue, tStat, fisherCI, critR, effectiveN,
                  crossesZero, change, permPValue, findBreaks, describe, scanLags, lag1,
-                 ols, ols2, partialR, spearman, influence, splitHalf, outOfSample };
+                 ols, ols2, partialR, spearman, influence, splitHalf, outOfSample,
+                 olsK, blockBootstrapCI, engleGranger, adfStat, solveSym, invSym };
 if (typeof module !== "undefined" && module.exports) module.exports = CC_API;
 if (typeof window !== "undefined") window.CC = CC_API;
