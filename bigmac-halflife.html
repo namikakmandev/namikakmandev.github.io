@@ -32,6 +32,10 @@
     .bm-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
       border-radius:8px;padding:8px 12px;display:inline-block;font-size:.85rem}
     .bm-links a{margin-right:14px}
+    .bm-code{margin-top:12px}
+    .bm-code summary{cursor:pointer;font-weight:600;color:var(--accent);padding:6px 0}
+    .bm-code pre{overflow:auto;max-height:520px;background:var(--surface-2);border:1px solid var(--border);
+      border-radius:8px;padding:14px;font-size:.78rem;line-height:1.5;margin:8px 0 0}
   </style>
 </head>
 <body class="tool-light">
@@ -196,6 +200,227 @@
               any half-life can be located; the honest statement is &ldquo;about 3 years, CI
               roughly 1.6&ndash;7&rdquo;, not &ldquo;2.9&rdquo;.</li>
           </ul>
+        </div>
+
+        <div class="bm-card">
+          <h3>The scripts, in full</h3>
+          <p>This is the entire analysis &mdash; not an excerpt. Two short Python files, embedded
+            here verbatim so you can read exactly what was computed without leaving the page. The
+            first runs the whole test (a fixed random seed makes every number above reproduce
+            identically); the second draws the chart. Copy them, point them at
+            The Economist's <a href="https://github.com/TheEconomist/big-mac-data">open data</a>,
+            and you get the same numbers.</p>
+          <div class="bm-code">
+            <details>
+              <summary>bigmac_reversion.py &mdash; the test itself (118 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Full data-integrity pass on the Big Mac mean-reversion finding.
+
+Question: does today&#x27;s Big Mac valuation predict its own subsequent correction?
+The probe said yes with half-life ~1y — but it demeaned by each country&#x27;s
+FULL-SAMPLE mean, which includes the future. This pass removes that and every
+other flattery we could identify.
+&quot;&quot;&quot;
+import json, math, random
+import numpy as np
+
+eur = json.load(open(&#x27;data/bigmac-eur.json&#x27;))[&#x27;series&#x27;]
+usd = json.load(open(&#x27;data/bigmac-usd.json&#x27;))[&#x27;series&#x27;]
+
+def panel(series, transform=None, drop=()):
+    &quot;&quot;&quot;-&gt; {cc: [(date, value)]} sorted, transformed, countries dropped.&quot;&quot;&quot;
+    out = {}
+    for cc, ser in series.items():
+        if cc in drop: continue
+        obs = sorted(ser.items())
+        if transform: obs = [(d, transform(cc, d, v)) for d, v in obs]
+        obs = [(d, v) for d, v in obs if v is not None and np.isfinite(v)]
+        if len(obs) &gt;= 10: out[cc] = obs
+    return out
+
+def build_xy(pan, k, mode, min_hist=6):
+    &quot;&quot;&quot;Pairs (deviation_t, val_{t+k}-val_t) per country. mode: raw|full|past.&quot;&quot;&quot;
+    rows = []   # (cc, dev, fut_change, date)
+    for cc, obs in pan.items():
+        vals = [v for _, v in obs]
+        full_mean = np.mean(vals)
+        for i in range(len(obs) - k):
+            v = vals[i]
+            if mode == &quot;raw&quot;:       dev = v
+            elif mode == &quot;full&quot;:    dev = v - full_mean
+            else:                   # past: expanding window, no look-ahead
+                if i &lt; min_hist: continue
+                dev = v - np.mean(vals[:i])
+            rows.append((cc, dev, vals[i + k] - v, obs[i][0]))
+    return rows
+
+def slope(rows):
+    x = np.array([r[1] for r in rows]); y = np.array([r[2] for r in rows])
+    X = np.column_stack([np.ones_like(x), x])
+    b = np.linalg.lstsq(X, y, rcond=None)[0]
+    resid = y - X @ b
+    r2 = 1 - resid.var() / y.var() if y.var() &gt; 0 else 0
+    return b[1], r2, len(rows)
+
+def cluster_boot(rows, iters=2000, seed=42):
+    &quot;&quot;&quot;Resample COUNTRIES with replacement -&gt; percentile CI on the slope.&quot;&quot;&quot;
+    rng = random.Random(seed)
+    ccs = sorted({r[0] for r in rows})
+    by = {cc: [r for r in rows if r[0] == cc] for cc in ccs}
+    bs = []
+    for _ in range(iters):
+        sample = []
+        for _ in ccs: sample += by[rng.choice(ccs)]
+        if len(sample) &gt; 10: bs.append(slope(sample)[0])
+    bs.sort()
+    return bs[int(len(bs)*0.025)], bs[int(len(bs)*0.975)]
+
+def halflife_years(b, k):
+    rho_k = 1 + b
+    if not (0 &lt; rho_k &lt; 1): return None
+    return (k * math.log(0.5) / math.log(rho_k)) / 2   # semiannual periods
+
+def report(tag, pan, k=4, modes=(&quot;raw&quot;, &quot;full&quot;, &quot;past&quot;)):
+    print(f&quot;\n== {tag}  (horizon {k/2:.0f}y) &quot; + &quot;=&quot;*30)
+    for mode in modes:
+        rows = build_xy(pan, k, mode)
+        if len(rows) &lt; 50: print(f&quot;  {mode:5s}: too few obs&quot;); continue
+        b, r2, n = slope(rows)
+        lo, hi = cluster_boot(rows)
+        hl = halflife_years(b, k)
+        sig = &quot;SIG&quot; if hi &lt; 0 or lo &gt; 0 else &quot;ns &quot;
+        print(f&quot;  {mode:5s}: b={b:+.3f}  cluster-CI[{lo:+.3f},{hi:+.3f}] {sig}  &quot;
+              f&quot;R2={r2*100:4.0f}%  n={n:5d}  halflife={f&#x27;{hl:.1f}y&#x27; if hl else &#x27;—&#x27;}&quot;)
+    return build_xy(pan, k, &quot;past&quot;)
+
+# ---------------- 1. EUR base, all countries -------------------------------
+pan_eur = panel(eur, drop={&quot;EUZ&quot;})
+rows_main = report(&quot;EUR base, all countries&quot;, pan_eur)
+
+# ---------------- 2. outlier audit -----------------------------------------
+devs = sorted(rows_main, key=lambda r: -abs(r[1]))[:8]
+print(&quot;\n  largest past-mean deviations (country, date, dev):&quot;)
+for cc, dev, fut, d in devs: print(f&quot;    {cc} {d}  dev={dev:+.2f}  future_chg={fut:+.2f}&quot;)
+crazy = {cc for cc, dev, _, _ in rows_main if abs(dev) &gt; 1.0 for cc in [cc]}
+print(f&quot;  countries with any |dev|&gt;100%: {sorted(crazy)}&quot;)
+pan_clean = panel(eur, drop={&quot;EUZ&quot;} | crazy)
+report(&quot;EUR base, extreme countries dropped&quot;, pan_clean, modes=(&quot;past&quot;,))
+
+# ---------------- 3. USD base robustness -----------------------------------
+usa = dict(usd[&quot;USA&quot;])
+def usd_val(cc, d, v):
+    u = usa.get(d)
+    return math.log(v / u) if u and v &gt; 0 else None
+pan_usd = panel(usd, transform=usd_val, drop={&quot;USA&quot;})
+report(&quot;USD base (log price ratio vs US)&quot;, pan_usd, modes=(&quot;past&quot;,))
+
+# ---------------- 4. subperiod stability -----------------------------------
+early = [r for r in rows_main if r[3] &lt; &quot;2013&quot;]
+late  = [r for r in rows_main if r[3] &gt;= &quot;2013&quot;]
+for tag, rows in ((&quot;2000-2012&quot;, early), (&quot;2013-2026&quot;, late)):
+    b, r2, n = slope(rows); lo, hi = cluster_boot(rows)
+    hl = halflife_years(b, 4)
+    print(f&quot;\n  past-mean, {tag}: b={b:+.3f} CI[{lo:+.3f},{hi:+.3f}]  n={n}  &quot;
+          f&quot;halflife={f&#x27;{hl:.1f}y&#x27; if hl else &#x27;—&#x27;}&quot;)
+
+# ---------------- 5. horizons with the honest method -----------------------
+print()
+for k in (2, 4, 6):
+    rows = build_xy(pan_eur, k, &quot;past&quot;)
+    b, r2, n = slope(rows); lo, hi = cluster_boot(rows)
+    hl = halflife_years(b, k)
+    print(f&quot;  past-mean, horizon {k/2:.0f}y: b={b:+.3f} CI[{lo:+.3f},{hi:+.3f}]  &quot;
+          f&quot;R2={r2*100:.0f}%  halflife={f&#x27;{hl:.1f}y&#x27; if hl else &#x27;—&#x27;}&quot;)
+</code></pre>
+            </details>
+            <details>
+              <summary>bigmac_chart.py &mdash; the chart (83 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;The one chart for the Big Mac half-life post.
+
+Two decay curves: how much of a Big Mac valuation gap remains after t years,
+(a) measured against the currency&#x27;s own historical normal - the reading that
+works - and (b) read as raw cross-country cheapness - the reading everyone
+uses, which barely moves. Points are measured remaining fractions at 1/2/3y
+from scripts/bigmac_reversion.py (expanding-window method, EUR base); curves
+are the exponential decay implied by each measured half-life.
+
+Writes assets/linkedin/bigmac-halflife.png (1600x1000).
+&quot;&quot;&quot;
+import numpy as np
+import matplotlib
+matplotlib.use(&quot;Agg&quot;)
+import matplotlib.pyplot as plt
+
+BLUE, ORANGE = &quot;#2f9bff&quot;, &quot;#ff6500&quot;
+INK, DIM, GRID = &quot;#1f2430&quot;, &quot;#5b6472&quot;, &quot;#d6dce4&quot;
+
+# measured remaining fractions (1 + slope) from bigmac_reversion.py
+T_PTS = [1, 2, 3]
+OWN   = [1 - 0.241, 1 - 0.382, 1 - 0.481]     # half-life ~2.9y
+RAW   = [1 - 0.125, 1 - 0.196, 1 - 0.253]     # half-life ~6.4y
+HL_OWN, HL_RAW = 2.9, 6.4
+
+t = np.linspace(0, 8, 300)
+own_curve = 0.5 ** (t / HL_OWN)
+raw_curve = 0.5 ** (t / HL_RAW)
+
+fig, ax = plt.subplots(figsize=(16, 10), dpi=100)
+fig.patch.set_facecolor(&quot;white&quot;); ax.set_facecolor(&quot;white&quot;)
+
+ax.plot(t, raw_curve, color=ORANGE, lw=3)
+ax.plot(t, own_curve, color=BLUE, lw=3.5)
+ax.scatter(T_PTS, RAW, s=90, color=ORANGE, zorder=5)
+ax.scatter(T_PTS, OWN, s=90, color=BLUE, zorder=5)
+
+# half-life droplines
+for hl, col in ((HL_OWN, BLUE), (HL_RAW, ORANGE)):
+    ax.plot([hl, hl], [0, 0.5], color=col, lw=1.2, ls=(0, (4, 4)), alpha=0.6)
+ax.axhline(0.5, color=GRID, lw=1.2, ls=(0, (4, 4)))
+ax.text(0.08, 0.515, &quot;half the gap closed&quot;, fontsize=15, color=DIM)
+
+# direct labels, not a legend box
+label_bg = dict(facecolor=&quot;white&quot;, edgecolor=&quot;none&quot;, pad=1.5)
+ax.text(4.7, 0.435, &quot;vs the currency&#x27;s own normal&quot;, fontsize=19, color=BLUE,
+        fontweight=&quot;bold&quot;, bbox=label_bg, zorder=6)
+ax.text(4.7, 0.38, f&quot;half-life ≈ {HL_OWN:.0f} years — the reading that works&quot;,
+        fontsize=15, color=BLUE, bbox=label_bg, zorder=6)
+ax.text(4.9, 0.66, &quot;“which countries are cheap”&quot;, fontsize=19,
+        color=ORANGE, fontweight=&quot;bold&quot;)
+ax.text(4.9, 0.605, f&quot;half-life ≈ {HL_RAW:.0f} years — cheap countries just stay cheap&quot;,
+        fontsize=15, color=ORANGE)
+ax.text(HL_OWN, -0.055, f&quot;{HL_OWN:.1f}y&quot;, fontsize=15, color=BLUE,
+        ha=&quot;center&quot;, fontweight=&quot;bold&quot;)
+ax.text(HL_RAW, -0.055, f&quot;{HL_RAW:.1f}y&quot;, fontsize=15, color=ORANGE,
+        ha=&quot;center&quot;, fontweight=&quot;bold&quot;)
+
+ax.set_xlim(0, 8); ax.set_ylim(0, 1.02)
+ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+ax.set_yticklabels([&quot;0%&quot;, &quot;25%&quot;, &quot;50%&quot;, &quot;75%&quot;, &quot;100%&quot;], fontsize=14, color=DIM)
+ax.set_xticks(range(0, 9))
+ax.tick_params(colors=DIM, labelsize=14)
+ax.set_xlabel(&quot;years later&quot;, fontsize=16, color=DIM)
+ax.set_ylabel(&quot;share of the valuation gap still open&quot;, fontsize=16, color=DIM)
+for s in (&quot;top&quot;, &quot;right&quot;): ax.spines[s].set_visible(False)
+for s in (&quot;left&quot;, &quot;bottom&quot;): ax.spines[s].set_color(GRID)
+ax.grid(axis=&quot;y&quot;, color=GRID, lw=0.6, alpha=0.5)
+
+fig.suptitle(&quot;The Big Mac index works — just not the way people read it&quot;,
+             fontsize=27, color=INK, fontweight=&quot;bold&quot;, x=0.045, ha=&quot;left&quot;, y=0.97)
+ax.set_title(&quot;How fast a currency&#x27;s burger-price gap closes · 55 countries, 2000–2026&quot;,
+             fontsize=17, color=DIM, loc=&quot;left&quot;, pad=14)
+fig.text(0.045, 0.012,
+         &quot;Data: The Economist Big Mac index (open data, github.com/TheEconomist/big-mac-data), euro-relative valuations, semi-annual 2000–2026.\n&quot;
+         &quot;Points: measured remaining gap at 1/2/3 years, pooled across 55 currencies, deviations vs an expanding past-only average (no look-ahead).\n&quot;
+         &quot;Curves: exponential decay implied by each measured half-life. Country-clustered bootstrap CIs exclude zero at every horizon.  &quot;
+         &quot;Method &amp; code: namikakmandev.github.io/bigmac-halflife.html&quot;,
+         fontsize=10.5, color=DIM, va=&quot;bottom&quot;, linespacing=1.5)
+plt.subplots_adjust(left=0.075, right=0.97, top=0.87, bottom=0.13)
+fig.savefig(&quot;assets/linkedin/bigmac-halflife.png&quot;, facecolor=&quot;white&quot;)
+print(&quot;chart written&quot;)
+</code></pre>
+            </details>
+          </div>
         </div>
 
         <div class="bm-card">
