@@ -169,3 +169,59 @@ isterseniz: namikakmandev.github.io/group-check.html?real=bigmac2
   receipts page. Don't trust me — run it.
 - Turkey/lira questions (likely, given TR audience) → Same posture as
   "currency X": pooled result, no single-currency claims, not advice.
+
+---
+
+## Prepared replies — expert challenges (from adversarial pre-mortem)
+
+Post-publication, three agents stress-tested the post: a cold reader (8/10
+clarity), a fact-checker (all claims verified against the script), and a
+hostile econometrician. The strongest expert attacks, each with a ready
+reply. Concede what should be conceded; the receipts page now carries a
+limitations bullet for every one of these.
+
+1. "The gap closes through inflation, not the currency — this says nothing
+   about FX." → Fair, and the sharpest comment here. What reverts is the
+   burger-based REAL exchange rate — nominal rate plus relative prices —
+   which is exactly the object the academic 3–5y half-life describes;
+   "for exchange rates" in my post was loose shorthand for that. In
+   high-inflation cases the gap closes through prices, agreed — which is
+   why the conclusion is "how to read the indicator," not "the currency
+   will rise." It's in the limitations on the page.
+
+2. "Country clustering ignores common time shocks — your CI is too
+   narrow." → Correct, and the page now says so. Partial pushback: the
+   USD-base rerun gives the same slope (−0.378 vs −0.382), so it isn't one
+   base currency's cycle, and both subperiods agree, so it isn't one
+   global episode. But a country×time scheme would be stricter and the
+   interval is honestly labelled "if anything, too narrow."
+
+3. "Your code counts rows, not calendar time — early data is annual." →
+   You found a real approximation, and I re-ran it your way: pairing each
+   date with the observation closest to exactly 2.0 years later (n=1395,
+   mean span 2.01y) gives slope −0.359, CI [−0.539, −0.183], half-life
+   3.1 years — slightly LONGER than the headline, same conclusion. Script
+   is on the page (bigmac_caltime_check.py). The 2013–2026 row is also a
+   clean-spacing check: perfectly regular data, 2.8y.
+
+4. "This is just stationarity / mechanical reversion to a mean." → Yes —
+   that is literally the claim: the burger real exchange rate is
+   stationary with the same half-life the broad-index PPP literature
+   finds, which was genuinely contested for a one-good index. On
+   measurement noise: noise reverses immediately, so it would make the
+   1-year-implied half-life much shorter than the 3-year one; instead they
+   run 2.5 / 2.9 / 3.2 years — the signature of slow real decay.
+
+5. "Survivorship: McDonald's leaves exactly when currencies blow up
+   (Russia 2022, Sri Lanka 2024, Iceland never)." → Legitimate, and now
+   on the page: exit correlates with crisis and censors the very episodes
+   most likely to show non-reversion. Two exits out of 55 currencies, so
+   the pooled slope barely moves — but the honest scope is "reversion
+   holds among countries stable enough to keep a McDonald's."
+
+6. "Your drop-the-extremes check dropped zero countries." → Caught
+   fairly: the |dev|>100% threshold binds nothing — the max deviation is
+   98% (Venezuela) — so that row is a disclosure, not a surviving test.
+   The largest observed deviations (Venezuela, Lebanon) do revert in the
+   predicted direction, and the page now says the row was a no-op in as
+   many words.

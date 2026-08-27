@@ -199,6 +199,39 @@
             <li><strong>Coarse time resolution.</strong> Two readings a year bounds how precisely
               any half-life can be located; the honest statement is &ldquo;about 3 years, CI
               roughly 1.6&ndash;7&rdquo;, not &ldquo;2.9&rdquo;.</li>
+            <li><strong>Irregular early spacing.</strong> The script counts <em>observations</em>
+              as time steps, but 2000&ndash;2010 readings are irregularly spaced (annual at
+              first), so some &ldquo;2-year&rdquo; episodes span longer. Two checks say this
+              doesn't drive the result: the 2013&ndash;2026 subsample in the table is perfectly
+              regular semi-annual data and gives 2.8y; and a calendar-time rerun that pairs each
+              date with the observation closest to exactly 2.0 years later (n&nbsp;=&nbsp;1395,
+              mean span 2.01y) gives b&nbsp;=&nbsp;&minus;0.359, CI
+              [&minus;0.539,&nbsp;&minus;0.183], half-life <strong>3.1 years</strong> &mdash;
+              slightly longer than the headline, same conclusion
+              (<a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/bigmac_caltime_check.py">script</a>).</li>
+            <li><strong>The gap can close through prices, not the currency.</strong> What reverts
+              here is the burger-based <em>real</em> exchange rate &mdash; the composite of the
+              nominal rate and relative burger prices. In high-inflation episodes the gap closes
+              because local prices catch up, not because the currency moves. That is the same
+              object the academic PPP half-life describes, but it means this result says how to
+              read the indicator, not what the nominal exchange rate will do.</li>
+            <li><strong>Common time shocks.</strong> All 55 valuations share each base currency's
+              own swings (2008, 2020, 2022), and the country-clustered bootstrap does not correct
+              for that cross-sectional dependence, so the intervals are, if anything, too narrow.
+              The USD-base rerun matching the EUR result (&minus;0.378 vs &minus;0.382) and the
+              agreeing subperiods say the effect is not one base currency's cycle or one global
+              episode, but a two-way (country&nbsp;&times;&nbsp;time) scheme would be stricter.</li>
+            <li><strong>Survivorship at the exits.</strong> The panel exists only where McDonald's
+              operates: Russia's series ends January 2022, Sri Lanka's in 2024, Iceland never
+              appears. Exit correlates with crisis, and the censored episodes are exactly the
+              candidates for non-reversion &mdash; two exits out of 55 currencies, so the pooled
+              slope barely moves, but the honest scope is &ldquo;reversion holds among countries
+              stable enough to keep a McDonald's.&rdquo;</li>
+            <li><strong>The extreme-country drop was a no-op.</strong> The |dev|&nbsp;&gt;&nbsp;100%
+              filter caught nothing &mdash; the largest deviation in the panel is 98% (Venezuela,
+              2012) &mdash; so that table row is a disclosure that no country needed dropping,
+              not a test that binding survived. The largest observed deviations (Venezuela,
+              Lebanon) do revert in the predicted direction.</li>
           </ul>
         </div>
 
