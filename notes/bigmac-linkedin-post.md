@@ -40,85 +40,85 @@ version ≈ 1.1y.
 
 ## Post copy — English
 
-In 1986 The Economist invented an economic indicator as a joke: compare Big
-Mac prices across countries and you can see which currencies are cheap.
+In 1986, The Economist invented an economic indicator as a joke.
 
-Forty years later, everyone still quotes it — so I tested it. All of it:
-55 countries, every semi-annual reading since 2000, 1,461 currency-episodes
-(open data published by The Economist itself — @The Economist).
+Compare the price of a Big Mac around the world, they said, and you can
+tell which currencies are too cheap or too expensive.
 
-Three things fell out.
+40 years later, people still quote it in meetings. So I tested it — on
+The Economist's own published data (@The Economist). 55 countries, 26
+years of burger prices.
 
-1️⃣ The joke index works. When a currency's burger price drifts away from
-its OWN historical normal, the gap closes — reliably. About half of it
-disappears within 3 years (95% CI roughly 1.5 to 7). That is not a burger
-fact: 3–5 years is the same half-life the academic literature finds for
-purchasing-power parity using far fancier price data. A hamburger
-reproduces the peer-reviewed number.
+Three findings:
 
-2️⃣ But not the way people read it. The popular reading — "burgers are
-cheap in country X, so its currency must rise" — is much weaker. Raw
-cross-country gaps have a half-life of 6+ years, because a large part of
-each gap is permanent: poor countries are structurally cheaper (economists
-call it the Penn effect). Cheap countries mostly just stay cheap. The index
-tells you where a currency stands versus its own history, not which
-countries are bargains.
+🍔 The joke actually works. When a Big Mac in a country gets unusually
+expensive or unusually cheap COMPARED TO THAT COUNTRY'S OWN PAST, the
+price drifts back to normal. About half of the gap closes within 3 years.
+And here is the fun part: serious economists, using far fancier price
+data, find the same 3-year answer for exchange rates. A hamburger matches
+the textbooks.
 
-3️⃣ And my first result was wrong. My first run said the gap closes in
-about 1 year — suspiciously good. It was look-ahead bias: I had defined
-each currency's "normal" using its full history, including the future. Fix
-that (each date may only see its own past) and the honest answer is 3
-years, not 1. Most too-good-to-be-true backtests die exactly there.
+🍔 But most people read it wrong. The common take is: "Burgers are cheap
+in country X, so its currency will rise." That version barely works.
+Burgers are cheap in poorer countries for a permanent reason — wages,
+rent, everything is cheaper there. Cheap countries mostly just stay
+cheap. The index is good at comparing a country to its own history, and
+bad at comparing countries to each other.
 
-Every number, the method, its limitations, and a script that reproduces the
-whole thing to the last decimal:
+🍔 My first answer was wrong. My first calculation said the gap closes in
+just 1 year. Impressive — too impressive. I had made a classic mistake:
+my formula could accidentally peek into the future. Fixed properly, the
+answer is 3 years, not 1. If a result looks too good to be true, it
+usually is.
+
+All the numbers, how I did it, what it can NOT tell you, and the code
+that lets anyone re-run the whole thing:
 → namikakmandev.github.io/bigmac-halflife.html
 
-Consider this a 40th-birthday compliment to the best joke in economics: it
-holds up — just read it the right way.
+Happy 40th birthday to the best joke in economics. It holds up — if you
+read it right.
 
 ---
 
 ## Post copy — Türkçe
 
-1986'da The Economist şaka olsun diye bir ekonomik gösterge icat etti:
-ülkeler arasında Big Mac fiyatlarını karşılaştırın, hangi para birimlerinin
-ucuz olduğunu görün.
+1986'da The Economist şaka olsun diye bir ekonomik gösterge icat etti.
 
-Kırk yıl sonra herkes hâlâ alıntılıyor — ben de test ettim. Hepsini:
-55 ülke, 2000'den beri her altı aylık okuma, 1.461 kur-dönemi (verinin
-kaynağı The Economist'in kendi açık veri seti — @The Economist).
+Dediler ki: dünyanın her yerinde Big Mac fiyatını karşılaştırın, hangi
+para birimlerinin fazla ucuz ya da fazla pahalı olduğunu görürsünüz.
 
-Üç sonuç çıktı.
+40 yıl sonra insanlar hâlâ toplantılarda bunu alıntılıyor. Ben de test
+ettim — The Economist'in kendi yayımladığı veriyle (@The Economist).
+55 ülke, 26 yıllık burger fiyatı.
 
-1️⃣ Şaka endeks çalışıyor. Bir para biriminin burger fiyatı KENDİ tarihsel
-normalinden uzaklaştığında, açık kapanıyor — güvenilir biçimde. Yaklaşık
-yarısı 3 yıl içinde yok oluyor (%95 güven aralığı kabaca 1,5–7 yıl). Bu bir
-burger tesadüfü değil: akademik literatür çok daha sofistike fiyat
-verileriyle satın alma gücü paritesi için aynı 3–5 yıllık yarı ömrü
-buluyor. Bir hamburger, hakemli dergideki sayıyı yeniden üretiyor.
+Üç sonuç:
 
-2️⃣ Ama insanların okuduğu şekilde değil. Yaygın okuma — "X ülkesinde
-burger ucuz, demek ki kuru değerlenecek" — çok daha zayıf. Ülkeler arası
-ham farkların yarı ömrü 6+ yıl; çünkü her farkın büyük bir kısmı kalıcı:
-yoksul ülkeler yapısal olarak daha ucuz (iktisatçılar buna Penn etkisi
-diyor). Ucuz ülkeler çoğunlukla ucuz kalıyor. Endeks size bir kurun kendi
-tarihine göre nerede durduğunu söylüyor — hangi ülkenin kelepir olduğunu
-değil.
+🍔 Şaka gerçekten çalışıyor. Bir ülkede Big Mac, O ÜLKENİN KENDİ
+GEÇMİŞİNE GÖRE alışılmadık biçimde pahalanır ya da ucuzlarsa, fiyat
+normale geri dönüyor. Açığın yaklaşık yarısı 3 yıl içinde kapanıyor. İşin
+güzel tarafı: ciddi iktisatçılar, çok daha sofistike fiyat verileriyle,
+döviz kurları için aynı 3 yıllık cevabı buluyor. Bir hamburger, ders
+kitaplarıyla aynı sonucu veriyor.
 
-3️⃣ Ve ilk sonucum yanlıştı. İlk denemem açığın yaklaşık 1 yılda
-kapandığını söyledi — şüphe uyandıracak kadar iyi. Sebep ileriye-bakma
-hatasıydı (look-ahead bias): her kurun "normalini" geleceği de içeren tüm
-tarihiyle tanımlamıştım. Düzeltince (her tarih yalnızca kendi geçmişini
-görebilir) dürüst cevap 1 değil 3 yıl. Gerçek olamayacak kadar iyi
-backtest'lerin çoğu tam burada ölür.
+🍔 Ama çoğu kişi endeksi yanlış okuyor. Yaygın yorum şu: "X ülkesinde
+burger ucuz, demek ki kuru değerlenecek." Bu versiyon neredeyse hiç
+çalışmıyor. Burger, yoksul ülkelerde kalıcı bir sebepten ucuz — ücretler,
+kiralar, her şey orada daha ucuz. Ucuz ülkeler çoğunlukla ucuz kalıyor.
+Endeks bir ülkeyi kendi geçmişiyle karşılaştırmakta iyi, ülkeleri
+birbiriyle karşılaştırmakta kötü.
 
-Bütün sayılar, yöntem, sınırlılıklar ve her şeyi son ondalığa kadar yeniden
-üreten betik:
+🍔 İlk cevabım yanlıştı. İlk hesabım açığın 1 yılda kapandığını söyledi.
+Etkileyici — fazla etkileyici. Klasik bir hata yapmıştım: formülüm farkında
+olmadan geleceğe bakabiliyordu. Düzgün düzeltince cevap 1 değil 3 yıl
+çıktı. Bir sonuç gerçek olamayacak kadar iyiyse, genellikle gerçek
+değildir.
+
+Bütün sayılar, nasıl yaptığım, neyi SÖYLEYEMEYECEĞİ ve herkesin baştan
+çalıştırabileceği kod:
 → namikakmandev.github.io/bigmac-halflife.html
 
-Bunu ekonominin en iyi şakasına 40. yaş günü iltifatı sayın: endeks ayakta
-— yeter ki doğru okunsun.
+Ekonominin en iyi şakasına nice 40 yıllara. Ayakta duruyor — doğru
+okursanız.
 
 ---
 
