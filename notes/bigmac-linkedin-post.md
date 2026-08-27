@@ -65,17 +65,12 @@ rent, everything is cheaper there. Cheap countries mostly just stay
 cheap. The index is good at comparing a country to its own history, and
 bad at comparing countries to each other.
 
-🍔 How did I test it? With the open statistics toolkit I built and
-published on my site. It measures, for every country and every date
-since 2000, how far the Big Mac price stands from that country's usual
-level — then follows what actually happened one, two and three years
-later. And then it tries its best to BREAK the result: swap the base
-currency, split the sample into different eras, throw out the most
-extreme countries, rerun everything thousands of times on resampled data
-to make sure the answer isn't luck. The 3-year finding survived every
-attack. My first attempt didn't — it said 1 year, because the formula
-had accidentally peeked into the future. Catching exactly that kind of
-mistake is why the toolkit exists.
+🍔 How did I test it? With the open statistics toolkit I built for my
+own work. It has one job: take a finding and try everything to kill it —
+rerun the numbers thousands of different ways and see if the answer
+still stands. The 3-year result survived every attempt. My first attempt
+didn't: it said 1 year, because my formula had quietly peeked into the
+future. The toolkit caught that. It is exactly what it is for.
 
 All the numbers, how I did it, what it can NOT tell you, and the code
 that lets anyone re-run the whole thing:
@@ -113,16 +108,13 @@ kiralar, her şey orada daha ucuz. Ucuz ülkeler çoğunlukla ucuz kalıyor.
 Endeks bir ülkeyi kendi geçmişiyle karşılaştırmakta iyi, ülkeleri
 birbiriyle karşılaştırmakta kötü.
 
-🍔 Peki nasıl test ettim? Sitemde yayımladığım açık istatistik araç
-setiyle. Araç, 2000'den bu yana her ülke ve her tarih için Big Mac
-fiyatının o ülkenin alışılmış seviyesinden ne kadar uzak olduğunu
-ölçüyor — sonra bir, iki ve üç yıl sonra gerçekte ne olduğunu izliyor.
-Ardından sonucu KIRMAYA çalışıyor: baz para birimini değiştir, veriyi
-farklı dönemlere böl, en uç ülkeleri at, şansa bağlı olmadığından emin
-olmak için her şeyi binlerce kez yeniden örnekleyerek çalıştır. 3 yıl
-bulgusu her saldırıdan sağ çıktı. İlk denemem çıkamamıştı — 1 yıl
-diyordu, çünkü formül farkında olmadan geleceğe bakmıştı. Araç setinin
-var olma sebebi tam da bu tür hataları yakalamak.
+🍔 Peki nasıl test ettim? Kendi işlerim için geliştirdiğim, sitemde açık
+duran istatistik araç setiyle. Tek bir görevi var: bir bulguyu alıp onu
+öldürmek için her yolu denemek — hesabı binlerce farklı şekilde yeniden
+çalıştırıp cevabın hâlâ ayakta olup olmadığına bakmak. 3 yıl sonucu her
+denemeden sağ çıktı. İlk denemem çıkamadı: 1 yıl diyordu, çünkü formülüm
+sessizce geleceğe bakmıştı. Bunu araç seti yakaladı. Zaten tam bunun
+için var.
 
 Bütün sayılar, nasıl yaptığım, neyi SÖYLEYEMEYECEĞİ ve herkesin baştan
 çalıştırabileceği kod:
