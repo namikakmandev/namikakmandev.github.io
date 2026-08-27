@@ -344,9 +344,84 @@ function buildReport() {
 }
 
 const ledger = { count: 0 };
+
+/* Real-data examples: the committed datasets this site's studies are built on,
+   loaded straight from data/*.json. Each carries its own story card, because a
+   number without its source and span is not a finding (data-integrity rule 9). */
+const REAL_EXAMPLES = {
+  corn: {
+    story: "<strong>US cattle vs corn prices, 1971&ndash;2026</strong> &mdash; 55 years of " +
+      "Bureau of Labor Statistics producer price indexes (WPU0131 slaughter cattle, WPU012202 corn), " +
+      "667 monthly observations. In levels they correlate at r&nbsp;=&nbsp;0.59 with " +
+      "p&nbsp;=&nbsp;10<sup>&minus;63</sup> &mdash; and almost all of it is shared inflation trend. " +
+      "Watch the changes row, the effective sample size, and the verdict.",
+    yoy: false,
+    async load() {
+      const d = await (await fetch("data/cattle-us.json")).json();
+      return "month,cattle PPI,corn PPI\n" +
+        d.rows.map((r) => `${r[0]},${r[1]},${r[2]}`).join("\n");
+    },
+  },
+  parity: {
+    story: "<strong>US vs EU cattle margins, 2015&ndash;2026</strong> &mdash; the meat-to-feed " +
+      "price ratio in each market (BLS producer prices for the US; European Commission beef and " +
+      "feed prices for the EU). This one is <em>real</em>: it survives every check &mdash; " +
+      "significant in year-on-year changes after the autocorrelation discount, and strongly " +
+      "cointegrated. An ocean apart, one margin cycle.",
+    yoy: true,
+    async load() {
+      const [us, eu] = await Promise.all([
+        (await fetch("data/cattle-us.json")).json(),
+        (await fetch("data/cattle-eu.json")).json(),
+      ]);
+      const em = new Map(eu.rows.map((r) => [r[0], r[3]]));
+      return "month,US margin,EU margin\n" +
+        us.rows.filter((r) => em.has(r[0]))
+          .map((r) => `${r[0]},${r[3]},${em.get(r[0])}`).join("\n");
+    },
+  },
+  vet: {
+    story: "<strong>EU veterinary spending vs the cattle herd, 2005&ndash;2024</strong> &mdash; " +
+      "Eurostat agricultural accounts (vet expenses, million EUR) against FAOSTAT cattle stocks. " +
+      "A published analysis once put this relationship at r&nbsp;=&nbsp;&minus;0.94. Deflated and " +
+      "checked honestly, there is <em>no detectable relationship at all</em> &mdash; and twenty " +
+      "annual points of two slow series carry about five independent facts. An honest null.",
+    yoy: false,
+    async load() {
+      const [vet, herd] = await Promise.all([
+        (await fetch("data/eu-vet-expenses.json")).json(),
+        (await fetch("data/herd-cattle.json")).json(),
+      ]);
+      const v = vet.series.EU27_2020, h = herd.series.EU;
+      const years = Object.keys(v).filter((y) => y in h).sort();
+      return "year,vet spend mEUR,cattle herd\n" +
+        years.map((y) => `${y},${v[y]},${h[y]}`).join("\n");
+    },
+  },
+};
+
+async function loadRealExample(key, btn) {
+  const ex = REAL_EXAMPLES[key];
+  const label = btn.textContent;
+  btn.textContent = "Loading\u2026";
+  try {
+    $("cc-input").value = await ex.load();
+    $("cc-yoy").checked = ex.yoy;
+    $("cc-story").innerHTML = ex.story;
+    $("cc-story").hidden = false;
+    run._fromExample = true;
+    run();
+  } catch (e) {
+    $("cc-error").textContent = "Could not load the dataset (this works on the live site, " +
+      "where the data files sit next to the page).";
+  }
+  btn.textContent = label;
+}
 let lastRun = null;   // state of the most recent successful run, for share/export
 
 function run() {
+  if (!run._fromExample) $("cc-story").hidden = true;
+  run._fromExample = false;
   const parsed = parseTable($("cc-input").value);
   const out = $("cc-results"), errBox = $("cc-error");
   errBox.textContent = ""; out.hidden = true;
@@ -382,7 +457,15 @@ function run() {
   CC.findBreaks(ys, labels, esc(nameB)).forEach((b) => warns.push("Possible methodology break — " + b));
   if (CC.crossesZero(xs)) warns.push(esc(nameA) + " crosses zero — changes use absolute differences, not percent.");
   if (CC.crossesZero(ys)) warns.push(esc(nameB) + " crosses zero — changes use absolute differences, not percent.");
-  $("cc-warnings").innerHTML = warns.map((w) => `<li>${w}</li>`).join("");
+  // A wall of warnings is as unreadable as none. Long series of volatile data
+  // trip the break detector on genuine shocks; show a few and say so.
+  let shown = warns;
+  if (warns.length > 5)
+    shown = warns.slice(0, 4).concat(
+      `&hellip;and ${warns.length - 4} more single-period jumps. In a long volatile series ` +
+      `these are usually genuine shocks rather than methodology breaks &mdash; but a break ` +
+      `hiding among them would look identical, so scan the list before comparing across it.`);
+  $("cc-warnings").innerHTML = shown.map((w) => `<li>${w}</li>`).join("");
   $("cc-warnbox").hidden = !warns.length;
 
   // 2 · levels vs changes
@@ -578,6 +661,8 @@ document.addEventListener("DOMContentLoaded", () => {
     a.click();
     URL.revokeObjectURL(a.href);
   });
+  ["corn", "parity", "vet"].forEach((k) =>
+    $("cc-real-" + k).addEventListener("click", (e) => loadRealExample(k, e.target)));
   scInitShare("cc-share", () => lastRun);
   $("cc-python").addEventListener("click", () => {
     if (!lastRun) run();
@@ -618,7 +703,10 @@ document.addEventListener("DOMContentLoaded", () => {
     e.target.value = "";
   });
   let t; window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => { if (!$("cc-results").hidden) run(); }, 150); });
-  if (location.search.indexOf("demo") >= 0) {
+  const realM = /[?&]real=(\w+)/.exec(location.search);
+  if (realM && REAL_EXAMPLES[realM[1]])
+    loadRealExample(realM[1], $("cc-real-" + realM[1]));
+  else if (location.search.indexOf("demo") >= 0) {
     $("cc-input").value = demoData(); $("cc-yoy").checked = false; run();
     window.scrollTo(0, $("cc-results").offsetTop - 10);   // land on the verdict
   }

@@ -315,6 +315,8 @@ function drawHistogram(cv, values) {
 /* -------------------------------- pipeline --------------------------------- */
 
 function runG() {
+  if (!runG._fromExample) $g("gc-story").hidden = true;
+  runG._fromExample = false;
   const parsed = parseGrid($g("gc-input").value);
   const err = $g("gc-error"), res = $g("gc-results");
   err.textContent = ""; res.hidden = true;
@@ -368,6 +370,67 @@ function runG() {
   $g("gc-body").innerHTML = out.join("\n");
   res.hidden = false;
   res.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/* ----------------------------- real-data examples --------------------------- */
+
+// IMF advanced economies present in the Economist Big Mac set.
+const GC_ADVANCED = new Set(["AUS","CAN","CHE","CZE","DNK","EUZ","GBR","HKG","ISR",
+  "JPN","KOR","NZL","NOR","SGP","SWE","TWN","USA"]);
+
+async function gcBigmacLatest() {
+  const d = await (await fetch("data/bigmac-eur.json")).json();
+  const rows = [];
+  for (const [cc, series] of Object.entries(d.series)) {
+    const dates = Object.keys(series).sort();
+    const last = dates[dates.length - 1];
+    if (last < "2026") continue;                    // drop discontinued series
+    rows.push([cc, series[last]]);
+  }
+  return rows;
+}
+
+const GC_REAL = {
+  bigmac2: {
+    mode: "auto",
+    story: "<strong>Big Mac valuations, rich vs emerging economies &mdash; July 2026</strong>. " +
+      "The Economist's Big Mac index, valuation against the euro, 55 countries; grouped by the " +
+      "IMF advanced-economies list. The burger-flavoured version of a real question: are prices " +
+      "structurally lower in emerging markets (the Penn effect), and by how much?",
+    async load() {
+      const rows = await gcBigmacLatest();
+      return "economy,valuation vs euro %\n" + rows.map(([cc, v]) =>
+        `${GC_ADVANCED.has(cc) ? "advanced" : "emerging"},${(v * 100).toFixed(1)}`).join("\n");
+    },
+  },
+  bigmacDist: {
+    mode: "auto",
+    story: "<strong>Big Mac valuations across 55 countries &mdash; July 2026</strong> " +
+      "(The Economist, valuation vs the euro). One column of real cross-country prices: " +
+      "watch which countries the MAD rule flags as outliers, and what the skew does to the mean.",
+    async load() {
+      const rows = await gcBigmacLatest();
+      return "valuation vs euro %\n" + rows.map(([, v]) => (v * 100).toFixed(1)).join("\n");
+    },
+  },
+};
+
+async function gcLoadReal(key, btn) {
+  const ex = GC_REAL[key];
+  const label = btn.textContent;
+  btn.textContent = "Loading\u2026";
+  try {
+    $g("gc-input").value = await ex.load();
+    $g("gc-mode").value = ex.mode;
+    $g("gc-story").innerHTML = ex.story;
+    $g("gc-story").hidden = false;
+    runG._fromExample = true;
+    runG();
+  } catch (e) {
+    $g("gc-error").textContent = "Could not load the dataset (this works on the live site, " +
+      "where the data files sit next to the page).";
+  }
+  btn.textContent = label;
 }
 
 /* --------------------------------- demos ----------------------------------- */
@@ -516,6 +579,8 @@ document.addEventListener("DOMContentLoaded", () => {
     a.click();
     URL.revokeObjectURL(a.href);
   });
+  $g("gc-real-bigmac2").addEventListener("click", (e) => gcLoadReal("bigmac2", e.target));
+  $g("gc-real-bigmacdist").addEventListener("click", (e) => gcLoadReal("bigmacDist", e.target));
   scInitShare("gc-share", () => lastRunG);
   $g("gc-python").addEventListener("click", () => {
     if (!lastRunG) runG();
@@ -535,5 +600,8 @@ document.addEventListener("DOMContentLoaded", () => {
     rd.readAsText(f);
     e.target.value = "";
   });
-  if (/[?&]demo\b/.test(location.search)) demoGroups();
+  const realM = /[?&]real=(\w+)/.exec(location.search);
+  if (realM === null) { if (/[?&]demo\b/.test(location.search)) demoGroups(); }
+  else if (realM[1] === "bigmac2") gcLoadReal("bigmac2", $g("gc-real-bigmac2"));
+  else if (realM[1] === "bigmacdist") gcLoadReal("bigmacDist", $g("gc-real-bigmacdist"));
 });
