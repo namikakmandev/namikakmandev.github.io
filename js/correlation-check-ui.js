@@ -452,21 +452,22 @@ function run() {
   const h = parsed.monthly && $("cc-yoy").checked ? 12 : 1;
 
   // 1 · warnings first: breaks and zero crossings
-  const warns = [];
-  CC.findBreaks(xs, labels, esc(nameA)).forEach((b) => warns.push("Possible methodology break — " + b));
-  CC.findBreaks(ys, labels, esc(nameB)).forEach((b) => warns.push("Possible methodology break — " + b));
-  if (CC.crossesZero(xs)) warns.push(esc(nameA) + " crosses zero — changes use absolute differences, not percent.");
-  if (CC.crossesZero(ys)) warns.push(esc(nameB) + " crosses zero — changes use absolute differences, not percent.");
-  // A wall of warnings is as unreadable as none. Long series of volatile data
-  // trip the break detector on genuine shocks; show a few and say so.
-  let shown = warns;
-  if (warns.length > 5)
-    shown = warns.slice(0, 4).concat(
-      `&hellip;and ${warns.length - 4} more single-period jumps. In a long volatile series ` +
+  const breaks = [];
+  CC.findBreaks(xs, labels, esc(nameA)).forEach((b) => breaks.push("Possible methodology break — " + b));
+  CC.findBreaks(ys, labels, esc(nameB)).forEach((b) => breaks.push("Possible methodology break — " + b));
+  // A wall of warnings is as unreadable as none: cap the break list. But cap
+  // ONLY the break list — the zero-crossing note changes how the whole
+  // changes row is computed and must never be squeezed out by it.
+  let shown = breaks;
+  if (breaks.length > 5)
+    shown = breaks.slice(0, 4).concat(
+      `&hellip;and ${breaks.length - 4} more single-period jumps. In a long volatile series ` +
       `these are usually genuine shocks rather than methodology breaks &mdash; but a break ` +
       `hiding among them would look identical, so scan the list before comparing across it.`);
+  if (CC.crossesZero(xs)) shown.push(esc(nameA) + " crosses zero — changes use absolute differences, not percent.");
+  if (CC.crossesZero(ys)) shown.push(esc(nameB) + " crosses zero — changes use absolute differences, not percent.");
   $("cc-warnings").innerHTML = shown.map((w) => `<li>${w}</li>`).join("");
-  $("cc-warnbox").hidden = !warns.length;
+  $("cc-warnbox").hidden = !shown.length;
 
   // 2 · levels vs changes
   const dx = CC.change(xs, h), dy = CC.change(ys, h);
