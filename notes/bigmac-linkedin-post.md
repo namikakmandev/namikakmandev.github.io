@@ -65,11 +65,14 @@ rent, everything is cheaper there. Cheap countries mostly just stay
 cheap. The index is good at comparing a country to its own history, and
 bad at comparing countries to each other.
 
-🍔 My first answer was wrong. My first calculation said the gap closes in
-just 1 year. Impressive — too impressive. I had made a classic mistake:
-my formula could accidentally peek into the future. Fixed properly, the
-answer is 3 years, not 1. If a result looks too good to be true, it
-usually is.
+🍔 How did I test it? No magic. For every country and every date since
+2000, I measured how far the Big Mac price stood from that country's
+usual level. Then I simply watched what happened next — one year later,
+two years later, three years later. Did the gap close? Averaging
+thousands of these small experiments across 55 countries gives the
+answers above. My first attempt said 1 year, which was too good to be
+true — and it was: the formula had accidentally peeked into the future.
+The published number is the corrected, honest one.
 
 All the numbers, how I did it, what it can NOT tell you, and the code
 that lets anyone re-run the whole thing:
@@ -107,11 +110,13 @@ kiralar, her şey orada daha ucuz. Ucuz ülkeler çoğunlukla ucuz kalıyor.
 Endeks bir ülkeyi kendi geçmişiyle karşılaştırmakta iyi, ülkeleri
 birbiriyle karşılaştırmakta kötü.
 
-🍔 İlk cevabım yanlıştı. İlk hesabım açığın 1 yılda kapandığını söyledi.
-Etkileyici — fazla etkileyici. Klasik bir hata yapmıştım: formülüm farkında
-olmadan geleceğe bakabiliyordu. Düzgün düzeltince cevap 1 değil 3 yıl
-çıktı. Bir sonuç gerçek olamayacak kadar iyiyse, genellikle gerçek
-değildir.
+🍔 Peki nasıl test ettim? Sihir yok. 2000'den bu yana her ülke ve her
+tarih için, Big Mac fiyatının o ülkenin alışılmış seviyesinden ne kadar
+uzak olduğunu ölçtüm. Sonra sadece ne olduğuna baktım — bir yıl sonra,
+iki yıl sonra, üç yıl sonra. Açık kapanmış mı? 55 ülkede binlerce küçük
+deneyin ortalaması, yukarıdaki cevapları veriyor. İlk denemem 1 yıl
+demişti — gerçek olamayacak kadar iyiydi ve değildi: formül farkında
+olmadan geleceğe bakmıştı. Yayımladığım sayı, düzeltilmiş, dürüst olanı.
 
 Bütün sayılar, nasıl yaptığım, neyi SÖYLEYEMEYECEĞİ ve herkesin baştan
 çalıştırabileceği kod:
