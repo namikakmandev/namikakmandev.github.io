@@ -348,7 +348,68 @@ const ledger = { count: 0 };
 /* Real-data examples: the committed datasets this site's studies are built on,
    loaded straight from data/*.json. Each carries its own story card, because a
    number without its source and span is not a finding (data-integrity rule 9). */
+function joinSeries(a, b, nameA, nameB) {
+  const keys = Object.keys(a).filter((k) => k in b).sort();
+  return `period,${nameA},${nameB}\n` +
+    keys.map((k) => `${k},${a[k]},${b[k]}`).join("\n");
+}
+
 const REAL_EXAMPLES = {
+  btcnasdaq: {
+    story: "<strong>Bitcoin vs the Nasdaq, monthly since 2014</strong> (Yahoo Finance closes: " +
+      "BTC-USD, ^IXIC). Crypto was sold as an uncorrelated asset &mdash; a world of its own. " +
+      "Is it, or is it a leveraged tech stock? The changes row is the answer; the levels row " +
+      "is two things that both went up.",
+    yoy: false,
+    async load() {
+      const d = await (await fetch("data/popular-markets.json")).json();
+      return joinSeries(d.series.BTC, d.series.NASDAQ, "Bitcoin USD", "Nasdaq");
+    },
+  },
+  btcgold: {
+    story: "<strong>Bitcoin vs gold, monthly since 2014</strong> (Yahoo Finance: BTC-USD, " +
+      "COMEX front-month). \"Digital gold\" is the most repeated claim in crypto. If it were " +
+      "true, the two would move together month to month. Watch the changes row and the " +
+      "confidence interval &mdash; and compare with the Nasdaq example.",
+    yoy: false,
+    async load() {
+      const d = await (await fetch("data/popular-markets.json")).json();
+      return joinSeries(d.series.BTC, d.series.GOLD, "Bitcoin USD", "Gold USD/oz");
+    },
+  },
+  pump: {
+    story: "<strong>US pump prices vs crude oil, monthly since 1986</strong> (BLS city-average " +
+      "gasoline via FRED APU000074714; WTI spot MCOILWTICO). The one relationship everyone " +
+      "feels at the pump. Here the interesting number is not r &mdash; it is the " +
+      "<em>slope</em>: how much of a move in crude actually reaches the pump, with honest " +
+      "errors around it. And this pair is genuinely cointegrated &mdash; the levels are " +
+      "tied long-run, as refining economics says they must be.",
+    yoy: false,
+    async load() {
+      const d = await (await fetch("data/pump-vs-oil.json")).json();
+      return joinSeries(d.series.wti_usd_bbl, d.series.gasoline_usd_gal,
+                        "WTI USD/bbl", "gasoline USD/gal");
+    },
+  },
+  co2: {
+    story: "<strong>Atmospheric CO&#8322; vs global temperature, annual</strong> (Mauna Loa / " +
+      "ice-core CO&#8322; and the global temperature anomaly, both via Our World in Data). " +
+      "Two rising series &mdash; exactly the shape this tool exists to distrust. And the " +
+      "year-to-year changes barely correlate at all: weather noise drowns the signal at that " +
+      "timescale, so the naive toolkit fails in <em>both</em> directions here. What settles it " +
+      "is the cointegration line &mdash; the levels are locked together long-run, and the test " +
+      "that knows the difference between shared trend and a real link says so emphatically.",
+    yoy: false,
+    async load() {
+      const [c, t] = await Promise.all([
+        (await fetch("data/climate-co2.json")).json(),
+        (await fetch("data/climate-temp.json")).json(),
+      ]);
+      const temp = (t.series.anomaly_c && Object.keys(t.series.anomaly_c).length
+                    ? t.series.anomaly_c : t.series.anomaly_c_world) || {};
+      return joinSeries(c.series.co2_ppm, temp, "CO2 ppm", "temp anomaly C");
+    },
+  },
   corn: {
     story: "<strong>US cattle vs corn prices, 1971&ndash;2026</strong> &mdash; 55 years of " +
       "Bureau of Labor Statistics producer price indexes (WPU0131 slaughter cattle, WPU012202 corn), " +
@@ -475,14 +536,19 @@ function run() {
   const chg = CC.describe(h > 1 ? "Year-on-year changes" : "Changes", dx, dy);
   $("cc-tbody").innerHTML = rowHTML(lev) + rowHTML(chg);
 
-  // 3 · verdict
+  // 3 · verdict — cointegration first, because it changes what honesty says
+  // about a failed changes row.
+  let eg = null;
+  if (lev && chg && Math.abs(lev.r) > 0.6 && xs.length >= 30) eg = CC.engleGranger(xs, ys);
   const v = [];
   if (lev && chg) {
     if (lev.p < 0.05 && !lev.sig)
       v.push(`The levels correlation of <b>${fmtR(lev.r)}</b> looks overwhelming (p = ${fmtP(lev.p)}), but ${lev.n} observations carry only ~${Math.round(lev.nEff)} independent facts. Adjusted for that, it is <b>not significant</b>.`);
     if (!chg.sig) {
       v.push(lev.p < 0.05
-        ? "The correlation does not survive in changes. Most likely two trends passing each other — <b>do not publish the levels figure</b>."
+        ? (eg && eg.verdict === "strong"
+          ? "The correlation does not survive in changes — but hold the verdict: the cointegration line below says this is <b>not</b> mere trend."
+          : "The correlation does not survive in changes. Most likely two trends passing each other — <b>do not publish the levels figure</b>.")
         : "No relationship detectable in either form. An honest null — which is still a finding.");
     } else {
       v.push(`Survives in changes: r = <b>${fmtR(chg.r)}</b>, adjusted p = ${fmtP(chg.pAdj)}. It explains ${(chg.r2 * 100).toFixed(0)}% of the variance — the other ${(100 - chg.r2 * 100).toFixed(0)}% is something else.`);
@@ -497,8 +563,7 @@ function run() {
   }
   // Cointegration: the one honest exception to "distrust levels". Only worth
   // asking when the levels correlate strongly but the changes are weak.
-  if (lev && chg && Math.abs(lev.r) > 0.6 && xs.length >= 30) {
-    const eg = CC.engleGranger(xs, ys);
+  {
     if (eg) {
       if (eg.verdict === "strong")
         v.push(`Cointegration (Engle&ndash;Granger): &tau; = ${eg.tau.toFixed(2)} against a 1% critical value of ${eg.crit.p01.toFixed(2)} &mdash; <b>the levels move together long-run</b>. This is the one case where a levels relationship is real even though each series trends: differencing throws it away, so report the levels link as cointegration, with this test attached.`);
@@ -662,7 +727,7 @@ document.addEventListener("DOMContentLoaded", () => {
     a.click();
     URL.revokeObjectURL(a.href);
   });
-  ["corn", "parity", "vet"].forEach((k) =>
+  ["btcnasdaq", "btcgold", "pump", "co2", "corn", "parity", "vet"].forEach((k) =>
     $("cc-real-" + k).addEventListener("click", (e) => loadRealExample(k, e.target)));
   scInitShare("cc-share", () => lastRun);
   $("cc-python").addEventListener("click", () => {
