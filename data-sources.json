@@ -1414,6 +1414,55 @@
    "out": "data/pl-anchor-feed.json",
    "source": "Eurostat annual purchase prices: complete feed for broiler production (in bulk), Poland, PLN per 100 kg",
    "note": "Parity anchor denominator. Product code confirmed by the 2026-08 probe."
+  },
+  {
+   "name": "popular-markets",
+   "provider": "yahoo",
+   "interval": "1mo",
+   "start": "2014-09-01",
+   "series": {
+    "BTC": "BTC-USD",
+    "NASDAQ": "^IXIC",
+    "SP500": "^GSPC",
+    "GOLD": "GC=F"
+   },
+   "out": "data/popular-markets.json",
+   "source": "Yahoo Finance monthly closes: Bitcoin (BTC-USD), Nasdaq Composite (^IXIC), S&P 500 (^GSPC), COMEX gold front-month (GC=F)",
+   "note": "Start 2014-09 = first month Yahoo has BTC-USD. Indices/futures pay no dividends; BTC has none - closes are comparable for co-movement, not total return."
+  },
+  {
+   "name": "climate-co2",
+   "provider": "owid",
+   "slug": "co2-long-term-concentration",
+   "entities": {
+    "World": "co2_ppm"
+   },
+   "out": "data/climate-co2.json",
+   "source": "Atmospheric CO2 concentration (ppm), long-term - Our World in Data grapher co2-long-term-concentration",
+   "note": "Annual. Run MODE=discover first if the slug or entity name has drifted."
+  },
+  {
+   "name": "climate-temp",
+   "provider": "owid",
+   "slug": "temperature-anomaly",
+   "entities": {
+    "Global": "anomaly_c",
+    "World": "anomaly_c_world"
+   },
+   "out": "data/climate-temp.json",
+   "source": "Global mean temperature anomaly (deg C vs 1861-1890) - Our World in Data grapher temperature-anomaly",
+   "note": "Annual. Grapher entity may be 'Global' or 'World' depending on vintage - both mapped; keep whichever returns data."
+  },
+  {
+   "name": "pump-vs-oil",
+   "provider": "fred",
+   "series": {
+    "gasoline_usd_gal": "APU000074714",
+    "wti_usd_bbl": "MCOILWTICO"
+   },
+   "out": "data/pump-vs-oil.json",
+   "source": "US city-average retail gasoline price (BLS APU000074714, USD/gallon) and WTI crude spot (MCOILWTICO, USD/barrel), monthly via FRED",
+   "note": "Gasoline from 1976, WTI from 1986; both nominal USD - the shared-dollar trend is part of the story the checker tells."
   }
  ]
 }
