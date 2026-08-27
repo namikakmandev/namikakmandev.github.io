@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Big Mac index, tested — a 3-year half-life — Namık Akman</title>
+  <meta name="description" content="The Economist's Big Mac index, tested against its own open data: 55 countries, 2000–2026, 1,461 currency-episodes. A currency's burger-price gap versus its own history closes with a half-life of about 3 years — matching the academic PPP consensus — while raw cross-country gaps barely close at all. Full numbers, method, limitations and a reproducible script." />
+  <meta name="keywords" content="Big Mac index, purchasing power parity, PPP half-life, mean reversion, Penn effect, The Economist, currency valuation, burgernomics, reproducible analysis" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="The Big Mac index works — just not the way people read it" />
+  <meta property="og:description" content="Tested on The Economist's own open data: burger-price gaps vs a currency's own history close with a ~3-year half-life — the academic PPP number. Raw cross-country gaps barely close. Every number reproducible." />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/bigmac-halflife.png" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .bm-grid{display:grid;gap:18px}
+    .bm-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .bm-card h3{margin-top:0}
+    .bm-hero img{width:100%;height:auto;display:block;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+    .bm-hero .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    .bm-table-wrap{overflow-x:auto}
+    .bm-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .bm-table th,.bm-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .bm-table th[scope=row],.bm-table thead th:first-child{text-align:left}
+    .bm-table .note{text-align:left;white-space:normal;color:var(--text-dim)}
+    .bm-head{color:var(--accent-2);font-weight:600}
+    .bm-bad{color:var(--loss);font-weight:600}
+    .bm-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    @media(max-width:820px){.bm-layers{grid-template-columns:1fr}}
+    .bm-layers .n{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .bm-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block;font-size:.85rem}
+    .bm-links a{margin-right:14px}
+  </style>
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container bm-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">The Big Mac index, tested</h2>
+        </div>
+
+        <p class="data-note">
+          In 1986 The Economist invented the Big Mac index as a joke about purchasing-power
+          parity. This page tests it against The Economist's own
+          <a href="https://github.com/TheEconomist/big-mac-data">open data</a> &mdash; 55
+          countries, every semi-annual reading from 2000 to July&nbsp;2026 &mdash; and publishes
+          every number, the method, its limitations, and a script that reproduces the whole thing
+          deterministically. <strong>The verdict: the index works, with a statistically significant
+          half-life of about 3 years &mdash; just not the way most people read it.</strong>
+        </p>
+
+        <div class="bm-card bm-hero">
+          <img src="assets/linkedin/bigmac-halflife.png"
+               alt="Two decay curves showing how fast a Big Mac valuation gap closes: measured against the currency's own historical normal the half-life is about 2.9 years, while raw cross-country cheapness has a half-life of about 6.4 years — cheap countries mostly stay cheap.">
+          <p class="cap">How much of a valuation gap is still open after t years. Points are measured
+            remaining fractions at 1, 2 and 3 years, pooled across 55 currencies; curves are the
+            exponential decay implied by each measured half-life. Regenerate with
+            <code>python3 scripts/bigmac_chart.py</code>.</p>
+        </div>
+
+        <div class="bm-layers">
+          <div class="bm-card">
+            <div class="n">1</div>
+            <h3>The joke index works</h3>
+            <p>When a currency's burger price drifts away from its <em>own</em> historical normal,
+              the gap closes reliably: about half of it disappears within ~3 years, and the
+              country-clustered confidence interval excludes zero at every horizon tested. That is
+              the same 3&ndash;5-year half-life the academic literature finds for purchasing-power
+              parity using far more sophisticated price data. A hamburger reproduces the
+              peer-reviewed number.</p>
+          </div>
+          <div class="bm-card">
+            <div class="n">2</div>
+            <h3>&hellip;but not the way people read it</h3>
+            <p>The popular reading &mdash; &ldquo;burgers are cheap in country X, so its currency
+              must rise&rdquo; &mdash; is much weaker. Raw cross-country gaps have a half-life of
+              6+ years, because a large part of each gap is permanent: poorer countries are
+              structurally cheaper (the <em>Penn effect</em>). The index tells you where a currency
+              stands versus its own history, not which countries are bargains.</p>
+          </div>
+          <div class="bm-card">
+            <div class="n">3</div>
+            <h3>The confession</h3>
+            <p>The first run of this analysis said the gap closes in about <strong>1 year</strong>
+              &mdash; suspiciously good. The cause was look-ahead bias: each currency's
+              &ldquo;normal&rdquo; was defined using its full history, including the future. With
+              an expanding window that lets each date see only its own past, the honest answer is
+              3 years, not 1. That biased row is kept in the table below on purpose.</p>
+          </div>
+        </div>
+
+        <div class="bm-card">
+          <h3>The numbers</h3>
+          <p>Pooled panel regression: the change in a currency's valuation gap over the next
+            <em>k</em> years, regressed on the current gap. A slope of &minus;1 would mean the gap
+            fully closes within the horizon; 0 would mean it never closes. All rows below are the
+            verbatim output of <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/bigmac_reversion.py">scripts/bigmac_reversion.py</a>
+            (fixed seed, deterministic).</p>
+          <div class="bm-table-wrap">
+            <table class="bm-table">
+              <thead>
+                <tr><th>Specification</th><th>Horizon</th><th>Slope</th><th>95% cluster CI</th>
+                  <th>R&sup2;</th><th>n</th><th>Half-life</th></tr>
+              </thead>
+              <tbody>
+                <tr class="bm-headrow"><th scope="row" class="bm-head">Headline: vs own past-only normal (EUR base)</th>
+                  <td>2y</td><td class="bm-head">&minus;0.382</td><td>[&minus;0.579,&nbsp;&minus;0.179]</td>
+                  <td>13%</td><td>1461</td><td class="bm-head">&asymp; 2.9y</td></tr>
+                <tr><th scope="row">Raw cross-country gap (the popular reading)</th>
+                  <td>2y</td><td>&minus;0.196</td><td>[&minus;0.343,&nbsp;&minus;0.117]</td>
+                  <td>11%</td><td>1791</td><td>&asymp; 6.4y</td></tr>
+                <tr><th scope="row" class="bm-bad">Full-sample normal &mdash; look-ahead bias, kept as a warning</th>
+                  <td>2y</td><td class="bm-bad">&minus;0.701</td><td>[&minus;0.855,&nbsp;&minus;0.539]</td>
+                  <td>38%</td><td>1791</td><td class="bm-bad">&asymp; 1.1y</td></tr>
+                <tr><th scope="row">Robustness: USD base instead of EUR</th>
+                  <td>2y</td><td>&minus;0.378</td><td>[&minus;0.599,&nbsp;&minus;0.156]</td>
+                  <td>14%</td><td>1461</td><td>&asymp; 2.9y</td></tr>
+                <tr><th scope="row">Robustness: 2000&ndash;2012 only</th>
+                  <td>2y</td><td>&minus;0.333</td><td>[&minus;0.510,&nbsp;&minus;0.183]</td>
+                  <td>&mdash;</td><td>381</td><td>&asymp; 3.4y</td></tr>
+                <tr><th scope="row">Robustness: 2013&ndash;2026 only</th>
+                  <td>2y</td><td>&minus;0.395</td><td>[&minus;0.672,&nbsp;&minus;0.131]</td>
+                  <td>&mdash;</td><td>1080</td><td>&asymp; 2.8y</td></tr>
+                <tr><th scope="row">Robustness: 1-year horizon</th>
+                  <td>1y</td><td>&minus;0.241</td><td>[&minus;0.343,&nbsp;&minus;0.129]</td>
+                  <td>8%</td><td>&mdash;</td><td>&asymp; 2.5y</td></tr>
+                <tr><th scope="row">Robustness: 3-year horizon</th>
+                  <td>3y</td><td>&minus;0.481</td><td>[&minus;0.694,&nbsp;&minus;0.249]</td>
+                  <td>18%</td><td>&mdash;</td><td>&asymp; 3.2y</td></tr>
+                <tr><th scope="row">Robustness: extreme countries dropped</th>
+                  <td>2y</td><td>&minus;0.382</td><td>[&minus;0.579,&nbsp;&minus;0.179]</td>
+                  <td>13%</td><td>1461</td><td>&asymp; 2.9y</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cc-note" style="color:var(--text-dim);font-size:.85rem">
+            The headline slope maps to a half-life 95% CI of roughly 1.6 to 7 years &mdash; wide,
+            because currencies are noisy, but excluding both &ldquo;never&rdquo; and
+            &ldquo;instantly&rdquo;. The largest single deviations in the panel are Venezuela and
+            Lebanon during currency crises; they revert as the model predicts, no observation
+            exceeds a 100% deviation, and dropping the extremes changes nothing (last row).</p>
+        </div>
+
+        <div class="bm-card">
+          <h3>Method</h3>
+          <p>Valuation gaps are The Economist's euro-relative (and, as a check, dollar-relative)
+            Big Mac valuations, semi-annual, 2000&ndash;July&nbsp;2026. For each currency and date,
+            the gap is measured as the deviation from that currency's <em>expanding-window
+            average using only past observations</em> (minimum six readings of history, so each
+            currency's first three years are used for calibration only &mdash; that is why
+            n drops from 1791 to 1461 versus the raw specification). The regression pools all
+            currency-episodes:</p>
+          <p><span class="bm-eq">future k-year change in gap = a + b &times; current gap + error</span></p>
+          <p>with the half-life computed as
+            <span class="bm-eq">(k &middot; ln&nbsp;0.5 / ln(1+b)) / 2</span> years for semi-annual
+            data. Because the 1,461 episodes are not independent &mdash; each currency contributes
+            many overlapping ones &mdash; confidence intervals come from a
+            <strong>country-clustered bootstrap</strong>: whole countries are resampled with
+            replacement, 2,000 iterations, fixed seed 42.</p>
+        </div>
+
+        <div class="bm-card">
+          <h3>Limitations</h3>
+          <ul>
+            <li><strong>Pooled, not per-currency.</strong> The 3-year half-life is an average
+              tendency across 55 currencies. It is not a claim about any single currency, and the
+              spread around it is large (R&sup2; is 8&ndash;18% depending on horizon).</li>
+            <li><strong>Slow and noisy is not tradeable.</strong> A statistical drift with a
+              multi-year half-life and an R&sup2; of 13% is a fact about how to <em>read</em> an
+              indicator, not an FX strategy. Nothing here is investment advice.</li>
+            <li><strong>Overlapping episodes.</strong> Semi-annual data with multi-year horizons
+              means adjacent episodes share most of their information; the clustered bootstrap is
+              the defence, but the effective information is far less than n suggests.</li>
+            <li><strong>One burger.</strong> A single traded-plus-non-traded good is a crude price
+              index; that the result still matches the broad-index PPP literature is the finding,
+              not a reason to prefer burgers to price indices.</li>
+            <li><strong>Coarse time resolution.</strong> Two readings a year bounds how precisely
+              any half-life can be located; the honest statement is &ldquo;about 3 years, CI
+              roughly 1.6&ndash;7&rdquo;, not &ldquo;2.9&rdquo;.</li>
+          </ul>
+        </div>
+
+        <div class="bm-card">
+          <h3>Reproduce it</h3>
+          <p>Everything is open: The Economist publishes the data, this site publishes the code,
+            and the analysis is seeded, so every number above reproduces to the last decimal.</p>
+          <p class="bm-links">
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/bigmac_reversion.py">Analysis script (Python, stdlib+numpy)</a>
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/bigmac_chart.py">Chart script</a>
+            <a href="https://github.com/TheEconomist/big-mac-data">The Economist's open data</a>
+            <a href="group-check.html?real=bigmac2">Poke at the same data in the browser</a>
+          </p>
+          <p class="cc-note" style="color:var(--text-dim);font-size:.85rem">
+            The interactive link loads the July&nbsp;2026 cross-section (rich vs emerging
+            economies) into the <a href="group-check.html">Group &amp; Category Check</a> tool
+            &mdash; the cross-sectional cousin of the time-series result above, with the effect
+            size the p-value hides. Related: <a href="bigmac-europe.html">Big Mac Europe map</a>
+            and <a href="ppp-europe.html">PPP in Europe</a>.</p>
+        </div>
+
+        <p class="data-note" style="font-size:.85rem">
+          Data &copy; The Economist (Big Mac index, published as open data under their
+          <a href="https://github.com/TheEconomist/big-mac-data">big-mac-data</a> repository);
+          this analysis is independent and not affiliated with or endorsed by The Economist.
+          Method and any errors are mine. Written August&nbsp;2026.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
