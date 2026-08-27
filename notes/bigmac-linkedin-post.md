@@ -66,9 +66,10 @@ cheap. The index is good at comparing a country to its own history, and
 bad at comparing countries to each other.
 
 🍔 How did I test it? With the open statistics toolkit I built for my
-own work. It has one job: take a finding and try everything to kill it —
-rerun the numbers thousands of different ways and see if the answer
-still stands. The 3-year result survived every attempt. My first attempt
+own work. It has one job: take a finding and try everything to kill it
+(swap the base currency, split the years into different eras, drop the
+most extreme countries, rerun the numbers on thousands of reshuffled
+samples). The 3-year result survived every attempt. My first attempt
 didn't: it said 1 year, because my formula had quietly peeked into the
 future. The toolkit caught that. It is exactly what it is for.
 
@@ -110,11 +111,11 @@ birbiriyle karşılaştırmakta kötü.
 
 🍔 Peki nasıl test ettim? Kendi işlerim için geliştirdiğim, sitemde açık
 duran istatistik araç setiyle. Tek bir görevi var: bir bulguyu alıp onu
-öldürmek için her yolu denemek — hesabı binlerce farklı şekilde yeniden
-çalıştırıp cevabın hâlâ ayakta olup olmadığına bakmak. 3 yıl sonucu her
-denemeden sağ çıktı. İlk denemem çıkamadı: 1 yıl diyordu, çünkü formülüm
-sessizce geleceğe bakmıştı. Bunu araç seti yakaladı. Zaten tam bunun
-için var.
+öldürmek için her yolu denemek (baz para birimini değiştir, yılları
+farklı dönemlere böl, en uç ülkeleri çıkar, hesabı binlerce karıştırılmış
+örneklem üzerinde yeniden çalıştır). 3 yıl sonucu her denemeden sağ
+çıktı. İlk denemem çıkamadı: 1 yıl diyordu, çünkü formülüm sessizce
+geleceğe bakmıştı. Bunu araç seti yakaladı. Zaten tam bunun için var.
 
 Bütün sayılar, nasıl yaptığım, neyi SÖYLEYEMEYECEĞİ ve herkesin baştan
 çalıştırabileceği kod:
