@@ -145,6 +145,8 @@
             <label class="cc-btn ghost" style="cursor:pointer">Upload file
               <input type="file" id="cc-file" accept=".csv,.tsv,.txt,.xlsx" hidden></label>
             <button class="cc-btn ghost" id="cc-report" title="Download the full result as markdown, and copy it to the clipboard">Export report</button>
+            <button class="cc-btn ghost" id="cc-share" title="Copy a link that carries the data and settings inside it — whoever opens it sees this exact analysis recomputed live. Nothing is uploaded; the data travels in the link.">Share link</button>
+            <button class="cc-btn ghost" id="cc-python" title="The same analysis as a self-contained pandas / statsmodels script, with your data embedded">Show as Python</button>
             <label><input type="checkbox" id="cc-yoy" checked> year-on-year (monthly data)</label>
           </div>
           <div id="cc-error" role="alert"></div>
@@ -212,6 +214,7 @@
 
           <div id="cc-verdict"></div>
           <p id="cc-ledger" class="cc-note" style="padding:0 4px"></p>
+          <div id="cc-codebox" hidden class="cc-input-card"></div>
 
           <div id="cc-regbox" hidden class="cc-input-card">
             <strong>Regression &mdash; the number you can act on</strong>
@@ -274,6 +277,9 @@
           collinearity checks; moving-block bootstrap CI with blocks covering the change horizon;
           Engle&ndash;Granger cointegration against MacKinnon finite-sample critical values; a
           session ledger that Bonferroni-adjusts the significance bar for every check you run.
+          Share links pack the data and settings into the URL fragment &mdash; nothing is uploaded,
+          the analysis travels inside the link and recomputes in the recipient's browser. The
+          Python export emits the same analysis as a self-contained pandas / statsmodels script.
           <code>.xlsx</code> files are read in the browser (first sheet) with no library and no
           upload.
           Open source on <a href="https://github.com/namikakmandev/namikakmandev.github.io">GitHub</a>
@@ -285,6 +291,7 @@
     </section>
   </main>
 
+  <script src="js/share-check.js"></script>
   <script src="js/correlation-check.js"></script>
   <script src="js/correlation-check-ui.js"></script>
   <script src="js/main.js"></script>

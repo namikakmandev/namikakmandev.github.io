@@ -130,6 +130,8 @@
             <label class="cc-btn ghost" style="cursor:pointer">Upload file
               <input type="file" id="gc-file" accept=".csv,.tsv,.txt" hidden></label>
             <button class="cc-btn ghost" id="gc-report">Export report</button>
+            <button class="cc-btn ghost" id="gc-share" title="Copy a link that carries the data and settings inside it — whoever opens it sees this exact analysis recomputed live. Nothing is uploaded.">Share link</button>
+            <button class="cc-btn ghost" id="gc-python" title="The same analysis as a self-contained pandas / SciPy script, with your data embedded">Show as Python</button>
             <label>analysis <select id="gc-mode">
               <option value="auto">auto-detect</option>
               <option value="groups-long">compare groups (group,value)</option>
@@ -145,6 +147,7 @@
           <div class="cc-input-card">
             <div id="gc-body"></div>
           </div>
+          <div id="gc-codebox" hidden class="cc-input-card"></div>
           <div class="cc-charts">
             <div class="cc-chart-card" id="gc-chart-card" hidden>
               <canvas id="gc-chart"></canvas>
@@ -163,12 +166,16 @@
           (incomplete beta) and &chi;&sup2; (incomplete gamma) distributions, validated against
           textbook critical values. Companion tool for paired series:
           <a href="correlation-check.html">Correlation &amp; Regression Check</a>.
-          Your data stays in this tab; there is no server.
+          Share links pack the data and settings into the URL fragment &mdash; nothing is
+          uploaded, the analysis travels inside the link and recomputes in the recipient's
+          browser. The Python export emits the same analysis as a self-contained
+          pandas / SciPy script. Your data stays in this tab; there is no server.
         </p>
       </div>
     </section>
   </main>
 
+  <script src="js/share-check.js"></script>
   <script src="js/correlation-check.js"></script>
   <script src="js/group-check.js"></script>
   <script src="js/group-check-ui.js"></script>
