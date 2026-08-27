@@ -65,14 +65,17 @@ rent, everything is cheaper there. Cheap countries mostly just stay
 cheap. The index is good at comparing a country to its own history, and
 bad at comparing countries to each other.
 
-🍔 How did I test it? No magic. For every country and every date since
-2000, I measured how far the Big Mac price stood from that country's
-usual level. Then I simply watched what happened next — one year later,
-two years later, three years later. Did the gap close? Averaging
-thousands of these small experiments across 55 countries gives the
-answers above. My first attempt said 1 year, which was too good to be
-true — and it was: the formula had accidentally peeked into the future.
-The published number is the corrected, honest one.
+🍔 How did I test it? With the open statistics toolkit I built and
+published on my site. It measures, for every country and every date
+since 2000, how far the Big Mac price stands from that country's usual
+level — then follows what actually happened one, two and three years
+later. And then it tries its best to BREAK the result: swap the base
+currency, split the sample into different eras, throw out the most
+extreme countries, rerun everything thousands of times on resampled data
+to make sure the answer isn't luck. The 3-year finding survived every
+attack. My first attempt didn't — it said 1 year, because the formula
+had accidentally peeked into the future. Catching exactly that kind of
+mistake is why the toolkit exists.
 
 All the numbers, how I did it, what it can NOT tell you, and the code
 that lets anyone re-run the whole thing:
@@ -110,13 +113,16 @@ kiralar, her şey orada daha ucuz. Ucuz ülkeler çoğunlukla ucuz kalıyor.
 Endeks bir ülkeyi kendi geçmişiyle karşılaştırmakta iyi, ülkeleri
 birbiriyle karşılaştırmakta kötü.
 
-🍔 Peki nasıl test ettim? Sihir yok. 2000'den bu yana her ülke ve her
-tarih için, Big Mac fiyatının o ülkenin alışılmış seviyesinden ne kadar
-uzak olduğunu ölçtüm. Sonra sadece ne olduğuna baktım — bir yıl sonra,
-iki yıl sonra, üç yıl sonra. Açık kapanmış mı? 55 ülkede binlerce küçük
-deneyin ortalaması, yukarıdaki cevapları veriyor. İlk denemem 1 yıl
-demişti — gerçek olamayacak kadar iyiydi ve değildi: formül farkında
-olmadan geleceğe bakmıştı. Yayımladığım sayı, düzeltilmiş, dürüst olanı.
+🍔 Peki nasıl test ettim? Sitemde yayımladığım açık istatistik araç
+setiyle. Araç, 2000'den bu yana her ülke ve her tarih için Big Mac
+fiyatının o ülkenin alışılmış seviyesinden ne kadar uzak olduğunu
+ölçüyor — sonra bir, iki ve üç yıl sonra gerçekte ne olduğunu izliyor.
+Ardından sonucu KIRMAYA çalışıyor: baz para birimini değiştir, veriyi
+farklı dönemlere böl, en uç ülkeleri at, şansa bağlı olmadığından emin
+olmak için her şeyi binlerce kez yeniden örnekleyerek çalıştır. 3 yıl
+bulgusu her saldırıdan sağ çıktı. İlk denemem çıkamamıştı — 1 yıl
+diyordu, çünkü formül farkında olmadan geleceğe bakmıştı. Araç setinin
+var olma sebebi tam da bu tür hataları yakalamak.
 
 Bütün sayılar, nasıl yaptığım, neyi SÖYLEYEMEYECEĞİ ve herkesin baştan
 çalıştırabileceği kod:
