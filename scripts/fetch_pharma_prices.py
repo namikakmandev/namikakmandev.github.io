@@ -106,6 +106,14 @@ VENUES = {
     "lekyjasne": {"name": "LekyJasne.cz (aggregate)", "country": "CZ", "currency": "CZK"},
     "arukereso": {"name": "Arukereso.hu (comparator)", "country": "HU", "currency": "HUF"},
     "petmart":   {"name": "PetMart",                  "country": "RO", "currency": "RON"},
+    "perfectpet": {"name": "PerfectPet (clinic)",     "country": "RO", "currency": "RON",
+                   "note": "per-dose price, administered at clinic"},
+    "animall":   {"name": "Animall.ro (comparator)",  "country": "RO", "currency": "RON"},
+    "vetlekaren": {"name": "Vet Lekaren",             "country": "SK", "currency": "EUR"},
+    "veteras":   {"name": "VETERAS",                  "country": "SK", "currency": "EUR"},
+    "vetchoice": {"name": "VetChoice",                "country": "BG", "currency": "EUR"},
+    "loravet":   {"name": "LoraVet",                  "country": "BG", "currency": "EUR"},
+    "puppypharma": {"name": "Puppy Pharma",           "country": "BG", "currency": "EUR"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
@@ -400,6 +408,8 @@ EXTRA_AGGS = [
     ("apoquel", "lekyjasne", "https://lekyjasne.cz/veterina/0910f7c78024e66f/", "tab", 16, 1),
     ("apoquel", "lekyjasne", "https://lekyjasne.cz/veterina/0910f7c7819808fb/", "tab", 3.6, 1),
     ("apoquel", "arukereso", "https://vitamin-taplalekkiegeszito-kutyaknak.arukereso.hu/apoquel-16mg-100-tabletta-p463108458/", "tab", 16, 100),
+    ("cytopoint", "animall", "https://animall.ro/preturi/cytopoint-20-mg-solinj-x-1ml/", "inj", 20, 1),
+    ("apoquel", "animall", "https://animall.ro/preturi/apoquel-36-mg-20-tablete/", "tab", 3.6, 20),
 ]
 for _pr, _ve, _u, _f, _mg, _n in EXTRA_AGGS:
     TARGETS.append({"product": _pr, "venue": _ve, "kind": "agg", "url": _u,
@@ -407,6 +417,19 @@ for _pr, _ve, _u, _f, _mg, _n in EXTRA_AGGS:
 
 EXTRA_SKUS = [
     ("apoquel", "petmart", "https://www.petmart.ro/apoquel-16-mg-20-tablete.html", "tab", 16, 20),
+    ("apoquel", "petmart", "https://www.petmart.ro/apoquel-16-mg-10-tablete.html", "tab", 16, 10),
+    ("apoquel", "petmart", "https://www.petmart.ro/apoquel-3-6-mg-20-tablete.html", "tab", 3.6, 20),
+    ("apoquel", "petmart", "https://www.petmart.ro/apoquel-5-4-mg-20-tablete.html", "tab", 5.4, 20),
+    ("apoquel-chewable", "petmart", "https://www.petmart.ro/apoquel-chew-16-mg-20-comprimate.html", "chew", 16, 20),
+    ("apoquel-chewable", "petmart", "https://www.petmart.ro/apoquel-chew-5-4-mg-20-comprimate.html", "chew", 5.4, 20),
+    ("cytopoint", "perfectpet", "https://shop.perfectpet.ro/en/cumpara/solutie-injectabila-pentru-caini-cytopoint-10-1kg-20kg-1x-doza-3115", "inj", 20, 1),
+    ("cytopoint", "perfectpet", "https://shop.perfectpet.ro/en/cumpara/solutie-injectabila-pentru-caini-cytopoint-20-1kg-30kg-1x-doza-3116", "inj", 30, 1),
+    ("apoquel-chewable", "vetlekaren", "https://www.vetlekaren.sk/apoquel-16-mg-zuvacie-tablety-pre-psy-20-tbl/", "chew", 16, 20),
+    ("apoquel-chewable", "vetlekaren", "https://www.vetlekaren.sk/apoquel-3-6-mg-zuvacie-tablety-pre-psy-100-tbl/", "chew", 3.6, 100),
+    ("cytopoint", "vetlekaren", "https://www.vetlekaren.sk/cytopoint-40-mg-injekcny-roztok-pre-psy-2x1-ml/", "inj", 40, 2),
+    ("apoquel", "veteras", "https://www.veteras.sk/apoquel-16-mg-filmom-obalene-tablety-pre-psy-20-tbl/", "tab", 16, 20),
+    ("apoquel-chewable", "vetchoice", "https://vetchoice.bg/product/apoquel-16-mg-apokvel-ovkuseni-davchashti-tabletki-za-oblekchavane-na-sarbezha-pri-kucheta-20-br/", "chew", 16, 20),
+    ("cytopoint", "puppypharma", "https://puppypharma.bg/bg-product-details-1237.html", "inj", 10, 1),
     # product, venue, url, form, mg, n
     # -------- DE / Trettin: full lineups --------
     ("cytopoint", "trettin", _TRET + "cytopoint-30-mg-ml-injektionsloesung-f-hunde.806408.html", "inj", 30, 1),
@@ -469,6 +492,9 @@ EXTRA_SKUS = [
 for _pr, _ve, _u, _f, _mg, _n in EXTRA_SKUS:
     TARGETS.append({"product": _pr, "venue": _ve, "kind": "sku", "url": _u,
                     "form": _f, "mg": _mg, "n": _n, "optional": True})
+TARGETS.append({"product": "apoquel", "venue": "loravet", "kind": "multi",
+                "url": "https://loravet.bg/p/apokvel-osiguryava-barzo-i-prodalzhitelno-oblekchenie-na-sarbezha-20-tabl/",
+                "form": "tab", "n": 20, "optional": True})
 
 PRICE_MIN, PRICE_MAX = 0.5, 1000000.0  # HUF/TRY pack prices run to six digits
 
@@ -499,11 +525,11 @@ def parse_label(label, default_mg=None):
     """'16 mg, 30 tablets' / '40mg pack of 2' -> (mg, count)."""
     label = str(label)
     mg = None
-    m = re.search(r"(\d+(?:[.,]\d+)?)\s*-?\s*mg", label, re.I)
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*-?\s*(?:mg|мг)", label, re.I)
     if m: mg = float(m.group(1).replace(",", "."))
     n = None
     m = (re.search(r"(\d+)\s*[x×]\s*\d+\s*ml\b", label, re.I)
-         or re.search(r"(\d+)\s*(?:count|tbl\.?|tabl\.?|tablet(?:s|ten|ta)?|kautablet(?:s|ten)?|filmtablet(?:s|ten|ta)?|r[aá]g[oó]tabletta|chewables?|tabs?|comprimidos|vials?|adet|st(?:ück|k)?|db|x|'?li)(?![a-z])", label, re.I)
+         or re.search(r"(\d+)\s*(?:count|tbl\.?|tabl\.?|tablet(?:s|ten|ta)?|kautablet(?:s|ten)?|filmtablet(?:s|ten|ta)?|r[aá]g[oó]tabletta|chewables?|tabs?|comprimidos|vials?|adet|st(?:ück|k)?|db|x|бр|табл(?:етки)?|comprimate|tablete|'?li)(?![a-zа-я])", label, re.I)
          or re.search(r"pack of\s*(\d+)", label, re.I)
          or re.search(r"[x×]\s*(\d+)\b", label, re.I))
     if m: n = int(m.group(1))
