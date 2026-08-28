@@ -26,11 +26,11 @@ jobs:
       - name: Fetch
         env:
           MODE: ${{ inputs.mode }}
-        run: pip install requests && MODE=${{ inputs.mode }} python scripts/fetch_pharma_prices.py
+        run: python scripts/fetch.py ${{ inputs.only }}
       - name: Commit
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add data/pharma-prices.json data/_pharma-prices-report.json
-          git diff --cached --quiet || git commit -m "data: pharma v2 probe [skip ci]"
+          git add data/
+          git diff --cached --quiet || git commit -m "data: refresh via scripts/fetch.py [skip ci]"
           git push
