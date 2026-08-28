@@ -26,11 +26,18 @@ mapping that needs a caveat is not a mapping.
 Two traps this had to be rewritten around, both found the hard way.
 
 The legacy endpoint IGNORES the dimension filter in the URL. Asking for
-WLD.WT.XP returns the same ~55MB whole-database response as all/all does. A
-first version issued 198 filtered requests, downloaded roughly ten gigabytes,
-kept every series it was handed and produced an 833MB file that GitHub
-refused. So each edition is fetched ONCE and filtered in memory, which is nine
-requests instead of 198 and a file measured in kilobytes.
+WLD.WT.XP returns byte-for-byte the same whole-database response as all/all.
+A first version issued 198 filtered requests, downloaded roughly ten
+gigabytes, kept every series and produced an 833MB file GitHub refused.
+
+It also CAPS how much it returns. Fetching a whole edition at once yields
+only part of the cube — the 2015-2020 editions came back with some 14,000
+observations out of roughly three million, and the 2023 edition returned about
+a million that did not happen to include World. Matching was never the
+problem; the data simply was not in the response.
+
+What does work is the time filter. So each edition is fetched one year at a
+time, which keeps every response complete, and selection happens in memory.
 
 Observation keys index the TIME_PERIOD array in the order the API returns it,
 which is NOT sorted — the probe read 1970..1979 then 1990. Sorting it first
@@ -45,6 +52,7 @@ BASE = "https://stats.oecd.org/SDMX-JSON/data"
 UA = "namikakmandev-data/1.0 (+https://namikakmandev.github.io)"
 TIMEOUT = 240
 EDITIONS = list(range(2015, 2024))
+YEARS = list(range(2015, 2024))     # target years that have since happened
 
 # old code -> (new code, plain name). Bridged by name from the probe dumps.
 COMMODITIES = {
@@ -240,24 +248,31 @@ def main(argv=None):
     rows, misses, diags = [], [], {}
     for vintage in EDITIONS:
         ds = f"HIGH_AGLINK_{vintage}"
-        body = fetch(f"{BASE}/{ds}/all/all")
-        if not body:
-            misses.append({"vintage": vintage, "error": "no response"})
-            print(f"  {ds}: NO RESPONSE")
-            continue
-        try:
-            ser, diag = wanted_series(body, vintage)
-            diags[vintage] = diag
-            err = diag.get("fatal")
-        except Exception as e:                               # noqa: BLE001
-            misses.append({"vintage": vintage, "error": str(e)[:160]})
-            print(f"  {ds}: parse failed — {type(e).__name__}")
-            continue
-        finally:
-            del body
-        if err:
-            misses.append({"vintage": vintage, "error": err})
-        for old_c, old_m, obs in ser:
+        acc, keys_seen, years_ok = {}, 0, []
+        for year in YEARS:
+            body = fetch(f"{BASE}/{ds}/all/all"
+                         f"?startTime={year}&endTime={year}")
+            if not body:
+                continue
+            try:
+                ser, diag = wanted_series(body, vintage)
+            except Exception as e:                           # noqa: BLE001
+                misses.append({"vintage": vintage, "year": year,
+                               "error": str(e)[:160]})
+                continue
+            finally:
+                del body
+            if diag.get("fatal"):
+                misses.append({"vintage": vintage, "year": year,
+                               "error": diag["fatal"]})
+                continue
+            keys_seen += diag.get("keys_seen", 0)
+            diags.setdefault(vintage, diag)
+            if ser:
+                years_ok.append(year)
+            for old_c, old_m, obs in ser:
+                acc.setdefault((old_c, old_m), {}).update(obs)
+        for (old_c, old_m), obs in sorted(acc.items()):
             rows.append({
                 "vintage": vintage,
                 "commodity": old_c,
@@ -266,13 +281,9 @@ def main(argv=None):
                 "measure_name": MEASURES[old_m][2],
                 "obs": {str(y): round(v, 4) for y, v in sorted(obs.items())},
             })
-        got = sum(len(o) for _, _, o in ser)
-        dg = diags.get(vintage, {})
-        print(f"  {ds}: {len(ser):>3} series, {got:>6,} obs  |  "
-              f"keys={dg.get('keys_seen', 0):>8,} "
-              f"time_vals={dg.get('n_time_values')} "
-              f"dims={[i for i, _ in dg.get('series_dims', [])]}"
-              f"+{[i for i, _ in dg.get('obs_dims', [])]}")
+        got = sum(len(o) for o in acc.values())
+        print(f"  {ds}: {len(acc):>3} series, {got:>5,} obs across "
+              f"{len(years_ok)} years  |  keys={keys_seen:,}")
 
     doc = {
         "source": "OECD-FAO Agricultural Outlook, retired editions",
