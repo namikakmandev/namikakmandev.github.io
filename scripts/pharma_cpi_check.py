@@ -107,5 +107,26 @@ def main():
           f"{statistics.median(r['drug'] - r['all'] for r in matched):+.1f}pp/yr")
 
 
+def form_check():
+    """Flag venues whose film-coated and chewable pages return the SAME price.
+
+    Some venues genuinely price both forms alike, so this is a prompt to verify,
+    not proof of error — but it is exactly how a duplicated listing (two configs
+    pointing at one page) shows up in the data.
+    """
+    latest = max(o["d"] for o in obs["observations"])
+    pairs = defaultdict(dict)
+    for o in obs["observations"]:
+        if o["d"] == latest and o["product"] in ("apoquel", "apoquel-chewable"):
+            pairs[(o["venue"], o["mg"], o["n"])][o["product"]] = o["price"]
+    dupes = [(k, v) for k, v in pairs.items()
+             if len(v) == 2 and v["apoquel"] == v["apoquel-chewable"]]
+    print(f"\ncross-form price check ({latest}): "
+          f"{len(dupes)} venue/strength/pack pairs price both forms identically")
+    for (ven, mg, n), v in sorted(dupes):
+        print(f"  verify: {VEN[ven]['name']} {mg}mg x{n} -> both forms {v['apoquel']}")
+
+
 if __name__ == "__main__":
     main()
+    form_check()
