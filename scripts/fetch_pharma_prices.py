@@ -109,6 +109,9 @@ VENUES = {
     "loravet":   {"name": "LoraVet",                  "country": "BG", "currency": "EUR"},
     "puppypharma": {"name": "Puppy Pharma",           "country": "BG", "currency": "EUR"},
     "puttemans": {"name": "Apotheek Puttemans",       "country": "BE", "currency": "EUR"},
+    "farmahome": {"name": "FarmaHome",                "country": "PT", "currency": "EUR"},
+    "kuantokusta": {"name": "KuantoKusta (comparator)", "country": "PT", "currency": "EUR"},
+    "herzlich":  {"name": "Herzlich-Apotheke",        "country": "DE", "currency": "EUR"},
     "devos":     {"name": "Apotheek De Vos",          "country": "BE", "currency": "EUR"},
     "swijzen":   {"name": "Apotheek Swijzen",         "country": "BE", "currency": "EUR"},
 }
@@ -396,6 +399,8 @@ _ALPHA = "https://www.alphaportal2.hu/"
 # CEE reinforcement (comparator pages carry many shops' offers -> kind "agg")
 EXTRA_AGGS = [
     # product, venue, url, form, mg, n
+    ("apoquel", "kuantokusta", "https://www.kuantokusta.pt/p/4707098/zoetis-apoquel-16mg-cao-20-comprimidos", "tab", 16, 20),
+    ("apoquel", "kuantokusta", "https://www.kuantokusta.pt/p/4707097", "tab", 16, 100),
     ("apoquel", "ceneo", "https://www.ceneo.pl/107695335", "tab", 16, 20),
     ("apoquel", "ceneo", "https://www.ceneo.pl/107695333", "tab", 16, 10),
     ("apoquel", "ceneo", "https://www.ceneo.pl/107695329", "tab", 5.4, 20),
