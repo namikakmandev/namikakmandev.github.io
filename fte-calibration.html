@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FiveThirtyEight, tested — honest, and too cautious — Namık Akman</title>
+  <meta name="description" content="FiveThirtyEight's forecast record, tested against their own open archive: 3,101,140 published probabilities from 2008 to 2022, reduced to 255,057 independent calls. The calibration claim holds — a 70% forecast was followed by the event about 70% of the time. But on the competitive political races people actually argued about, the slope is 1.29: 538 was underconfident, not overconfident. Full numbers, method, limitations and reproducible scripts." />
+  <meta name="keywords" content="FiveThirtyEight, forecast calibration, Brier score, Brier skill score, reliability diagram, probabilistic forecasting, Nate Silver, election forecasts, reproducible analysis" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="FiveThirtyEight's forecasts were honest — and too cautious" />
+  <meta property="og:description" content="Tested on 538's own archive: 255,057 independent calls. The 70% claim holds. But on competitive political races the favourites won more often than the model said — the opposite of the usual complaint." />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/fte-calibration.png" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .fc-grid{display:grid;gap:18px}
+    .fc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .fc-card h3{margin-top:0}
+    .fc-hero img{width:100%;height:auto;display:block;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+    .fc-hero .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    .fc-table-wrap{overflow-x:auto}
+    .fc-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .fc-table th,.fc-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .fc-table th[scope=row],.fc-table thead th:first-child{text-align:left}
+    .fc-table .note{text-align:left;white-space:normal;color:var(--text-dim)}
+    .fc-head{color:var(--accent-2);font-weight:600}
+    .fc-bad{color:var(--loss);font-weight:600}
+    .fc-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    @media(max-width:820px){.fc-layers{grid-template-columns:1fr}}
+    .fc-layers .n{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .fc-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block;font-size:.85rem}
+    .fc-links a{margin-right:14px}
+    .fc-code{margin-top:12px}
+    .fc-code summary{cursor:pointer;font-weight:600;color:var(--accent);padding:6px 0}
+    .fc-code pre{overflow:auto;max-height:520px;background:var(--surface-2);border:1px solid var(--border);
+      border-radius:8px;padding:14px;font-size:.78rem;line-height:1.5;margin:8px 0 0}
+  </style>
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container fc-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">FiveThirtyEight, tested</h2>
+        </div>
+
+        <p class="data-note">
+          FiveThirtyEight spent seventeen years publishing probabilities, and then published
+          the scorecard too &mdash; every forecast they made, with the outcome attached, so
+          anyone could check them. ABC News shut the site down in March&nbsp;2025 and took it
+          offline. The
+          <a href="https://github.com/fivethirtyeight/checking-our-work-data">archive on GitHub</a>
+          survived. This page tests their central claim against it &mdash; 3,101,140 published
+          probabilities from 2008 to 2022, reduced to 255,057 independent calls &mdash; and
+          publishes every number, the method, its limitations, and scripts that reproduce the
+          whole thing deterministically.
+          <strong>The verdict: the claim holds. And on the races people actually argued about,
+          538 erred in the opposite direction from the one they are accused of &mdash; they were
+          too cautious, not too confident.</strong>
+        </p>
+
+        <div class="fc-card fc-hero">
+          <img src="assets/linkedin/fte-calibration.png"
+               alt="A reliability diagram plotting what FiveThirtyEight said the chance of an event was against how often it actually happened. Across all 255,057 forecasts the line sits on the 45-degree diagonal of perfect calibration, with a fitted slope of 0.99. A second line, for the 1,122 competitive political forecasts between 10% and 90%, bows above the diagonal: where 538 said 75%, the event happened 88% of the time.">
+          <p class="cap">What 538 said would happen, against how often it did. The dashed line is
+            perfect calibration. Blue is every forecast; orange is the competitive political
+            races &mdash; the ones that were genuinely in doubt &mdash; which sit above the line.
+            Regenerate with <code>python3 scripts/fte_chart.py</code>.</p>
+        </div>
+
+        <div class="fc-layers">
+          <div class="fc-card">
+            <p class="n">1</p>
+            <h3>The claim is true</h3>
+            <p>Across 255,057 independent calls the fitted calibration slope is
+              <strong>0.990</strong> (95%&nbsp;CI 0.982&ndash;0.997, where 1.00 is perfect) with an
+              intercept of +0.002. Every ten-point band lands within about two points of where it
+              should. When 538 said 70%, it happened roughly 70% of the time.</p>
+          </div>
+          <div class="fc-card">
+            <p class="n">2</p>
+            <h3>&ldquo;It said 71% and it was wrong&rdquo; is not a criticism</h3>
+            <p>Of the political forecasts in the 65&ndash;75% band, the favourite lost 21% of the
+              time. A calibrated forecaster is <em>supposed</em> to lose about 30% of those. But
+              calibration alone is a low bar &mdash; always saying the base rate is perfectly
+              calibrated and useless. The skill score is the real defence: <strong>+19.1%</strong>
+              over that do-nothing baseline overall.</p>
+          </div>
+          <div class="fc-card">
+            <p class="n">3</p>
+            <h3>They were underconfident</h3>
+            <p>82% of 538's political forecasts were never in doubt &mdash; safe House seats at 1%
+              or 99%. Keep only the 1,122 calls between 10% and 90% and the slope is
+              <strong>1.29</strong> (CI 1.20&ndash;1.38). Above one, not below: their favourites
+              won <em>more</em> often than they said.</p>
+          </div>
+        </div>
+
+        <div class="fc-card">
+          <h3>The numbers</h3>
+          <p>Calibration slope is the coefficient from regressing the 0/1 outcome on the published
+            probability: 1.00 is perfect, below&nbsp;1 is overconfidence, above&nbsp;1 is
+            underconfidence. Intervals are cluster-robust, treating one contest as one
+            observation. Skill is the Brier skill score against a forecaster who always predicts
+            the base rate.</p>
+          <div class="fc-table-wrap">
+            <table class="fc-table">
+              <thead>
+                <tr><th>Slice</th><th>Slope</th><th>95% CI</th><th>Brier</th><th>Skill</th>
+                    <th>Forecasts</th><th>Contests</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row" class="fc-head">All forecasts</th><td>0.990</td>
+                    <td>0.982&ndash;0.997</td><td>0.1843</td><td>+19.1%</td>
+                    <td>255,057</td><td>86,063</td></tr>
+                <tr><th scope="row">Politics, all</th><td>1.026</td><td>1.019&ndash;1.032</td>
+                    <td>0.0288</td><td>+87.9%</td><td>6,303</td><td>2,492</td></tr>
+                <tr><th scope="row" class="fc-head">Politics, competitive (10&ndash;90%)</th>
+                    <td>1.292</td><td>1.201&ndash;1.383</td><td>0.1459</td><td>+41.6%</td>
+                    <td>1,122</td><td>557</td></tr>
+                <tr><th scope="row">Sports, all</th><td>0.985</td><td>0.977&ndash;0.993</td>
+                    <td>0.1883</td><td>+17.2%</td><td>248,754</td><td>83,571</td></tr>
+                <tr><th scope="row">Sports, competitive (10&ndash;90%)</th><td>0.976</td>
+                    <td>0.963&ndash;0.989</td><td>0.2103</td><td>+10.9%</td>
+                    <td>220,224</td><td>82,649</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p style="margin-top:18px">Band by band, all forecasts. The <em>gap</em> column is how
+            far the world fell from the forecast &mdash; positive means it happened more often
+            than 538 said.</p>
+          <div class="fc-table-wrap">
+            <table class="fc-table">
+              <thead><tr><th>Forecast band</th><th>Forecasts</th><th>Mean forecast</th>
+                <th>Happened</th><th>Gap</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">0&ndash;10%</th><td>29,046</td><td>1.8%</td><td>1.6%</td><td>&minus;0.2</td></tr>
+                <tr><th scope="row">10&ndash;20%</th><td>20,234</td><td>15.7%</td><td>15.6%</td><td>&minus;0.2</td></tr>
+                <tr><th scope="row">20&ndash;30%</th><td>70,067</td><td>25.6%</td><td>26.0%</td><td>+0.4</td></tr>
+                <tr><th scope="row">30&ndash;40%</th><td>40,683</td><td>34.6%</td><td>34.0%</td><td>&minus;0.6</td></tr>
+                <tr><th scope="row">40&ndash;50%</th><td>37,019</td><td>44.9%</td><td>44.2%</td><td>&minus;0.6</td></tr>
+                <tr><th scope="row">50&ndash;60%</th><td>27,804</td><td>54.5%</td><td>54.8%</td><td>+0.2</td></tr>
+                <tr><th scope="row">60&ndash;70%</th><td>14,963</td><td>64.3%</td><td>64.4%</td><td>+0.1</td></tr>
+                <tr><th scope="row">70&ndash;80%</th><td>6,516</td><td>74.4%</td><td>72.2%</td><td>&minus;2.2</td></tr>
+                <tr><th scope="row">80&ndash;90%</th><td>4,060</td><td>84.5%</td><td>82.7%</td><td>&minus;1.8</td></tr>
+                <tr><th scope="row">90&ndash;100%</th><td>4,665</td><td>97.5%</td><td>97.3%</td><td>&minus;0.1</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p style="margin-top:18px">The same table for politics alone shows where the
+            underconfidence lives. Note how thin the middle is: 5,181 of 6,303 political forecasts
+            sit in the top and bottom bands.</p>
+          <div class="fc-table-wrap">
+            <table class="fc-table">
+              <thead><tr><th>Forecast band</th><th>Forecasts</th><th>Mean forecast</th>
+                <th>Happened</th><th>Gap</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">0&ndash;10%</th><td>3,240</td><td>0.7%</td><td>0.3%</td><td>&minus;0.4</td></tr>
+                <tr><th scope="row">10&ndash;20%</th><td>205</td><td>14.2%</td><td>6.8%</td><td class="fc-bad">&minus;7.4</td></tr>
+                <tr><th scope="row">20&ndash;30%</th><td>136</td><td>24.7%</td><td>12.5%</td><td class="fc-bad">&minus;12.2</td></tr>
+                <tr><th scope="row">30&ndash;40%</th><td>115</td><td>35.0%</td><td>32.2%</td><td>&minus;2.8</td></tr>
+                <tr><th scope="row">40&ndash;50%</th><td>117</td><td>44.7%</td><td>36.8%</td><td class="fc-bad">&minus;7.9</td></tr>
+                <tr><th scope="row">50&ndash;60%</th><td>117</td><td>55.0%</td><td>60.7%</td><td>+5.7</td></tr>
+                <tr><th scope="row">60&ndash;70%</th><td>118</td><td>65.0%</td><td>69.5%</td><td>+4.5</td></tr>
+                <tr><th scope="row">70&ndash;80%</th><td>126</td><td>75.1%</td><td>88.1%</td><td class="fc-head">+13.0</td></tr>
+                <tr><th scope="row">80&ndash;90%</th><td>188</td><td>85.8%</td><td>94.2%</td><td class="fc-head">+8.4</td></tr>
+                <tr><th scope="row">90&ndash;100%</th><td>1,941</td><td>99.0%</td><td>99.6%</td><td>+0.6</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cap" style="font-size:.8rem;color:var(--text-dim);margin-top:8px">
+            Underdogs below 50% lost more often than forecast, favourites above 50% won more often
+            than forecast. That is one pattern, not two: the probabilities were pulled too far
+            toward the middle.</p>
+        </div>
+
+        <div class="fc-card">
+          <h3>Method</h3>
+          <p>The archive holds one row per published probability. Rows are not observations, and
+            three things had to be removed before any of them could be counted:</p>
+          <ul>
+            <li><strong>Repeat forecasts.</strong> Most models re-ran daily, so a single House race
+              contributes around a hundred rows. Pooling them turns a few hundred elections into
+              n&nbsp;=&nbsp;855,178. One snapshot per forecasting unit is kept &mdash; the final
+              published forecast &mdash; taking 3,101,140 rows down to 261,779.</li>
+            <li><strong>In-play forecasts.</strong> 429,953 rows are live win probabilities updated
+              during the event. A team thirty points up with two minutes left is a 99.9% call that
+              any model gets right, and they flatter every statistic here. Excluded.</li>
+            <li><strong>Model variants.</strong> The same race was forecast by Lite, Classic and
+              Deluxe. Counting all three triples the sample without adding information. One
+              flagship model per project-year is kept, leaving 255,057 forecasts.</li>
+          </ul>
+          <p>Calibration is then the slope of a regression of outcome on forecast:</p>
+          <p class="fc-eq">outcome<sub>i</sub> = a + b &middot; probability<sub>i</sub> &nbsp;&nbsp;
+            &rarr;&nbsp; perfect is a = 0, b = 1</p>
+          <p>Intervals are cluster-robust, with a contest as the cluster: the two candidates in a
+            race are one observation, not two, because one wins exactly when the other loses. Where
+            the cluster count is small enough to make it practical, a 2,000-iteration cluster
+            bootstrap (seed&nbsp;42) is reported alongside and agrees to the third decimal.</p>
+          <p><strong>Competitive</strong> means a published probability between 10% and 90%. That
+            conditions on the forecast, never on the outcome &mdash; it is a question about which
+            calls were hard, asked without any knowledge of how they turned out.</p>
+        </div>
+
+        <div class="fc-card">
+          <h3>Limitations</h3>
+          <ul>
+            <li><strong>The famous number is not in here.</strong> The archive covers state-level
+              presidential, Senate, House, governor and primary forecasts. It does not contain the
+              national 2016 presidential forecast, so nothing on this page tests the 71% everyone
+              argues about. The claim tested is the general one 538 made about their whole record.</li>
+            <li><strong>The political sample is small, and clustering does not reveal it.</strong>
+              6,303 political forecasts sit across 2,492 races on 48 election dates. Clustering
+              does not widen the interval here &mdash; it slightly narrows it, because residuals
+              inside a race cancel by construction. That is a property of the estimator, not
+              evidence of a large sample. The honest statement is that the political result rests
+              on roughly a dozen election cycles.</li>
+            <li><strong>Underconfidence is measured on 1,122 forecasts.</strong> It holds in every
+              project (slopes 1.17 to 1.34) and in seven of eight cycles &mdash; but each cycle
+              alone is thin, and 2016 runs the other way (slope 0.82, CI 0.15&ndash;1.49, 30
+              races), too wide to distinguish from either 1.00 or the pooled 1.29.</li>
+            <li><strong>Final forecasts are the easiest ones.</strong> Taking each model's last
+              published call gives it every poll and every injury report. Re-run on the snapshot
+              closest to 30 days out, across the 1,818 contests carrying both, the slope is
+              identical to three decimals (1.032 either way) and skill falls only from +87.0% to
+              +85.5% &mdash; but the matched subsample is small and politics-heavy.</li>
+            <li><strong>Sports dominate the pooled number.</strong> 248,754 of 255,057 forecasts are
+              sports, and 162,260 are club soccer matches alone. Dropping club soccer moves the
+              overall slope from 0.990 to 0.998. The pooled headline is really a statement about
+              sports forecasting with politics along for the ride, which is why both are always
+              broken out.</li>
+            <li><strong>Calibration is not accuracy, and neither is skill.</strong> A skill score of
+              +19.1% says the forecasts beat a base-rate baseline, not that they beat a bookmaker,
+              a market, or a rival model. No comparison to any competing forecaster is made here,
+              because the archive does not contain one.</li>
+            <li><strong>Selection into the archive.</strong> 538 chose which projects to publish
+              scorecards for. These are the forecasts they were willing to be graded on. That is far
+              more than almost any other outlet published, and it is still their selection, not a
+              census of everything they ever said.</li>
+            <li><strong>Ties are dropped.</strong> Sixteen rows code an outcome of 0.5 (drawn
+              matches). They are not binary events and are excluded.</li>
+          </ul>
+        </div>
+
+        <div class="fc-card fc-code">
+          <h3>The scripts, in full</h3>
+          <p>Nothing is elided. These are the three files that produced every number and the chart on this page, exactly as they run.</p>
+            <details>
+              <summary>fetch_538.py &mdash; building the dataset from 538's archive (262 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Build the FiveThirtyEight forecast-calibration dataset from 538&#x27;s own archive.
+
+Source: github.com/fivethirtyeight/checking-our-work-data — the data behind
+&quot;How Good Are FiveThirtyEight Forecasts?&quot;. ABC shut the site down in March 2025
+and pulled it offline; the GitHub archive survived. raw_forecasts.zip holds
+3.1M rows: one published probability plus the outcome that followed.
+
+Raw rows are NOT independent observations. 538 re-ran most forecasts daily, so
+one House race contributes ~100 rows; and every event lists every outcome, so
+Trump and Biden are two mechanically-linked rows for the same race. Pooling them
+gives a calibration curve on n=3.1M that is really a few hundred elections and a
+few tens of thousands of games.
+
+This script reduces the archive to what an honest test needs and commits that:
+
+  data/fte-forecasts.json   one row per (event, entity, field, model), at two
+                            snapshots — the final forecast and the forecast
+                            closest to 30 days out — tagged with the contest it
+                            belongs to, so the analysis can bootstrap over
+                            clusters at whichever level it wants to defend.
+  data/fte-slices.json      sufficient statistics for the slices deliberately
+                            excluded (live in-play forecasts, every-forecast-date
+                            pooling), so the robustness table is reproducible
+                            without re-downloading 350MB.
+
+Usage:  python3 scripts/fetch_538.py [--cache DIR]
+&quot;&quot;&quot;
+import argparse, csv, io, json, os, sys, urllib.request, zipfile
+from collections import defaultdict
+from datetime import date, datetime
+
+REPO = &quot;https://raw.githubusercontent.com/fivethirtyeight/checking-our-work-data/master&quot;
+ZIP_URL = f&quot;{REPO}/raw_forecasts.zip&quot;
+LEAD_TARGET = 30          # days before the event for the second snapshot
+BUCKETS = 20              # calibration bins, 5 percentage points wide
+
+csv.field_size_limit(10 ** 8)
+
+
+def fetch_zip(cache_dir):
+    &quot;&quot;&quot;Download raw_forecasts.zip once, reuse it on later runs.&quot;&quot;&quot;
+    os.makedirs(cache_dir, exist_ok=True)
+    path = os.path.join(cache_dir, &quot;raw_forecasts.zip&quot;)
+    if os.path.exists(path) and os.path.getsize(path) &gt; 10_000_000:
+        print(f&quot;  cache hit: {path} ({os.path.getsize(path):,} bytes)&quot;)
+        return path
+    print(f&quot;  downloading {ZIP_URL} ...&quot;)
+    with urllib.request.urlopen(ZIP_URL, timeout=600) as r, open(path, &quot;wb&quot;) as fh:
+        fh.write(r.read())
+    print(f&quot;  saved {os.path.getsize(path):,} bytes&quot;)
+    return path
+
+
+def parse_date(s):
+    try:
+        return datetime.strptime(s, &quot;%Y-%m-%d&quot;).date()
+    except (ValueError, TypeError):
+        return None
+
+
+def contest_key(event, entity, field, event_date):
+    &quot;&quot;&quot;The set of rows whose outcomes are mechanically linked.
+
+    538&#x27;s schema is not uniform across projects. A House race puts the race in
+    `event` and the candidates in `entity`; an NBA game leaves `event` empty and
+    puts the matchup in `entity`, split into prob1/prob2/probtie. Both are one
+    contest whose probabilities sum to one and whose outcomes cannot both
+    happen, which is the thing a cluster bootstrap must not break apart.
+    &quot;&quot;&quot;
+    if field in (&quot;prob1&quot;, &quot;prob2&quot;, &quot;probtie&quot;):     # head-to-head fixture
+        return f&quot;{event}|{entity}|{event_date}&quot;
+    return f&quot;{event}|{field}|{event_date}&quot;         # race, or season-long outcome
+
+
+def is_live(project, forecast_type):
+    &quot;&quot;&quot;In-play forecasts: updated during the event itself.
+
+    A team 30 points up with two minutes left is a 99.9% call that any model
+    gets right. They are 430k of the 3.1M rows and they flatter every
+    calibration statistic, so the headline excludes them.
+    &quot;&quot;&quot;
+    return forecast_type == &quot;live&quot; or project.endswith(&quot;-live&quot;)
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument(&quot;--cache&quot;, default=os.environ.get(&quot;FTE_CACHE&quot;, &quot;.cache/538&quot;),
+                    help=&quot;directory to keep the downloaded archive in&quot;)
+    ap.add_argument(&quot;--out&quot;, default=&quot;data&quot;, help=&quot;directory to write the JSON into&quot;)
+    args = ap.parse_args(argv)
+
+    print(&quot;FiveThirtyEight forecast archive&quot;)
+    zpath = fetch_zip(args.cache)
+
+    # ---------------------------------------------------------------- pass 1
+    # Walk the archive once. Keep, per forecasting unit, the last forecast and
+    # the one closest to LEAD_TARGET days out. Accumulate the excluded slices
+    # as sufficient statistics at the same time.
+    units = {}
+    slices = defaultdict(lambda: {&quot;n&quot;: 0, &quot;sum_p&quot;: 0.0, &quot;sum_p2&quot;: 0.0,
+                                  &quot;sum_o&quot;: 0.0, &quot;sum_po&quot;: 0.0,
+                                  &quot;bins&quot;: [[0, 0.0, 0.0] for _ in range(BUCKETS)]})
+    total = skipped_tie = skipped_bad = 0
+
+    def add_slice(name, p, o):
+        s = slices[name]
+        s[&quot;n&quot;] += 1
+        s[&quot;sum_p&quot;] += p
+        s[&quot;sum_p2&quot;] += p * p
+        s[&quot;sum_o&quot;] += o
+        s[&quot;sum_po&quot;] += p * o
+        b = s[&quot;bins&quot;][min(BUCKETS - 1, int(p * BUCKETS))]
+        b[0] += 1
+        b[1] += p
+        b[2] += o
+
+    with zipfile.ZipFile(zpath) as z:
+        name = next(n for n in z.namelist() if n.endswith(&quot;.csv&quot;))
+        with z.open(name) as raw:
+            reader = csv.DictReader(io.TextIOWrapper(raw, encoding=&quot;utf-8&quot;))
+            for row in reader:
+                total += 1
+                try:
+                    p = float(row[&quot;prob&quot;])
+                    o = float(row[&quot;outcome&quot;])
+                except (TypeError, ValueError):
+                    skipped_bad += 1
+                    continue
+                if not (0.0 &lt;= p &lt;= 1.0):
+                    skipped_bad += 1
+                    continue
+                if o not in (0.0, 1.0):
+                    # 16 soccer draws coded 0.5. Not a binary outcome; drop.
+                    skipped_tie += 1
+                    continue
+
+                project, ftype = row[&quot;project&quot;], row[&quot;forecast_type&quot;]
+                field = row[&quot;field&quot;]
+                live = is_live(project, ftype)
+                add_slice(&quot;all_dates_incl_live&quot;, p, o)
+                if not live:
+                    add_slice(&quot;all_dates_no_live&quot;, p, o)
+                else:
+                    add_slice(&quot;live_only&quot;, p, o)
+                    continue          # live forecasts never enter the panel
+
+                fdate, edate = parse_date(row[&quot;forecast_date&quot;]), parse_date(row[&quot;event_date&quot;])
+                contest = contest_key(row[&quot;event&quot;], row[&quot;entity&quot;], field,
+                                      row[&quot;event_date&quot;])
+                key = (row[&quot;topic&quot;], project, ftype, row[&quot;year&quot;], contest,
+                       row[&quot;entity&quot;], field)
+                lead = (edate - fdate).days if (fdate and edate) else None
+
+                u = units.get(key)
+                if u is None:
+                    u = units[key] = {&quot;final&quot;: None, &quot;lead30&quot;: None}
+                # final = latest forecast date on record
+                if u[&quot;final&quot;] is None or (fdate and fdate &gt; u[&quot;final&quot;][0]):
+                    u[&quot;final&quot;] = (fdate, p, o, lead)
+                # lead30 = forecast whose lead is closest to LEAD_TARGET days
+                if lead is not None and lead &gt;= 0:
+                    best = u[&quot;lead30&quot;]
+                    if best is None or abs(lead - LEAD_TARGET) &lt; abs(best[3] - LEAD_TARGET):
+                        u[&quot;lead30&quot;] = (fdate, p, o, lead)
+
+    print(f&quot;  read {total:,} rows  (dropped {skipped_bad:,} unparseable, &quot;
+          f&quot;{skipped_tie:,} non-binary)&quot;)
+    print(f&quot;  reduced to {len(units):,} forecasting units&quot;)
+
+    # ---------------------------------------------------------------- pass 2
+    # Group units by (topic, project, model, year) and, inside that, by contest.
+    # The contest is the finest cluster; (project, year) is the coarsest — for
+    # politics that is one election night, which is the level a shared national
+    # polling error actually operates at.
+    groups = defaultdict(lambda: defaultdict(list))
+    for (topic, project, ftype, year, contest, entity, field), u in units.items():
+        g = groups[(topic, project, ftype, year)]
+        final = u[&quot;final&quot;]
+        lead30 = u[&quot;lead30&quot;]
+        rows = [(&quot;f&quot;, final)]
+        # Only a genuinely earlier snapshot is a separate test of the model.
+        if lead30 is not None and final is not None and lead30[0] != final[0]:
+            rows.append((&quot;l&quot;, lead30))
+        for tag, rec in rows:
+            if rec is None:
+                continue
+            _, p_, o_, lead = rec
+            g[contest].append((tag, round(p_ * 1000), int(o_),
+                               lead if lead is not None else -1))
+
+    out_groups = []
+    n_final = n_lead = n_contests = 0
+    for (topic, project, ftype, year), contests in sorted(groups.items()):
+        keys, rows_enc = [], []
+        for contest in sorted(contests):
+            rows = contests[contest]
+            n_final += sum(1 for r in rows if r[0] == &quot;f&quot;)
+            n_lead += sum(1 for r in rows if r[0] == &quot;l&quot;)
+            keys.append(contest.split(&quot;|&quot;)[-1])          # the contest&#x27;s date
+            rows_enc.append(&quot;;&quot;.join(f&quot;{t}{p_},{o_},{d}&quot; for t, p_, o_, d in rows))
+        n_contests += len(rows_enc)
+        out_groups.append({&quot;topic&quot;: topic, &quot;project&quot;: project,
+                           &quot;model&quot;: ftype or &quot;-&quot;, &quot;year&quot;: int(year),
+                           &quot;dates&quot;: keys, &quot;clusters&quot;: rows_enc})
+
+    panel = {
+        &quot;source&quot;: &quot;FiveThirtyEight, &#x27;How Good Are FiveThirtyEight Forecasts?&#x27;&quot;,
+        &quot;source_url&quot;: &quot;https://github.com/fivethirtyeight/checking-our-work-data&quot;,
+        &quot;note&quot;: (&quot;538&#x27;s own published forecast record. ABC News shut the site &quot;
+                 &quot;down in March 2025 and took it offline; this GitHub archive is &quot;
+                 &quot;what survived.&quot;),
+        &quot;fetched_by&quot;: &quot;scripts/fetch_538.py&quot;,
+        &quot;fetched_at&quot;: date.today().isoformat(),
+        &quot;encoding&quot;: (&quot;clusters[] are contests, dates[] their event dates. Each &quot;
+                     &quot;cluster is &#x27;;&#x27;-joined rows &quot;
+                     &quot;&#x27;&lt;snap&gt;&lt;prob_permille&gt;,&lt;outcome&gt;,&lt;lead_days&gt;&#x27; where snap is &quot;
+                     &quot;f (final forecast) or l (closest to 30 days out), outcome is &quot;
+                     &quot;0 or 1, and lead_days is -1 when undated.&quot;),
+        &quot;excludes&quot;: (&quot;in-play &#x27;live&#x27; forecasts, and all but two snapshots per &quot;
+                     &quot;forecasting unit — see data/fte-slices.json for those&quot;),
+        &quot;lead_target_days&quot;: LEAD_TARGET,
+        &quot;n_final&quot;: n_final, &quot;n_lead30&quot;: n_lead, &quot;n_units&quot;: len(units),
+        &quot;n_contests&quot;: n_contests,
+        &quot;groups&quot;: out_groups,
+    }
+
+    os.makedirs(args.out, exist_ok=True)
+    p1 = os.path.join(args.out, &quot;fte-forecasts.json&quot;)
+    with open(p1, &quot;w&quot;) as fh:
+        json.dump(panel, fh, separators=(&quot;,&quot;, &quot;:&quot;))
+
+    for s in slices.values():
+        s[&quot;bins&quot;] = [[n, round(sp, 4), so] for n, sp, so in s[&quot;bins&quot;]]
+        for k in (&quot;sum_p&quot;, &quot;sum_p2&quot;, &quot;sum_o&quot;, &quot;sum_po&quot;):
+            s[k] = round(s[k], 4)
+    p2 = os.path.join(args.out, &quot;fte-slices.json&quot;)
+    with open(p2, &quot;w&quot;) as fh:
+        json.dump({
+            &quot;source_url&quot;: panel[&quot;source_url&quot;],
+            &quot;fetched_by&quot;: &quot;scripts/fetch_538.py&quot;,
+            &quot;fetched_at&quot;: panel[&quot;fetched_at&quot;],
+            &quot;note&quot;: (&quot;Sufficient statistics for the slices the headline excludes, &quot;
+                     &quot;so the robustness table reproduces without the 350MB archive. &quot;
+                     f&quot;bins are {BUCKETS} equal-width probability bins, each &quot;
+                     &quot;[count, sum_of_forecast, sum_of_outcome].&quot;),
+            &quot;slices&quot;: dict(slices),
+        }, fh, separators=(&quot;,&quot;, &quot;:&quot;))
+
+    print(f&quot;\n  wrote {p1} ({os.path.getsize(p1):,} bytes)&quot;)
+    print(f&quot;        {n_final:,} final forecasts, {n_lead:,} 30-day snapshots, &quot;
+          f&quot;{n_contests:,} contests&quot;)
+    print(f&quot;  wrote {p2} ({os.path.getsize(p2):,} bytes)&quot;)
+    for name, s in sorted(slices.items()):
+        print(f&quot;        slice {name:&lt;22} n={s[&#x27;n&#x27;]:&gt;9,}&quot;)
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+            <details>
+              <summary>fte_calibration.py &mdash; the test itself (495 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Full data-integrity pass on FiveThirtyEight&#x27;s calibration claim.
+
+The claim, in 538&#x27;s own words on &quot;How Good Are FiveThirtyEight Forecasts?&quot;:
+when they said something had a 70% chance, it happened about 70% of the time.
+
+Their archive makes that testable, and also makes it very easy to answer
+flatteringly. Three ways a naive pass cheats, all removed here:
+
+  1. Repeat forecasts. Most models re-ran daily, so one House race contributes
+     ~100 rows. Pooling them turns a few hundred elections into n=855,178.
+     Fixed: one snapshot per forecasting unit.
+  2. In-play forecasts. A team 30 points up with two minutes left is a 99.9%
+     call anyone gets right. 430k of the 3.1M rows are these. Excluded.
+  3. Model variants. The same race is forecast by Lite, Classic and Deluxe.
+     Counting all three triples the sample without adding information.
+     Fixed: one flagship model per project-year.
+
+And the inference is clustered, because neither rows nor even contests are
+independent: a national polling error moves every race on one election night
+together. Intervals are cluster-robust; where the cluster count is small enough
+to bootstrap, both are reported and compared.
+
+Stdlib only, seeded, deterministic.
+
+  python3 scripts/fte_calibration.py
+&quot;&quot;&quot;
+import json, math, random, sys
+from collections import defaultdict
+
+SEED = 42
+ITERS = 2000
+BOOT_MAX_CLUSTERS = 6000     # above this the bootstrap is too slow to be worth it
+BUCKETS = 20
+PANEL = &quot;data/fte-forecasts.json&quot;
+SLICES = &quot;data/fte-slices.json&quot;
+
+# 538 ran several model variants side by side. Their flagship, in preference
+# order; &#x27;-&#x27; is the only option for projects that never had variants.
+MODEL_RANK = {&quot;classic&quot;: 0, &quot;polls-plus&quot;: 1, &quot;-&quot;: 2,
+              &quot;polls-only&quot;: 3, &quot;deluxe&quot;: 4, &quot;lite&quot;: 5}
+
+
+# ---------------------------------------------------------------- statistics
+
+def calib_line(rows):
+    &quot;&quot;&quot;OLS of outcome on forecast probability.
+
+    Perfect calibration is intercept 0, slope 1: a forecast of p is followed by
+    the event exactly p of the time. Slope below 1 means overconfidence — the
+    extremes were pushed further out than the record justified.
+    &quot;&quot;&quot;
+    n = len(rows)
+    if n &lt; 3:
+        return None
+    mx = sum(p for p, _ in rows) / n
+    my = sum(o for _, o in rows) / n
+    sxx = sum((p - mx) ** 2 for p, _ in rows)
+    if sxx == 0:
+        return None
+    sxy = sum((p - mx) * (o - my) for p, o in rows)
+    b = sxy / sxx
+    return b, my - b * mx, n
+
+
+def clustered_ci(clusters):
+    &quot;&quot;&quot;Cluster-robust (sandwich) 95% interval for the calibration slope.
+
+    Rows inside a cluster may be arbitrarily correlated — the two candidates in
+    one race always are, since one wins if the other loses. Treating them as
+    independent is what makes n=855,178 look like evidence.
+    &quot;&quot;&quot;
+    rows = [r for c in clusters for r in c]
+    fit = calib_line(rows)
+    if fit is None:
+        return None
+    b, a, n = fit
+    g = len(clusters)
+    if g &lt; 2:
+        return None
+    mx = sum(p for p, _ in rows) / n
+    sxx = sum((p - mx) ** 2 for p, _ in rows)
+    meat = 0.0
+    for c in clusters:
+        s = sum((p - mx) * (o - a - b * p) for p, o in c)
+        meat += s * s
+    corr = (g / (g - 1)) * ((n - 1) / max(n - 2, 1))
+    var = corr * meat / (sxx * sxx)
+    se = math.sqrt(var)
+    return b, a, n, g, b - 1.959964 * se, b + 1.959964 * se
+
+
+def brier(rows):
+    &quot;&quot;&quot;Mean squared error of the probabilities, and its Murphy decomposition.
+
+    BS = reliability - resolution + uncertainty.
+      reliability  how far each bin&#x27;s outcome rate sits from the bin&#x27;s forecast
+                   (0 = perfectly calibrated; lower is better)
+      resolution   how far the bins&#x27; outcome rates sit from the base rate
+                   (higher is better; this is the part that makes a forecast
+                   useful rather than merely honest)
+      uncertainty  the base rate&#x27;s own variance — the score earned by always
+                   predicting the base rate and nothing else
+    &quot;&quot;&quot;
+    n = len(rows)
+    bs = sum((p - o) ** 2 for p, o in rows) / n
+    base = sum(o for _, o in rows) / n
+    bins = defaultdict(list)
+    for p, o in rows:
+        bins[min(BUCKETS - 1, int(p * BUCKETS))].append((p, o))
+    rel = res = 0.0
+    for members in bins.values():
+        k = len(members)
+        pbar = sum(p for p, _ in members) / k
+        obar = sum(o for _, o in members) / k
+        rel += k * (pbar - obar) ** 2
+        res += k * (obar - base) ** 2
+    unc = base * (1 - base)
+    return {&quot;brier&quot;: bs, &quot;base&quot;: base, &quot;reliability&quot;: rel / n,
+            &quot;resolution&quot;: res / n, &quot;uncertainty&quot;: unc,
+            &quot;skill&quot;: 1 - bs / unc if unc &gt; 0 else float(&quot;nan&quot;), &quot;n&quot;: n}
+
+
+def curve(rows, bins=10):
+    &quot;&quot;&quot;Observed frequency against forecast probability, bin by bin.&quot;&quot;&quot;
+    acc = defaultdict(lambda: [0, 0.0, 0.0])
+    for p, o in rows:
+        a = acc[min(bins - 1, int(p * bins))]
+        a[0] += 1
+        a[1] += p
+        a[2] += o
+    return [(i, acc[i][0], acc[i][1] / acc[i][0], acc[i][2] / acc[i][0])
+            for i in sorted(acc) if acc[i][0]]
+
+
+def cluster_boot(clusters, iters=ITERS, seed=SEED):
+    &quot;&quot;&quot;Percentile CI on the slope, resampling whole clusters with replacement.
+
+    Runs on per-cluster sufficient statistics, so one iteration is a sum over
+    clusters rather than over rows. Only used where the cluster count is small.
+    &quot;&quot;&quot;
+    if not (4 &lt;= len(clusters) &lt;= BOOT_MAX_CLUSTERS):
+        return None, None
+    stats = []
+    for c in clusters:
+        n = len(c)
+        sp = sum(p for p, _ in c)
+        stats.append((n, sp, sum(p * p for p, _ in c),
+                      sum(o for _, o in c), sum(p * o for p, o in c)))
+    rng = random.Random(seed)
+    k = len(stats)
+    out = []
+    for _ in range(iters):
+        N = SP = SP2 = SO = SPO = 0.0
+        for s in rng.choices(stats, k=k):
+            N += s[0]; SP += s[1]; SP2 += s[2]; SO += s[3]; SPO += s[4]
+        sxx = SP2 - SP * SP / N
+        if sxx &gt; 0:
+            out.append((SPO - SP * SO / N) / sxx)
+    if len(out) &lt; iters // 4:
+        return None, None
+    out.sort()
+    return out[int(0.025 * len(out))], out[int(0.975 * len(out))]
+
+
+# ---------------------------------------------------------------- data
+
+def load_panel(path=PANEL):
+    d = json.load(open(path))
+    out = []
+    for g in d[&quot;groups&quot;]:
+        for contest, cdate in zip(g[&quot;clusters&quot;], g[&quot;dates&quot;]):
+            rows = []
+            for cell in contest.split(&quot;;&quot;):
+                p, o, lead = cell[1:].split(&quot;,&quot;)
+                rows.append({&quot;snap&quot;: cell[0], &quot;p&quot;: int(p) / 1000.0,
+                             &quot;o&quot;: int(o), &quot;lead&quot;: int(lead)})
+            out.append({&quot;topic&quot;: g[&quot;topic&quot;], &quot;project&quot;: g[&quot;project&quot;],
+                        &quot;model&quot;: g[&quot;model&quot;], &quot;year&quot;: g[&quot;year&quot;],
+                        &quot;date&quot;: cdate, &quot;rows&quot;: rows})
+    return d, out
+
+
+def flagship(contests):
+    &quot;&quot;&quot;Keep one model variant per project-year: 538&#x27;s flagship for that cycle.&quot;&quot;&quot;
+    best = {}
+    for c in contests:
+        k = (c[&quot;project&quot;], c[&quot;year&quot;])
+        r = MODEL_RANK.get(c[&quot;model&quot;], 9)
+        if k not in best or r &lt; best[k]:
+            best[k] = r
+    return [c for c in contests
+            if MODEL_RANK.get(c[&quot;model&quot;], 9) == best[(c[&quot;project&quot;], c[&quot;year&quot;])]]
+
+
+def select(contests, snap=&quot;f&quot;, topic=None, drop_projects=(), years=None):
+    &quot;&quot;&quot;-&gt; (flat rows, clusters by contest, clusters by event date).&quot;&quot;&quot;
+    by_contest, by_night = [], defaultdict(list)
+    for c in contests:
+        if topic and c[&quot;topic&quot;] != topic:
+            continue
+        if c[&quot;project&quot;] in drop_projects:
+            continue
+        if years and c[&quot;year&quot;] not in years:
+            continue
+        rows = [(r[&quot;p&quot;], r[&quot;o&quot;]) for r in c[&quot;rows&quot;] if r[&quot;snap&quot;] == snap]
+        if not rows:
+            continue
+        by_contest.append(rows)
+        by_night[(c[&quot;project&quot;], c[&quot;year&quot;], c[&quot;date&quot;])] += rows
+    flat = [r for c in by_contest for r in c]
+    return flat, by_contest, list(by_night.values())
+
+
+def competitive(clusters, lo=0.10, hi=0.90):
+    &quot;&quot;&quot;Keep only forecasts that were genuinely uncertain.
+
+    A forecast of 0.3% that a Democrat wins in a deep-red district is correct
+    and worthless. 82% of 538&#x27;s political forecasts are that kind. Conditioning
+    on the forecast — never on the outcome — leaves the calls people argue about.
+    &quot;&quot;&quot;
+    out = []
+    for c in clusters:
+        keep = [(p, o) for p, o in c if lo &lt;= p &lt; hi]
+        if keep:
+            out.append(keep)
+    return out
+
+
+# ---------------------------------------------------------------- report
+
+def hr(title):
+    print(f&quot;\n{&#x27;=&#x27; * 78}\n{title}\n{&#x27;=&#x27; * 78}&quot;)
+
+
+def report(label, flat, contests, nights=None, indent=&quot;  &quot;):
+    res = clustered_ci(contests)
+    b, a, n, g, lo, hi = res
+    print(f&quot;{indent}{label:&lt;34} slope={b:.3f} CI[{lo:.3f},{hi:.3f}]  &quot;
+          f&quot;a={a:+.3f}  n={n:&gt;7,}  contests={g:&gt;6,}&quot;)
+    print(f&quot;{indent}{&#x27;&#x27;:34} Brier={brier(flat)[&#x27;brier&#x27;]:.4f}  &quot;
+          f&quot;skill={brier(flat)[&#x27;skill&#x27;]:+.3f}  &quot;
+          f&quot;rel={brier(flat)[&#x27;reliability&#x27;]:.5f}  &quot;
+          f&quot;res={brier(flat)[&#x27;resolution&#x27;]:.4f}  base={brier(flat)[&#x27;base&#x27;]:.3f}&quot;)
+    blo, bhi = cluster_boot(contests)
+    if blo is not None:
+        print(f&quot;{indent}{&#x27;&#x27;:34} bootstrap over the same clusters: &quot;
+              f&quot;CI[{blo:.3f},{bhi:.3f}]&quot;)
+    if nights:
+        r2 = clustered_ci(nights)
+        if r2:
+            print(f&quot;{indent}{&#x27;&#x27;:34} clustered by event date instead: &quot;
+                  f&quot;CI[{r2[4]:.3f},{r2[5]:.3f}]  clusters={r2[3]:,}&quot;)
+    return res
+
+
+def main():
+    meta, contests = load_panel()
+    slices = json.load(open(SLICES))[&quot;slices&quot;]
+
+    hr(&quot;0. What the archive contains, and what survives the filters&quot;)
+    print(f&quot;  source        {meta[&#x27;source&#x27;]}&quot;)
+    print(f&quot;  archive       {meta[&#x27;source_url&#x27;]}&quot;)
+    print(f&quot;  fetched       {meta[&#x27;fetched_at&#x27;]}&quot;)
+    print(f&quot;  raw rows                        &quot;
+          f&quot;{slices[&#x27;all_dates_incl_live&#x27;][&#x27;n&#x27;]:&gt;9,}&quot;)
+    print(f&quot;    in-play &#x27;live&#x27; forecasts      {slices[&#x27;live_only&#x27;][&#x27;n&#x27;]:&gt;9,}&quot;
+          f&quot;   excluded&quot;)
+    print(f&quot;    remaining, every date pooled  &quot;
+          f&quot;{slices[&#x27;all_dates_no_live&#x27;][&#x27;n&#x27;]:&gt;9,}   reduced to one snapshot/unit&quot;)
+    print(f&quot;  forecasting units               {meta[&#x27;n_units&#x27;]:&gt;9,}&quot;)
+    print(f&quot;  contests                        {meta[&#x27;n_contests&#x27;]:&gt;9,}&quot;)
+
+    main_set = flagship(contests)
+    flat, byc, byn = select(main_set)
+    pol_flat, pol_c, pol_n = select(main_set, topic=&quot;politics&quot;)
+    spo_flat, spo_c, spo_n = select(main_set, topic=&quot;sports&quot;)
+    print(f&quot;  after one-flagship-model filter  {len(flat):&gt;9,}   &quot;
+          f&quot;({len(pol_flat):,} politics, {len(spo_flat):,} sports)&quot;)
+
+    hr(&quot;1. Headline — was a 70% forecast followed by the event 70% of the time?&quot;)
+    report(&quot;all forecasts, final, no live&quot;, flat, byc, byn)
+    print()
+    report(&quot;politics only&quot;, pol_flat, pol_c, pol_n)
+    print()
+    report(&quot;sports only&quot;, spo_flat, spo_c, spo_n)
+
+    for label, rows in ((&quot;all forecasts&quot;, flat), (&quot;politics only&quot;, pol_flat)):
+        print(f&quot;\n  calibration curve, {label} (final, no live):&quot;)
+        print(f&quot;    {&#x27;forecast band&#x27;:&lt;15}{&#x27;n&#x27;:&gt;9}{&#x27;mean forecast&#x27;:&gt;15}&quot;
+              f&quot;{&#x27;happened&#x27;:&gt;11}{&#x27;gap&#x27;:&gt;9}&quot;)
+        for i, n, mp, mo in curve(rows):
+            print(f&quot;    {i * 10:&gt;3}-{i * 10 + 10:&lt;11}{n:&gt;9,}{mp * 100:&gt;14.1f}%&quot;
+                  f&quot;{mo * 100:&gt;10.1f}%{(mo - mp) * 100:&gt;+8.1f}&quot;)
+
+    hr(&quot;2. The misreading — &#x27;it said 71% and it was WRONG&#x27;&quot;)
+    band = [(p, o) for p, o in pol_flat if 0.65 &lt;= p &lt; 0.75]
+    exp = sum(p for p, _ in band) / len(band)
+    got = sum(o for _, o in band) / len(band)
+    print(f&quot;  political forecasts in the 65-75% band: n={len(band):,}&quot;)
+    print(f&quot;    mean forecast {exp * 100:.1f}%  -&gt;  the favourite won &quot;
+          f&quot;{got * 100:.1f}% of the time&quot;)
+    print(f&quot;    so the favourite LOST {(1 - got) * 100:.1f}% of them, against &quot;
+          f&quot;{(1 - exp) * 100:.1f}% expected.&quot;)
+    print(f&quot;    Losing roughly a quarter of your 70% calls is not the model &quot;
+          f&quot;failing. It is&quot;)
+    print(f&quot;    the model being right about what 70% means.&quot;)
+    conf = [(p, o) for p, o in pol_flat if p &gt;= 0.95]
+    misses = sum(1 for _, o in conf if o == 0)
+    print(f&quot;\n  political forecasts at 95%+: n={len(conf):,}   happened &quot;
+          f&quot;{sum(o for _, o in conf) / len(conf) * 100:.2f}%  &quot;
+          f&quot;(mean forecast {sum(p for p, _ in conf) / len(conf) * 100:.2f}%)&quot;)
+    print(f&quot;    {misses} of them did not happen. Those are the ones anyone &quot;
+          f&quot;remembers.&quot;)
+
+    hr(&quot;3. Calibrated is not the same as useful&quot;)
+    print(&quot;  A forecaster who says the base rate every time is perfectly&quot;)
+    print(&quot;  calibrated and carries no information whatsoever. The skill score&quot;)
+    print(&quot;  is what separates 538 from that forecaster.\n&quot;)
+    for label, rows in ((&quot;all&quot;, flat), (&quot;politics&quot;, pol_flat),
+                        (&quot;sports&quot;, spo_flat)):
+        b = brier(rows)
+        print(f&quot;  {label:&lt;10} Brier={b[&#x27;brier&#x27;]:.4f}  vs always-say-base-rate &quot;
+              f&quot;{b[&#x27;uncertainty&#x27;]:.4f}   skill {b[&#x27;skill&#x27;] * 100:+.1f}%&quot;)
+        print(f&quot;  {&#x27;&#x27;:10} resolution (the useful part) {b[&#x27;resolution&#x27;]:.4f}, &quot;
+              f&quot;reliability (the error) {b[&#x27;reliability&#x27;]:.5f}&quot;)
+
+    hr(&quot;4. Where the political record is thinner than it looks&quot;)
+    print(&quot;  Most political forecasts are not forecasts of anything uncertain.&quot;)
+    print(&quot;  Conditioning on the forecast (never on the outcome) isolates the&quot;)
+    print(&quot;  races that were actually in doubt.\n&quot;)
+    for label, cl in ((&quot;politics&quot;, pol_c), (&quot;sports&quot;, spo_c)):
+        allr = [r for c in cl for r in c]
+        comp = competitive(cl)
+        compr = [r for c in comp for r in c]
+        share = (1 - len(compr) / len(allr)) * 100
+        print(f&quot;  {label}: {share:.1f}% of forecasts sit outside the 10-90% band&quot;)
+        report(&quot;all of them&quot;, allr, cl, indent=&quot;    &quot;)
+        report(&quot;only the 10-90% ones&quot;, compr, comp, indent=&quot;    &quot;)
+        print()
+    comp = competitive(pol_c)
+    r = clustered_ci(comp)
+    print(f&quot;  On competitive races the slope is {r[0]:.2f}, CI[{r[4]:.2f},{r[5]:.2f}] &quot;
+          f&quot;— above 1, not below.&quot;)
+    print(&quot;  538&#x27;s political forecasts were UNDERconfident: their favourites won&quot;)
+    print(&quot;  more often than the model said. The popular complaint is the reverse.\n&quot;)
+    print(&quot;  does that survive being cut up?&quot;)
+    byp = defaultdict(list)
+    for c in main_set:
+        if c[&quot;topic&quot;] == &quot;politics&quot;:
+            byp[c[&quot;project&quot;]].append(c)
+    for proj in sorted(byp):
+        _, cl, _ = select(byp[proj])
+        cc = competitive(cl)
+        rr = clustered_ci(cc)
+        if rr and rr[3] &gt;= 8:
+            print(f&quot;      {proj:&lt;26} slope={rr[0]:.3f} &quot;
+                  f&quot;CI[{rr[4]:.3f},{rr[5]:.3f}]  races={rr[3]:&gt;4}&quot;)
+    gen = [c for c in main_set if c[&quot;topic&quot;] == &quot;politics&quot;
+           and c[&quot;project&quot;] != &quot;state-president-primary&quot;]
+    print(&quot;\n      by cycle, general elections only (no primaries):&quot;)
+    byy = defaultdict(list)
+    for c in gen:
+        byy[c[&quot;year&quot;]].append(c)
+    for y in sorted(byy):
+        _, cl, _ = select(byy[y])
+        cc = competitive(cl)
+        rr = clustered_ci(cc)
+        if rr and rr[3] &gt;= 8:
+            flag = &quot;   &lt;- the year everyone remembers&quot; if y == 2016 else &quot;&quot;
+            print(f&quot;      {y}                       slope={rr[0]:.3f} &quot;
+                  f&quot;CI[{rr[4]:.3f},{rr[5]:.3f}]  races={rr[3]:&gt;4}{flag}&quot;)
+
+    hr(&quot;5. Robustness&quot;)
+    print(&quot;  5a. the same slope, three definitions of the sample it rests on&quot;)
+    fit = calib_line(pol_flat)
+    b, a, n = fit
+    mx = sum(p for p, _ in pol_flat) / n
+    sxx = sum((p - mx) ** 2 for p, _ in pol_flat)
+    s2 = sum((o - a - b * p) ** 2 for p, o in pol_flat) / (n - 2)
+    se = math.sqrt(s2 / sxx)
+    print(f&quot;      politics, rows assumed independent    slope={b:.3f} &quot;
+          f&quot;CI[{b - 1.96 * se:.3f},{b + 1.96 * se:.3f}]  n={n:,}&quot;)
+    r = clustered_ci(pol_c)
+    print(f&quot;      politics, clustered by race           slope={r[0]:.3f} &quot;
+          f&quot;CI[{r[4]:.3f},{r[5]:.3f}]  clusters={r[3]:,}&quot;)
+    r = clustered_ci(pol_n)
+    print(f&quot;      politics, clustered by election date  slope={r[0]:.3f} &quot;
+          f&quot;CI[{r[4]:.3f},{r[5]:.3f}]  clusters={r[3]:,}&quot;)
+    print(&quot;      The estimate never moves, and — against expectation — clustering&quot;)
+    print(&quot;      does not widen the interval here. It slightly narrows it, because&quot;)
+    print(&quot;      the two candidates in a race are mechanically anti-correlated:&quot;)
+    print(&quot;      one wins exactly when the other loses, so their residuals cancel&quot;)
+    print(&quot;      inside the cluster. Worth stating plainly: the reason n=855,178&quot;)
+    print(&quot;      is not evidence is that it is 48 election dates, not that the&quot;)
+    print(&quot;      standard error explodes when you say so.&quot;)
+
+    print(&quot;\n  5b. the slices the headline throws away&quot;)
+    for name, label in ((&quot;all_dates_no_live&quot;, &quot;every forecast date, no live&quot;),
+                        (&quot;all_dates_incl_live&quot;, &quot;every forecast date, incl. live&quot;),
+                        (&quot;live_only&quot;, &quot;in-play &#x27;live&#x27; forecasts only&quot;)):
+        s = slices[name]
+        nn, sp, so = s[&quot;n&quot;], s[&quot;sum_p&quot;], s[&quot;sum_o&quot;]
+        sxx = s[&quot;sum_p2&quot;] - sp * sp / nn
+        bb = (s[&quot;sum_po&quot;] - sp * so / nn) / sxx
+        bs = (s[&quot;sum_p2&quot;] - 2 * s[&quot;sum_po&quot;] + so) / nn
+        base = so / nn
+        print(f&quot;      {label:&lt;32} slope={bb:.3f}  Brier={bs:.4f}  &quot;
+              f&quot;skill={1 - bs / (base * (1 - base)):+.3f}  n={nn:,}&quot;)
+    print(&quot;      Every excluded slice makes the numbers look better. That is &quot;
+          &quot;why they are excluded.&quot;)
+
+    print(&quot;\n  5c. the forecast made ~30 days out, not on the eve&quot;)
+    matched = [c for c in main_set if any(r[&quot;snap&quot;] == &quot;l&quot; for r in c[&quot;rows&quot;])]
+    leads = sorted(r[&quot;lead&quot;] for c in matched for r in c[&quot;rows&quot;]
+                   if r[&quot;snap&quot;] == &quot;l&quot; and r[&quot;lead&quot;] &gt;= 0)
+    print(f&quot;      contests carrying both snapshots: {len(matched):,}&quot;
+          + (f&quot;   (median lead {leads[len(leads) // 2]} days)&quot; if leads else &quot;&quot;))
+    f_flat, f_c, _ = select(matched, snap=&quot;f&quot;)
+    l_flat, l_c, _ = select(matched, snap=&quot;l&quot;)
+    report(&quot;final forecast&quot;, f_flat, f_c, indent=&quot;      &quot;)
+    report(&quot;~30 days out&quot;, l_flat, l_c, indent=&quot;      &quot;)
+
+    print(&quot;\n  5d. era split&quot;)
+    for label, yrs in ((&quot;2008-2016&quot;, set(range(2008, 2017))),
+                       (&quot;2017-2022&quot;, set(range(2017, 2023)))):
+        fl, cl, _ = select(main_set, years=yrs)
+        report(label, fl, cl, indent=&quot;      &quot;)
+
+    print(&quot;\n  5e. drop the project that dominates the sample&quot;)
+    big = defaultdict(int)
+    for c in main_set:
+        big[c[&quot;project&quot;]] += sum(1 for r in c[&quot;rows&quot;] if r[&quot;snap&quot;] == &quot;f&quot;)
+    top = max(big, key=big.get)
+    print(f&quot;      largest project: {top} &quot;
+          f&quot;({big[top]:,} of {len(flat):,} forecasts)&quot;)
+    fl, cl, _ = select(main_set, drop_projects=(top,))
+    report(f&quot;without {top}&quot;, fl, cl, indent=&quot;      &quot;)
+
+    print(&quot;\n  5f. every model variant kept, not just the flagship&quot;)
+    fl, cl, _ = select(contests)
+    report(&quot;all model variants&quot;, fl, cl, indent=&quot;      &quot;)
+
+    # ------------------------------------------------------------------ export
+    # Every number the receipts page and the chart quote comes from here, so the
+    # page cannot drift away from the script.
+    def pack(flat, clusters):
+        r = clustered_ci(clusters)
+        b = brier(flat)
+        return {&quot;slope&quot;: round(r[0], 4), &quot;intercept&quot;: round(r[1], 4),
+                &quot;ci&quot;: [round(r[4], 4), round(r[5], 4)],
+                &quot;n&quot;: r[2], &quot;clusters&quot;: r[3],
+                &quot;brier&quot;: round(b[&quot;brier&quot;], 5), &quot;skill&quot;: round(b[&quot;skill&quot;], 4),
+                &quot;reliability&quot;: round(b[&quot;reliability&quot;], 6),
+                &quot;resolution&quot;: round(b[&quot;resolution&quot;], 5),
+                &quot;base&quot;: round(b[&quot;base&quot;], 4)}
+
+    pol_comp = competitive(pol_c)
+    out = {
+        &quot;generated_by&quot;: &quot;scripts/fte_calibration.py&quot;,
+        &quot;source_url&quot;: meta[&quot;source_url&quot;],
+        &quot;fetched_at&quot;: meta[&quot;fetched_at&quot;],
+        &quot;seed&quot;: SEED, &quot;bootstrap_iters&quot;: ITERS,
+        &quot;raw_rows&quot;: slices[&quot;all_dates_incl_live&quot;][&quot;n&quot;],
+        &quot;live_rows&quot;: slices[&quot;live_only&quot;][&quot;n&quot;],
+        &quot;units&quot;: meta[&quot;n_units&quot;], &quot;contests&quot;: meta[&quot;n_contests&quot;],
+        &quot;headline&quot;: {&quot;all&quot;: pack(flat, byc), &quot;politics&quot;: pack(pol_flat, pol_c),
+                     &quot;sports&quot;: pack(spo_flat, spo_c),
+                     &quot;politics_competitive&quot;: pack(
+                         [r for c in pol_comp for r in c], pol_comp),
+                     &quot;sports_competitive&quot;: pack(
+                         [r for c in competitive(spo_c) for r in c],
+                         competitive(spo_c))},
+        &quot;curve_all&quot;: [{&quot;band&quot;: i * 10, &quot;n&quot;: n, &quot;forecast&quot;: round(mp, 4),
+                       &quot;happened&quot;: round(mo, 4)} for i, n, mp, mo in curve(flat)],
+        &quot;curve_politics&quot;: [{&quot;band&quot;: i * 10, &quot;n&quot;: n, &quot;forecast&quot;: round(mp, 4),
+                            &quot;happened&quot;: round(mo, 4)}
+                           for i, n, mp, mo in curve(pol_flat)],
+        &quot;curve_politics_competitive&quot;: [
+            {&quot;band&quot;: i * 10, &quot;n&quot;: n, &quot;forecast&quot;: round(mp, 4),
+             &quot;happened&quot;: round(mo, 4)}
+            for i, n, mp, mo in curve([r for c in pol_comp for r in c])],
+        &quot;curve_sports&quot;: [{&quot;band&quot;: i * 10, &quot;n&quot;: n, &quot;forecast&quot;: round(mp, 4),
+                          &quot;happened&quot;: round(mo, 4)}
+                         for i, n, mp, mo in curve(spo_flat)],
+    }
+    with open(&quot;data/fte-results.json&quot;, &quot;w&quot;) as fh:
+        json.dump(out, fh, indent=1)
+    print(&quot;\n  wrote data/fte-results.json&quot;)
+    print()
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+            <details>
+              <summary>fte_chart.py &mdash; the chart (246 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;The one chart for the FiveThirtyEight calibration post.
+
+A reliability diagram: what 538 said would happen, against how often it did.
+The 45-degree line is perfect calibration. Two series:
+
+  all forecasts   255,057 final, non-live calls across politics and sports.
+    They sit on the diagonal — the claim holds.
+  competitive political races   the 1,122 forecasts between 10% and 90%, the
+    ones anyone argued about. They bow ABOVE the line: 538&#x27;s favourites won
+    more often than 538 said.
+
+Numbers come from data/fte-results.json, written by fte_calibration.py, so the
+chart cannot drift away from the analysis. Stdlib only — writes an SVG.
+
+  python3 scripts/fte_chart.py
+&quot;&quot;&quot;
+import json, os, sys
+
+BLUE, ORANGE = &quot;#2f9bff&quot;, &quot;#ff6500&quot;
+INK, DIM, GRID, PAPER = &quot;#1f2430&quot;, &quot;#5b6472&quot;, &quot;#d6dce4&quot;, &quot;#ffffff&quot;
+W, H = 1600, 1000
+PAD = 160          # headless Chromium returns a shorter viewport than asked
+L, R, T, B = 130, 70, 150, 150          # margins
+FONT = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&#x27;Helvetica Neue&#x27;,&quot;
+        &quot;Arial,sans-serif&quot;)
+
+
+def main():
+    res = json.load(open(&quot;data/fte-results.json&quot;))
+    hd = res[&quot;headline&quot;]
+    pw, ph = W - L - R, H - T - B
+
+    def x(v):
+        return L + v * pw
+
+    def y(v):
+        return T + (1 - v) * ph
+
+    out = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+           f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{FONT}&quot;&gt;&#x27;,
+           f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;{PAPER}&quot;/&gt;&#x27;]
+
+    # ---- titles
+    out += [f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;58&quot; font-size=&quot;40&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+            f&#x27;When FiveThirtyEight said 70%, did it happen 70% of the time?&lt;/text&gt;&#x27;,
+            f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;100&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+            f&#x27;{res[&quot;raw_rows&quot;]:,} published forecasts, 2008–2022, reduced to &#x27;
+            f&#x27;{hd[&quot;all&quot;][&quot;n&quot;]:,} independent calls. Their own archive.&lt;/text&gt;&#x27;]
+
+    # ---- grid + axes
+    for i in range(11):
+        v = i / 10
+        out.append(f&#x27;&lt;line x1=&quot;{x(v):.1f}&quot; y1=&quot;{T}&quot; x2=&quot;{x(v):.1f}&quot; y2=&quot;{T + ph}&quot; &#x27;
+                   f&#x27;stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        out.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{y(v):.1f}&quot; x2=&quot;{L + pw}&quot; y2=&quot;{y(v):.1f}&quot; &#x27;
+                   f&#x27;stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        out.append(f&#x27;&lt;text x=&quot;{x(v):.1f}&quot; y=&quot;{T + ph + 42}&quot; font-size=&quot;22&quot; &#x27;
+                   f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;{i * 10}%&lt;/text&gt;&#x27;)
+        out.append(f&#x27;&lt;text x=&quot;{L - 22}&quot; y=&quot;{y(v) + 8:.1f}&quot; font-size=&quot;22&quot; &#x27;
+                   f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{i * 10}%&lt;/text&gt;&#x27;)
+
+    # ---- perfect-calibration diagonal
+    out.append(f&#x27;&lt;line x1=&quot;{x(0)}&quot; y1=&quot;{y(0):.1f}&quot; x2=&quot;{x(1)}&quot; y2=&quot;{y(1):.1f}&quot; &#x27;
+               f&#x27;stroke=&quot;{DIM}&quot; stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;10 8&quot;/&gt;&#x27;)
+
+    def series(points, colour, width, dot):
+        d = &quot; &quot;.join(f&quot;{&#x27;M&#x27; if i == 0 else &#x27;L&#x27;}{x(p[&#x27;forecast&#x27;]):.1f},&quot;
+                     f&quot;{y(p[&#x27;happened&#x27;]):.1f}&quot; for i, p in enumerate(points))
+        out.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{colour}&quot; &#x27;
+                   f&#x27;stroke-width=&quot;{width}&quot; stroke-linejoin=&quot;round&quot;/&gt;&#x27;)
+        for p in points:
+            out.append(f&#x27;&lt;circle cx=&quot;{x(p[&quot;forecast&quot;]):.1f}&quot; &#x27;
+                       f&#x27;cy=&quot;{y(p[&quot;happened&quot;]):.1f}&quot; r=&quot;{dot}&quot; fill=&quot;{colour}&quot; &#x27;
+                       f&#x27;stroke=&quot;{PAPER}&quot; stroke-width=&quot;3&quot;/&gt;&#x27;)
+
+    series(res[&quot;curve_all&quot;], BLUE, 4.5, 11)
+    series(res[&quot;curve_politics_competitive&quot;], ORANGE, 4.5, 11)
+
+    # ---- callout on the underconfident bow
+    pts = res[&quot;curve_politics_competitive&quot;]
+    hi = max(pts, key=lambda p: p[&quot;happened&quot;] - p[&quot;forecast&quot;])
+    hx, hy = x(hi[&quot;forecast&quot;]), y(hi[&quot;happened&quot;])
+    tx, ty = x(0.68), y(0.96)
+    out += [f&#x27;&lt;line x1=&quot;{hx:.1f}&quot; y1=&quot;{hy - 14:.1f}&quot; x2=&quot;{tx - 14:.1f}&quot; &#x27;
+            f&#x27;y2=&quot;{ty + 14:.1f}&quot; stroke=&quot;{ORANGE}&quot; stroke-width=&quot;2&quot;/&gt;&#x27;,
+            f&#x27;&lt;text x=&quot;{tx:.1f}&quot; y=&quot;{ty:.1f}&quot; font-size=&quot;24&quot; font-weight=&quot;700&quot; &#x27;
+            f&#x27;fill=&quot;{ORANGE}&quot; text-anchor=&quot;end&quot;&gt;said &#x27;
+            f&#x27;{hi[&quot;forecast&quot;] * 100:.0f}%, happened &#x27;
+            f&#x27;{hi[&quot;happened&quot;] * 100:.0f}%&lt;/text&gt;&#x27;,
+            f&#x27;&lt;text x=&quot;{tx:.1f}&quot; y=&quot;{ty + 32:.1f}&quot; font-size=&quot;22&quot; fill=&quot;{DIM}&quot; &#x27;
+            f&#x27;text-anchor=&quot;end&quot;&gt;too cautious, not too confident&lt;/text&gt;&#x27;]
+
+    # ---- axis labels
+    out += [f&#x27;&lt;text x=&quot;{L + pw / 2:.0f}&quot; y=&quot;{T + ph + 88}&quot; font-size=&quot;25&quot; &#x27;
+            f&#x27;fill=&quot;{INK}&quot; text-anchor=&quot;middle&quot;&gt;what FiveThirtyEight said the &#x27;
+            f&#x27;chance was&lt;/text&gt;&#x27;,
+            f&#x27;&lt;text x=&quot;34&quot; y=&quot;{T + ph / 2:.0f}&quot; font-size=&quot;25&quot; fill=&quot;{INK}&quot; &#x27;
+            f&#x27;text-anchor=&quot;middle&quot; transform=&quot;rotate(-90 34 &#x27;
+            f&#x27;{T + ph / 2:.0f})&quot;&gt;how often it actually happened&lt;/text&gt;&#x27;]
+
+    # ---- legend
+    lx, ly = x(0.50), y(0.30)
+    out += [f&#x27;&lt;line x1=&quot;{lx}&quot; y1=&quot;{ly + 76:.1f}&quot; x2=&quot;{lx + 46}&quot; &#x27;
+            f&#x27;y2=&quot;{ly + 76:.1f}&quot; stroke=&quot;{DIM}&quot; stroke-width=&quot;2.5&quot; &#x27;
+            f&#x27;stroke-dasharray=&quot;10 8&quot;/&gt;&#x27;,
+            f&#x27;&lt;text x=&quot;{lx + 62}&quot; y=&quot;{ly + 84:.1f}&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+            f&#x27;perfect calibration&lt;/text&gt;&#x27;]
+    for colour, label in (
+            (BLUE, f&#x27;every forecast — slope {hd[&quot;all&quot;][&quot;slope&quot;]:.2f} &#x27;
+                   f&#x27;(1.00 = perfect), n={hd[&quot;all&quot;][&quot;n&quot;]:,}&#x27;),
+            (ORANGE, f&#x27;competitive political races — slope &#x27;
+                     f&#x27;{hd[&quot;politics_competitive&quot;][&quot;slope&quot;]:.2f}, &#x27;
+                     f&#x27;n={hd[&quot;politics_competitive&quot;][&quot;n&quot;]:,}&#x27;)):
+        out += [f&#x27;&lt;line x1=&quot;{lx}&quot; y1=&quot;{ly}&quot; x2=&quot;{lx + 46}&quot; y2=&quot;{ly}&quot; &#x27;
+                f&#x27;stroke=&quot;{colour}&quot; stroke-width=&quot;4.5&quot;/&gt;&#x27;,
+                f&#x27;&lt;circle cx=&quot;{lx + 23}&quot; cy=&quot;{ly}&quot; r=&quot;9&quot; fill=&quot;{colour}&quot;/&gt;&#x27;,
+                f&#x27;&lt;text x=&quot;{lx + 62}&quot; y=&quot;{ly + 8}&quot; font-size=&quot;23&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+                f&#x27;{label}&lt;/text&gt;&#x27;]
+        ly += 38
+
+    out.append(f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 26}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+               f&#x27;Data: FiveThirtyEight’s own archive, &#x27;
+               f&#x27;github.com/fivethirtyeight/checking-our-work-data  ·  &#x27;
+               f&#x27;method and every number: &#x27;
+               f&#x27;namikakmandev.github.io/fte-calibration.html&lt;/text&gt;&#x27;)
+    out.append(&#x27;&lt;/svg&gt;&#x27;)
+
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/fte-calibration.svg&quot;
+    svg = &quot;\n&quot;.join(out)
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;wrote {path} ({os.path.getsize(path):,} bytes)&quot;)
+    render_png(svg, &quot;assets/linkedin/fte-calibration.png&quot;)
+    return 0
+
+
+def find_chrome():
+    import glob, shutil
+    for pat in (&quot;/opt/pw-browsers/chromium-*/chrome-linux/chrome&quot;,
+                &quot;/opt/pw-browsers/chromium/chrome-linux/chrome&quot;):
+        hits = sorted(glob.glob(pat))
+        if hits:
+            return hits[-1]
+    for name in (&quot;chromium&quot;, &quot;chromium-browser&quot;, &quot;google-chrome&quot;):
+        found = shutil.which(name)
+        if found:
+            return found
+    return None
+
+
+def _decode_png(raw):
+    &quot;&quot;&quot;-&gt; (width, height, channels, [row bytes]). Enough to crop, no more.&quot;&quot;&quot;
+    import struct, zlib
+    pos, idat, w, h, ct = 8, b&quot;&quot;, 0, 0, 0
+    while pos &lt; len(raw):
+        ln = struct.unpack(&quot;&gt;I&quot;, raw[pos:pos + 4])[0]
+        typ, data = raw[pos + 4:pos + 8], raw[pos + 8:pos + 8 + ln]
+        if typ == b&quot;IHDR&quot;:
+            w, h, _, ct = struct.unpack(&quot;&gt;IIBB&quot;, data[:10])
+        elif typ == b&quot;IDAT&quot;:
+            idat += data
+        pos += 12 + ln
+    ch = {0: 1, 2: 3, 4: 2, 6: 4}[ct]
+    d, stride = zlib.decompress(idat), w * ch
+    prev, rows, i = bytearray(stride), [], 0
+    for _ in range(h):
+        f = d[i]; i += 1
+        line = bytearray(d[i:i + stride]); i += stride
+        if f:
+            for x in range(stride):
+                a = line[x - ch] if x &gt;= ch else 0
+                b = prev[x]
+                c = prev[x - ch] if x &gt;= ch else 0
+                if f == 1:
+                    line[x] = (line[x] + a) &amp; 255
+                elif f == 2:
+                    line[x] = (line[x] + b) &amp; 255
+                elif f == 3:
+                    line[x] = (line[x] + (a + b) // 2) &amp; 255
+                else:
+                    pp = a + b - c
+                    pa, pb, pc = abs(pp - a), abs(pp - b), abs(pp - c)
+                    line[x] = (line[x] + (a if (pa &lt;= pb and pa &lt;= pc)
+                                          else (b if pb &lt;= pc else c))) &amp; 255
+        rows.append(bytes(line))
+        prev = line
+    return w, h, ch, rows
+
+
+def _crop_png(path, height):
+    &quot;&quot;&quot;Trim a screenshot to `height` rows, in place.&quot;&quot;&quot;
+    import struct, zlib
+    w, h, ch, rows = _decode_png(open(path, &quot;rb&quot;).read())
+    if h &lt;= height:
+        return
+    body = b&quot;&quot;.join(b&quot;\x00&quot; + r for r in rows[:height])
+    ct = {1: 0, 2: 4, 3: 2, 4: 6}[ch]
+
+    def chunk(tag, data):
+        return (struct.pack(&quot;&gt;I&quot;, len(data)) + tag + data
+                + struct.pack(&quot;&gt;I&quot;, zlib.crc32(tag + data) &amp; 0xFFFFFFFF))
+
+    with open(path, &quot;wb&quot;) as fh:
+        fh.write(b&quot;\x89PNG\r\n\x1a\n&quot;
+                 + chunk(b&quot;IHDR&quot;, struct.pack(&quot;&gt;IIBBBBB&quot;, w, height, 8, ct, 0, 0, 0))
+                 + chunk(b&quot;IDAT&quot;, zlib.compress(body, 9))
+                 + chunk(b&quot;IEND&quot;, b&quot;&quot;))
+
+
+def render_png(svg, out_path):
+    &quot;&quot;&quot;Rasterise the SVG for LinkedIn, which will not accept an SVG upload.
+
+    Inlined into a zero-margin page rather than loaded through &lt;img&gt;: a
+    standalone SVG document picks up the browser&#x27;s default body margin.
+    Headless Chromium also hands back a viewport ~95px shorter than the window
+    it was asked for, which silently cuts the axis label and the source line off
+    the bottom, so the capture is padded and then cropped back to H.
+    &quot;&quot;&quot;
+    import subprocess, tempfile
+    chrome = find_chrome()
+    if not chrome:
+        print(&quot;  (no chromium found — SVG written, PNG skipped)&quot;)
+        return
+    with tempfile.TemporaryDirectory() as tmp:
+        page = os.path.join(tmp, &quot;chart.html&quot;)
+        with open(page, &quot;w&quot;) as fh:
+            fh.write(&quot;&lt;!doctype html&gt;&lt;meta charset=utf-8&gt;&quot;
+                     &quot;&lt;style&gt;html,body{margin:0;padding:0;background:#fff}&quot;
+                     &quot;svg{display:block}&lt;/style&gt;&quot; + svg)
+        cmd = [chrome, &quot;--headless&quot;, &quot;--disable-gpu&quot;, &quot;--no-sandbox&quot;,
+               &quot;--hide-scrollbars&quot;, &quot;--force-device-scale-factor=1&quot;,
+               f&quot;--window-size={W},{H + PAD}&quot;, &quot;--default-background-color=FFFFFFFF&quot;,
+               f&quot;--screenshot={out_path}&quot;, f&quot;file://{page}&quot;]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+    if os.path.exists(out_path):
+        _crop_png(out_path, H)
+        print(f&quot;wrote {out_path} ({os.path.getsize(out_path):,} bytes)&quot;)
+    else:
+        print(f&quot;  (chromium failed, PNG skipped)\n{r.stderr[-400:]}&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+        </div>
+
+        <div class="fc-card">
+          <h3>Reproduce it</h3>
+          <p>Everything is open: 538 published the data, this site publishes the code, and the
+            analysis is seeded and stdlib-only, so every number above reproduces exactly.</p>
+          <p class="fc-eq">python3 scripts/fetch_538.py &amp;&amp; python3 scripts/fte_calibration.py
+            &amp;&amp; python3 scripts/fte_chart.py</p>
+          <p class="fc-links">
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_538.py">Fetch script</a>
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fte_calibration.py">Analysis script</a>
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fte_chart.py">Chart script</a>
+            <a href="https://github.com/fivethirtyeight/checking-our-work-data">538's open archive</a>
+          </p>
+          <p class="cc-note" style="color:var(--text-dim);font-size:.85rem">
+            Related: <a href="bigmac-halflife.html">The Big Mac index, tested</a> &mdash; the same
+            treatment applied to The Economist's open data, and
+            <a href="correlation-check.html">the correlation toolkit</a> these checks are built on.</p>
+        </div>
+
+        <p class="data-note" style="font-size:.85rem">
+          Data &copy; FiveThirtyEight / ABC News, published as open data in their
+          <a href="https://github.com/fivethirtyeight/checking-our-work-data">checking-our-work-data</a>
+          repository under CC BY 4.0; this analysis is independent and not affiliated with or
+          endorsed by FiveThirtyEight, ABC News or any former staff. Method and any errors are
+          mine. Written August&nbsp;2026.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
