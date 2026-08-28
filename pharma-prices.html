@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Animal Pharma Price Tracker</title>
+<style>
+  :root{
+    --bg:#0B1220; --card:#121B2C; --card2:#0F1726; --line:#1E2A40;
+    --ink:#E8EEF7; --ink2:#9FB0C8; --ink3:#64748B;
+    --c1:#2A8FEF; --c2:#F05E00; --c3:#19C37D; --c4:#C77DFF; --c5:#FFC53D;
+    --dn:#E8637A;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif;padding:32px 16px}
+  .wrap{max-width:1080px;margin:0 auto}
+  .kicker{color:var(--c1);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px}
+  .sub{color:var(--ink2);max-width:760px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:26px 0 18px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .tile .lab{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .tile .val{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+  .tile .note{font-size:12.5px;color:var(--ink3);margin-top:2px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:18px}
+  .chart-title{font-weight:700;font-size:17px}
+  .chart-sub{color:var(--ink3);font-size:12.5px;margin-bottom:8px}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+  svg{display:block;width:100%;height:auto}
+  .banner{background:var(--card2);border:1px dashed var(--line);border-radius:12px;padding:12px 16px;
+          font-size:13.5px;color:var(--ink2);margin-bottom:18px}
+  .banner b{color:var(--ink)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{color:var(--ink3);text-transform:uppercase;font-size:11px;letter-spacing:.08em;text-align:right;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:7px 10px;text-align:right;border-bottom:1px solid rgba(30,42,64,.5);font-variant-numeric:tabular-nums}
+  td a{color:var(--c1);text-decoration:none}
+  .method{font-size:13px;color:var(--ink2)}
+  .method b{color:var(--ink)}
+  footer{color:var(--ink3);font-size:12.5px;margin-top:8px}
+  @media(max-width:640px){ h1{font-size:23px} .tile .val{font-size:22px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">Animal Health · US Retail · Daily</div>
+  <h1>Animal Pharma Price Tracker</h1>
+  <p class="sub">Daily list prices for five canine dermatology products — the atopic-dermatitis market where
+  Zoetis (Cytopoint, Apoquel), Merck (Numelvi) and Elanco (Zenrelia) now compete head-on — scraped each
+  morning from US online pet pharmacies.</p>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="card">
+    <div class="chart-title">Price history — indexed (first observation = 100)</div>
+    <div class="chart-sub">Low list price per product, own units (vial vs tablet vs bottle), so the index compares drift, not levels.</div>
+    <div id="chart-index"></div>
+  </div>
+
+  <div class="grid2" id="smalls"></div>
+
+  <div class="card">
+    <div class="chart-title">Latest snapshot</div>
+    <div class="chart-sub" id="snapdate"></div>
+    <table id="snaptable"></table>
+  </div>
+
+  <div class="card method" id="method"></div>
+
+  <footer>Data: <a style="color:var(--ink3)" href="data/pharma-prices.json">data/pharma-prices.json</a> ·
+  refreshed daily by <code>scripts/fetch_pharma_prices.py</code> via GitHub Actions. List prices, before Rx
+  coupons/autoship discounts; lo–hi spans the variants offered on the tracked page.</footer>
+</div>
+
+<script>
+const COLORS = ['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)'];
+const RAWCOL = ['#2A8FEF','#F05E00','#19C37D','#C77DFF','#FFC53D'];
+
+const fmt$ = v => '$' + v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function lineChart(series, {height=260, band=null, yFmt=v=>v.toFixed(0)}={}){
+  // series: [{label,color,points:[{d,v}]}]; band: [{d,lo,hi}] optional shaded range
+  const W=720, H=height, L=52, R=12, T=14, B=30;
+  const all = series.flatMap(s=>s.points);
+  if(!all.length) return '<div class="chart-sub">No data yet — first scrape pending.</div>';
+  const dates = [...new Set(all.map(p=>p.d).concat(band?band.map(b=>b.d):[]))].sort();
+  const x = d => dates.length===1 ? L+(W-L-R)/2 : L + (W-L-R)*dates.indexOf(d)/(dates.length-1);
+  let vals = all.map(p=>p.v); if(band) vals = vals.concat(band.map(b=>b.lo), band.map(b=>b.hi));
+  let lo=Math.min(...vals), hi=Math.max(...vals);
+  if(lo===hi){lo*=0.9; hi*=1.1||1;} const pad=(hi-lo)*0.08; lo-=pad; hi+=pad;
+  const y = v => T + (H-T-B)*(1-(v-lo)/(hi-lo));
+  let out = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for(let i=0;i<=4;i++){
+    const v=lo+(hi-lo)*i/4, yy=y(v);
+    out += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="#1E2A40" stroke-width="1"/>`;
+    out += `<text x="${L-6}" y="${yy+4}" fill="#64748B" font-size="11" text-anchor="end">${yFmt(v)}</text>`;
+  }
+  const ticks = dates.length<=6 ? dates : [0,0.25,0.5,0.75,1].map(f=>dates[Math.round(f*(dates.length-1))]);
+  [...new Set(ticks)].forEach(d=>{
+    out += `<text x="${x(d)}" y="${H-8}" fill="#64748B" font-size="11" text-anchor="middle">${d.slice(5)}</text>`;
+  });
+  if(band && band.length){
+    const up = band.map(b=>`${x(b.d).toFixed(1)},${y(b.hi).toFixed(1)}`);
+    const dn = band.slice().reverse().map(b=>`${x(b.d).toFixed(1)},${y(b.lo).toFixed(1)}`);
+    out += `<polygon points="${up.concat(dn).join(' ')}" fill="${band.color||'#2A8FEF'}" opacity="0.12"/>`;
+  }
+  series.forEach(s=>{
+    const pts = s.points.map(p=>`${x(p.d).toFixed(1)},${y(p.v).toFixed(1)}`);
+    if(pts.length>1) out += `<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round"/>`;
+    s.points.forEach((p,i)=>{
+      const last = i===s.points.length-1;
+      out += `<circle cx="${x(p.d)}" cy="${y(p.v)}" r="${(last||pts.length===1)?3.5:2}" fill="${s.color}"><title>${s.label} ${p.d}: ${yFmt(p.v)}</title></circle>`;
+    });
+  });
+  out += `</svg>`;
+  if(series.length>1){
+    out += '<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-top:6px">' +
+      series.map(s=>`<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${s.color};margin-right:6px"></span>${esc(s.label)}</span>`).join('') + '</div>';
+  }
+  return out;
+}
+
+fetch('data/pharma-prices.json').then(r=>{
+  if(!r.ok) throw new Error('data file missing');
+  return r.json();
+}).then(data=>{
+  const products = data.meta.products;
+  const hist = data.history || {};
+
+  // Tiles
+  document.getElementById('tiles').innerHTML = products.map((p,i)=>{
+    const h = hist[p.id]||[];
+    if(!h.length) return `<div class="tile"><div class="lab">${esc(p.name)}</div><div class="val" style="color:${COLORS[i]}">—</div><div class="note">awaiting first scrape</div></div>`;
+    const last = h[h.length-1], first = h[0];
+    const chg = h.length>1 ? (last.lo/first.lo-1)*100 : null;
+    const chgTxt = chg===null ? `${esc(last.store)}` :
+      `<span style="color:${chg>0.05?'var(--dn)':chg<-0.05?'var(--c3)':'var(--ink3)'}">${chg>=0?'+':''}${chg.toFixed(1)}%</span> since ${first.d}`;
+    return `<div class="tile"><div class="lab">${esc(p.name)}</div>
+      <div class="val" style="color:${COLORS[i]}">${fmt$(last.lo)}</div>
+      <div class="note">${last.hi>last.lo?('to '+fmt$(last.hi)+' · '):''}${chgTxt}</div></div>`;
+  }).join('');
+
+  // Banner
+  const n = Object.values(hist).reduce((m,h)=>Math.max(m,h.length),0);
+  document.getElementById('banner').innerHTML = n<=1
+    ? `<b>Collecting history.</b> The tracker has ${n===0?'no':'one'} observation so far — the daily GitHub Action appends a point every run, and the lines below will grow from here.`
+    : `<b>${n}</b> daily observations so far · latest run ${esc(data.meta.updated)}.`;
+
+  // Indexed chart
+  const idxSeries = products.map((p,i)=>{
+    const h = hist[p.id]||[];
+    return {label:p.name, color:RAWCOL[i],
+      points: h.length?h.map(pt=>({d:pt.d, v:100*pt.lo/h[0].lo})):[]};
+  }).filter(s=>s.points.length);
+  document.getElementById('chart-index').innerHTML =
+    lineChart(idxSeries,{height:280,yFmt:v=>v.toFixed(1)});
+
+  // Small multiples
+  document.getElementById('smalls').innerHTML = products.map((p,i)=>{
+    const h = hist[p.id]||[];
+    const band = h.map(pt=>({d:pt.d,lo:pt.lo,hi:pt.hi})); band.color = RAWCOL[i];
+    const chart = lineChart([{label:p.name,color:RAWCOL[i],points:h.map(pt=>({d:pt.d,v:pt.lo}))}],
+                            {height:200,band,yFmt:v=>'$'+v.toFixed(0)});
+    return `<div class="card"><div class="chart-title" style="color:${COLORS[i]}">${esc(p.name)}</div>
+      <div class="chart-sub">${esc(p.maker)} · ${esc(p.unit)}${h.length?' · '+esc(h[h.length-1].store):''}</div>${chart}</div>`;
+  }).join('');
+
+  // Snapshot table
+  const dates = [...new Set(Object.values(hist).flatMap(h=>h.map(p=>p.d)))].sort();
+  const lastDate = dates[dates.length-1]||'—';
+  document.getElementById('snapdate').textContent = 'As of ' + lastDate;
+  document.getElementById('snaptable').innerHTML =
+    '<tr><th>Product</th><th>Maker</th><th>Low</th><th>High</th><th>Store</th><th>Method</th></tr>' +
+    products.map(p=>{
+      const h=hist[p.id]||[]; const last=h[h.length-1];
+      if(!last) return `<tr><td>${esc(p.name)}</td><td>${esc(p.maker)}</td><td colspan="4" style="color:var(--ink3)">no data yet</td></tr>`;
+      const src=(p.sources||[]).find(s=>s.store===last.store);
+      return `<tr><td>${esc(p.name)}</td><td>${esc(p.maker)}</td><td>${fmt$(last.lo)}</td><td>${fmt$(last.hi)}</td>
+        <td>${src?`<a href="${esc(src.url)}" rel="nofollow noopener">${esc(last.store)}</a>`:esc(last.store)}</td>
+        <td style="color:var(--ink3)">${esc(last.method||'')}</td></tr>`;
+    }).join('');
+
+  // Method
+  document.getElementById('method').innerHTML =
+    `<b>Method.</b> One scrape per day per product from the stores listed above (primary page first, fallbacks
+    if it fails). Prices are the store's listed prices: <b>low</b> is the cheapest offered variant on the page,
+    <b>high</b> the dearest, so a wide band usually means multiple strengths or pack sizes on one page. Units
+    differ across products — Cytopoint is priced per vial, Apoquel pages per tablet or per bottle — so compare
+    each product against its own history (or the indexed chart), not product vs product. List prices exclude
+    autoship/coupon discounts and vet-clinic markup.`;
+}).catch(err=>{
+  document.getElementById('banner').innerHTML =
+    `<b>No data yet.</b> data/pharma-prices.json hasn't been generated — run the "Pharma price tracker" workflow once (Actions tab) or <code>python scripts/fetch_pharma_prices.py</code>. (${esc(err.message)})`;
+});
+</script>
+</body>
+</html>
