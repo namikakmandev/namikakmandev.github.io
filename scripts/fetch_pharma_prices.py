@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
-"""Daily price scraper for 5 canine dermatology (animal pharma) products.
+"""Daily multi-country price tracker for 5 canine dermatology products.
 
-Tracks list prices from US online pet pharmacies:
+v2: observations are per (product x form/strength x venue x country), not
+per page. Three countries, 2-3 venues each:
 
-  cytopoint          PetVM (fallback Bandana Rx)
-  apoquel            PetVM (fallback California Pet Pharmacy, per-tablet)
-  apoquel-chewable   California Pet Pharmacy (fallbacks Heartland, EntirelyPets Rx)
-  numelvi            Heartland Vet Supply (fallback PetRx / Shopify JSON)
-  zenrelia           PetVM (fallback EntirelyPets Rx)
+  US  PetVM, California Pet Pharmacy, Heartland Vet Supply (+PetRx, EntirelyPets Rx)
+  GB  VetUK, Pet Drugs Online, VetDispense (+Hyperdrug, the only UK Numelvi listing)
+  TR  Sandia, Petilac, Vepetzamani (Apoquel only — Cytopoint is clinic-only in TR,
+      Zenrelia/Numelvi not in TR retail as of Aug 2026)
 
-Extraction is layered because store platforms differ (PrestaShop,
-AspDotNetStorefront, Magento, Shopify): JSON-LD Product offers first, then
-price meta tags, then a Shopify /products/*.js endpoint, then a visible-price
-regex as last resort. Whatever method wins is recorded in the report so a
-silent selector rot shows up in data/_pharma-prices-report.json instead of as
-quietly wrong numbers.
+Each target URL is either a SKUPAGE (the page sells exactly one form/strength,
+declared in config) or a MULTI page (several variants; an adapter extracts
+(label, price) pairs and a label parser maps them to strength/count).
 
-Appends one point per product per day to data/pharma-prices.json (re-running
-the same day overwrites that day's point). A failed product keeps its history
-untouched; the failure lands in the report file.
+MODE=discover dumps each page's price-bearing structures (JSON-LD, meta,
+variant/option blocks, price-ish script snippets) to the report file instead
+of parsing — the repo convention for writing parsers against a source's real
+shape rather than what its platform docs imply.
+
+Failures never destroy history: a product-venue that fails simply gets no
+observation that day, and the reason lands in data/_pharma-prices-report.json.
+Prices stay in venue currency (USD/GBP/TRY); cross-currency comparison is the
+chart page's job, not the scraper's.
 """
 
 import json
+import os
 import re
 import sys
 import time
@@ -33,232 +37,444 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "pharma-prices.json"
 REPORT = ROOT / "data" / "_pharma-prices-report.json"
+MODE = os.environ.get("MODE", "")
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36")
 HEADERS = {
     "User-Agent": UA,
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Language": "en-US,en;q=0.8,tr;q=0.6",
 }
 
-PRODUCTS = [
-    {
-        "id": "cytopoint",
-        "name": "Cytopoint",
-        "maker": "Zoetis",
-        "unit": "per vial (10-40 mg)",
-        "sources": [
-            {"store": "PetVM", "url": "https://petvm.com/skin-coat/458-cytopoint-for-dogs.html"},
-            {"store": "Bandana Rx", "url": "https://bandanarx.com/skin-coat/458-cytopoint-for-dogs.html"},
-        ],
-    },
-    {
-        "id": "apoquel",
-        "name": "Apoquel",
-        "maker": "Zoetis",
-        "unit": "per tablet",
-        "sources": [
-            {"store": "PetVM", "url": "https://petvm.com/skin-coat/318-apoquel.html"},
-            {"store": "California Pet Pharmacy", "url": "https://www.californiapetpharmacy.com/apoquel-16mg-per-tablet.html"},
-        ],
-    },
-    {
-        "id": "apoquel-chewable",
-        "name": "Apoquel Chewable",
-        "maker": "Zoetis",
-        "unit": "per chewable (16 mg)",
-        "sources": [
-            {"store": "California Pet Pharmacy", "url": "https://www.californiapetpharmacy.com/apoquel-chewable-16mg-per-chewable.html"},
-            {"store": "Heartland Vet Supply", "url": "https://www.heartlandvetsupply.com/p-6816-apoquel-oclacitinib-chewable-tablets-for-dogs.aspx"},
-            {"store": "EntirelyPets Rx", "url": "https://entirelypetspharmacy.com/apoquel-chewable-tablets-16mg-30-tablet.html"},
-        ],
-    },
-    {
-        "id": "numelvi",
-        "name": "Numelvi",
-        "maker": "Merck",
-        "unit": "page variants (per tablet to 30-ct bottle)",
-        "sources": [
-            {"store": "Heartland Vet Supply", "url": "https://www.heartlandvetsupply.com/p-7274-numelvi-atinvicitinib-tablets-for-dogs.aspx"},
-            {"store": "PetRx", "url": "https://petrx.com/products/numelvi-atinvicitinib-tablets"},
-        ],
-    },
-    {
-        "id": "zenrelia",
-        "name": "Zenrelia",
-        "maker": "Elanco",
-        "unit": "per tablet (4.8-15 mg strengths)",
-        "sources": [
-            {"store": "PetVM", "url": "https://petvm.com/skin-coat/511-zenrelia-ilunocitnib-tablets.html"},
-            {"store": "EntirelyPets Rx", "url": "https://entirelypetspharmacy.com/zenrelia-tablets-for-dogs.html"},
-        ],
-    },
+PRODUCTS = {
+    "cytopoint":        {"name": "Cytopoint",        "maker": "Zoetis", "forms": ["inj"]},
+    "apoquel":          {"name": "Apoquel",          "maker": "Zoetis", "forms": ["tab"]},
+    "apoquel-chewable": {"name": "Apoquel Chewable", "maker": "Zoetis", "forms": ["chew"]},
+    "numelvi":          {"name": "Numelvi",          "maker": "Merck",  "forms": ["tab"]},
+    "zenrelia":         {"name": "Zenrelia",         "maker": "Elanco", "forms": ["tab"]},
+}
+
+VENUES = {
+    "petvm":     {"name": "PetVM",                   "country": "US", "currency": "USD"},
+    "cpp":       {"name": "California Pet Pharmacy", "country": "US", "currency": "USD"},
+    "heartland": {"name": "Heartland Vet Supply",    "country": "US", "currency": "USD"},
+    "petrx":     {"name": "PetRx",                   "country": "US", "currency": "USD"},
+    "entirely":  {"name": "EntirelyPets Rx",         "country": "US", "currency": "USD"},
+    "vetuk":     {"name": "VetUK",                   "country": "GB", "currency": "GBP"},
+    "pdo":       {"name": "Pet Drugs Online",        "country": "GB", "currency": "GBP"},
+    "vetdisp":   {"name": "VetDispense",             "country": "GB", "currency": "GBP"},
+    "hyperdrug": {"name": "Hyperdrug",               "country": "GB", "currency": "GBP"},
+    "sandia":    {"name": "Sandia Vet",              "country": "TR", "currency": "TRY"},
+    "petilac":   {"name": "Petilac",                 "country": "TR", "currency": "TRY"},
+    "vepet":     {"name": "Vepetzamani",             "country": "TR", "currency": "TRY"},
+}
+
+# kind: "sku" = page sells exactly the declared form/strength/count
+#       "multi" = page carries variants; adapter + label parser split them
+# sku fields: form (tab|chew|inj), mg (strength), n (units per listed price;
+#             None = parse from variant label / page, fall back to 1)
+TARGETS = [
+    # ---------------- US ----------------
+    {"product": "cytopoint", "venue": "petvm", "kind": "multi",
+     "url": "https://petvm.com/skin-coat/458-cytopoint-for-dogs.html",
+     "form": "inj"},
+    {"product": "apoquel", "venue": "petvm", "kind": "multi",
+     "url": "https://petvm.com/skin-coat/318-apoquel.html",
+     "form": "tab"},
+    {"product": "zenrelia", "venue": "petvm", "kind": "multi",
+     "url": "https://petvm.com/skin-coat/511-zenrelia-ilunocitnib-tablets.html",
+     "form": "tab"},
+    {"product": "apoquel", "venue": "cpp", "kind": "sku",
+     "url": "https://www.californiapetpharmacy.com/apoquel-16mg-per-tablet.html",
+     "form": "tab", "mg": 16, "n": 1},
+    {"product": "apoquel-chewable", "venue": "cpp", "kind": "sku",
+     "url": "https://www.californiapetpharmacy.com/apoquel-chewable-16mg-per-chewable.html",
+     "form": "chew", "mg": 16, "n": 1},
+    {"product": "numelvi", "venue": "heartland", "kind": "multi",
+     "url": "https://www.heartlandvetsupply.com/p-7274-numelvi-atinvicitinib-tablets-for-dogs.aspx",
+     "form": "tab"},
+    {"product": "apoquel-chewable", "venue": "heartland", "kind": "multi",
+     "url": "https://www.heartlandvetsupply.com/p-6816-apoquel-oclacitinib-chewable-tablets-for-dogs.aspx",
+     "form": "chew"},
+    {"product": "numelvi", "venue": "petrx", "kind": "multi",
+     "url": "https://petrx.com/products/numelvi-atinvicitinib-tablets",
+     "form": "tab"},
+    {"product": "zenrelia", "venue": "entirely", "kind": "multi",
+     "url": "https://entirelypetspharmacy.com/zenrelia-tablets-for-dogs.html",
+     "form": "tab"},
+    {"product": "cytopoint", "venue": "heartland", "kind": "multi",
+     "url": "https://www.heartlandvetsupply.com/searchresults.aspx?Search=cytopoint",
+     "form": "inj", "optional": True},
+    # ---------------- GB ----------------
+    {"product": "apoquel", "venue": "vetuk", "kind": "multi",
+     "url": "https://www.vetuk.co.uk/pet-meds-prescription-only-apoquel-c-21_2231/apoquel-16mg-tablets-for-dogs-p-21189",
+     "form": "tab", "mg": 16},
+    {"product": "apoquel-chewable", "venue": "vetuk", "kind": "multi",
+     "url": "https://www.vetuk.co.uk/pet-meds-prescription-only-apoquel-chewable-c-21_2678/products-name-p-47146",
+     "form": "chew", "mg": 16},
+    {"product": "zenrelia", "venue": "vetuk", "kind": "multi",
+     "url": "https://www.vetuk.co.uk/zenrelia-15mg-film-coated-tablets-for-dogs-dspn483.html",
+     "form": "tab", "mg": 15},
+    {"product": "apoquel", "venue": "pdo", "kind": "multi",
+     "url": "https://www.petdrugsonline.co.uk/apoquel-16mg",
+     "form": "tab", "mg": 16},
+    {"product": "apoquel-chewable", "venue": "pdo", "kind": "multi",
+     "url": "https://www.petdrugsonline.co.uk/apoquel-chewable-tablets-16mg",
+     "form": "chew", "mg": 16},
+    {"product": "zenrelia", "venue": "pdo", "kind": "multi",
+     "url": "https://www.petdrugsonline.co.uk/zenrelia-film-coated-tablets-for-dogs-15mg",
+     "form": "tab", "mg": 15},
+    {"product": "cytopoint", "venue": "pdo", "kind": "multi",
+     "url": "https://www.petdrugsonline.co.uk/cytopoint",
+     "form": "inj"},
+    {"product": "apoquel", "venue": "vetdisp", "kind": "sku",
+     "url": "https://www.vetdispense.co.uk/apoquel/2431-16mg-apoquel-tablet-single-tablet.html",
+     "form": "tab", "mg": 16, "n": 1},
+    {"product": "cytopoint", "venue": "vetdisp", "kind": "sku",
+     "url": "https://www.vetdispense.co.uk/cytopoint/2518-cytopoint-20mg-pack-of-2-vials.html",
+     "form": "inj", "mg": 20, "n": 2},
+    {"product": "cytopoint", "venue": "vetdisp", "kind": "sku",
+     "url": "https://www.vetdispense.co.uk/cytopoint/2520-cytopoint-40mg-pack-of-2-vials.html",
+     "form": "inj", "mg": 40, "n": 2},
+    {"product": "zenrelia", "venue": "vetdisp", "kind": "sku",
+     "url": "https://www.vetdispense.co.uk/zenrelia-for-dogs/2844-15mg-zenrelia-for-dogs-per-tablet.html",
+     "form": "tab", "mg": 15, "n": 1},
+    {"product": "numelvi", "venue": "hyperdrug", "kind": "multi",
+     "url": "https://hyperdrug.co.uk/numelvi-tablets-for-dogs/",
+     "form": "tab", "optional": True},
+    # ---------------- TR ----------------
+    {"product": "apoquel", "venue": "sandia", "kind": "sku",
+     "url": "https://shop.sandiavet.com/kopek-urunleri/apoquel-16-mg-20-tablet/",
+     "form": "tab", "mg": 16, "n": 20},
+    {"product": "apoquel", "venue": "petilac", "kind": "sku",
+     "url": "https://www.petilac.com/urun/apoquel-16-mg-kasinti-tableti",
+     "form": "tab", "mg": 16, "n": 20},
+    {"product": "apoquel", "venue": "vepet", "kind": "sku",
+     "url": "https://www.vepetzamani.com/urun/apoquel-16-mg-kasinti-tableti",
+     "form": "tab", "mg": 16, "n": 20},
 ]
 
-# Sanity bounds: anything outside is treated as a mis-parse, not a price.
-PRICE_MIN, PRICE_MAX = 1.0, 3000.0
+PRICE_MIN, PRICE_MAX = 0.5, 200000.0   # TRY prices run to five digits
 
 
-def plausible(values):
-    return sorted({round(float(v), 2) for v in values
-                   if PRICE_MIN <= float(v) <= PRICE_MAX})
+# ---------------------------------------------------------------- helpers --
+
+def to_float(s):
+    """Parse '1,049.99', '1.049,99', '3.695,00 TL', '£1.93' -> float."""
+    s = re.sub(r"[^\d.,]", "", str(s))
+    if not s: return None
+    if "," in s and "." in s:
+        if s.rfind(",") > s.rfind("."):    # 1.049,99
+            s = s.replace(".", "").replace(",", ".")
+        else:                              # 1,049.99
+            s = s.replace(",", "")
+    elif "," in s:
+        # lone comma: decimal if 2 digits follow, thousands otherwise
+        if re.search(r",\d{2}$", s): s = s.replace(".", "").replace(",", ".")
+        else: s = s.replace(",", "")
+    try:
+        v = float(s)
+    except ValueError:
+        return None
+    return v if PRICE_MIN <= v <= PRICE_MAX else None
+
+
+def parse_label(label, default_mg=None):
+    """'16 mg, 30 tablets' / '40mg pack of 2' -> (mg, count)."""
+    label = str(label)
+    mg = None
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*-?\s*mg", label, re.I)
+    if m: mg = float(m.group(1).replace(",", "."))
+    n = None
+    m = (re.search(r"(\d+)\s*(?:count|tablets?|chewables?|tabs?|comprimidos|vials?|adet|'?li)\b", label, re.I)
+         or re.search(r"pack of\s*(\d+)", label, re.I)
+         or re.search(r"[x×]\s*(\d+)\b", label, re.I))
+    if m: n = int(m.group(1))
+    if re.search(r"per\s+(tablet|chewable|vial)|single|sold per", label, re.I): n = 1
+    return (mg if mg is not None else default_mg), n
 
 
 def walk_ldjson(node, out):
-    """Collect offer prices from any schema.org Product/Offer structure."""
     if isinstance(node, list):
-        for item in node:
-            walk_ldjson(item, out)
+        for item in node: walk_ldjson(item, out)
         return
-    if not isinstance(node, dict):
-        return
+    if not isinstance(node, dict): return
+    name = node.get("name") or node.get("sku") or ""
     for key in ("price", "lowPrice", "highPrice"):
-        val = node.get(key)
-        if val not in (None, ""):
-            try:
-                out.append(float(str(val).replace(",", "").replace("$", "")))
-            except ValueError:
-                pass
+        if node.get(key) not in (None, ""):
+            v = to_float(node[key])
+            if v is not None: out.append((str(name), v))
     for key in ("@graph", "offers", "itemListElement", "item", "hasVariant", "model"):
-        if key in node:
-            walk_ldjson(node[key], out)
+        if key in node: walk_ldjson(node[key], out)
+
+
+def ldjson_blocks(html):
+    for m in re.finditer(r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+                         html, re.S | re.I):
+        yield m.group(1).strip()
 
 
 def extract_ldjson(html):
-    prices = []
-    for match in re.finditer(
-            r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
-            html, re.S | re.I):
-        raw = match.group(1).strip()
+    """-> [(label, price)] from schema.org blocks."""
+    out = []
+    for raw in ldjson_blocks(html):
         try:
-            walk_ldjson(json.loads(raw), prices)
+            walk_ldjson(json.loads(raw), out)
         except json.JSONDecodeError:
-            # Some stores emit sloppy JSON-LD; grab price fields textually.
-            prices += [p for p in re.findall(
-                r'"(?:price|lowPrice|highPrice)"\s*:\s*"?([0-9][0-9,]*\.?[0-9]{0,2})',
-                raw)]
-    return plausible(prices)
+            for p in re.findall(r'"(?:price|lowPrice|highPrice)"\s*:\s*"?([0-9][0-9.,]*)', raw):
+                v = to_float(p)
+                if v is not None: out.append(("", v))
+    return out
 
 
 def extract_meta(html):
-    prices = re.findall(
-        r'<meta[^>]+(?:property|itemprop|name)=["\'](?:product:price:amount|og:price:amount|price)["\'][^>]+content=["\']\$?\s*([0-9][0-9,]*\.?[0-9]{0,2})',
-        html, re.I)
-    prices += re.findall(
-        r'<meta[^>]+content=["\']\$?\s*([0-9][0-9,]*\.[0-9]{2})["\'][^>]+(?:property|itemprop|name)=["\'](?:product:price:amount|og:price:amount|price)["\']',
-        html, re.I)
-    return plausible(p.replace(",", "") for p in prices)
+    out = []
+    for pat in (r'<meta[^>]+(?:property|itemprop|name)=["\'](?:product:price:amount|og:price:amount|price)["\'][^>]+content=["\']([^"\']+)',
+                r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|itemprop|name)=["\'](?:product:price:amount|og:price:amount|price)["\']'):
+        for p in re.findall(pat, html, re.I):
+            v = to_float(p)
+            if v is not None: out.append(("", v))
+    return out
 
 
-def extract_shopify(session, url):
-    if "/products/" not in url:
-        return []
+def extract_inline_js(html):
+    out = []
+    for p in re.findall(
+            r'"(?:price|price_amount|productPrice|special_price|finalPrice|salesprice|current_price)"\s*:\s*"?\$?£?([0-9][0-9.,]*)"?',
+            html, re.I):
+        v = to_float(p)
+        if v is not None: out.append(("", v))
+    return out
+
+
+def extract_visible(html, currency):
+    sym = {"USD": r"\$", "GBP": "£", "TRY": r"(?:₺|TL)"}[currency]
+    body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
+    out = []
+    pats = ([rf"{sym}\s*([0-9][0-9.,]*)", rf"([0-9][0-9.,]*)\s*{sym}"]
+            if currency == "TRY" else [rf"{sym}\s*([0-9][0-9.,]*)"])
+    for pat in pats:
+        for p in re.findall(pat, body[:60000]):
+            v = to_float(p)
+            if v is not None: out.append(("", v))
+        if out: break
+    return out
+
+
+# --------------------------------------------------------- multi adapters --
+
+def variants_prestashop(html):
+    """PetVM (PrestaShop): combinations JSON in inline JS."""
+    out = []
+    m = re.search(r"var\s+combinations\s*=\s*(\{.*?\});", html, re.S)
+    if m:
+        try:
+            combos = json.loads(re.sub(r"'", '"', m.group(1)))
+            for c in combos.values():
+                label = c.get("attributes_values")
+                if isinstance(label, dict): label = " ".join(str(x) for x in label.values())
+                v = to_float(c.get("price"))
+                if v is not None: out.append((str(label or ""), v))
+        except (json.JSONDecodeError, AttributeError):
+            pass
+    if not out:
+        # PrestaShop 1.7: attribute JSON in data-product or productDetails
+        for m in re.finditer(r'"attributes_small"\s*:\s*"([^"]+)"[^}]*?"price_amount"\s*:\s*([0-9.]+)', html):
+            out.append((m.group(1), float(m.group(2))))
+    return out
+
+
+def variants_shopify(session, url):
+    if "/products/" not in url: return []
     try:
-        resp = session.get(url.split("?")[0] + ".js", headers=HEADERS, timeout=30)
-        if resp.status_code != 200:
-            return []
-        product = resp.json()
-        cents = [v.get("price") for v in product.get("variants", [])
-                 if v.get("available", True) and v.get("price") is not None]
-        return plausible(c / 100.0 for c in cents)
+        r = session.get(url.split("?")[0] + ".js", headers=HEADERS, timeout=30)
+        if r.status_code != 200: return []
+        p = r.json()
+        return [(v.get("title") or v.get("public_title") or "", c / 100.0)
+                for v in p.get("variants", [])
+                if (c := v.get("price")) is not None]
     except (requests.RequestException, ValueError):
         return []
 
 
-def extract_inline_js(html):
-    """Price fields inside inline scripts (PrestaShop, Magento configs)."""
-    prices = re.findall(
-        r'"(?:price|price_amount|productPrice|special_price|finalPrice)"\s*:\s*"?\$?([0-9][0-9,]*\.[0-9]{2})"?',
-        html)
-    return plausible(p.replace(",", "") for p in prices)
+def variants_select_options(html):
+    """<option>16 mg, 30 ct - $84.00</option> patterns (Heartland etc.)."""
+    out = []
+    for m in re.finditer(r"<option[^>]*>([^<]{4,120})</option>", html, re.I):
+        text = m.group(1)
+        pm = re.search(r"[\$£]\s*([0-9][0-9.,]*)|([0-9][0-9.,]*)\s*(?:TL|₺)", text)
+        if pm:
+            v = to_float(pm.group(1) or pm.group(2))
+            if v is not None:
+                out.append((re.sub(r"[\$£₺].*", "", text).strip(" \t-–:"), v))
+    return out
 
 
-def extract_visible(html):
-    """Last resort: $-amounts in the top chunk of the page body."""
-    body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
-    prices = re.findall(r"\$\s*([0-9][0-9,]*\.[0-9]{2})", body[:40000])
-    return plausible(p.replace(",", "") for p in prices)
+def variants_ldjson(html):
+    return [(l, v) for l, v in extract_ldjson(html) if l]
 
 
-def scrape_source(session, source):
-    """Returns (result_dict_or_None, note). result has lo/hi/method."""
-    shopify = extract_shopify(session, source["url"])
-    if shopify:
-        return {"lo": shopify[0], "hi": shopify[-1], "method": "shopify-json"}, "ok"
+# --------------------------------------------------------------- scraping --
 
+def fetch(session, url):
     try:
-        resp = session.get(source["url"], headers=HEADERS, timeout=30)
+        r = session.get(url, headers=HEADERS, timeout=30)
     except requests.RequestException as exc:
-        return None, f"request failed: {exc.__class__.__name__}: {exc}"
-    if resp.status_code != 200:
-        return None, f"http {resp.status_code}"
-    html = resp.text
+        return None, f"request failed: {exc.__class__.__name__}"
+    if r.status_code != 200:
+        return None, f"http {r.status_code}"
+    return r.text, "ok"
 
-    for method, fn in (("ld+json", extract_ldjson),
-                       ("meta", extract_meta),
-                       ("inline-js", extract_inline_js),
-                       ("visible-$", extract_visible)):
-        prices = fn(html)
-        if prices:
-            return {"lo": prices[0], "hi": prices[-1], "method": method}, "ok"
-    return None, "no price found in page"
+
+def scrape_sku(html, t, currency):
+    """Single-SKU page -> one observation dict or None."""
+    for method, cands in (("ld+json", extract_ldjson(html)),
+                          ("meta", extract_meta(html)),
+                          ("inline-js", extract_inline_js(html)),
+                          ("visible", extract_visible(html, currency))):
+        vals = sorted({v for _, v in cands})
+        if vals:
+            price = vals[0]     # sale price sits below list price
+            return {"mg": t.get("mg"), "n": t.get("n") or 1,
+                    "price": price, "method": method}
+    return None
+
+
+def scrape_multi(session, html, t, currency):
+    """Multi-variant page -> [observation], best adapter wins."""
+    for method, pairs in (("shopify", variants_shopify(session, t["url"])),
+                          ("prestashop", variants_prestashop(html)),
+                          ("ld+json", variants_ldjson(html)),
+                          ("options", variants_select_options(html))):
+        rows = []
+        seen = set()
+        for label, price in pairs:
+            mg, n = parse_label(label, t.get("mg"))
+            key = (mg, n, price)
+            if key in seen: continue
+            seen.add(key)
+            rows.append({"mg": mg, "n": n or 1, "price": price,
+                         "method": method, "label": label[:60]})
+        if rows:
+            return rows
+    # fall back to page-level single observation, count unknown
+    one = scrape_sku(html, t, currency)
+    if one:
+        one["method"] += "/page-level"
+        return [one]
+    return []
+
+
+def discover_dump(session, html, t):
+    """What does this page actually contain? Snippets for parser-writing."""
+    d = {"url": t["url"], "ldjson": [], "meta": [], "options": [],
+         "shopify": [], "js_hits": []}
+    for raw in ldjson_blocks(html):
+        d["ldjson"].append(raw[:1500])
+    d["meta"] = [m[:200] for m in re.findall(
+        r'<meta[^>]+(?:price|Price)[^>]*>', html)][:10]
+    d["options"] = [m[:150] for m in re.findall(
+        r"<option[^>]*>[^<]*(?:\$|£|TL|₺|mg)[^<]*</option>", html, re.I)][:25]
+    if "/products/" in t["url"]:
+        d["shopify"] = [f"{l} -> {v}" for l, v in variants_shopify(session, t["url"])][:20]
+    for m in re.finditer(
+            r".{0,80}(?:combinations|price_amount|productPrice|salesprice|attributes_values|VariantPrice).{0,120}",
+            html):
+        if len(d["js_hits"]) >= 12: break
+        d["js_hits"].append(m.group(0).replace("\n", " ")[:200])
+    d["size"] = len(html)
+    return d
+
+
+def sku_id(product, form, mg):
+    frag = f"{mg:g}" if mg is not None else "x"
+    return f"{product}-{form}-{frag}"
 
 
 def main():
     session = requests.Session()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    if DATA.exists():
-        store = json.loads(DATA.read_text())
-    else:
-        store = {"meta": {}, "history": {}}
-
+    store = json.loads(DATA.read_text()) if DATA.exists() else {}
+    if store.get("schema") != 2:
+        store = {"schema": 2, "meta": {}, "observations": []}
     store["meta"] = {
         "title": "Animal pharma price tracker",
-        "currency": "USD",
-        "updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "products": [{k: p[k] for k in ("id", "name", "maker", "unit")} |
-                     {"sources": p["sources"]} for p in PRODUCTS],
+        "updated": now,
+        "products": PRODUCTS,
+        "venues": VENUES,
+        "note": "price is in venue currency for n units of the SKU; "
+                "unit price = price / n. mg null = strength not stated on page.",
     }
 
-    report = {"run": store["meta"]["updated"], "date": today, "products": {}}
-    failures = 0
+    report = {"run": now, "mode": MODE or "fetch", "targets": []}
+    discoveries = []
+    n_obs, n_fail = 0, 0
 
-    for product in PRODUCTS:
-        entry = None
-        attempts = []
-        for source in product["sources"]:
-            result, note = scrape_source(session, source)
-            attempts.append({"store": source["store"], "url": source["url"], "note": note,
-                             **({"method": result["method"],
-                                 "lo": result["lo"], "hi": result["hi"]} if result else {})})
-            if result:
-                entry = {"d": today, "lo": result["lo"], "hi": result["hi"],
-                         "store": source["store"], "method": result["method"]}
-                break
+    # replace any same-day rows so a rerun is idempotent
+    store["observations"] = [o for o in store["observations"] if o["d"] != today]
+
+    for t in TARGETS:
+        venue = VENUES[t["venue"]]
+        html, note = fetch(session, t["url"])
+        entry = {"product": t["product"], "venue": t["venue"], "url": t["url"],
+                 "kind": t["kind"], "note": note}
+        if html is None:
+            if not t.get("optional"): n_fail += 1
+            report["targets"].append(entry)
             time.sleep(2)
+            continue
 
-        report["products"][product["id"]] = attempts
-        history = store["history"].setdefault(product["id"], [])
-        if entry:
-            if history and history[-1]["d"] == today:
-                history[-1] = entry
-            else:
-                history.append(entry)
-            print(f"{product['id']:18s} ${entry['lo']:>8.2f} - ${entry['hi']:>8.2f}"
-                  f"  [{entry['store']} / {entry['method']}]")
+        if MODE == "discover":
+            discoveries.append(discover_dump(session, html, t))
+            report["targets"].append(entry)
+            time.sleep(2)
+            continue
+
+        if t["kind"] == "sku":
+            one = scrape_sku(html, t, venue["currency"])
+            rows = [one] if one else []
         else:
-            failures += 1
-            print(f"{product['id']:18s} FAILED ({attempts[-1]['note']})", file=sys.stderr)
+            rows = scrape_multi(session, html, t, venue["currency"])
+
+        if not rows:
+            entry["note"] = "no price found"
+            if not t.get("optional"): n_fail += 1
+        else:
+            entry["rows"] = len(rows)
+            entry["methods"] = sorted({r["method"] for r in rows})
+            for r in rows:
+                n_obs += 1
+                store["observations"].append({
+                    "d": today, "sku": sku_id(t["product"], t["form"], r.get("mg")),
+                    "product": t["product"], "form": t["form"],
+                    "mg": r.get("mg"), "n": r.get("n") or 1,
+                    "venue": t["venue"], "country": venue["country"],
+                    "cur": venue["currency"], "price": round(r["price"], 2),
+                    "unit": round(r["price"] / (r.get("n") or 1), 4),
+                    "method": r["method"],
+                    **({"label": r["label"]} if r.get("label") else {}),
+                })
+        report["targets"].append(entry)
         time.sleep(2)
 
-    DATA.write_text(json.dumps(store, indent=1) + "\n")
-    REPORT.write_text(json.dumps(report, indent=1) + "\n")
-    print(f"\nwrote {DATA.name} and {REPORT.name}"
-          f" ({failures} of {len(PRODUCTS)} products failed)")
-    # Fail the job only when nothing at all could be scraped.
-    sys.exit(1 if failures == len(PRODUCTS) else 0)
+    if MODE == "discover":
+        report["discoveries"] = discoveries
+        REPORT.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n")
+        print(f"discovery dump for {len(discoveries)} targets -> {REPORT.name}")
+        return
+
+    DATA.write_text(json.dumps(store, indent=1, ensure_ascii=False) + "\n")
+    REPORT.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n")
+    by_cc = {}
+    for o in store["observations"]:
+        if o["d"] == today:
+            by_cc.setdefault(o["country"], 0)
+            by_cc[o["country"]] += 1
+    print(f"{n_obs} observations today ({by_cc}), {n_fail} required targets failed")
+    sys.exit(1 if n_obs == 0 else 0)
 
 
 if __name__ == "__main__":
