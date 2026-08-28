@@ -317,9 +317,6 @@ TARGETS = [
     {"product": "apoquel", "venue": "alphaportal", "kind": "sku",
      "url": "https://www.alphaportal2.hu/termek-kategoria/allatgyogyaszati-keszitmenyek/apoquel-16-mg-filmtabletta-20x-10010186/",
      "form": "tab", "mg": 16, "n": 20, "optional": True},
-    {"product": "apoquel", "venue": "kincsem", "kind": "sku",
-     "url": "https://kincsemallatpatika.hu/webshop/apoquel-16-mg-filmtabletta-20x",
-     "form": "tab", "mg": 16, "n": 20},
     # ---------------- IT ----------------
     {"product": "apoquel", "venue": "tuttofarma", "kind": "sku",
      "url": "https://www.tuttofarma.it/farmaci-veterinari-con-ricetta/114815-apoquel-100-compresse-rivestite-16mg-farmaco-veterinario.html",
