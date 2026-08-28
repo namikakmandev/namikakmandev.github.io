@@ -64,6 +64,16 @@
   <div class="grid2" id="charts"></div>
 
   <div class="card">
+    <div class="chart-title">Cost per itch-free day — dosage-normalized, all markets</div>
+    <div class="chart-sub">Maintenance therapy for a ~20 kg dog: one weight-matched tablet daily
+      (Apoquel 16 mg, Zenrelia 15 mg, Numelvi 21.6 mg) or one Cytopoint 40 mg vial per month
+      (drug cost only). Converted to USD/day with the daily ECB cross-rates from
+      <a style="color:var(--c1)" href="rates.json">rates.json</a>; recomputed from the latest scrape.</div>
+    <div class="tblwrap"><table id="costtable"></table></div>
+    <div class="chart-sub" id="costnotes" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
     <div class="chart-title">Latest snapshot — every SKU, every venue</div>
     <div class="chart-sub" id="snapdate"></div>
     <div class="tblwrap"><table id="snaptable"></table></div>
@@ -116,7 +126,72 @@ function lineChart(series, {height=210, yFmt=v=>v.toFixed(2)}={}){
   return out;
 }
 
-fetch('data/pharma-prices.json').then(r=>{ if(!r.ok) throw new Error('no data'); return r.json(); }).then(data=>{
+// Dosage model for the cost-per-day panel: ~20 kg dog, maintenance phase.
+const DOSE = {
+  'apoquel':          {form:'tab',  mg:16,   unitsPerDay:1},
+  'apoquel-chewable': {form:'chew', mg:16,   unitsPerDay:1},
+  'zenrelia':         {form:'tab',  mg:15,   unitsPerDay:1},
+  'numelvi':          {form:'tab',  mg:21.6, unitsPerDay:1},
+  'cytopoint':        {form:'inj',  mg:40,   unitsPerDay:1/30},
+};
+
+function renderCostTable(data, fx){
+  const obs = (data.observations||[]).filter(o=>o.price>0);
+  const products = data.meta.products, venues = data.meta.venues;
+  const latestDate = obs.map(o=>o.d).sort().at(-1);
+  const toUSD = {USD:1, GBP: fx? fx.GBPTRY/fx.USDTRY : null, TRY: fx? 1/fx.USDTRY : null};
+  const rows = [], excluded = [];
+  for(const [pid, dose] of Object.entries(DOSE)){
+    const perVenue = {};
+    obs.filter(o=>o.d===latestDate && o.product===pid).forEach(o=>{
+      if(o.form!==dose.form || o.mg!==dose.mg){
+        if(o.mg==null) excluded.push(`${products[pid].name} at ${venues[o.venue].name} (${o.country}): strength not stated on page`);
+        return;
+      }
+      const key = o.venue;
+      if(!(key in perVenue) || o.unit < perVenue[key].unit) perVenue[key] = o;
+    });
+    for(const o of Object.values(perVenue)){
+      const localDay = o.unit * dose.unitsPerDay;
+      const usdDay = toUSD[o.cur]!=null ? localDay*toUSD[o.cur] : null;
+      rows.push({pid, o, localDay, usdDay});
+    }
+  }
+  const maxUSD = Math.max(...rows.map(r=>r.usdDay??0), 0.01);
+  let html = '<tr><th>Product</th><th>Venue</th><th>SKU</th><th>Local/day</th><th>USD/day</th><th>USD/month</th></tr>';
+  for(const pid of Object.keys(DOSE)){
+    const group = rows.filter(r=>r.pid===pid).sort((a,b)=>(a.usdDay??1e9)-(b.usdDay??1e9));
+    group.forEach((r,i)=>{
+      const {o} = r;
+      const bar = r.usdDay!=null
+        ? `<span style="display:inline-block;width:90px;height:7px;background:var(--card2);border:1px solid var(--line);border-radius:4px;overflow:hidden;vertical-align:1px;margin-left:8px"><i style="display:block;height:100%;width:${(100*r.usdDay/maxUSD).toFixed(0)}%;background:var(--c1)"></i></span>` : '';
+      html += `<tr>
+        <td>${i===0?esc(products[pid].name):''}</td>
+        <td><span class="cc">${o.country}</span>${esc(venues[o.venue].name)}</td>
+        <td>${DOSE[pid].mg}mg ${FORM[DOSE[pid].form]}</td>
+        <td>${money(r.localDay,o.cur,o.cur==='TRY'?0:2)}</td>
+        <td>${r.usdDay!=null?('$'+r.usdDay.toFixed(2))+bar:'—'}</td>
+        <td>${r.usdDay!=null?'$'+(r.usdDay*30).toFixed(2):'—'}</td></tr>`;
+    });
+  }
+  document.getElementById('costtable').innerHTML = html;
+  document.getElementById('costnotes').innerHTML =
+    (fx? `FX: ECB via rates.json (${esc(fx._asof||'')}) £1=$${(fx.GBPTRY/fx.USDTRY).toFixed(3)}, $1=₺${fx.USDTRY.toFixed(1)}. `
+       : 'rates.json unavailable — USD conversion skipped for non-USD venues. ') +
+    (excluded.length? 'Excluded (no strength on page): ' + excluded.map(esc).join('; ') + '. ' : '') +
+    'Numelvi 21.6 mg weight-band assignment is an assumption; Cytopoint excludes the vet visit.';
+}
+
+Promise.all([
+  fetch('data/pharma-prices.json').then(r=>{ if(!r.ok) throw new Error('no data'); return r.json(); }),
+  fetch('rates.json').then(r=>r.ok?r.json():null).catch(()=>null)
+]).then(([data, rates])=>{
+  const fx = rates && rates.fx ? {...rates.fx, _asof: rates.fxAsof} : null;
+  try { renderCostTable(data, fx); } catch(e) {
+    document.getElementById('costnotes').textContent = 'cost table unavailable: ' + e.message;
+  }
+  return data;
+}).then(data=>{
   const obs = (data.observations||[]).filter(o=>o.price>0);
   const products = data.meta.products, venues = data.meta.venues;
   const countries = [...new Set(obs.map(o=>o.country))].sort();
