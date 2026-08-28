@@ -68,8 +68,6 @@ VENUES = {
     "sandia":    {"name": "Sandia Vet",              "country": "TR", "currency": "TRY"},
     "petilac":   {"name": "Petilac",                 "country": "TR", "currency": "TRY"},
     "vepet":     {"name": "Vepetzamani",             "country": "TR", "currency": "TRY"},
-    "didim":     {"name": "Didim Ama",               "country": "TR", "currency": "TRY"},
-    "vfh":       {"name": "VetForHealth",            "country": "TR", "currency": "TRY"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
@@ -102,19 +100,19 @@ TARGETS = [
     {"product": "numelvi", "venue": "petrx", "kind": "multi",
      "url": "https://petrx.com/products/numelvi-atinvicitinib-tablets",
      "form": "tab"},
-    {"product": "zenrelia", "venue": "entirely", "kind": "multi",
+    {"product": "zenrelia", "venue": "entirely", "kind": "sku",
      "url": "https://entirelypetspharmacy.com/zenrelia-tablets-for-dogs.html",
-     "form": "tab"},
+     "form": "tab", "n": 1},
     # ---------------- GB ----------------
-    {"product": "apoquel", "venue": "pdo", "kind": "multi",
+    {"product": "apoquel", "venue": "pdo", "kind": "sku",
      "url": "https://www.petdrugsonline.co.uk/apoquel-16mg",
-     "form": "tab", "mg": 16},
-    {"product": "apoquel-chewable", "venue": "pdo", "kind": "multi",
+     "form": "tab", "mg": 16, "n": 1},
+    {"product": "apoquel-chewable", "venue": "pdo", "kind": "sku",
      "url": "https://www.petdrugsonline.co.uk/apoquel-chewable-tablets-16mg",
-     "form": "chew", "mg": 16},
-    {"product": "zenrelia", "venue": "pdo", "kind": "multi",
+     "form": "chew", "mg": 16, "n": 1},
+    {"product": "zenrelia", "venue": "pdo", "kind": "sku",
      "url": "https://www.petdrugsonline.co.uk/zenrelia-film-coated-tablets-for-dogs-15mg",
-     "form": "tab", "mg": 15},
+     "form": "tab", "mg": 15, "n": 1},
     {"product": "apoquel", "venue": "vetdisp", "kind": "sku",
      "url": "https://www.vetdispense.co.uk/apoquel/2431-16mg-apoquel-tablet-single-tablet.html",
      "form": "tab", "mg": 16, "n": 1},
@@ -140,12 +138,6 @@ TARGETS = [
     {"product": "apoquel", "venue": "vepet", "kind": "sku",
      "url": "https://www.vepetzamani.com/urun/apoquel-16-mg-kasinti-tableti",
      "form": "tab", "mg": 16, "n": 20},
-    {"product": "apoquel", "venue": "didim", "kind": "sku",
-     "url": "https://www.didimama.com.tr/urun/apoquel-16-mg-20-tablet-stt-05-2026",
-     "form": "tab", "mg": 16, "n": 20, "optional": True},
-    {"product": "apoquel", "venue": "vfh", "kind": "sku",
-     "url": "https://www.vetforhealth.com/product-page/apoquel-16-mg-20-tablet",
-     "form": "tab", "mg": 16, "n": 20, "optional": True},
 ]
 
 PRICE_MIN, PRICE_MAX = 0.5, 200000.0   # TRY prices run to five digits
@@ -352,17 +344,15 @@ def scrape_multi(session, html, t, currency):
                           ("prestashop", variants_prestashop(html)),
                           ("ld+json", variants_ldjson(html)),
                           ("options", variants_select_options(html))):
-        rows = []
-        seen = set()
+        best = {}
         for label, price in pairs:
             mg, n = parse_label(label, t.get("mg"))
-            key = (mg, n, price)
-            if key in seen: continue
-            seen.add(key)
-            rows.append({"mg": mg, "n": n or 1, "price": price,
-                         "method": method, "label": label[:60]})
-        if rows:
-            return rows
+            key = (mg, n)
+            if key not in best or price < best[key]["price"]:
+                best[key] = {"mg": mg, "n": n or 1, "price": price,
+                             "method": method, "label": label[:60]}
+        if best:
+            return list(best.values())
     # fall back to page-level single observation, count unknown
     one = scrape_sku(html, t, currency)
     if one:
