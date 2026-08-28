@@ -152,7 +152,7 @@ const DOSE = {
   'cytopoint':        {form:'inj',  mg:40,   unitsPerDay:1/56, unitsPerDayMax:1/28},
 };
 
-function renderCostTable(data, fx){
+function renderCostTable(data, fx, vat){
   const obs = (data.observations||[]).filter(o=>o.price>0);
   const products = data.meta.products, venues = data.meta.venues;
   const latestDate = obs.map(o=>o.d).sort().at(-1);
@@ -160,6 +160,20 @@ function renderCostTable(data, fx){
                  EUR: fx? fx.EURTRY/fx.USDTRY : null, AUD: fx? fx.AUDUSD??null : null,
                  PLN: fx? fx.PLNUSD??null : null, CZK: fx? fx.CZKUSD??null : null,
                  HUF: fx? fx.HUFUSD??null : null, RON: fx? fx.RONUSD??null : null};
+
+  // Tax is the last thing standing between these rows and a like-for-like read.
+  // European, British, Turkish and Australian shelf prices are quoted with VAT
+  // or GST already in them; US shelf prices are quoted before sales tax. And the
+  // veterinary rate is NOT the human rate - the Netherlands charges 9% on animal
+  // medicines while Hungary charges 27% and Romania moved them to the full 21%
+  // in August 2025 - so a single "European VAT" haircut would be wrong too.
+  // Divide each tax-inclusive price by (1 + its own country's veterinary rate).
+  const RATE = (vat && vat.rates) || {};
+  const exTax = (country, v) => {
+    const r = RATE[country];
+    if(!r || v==null) return null;
+    return r.display === 'exclusive' ? v : v/(1 + r.rate);
+  };
 
   // Like-for-like requires holding FOUR things constant, not one:
   //   dose (weight-matched strength), form, PACK SIZE, and channel (retail).
@@ -188,7 +202,7 @@ function renderCostTable(data, fx){
          });
       for(const o of Object.values(perCountry)){
         const usd = toUSD[o.cur]!=null ? o.unit*dose.unitsPerDay*toUSD[o.cur] : null;
-        rows.push({pid, tier, o, local:o.unit*dose.unitsPerDay, usd});
+        rows.push({pid, tier, o, local:o.unit*dose.unitsPerDay, usd, ex:exTax(o.country, usd)});
       }
     }
     obs.filter(o=>o.d===latestDate && o.product===pid && o.mg===dose.mg
@@ -196,23 +210,29 @@ function renderCostTable(data, fx){
        .forEach(o=>excluded.push(`${products[pid].name} in ${o.country} sells only in ${o.n}s`));
   }
 
-  const maxUSD = Math.max(...rows.map(r=>r.usd??0), 0.01);
-  let html = '<tr><th>Product · basis</th><th>Country</th><th>Venue</th><th>Local/day</th><th>USD/day</th><th>vs cheapest</th></tr>';
+  const maxUSD = Math.max(...rows.map(r=>r.ex??r.usd??0), 0.01);
+  const taxCell = c => { const r = RATE[c];
+    if(!r) return '<span style="color:var(--ink2)">?</span>';
+    if(r.display === 'exclusive') return '<span style="color:var(--ink2)">ex-tax</span>';
+    return (r.rate*100).toFixed(0) + '%' + (r.flag ? '<sup>†</sup>' : ''); };
+  let html = '<tr><th>Product · basis</th><th>Country</th><th>Venue</th><th>Shelf/day</th><th>Tax in it</th><th>USD/day ex-tax</th><th>vs cheapest</th></tr>';
   for(const [pid, dose] of Object.entries(DOSE)){
     if(dose.form === 'inj') continue;
     for(const tier of TIERS){
       const g = rows.filter(r=>r.pid===pid && r.tier.key===tier.key)
-                    .sort((a,b)=>(a.usd??1e9)-(b.usd??1e9));
+                    .sort((a,b)=>(a.ex??a.usd??1e9)-(b.ex??b.usd??1e9));
       if(g.length < 2) continue;            // a tier of one compares nothing
-      const cheapest = g[0].usd;
-      html += `<tr class="group"><td colspan="6">${esc(products[pid].name)} ${dose.mg}mg — ${esc(tier.label)} · ${g.length} markets</td></tr>`;
+      const cheapest = g[0].ex ?? g[0].usd;
+      html += `<tr class="group"><td colspan="7">${esc(products[pid].name)} ${dose.mg}mg — ${esc(tier.label)} · ${g.length} markets</td></tr>`;
       for(const r of g){
-        const bar = r.usd!=null ? `<span style="display:inline-block;width:80px;height:7px;background:var(--card2);border:1px solid var(--line);border-radius:4px;overflow:hidden;vertical-align:1px;margin-left:8px"><i style="display:block;height:100%;width:${(100*r.usd/maxUSD).toFixed(0)}%;background:var(--c1)"></i></span>` : '';
-        const rel = (r.usd!=null && cheapest) ? `${r.usd===cheapest?'—':'+'+((r.usd/cheapest-1)*100).toFixed(0)+'%'}` : '—';
+        const v = r.ex ?? r.usd;
+        const bar = v!=null ? `<span style="display:inline-block;width:80px;height:7px;background:var(--card2);border:1px solid var(--line);border-radius:4px;overflow:hidden;vertical-align:1px;margin-left:8px"><i style="display:block;height:100%;width:${(100*v/maxUSD).toFixed(0)}%;background:var(--c1)"></i></span>` : '';
+        const rel = (v!=null && cheapest) ? `${v===cheapest?'—':'+'+((v/cheapest-1)*100).toFixed(0)+'%'}` : '—';
         html += `<tr><td></td><td><span class="cc">${r.o.country}</span>${esc(CCNAME[r.o.country]||r.o.country)}</td>
           <td>${esc(venues[r.o.venue].name)}</td>
           <td>${money(r.local,r.o.cur,r.o.cur==='TRY'||r.o.cur==='HUF'?0:2)}</td>
-          <td>${r.usd!=null?'$'+r.usd.toFixed(2)+bar:'—'}</td><td>${rel}</td></tr>`;
+          <td>${taxCell(r.o.country)}</td>
+          <td>${v!=null?'$'+v.toFixed(2)+bar:'—'}</td><td>${rel}</td></tr>`;
       }
     }
   }
@@ -223,12 +243,12 @@ function renderCostTable(data, fx){
                   && o.n===vialPack && !CLINIC.has(o.venue))
        .forEach(o=>{ if(!inj[o.country] || o.unit<inj[o.country].unit) inj[o.country]=o; });
     const injRows = Object.values(inj).map(o=>({o,
-        lo: toUSD[o.cur]!=null ? o.unit*DOSE.cytopoint.unitsPerDay*toUSD[o.cur] : null,
-        hi: toUSD[o.cur]!=null ? o.unit*DOSE.cytopoint.unitsPerDayMax*toUSD[o.cur] : null}))
+        lo: exTax(o.country, toUSD[o.cur]!=null ? o.unit*DOSE.cytopoint.unitsPerDay*toUSD[o.cur] : null),
+        hi: exTax(o.country, toUSD[o.cur]!=null ? o.unit*DOSE.cytopoint.unitsPerDayMax*toUSD[o.cur] : null)}))
       .sort((a,b)=>(a.lo??1e9)-(b.lo??1e9));
     if(injRows.length < 2) continue;
     const cheapest = injRows[0].lo;
-    html += `<tr class="group"><td colspan="6">Cytopoint ${DOSE.cytopoint.mg}mg — `
+    html += `<tr class="group"><td colspan="7">Cytopoint ${DOSE.cytopoint.mg}mg — `
           + `${vialPack === 1 ? 'single vial' : vialPack + '-vial pack'}, dosed every 4 to 8 weeks · `
           + `${injRows.length} markets</td></tr>`;
     for(const r of injRows){
@@ -236,6 +256,7 @@ function renderCostTable(data, fx){
       html += `<tr><td></td><td><span class="cc">${r.o.country}</span>${esc(CCNAME[r.o.country]||r.o.country)}</td>
         <td>${esc(venues[r.o.venue].name)}</td>
         <td>${money(r.o.unit,r.o.cur,r.o.cur==='TRY'||r.o.cur==='HUF'?0:2)}/vial</td>
+        <td>${taxCell(r.o.country)}</td>
         <td>${r.lo!=null?'$'+r.lo.toFixed(2)+'–$'+r.hi.toFixed(2):'—'}</td><td>${rel}</td></tr>`;
     }
   }
@@ -247,21 +268,33 @@ function renderCostTable(data, fx){
     'compared against each other, because a per-tablet price and a 100-pack unit price are different ' +
     'goods (the bulk discount inside a single venue runs 4–31%). ' +
     (excluded.length? esc([...new Set(excluded)].join('; ')) + '. ' : '') +
-    '<b>Not adjusted for tax:</b> EU, UK, Turkish and Australian shelf prices include VAT/GST ' +
-    '(roughly 19–27% in the EU, 20% UK, 10% AU) while US prices exclude sales tax — so the US sits ' +
-    'flattered by about a fifth against European rows, and intra-EU rows are comparable with each ' +
-    'other but not with the US. Clinic-administered pricing (PerfectPet, RO) is excluded from these ' +
-    'retail comparisons.';
+    (vat ? '<b>Now adjusted for tax.</b> The ranking column is ex-tax. European, British, Turkish ' +
+      'and Australian shelf prices carry VAT or GST inside them; US shelf prices are quoted before ' +
+      'sales tax, so the US number is already ex-tax. Each inclusive price is divided by its own ' +
+      'country\u2019s <i>veterinary</i> rate, which is not the human rate and not a single European ' +
+      'number: the Netherlands charges 9% on animal medicines, Italy, Spain and T\u00fcrkiye 10%, ' +
+      'Czechia 12%, Germany 19%, France and the UK 20%, Romania 21% (moved off the reduced rate on ' +
+      '1 August 2025) and Hungary 27%. Rates and sources: ' +
+      '<a href="data/vat-vet-medicines.json">vat-vet-medicines.json</a>. ' +
+      '<sup>\u2020</sup>Slovakia\u2019s 5% is inferred from a customs-chapter reference rather than ' +
+      'veterinary-specific wording \u2014 if that inference is wrong the true rate is 23%, so treat ' +
+      'the Slovak row as the least certain here. ' +
+      'Whether a US state then adds sales tax at the till varies (most exempt animal prescriptions, ' +
+      'New Jersey does not), but none of that is inside the displayed price. '
+     : '<b>Tax adjustment unavailable</b> — vat-vet-medicines.json did not load, so the figures below ' +
+       'are shelf prices with VAT/GST still in them and are not comparable across countries. ') +
+    'Clinic-administered pricing (PerfectPet, RO) is excluded from these retail comparisons.';
 }
 
 Promise.all([
   fetch('data/pharma-prices.json').then(r=>{ if(!r.ok) throw new Error('no data'); return r.json(); }),
   fetch('rates.json').then(r=>r.ok?r.json():null).catch(()=>null),
-  fetch('https://api.frankfurter.app/latest?from=USD&to=AUD,PLN,CZK,HUF,RON').then(r=>r.ok?r.json():null).catch(()=>null)
-]).then(([data, rates, aud])=>{
+  fetch('https://api.frankfurter.app/latest?from=USD&to=AUD,PLN,CZK,HUF,RON').then(r=>r.ok?r.json():null).catch(()=>null),
+  fetch('data/vat-vet-medicines.json').then(r=>r.ok?r.json():null).catch(()=>null)
+]).then(([data, rates, aud, vat])=>{
   const fx = rates && rates.fx ? {...rates.fx, _asof: rates.fxAsof} : null;
   if(fx && aud && aud.rates){ for(const [k,v] of Object.entries(aud.rates)) if(v>0) fx[k+'USD'] = 1/v; }
-  try { renderCostTable(data, fx); } catch(e) {
+  try { renderCostTable(data, fx, vat); } catch(e) {
     document.getElementById('costnotes').textContent = 'cost table unavailable: ' + e.message;
   }
   return data;
