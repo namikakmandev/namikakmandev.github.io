@@ -142,6 +142,15 @@ function renderCostTable(data, fx){
   const toUSD = {USD:1, GBP: fx? fx.GBPTRY/fx.USDTRY : null, TRY: fx? 1/fx.USDTRY : null,
                  EUR: fx? fx.EURTRY/fx.USDTRY : null, AUD: fx? fx.AUDUSD??null : null};
   const rows = [], excluded = [];
+  // per sku@venue history for period-over-period deltas (local currency)
+  const histIdx = {};
+  obs.forEach(o=>{ (histIdx[o.sku+'@'+o.venue] ??= []).push([o.d, o.unit]); });
+  Object.values(histIdx).forEach(a=>a.sort());
+  function priorUnit(sku, venue, days){
+    const cut = new Date(new Date(latestDate) - days*864e5).toISOString().slice(0,10);
+    const a = (histIdx[sku+'@'+venue]||[]).filter(x=>x[0] <= cut);
+    return a.length ? a[a.length-1][1] : null;
+  }
   for(const [pid, dose] of Object.entries(DOSE)){
     const perVenue = {};
     obs.filter(o=>o.d===latestDate && o.product===pid).forEach(o=>{
@@ -155,11 +164,13 @@ function renderCostTable(data, fx){
     for(const o of Object.values(perVenue)){
       const localDay = o.unit * dose.unitsPerDay;
       const usdDay = toUSD[o.cur]!=null ? localDay*toUSD[o.cur] : null;
-      rows.push({pid, o, localDay, usdDay});
+      const prev = priorUnit(o.sku, o.venue, 80);
+      const chg = prev!=null && prev>0 ? (o.unit/prev-1)*100 : null;
+      rows.push({pid, o, localDay, usdDay, chg});
     }
   }
   const maxUSD = Math.max(...rows.map(r=>r.usdDay??0), 0.01);
-  let html = '<tr><th>Product</th><th>Venue</th><th>SKU</th><th>Local/day</th><th>USD/day</th><th>USD/month</th></tr>';
+  let html = '<tr><th>Product</th><th>Venue</th><th>SKU</th><th>Local/day</th><th>USD/day</th><th>USD/month</th><th>vs ~3mo</th></tr>';
   for(const pid of Object.keys(DOSE)){
     const group = rows.filter(r=>r.pid===pid).sort((a,b)=>(a.usdDay??1e9)-(b.usdDay??1e9));
     group.forEach((r,i)=>{
@@ -172,7 +183,8 @@ function renderCostTable(data, fx){
         <td>${DOSE[pid].mg}mg ${FORM[DOSE[pid].form]}</td>
         <td>${money(r.localDay,o.cur,o.cur==='TRY'?0:2)}</td>
         <td>${r.usdDay!=null?('$'+r.usdDay.toFixed(2))+bar:'—'}</td>
-        <td>${r.usdDay!=null?'$'+(r.usdDay*30).toFixed(2):'—'}</td></tr>`;
+        <td>${r.usdDay!=null?'$'+(r.usdDay*30).toFixed(2):'—'}</td>
+        <td>${r.chg==null?'<span style="color:var(--ink3)">—</span>':`<span style="color:${r.chg>0.5?'var(--dn)':r.chg<-0.5?'var(--c3)':'var(--ink3)'}">${r.chg>=0?'+':''}${r.chg.toFixed(1)}%</span>`}</td></tr>`;
     });
   }
   document.getElementById('costtable').innerHTML = html;
@@ -180,7 +192,7 @@ function renderCostTable(data, fx){
     (fx? `FX: ECB via rates.json (${esc(fx._asof||'')}) £1=$${(fx.GBPTRY/fx.USDTRY).toFixed(3)}, €1=$${(fx.EURTRY/fx.USDTRY).toFixed(3)}, $1=₺${fx.USDTRY.toFixed(1)}${fx.AUDUSD?`, A$1=$${fx.AUDUSD.toFixed(3)}`:''}. `
        : 'rates.json unavailable — USD conversion skipped for non-USD venues. ') +
     (excluded.length? 'Excluded (no strength on page): ' + excluded.map(esc).join('; ') + '. ' : '') +
-    'Numelvi 21.6 mg weight-band assignment is an assumption; Cytopoint excludes the vet visit.';
+    '"vs ~3mo" compares the same SKU at the same venue in local currency against the newest observation at least ~3 months older (live or Wayback-backfilled); Numelvi 21.6 mg weight-band assignment is an assumption; Cytopoint excludes the vet visit.';
 }
 
 Promise.all([

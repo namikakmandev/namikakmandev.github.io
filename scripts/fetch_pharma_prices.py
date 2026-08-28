@@ -78,6 +78,12 @@ VENUES = {
     "petchem":   {"name": "Pet Chemist",             "country": "AU", "currency": "AUD"},
     "trettin":   {"name": "Trettin Apotheken",       "country": "DE", "currency": "EUR"},
     "diermed":   {"name": "Diermedicatie.nl",        "country": "NL", "currency": "EUR"},
+    "gosvet":    {"name": "GosVet (PL storefront)",  "country": "PL", "currency": "EUR"},
+    "vetshopcz": {"name": "VeterinaShop.cz",         "country": "CZ", "currency": "CZK"},
+    "metrovet":  {"name": "MetropoleVet",            "country": "CZ", "currency": "CZK"},
+    "dogmo":     {"name": "DogmoPharm",              "country": "HU", "currency": "HUF"},
+    "vetker":    {"name": "Vetker",                  "country": "HU", "currency": "HUF"},
+    "hazipatika": {"name": "Hazikedvenc Patika",     "country": "HU", "currency": "HUF"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
@@ -202,9 +208,48 @@ TARGETS = [
     {"product": "numelvi", "venue": "diermed", "kind": "multi",
      "url": "https://www.diermedicatie.nl/nl/numelvi-hond.html",
      "form": "tab", "optional": True},
+    # ---------------- PL (GosVet: EU storefront serving Poland, EUR) ----------------
+    {"product": "apoquel", "venue": "gosvet", "kind": "sku",
+     "url": "https://gosvet.com/pl/producto/apoquel-16mg-100-comprimidos/",
+     "form": "tab", "mg": 16, "n": 100},
+    {"product": "apoquel-chewable", "venue": "gosvet", "kind": "sku",
+     "url": "https://gosvet.com/pl/producto/apoquel-16-mg-20-comprimidos-masticables/",
+     "form": "chew", "mg": 16, "n": 20, "optional": True},
+    {"product": "cytopoint", "venue": "gosvet", "kind": "sku",
+     "url": "https://gosvet.com/pl/cytopoint-20mg-ml-2vialesx1ml/",
+     "form": "inj", "mg": 20, "n": 2, "optional": True},
+    {"product": "cytopoint", "venue": "gosvet", "kind": "sku",
+     "url": "https://gosvet.com/pl/cytopoint-30mg-ml-2vialesx1ml/",
+     "form": "inj", "mg": 30, "n": 2, "optional": True},
+    # ---------------- CZ ----------------
+    {"product": "apoquel", "venue": "vetshopcz", "kind": "sku",
+     "url": "https://www.veterinashop.cz/apoquel-16mg-100tbl",
+     "form": "tab", "mg": 16, "n": 100, "optional": True},
+    {"product": "apoquel", "venue": "vetshopcz", "kind": "sku",
+     "url": "https://www.veterinashop.cz/apoquel-16mg-20tbl",
+     "form": "tab", "mg": 16, "n": 20, "optional": True},
+    {"product": "apoquel", "venue": "metrovet", "kind": "multi",
+     "url": "https://www.metropolevet.cz/produkt/tablety-a-leciva/apoquel/",
+     "form": "tab", "mg": 16, "optional": True},
+    # ---------------- HU ----------------
+    {"product": "apoquel", "venue": "dogmo", "kind": "sku",
+     "url": "https://webshop.dogmopharm.hu/apoquel-16-mg-filmtabletta-100x",
+     "form": "tab", "mg": 16, "n": 100},
+    {"product": "apoquel", "venue": "dogmo", "kind": "sku",
+     "url": "https://webshop.dogmopharm.hu/apoquel-16-mg-filmtabletta-20x",
+     "form": "tab", "mg": 16, "n": 20},
+    {"product": "apoquel-chewable", "venue": "dogmo", "kind": "sku",
+     "url": "https://webshop.dogmopharm.hu/apoquel-16-mg-ragotabletta-kutyak-reszere-20x",
+     "form": "chew", "mg": 16, "n": 20, "optional": True},
+    {"product": "apoquel", "venue": "vetker", "kind": "sku",
+     "url": "https://vetker.hu/apoquel-16-mg-filmtabletta-kutyak-reszere-20x-2.html",
+     "form": "tab", "mg": 16, "n": 20, "optional": True},
+    {"product": "apoquel", "venue": "hazipatika", "kind": "multi",
+     "url": "https://hazikedvencpatika.hu/apoquel-16mg-2755",
+     "form": "tab", "mg": 16, "optional": True},
 ]
 
-PRICE_MIN, PRICE_MAX = 0.5, 200000.0   # TRY prices run to five digits
+PRICE_MIN, PRICE_MAX = 0.5, 1000000.0  # HUF/TRY pack prices run to six digits
 
 
 # ---------------------------------------------------------------- helpers --
@@ -307,11 +352,12 @@ def extract_inline_js(html):
 
 
 def extract_visible(html, currency):
-    sym = {"USD": r"\$", "AUD": r"\$", "GBP": "£", "TRY": r"(?:₺|TL)", "EUR": "€"}[currency]
+    sym = {"USD": r"\$", "AUD": r"\$", "GBP": "£", "TRY": r"(?:₺|TL)", "EUR": "€",
+           "CZK": r"(?:Kč|CZK)", "HUF": r"(?:Ft|HUF)", "PLN": r"(?:zł|PLN)"}[currency]
     body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
     out = []
-    pats = ([rf"{sym}\s*([0-9][0-9.,]*)", rf"([0-9][0-9.,]*)\s*{sym}"]
-            if currency in ("TRY", "EUR") else [rf"{sym}\s*([0-9][0-9.,]*)"])
+    pats = ([rf"{sym}\s*([0-9][0-9.,]*)", rf"([0-9][0-9 \u00a0.,]*[0-9])\s*{sym}"]
+            if currency in ("TRY", "EUR", "CZK", "HUF", "PLN") else [rf"{sym}\s*([0-9][0-9.,]*)"])
     for pat in pats:
         for p in re.findall(pat, body[:60000]):
             v = to_float(p)
@@ -404,9 +450,9 @@ def scrape_sku(html, t, currency):
     return None
 
 
-def scrape_multi(session, html, t, currency):
+def scrape_multi(session, html, t, currency, allow_shopify=True):
     """Multi-variant page -> [observation], best adapter wins."""
-    for method, pairs in (("shopify", variants_shopify(session, t["url"])),
+    for method, pairs in (("shopify", variants_shopify(session, t["url"]) if allow_shopify else []),
                           ("prestashop", variants_prestashop(html)),
                           ("ld+json", variants_ldjson(html)),
                           ("options", variants_select_options(html))):
