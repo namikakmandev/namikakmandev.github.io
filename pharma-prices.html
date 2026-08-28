@@ -52,11 +52,11 @@
 <body>
 <div class="wrap">
 
-  <div class="kicker">Animal Health · US / UK / TR Retail · Daily</div>
+  <div class="kicker">Animal Health · Multi-Market Retail · Daily</div>
   <h1>Animal Pharma Price Tracker</h1>
   <p class="sub">Daily list prices for five canine dermatology products — the atopic-dermatitis market where
   Zoetis (Cytopoint, Apoquel), Merck (Numelvi) and Elanco (Zenrelia) compete — tracked per
-  <b>form &amp; strength</b>, per <b>venue</b>, per <b>country</b>, from online pet pharmacies in three markets.</p>
+  <b>form &amp; strength</b>, per <b>venue</b>, per <b>country</b>, from online pet pharmacies across six markets.</p>
 
   <div class="btns" id="ccbtns"></div>
   <div class="banner" id="banner"></div>
@@ -88,8 +88,8 @@
 
 <script>
 const RAWCOL = ['#2A8FEF','#F05E00','#19C37D','#C77DFF','#FFC53D','#7ED4E6','#E8637A','#9AE66E'];
-const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye'};
-const SYM = {USD:'$', GBP:'£', TRY:'₺'};
+const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands'};
+const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$'};
 const FORM = {tab:'tablet', chew:'chewable', inj:'vial'};
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money = (v,cur,dp) => SYM[cur] + v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2});
@@ -139,7 +139,8 @@ function renderCostTable(data, fx){
   const obs = (data.observations||[]).filter(o=>o.price>0);
   const products = data.meta.products, venues = data.meta.venues;
   const latestDate = obs.map(o=>o.d).sort().at(-1);
-  const toUSD = {USD:1, GBP: fx? fx.GBPTRY/fx.USDTRY : null, TRY: fx? 1/fx.USDTRY : null};
+  const toUSD = {USD:1, GBP: fx? fx.GBPTRY/fx.USDTRY : null, TRY: fx? 1/fx.USDTRY : null,
+                 EUR: fx? fx.EURTRY/fx.USDTRY : null, AUD: fx? fx.AUDUSD??null : null};
   const rows = [], excluded = [];
   for(const [pid, dose] of Object.entries(DOSE)){
     const perVenue = {};
@@ -176,7 +177,7 @@ function renderCostTable(data, fx){
   }
   document.getElementById('costtable').innerHTML = html;
   document.getElementById('costnotes').innerHTML =
-    (fx? `FX: ECB via rates.json (${esc(fx._asof||'')}) £1=$${(fx.GBPTRY/fx.USDTRY).toFixed(3)}, $1=₺${fx.USDTRY.toFixed(1)}. `
+    (fx? `FX: ECB via rates.json (${esc(fx._asof||'')}) £1=$${(fx.GBPTRY/fx.USDTRY).toFixed(3)}, €1=$${(fx.EURTRY/fx.USDTRY).toFixed(3)}, $1=₺${fx.USDTRY.toFixed(1)}${fx.AUDUSD?`, A$1=$${fx.AUDUSD.toFixed(3)}`:''}. `
        : 'rates.json unavailable — USD conversion skipped for non-USD venues. ') +
     (excluded.length? 'Excluded (no strength on page): ' + excluded.map(esc).join('; ') + '. ' : '') +
     'Numelvi 21.6 mg weight-band assignment is an assumption; Cytopoint excludes the vet visit.';
@@ -184,9 +185,11 @@ function renderCostTable(data, fx){
 
 Promise.all([
   fetch('data/pharma-prices.json').then(r=>{ if(!r.ok) throw new Error('no data'); return r.json(); }),
-  fetch('rates.json').then(r=>r.ok?r.json():null).catch(()=>null)
-]).then(([data, rates])=>{
+  fetch('rates.json').then(r=>r.ok?r.json():null).catch(()=>null),
+  fetch('https://api.frankfurter.app/latest?from=AUD&to=USD').then(r=>r.ok?r.json():null).catch(()=>null)
+]).then(([data, rates, aud])=>{
   const fx = rates && rates.fx ? {...rates.fx, _asof: rates.fxAsof} : null;
+  if(fx && aud && aud.rates && aud.rates.USD) fx.AUDUSD = aud.rates.USD;
   try { renderCostTable(data, fx); } catch(e) {
     document.getElementById('costnotes').textContent = 'cost table unavailable: ' + e.message;
   }

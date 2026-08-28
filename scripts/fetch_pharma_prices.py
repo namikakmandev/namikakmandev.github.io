@@ -8,6 +8,11 @@ per page. Three countries, 2-3 venues each:
   GB  VetUK, Pet Drugs Online, VetDispense (+Hyperdrug, the only UK Numelvi listing)
   TR  Sandia, Petilac, Vepetzamani (Apoquel only — Cytopoint is clinic-only in TR,
       Zenrelia/Numelvi not in TR retail as of Aug 2026)
+  AU  Discount Pet Meds, YourPetPA, Pet Chemist (no Numelvi launch yet)
+  DE  Trettin Apotheken, medizinfuchs comparator, A3 Apotheke (Numelvi has PZNs
+      but no pharmacy stocks it yet)
+  NL  Diermedicatie.nl probes — Dutch UDA rules bar web sales of these Rx
+      products, so pages may carry no price; kept optional to report honestly
 
 Each target URL is either a SKUPAGE (the page sells exactly one form/strength,
 declared in config) or a MULTI page (several variants; an adapter extracts
@@ -68,6 +73,13 @@ VENUES = {
     "sandia":    {"name": "Sandia Vet",              "country": "TR", "currency": "TRY"},
     "petilac":   {"name": "Petilac",                 "country": "TR", "currency": "TRY"},
     "vepet":     {"name": "Vepetzamani",             "country": "TR", "currency": "TRY"},
+    "dpm":       {"name": "Discount Pet Meds",       "country": "AU", "currency": "AUD"},
+    "ypa":       {"name": "YourPetPA",               "country": "AU", "currency": "AUD"},
+    "petchem":   {"name": "Pet Chemist",             "country": "AU", "currency": "AUD"},
+    "trettin":   {"name": "Trettin Apotheken",       "country": "DE", "currency": "EUR"},
+    "medifuchs": {"name": "medizinfuchs (comparator)", "country": "DE", "currency": "EUR"},
+    "a3":        {"name": "A3 Apotheke",             "country": "DE", "currency": "EUR"},
+    "diermed":   {"name": "Diermedicatie.nl",        "country": "NL", "currency": "EUR"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
@@ -138,6 +150,60 @@ TARGETS = [
     {"product": "apoquel", "venue": "vepet", "kind": "sku",
      "url": "https://www.vepetzamani.com/urun/apoquel-16-mg-kasinti-tableti",
      "form": "tab", "mg": 16, "n": 20},
+    # ---------------- AU ----------------
+    {"product": "apoquel", "venue": "dpm", "kind": "sku",
+     "url": "https://discountpetmeds.com.au/apoquel-16mg-single-tablet-oclacitinib-maleate/",
+     "form": "tab", "mg": 16, "n": 1},
+    {"product": "zenrelia", "venue": "dpm", "kind": "sku",
+     "url": "https://discountpetmeds.com.au/zenrelia-15mg-tablets-90/",
+     "form": "tab", "mg": 15, "n": 90},
+    {"product": "zenrelia", "venue": "dpm", "kind": "sku",
+     "url": "https://discountpetmeds.com.au/zenrelia-6-4mg-single-tablets/",
+     "form": "tab", "mg": 6.4, "n": 1},
+    {"product": "cytopoint", "venue": "dpm", "kind": "sku",
+     "url": "https://discountpetmeds.com.au/cytopoint-20mg-injection-2-vials-lokivetmab/",
+     "form": "inj", "mg": 20, "n": 2},
+    {"product": "cytopoint", "venue": "dpm", "kind": "sku",
+     "url": "https://discountpetmeds.com.au/cytopoint-30mg-injection-2-vials-lokivetmab/",
+     "form": "inj", "mg": 30, "n": 2},
+    {"product": "apoquel", "venue": "ypa", "kind": "multi",
+     "url": "https://yourpetpa.com.au/products/apoquel-16mg-per-tablet",
+     "form": "tab", "mg": 16},
+    {"product": "cytopoint", "venue": "ypa", "kind": "multi",
+     "url": "https://yourpetpa.com.au/products/cytopoint-injection-40mg-2-vials",
+     "form": "inj", "mg": 40},
+    {"product": "cytopoint", "venue": "petchem", "kind": "sku",
+     "url": "https://petchemist.com.au/products/cytopoint-injection-40mg-2-vials.html",
+     "form": "inj", "mg": 40, "n": 2},
+    # ---------------- DE ----------------
+    {"product": "apoquel", "venue": "trettin", "kind": "sku",
+     "url": "https://www.shop.trettin-apotheken.de/product/apoquel-16-mg-filmtabletten-f-hunde.949759.html",
+     "form": "tab", "mg": 16, "n": 100},
+    {"product": "apoquel-chewable", "venue": "trettin", "kind": "sku",
+     "url": "https://www.shop.trettin-apotheken.de/product/apoquel-16-mg-kautabletten-f-hunde.936112.html",
+     "form": "chew", "mg": 16, "n": 20},
+    {"product": "zenrelia", "venue": "trettin", "kind": "sku",
+     "url": "https://www.shop.trettin-apotheken.de/product/zenrelia-15-mg-filmtabletten-fuer-hunde.1057632.html",
+     "form": "tab", "mg": 15, "n": 30},
+    {"product": "cytopoint", "venue": "trettin", "kind": "sku",
+     "url": "https://www.shop.trettin-apotheken.de/product/cytopoint-40-mg-ml-injektionsloesung-f-hunde.806409.html",
+     "form": "inj", "mg": 40, "n": 1},
+    {"product": "apoquel", "venue": "medifuchs", "kind": "multi",
+     "url": "https://www.medizinfuchs.de/apoquel-16-mg.html",
+     "form": "tab", "mg": 16, "optional": True},
+    {"product": "zenrelia", "venue": "a3", "kind": "multi",
+     "url": "https://a3apotheke.de/produkte/zenrelia-15-mg-filmtabletten-fur-hunde-19711347",
+     "form": "tab", "mg": 15, "optional": True},
+    # ---------------- NL (UDA rules may hide prices — probes) ----------------
+    {"product": "apoquel", "venue": "diermed", "kind": "multi",
+     "url": "https://www.diermedicatie.nl/nl/apoquel.html",
+     "form": "tab", "optional": True},
+    {"product": "zenrelia", "venue": "diermed", "kind": "multi",
+     "url": "https://www.diermedicatie.nl/nl/zenrelia-hond.html",
+     "form": "tab", "optional": True},
+    {"product": "cytopoint", "venue": "diermed", "kind": "multi",
+     "url": "https://www.diermedicatie.nl/nl/cytopoint.html",
+     "form": "inj", "optional": True},
 ]
 
 PRICE_MIN, PRICE_MAX = 0.5, 200000.0   # TRY prices run to five digits
@@ -172,7 +238,7 @@ def parse_label(label, default_mg=None):
     m = re.search(r"(\d+(?:[.,]\d+)?)\s*-?\s*mg", label, re.I)
     if m: mg = float(m.group(1).replace(",", "."))
     n = None
-    m = (re.search(r"(\d+)\s*(?:count|tablets?|chewables?|tabs?|comprimidos|vials?|adet|'?li)\b", label, re.I)
+    m = (re.search(r"(\d+)\s*(?:count|tablet(?:s|ten)?|kautablet(?:s|ten)?|filmtablet(?:s|ten)?|chewables?|tabs?|comprimidos|vials?|adet|st(?:ück|k)?|'?li)\b", label, re.I)
          or re.search(r"pack of\s*(\d+)", label, re.I)
          or re.search(r"[x×]\s*(\d+)\b", label, re.I))
     if m: n = int(m.group(1))
@@ -241,11 +307,11 @@ def extract_inline_js(html):
 
 
 def extract_visible(html, currency):
-    sym = {"USD": r"\$", "GBP": "£", "TRY": r"(?:₺|TL)"}[currency]
+    sym = {"USD": r"\$", "AUD": r"\$", "GBP": "£", "TRY": r"(?:₺|TL)", "EUR": "€"}[currency]
     body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
     out = []
     pats = ([rf"{sym}\s*([0-9][0-9.,]*)", rf"([0-9][0-9.,]*)\s*{sym}"]
-            if currency == "TRY" else [rf"{sym}\s*([0-9][0-9.,]*)"])
+            if currency in ("TRY", "EUR") else [rf"{sym}\s*([0-9][0-9.,]*)"])
     for pat in pats:
         for p in re.findall(pat, body[:60000]):
             v = to_float(p)
