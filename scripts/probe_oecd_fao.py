@@ -1,120 +1,186 @@
 #!/usr/bin/env python3
-"""Discovery probe for the OECD-FAO Agricultural Outlook.
+"""Discovery probe for the OECD-FAO Agricultural Outlook — round 2.
 
-The study needs two things and only one of them is easy:
+Round 1 answered the only question that could have killed the study: the
+retired OECD.Stat editions are still served. HIGH_AGLINK_2015 through
+HIGH_AGLINK_2023 all return SDMX-JSON, which means an old edition's ten-year
+projections can be recovered and scored against what actually happened.
 
-  A) the PROJECTIONS an old edition published — e.g. the 2015 Outlook's
-     forecast of 2024 meat and dairy prices. Old editions are the whole point;
-     scoring the current edition against itself proves nothing.
-  B) what actually happened, which FAOSTAT / OWID / Eurostat already give.
+Round 2 works out how to read them. It is adaptive: fetch the data structure
+first, learn the real dimension order and codes, then use those to pull a small
+labelled slice. Nothing here is written against the API docs — every query is
+built from what the previous response actually said.
 
-This probe attacks (A). It does not parse anything and it does not decide
-anything — it records what each access route returns so the real fetcher can be
-written against the actual response instead of against the API docs.
+What it has to establish:
+  1. the dimension ids and order for an old edition (needed to filter at all)
+  2. which codes carry commodities, variables and countries
+  3. that the observations hold real numbers, not the zeros round 1 saw
+  4. whether an old edition and a recent one share codes, so projections can be
+     scored against the same database's later history
 
-Runs in GitHub Actions, which can reach OECD and FAO. The dev sandbox cannot.
+Runs in GitHub Actions; the dev sandbox cannot reach OECD.
 
-  python3 scripts/probe_oecd_fao.py            # -> data/_oecd-fao-probe.json
+  python3 scripts/probe_oecd_fao.py     # -> data/_oecd-fao-probe.json
 """
-import json, os, ssl, sys, urllib.error, urllib.request
+import json, os, sys, urllib.error, urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
-TIMEOUT = 60
-HEAD_BYTES = 1400
-UA = "namikakmandev-data-probe/1.0 (+https://namikakmandev.github.io)"
-
-# Route 1 — the current OECD SDMX API. Ask what agricultural dataflows exist
-# before assuming any dataset id.
-SDMX = "https://sdmx.oecd.org/public/rest"
-ROUTES = [
-    ("sdmx_dataflow_all_agencies",
-     f"{SDMX}/dataflow/all/all/latest?format=sdmx-json"),
-    ("sdmx_dataflow_TAD",
-     f"{SDMX}/dataflow/OECD.TAD.ARP/all/latest?format=sdmx-json"),
-    ("sdmx_dataflow_TAD_ATM",
-     f"{SDMX}/dataflow/OECD.TAD.ATM/all/latest?format=sdmx-json"),
-    # Route 2 — the legacy OECD.Stat SDMX-JSON endpoint. Old Outlook editions
-    # were published there as HIGH_AGLINK_<year>; if any still answer, that is
-    # the cleanest possible source for (A).
-    *[(f"legacy_HIGH_AGLINK_{y}",
-       f"https://stats.oecd.org/SDMX-JSON/data/HIGH_AGLINK_{y}/all/all"
-       f"?startTime=2024&endTime=2024&dimensionAtObservation=AllDimensions")
-      for y in (2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024)],
-    ("legacy_dataflow_list",
-     "https://stats.oecd.org/RestSDMX/sdmx.ashx/GetDataStructure/ALL"),
-    # Route 3 — FAO's own copy. The Outlook is co-published, and FAO sometimes
-    # posts the full database as a flat file.
-    ("fao_outlook_landing",
-     "https://www.fao.org/agricultural-outlook/en"),
-    ("fao_outlook_data",
-     "https://www.fao.org/agricultural-outlook/data/en"),
-    # Route 4 — actuals, to confirm the easy half really is easy.
-    ("faostat_bulk_prices",
-     "https://bulks-faostat.fao.org/production/Prices_E_All_Data_(Normalized).zip"),
-    ("fao_food_price_index",
-     "https://www.fao.org/images/worldfoodsituationlibraries/default-document-library/"
-     "food_price_indices_data_jul.csv"),
-    ("owid_meat_production",
-     "https://ourworldindata.org/grapher/meat-production-tonnes.csv"),
-]
+TIMEOUT = 120
+MAX_BYTES = 40_000_000
+UA = "namikakmandev-data-probe/2.0 (+https://namikakmandev.github.io)"
+LEGACY = "https://stats.oecd.org"
+EDITIONS = ("HIGH_AGLINK_2015", "HIGH_AGLINK_2023")
+NS = {"s": "http://www.SDMX.org/resources/SDMXML/schemas/v2_0/structure",
+      "m": "http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message"}
 
 
-def attempt(name, url):
-    """Fetch one route and record what came back, never raising."""
-    rec = {"name": name, "url": url}
-    req = urllib.request.Request(url, headers={
-        "User-Agent": UA, "Accept": "*/*"})
+def get(url, note=""):
+    """Fetch, never raise. -> (status, bytes|None, error)."""
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-            body = r.read(400_000)
-            rec.update(status=r.status,
-                       content_type=r.headers.get("Content-Type", ""),
-                       bytes_read=len(body),
-                       final_url=r.geturl())
-            rec["head"] = body[:HEAD_BYTES].decode("utf-8", "replace")
-            # If it parses as JSON, summarise its shape rather than dumping it.
-            try:
-                j = json.loads(body)
-                rec["json_top_keys"] = list(j)[:25] if isinstance(j, dict) else \
-                    f"list[{len(j)}]"
-                flows = (j.get("data", {}) or {}).get("dataflows")
-                if isinstance(flows, list):
-                    hits = [{"id": f.get("id"), "name": f.get("name")}
-                            for f in flows
-                            if any(k in json.dumps(f).upper()
-                                   for k in ("AGLINK", "OUTLOOK", "AGRICULT"))]
-                    rec["agricultural_dataflows"] = hits[:60]
-                    rec["dataflow_count"] = len(flows)
-            except Exception:
-                pass
+            body = r.read(MAX_BYTES)
+            print(f"    {r.status}  {len(body):>10,}b  {note or url[:70]}")
+            return r.status, body, None
     except urllib.error.HTTPError as e:
-        rec.update(status=e.code, error="HTTPError",
-                   head=(e.read(HEAD_BYTES) or b"").decode("utf-8", "replace"))
-    except Exception as e:                       # noqa: BLE001 — a probe
-        rec.update(status=None, error=f"{type(e).__name__}: {e}")
-    print(f"  {rec.get('status'):>5}  {name:<32} "
-          f"{rec.get('bytes_read', 0):>9,}b  {rec.get('error', '')[:60]}")
-    return rec
+        print(f"    {e.code}  {'':>10}   {note or url[:70]}  HTTPError")
+        return e.code, None, f"HTTPError {e.code}"
+    except Exception as e:                                   # noqa: BLE001
+        print(f"      -  {'':>10}   {note or url[:70]}  {type(e).__name__}")
+        return None, None, f"{type(e).__name__}: {e}"
+
+
+def parse_dsd(body):
+    """-> {dimension_id: {'codelist':.., 'n':.., 'sample':[(code,label)..]}}."""
+    root = ET.fromstring(body)
+    codelists = {}
+    for cl in root.iter():
+        if cl.tag.endswith("}CodeList") or cl.tag.endswith("}Codelist"):
+            cid = cl.get("id")
+            codes = []
+            for c in cl:
+                if not c.tag.endswith("}Code"):
+                    continue
+                val = c.get("value") or c.get("id")
+                label = ""
+                for d in c:
+                    if d.tag.endswith("}Description") or d.tag.endswith("}Name"):
+                        label = (d.text or "").strip()
+                        break
+                codes.append((val, label))
+            codelists[cid] = codes
+
+    dims = {}
+    order = []
+    for d in root.iter():
+        if d.tag.endswith("}Dimension") and d.get("conceptRef"):
+            did = d.get("conceptRef")
+            if did in dims:
+                continue
+            order.append(did)
+            cl = codelists.get(d.get("codelist"), [])
+            dims[did] = {"codelist": d.get("codelist"), "n": len(cl),
+                         "sample": cl[:30]}
+    return order, dims, {k: len(v) for k, v in codelists.items()}
+
+
+def summarise_data(body, note):
+    """Pull real observations out of an SDMX-JSON response."""
+    j = json.loads(body)
+    data = j.get("data", j)
+    out = {"note": note}
+    structs = data.get("structures") or ([data["structure"]]
+                                         if "structure" in data else [])
+    if structs:
+        st = structs[0]
+        obsdims = st.get("dimensions", {}).get("observation", [])
+        serdims = st.get("dimensions", {}).get("series", [])
+        out["series_dimensions"] = [
+            {"id": d.get("id"), "name": d.get("name"),
+             "n": len(d.get("values", [])),
+             "first": [v.get("id") for v in d.get("values", [])[:8]]}
+            for d in serdims]
+        out["observation_dimensions"] = [
+            {"id": d.get("id"), "n": len(d.get("values", [])),
+             "first": [v.get("id") for v in d.get("values", [])[:12]]}
+            for d in obsdims]
+    ds = (data.get("dataSets") or [{}])[0]
+    obs = ds.get("observations")
+    series = ds.get("series")
+    samples = []
+    if series:
+        for k, v in list(series.items())[:6]:
+            samples.append({"series_key": k,
+                            "observations": dict(list(
+                                v.get("observations", {}).items())[:12])})
+    elif obs:
+        samples = [{"obs_key": k, "value": v}
+                   for k, v in list(obs.items())[:12]]
+    out["samples"] = samples
+    out["n_series"] = len(series or {})
+    out["n_observations"] = len(obs or {})
+    return out
 
 
 def main():
-    print("OECD-FAO Agricultural Outlook — discovery probe")
-    print("  looking for OLD editions' projections; actuals are the easy half\n")
+    print("OECD-FAO Agricultural Outlook — discovery probe, round 2")
+    print("  round 1 confirmed the retired editions still serve data;")
+    print("  this works out how to read them.\n")
     out = {"probed_at": datetime.now(timezone.utc).isoformat(),
-           "probed_by": "scripts/probe_oecd_fao.py",
-           "question": ("Can an old OECD-FAO Outlook edition's projections be "
-                        "retrieved programmatically? Without them there is no "
-                        "study."),
-           "routes": [attempt(n, u) for n, u in ROUTES]}
-    ok = [r for r in out["routes"] if r.get("status") == 200]
-    out["summary"] = {"n_routes": len(out["routes"]), "n_ok": len(ok),
-                      "ok": [r["name"] for r in ok]}
+           "probed_by": "scripts/probe_oecd_fao.py (round 2)",
+           "round1_finding": ("HIGH_AGLINK_2015..2023 all return 200 SDMX-JSON "
+                              "from stats.oecd.org; 2024 and the FAO routes 404"),
+           "editions": {}}
+
+    for ed in EDITIONS:
+        print(f"  {ed}")
+        rec = {}
+        # 1. the data structure, which is the only way to learn dimension order
+        status, body, err = get(
+            f"{LEGACY}/restsdmx/sdmx.ashx/GetDataStructure/{ed}", f"{ed} DSD")
+        rec["dsd_status"] = status
+        rec["dsd_error"] = err
+        order = []
+        if body:
+            try:
+                order, dims, cl_sizes = parse_dsd(body)
+                rec["dimension_order"] = order
+                rec["dimensions"] = dims
+                rec["codelist_sizes"] = cl_sizes
+                print(f"      dimensions: {order}")
+            except Exception as e:                           # noqa: BLE001
+                rec["dsd_parse_error"] = f"{type(e).__name__}: {e}"
+                rec["dsd_head"] = body[:1500].decode("utf-8", "replace")
+
+        # 2. a deliberately tiny slice, so the whole JSON arrives intact and the
+        #    structures block is not truncated the way round 1's was
+        filt = ".".join("" for _ in order) if order else "all"
+        for label, url in (
+            ("tiny_all_dims",
+             f"{LEGACY}/SDMX-JSON/data/{ed}/{filt}/all"
+             f"?startTime=2024&endTime=2024"),
+            ("one_year_series",
+             f"{LEGACY}/SDMX-JSON/data/{ed}/{filt}/all"
+             f"?startTime=2023&endTime=2024&dimensionAtObservation=TIME_PERIOD"),
+        ):
+            st, b, e = get(url, f"{ed} {label}")
+            entry = {"status": st, "error": e, "url": url,
+                     "bytes": len(b) if b else 0}
+            if b:
+                try:
+                    entry.update(summarise_data(b, label))
+                except Exception as ex:                      # noqa: BLE001
+                    entry["parse_error"] = f"{type(ex).__name__}: {ex}"
+                    entry["head"] = b[:1200].decode("utf-8", "replace")
+            rec[label] = entry
+        out["editions"][ed] = rec
+        print()
+
     os.makedirs("data", exist_ok=True)
     path = "data/_oecd-fao-probe.json"
     with open(path, "w") as fh:
         json.dump(out, fh, indent=1)
-    print(f"\n  {len(ok)} of {len(out['routes'])} routes answered: "
-          f"{[r['name'] for r in ok]}")
     print(f"  wrote {path} ({os.path.getsize(path):,} bytes)")
     return 0
 
