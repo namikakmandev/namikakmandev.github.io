@@ -1,43 +1,43 @@
 #!/usr/bin/env python3
-"""Discovery probe for the OECD-FAO Agricultural Outlook — round 3.
+"""Discovery probe for the OECD-FAO Agricultural Outlook — round 4.
 
-Where the earlier rounds got to:
-  1. The retired OECD.Stat editions are still served. HIGH_AGLINK_2015 through
-     _2023 all answer with SDMX-JSON. The study is possible.
-  2. Reading them failed twice, for two fixable reasons. The structure request
-     came back as bytes that would not parse as XML at column 0 — a gzipped
-     body this script never decompressed. And with no dimension order parsed,
-     the data filter fell back to all/all, which asks for the whole database
-     and truncated at the read cap every time.
+Established so far:
+  - the retired editions HIGH_AGLINK_2015..2023 are all still served
+  - responses are gzipped, and detail=nodata returns the dimension structure
+  - the 2015 edition is COUNTRY x COMMODITY x VARIABLE over 1970-2024
+  - the 2023 edition is REF_AREA x COMMODITY x MEASURE x UNIT_MEASURE over
+    1990-2032, with W = World and WP = World price
+  - so OECD renamed the coding somewhere in between: WT became CPC_0111,
+    VARIABLE became MEASURE
 
-Round 3 fixes both and stops asking for observations it does not need:
+That renaming is the one thing standing between here and the study, because a
+projection can only be scored against an outcome carrying the same code. Round
+4 settles it, per edition, and proves the archive returns real numbers rather
+than the zeros the first truncated round appeared to show.
 
-  - decompress gzip/deflate before parsing anything
-  - use detail=nodata, which returns the full dimension structure with no
-    observations at all, so the response is small enough to arrive intact
-  - dump what the structure documents actually contain — root tag, distinct
-    element names, a head — rather than assuming a schema version
-  - only once the dimension order is known, build one narrow data query and
-    show real labelled values
+For each edition it:
+  1. reads the dimension structure and keeps the FULL code lists
+  2. picks codes by matching names, not by assuming ids — wheat, world,
+     a price measure — so it works under either coding scheme
+  3. issues one narrow data query built from those codes and prints the
+     values that come back, with their years
 
 Runs in GitHub Actions; the dev sandbox cannot reach OECD.
 
   python3 scripts/probe_oecd_fao.py     # -> data/_oecd-fao-probe.json
 """
 import gzip, io, json, os, sys, urllib.error, urllib.request, zlib
-import xml.etree.ElementTree as ET
-from collections import Counter
 from datetime import datetime, timezone
 
-TIMEOUT = 180
-MAX_BYTES = 60_000_000
-UA = "namikakmandev-data-probe/3.0 (+https://namikakmandev.github.io)"
+TIMEOUT = 300
+MAX_BYTES = 120_000_000
+UA = "namikakmandev-data-probe/4.0 (+https://namikakmandev.github.io)"
 LEGACY = "https://stats.oecd.org"
-EDITIONS = ("HIGH_AGLINK_2015", "HIGH_AGLINK_2023")
+EDITIONS = [f"HIGH_AGLINK_{y}" for y in range(2015, 2024)]
+FULL_CODES_FOR = {"HIGH_AGLINK_2015", "HIGH_AGLINK_2023"}
 
 
 def get(url, note=""):
-    """Fetch and decompress. -> dict with status, body, truncated, error."""
     req = urllib.request.Request(url, headers={
         "User-Agent": UA, "Accept": "*/*", "Accept-Encoding": "gzip, deflate"})
     rec = {"url": url}
@@ -45,122 +45,141 @@ def get(url, note=""):
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
             raw = r.read(MAX_BYTES)
             enc = (r.headers.get("Content-Encoding") or "").lower()
-            rec["content_encoding"] = enc
-            rec["content_type"] = r.headers.get("Content-Type", "")
-            rec["raw_bytes"] = len(raw)
             rec["truncated"] = len(raw) >= MAX_BYTES
             if "gzip" in enc:
-                try:
-                    raw = gzip.GzipFile(fileobj=io.BytesIO(raw)).read()
-                except Exception as e:                       # noqa: BLE001
-                    rec["gunzip_error"] = str(e)
+                raw = gzip.GzipFile(fileobj=io.BytesIO(raw)).read()
             elif "deflate" in enc:
-                try:
-                    raw = zlib.decompress(raw, -zlib.MAX_WBITS)
-                except Exception as e:                       # noqa: BLE001
-                    rec["inflate_error"] = str(e)
-            rec["status"] = r.status
-            rec["bytes"] = len(raw)
+                raw = zlib.decompress(raw, -zlib.MAX_WBITS)
+            rec.update(status=r.status, bytes=len(raw))
             rec["_body"] = raw
     except urllib.error.HTTPError as e:
         rec.update(status=e.code, error=f"HTTPError {e.code}")
     except Exception as e:                                   # noqa: BLE001
         rec.update(status=None, error=f"{type(e).__name__}: {e}")
-    print(f"    {str(rec.get('status')):>5}  {rec.get('bytes', 0):>11,}b  "
-          f"enc={rec.get('content_encoding', '-') or '-':<8} "
-          f"trunc={str(rec.get('truncated', False)):<5} {note}")
+    print(f"    {str(rec.get('status')):>5} {rec.get('bytes', 0):>12,}b  {note}")
     return rec
 
 
-def describe_xml(body):
-    """Say what an XML document actually is, without assuming a schema."""
-    out = {}
-    head = body[:2500].decode("utf-8", "replace")
-    out["head"] = head
-    try:
-        root = ET.fromstring(body)
-    except Exception as e:                                   # noqa: BLE001
-        out["parse_error"] = f"{type(e).__name__}: {e}"
-        return out
-    out["root_tag"] = root.tag
-    tags = Counter(el.tag.split("}")[-1] for el in root.iter())
-    out["element_counts"] = dict(tags.most_common(25))
-    # Dimensions, whatever the schema version calls them
-    dims = []
-    for el in root.iter():
-        if el.tag.endswith("}Dimension") or el.tag.endswith("Dimension"):
-            dims.append({"id": el.get("id") or el.get("conceptRef"),
-                         "codelist": el.get("codelist"),
-                         "position": el.get("position"),
-                         "attrs": {k: v for k, v in el.attrib.items()}})
-    out["dimensions_found"] = dims[:30]
-    return out
-
-
-def describe_sdmx_json(body):
-    """Pull dimension ids, sizes and sample codes out of an SDMX-JSON body."""
-    out = {}
-    try:
-        j = json.loads(body)
-    except Exception as e:                                   # noqa: BLE001
-        out["parse_error"] = f"{type(e).__name__}: {e}"
-        out["head"] = body[:1200].decode("utf-8", "replace")
-        out["tail"] = body[-400:].decode("utf-8", "replace")
-        return out
+def structure_of(body):
+    """-> (ordered series dimensions with full code lists, time values)."""
+    j = json.loads(body)
     data = j.get("data", j)
-    structs = data.get("structures") or (
-        [data["structure"]] if "structure" in data else [])
-    if not structs:
-        out["top_keys"] = list(j)
-        return out
-    st = structs[0]
+    st = (data.get("structures") or [data.get("structure", {})])[0]
     dd = st.get("dimensions", {})
-    for slot in ("series", "observation", "dataSet"):
-        vals = dd.get(slot) or []
-        if not vals:
-            continue
-        out[f"dims_{slot}"] = [
-            {"id": d.get("id"), "name": d.get("name"),
-             "n": len(d.get("values", [])),
-             "sample": [{"id": v.get("id"), "name": v.get("name")}
-                        for v in d.get("values", [])[:12]]}
-            for d in vals]
-    ds = (data.get("dataSets") or [{}])[0]
-    out["n_series"] = len(ds.get("series") or {})
-    out["n_observations"] = len(ds.get("observations") or {})
-    return out
+    series = [{"id": d.get("id"), "name": d.get("name"),
+               "codes": [{"id": v.get("id"), "name": v.get("name")}
+                         for v in d.get("values", [])]}
+              for d in dd.get("series", [])]
+    times = [v.get("id") for d in dd.get("observation", [])
+             for v in d.get("values", [])]
+    return series, sorted(times), data
+
+
+def pick(codes, *wanted, exclude=()):
+    """First code whose name contains all `wanted` words. Names, not ids."""
+    for c in codes:
+        nm = (c.get("name") or "").lower()
+        if all(w in nm for w in wanted) and not any(x in nm for x in exclude):
+            return c
+    return None
 
 
 def main():
-    print("OECD-FAO Agricultural Outlook — discovery probe, round 3")
-    print("  fixing gzip and the all/all blowup; asking for structure, not data\n")
+    print("OECD-FAO Agricultural Outlook — discovery probe, round 4")
+    print("  per edition: coding scheme, full code lists, and real numbers\n")
     out = {"probed_at": datetime.now(timezone.utc).isoformat(),
-           "probed_by": "scripts/probe_oecd_fao.py (round 3)",
-           "prior_findings": {
-               "round1": "HIGH_AGLINK_2015..2023 serve SDMX-JSON; 2024 and FAO 404",
-               "round2": ("structure body unparseable at col 0 (gzip, never "
-                          "decompressed) and all/all data requests truncated at "
-                          "the read cap")},
+           "probed_by": "scripts/probe_oecd_fao.py (round 4)",
+           "established": {
+               "archive": "HIGH_AGLINK_2015..2023 all served, gzipped",
+               "2015_scheme": "COUNTRY x COMMODITY x VARIABLE, 1970-2024",
+               "2023_scheme": ("REF_AREA x COMMODITY x MEASURE x UNIT_MEASURE, "
+                               "1990-2032, W=World, WP=World price"),
+               "question": ("where does the coding change, and do the editions "
+                            "return real values")},
            "editions": {}}
 
     for ed in EDITIONS:
         print(f"  {ed}")
         rec = {}
-        # structure without observations — the whole point of detail=nodata
-        for label, url in (
-            ("json_nodata",
-             f"{LEGACY}/SDMX-JSON/data/{ed}/all/all?detail=nodata"),
-            ("json_serieskeysonly",
-             f"{LEGACY}/SDMX-JSON/data/{ed}/all/all?detail=serieskeysonly"),
-            ("dsd_xml",
-             f"{LEGACY}/restsdmx/sdmx.ashx/GetDataStructure/{ed}"),
-        ):
-            r = get(url, f"{ed} {label}")
-            body = r.pop("_body", None)
-            if body:
-                r.update(describe_xml(body) if label == "dsd_xml"
-                         else describe_sdmx_json(body))
-            rec[label] = r
+        r = get(f"{LEGACY}/SDMX-JSON/data/{ed}/all/all?detail=nodata",
+                f"{ed} structure")
+        body = r.pop("_body", None)
+        rec["structure_status"] = r.get("status")
+        rec["structure_error"] = r.get("error")
+        if not body:
+            out["editions"][ed] = rec
+            print()
+            continue
+        try:
+            series, times, _ = structure_of(body)
+        except Exception as e:                               # noqa: BLE001
+            rec["structure_parse_error"] = f"{type(e).__name__}: {e}"
+            out["editions"][ed] = rec
+            print()
+            continue
+
+        rec["dimension_order"] = [d["id"] for d in series]
+        rec["dimension_sizes"] = {d["id"]: len(d["codes"]) for d in series}
+        rec["time_min"], rec["time_max"] = (times[0], times[-1]) if times else (None, None)
+        rec["n_time"] = len(times)
+        print(f"      dims {rec['dimension_order']}  time "
+              f"{rec['time_min']}..{rec['time_max']}")
+
+        by_id = {d["id"]: d["codes"] for d in series}
+        if ed in FULL_CODES_FOR:
+            rec["full_codes"] = {d["id"]: d["codes"] for d in series}
+
+        # 2. choose codes by NAME so this works under either scheme
+        area_dim = "REF_AREA" if "REF_AREA" in by_id else "COUNTRY"
+        meas_dim = "MEASURE" if "MEASURE" in by_id else "VARIABLE"
+        wheat = pick(by_id.get("COMMODITY", []), "wheat")
+        world = pick(by_id.get(area_dim, []), "world")
+        price = (pick(by_id.get(meas_dim, []), "world price")
+                 or pick(by_id.get(meas_dim, []), "producer price")
+                 or pick(by_id.get(meas_dim, []), "price"))
+        chosen = {"commodity": wheat, "area": world, "measure": price,
+                  "area_dim": area_dim, "measure_dim": meas_dim}
+        rec["chosen_codes"] = chosen
+        print(f"      picked  wheat={wheat and wheat['id']}  "
+              f"world={world and world['id']}  price={price and price['id']}")
+
+        # 3. one narrow query built from those codes
+        if wheat and world and price:
+            parts = []
+            for d in series:
+                if d["id"] == area_dim:
+                    parts.append(world["id"])
+                elif d["id"] == "COMMODITY":
+                    parts.append(wheat["id"])
+                elif d["id"] == meas_dim:
+                    parts.append(price["id"])
+                else:
+                    parts.append("")
+            flt = ".".join(parts)
+            rd = get(f"{LEGACY}/SDMX-JSON/data/{ed}/{flt}/all", f"{ed} {flt}")
+            b2 = rd.pop("_body", None)
+            rec["narrow_query"] = {k: v for k, v in rd.items() if k != "_body"}
+            rec["narrow_query"]["filter"] = flt
+            if b2:
+                try:
+                    s2, t2, data2 = structure_of(b2)
+                    ds = (data2.get("dataSets") or [{}])[0]
+                    vals = {}
+                    for skey, sv in list((ds.get("series") or {}).items())[:4]:
+                        vals[skey] = {t2[int(i)] if int(i) < len(t2) else i:
+                                      (o[0] if isinstance(o, list) else o)
+                                      for i, o in sv.get("observations", {}).items()}
+                    rec["narrow_query"]["units"] = [
+                        {d["id"]: [c["name"] for c in d["codes"]][:4]}
+                        for d in s2 if d["id"] in ("UNIT_MEASURE",)]
+                    rec["narrow_query"]["values"] = vals
+                    some = next(iter(vals.values()), {})
+                    yrs = sorted(some, key=lambda x: str(x))
+                    print(f"      VALUES: {len(some)} obs, "
+                          f"{yrs[:1]}..{yrs[-1:]}  e.g. "
+                          f"{[(y, some[y]) for y in yrs[-3:]]}")
+                except Exception as e:                       # noqa: BLE001
+                    rec["narrow_query"]["parse_error"] = f"{type(e).__name__}: {e}"
         out["editions"][ed] = rec
         print()
 
