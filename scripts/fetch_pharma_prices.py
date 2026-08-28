@@ -81,9 +81,7 @@ VENUES = {
     "gosvet":    {"name": "GosVet (PL storefront)",  "country": "PL", "currency": "EUR"},
     "vetshopcz": {"name": "VeterinaShop.cz",         "country": "CZ", "currency": "CZK"},
     "metrovet":  {"name": "MetropoleVet",            "country": "CZ", "currency": "CZK"},
-    "dogmo":     {"name": "DogmoPharm",              "country": "HU", "currency": "HUF"},
-    "vetker":    {"name": "Vetker",                  "country": "HU", "currency": "HUF"},
-    "hazipatika": {"name": "Hazikedvenc Patika",     "country": "HU", "currency": "HUF"},
+    "alphaportal": {"name": "Alphaportal",          "country": "HU", "currency": "HUF"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
@@ -232,21 +230,12 @@ TARGETS = [
      "url": "https://www.metropolevet.cz/produkt/tablety-a-leciva/apoquel/",
      "form": "tab", "mg": 16, "optional": True},
     # ---------------- HU ----------------
-    {"product": "apoquel", "venue": "dogmo", "kind": "sku",
-     "url": "https://webshop.dogmopharm.hu/apoquel-16-mg-filmtabletta-100x",
-     "form": "tab", "mg": 16, "n": 100},
-    {"product": "apoquel", "venue": "dogmo", "kind": "sku",
-     "url": "https://webshop.dogmopharm.hu/apoquel-16-mg-filmtabletta-20x",
-     "form": "tab", "mg": 16, "n": 20},
-    {"product": "apoquel-chewable", "venue": "dogmo", "kind": "sku",
-     "url": "https://webshop.dogmopharm.hu/apoquel-16-mg-ragotabletta-kutyak-reszere-20x",
-     "form": "chew", "mg": 16, "n": 20, "optional": True},
-    {"product": "apoquel", "venue": "vetker", "kind": "sku",
-     "url": "https://vetker.hu/apoquel-16-mg-filmtabletta-kutyak-reszere-20x-2.html",
+    {"product": "apoquel", "venue": "alphaportal", "kind": "sku",
+     "url": "https://www.alphaportal2.hu/allatfaj/kutya/apoquel-16-mg-filmtabletta-100x-10009859/",
+     "form": "tab", "mg": 16, "n": 100, "optional": True},
+    {"product": "apoquel", "venue": "alphaportal", "kind": "sku",
+     "url": "https://www.alphaportal2.hu/termek-kategoria/allatgyogyaszati-keszitmenyek/apoquel-16-mg-filmtabletta-20x-10010186/",
      "form": "tab", "mg": 16, "n": 20, "optional": True},
-    {"product": "apoquel", "venue": "hazipatika", "kind": "multi",
-     "url": "https://hazikedvencpatika.hu/apoquel-16mg-2755",
-     "form": "tab", "mg": 16, "optional": True},
 ]
 
 PRICE_MIN, PRICE_MAX = 0.5, 1000000.0  # HUF/TRY pack prices run to six digits
@@ -282,7 +271,7 @@ def parse_label(label, default_mg=None):
     if m: mg = float(m.group(1).replace(",", "."))
     n = None
     m = (re.search(r"(\d+)\s*[x×]\s*\d+\s*ml\b", label, re.I)
-         or re.search(r"(\d+)\s*(?:count|tabl\.?|tablet(?:s|ten)?|kautablet(?:s|ten)?|filmtablet(?:s|ten)?|chewables?|tabs?|comprimidos|vials?|adet|st(?:ück|k)?|'?li)(?![a-z])", label, re.I)
+         or re.search(r"(\d+)\s*(?:count|tbl\.?|tabl\.?|tablet(?:s|ten|ta)?|kautablet(?:s|ten)?|filmtablet(?:s|ten|ta)?|r[aá]g[oó]tabletta|chewables?|tabs?|comprimidos|vials?|adet|st(?:ück|k)?|db|x|'?li)(?![a-z])", label, re.I)
          or re.search(r"pack of\s*(\d+)", label, re.I)
          or re.search(r"[x×]\s*(\d+)\b", label, re.I))
     if m: n = int(m.group(1))
