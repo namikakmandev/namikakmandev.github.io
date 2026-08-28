@@ -77,8 +77,6 @@ VENUES = {
     "ypa":       {"name": "YourPetPA",               "country": "AU", "currency": "AUD"},
     "petchem":   {"name": "Pet Chemist",             "country": "AU", "currency": "AUD"},
     "trettin":   {"name": "Trettin Apotheken",       "country": "DE", "currency": "EUR"},
-    "medifuchs": {"name": "medizinfuchs (comparator)", "country": "DE", "currency": "EUR"},
-    "a3":        {"name": "A3 Apotheke",             "country": "DE", "currency": "EUR"},
     "diermed":   {"name": "Diermedicatie.nl",        "country": "NL", "currency": "EUR"},
 }
 
@@ -171,10 +169,10 @@ TARGETS = [
      "form": "tab", "mg": 16},
     {"product": "cytopoint", "venue": "ypa", "kind": "multi",
      "url": "https://yourpetpa.com.au/products/cytopoint-injection-40mg-2-vials",
-     "form": "inj", "mg": 40},
+     "form": "inj", "mg": 40, "n": 2},
     {"product": "cytopoint", "venue": "petchem", "kind": "sku",
      "url": "https://petchemist.com.au/products/cytopoint-injection-40mg-2-vials.html",
-     "form": "inj", "mg": 40, "n": 2},
+     "form": "inj", "mg": 40, "n": 2, "optional": True},
     # ---------------- DE ----------------
     {"product": "apoquel", "venue": "trettin", "kind": "sku",
      "url": "https://www.shop.trettin-apotheken.de/product/apoquel-16-mg-filmtabletten-f-hunde.949759.html",
@@ -188,22 +186,22 @@ TARGETS = [
     {"product": "cytopoint", "venue": "trettin", "kind": "sku",
      "url": "https://www.shop.trettin-apotheken.de/product/cytopoint-40-mg-ml-injektionsloesung-f-hunde.806409.html",
      "form": "inj", "mg": 40, "n": 1},
-    {"product": "apoquel", "venue": "medifuchs", "kind": "multi",
-     "url": "https://www.medizinfuchs.de/apoquel-16-mg.html",
-     "form": "tab", "mg": 16, "optional": True},
-    {"product": "zenrelia", "venue": "a3", "kind": "multi",
-     "url": "https://a3apotheke.de/produkte/zenrelia-15-mg-filmtabletten-fur-hunde-19711347",
-     "form": "tab", "mg": 15, "optional": True},
     # ---------------- NL (UDA rules may hide prices — probes) ----------------
     {"product": "apoquel", "venue": "diermed", "kind": "multi",
      "url": "https://www.diermedicatie.nl/nl/apoquel.html",
-     "form": "tab", "optional": True},
+     "form": "tab"},
+    {"product": "apoquel-chewable", "venue": "diermed", "kind": "multi",
+     "url": "https://www.diermedicatie.nl/nl/apoquel-kauwtabletten-hond.html",
+     "form": "chew", "optional": True},
     {"product": "zenrelia", "venue": "diermed", "kind": "multi",
      "url": "https://www.diermedicatie.nl/nl/zenrelia-hond.html",
-     "form": "tab", "optional": True},
+     "form": "tab"},
     {"product": "cytopoint", "venue": "diermed", "kind": "multi",
      "url": "https://www.diermedicatie.nl/nl/cytopoint.html",
-     "form": "inj", "optional": True},
+     "form": "inj"},
+    {"product": "numelvi", "venue": "diermed", "kind": "multi",
+     "url": "https://www.diermedicatie.nl/nl/numelvi-hond.html",
+     "form": "tab", "optional": True},
 ]
 
 PRICE_MIN, PRICE_MAX = 0.5, 200000.0   # TRY prices run to five digits
@@ -238,7 +236,8 @@ def parse_label(label, default_mg=None):
     m = re.search(r"(\d+(?:[.,]\d+)?)\s*-?\s*mg", label, re.I)
     if m: mg = float(m.group(1).replace(",", "."))
     n = None
-    m = (re.search(r"(\d+)\s*(?:count|tablet(?:s|ten)?|kautablet(?:s|ten)?|filmtablet(?:s|ten)?|chewables?|tabs?|comprimidos|vials?|adet|st(?:ück|k)?|'?li)\b", label, re.I)
+    m = (re.search(r"(\d+)\s*[x×]\s*\d+\s*ml\b", label, re.I)
+         or re.search(r"(\d+)\s*(?:count|tabl\.?|tablet(?:s|ten)?|kautablet(?:s|ten)?|filmtablet(?:s|ten)?|chewables?|tabs?|comprimidos|vials?|adet|st(?:ück|k)?|'?li)(?![a-z])", label, re.I)
          or re.search(r"pack of\s*(\d+)", label, re.I)
          or re.search(r"[x×]\s*(\d+)\b", label, re.I))
     if m: n = int(m.group(1))
@@ -256,7 +255,8 @@ def walk_ldjson(node, out):
         if node.get(key) not in (None, ""):
             v = to_float(node[key])
             if v is not None: out.append((str(name), v))
-    for key in ("@graph", "offers", "itemListElement", "item", "hasVariant", "model"):
+    for key in ("@graph", "offers", "itemListElement", "item", "hasVariant", "model",
+                "priceSpecification"):
         if key in node: walk_ldjson(node[key], out)
 
 
@@ -366,11 +366,11 @@ def variants_select_options(html):
     out = []
     for m in re.finditer(r"<option[^>]*>([^<]{4,120})</option>", html, re.I):
         text = m.group(1)
-        pm = re.search(r"[\$£]\s*([0-9][0-9.,]*)|([0-9][0-9.,]*)\s*(?:TL|₺)", text)
+        pm = re.search(r"[\$£€]\s*([0-9][0-9.,]*)|([0-9][0-9.,]*)\s*(?:TL|₺|€)", text)
         if pm:
             v = to_float(pm.group(1) or pm.group(2))
             if v is not None:
-                out.append((re.sub(r"[\$£₺].*", "", text).strip(" \t-–:"), v))
+                out.append((re.sub(r"[\$£₺€].*", "", text).strip(" \t-–:"), v))
     return out
 
 
@@ -413,6 +413,7 @@ def scrape_multi(session, html, t, currency):
         best = {}
         for label, price in pairs:
             mg, n = parse_label(label, t.get("mg"))
+            if n is None: n = t.get("n")
             key = (mg, n)
             if key not in best or price < best[key]["price"]:
                 best[key] = {"mg": mg, "n": n or 1, "price": price,
