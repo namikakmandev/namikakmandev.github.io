@@ -108,6 +108,9 @@ VENUES = {
     "veteras":   {"name": "VETERAS",                  "country": "SK", "currency": "EUR"},
     "loravet":   {"name": "LoraVet",                  "country": "BG", "currency": "EUR"},
     "puppypharma": {"name": "Puppy Pharma",           "country": "BG", "currency": "EUR"},
+    "puttemans": {"name": "Apotheek Puttemans",       "country": "BE", "currency": "EUR"},
+    "devos":     {"name": "Apotheek De Vos",          "country": "BE", "currency": "EUR"},
+    "swijzen":   {"name": "Apotheek Swijzen",         "country": "BE", "currency": "EUR"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
@@ -414,6 +417,11 @@ EXTRA_SKUS = [
     ("apoquel-chewable", "vetlekaren", "https://www.vetlekaren.sk/apoquel-3-6-mg-zuvacie-tablety-pre-psy-100-tbl/", "chew", 3.6, 100),
     ("apoquel", "veteras", "https://www.veteras.sk/apoquel-16-mg-filmom-obalene-tablety-pre-psy-20-tbl/", "tab", 16, 20),
     ("cytopoint", "puppypharma", "https://puppypharma.bg/bg-product-details-1237.html", "inj", 10, 1),
+    ("apoquel-chewable", "puttemans", "https://www.apotheek-puttemans.be/producten/1803425_apoquel-hond-16mg-kautabl-100", "chew", 16, 100),
+    ("apoquel-chewable", "puttemans", "https://www.apotheek-puttemans.be/producten/1803423_apoquel-hond-5-4mg-kauwtabl-20", "chew", 5.4, 20),
+    ("cytopoint", "puttemans", "https://www.apotheek-puttemans.be/producten/36433_cytopoint-40mg-ml-opl-inj-hond-2x1ml", "inj", 40, 2),
+    ("cytopoint", "devos", "https://www.apotheekdevosbuizingen.be/nl/producten/1036523_cytopoint-20mg-ml-opl-inj-hond-2x1ml", "inj", 20, 2),
+    ("cytopoint", "swijzen", "https://www.apotheekswijzen.be/producten/1724375_cytopoint-40mg-ml-opl-inj-hond-2x1ml", "inj", 40, 2),
     # product, venue, url, form, mg, n
     # -------- DE / Trettin: full lineups --------
     ("cytopoint", "trettin", _TRET + "cytopoint-30-mg-ml-injektionsloesung-f-hunde.806408.html", "inj", 30, 1),
