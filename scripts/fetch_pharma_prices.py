@@ -93,12 +93,12 @@ TARGETS = [
     {"product": "apoquel-chewable", "venue": "cpp", "kind": "sku",
      "url": "https://www.californiapetpharmacy.com/apoquel-chewable-16mg-per-chewable.html",
      "form": "chew", "mg": 16, "n": 1},
-    {"product": "numelvi", "venue": "heartland", "kind": "multi",
+    {"product": "numelvi", "venue": "heartland", "kind": "sku",
      "url": "https://www.heartlandvetsupply.com/p-7274-numelvi-atinvicitinib-tablets-for-dogs.aspx",
-     "form": "tab"},
-    {"product": "apoquel-chewable", "venue": "heartland", "kind": "multi",
+     "form": "tab", "mg": 4.8, "n": 1},
+    {"product": "apoquel-chewable", "venue": "heartland", "kind": "sku",
      "url": "https://www.heartlandvetsupply.com/p-6816-apoquel-oclacitinib-chewable-tablets-for-dogs.aspx",
-     "form": "chew"},
+     "form": "chew", "n": 1},
     {"product": "numelvi", "venue": "petrx", "kind": "multi",
      "url": "https://petrx.com/products/numelvi-atinvicitinib-tablets",
      "form": "tab"},
@@ -265,23 +265,28 @@ def extract_visible(html, currency):
 # --------------------------------------------------------- multi adapters --
 
 def variants_prestashop(html):
-    """PetVM (PrestaShop): combinations JSON in inline JS."""
+    """PetVM (PrestaShop): valid-JSON combinations blob; per-combination price
+    sits in specific_price.price, combos without one use the base productPrice."""
     out = []
     m = re.search(r"var\s+combinations\s*=\s*(\{.*?\});", html, re.S)
-    if m:
-        try:
-            combos = json.loads(re.sub(r"'", '"', m.group(1)))
-            for c in combos.values():
-                label = c.get("attributes_values")
-                if isinstance(label, dict): label = " ".join(str(x) for x in label.values())
-                v = to_float(c.get("price"))
-                if v is not None: out.append((str(label or ""), v))
-        except (json.JSONDecodeError, AttributeError):
-            pass
-    if not out:
-        # PrestaShop 1.7: attribute JSON in data-product or productDetails
-        for m in re.finditer(r'"attributes_small"\s*:\s*"([^"]+)"[^}]*?"price_amount"\s*:\s*([0-9.]+)', html):
-            out.append((m.group(1), float(m.group(2))))
+    if not m:
+        return out
+    try:
+        combos = json.loads(m.group(1))
+    except json.JSONDecodeError:
+        return out
+    bm = re.search(r"var\s+productPrice\s*=\s*'?([0-9.]+)", html)
+    base = float(bm.group(1)) if bm else None
+    for c in combos.values():
+        label = c.get("attributes_values")
+        if isinstance(label, dict): label = " ".join(str(x) for x in label.values())
+        sp = c.get("specific_price")
+        price = None
+        if isinstance(sp, dict): price = to_float(sp.get("price"))
+        if price is None: price = to_float(c.get("price"))
+        if price is None: price = base
+        if price is not None and PRICE_MIN <= price <= PRICE_MAX:
+            out.append((str(label or ""), price))
     return out
 
 
