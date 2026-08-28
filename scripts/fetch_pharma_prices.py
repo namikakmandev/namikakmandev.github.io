@@ -100,10 +100,19 @@ VENUES = {
     "blumberger": {"name": "Blumberger Apotheke",     "country": "DE", "currency": "EUR"},
     "pharmaservices": {"name": "PharmaServices",      "country": "FR", "currency": "EUR"},
     "centauro":  {"name": "Centauro",                 "country": "ES", "currency": "EUR"},
+    "ceneo":     {"name": "Ceneo.pl (comparator)",    "country": "PL", "currency": "PLN"},
+    "compari":   {"name": "Compari.ro (comparator)",  "country": "RO", "currency": "RON"},
+    "pricero":   {"name": "price.ro (comparator)",    "country": "RO", "currency": "RON"},
+    "lekyjasne": {"name": "LekyJasne.cz (aggregate)", "country": "CZ", "currency": "CZK"},
+    "arukereso": {"name": "Arukereso.hu (comparator)", "country": "HU", "currency": "HUF"},
+    "petmart":   {"name": "PetMart",                  "country": "RO", "currency": "RON"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
 #       "multi" = page carries variants; adapter + label parser split them
+#       "agg"  = price-comparison portal page for ONE declared SKU; we record
+#                the cheapest offer plus how many plausible offers the page
+#                carries (sample size), method "aggregate"
 # sku fields: form (tab|chew|inj), mg (strength), n (units per listed price;
 #             None = parse from variant label / page, fall back to 1)
 TARGETS = [
@@ -379,7 +388,25 @@ _TUTTO = "https://www.tuttofarma.it/farmaci-veterinari-con-ricetta/"
 _FPETS = "https://www.farmapets.it/"
 _MPN = "https://mapharmanaturelle.com/autres/"
 _ALPHA = "https://www.alphaportal2.hu/"
+# CEE reinforcement (comparator pages carry many shops' offers -> kind "agg")
+EXTRA_AGGS = [
+    # product, venue, url, form, mg, n
+    ("apoquel", "ceneo", "https://www.ceneo.pl/107695335", "tab", 16, 20),
+    ("apoquel", "ceneo", "https://www.ceneo.pl/107695333", "tab", 16, 10),
+    ("apoquel", "ceneo", "https://www.ceneo.pl/107695329", "tab", 5.4, 20),
+    ("apoquel", "compari", "https://suplimente-nutritive-caini.compari.ro/zoetis/apoquel-16-mg-20-tablete-p1118270956/", "tab", 16, 20),
+    ("apoquel", "compari", "https://suplimente-nutritive-caini.compari.ro/zoetis/apoquel-5-4-mg-20-tablete-p1118270899/", "tab", 5.4, 20),
+    ("apoquel", "pricero", "https://www.price.ro/preturi-zoetis-apoquel-16-mg-20-tablete-3061462", "tab", 16, 20),
+    ("apoquel", "lekyjasne", "https://lekyjasne.cz/veterina/0910f7c78024e66f/", "tab", 16, 1),
+    ("apoquel", "lekyjasne", "https://lekyjasne.cz/veterina/0910f7c7819808fb/", "tab", 3.6, 1),
+    ("apoquel", "arukereso", "https://vitamin-taplalekkiegeszito-kutyaknak.arukereso.hu/apoquel-16mg-100-tabletta-p463108458/", "tab", 16, 100),
+]
+for _pr, _ve, _u, _f, _mg, _n in EXTRA_AGGS:
+    TARGETS.append({"product": _pr, "venue": _ve, "kind": "agg", "url": _u,
+                    "form": _f, "mg": _mg, "n": _n, "optional": True})
+
 EXTRA_SKUS = [
+    ("apoquel", "petmart", "https://www.petmart.ro/apoquel-16-mg-20-tablete.html", "tab", 16, 20),
     # product, venue, url, form, mg, n
     # -------- DE / Trettin: full lineups --------
     ("cytopoint", "trettin", _TRET + "cytopoint-30-mg-ml-injektionsloesung-f-hunde.806408.html", "inj", 30, 1),
@@ -547,11 +574,12 @@ def extract_inline_js(html):
 
 def extract_visible(html, currency):
     sym = {"USD": r"\$", "AUD": r"\$", "GBP": "£", "TRY": r"(?:₺|TL)", "EUR": "€",
-           "CZK": r"(?:Kč|CZK)", "HUF": r"(?:Ft|HUF)", "PLN": r"(?:zł|PLN)"}[currency]
+           "CZK": r"(?:Kč|CZK)", "HUF": r"(?:Ft|HUF)", "PLN": r"(?:zł|PLN)",
+           "RON": r"(?:lei|RON)"}[currency]
     body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
     out = []
     pats = ([rf"{sym}\s*([0-9][0-9.,]*)", rf"([0-9][0-9 \u00a0.,]*[0-9])(?:,-)?\s*{sym}"]
-            if currency in ("TRY", "EUR", "CZK", "HUF", "PLN") else [rf"{sym}\s*([0-9][0-9.,]*)"])
+            if currency in ("TRY", "EUR", "CZK", "HUF", "PLN", "RON") else [rf"{sym}\s*([0-9][0-9.,]*)"])
     for pat in pats:
         for p in re.findall(pat, body[:60000]):
             v = to_float(p)
@@ -742,6 +770,20 @@ def main():
         if t["kind"] == "sku":
             one = scrape_sku(html, t, venue["currency"])
             rows = [one] if one else []
+        elif t["kind"] == "agg":
+            cands = sorted({v for fn in (extract_ldjson, extract_meta, extract_inline_js)
+                            for _, v in fn(html)}
+                           | {v for _, v in extract_visible(html, venue["currency"])})
+            # offers cluster around the SKU price; drop sub-10% stragglers
+            # (shipping fees, per-unit teasers) relative to the page median
+            if cands:
+                med = cands[len(cands) // 2]
+                offers = [v for v in cands if v >= med * 0.1]
+                rows = [{"mg": t.get("mg"), "n": t.get("n") or 1,
+                         "price": min(offers), "method": "aggregate",
+                         "offers": len(offers)}] if offers else []
+            else:
+                rows = []
         else:
             rows = scrape_multi(session, html, t, venue["currency"])
 
@@ -762,6 +804,7 @@ def main():
                     "unit": round(r["price"] / (r.get("n") or 1), 4),
                     "method": r["method"],
                     **({"label": r["label"]} if r.get("label") else {}),
+                    **({"offers": r["offers"]} if r.get("offers") else {}),
                 })
         report["targets"].append(entry)
         time.sleep(2)

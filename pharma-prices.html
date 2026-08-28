@@ -88,11 +88,11 @@
 
 <script>
 const RAWCOL = ['#2A8FEF','#F05E00','#19C37D','#C77DFF','#FFC53D','#7ED4E6','#E8637A','#9AE66E'];
-const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands', CZ:'Czechia', HU:'Hungary', IT:'Italy', ES:'Spain', FR:'France', PL:'Poland'};
-const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł'};
+const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands', CZ:'Czechia', HU:'Hungary', IT:'Italy', ES:'Spain', FR:'France', PL:'Poland', RO:'Romania', SK:'Slovakia', HR:'Croatia', SI:'Slovenia', BG:'Bulgaria'};
+const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł', RON:'lei'};
 const FORM = {tab:'tablet', chew:'chewable', inj:'vial'};
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; return (cur==='HUF'||cur==='CZK'||cur==='PLN' ? v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})+' '+SYM[cur] : SYM[cur]+v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})); };
+const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; return (cur==='HUF'||cur==='CZK'||cur==='PLN'||cur==='RON' ? v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})+' '+SYM[cur] : SYM[cur]+v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})); };
 
 function lineChart(series, {height=210, yFmt=v=>v.toFixed(2)}={}){
   const W=720, H=height, L=58, R=10, T=12, B=28;
@@ -141,7 +141,8 @@ function renderCostTable(data, fx){
   const latestDate = obs.map(o=>o.d).sort().at(-1);
   const toUSD = {USD:1, GBP: fx? fx.GBPTRY/fx.USDTRY : null, TRY: fx? 1/fx.USDTRY : null,
                  EUR: fx? fx.EURTRY/fx.USDTRY : null, AUD: fx? fx.AUDUSD??null : null,
-                 PLN: fx? fx.PLNUSD??null : null, CZK: fx? fx.CZKUSD??null : null, HUF: fx? fx.HUFUSD??null : null};
+                 PLN: fx? fx.PLNUSD??null : null, CZK: fx? fx.CZKUSD??null : null, HUF: fx? fx.HUFUSD??null : null,
+                 RON: fx? fx.RONUSD??null : null};
   const rows = [], excluded = [];
   // per sku@venue history for period-over-period deltas (local currency)
   const histIdx = {};
@@ -199,7 +200,7 @@ function renderCostTable(data, fx){
 Promise.all([
   fetch('data/pharma-prices.json').then(r=>{ if(!r.ok) throw new Error('no data'); return r.json(); }),
   fetch('rates.json').then(r=>r.ok?r.json():null).catch(()=>null),
-  fetch('https://api.frankfurter.app/latest?from=USD&to=AUD,PLN,CZK,HUF').then(r=>r.ok?r.json():null).catch(()=>null)
+  fetch('https://api.frankfurter.app/latest?from=USD&to=AUD,PLN,CZK,HUF,RON').then(r=>r.ok?r.json():null).catch(()=>null)
 ]).then(([data, rates, aud])=>{
   const fx = rates && rates.fx ? {...rates.fx, _asof: rates.fxAsof} : null;
   if(fx && aud && aud.rates){ for(const [k,v] of Object.entries(aud.rates)) if(v>0) fx[k+'USD'] = 1/v; }
