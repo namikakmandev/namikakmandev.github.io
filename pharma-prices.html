@@ -64,14 +64,18 @@
   <div class="grid2" id="charts"></div>
 
   <div class="card">
-    <div class="chart-title">Cost per itch-free day — dosage-normalized, all markets</div>
-    <div class="chart-sub">Maintenance therapy for a ~20 kg dog, dosed to each product's own label:
-      one weight-matched tablet daily (Apoquel 16 mg, Zenrelia 15 mg, Numelvi 21.6 mg), or one
-      Cytopoint 40 mg vial every <b>4 to 8 weeks</b> — so Cytopoint is shown as a range, because the
-      label does not specify a monthly interval. Apoquel additionally needs <b>twice-daily dosing for
-      the first 14 days</b> (Zenrelia and Numelvi do not), which adds ~47% to its first month and is
-      not included in the maintenance rate below. Drug cost only. Converted to USD/day with ECB
-      cross-rates from <a style="color:var(--c1)" href="rates.json">rates.json</a>.</div>
+    <div class="chart-title">Cost per itch-free day — like-for-like blocks</div>
+    <div class="chart-sub">Maintenance therapy for a ~20 kg dog. Each block holds <b>four</b> things
+      constant — dose (the weight-matched strength: Apoquel 16 mg, Zenrelia 15 mg, Numelvi 21.6 mg,
+      Cytopoint 40 mg), form, <b>pack size</b>, and channel (retail; clinic-administered pricing is
+      excluded). Blocks are never compared with each other: a per-tablet price and a 100-pack unit
+      price are different goods, and the bulk discount inside a single venue runs 4–31%. No pack size
+      exists in all fifteen markets — the US, UK and Australia sell these tablets singly while
+      continental Europe sells 20s and 100s — which is why the table is tiered rather than ranked.
+      Cytopoint is a range because its label says every <b>4 to 8 weeks</b>, not monthly; Apoquel
+      additionally needs <b>twice-daily dosing for 14 days</b> (Zenrelia and Numelvi do not), adding
+      ~47% to its first month, not included below. Converted with ECB cross-rates from
+      <a style="color:var(--c1)" href="rates.json">rates.json</a>.</div>
     <div class="tblwrap"><table id="costtable"></table></div>
     <div class="chart-sub" id="costnotes" style="margin-top:8px"></div>
   </div>
@@ -154,62 +158,100 @@ function renderCostTable(data, fx){
   const latestDate = obs.map(o=>o.d).sort().at(-1);
   const toUSD = {USD:1, GBP: fx? fx.GBPTRY/fx.USDTRY : null, TRY: fx? 1/fx.USDTRY : null,
                  EUR: fx? fx.EURTRY/fx.USDTRY : null, AUD: fx? fx.AUDUSD??null : null,
-                 PLN: fx? fx.PLNUSD??null : null, CZK: fx? fx.CZKUSD??null : null, HUF: fx? fx.HUFUSD??null : null,
-                 RON: fx? fx.RONUSD??null : null};
-  const rows = [], excluded = [];
-  // per sku@venue history for period-over-period deltas (local currency)
-  const histIdx = {};
-  obs.forEach(o=>{ (histIdx[o.sku+'@'+o.venue] ??= []).push([o.d, o.unit]); });
-  Object.values(histIdx).forEach(a=>a.sort());
-  function priorUnit(sku, venue, days){
-    const cut = new Date(new Date(latestDate) - days*864e5).toISOString().slice(0,10);
-    const a = (histIdx[sku+'@'+venue]||[]).filter(x=>x[0] <= cut);
-    return a.length ? a[a.length-1][1] : null;
-  }
+                 PLN: fx? fx.PLNUSD??null : null, CZK: fx? fx.CZKUSD??null : null,
+                 HUF: fx? fx.HUFUSD??null : null, RON: fx? fx.RONUSD??null : null};
+
+  // Like-for-like requires holding FOUR things constant, not one:
+  //   dose (weight-matched strength), form, PACK SIZE, and channel (retail).
+  // No pack size exists in every market — the US, UK and Australia sell these
+  // tablets singly while continental Europe sells 20s and 100s — so the table
+  // is split into pack-size tiers and never mixes them. A country absent from
+  // a tier simply has no comparable pack, which is itself the finding.
+  const TIERS = [
+    {key:1,   label:'sold singly, priced per tablet'},
+    {key:20,  label:'20-tablet pack'},
+    {key:100, label:'100-tablet pack'},
+  ];
+  const CLINIC = new Set(['perfectpet']);   // per-dose clinic price, not retail
+
+  const rows = [];
+  const excluded = [];
   for(const [pid, dose] of Object.entries(DOSE)){
-    const perVenue = {};
-    obs.filter(o=>o.d===latestDate && o.product===pid).forEach(o=>{
-      if(o.form!==dose.form || o.mg!==dose.mg){
-        if(o.mg==null) excluded.push(`${products[pid].name} at ${venues[o.venue].name} (${o.country}): strength not stated on page`);
-        return;
+    if(dose.form === 'inj') continue;       // injections handled separately below
+    for(const tier of TIERS){
+      const perCountry = {};
+      obs.filter(o=>o.d===latestDate && o.product===pid && o.form===dose.form
+                    && o.mg===dose.mg && o.n===tier.key && !CLINIC.has(o.venue))
+         .forEach(o=>{
+           const cur = perCountry[o.country];
+           if(!cur || o.unit < cur.unit) perCountry[o.country] = o;
+         });
+      for(const o of Object.values(perCountry)){
+        const usd = toUSD[o.cur]!=null ? o.unit*dose.unitsPerDay*toUSD[o.cur] : null;
+        rows.push({pid, tier, o, local:o.unit*dose.unitsPerDay, usd});
       }
-      const key = o.venue;
-      if(!(key in perVenue) || o.unit < perVenue[key].unit) perVenue[key] = o;
-    });
-    for(const o of Object.values(perVenue)){
-      const localDay = o.unit * dose.unitsPerDay;
-      const localDayMax = dose.unitsPerDayMax ? o.unit * dose.unitsPerDayMax : null;
-      const usdDay = toUSD[o.cur]!=null ? localDay*toUSD[o.cur] : null;
-      const usdDayMax = (localDayMax!=null && toUSD[o.cur]!=null) ? localDayMax*toUSD[o.cur] : null;
-      const prev = priorUnit(o.sku, o.venue, 80);
-      const chg = prev!=null && prev>0 ? (o.unit/prev-1)*100 : null;
-      rows.push({pid, o, localDay, localDayMax, usdDay, usdDayMax, chg});
+    }
+    obs.filter(o=>o.d===latestDate && o.product===pid && o.mg===dose.mg
+                  && ![1,20,100].includes(o.n))
+       .forEach(o=>excluded.push(`${products[pid].name} in ${o.country} sells only in ${o.n}s`));
+  }
+
+  const maxUSD = Math.max(...rows.map(r=>r.usd??0), 0.01);
+  let html = '<tr><th>Product · basis</th><th>Country</th><th>Venue</th><th>Local/day</th><th>USD/day</th><th>vs cheapest</th></tr>';
+  for(const [pid, dose] of Object.entries(DOSE)){
+    if(dose.form === 'inj') continue;
+    for(const tier of TIERS){
+      const g = rows.filter(r=>r.pid===pid && r.tier.key===tier.key)
+                    .sort((a,b)=>(a.usd??1e9)-(b.usd??1e9));
+      if(g.length < 2) continue;            // a tier of one compares nothing
+      const cheapest = g[0].usd;
+      html += `<tr class="group"><td colspan="6">${esc(products[pid].name)} ${dose.mg}mg — ${esc(tier.label)} · ${g.length} markets</td></tr>`;
+      for(const r of g){
+        const bar = r.usd!=null ? `<span style="display:inline-block;width:80px;height:7px;background:var(--card2);border:1px solid var(--line);border-radius:4px;overflow:hidden;vertical-align:1px;margin-left:8px"><i style="display:block;height:100%;width:${(100*r.usd/maxUSD).toFixed(0)}%;background:var(--c1)"></i></span>` : '';
+        const rel = (r.usd!=null && cheapest) ? `${r.usd===cheapest?'—':'+'+((r.usd/cheapest-1)*100).toFixed(0)+'%'}` : '—';
+        html += `<tr><td></td><td><span class="cc">${r.o.country}</span>${esc(CCNAME[r.o.country]||r.o.country)}</td>
+          <td>${esc(venues[r.o.venue].name)}</td>
+          <td>${money(r.local,r.o.cur,r.o.cur==='TRY'||r.o.cur==='HUF'?0:2)}</td>
+          <td>${r.usd!=null?'$'+r.usd.toFixed(2)+bar:'—'}</td><td>${rel}</td></tr>`;
+      }
     }
   }
-  const maxUSD = Math.max(...rows.map(r=>r.usdDay??0), 0.01);
-  let html = '<tr><th>Product</th><th>Venue</th><th>SKU</th><th>Local/day</th><th>USD/day</th><th>USD/month</th><th>vs ~3mo</th></tr>';
-  for(const pid of Object.keys(DOSE)){
-    const group = rows.filter(r=>r.pid===pid).sort((a,b)=>(a.usdDay??1e9)-(b.usdDay??1e9));
-    group.forEach((r,i)=>{
-      const {o} = r;
-      const bar = r.usdDay!=null
-        ? `<span style="display:inline-block;width:90px;height:7px;background:var(--card2);border:1px solid var(--line);border-radius:4px;overflow:hidden;vertical-align:1px;margin-left:8px"><i style="display:block;height:100%;width:${(100*r.usdDay/maxUSD).toFixed(0)}%;background:var(--c1)"></i></span>` : '';
-      html += `<tr>
-        <td>${i===0?esc(products[pid].name):''}</td>
-        <td><span class="cc">${o.country}</span>${esc(venues[o.venue].name)}</td>
-        <td>${DOSE[pid].mg}mg ${FORM[DOSE[pid].form]}</td>
-        <td>${money(r.localDay,o.cur,o.cur==='TRY'?0:2)}${r.localDayMax!=null?'–'+money(r.localDayMax,o.cur,o.cur==='TRY'?0:2):''}</td>
-        <td>${r.usdDay!=null?('$'+r.usdDay.toFixed(2)+(r.usdDayMax!=null?'–$'+r.usdDayMax.toFixed(2):''))+bar:'—'}</td>
-        <td>${r.usdDay!=null?'$'+(r.usdDay*30).toFixed(2)+(r.usdDayMax!=null?'–$'+(r.usdDayMax*30).toFixed(2):''):'—'}</td>
-        <td>${r.chg==null?'<span style="color:var(--ink3)">—</span>':`<span style="color:${r.chg>0.5?'var(--dn)':r.chg<-0.5?'var(--c3)':'var(--ink3)'}">${r.chg>=0?'+':''}${r.chg.toFixed(1)}%</span>`}</td></tr>`;
-    });
+  // injections: same vial strength, same pack, retail only, shown as an interval
+  for(const vialPack of [1, 2]){
+    const inj = {};
+    obs.filter(o=>o.d===latestDate && o.product==='cytopoint' && o.mg===DOSE.cytopoint.mg
+                  && o.n===vialPack && !CLINIC.has(o.venue))
+       .forEach(o=>{ if(!inj[o.country] || o.unit<inj[o.country].unit) inj[o.country]=o; });
+    const injRows = Object.values(inj).map(o=>({o,
+        lo: toUSD[o.cur]!=null ? o.unit*DOSE.cytopoint.unitsPerDay*toUSD[o.cur] : null,
+        hi: toUSD[o.cur]!=null ? o.unit*DOSE.cytopoint.unitsPerDayMax*toUSD[o.cur] : null}))
+      .sort((a,b)=>(a.lo??1e9)-(b.lo??1e9));
+    if(injRows.length < 2) continue;
+    const cheapest = injRows[0].lo;
+    html += `<tr class="group"><td colspan="6">Cytopoint ${DOSE.cytopoint.mg}mg — `
+          + `${vialPack === 1 ? 'single vial' : vialPack + '-vial pack'}, dosed every 4 to 8 weeks · `
+          + `${injRows.length} markets</td></tr>`;
+    for(const r of injRows){
+      const rel = (r.lo!=null && cheapest) ? (r.lo===cheapest?'—':'+'+((r.lo/cheapest-1)*100).toFixed(0)+'%') : '—';
+      html += `<tr><td></td><td><span class="cc">${r.o.country}</span>${esc(CCNAME[r.o.country]||r.o.country)}</td>
+        <td>${esc(venues[r.o.venue].name)}</td>
+        <td>${money(r.o.unit,r.o.cur,r.o.cur==='TRY'||r.o.cur==='HUF'?0:2)}/vial</td>
+        <td>${r.lo!=null?'$'+r.lo.toFixed(2)+'–$'+r.hi.toFixed(2):'—'}</td><td>${rel}</td></tr>`;
+    }
   }
   document.getElementById('costtable').innerHTML = html;
+
   document.getElementById('costnotes').innerHTML =
-    (fx? `FX: ECB via rates.json (${esc(fx._asof||'')}) £1=$${(fx.GBPTRY/fx.USDTRY).toFixed(3)}, €1=$${(fx.EURTRY/fx.USDTRY).toFixed(3)}, $1=₺${fx.USDTRY.toFixed(1)}${fx.AUDUSD?`, A$1=$${fx.AUDUSD.toFixed(3)}`:''}. `
-       : 'rates.json unavailable — USD conversion skipped for non-USD venues. ') +
-    (excluded.length? 'Excluded (no strength on page): ' + excluded.map(esc).join('; ') + '. ' : '') +
-    '"vs ~3mo" compares the same SKU at the same venue in local currency against the newest observation at least ~3 months older (live or Wayback-backfilled). Dosing validated against each label Aug 2026: Numelvi 21.6 mg = 19.4-26.5 kg per the Merck chart, Apoquel 16 mg = 20.0-29.9 kg. Cytopoint excludes the administering visit, and its range spans the label\'s 4-8 week interval.';
+    (fx? `FX: ECB via rates.json (${esc(fx._asof||'')}). ` : 'rates.json unavailable. ') +
+    '<b>Every block above holds dose, form, pack size and channel constant</b> — blocks are never ' +
+    'compared against each other, because a per-tablet price and a 100-pack unit price are different ' +
+    'goods (the bulk discount inside a single venue runs 4–31%). ' +
+    (excluded.length? esc([...new Set(excluded)].join('; ')) + '. ' : '') +
+    '<b>Not adjusted for tax:</b> EU, UK, Turkish and Australian shelf prices include VAT/GST ' +
+    '(roughly 19–27% in the EU, 20% UK, 10% AU) while US prices exclude sales tax — so the US sits ' +
+    'flattered by about a fifth against European rows, and intra-EU rows are comparable with each ' +
+    'other but not with the US. Clinic-administered pricing (PerfectPet, RO) is excluded from these ' +
+    'retail comparisons.';
 }
 
 Promise.all([

@@ -507,6 +507,10 @@ def parse_label(label, default_mg=None):
     m = re.search(r"(\d+(?:[.,]\d+)?)\s*-?\s*(?:mg|мг)", label, re.I)
     if m: mg = float(m.group(1).replace(",", "."))
     n = None
+    # "3 x 30 tabl." is a 90-tablet multipack, not a 3-pack: multiply the two.
+    mult = re.search(r"(\d+)\s*[x×]\s*(\d+)\s*(?!ml\b)(?:tabl|tablet|comprim|db|st|бр)", label, re.I)
+    if mult:
+        return (mg if mg is not None else default_mg), int(mult.group(1)) * int(mult.group(2))
     m = (re.search(r"(\d+)\s*[x×]\s*\d+\s*ml\b", label, re.I)
          or re.search(r"(\d+)\s*(?:count|tbl\.?|tabl\.?|tablet(?:s|ten|ta)?|kautablet(?:s|ten)?|filmtablet(?:s|ten|ta)?|r[aá]g[oó]tabletta|chewables?|tabs?|comprimidos|vials?|adet|st(?:ück|k)?|db|x|бр|табл(?:етки)?|comprimate|tablete|'?li)(?![a-zа-я])", label, re.I)
          or re.search(r"pack of\s*(\d+)", label, re.I)
