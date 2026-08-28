@@ -1,0 +1,32 @@
+name: OECD-FAO Outlook probe
+
+# Discovery only. The dev sandbox cannot reach OECD or FAO, so this runs the
+# probe where the network works and commits the dump for the parser to be
+# written against. No fetch, no build, no site changes.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Probe OECD + FAO access routes
+        run: python scripts/probe_oecd_fao.py
+      - name: Commit the dump
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add data/_oecd-fao-probe.json
+          git diff --cached --quiet || git commit -m "data: OECD-FAO Outlook access probe [skip ci]"
+          for i in 1 2 3 4; do
+            git push origin HEAD && break
+            git pull --rebase || exit 1
+          done
