@@ -65,10 +65,13 @@
 
   <div class="card">
     <div class="chart-title">Cost per itch-free day — dosage-normalized, all markets</div>
-    <div class="chart-sub">Maintenance therapy for a ~20 kg dog: one weight-matched tablet daily
-      (Apoquel 16 mg, Zenrelia 15 mg, Numelvi 21.6 mg) or one Cytopoint 40 mg vial per month
-      (drug cost only). Converted to USD/day with the daily ECB cross-rates from
-      <a style="color:var(--c1)" href="rates.json">rates.json</a>; recomputed from the latest scrape.</div>
+    <div class="chart-sub">Maintenance therapy for a ~20 kg dog, dosed to each product's own label:
+      one weight-matched tablet daily (Apoquel 16 mg, Zenrelia 15 mg, Numelvi 21.6 mg), or one
+      Cytopoint 40 mg vial every <b>4 to 8 weeks</b> — so Cytopoint is shown as a range, because the
+      label does not specify a monthly interval. Apoquel additionally needs <b>twice-daily dosing for
+      the first 14 days</b> (Zenrelia and Numelvi do not), which adds ~47% to its first month and is
+      not included in the maintenance rate below. Drug cost only. Converted to USD/day with ECB
+      cross-rates from <a style="color:var(--c1)" href="rates.json">rates.json</a>.</div>
     <div class="tblwrap"><table id="costtable"></table></div>
     <div class="chart-sub" id="costnotes" style="margin-top:8px"></div>
   </div>
@@ -127,12 +130,22 @@ function lineChart(series, {height=210, yFmt=v=>v.toFixed(2)}={}){
 }
 
 // Dosage model for the cost-per-day panel: ~20 kg dog, maintenance phase.
+// Dosing model, validated against each product's label (Aug 2026):
+//  Apoquel/Apoquel Chewable  0.4-0.6 mg/kg, twice daily up to 14 days, then ONCE
+//                            daily maintenance. 16 mg covers 20.0-29.9 kg. The
+//                            induction fortnight is charged separately below, not
+//                            smeared into the maintenance rate.
+//  Zenrelia                  once daily from day one, no loading dose. 15 mg band.
+//  Numelvi                   once daily, 0.8-1.2 mg/kg; 21.6 mg = 19.4-26.5 kg
+//                            (Merck dosing chart) - matches the 20 kg reference dog.
+//  Cytopoint                 min 2 mg/kg every 4 TO 8 WEEKS, so cost/day is a RANGE,
+//                            not a monthly figure. 40 mg suits a 20 kg dog.
 const DOSE = {
-  'apoquel':          {form:'tab',  mg:16,   unitsPerDay:1},
-  'apoquel-chewable': {form:'chew', mg:16,   unitsPerDay:1},
+  'apoquel':          {form:'tab',  mg:16,   unitsPerDay:1, induction:14},
+  'apoquel-chewable': {form:'chew', mg:16,   unitsPerDay:1, induction:14},
   'zenrelia':         {form:'tab',  mg:15,   unitsPerDay:1},
   'numelvi':          {form:'tab',  mg:21.6, unitsPerDay:1},
-  'cytopoint':        {form:'inj',  mg:40,   unitsPerDay:1/30},
+  'cytopoint':        {form:'inj',  mg:40,   unitsPerDay:1/56, unitsPerDayMax:1/28},
 };
 
 function renderCostTable(data, fx){
@@ -165,10 +178,12 @@ function renderCostTable(data, fx){
     });
     for(const o of Object.values(perVenue)){
       const localDay = o.unit * dose.unitsPerDay;
+      const localDayMax = dose.unitsPerDayMax ? o.unit * dose.unitsPerDayMax : null;
       const usdDay = toUSD[o.cur]!=null ? localDay*toUSD[o.cur] : null;
+      const usdDayMax = (localDayMax!=null && toUSD[o.cur]!=null) ? localDayMax*toUSD[o.cur] : null;
       const prev = priorUnit(o.sku, o.venue, 80);
       const chg = prev!=null && prev>0 ? (o.unit/prev-1)*100 : null;
-      rows.push({pid, o, localDay, usdDay, chg});
+      rows.push({pid, o, localDay, localDayMax, usdDay, usdDayMax, chg});
     }
   }
   const maxUSD = Math.max(...rows.map(r=>r.usdDay??0), 0.01);
@@ -183,9 +198,9 @@ function renderCostTable(data, fx){
         <td>${i===0?esc(products[pid].name):''}</td>
         <td><span class="cc">${o.country}</span>${esc(venues[o.venue].name)}</td>
         <td>${DOSE[pid].mg}mg ${FORM[DOSE[pid].form]}</td>
-        <td>${money(r.localDay,o.cur,o.cur==='TRY'?0:2)}</td>
-        <td>${r.usdDay!=null?('$'+r.usdDay.toFixed(2))+bar:'—'}</td>
-        <td>${r.usdDay!=null?'$'+(r.usdDay*30).toFixed(2):'—'}</td>
+        <td>${money(r.localDay,o.cur,o.cur==='TRY'?0:2)}${r.localDayMax!=null?'–'+money(r.localDayMax,o.cur,o.cur==='TRY'?0:2):''}</td>
+        <td>${r.usdDay!=null?('$'+r.usdDay.toFixed(2)+(r.usdDayMax!=null?'–$'+r.usdDayMax.toFixed(2):''))+bar:'—'}</td>
+        <td>${r.usdDay!=null?'$'+(r.usdDay*30).toFixed(2)+(r.usdDayMax!=null?'–$'+(r.usdDayMax*30).toFixed(2):''):'—'}</td>
         <td>${r.chg==null?'<span style="color:var(--ink3)">—</span>':`<span style="color:${r.chg>0.5?'var(--dn)':r.chg<-0.5?'var(--c3)':'var(--ink3)'}">${r.chg>=0?'+':''}${r.chg.toFixed(1)}%</span>`}</td></tr>`;
     });
   }
@@ -194,7 +209,7 @@ function renderCostTable(data, fx){
     (fx? `FX: ECB via rates.json (${esc(fx._asof||'')}) £1=$${(fx.GBPTRY/fx.USDTRY).toFixed(3)}, €1=$${(fx.EURTRY/fx.USDTRY).toFixed(3)}, $1=₺${fx.USDTRY.toFixed(1)}${fx.AUDUSD?`, A$1=$${fx.AUDUSD.toFixed(3)}`:''}. `
        : 'rates.json unavailable — USD conversion skipped for non-USD venues. ') +
     (excluded.length? 'Excluded (no strength on page): ' + excluded.map(esc).join('; ') + '. ' : '') +
-    '"vs ~3mo" compares the same SKU at the same venue in local currency against the newest observation at least ~3 months older (live or Wayback-backfilled); Numelvi 21.6 mg weight-band assignment is an assumption; Cytopoint excludes the vet visit.';
+    '"vs ~3mo" compares the same SKU at the same venue in local currency against the newest observation at least ~3 months older (live or Wayback-backfilled). Dosing validated against each label Aug 2026: Numelvi 21.6 mg = 19.4-26.5 kg per the Merck chart, Apoquel 16 mg = 20.0-29.9 kg. Cytopoint excludes the administering visit, and its range spans the label\'s 4-8 week interval.';
 }
 
 Promise.all([
