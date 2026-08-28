@@ -47,7 +47,7 @@ PRODUCTS = [
         "id": "cytopoint",
         "name": "Cytopoint",
         "maker": "Zoetis",
-        "unit": "vial (1 ml, price range across 10-40 mg)",
+        "unit": "per vial (10-40 mg)",
         "sources": [
             {"store": "PetVM", "url": "https://petvm.com/skin-coat/458-cytopoint-for-dogs.html"},
             {"store": "Bandana Rx", "url": "https://bandanarx.com/skin-coat/458-cytopoint-for-dogs.html"},
@@ -57,7 +57,7 @@ PRODUCTS = [
         "id": "apoquel",
         "name": "Apoquel",
         "maker": "Zoetis",
-        "unit": "tablet (range across strengths/counts)",
+        "unit": "per tablet",
         "sources": [
             {"store": "PetVM", "url": "https://petvm.com/skin-coat/318-apoquel.html"},
             {"store": "California Pet Pharmacy", "url": "https://www.californiapetpharmacy.com/apoquel-16mg-per-tablet.html"},
@@ -67,7 +67,7 @@ PRODUCTS = [
         "id": "apoquel-chewable",
         "name": "Apoquel Chewable",
         "maker": "Zoetis",
-        "unit": "chewable 16 mg (per unit / small counts)",
+        "unit": "per chewable (16 mg)",
         "sources": [
             {"store": "California Pet Pharmacy", "url": "https://www.californiapetpharmacy.com/apoquel-chewable-16mg-per-chewable.html"},
             {"store": "Heartland Vet Supply", "url": "https://www.heartlandvetsupply.com/p-6816-apoquel-oclacitinib-chewable-tablets-for-dogs.aspx"},
@@ -78,7 +78,7 @@ PRODUCTS = [
         "id": "numelvi",
         "name": "Numelvi",
         "maker": "Merck",
-        "unit": "bottle (range across strengths/counts)",
+        "unit": "page variants (per tablet to 30-ct bottle)",
         "sources": [
             {"store": "Heartland Vet Supply", "url": "https://www.heartlandvetsupply.com/p-7274-numelvi-atinvicitinib-tablets-for-dogs.aspx"},
             {"store": "PetRx", "url": "https://petrx.com/products/numelvi-atinvicitinib-tablets"},
@@ -88,7 +88,7 @@ PRODUCTS = [
         "id": "zenrelia",
         "name": "Zenrelia",
         "maker": "Elanco",
-        "unit": "bottle (range across strengths/counts)",
+        "unit": "per tablet (4.8-15 mg strengths)",
         "sources": [
             {"store": "PetVM", "url": "https://petvm.com/skin-coat/511-zenrelia-ilunocitnib-tablets.html"},
             {"store": "EntirelyPets Rx", "url": "https://entirelypetspharmacy.com/zenrelia-tablets-for-dogs.html"},
