@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The 4% rule, replicated — and it is 3.6% — Namık Akman</title>
+  <meta name="description" content="A replication of Bengen (1994) and the Trinity Study (1998) on Robert Shiller's open data, 1871–2022. The published success rates reproduce — once you add back the corporate bond spread the rule never mentions. On government bonds the rate that never failed is 3.60%, not 4%. Every failure in 152 years began between 1964 and 1969. Full numbers, method, limitations and reproducible scripts." />
+  <meta name="keywords" content="4% rule, safe withdrawal rate, Trinity Study, Bengen 1994, SAFEMAX, sequence of returns risk, retirement withdrawal, replication, Shiller data" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="The 4% rule replicates — at 3.6%" />
+  <meta property="og:description" content="Bengen and the Trinity Study, re-run on Shiller's data 1871–2022. The published numbers reproduce once you add back the corporate credit risk the rule never mentions. Every failure in 152 years began in the same six years." />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/four-percent-rule.png" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .fp-grid{display:grid;gap:18px}
+    .fp-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .fp-card h3{margin-top:0}
+    .fp-hero img{width:100%;height:auto;display:block;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+    .fp-hero .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    .fp-table-wrap{overflow-x:auto}
+    .fp-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .fp-table th,.fp-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .fp-table th[scope=row],.fp-table thead th:first-child{text-align:left}
+    .fp-table .note{text-align:left;white-space:normal;color:var(--text-dim)}
+    .fp-head{color:var(--accent-2);font-weight:600}
+    .fp-bad{color:var(--loss);font-weight:600}
+    .fp-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    @media(max-width:820px){.fp-layers{grid-template-columns:1fr}}
+    .fp-layers .n{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .fp-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block;font-size:.85rem}
+    .fp-links a{margin-right:14px}
+    .fp-code{margin-top:12px}
+    .fp-code summary{cursor:pointer;font-weight:600;color:var(--accent);padding:6px 0}
+    .fp-code pre{overflow:auto;max-height:520px;background:var(--surface-2);border:1px solid var(--border);
+      border-radius:8px;padding:14px;font-size:.78rem;line-height:1.5;margin:8px 0 0}
+    .fp-warn{border-left:3px solid var(--accent-2);padding-left:14px;color:var(--text-dim);font-size:.9rem}
+  </style>
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container fp-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">The 4% rule, replicated</h2>
+        </div>
+
+        <p class="data-note">
+          Two papers created the most quoted number in personal finance.
+          <strong>Bengen (1994)</strong> found that a retiree drawing 4% of the starting
+          portfolio, raised each year with inflation, never ran out inside 30 years in any
+          year on record. <strong>Cooley, Hubbard &amp; Walz (1998)</strong> &mdash; the Trinity
+          Study &mdash; put success rates on it: 95% for a 50/50 portfolio, 98% for 75/25.
+          This page re-runs both on
+          <a href="https://github.com/datasets/s-and-p-500">Robert Shiller's open data</a>,
+          1871&ndash;2022, and publishes every number, the method, its limitations and the
+          scripts.
+          <strong>The result: the published figures reproduce &mdash; but only once you add back
+          a bond assumption the rule is never quoted with. On government bonds the rate that
+          never failed is 3.60%, not 4%.</strong>
+        </p>
+
+        <div class="fp-card fp-hero">
+          <img src="assets/linkedin/four-percent-rule.png"
+               alt="Chart of wealth remaining after a 30-year retirement drawing 4% a year from a 50/50 portfolio, plotted against the year the retirement began, 1871 to 1993. The line swings between zero and five times the starting capital. Six retirements ran out of money entirely, and all six began between 1964 and 1969, marked in red.">
+          <p class="cap">What was left after 30 years, by the year the retirement began. Six of
+            123 starting years ran out of money, and all six fall in one six-year cluster. The
+            line is smooth because neighbouring retirements share 29 of their 30 years &mdash;
+            which is the whole problem with counting them as separate tests. Regenerate with
+            <code>python3 scripts/retire_chart.py</code>.</p>
+        </div>
+
+        <div class="fp-layers">
+          <div class="fp-card">
+            <p class="n">1</p>
+            <h3>It replicates &mdash; on their bonds</h3>
+            <p>On government bonds I get <strong>93%</strong> (50/50) and <strong>95%</strong>
+              (75/25) against their published 95% and 98% &mdash; one failure out each. The
+              Trinity Study held long-term <em>corporate</em> bonds. Add a half-point of credit
+              spread and the 50/50 figure reproduces exactly; add one and a half points and both
+              do.</p>
+          </div>
+          <div class="fp-card">
+            <p class="n">2</p>
+            <h3>The number is 3.6%, and it is a convention</h3>
+            <p>The highest rate that never failed on government bonds is
+              <strong>3.60%</strong> &mdash; the same in 1926&ndash;1995, through 2022, and across
+              the full 152 years. Moving the withdrawal from the start of the year to the end,
+              a pure modelling choice, moves it to 3.91%. A 1% fee moves it to 3.18%.</p>
+          </div>
+          <div class="fp-card">
+            <p class="n">3</p>
+            <h3>Six retirements set the rule</h3>
+            <p>Every failure in 152 years began between <strong>1964 and 1969</strong>. And 68
+              overlapping 30-year windows are <strong>three</strong> non-overlapping ones. The
+              rule is not backed by a century of evidence; it is backed by roughly three
+              retirements, one of which went badly.</p>
+          </div>
+        </div>
+
+        <div class="fp-card">
+          <h3>Stage 1 &mdash; the replication</h3>
+          <p>The Trinity Study's sample is 1926&ndash;1995, which is 41 overlapping 30-year
+            windows. Their 95% and 98% are therefore 2 failures and 1 failure. That is the
+            target.</p>
+          <div class="fp-table-wrap">
+            <table class="fp-table">
+              <thead><tr><th>Portfolio</th><th>Published (1998)</th><th>This replication</th>
+                <th>Failures</th><th>Windows</th><th class="note">Failing retirement years</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">50/50 stocks/bonds</th><td>95%</td><td>92.7%</td><td>3</td>
+                    <td>41</td><td class="note">1964, 1965, 1966</td></tr>
+                <tr><th scope="row">75/25 stocks/bonds</th><td>98%</td><td>95.1%</td><td>2</td>
+                    <td>41</td><td class="note">1965, 1966</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p style="margin-top:18px">One failure out, both times. The suspect is the asset:
+            they held long-term high-grade <em>corporate</em> bonds, and the only public series
+            is government. Adding the missing credit spread back to the bond leg:</p>
+          <div class="fp-table-wrap">
+            <table class="fp-table">
+              <thead><tr><th>Credit spread over government</th><th>50/50</th><th>75/25</th>
+                <th class="note"></th></tr></thead>
+              <tbody>
+                <tr><th scope="row">0.0% (government bonds)</th><td>92.7%</td><td>95.1%</td>
+                    <td class="note">what the public data gives</td></tr>
+                <tr><th scope="row">0.5%</th><td class="fp-head">95.1%</td><td>95.1%</td>
+                    <td class="note">reproduces the published 50/50 figure</td></tr>
+                <tr><th scope="row">1.0%</th><td>95.1%</td><td>95.1%</td><td class="note"></td></tr>
+                <tr><th scope="row">1.5%</th><td class="fp-head">97.6%</td>
+                    <td class="fp-head">97.6%</td>
+                    <td class="note">reproduces both published figures</td></tr>
+                <tr><th scope="row">2.0%</th><td>100%</td><td>97.6%</td><td class="note"></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fp-warn" style="margin-top:14px">A half to one and a half points is an
+            ordinary historical high-grade spread, so the replication succeeds. The finding is
+            what the condition attached to it: the famous 95% assumes the retiree holds
+            corporate credit risk for thirty years and keeps holding it through every recession.
+            Nobody quotes the rule that way. Everything below stays on government bonds, which
+            is the conservative reading.</p>
+        </div>
+
+        <div class="fp-card">
+          <h3>Stage 2 &mdash; the retest, with 27 years they never saw</h3>
+          <p>The 1998 paper stops in 1995. Every retirement beginning in 1966 or later was still
+            running when it was published. Those windows have since finished, and they contain
+            2000&ndash;02, 2008 and 2022.</p>
+          <div class="fp-table-wrap">
+            <table class="fp-table">
+              <thead><tr><th>Portfolio</th><th>1926&ndash;1995</th><th>Through 2022</th>
+                <th>Windows added</th><th class="note">Failures now</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">50/50</th><td>92.7%</td><td>91.2%</td><td>+27</td>
+                    <td class="note">1964&ndash;1969, six in all</td></tr>
+                <tr><th scope="row">75/25</th><td>95.1%</td><td>94.1%</td><td>+27</td>
+                    <td class="note">1965, 1966, 1968, 1969</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:14px">The rule survives its own extension, which is the
+            headline anyone quoting it should want to hear. Note what did <em>not</em> break it:
+            no retirement beginning in the 1970s, 1980s or 1990s failed, including everyone who
+            retired straight into the 2000&ndash;02 and 2008 crashes.</p>
+        </div>
+
+        <div class="fp-card">
+          <h3>What the rule does not say</h3>
+          <p>Success rates by withdrawal rate, 30 years, 1926&ndash;2022, government bonds. The
+            middle column is the rule as published; the two either side are the same test with
+            one assumption changed.</p>
+          <div class="fp-table-wrap">
+            <table class="fp-table">
+              <thead><tr><th>Withdrawal rate</th><th>50/50, 30 years</th><th>75/25, 30 years</th>
+                <th>50/50 after a 1% fee</th><th>50/50 over 50 years</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">3.0%</th><td>100%</td><td>100%</td><td>100%</td><td>100%</td></tr>
+                <tr><th scope="row">3.5%</th><td>100%</td><td>100%</td><td>91%</td><td>83%</td></tr>
+                <tr><th scope="row" class="fp-head">4.0%</th><td class="fp-head">91%</td>
+                    <td class="fp-head">94%</td><td class="fp-bad">78%</td>
+                    <td class="fp-bad">50%</td></tr>
+                <tr><th scope="row">4.5%</th><td>79%</td><td>87%</td><td>65%</td><td>33%</td></tr>
+                <tr><th scope="row">5.0%</th><td>68%</td><td>74%</td><td>56%</td><td>17%</td></tr>
+                <tr><th scope="row">5.5%</th><td>56%</td><td>68%</td><td>43%</td><td>8%</td></tr>
+                <tr><th scope="row">6.0%</th><td>46%</td><td>62%</td><td>31%</td><td>0%</td></tr>
+                <tr><th scope="row">7.0%</th><td>25%</td><td>49%</td><td>15%</td><td>0%</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p style="margin-top:18px"><strong>&ldquo;Success&rdquo; means the portfolio did not
+            hit zero.</strong> It does not mean it held its value. Of the 62 retirements that
+            succeeded at 4%, 50/50, 1926&ndash;2022:</p>
+          <div class="fp-table-wrap">
+            <table class="fp-table">
+              <thead><tr><th>Outcome after 30 years, in real terms</th><th>Multiple of starting capital</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Worst tenth of successes</th><td>0.26&times;</td></tr>
+                <tr><th scope="row">Median</th><td>1.13&times;</td></tr>
+                <tr><th scope="row">Best tenth</th><td>3.15&times;</td></tr>
+                <tr><th scope="row" class="fp-head">Ended poorer than they started</th>
+                    <td class="fp-head">29 of 62 (47%)</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cap" style="font-size:.85rem;color:var(--text-dim);margin-top:8px">
+            One retiree finished with five times their capital and another with a quarter of it.
+            Both count as a success. The rule promises you will not run out; it says nothing
+            whatever about what you will have, and the spread is enormous.</p>
+
+          <p style="margin-top:18px"><strong>And the 4% itself is partly a convention.</strong>
+            The highest rate that never failed &mdash; Bengen's SAFEMAX &mdash; under each
+            assumption:</p>
+          <div class="fp-table-wrap">
+            <table class="fp-table">
+              <thead><tr><th>Assumption</th><th>SAFEMAX</th><th>4% success</th>
+                <th class="note">What changed</th></tr></thead>
+              <tbody>
+                <tr><th scope="row" class="fp-head">Baseline (50/50, government bonds)</th>
+                    <td class="fp-head">3.60%</td><td>91%</td>
+                    <td class="note">withdrawal at start of year, no fees</td></tr>
+                <tr><th scope="row">Withdraw at year end instead</th><td>3.91%</td><td>97%</td>
+                    <td class="note">a pure modelling choice, worth 0.31pp</td></tr>
+                <tr><th scope="row">5-year bonds instead of 10-year</th><td>3.80%</td><td>97%</td>
+                    <td class="note">shorter duration, less 1970s damage</td></tr>
+                <tr><th scope="row">0.5% annual fee</th><td>3.39%</td><td>87%</td>
+                    <td class="note">a cheap index fund and an adviser</td></tr>
+                <tr><th scope="row">1.0% annual fee</th><td>3.18%</td><td>78%</td>
+                    <td class="note">a typical retail all-in cost</td></tr>
+                <tr><th scope="row">2.0% annual fee</th><td>2.80%</td><td>65%</td>
+                    <td class="note">an expensive one</td></tr>
+                <tr><th scope="row">75/25 instead of 50/50</th><td>3.70%</td><td>94%</td>
+                    <td class="note">more equity, slightly safer here</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cap" style="font-size:.85rem;color:var(--text-dim);margin-top:8px">
+            The gap between 3.18% and 3.91% is not economics. It is where you put the withdrawal
+            in the year and what you pay your fund manager.</p>
+        </div>
+
+        <div class="fp-card">
+          <h3>Method</h3>
+          <ul>
+            <li><strong>The withdrawal is fixed in real terms.</strong> Take 4% of the
+              <em>starting</em> portfolio in year one, then raise that amount by inflation every
+              year regardless of what the portfolio does. That is what both papers modelled, and
+              it is what makes the rule able to fail at all &mdash; a rule that took 4% of the
+              current balance can never run out.</li>
+            <li><strong>One simulation per starting year.</strong> Rebalance annually to the
+              target mix, withdraw at the start of the year, and record whether the balance ever
+              reached zero inside the horizon.</li>
+            <li><strong>Data.</strong> Shiller's monthly series, January to January: S&amp;P 500
+              total return with dividends reinvested, CPI for the inflation adjustment, and a
+              constant-maturity government bond return built by buying at par and selling a year
+              later one year shorter at the new yield.</li>
+          </ul>
+          <p class="fp-eq">success = balance &gt; 0 for all 30 years &nbsp; &middot; &nbsp;
+            SAFEMAX = highest rate with zero failures</p>
+        </div>
+
+        <div class="fp-card">
+          <h3>Limitations</h3>
+          <ul>
+            <li><strong>Neither paper's bond series is public.</strong> Bengen used
+              intermediate-term Treasuries; the Trinity Study used long-term high-grade corporate
+              bonds. This uses government bonds at 10 and 5 years. That is the single biggest
+              source of difference from the published numbers, and stage 1 quantifies it rather
+              than hiding it.</li>
+            <li><strong>One country, and the lucky one.</strong> Every number here is US.
+              The United States had the best-performing large equity market of the twentieth
+              century, and a rule calibrated on the winner is calibrated on a survivor. The
+              published international work &mdash; Pfau (2010), Estrada (2017) &mdash; finds
+              materially lower safe rates in most other developed markets. That literature is
+              <em>cited, not reproduced</em>: no comparable long-run international total-return
+              series is openly available, so nothing on this page tests it.</li>
+            <li><strong>The windows overlap almost completely.</strong> 68 overlapping 30-year
+              windows contain 3 non-overlapping ones. Neighbouring retirements share 29 of their
+              30 years, so "91% of historical periods" is not 68 independent trials and no
+              confidence interval is quoted here for exactly that reason.</li>
+            <li><strong>The failure record is one cohort.</strong> All six failures began
+              1964&ndash;1969. The rule's entire downside evidence is a single episode &mdash;
+              high valuations followed by the 1970s inflation. Whether that is the worst case
+              possible, or merely the worst case that happened, the data cannot say.</li>
+            <li><strong>Taxes are not modelled.</strong> Neither original paper modelled them
+              either. In a taxable account the effective withdrawal is higher than the headline
+              rate.</li>
+            <li><strong>Annual steps, January to January.</strong> Real retirees withdraw
+              monthly and retire in months other than January. Annual steps understate the
+              damage of a crash early in a year.</li>
+            <li><strong>The data ends in 2022.</strong> The public mirror carries prices to the
+              present but Shiller's dividend, CPI and yield columns lag, so the last complete
+              return year is 2022 and the last 30-year window begins in 1993.</li>
+          </ul>
+          <p class="fp-warn"><strong>This is not financial advice.</strong> It is a replication of
+            two published papers on public data, and it describes what happened to a mechanical
+            rule in the past in one country. It is not a recommendation about anyone's savings,
+            and a historical success rate is not a probability that applies to your retirement.</p>
+        </div>
+
+        <div class="fp-card fp-code">
+          <h3>The scripts, in full</h3>
+          <p>Nothing is elided. These are the three files that produced every number and the chart on this page, exactly as they run.</p>
+            <details>
+              <summary>fetch_retirement.py &mdash; building the return series from Shiller's data (146 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Build the annual return series behind the 4% rule, from Robert Shiller&#x27;s data.
+
+Source: the open mirror of Robert Shiller&#x27;s monthly series (github.com/datasets/
+s-and-p-500) — S&amp;P 500 price, dividend, CPI and the long government bond yield,
+January 1871 onward. This is the public stand-in for the inputs Bengen (1994)
+and Cooley, Hubbard &amp; Walz (1998, &quot;the Trinity Study&quot;) used; neither paper&#x27;s
+exact bond series is public, which is the main caveat this study carries.
+
+Produces one row per calendar year, January to January:
+
+  stock   S&amp;P 500 total return: price change plus the dividends paid that year
+  bond    total return on a constant-maturity government bond, constructed by
+          buying it at par and selling it a year later one year shorter, at the
+          new yield. Built at 10 and at 5 years so the analysis can show what
+          the bond assumption is worth.
+  cpi     inflation, which is what the withdrawal is indexed to
+
+Usage:  python3 scripts/fetch_retirement.py
+&quot;&quot;&quot;
+import argparse, csv, io, json, os, sys, urllib.request
+from datetime import date
+
+SRC = (&quot;https://raw.githubusercontent.com/datasets/s-and-p-500/main/data/&quot;
+       &quot;data.csv&quot;)
+MATURITIES = (10, 5)
+
+
+def bond_price(coupon, years, yld):
+    &quot;&quot;&quot;Price of an annual-coupon bond, face 1.&quot;&quot;&quot;
+    if yld == 0:
+        return coupon * years + 1.0
+    disc = (1 + yld) ** -years
+    return coupon * (1 - disc) / yld + disc
+
+
+def bond_total_return(y0, y1, maturity):
+    &quot;&quot;&quot;Buy at par, hold one year, sell one year shorter at the new yield.
+
+    This is the standard constant-maturity construction. It is a proxy: Bengen
+    used intermediate Treasuries and the Trinity Study used long-term corporate
+    bonds, and neither series is public. Running it at two maturities is how
+    this study shows what the choice costs.
+    &quot;&quot;&quot;
+    return bond_price(y0, maturity - 1, y1) + y0 - 1.0
+
+
+def load_rows(url):
+    print(f&quot;  downloading {url} ...&quot;)
+    with urllib.request.urlopen(url, timeout=300) as r:
+        text = r.read().decode(&quot;utf-8&quot;)
+    return list(csv.DictReader(io.StringIO(text)))
+
+
+def num(row, key):
+    &quot;&quot;&quot;Shiller&#x27;s mirror writes 0 for &#x27;not filled in yet&#x27;; treat that as missing.&quot;&quot;&quot;
+    v = row.get(key, &quot;&quot;)
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if f == 0 else f
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument(&quot;--out&quot;, default=&quot;data/retire-us.json&quot;)
+    args = ap.parse_args(argv)
+
+    print(&quot;Shiller monthly series&quot;)
+    rows = load_rows(SRC)
+    print(f&quot;  read {len(rows):,} months, &quot;
+          f&quot;{rows[0][&#x27;Date&#x27;]} to {rows[-1][&#x27;Date&#x27;]}&quot;)
+
+    by_month = {}
+    for r in rows:
+        y, m, _ = r[&quot;Date&quot;].split(&quot;-&quot;)
+        by_month[(int(y), int(m))] = r
+
+    years = sorted({y for y, _ in by_month})
+    out = []
+    for y in years:
+        jan0, jan1 = by_month.get((y, 1)), by_month.get((y + 1, 1))
+        if not jan0 or not jan1:
+            continue
+        p0, p1 = num(jan0, &quot;SP500&quot;), num(jan1, &quot;SP500&quot;)
+        c0, c1 = (num(jan0, &quot;Consumer Price Index&quot;),
+                  num(jan1, &quot;Consumer Price Index&quot;))
+        y0, y1 = (num(jan0, &quot;Long Interest Rate&quot;),
+                  num(jan1, &quot;Long Interest Rate&quot;))
+        # Shiller&#x27;s Dividend column is the annualised rate in force each month;
+        # averaging the twelve months gives the dividend actually paid that year.
+        divs = [num(by_month[(y, m)], &quot;Dividend&quot;) for m in range(1, 13)
+                if (y, m) in by_month]
+        divs = [d for d in divs if d is not None]
+        if not all((p0, p1, c0, c1, y0, y1)) or len(divs) &lt; 12:
+            continue
+        d = sum(divs) / len(divs)
+
+        row = {&quot;year&quot;: y,
+               &quot;stock&quot;: round((p1 + d) / p0 - 1, 6),
+               &quot;cpi&quot;: round(c1 / c0 - 1, 6)}
+        for mat in MATURITIES:
+            row[f&quot;bond{mat}&quot;] = round(
+                bond_total_return(y0 / 100.0, y1 / 100.0, mat), 6)
+        out.append(row)
+
+    doc = {
+        &quot;source&quot;: &quot;Robert Shiller, monthly US stock market and CPI data&quot;,
+        &quot;source_url&quot;: &quot;https://github.com/datasets/s-and-p-500&quot;,
+        &quot;note&quot;: (&quot;Public mirror of Shiller&#x27;s series. Prices run to the present, &quot;
+                 &quot;but the dividend, CPI and yield columns lag, so complete &quot;
+                 &quot;return years end earlier — see coverage below.&quot;),
+        &quot;fetched_by&quot;: &quot;scripts/fetch_retirement.py&quot;,
+        &quot;fetched_at&quot;: date.today().isoformat(),
+        &quot;definitions&quot;: {
+            &quot;stock&quot;: &quot;S&amp;P 500 total return, January to January, dividends included&quot;,
+            &quot;bond10&quot;: &quot;constant-maturity 10-year government bond total return&quot;,
+            &quot;bond5&quot;: &quot;same construction at 5 years, to price the assumption&quot;,
+            &quot;cpi&quot;: &quot;January-to-January inflation, what the withdrawal is indexed to&quot;,
+        },
+        &quot;caveat&quot;: (&quot;Bengen (1994) used intermediate-term Treasuries; Cooley, &quot;
+                   &quot;Hubbard &amp; Walz (1998) used long-term high-grade corporate &quot;
+                   &quot;bonds. Neither series is public. These are government-bond &quot;
+                   &quot;proxies and the replication is only as good as that.&quot;),
+        &quot;coverage&quot;: {&quot;first_year&quot;: out[0][&quot;year&quot;], &quot;last_year&quot;: out[-1][&quot;year&quot;],
+                     &quot;n_years&quot;: len(out)},
+        &quot;years&quot;: out,
+    }
+    os.makedirs(os.path.dirname(args.out) or &quot;.&quot;, exist_ok=True)
+    with open(args.out, &quot;w&quot;) as fh:
+        json.dump(doc, fh, indent=1)
+
+    print(f&quot;  built {len(out)} complete return years: &quot;
+          f&quot;{out[0][&#x27;year&#x27;]}–{out[-1][&#x27;year&#x27;]}&quot;)
+    print(f&quot;  wrote {args.out} ({os.path.getsize(args.out):,} bytes)&quot;)
+    for r in out[:2] + out[-2:]:
+        print(f&quot;    {r[&#x27;year&#x27;]}  stock={r[&#x27;stock&#x27;]:+.4f}  &quot;
+              f&quot;bond10={r[&#x27;bond10&#x27;]:+.4f}  cpi={r[&#x27;cpi&#x27;]:+.4f}&quot;)
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+            <details>
+              <summary>retire_4pct.py &mdash; the replication and the retest (339 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Replication of the 4% rule, then a retest with the data the authors lacked.
+
+Two papers, one rule:
+
+  Bengen (1994), &quot;Determining Withdrawal Rates Using Historical Data&quot; — a
+    retiree drawing 4% of the starting portfolio, raised each year with
+    inflation, from a stock/bond mix, never ran out inside 30 years in any
+    starting year on record.
+  Cooley, Hubbard &amp; Walz (1998), the &quot;Trinity Study&quot; — the same exercise
+    reported as success rates. At 4% over 30 years, inflation-adjusted, they
+    published 95% for a 50/50 portfolio and 98% for 75/25, over 1926-1995.
+
+Their sample is 41 overlapping 30-year windows, so those figures are 2 failures
+and 1 failure respectively. That is the target this replication has to hit.
+
+It lands one failure short of each, and the reason is the bond series. They held
+long-term high-grade CORPORATE bonds; the only public series is government. Add
+the credit spread back and the published figures reproduce exactly — which is
+itself the finding, because the rule is never quoted with &quot;and you must hold
+corporate credit risk&quot; attached.
+
+Stage 1 replicates their window. Stage 2 asks the question they could not: the
+rule has since been quoted for twenty-seven more years of history, including
+2000-02, 2008 and 2022. Does it still hold?
+
+Stdlib only, deterministic.
+
+  python3 scripts/retire_4pct.py
+&quot;&quot;&quot;
+import json, sys
+from collections import defaultdict
+
+PANEL = &quot;data/retire-us.json&quot;
+TRINITY_FIRST, TRINITY_LAST = 1926, 1995      # the 1998 paper&#x27;s sample
+PUBLISHED = {0.50: 0.95, 0.75: 0.98}          # their 4%/30y figures
+
+
+# ---------------------------------------------------------------- simulation
+
+def simulate(rows, i0, rate, horizon, alloc, fee=0.0, bond=&quot;bond10&quot;,
+             timing=&quot;start&quot;, spread=0.0):
+    &quot;&quot;&quot;One retirement. -&gt; (survived, ending balance in start-year money).
+
+    The withdrawal is a fixed share of the STARTING portfolio, raised by
+    inflation every year — not a share of the current balance. That is what
+    makes the rule able to fail at all, and it is what both papers modelled.
+    &quot;&quot;&quot;
+    bal, draw, infl = 1.0, rate, 1.0
+    for k in range(horizon):
+        r = rows[i0 + k]
+        if timing == &quot;start&quot;:
+            bal -= draw
+            if bal &lt;= 0:
+                return False, 0.0
+        bal *= (1 + alloc * r[&quot;stock&quot;]
+                + (1 - alloc) * (r[bond] + spread) - fee)
+        if timing == &quot;end&quot;:
+            bal -= draw
+        if bal &lt;= 0:
+            return False, 0.0
+        infl *= 1 + r[&quot;cpi&quot;]
+        draw *= 1 + r[&quot;cpi&quot;]
+    return True, bal / infl
+
+
+def windows(rows, horizon, first=None, last=None):
+    &quot;&quot;&quot;Every starting year whose full horizon fits inside [first, last].&quot;&quot;&quot;
+    out = []
+    for i, r in enumerate(rows):
+        if first is not None and r[&quot;year&quot;] &lt; first:
+            continue
+        if i + horizon &gt; len(rows):
+            break
+        if last is not None and rows[i + horizon - 1][&quot;year&quot;] &gt; last:
+            break
+        out.append(i)
+    return out
+
+
+def run(rows, rate, horizon, alloc, first=None, last=None, **kw):
+    idx = windows(rows, horizon, first, last)
+    res = [(rows[i][&quot;year&quot;],) + simulate(rows, i, rate, horizon, alloc, **kw)
+           for i in idx]
+    ok = [r for r in res if r[1]]
+    return {&quot;n&quot;: len(res), &quot;fail&quot;: len(res) - len(ok),
+            &quot;rate&quot;: len(ok) / len(res) if res else float(&quot;nan&quot;),
+            &quot;ends&quot;: sorted(r[2] for r in ok),
+            &quot;failures&quot;: [r[0] for r in res if not r[1]], &quot;all&quot;: res}
+
+
+def pct(xs, p):
+    if not xs:
+        return float(&quot;nan&quot;)
+    return xs[min(len(xs) - 1, int(p * len(xs)))]
+
+
+def safemax(rows, horizon, alloc, first=None, last=None, **kw):
+    &quot;&quot;&quot;Highest withdrawal rate (to 0.01pp) at which no window failed.&quot;&quot;&quot;
+    lo, hi = 0.0, 0.15
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if run(rows, mid, horizon, alloc, first, last, **kw)[&quot;fail&quot;] == 0:
+            lo = mid
+        else:
+            hi = mid
+    return lo
+
+
+# ---------------------------------------------------------------- report
+
+def hr(t):
+    print(f&quot;\n{&#x27;=&#x27; * 78}\n{t}\n{&#x27;=&#x27; * 78}&quot;)
+
+
+def grid(rows, rates, allocs, horizon, first=None, last=None, **kw):
+    print(f&quot;    {&#x27;withdrawal&#x27;:&lt;12}&quot; + &quot;&quot;.join(f&quot;{int(a * 100):&gt;7}/{int(100 - a * 100):&lt;7}&quot;
+                                              for a in allocs))
+    for w in rates:
+        cells = []
+        for a in allocs:
+            r = run(rows, w, horizon, a, first, last, **kw)
+            cells.append(f&quot;{r[&#x27;rate&#x27;] * 100:&gt;6.0f}%{&#x27;&#x27;:7}&quot;)
+        print(f&quot;    {w * 100:&gt;9.1f}%  &quot; + &quot;&quot;.join(cells))
+
+
+def main():
+    doc = json.load(open(PANEL))
+    rows = doc[&quot;years&quot;]
+    cov = doc[&quot;coverage&quot;]
+
+    hr(&quot;0. The data&quot;)
+    print(f&quot;  source      {doc[&#x27;source&#x27;]}&quot;)
+    print(f&quot;  mirror      {doc[&#x27;source_url&#x27;]}&quot;)
+    print(f&quot;  coverage    {cov[&#x27;first_year&#x27;]}–{cov[&#x27;last_year&#x27;]}  &quot;
+          f&quot;({cov[&#x27;n_years&#x27;]} complete return years)&quot;)
+    print(f&quot;  caveat      {doc[&#x27;caveat&#x27;]}&quot;)
+
+    hr(&quot;1. Replication — the Trinity Study&#x27;s own window, 1926–1995&quot;)
+    print(&quot;  Published: 4% over 30 years, inflation-adjusted, succeeded in 95% of&quot;)
+    print(&quot;  periods at 50/50 and 98% at 75/25. Their sample is 41 overlapping&quot;)
+    print(&quot;  windows, so that is 2 failures and 1 failure.\n&quot;)
+    for alloc, target in sorted(PUBLISHED.items()):
+        r = run(rows, 0.04, 30, alloc, TRINITY_FIRST, TRINITY_LAST)
+        mark = &quot;MATCH&quot; if r[&quot;fail&quot;] == round((1 - target) * r[&quot;n&quot;]) else &quot;differs&quot;
+        print(f&quot;    {int(alloc * 100)}/{int(100 - alloc * 100)} stocks/bonds:  &quot;
+              f&quot;{r[&#x27;rate&#x27;] * 100:.0f}% success  ({r[&#x27;fail&#x27;]} failures of &quot;
+              f&quot;{r[&#x27;n&#x27;]} windows)   published {target * 100:.0f}%  -&gt; {mark}&quot;)
+        if r[&quot;failures&quot;]:
+            print(f&quot;        failing retirement years: {r[&#x27;failures&#x27;]}&quot;)
+
+    print(&quot;\n  the full published-style table, 30 years, inflation-adjusted, &quot;
+          &quot;1926–1995:&quot;)
+    grid(rows, (0.03, 0.04, 0.05, 0.06, 0.07),
+         (1.0, 0.75, 0.5, 0.25, 0.0), 30, TRINITY_FIRST, TRINITY_LAST)
+
+    hr(&quot;1b. Reconciling the gap — what the missing bond series is worth&quot;)
+    print(&quot;  Both published figures come out one failure higher than this&quot;)
+    print(&quot;  replication. The candidate explanation is the asset: they held&quot;)
+    print(&quot;  long-term high-grade corporate bonds, and the public series is&quot;)
+    print(&quot;  government. Adding a credit spread back to the bond leg:\n&quot;)
+    print(f&quot;      {&#x27;spread over govt&#x27;:&lt;20}{&#x27;50/50&#x27;:&gt;14}{&#x27;75/25&#x27;:&gt;14}&quot;)
+    for sp in (0.0, 0.005, 0.010, 0.015, 0.020):
+        a = run(rows, 0.04, 30, 0.50, TRINITY_FIRST, TRINITY_LAST, spread=sp)
+        b = run(rows, 0.04, 30, 0.75, TRINITY_FIRST, TRINITY_LAST, spread=sp)
+        star = &quot;&quot;
+        if round(a[&quot;rate&quot;], 2) == 0.95 and round(b[&quot;rate&quot;], 2) == 0.98:
+            star = &quot;   &lt;- reproduces both&quot;
+        print(f&quot;      {sp * 100:&gt;15.1f}%     {a[&#x27;rate&#x27;] * 100:&gt;8.0f}%&quot;
+              f&quot;{b[&#x27;rate&#x27;] * 100:&gt;13.0f}%{star}&quot;)
+    print(&quot;\n      published:                    95%           98%&quot;)
+    print(&quot;      A spread of half a point already reproduces the 50/50 figure,&quot;)
+    print(&quot;      and one and a half points reproduces both. Historically that is&quot;)
+    print(&quot;      an ordinary high-grade spread, so the replication succeeds — on&quot;)
+    print(&quot;      the condition that the retiree holds corporate bonds. Everything&quot;)
+    print(&quot;      below stays on government bonds, which is the conservative read.&quot;)
+
+    hr(&quot;2. Bengen&#x27;s claim — the highest rate that never failed&quot;)
+    for label, first, last in ((&quot;1926–1995 (their data)&quot;, TRINITY_FIRST, TRINITY_LAST),
+                               (&quot;1926–2022 (with what came after)&quot;, TRINITY_FIRST, None),
+                               (&quot;1871–2022 (everything on record)&quot;, None, None)):
+        for alloc in (0.75, 0.5):
+            s = safemax(rows, 30, alloc, first, last)
+            n = run(rows, 0.04, 30, alloc, first, last)
+            print(f&quot;    {label:&lt;34} {int(alloc * 100)}/{int(100 - alloc * 100)}:  &quot;
+                  f&quot;SAFEMAX {s * 100:.2f}%   &quot;
+                  f&quot;4% success {n[&#x27;rate&#x27;] * 100:.0f}% ({n[&#x27;n&#x27;]} windows)&quot;)
+
+    hr(&quot;3. What &#x27;success&#x27; actually means&quot;)
+    r = run(rows, 0.04, 30, 0.5, TRINITY_FIRST, None)
+    ends = r[&quot;ends&quot;]
+    broke = sum(1 for e in ends if e &lt; 1.0)
+    print(&quot;  A &#x27;success&#x27; is a portfolio that did not hit zero. It is not a&quot;)
+    print(&quot;  portfolio that kept its value. 4%, 30 years, 50/50, 1926–2022:\n&quot;)
+    print(f&quot;    success rate                      {r[&#x27;rate&#x27;] * 100:.0f}% &quot;
+          f&quot;({r[&#x27;n&#x27;]} windows)&quot;)
+    print(f&quot;    median ending wealth              {pct(ends, 0.5):.2f}x the &quot;
+          f&quot;starting capital, in real terms&quot;)
+    print(f&quot;    worst 10% of outcomes ended at    {pct(ends, 0.10):.2f}x&quot;)
+    print(f&quot;    best  10% ended at                {pct(ends, 0.90):.2f}x&quot;)
+    print(f&quot;    ended poorer than they started    {broke} of {len(ends)} &quot;
+          f&quot;({broke / len(ends) * 100:.0f}%)&quot;)
+    print(&quot;    The rule&#x27;s promise is &#x27;you will not run out&#x27;. The spread of what&quot;)
+    print(&quot;    you actually end with is enormous, and it is not in the promise.&quot;)
+
+    print(&quot;\n  4% is a 30-year answer. It is quoted as if it were permanent:&quot;)
+    for h in (30, 40, 50):
+        rr = run(rows, 0.04, h, 0.5, TRINITY_FIRST, None)
+        print(f&quot;    {h}-year retirement, 50/50:        &quot;
+              f&quot;{rr[&#x27;rate&#x27;] * 100:&gt;3.0f}% success  ({rr[&#x27;n&#x27;]} windows)&quot;)
+
+    print(&quot;\n  And it is a before-costs answer. The same test with a fee drag:&quot;)
+    for fee in (0.0, 0.005, 0.01, 0.02):
+        rr = run(rows, 0.04, 30, 0.5, TRINITY_FIRST, None, fee=fee)
+        s = safemax(rows, 30, 0.5, TRINITY_FIRST, None, fee=fee)
+        print(f&quot;    fee {fee * 100:&gt;4.1f}%/yr:                     &quot;
+              f&quot;{rr[&#x27;rate&#x27;] * 100:&gt;3.0f}% success   SAFEMAX {s * 100:.2f}%&quot;)
+
+    hr(&quot;4. The retest — 27 years the authors never saw&quot;)
+    print(&quot;  The 1998 paper stops in 1995. Every retirement beginning 1966 or&quot;)
+    print(&quot;  later was still running when they published. Those windows have&quot;)
+    print(&quot;  since completed, and they include 2000-02, 2008 and 2022.\n&quot;)
+    for alloc in (0.75, 0.5):
+        old = run(rows, 0.04, 30, alloc, TRINITY_FIRST, TRINITY_LAST)
+        new = run(rows, 0.04, 30, alloc, TRINITY_FIRST, None)
+        added = new[&quot;n&quot;] - old[&quot;n&quot;]
+        print(f&quot;    {int(alloc * 100)}/{int(100 - alloc * 100)}:  published window &quot;
+              f&quot;{old[&#x27;rate&#x27;] * 100:.0f}% ({old[&#x27;n&#x27;]} windows)  -&gt;  &quot;
+              f&quot;through 2022 {new[&#x27;rate&#x27;] * 100:.0f}% ({new[&#x27;n&#x27;]} windows, &quot;
+              f&quot;{added} added)&quot;)
+        if new[&quot;failures&quot;]:
+            print(f&quot;        failing retirement years now: {new[&#x27;failures&#x27;]}&quot;)
+
+    hr(&quot;5. Robustness&quot;)
+    print(&quot;  5a. how many independent tests is &#x27;41 windows&#x27; really?&quot;)
+    idx = windows(rows, 30, TRINITY_FIRST, None)
+    non = [i for k, i in enumerate(idx) if k % 30 == 0]
+    print(f&quot;      overlapping 30-year windows, 1926–2022      {len(idx)}&quot;)
+    print(f&quot;      non-overlapping ones                        {len(non)}&quot;)
+    print(&quot;      Consecutive windows share 29 of their 30 years. &#x27;95% of all&quot;)
+    print(&quot;      historical periods&#x27; is three independent retirements and a bit.&quot;)
+
+    print(&quot;\n  5b. the bond series, which is the weakest joint&quot;)
+    for bond in (&quot;bond10&quot;, &quot;bond5&quot;):
+        rr = run(rows, 0.04, 30, 0.5, TRINITY_FIRST, None, bond=bond)
+        s = safemax(rows, 30, 0.5, TRINITY_FIRST, None, bond=bond)
+        print(f&quot;      {bond:&lt;8} 4% success {rr[&#x27;rate&#x27;] * 100:&gt;3.0f}%   &quot;
+              f&quot;SAFEMAX {s * 100:.2f}%&quot;)
+
+    print(&quot;\n  5c. withdrawing at the start of the year vs the end&quot;)
+    for timing in (&quot;start&quot;, &quot;end&quot;):
+        rr = run(rows, 0.04, 30, 0.5, TRINITY_FIRST, None, timing=timing)
+        s = safemax(rows, 30, 0.5, TRINITY_FIRST, None, timing=timing)
+        print(f&quot;      {timing:&lt;8} 4% success {rr[&#x27;rate&#x27;] * 100:&gt;3.0f}%   &quot;
+              f&quot;SAFEMAX {s * 100:.2f}%&quot;)
+
+    print(&quot;\n  5d. the whole record, not just the post-1926 one&quot;)
+    for first, label in ((None, &quot;1871–2022&quot;), (TRINITY_FIRST, &quot;1926–2022&quot;)):
+        rr = run(rows, 0.04, 30, 0.5, first, None)
+        s = safemax(rows, 30, 0.5, first, None)
+        print(f&quot;      {label}  4% success {rr[&#x27;rate&#x27;] * 100:&gt;3.0f}%   &quot;
+              f&quot;SAFEMAX {s * 100:.2f}%   ({rr[&#x27;n&#x27;]} windows)&quot;)
+
+    print(&quot;\n  5e. the retirements that actually failed, and when they began&quot;)
+    rr = run(rows, 0.04, 30, 0.5, None, None)
+    print(f&quot;      1871–2022, 4%, 50/50: {rr[&#x27;fail&#x27;]} failures of {rr[&#x27;n&#x27;]} — &quot;
+          f&quot;years {rr[&#x27;failures&#x27;]}&quot;)
+
+    # ------------------------------------------------------------------ export
+    def pack(r):
+        return {&quot;success&quot;: round(r[&quot;rate&quot;], 4), &quot;n&quot;: r[&quot;n&quot;], &quot;fail&quot;: r[&quot;fail&quot;],
+                &quot;failures&quot;: r[&quot;failures&quot;]}
+
+    out = {
+        &quot;generated_by&quot;: &quot;scripts/retire_4pct.py&quot;,
+        &quot;source_url&quot;: doc[&quot;source_url&quot;], &quot;fetched_at&quot;: doc[&quot;fetched_at&quot;],
+        &quot;coverage&quot;: cov,
+        &quot;published_targets&quot;: {&quot;trinity_50_50&quot;: 0.95, &quot;trinity_75_25&quot;: 0.98,
+                              &quot;window&quot;: f&quot;{TRINITY_FIRST}-{TRINITY_LAST}&quot;},
+        &quot;replication&quot;: {f&quot;{int(a * 100)}_{int(100 - a * 100)}&quot;:
+                        pack(run(rows, 0.04, 30, a, TRINITY_FIRST, TRINITY_LAST))
+                        for a in PUBLISHED},
+        &quot;retest&quot;: {f&quot;{int(a * 100)}_{int(100 - a * 100)}&quot;:
+                   pack(run(rows, 0.04, 30, a, TRINITY_FIRST, None))
+                   for a in PUBLISHED},
+        &quot;spread_reconciliation&quot;: {
+            f&quot;{sp:.3f}&quot;: {&quot;50_50&quot;: round(run(rows, 0.04, 30, 0.50, TRINITY_FIRST,
+                                             TRINITY_LAST, spread=sp)[&quot;rate&quot;], 4),
+                          &quot;75_25&quot;: round(run(rows, 0.04, 30, 0.75, TRINITY_FIRST,
+                                             TRINITY_LAST, spread=sp)[&quot;rate&quot;], 4)}
+            for sp in (0.0, 0.005, 0.010, 0.015, 0.020)},
+        &quot;timing&quot;: {t: {&quot;success&quot;: round(run(rows, 0.04, 30, 0.5, TRINITY_FIRST,
+                                            None, timing=t)[&quot;rate&quot;], 4),
+                       &quot;safemax&quot;: round(safemax(rows, 30, 0.5, TRINITY_FIRST,
+                                                None, timing=t) * 100, 2)}
+                   for t in (&quot;start&quot;, &quot;end&quot;)},
+        &quot;windows&quot;: {&quot;overlapping&quot;: len(windows(rows, 30, TRINITY_FIRST, None)),
+                    &quot;non_overlapping&quot;: len(
+                        [i for k, i in enumerate(windows(rows, 30, TRINITY_FIRST,
+                                                         None)) if k % 30 == 0])},
+        &quot;all_failures_1871&quot;: run(rows, 0.04, 30, 0.5)[&quot;failures&quot;],
+        &quot;by_start_year&quot;: [{&quot;year&quot;: y, &quot;survived&quot;: ok, &quot;ending&quot;: round(end, 4)}
+                          for y, ok, end in run(rows, 0.04, 30, 0.5)[&quot;all&quot;]],
+        &quot;safemax&quot;: {&quot;trinity_window&quot;: round(safemax(rows, 30, 0.5, TRINITY_FIRST,
+                                                    TRINITY_LAST) * 100, 2),
+                    &quot;through_2022&quot;: round(safemax(rows, 30, 0.5, TRINITY_FIRST,
+                                                  None) * 100, 2),
+                    &quot;full_record&quot;: round(safemax(rows, 30, 0.5) * 100, 2)},
+        &quot;horizons&quot;: {str(h): pack(run(rows, 0.04, h, 0.5, TRINITY_FIRST, None))
+                     for h in (30, 40, 50)},
+        &quot;fees&quot;: {str(f): {**pack(run(rows, 0.04, 30, 0.5, TRINITY_FIRST, None,
+                                     fee=f)),
+                          &quot;safemax&quot;: round(safemax(rows, 30, 0.5, TRINITY_FIRST,
+                                                   None, fee=f) * 100, 2)}
+                 for f in (0.0, 0.005, 0.01, 0.02)},
+        &quot;ending_wealth&quot;: {&quot;p10&quot;: round(pct(ends, 0.10), 3),
+                          &quot;median&quot;: round(pct(ends, 0.50), 3),
+                          &quot;p90&quot;: round(pct(ends, 0.90), 3),
+                          &quot;share_below_start&quot;: round(broke / len(ends), 4),
+                          &quot;n&quot;: len(ends)},
+        &quot;grid&quot;: {f&quot;{w:.3f}&quot;: {f&quot;{int(a * 100)}&quot;: round(
+            run(rows, w, 30, a, TRINITY_FIRST, None)[&quot;rate&quot;], 4)
+            for a in (1.0, 0.75, 0.5, 0.25, 0.0)}
+            for w in (0.03, 0.035, 0.04, 0.045, 0.05, 0.055, 0.06, 0.065, 0.07)},
+        &quot;grid_fee1&quot;: {f&quot;{w:.3f}&quot;: round(
+            run(rows, w, 30, 0.5, TRINITY_FIRST, None, fee=0.01)[&quot;rate&quot;], 4)
+            for w in (0.03, 0.035, 0.04, 0.045, 0.05, 0.055, 0.06, 0.065, 0.07)},
+        &quot;grid_50y&quot;: {f&quot;{w:.3f}&quot;: round(
+            run(rows, w, 50, 0.5, TRINITY_FIRST, None)[&quot;rate&quot;], 4)
+            for w in (0.03, 0.035, 0.04, 0.045, 0.05, 0.055, 0.06, 0.065, 0.07)},
+    }
+    with open(&quot;data/retire-results.json&quot;, &quot;w&quot;) as fh:
+        json.dump(out, fh, indent=1)
+    print(&quot;\n  wrote data/retire-results.json\n&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+            <details>
+              <summary>retire_chart.py &mdash; the chart (143 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;The one chart for the 4% rule post.
+
+Ending wealth after a 30-year retirement drawing 4% a year, by the year the
+retirement began. The point of the picture: the rule&#x27;s entire failure record is
+one cluster. Six retirements ran out of money and all six started between 1964
+and 1969. Everyone else finished with something, and a few finished rich.
+
+It also shows what the rule&#x27;s overlapping windows really look like — the line is
+smooth because neighbouring retirements share 29 of their 30 years, which is why
+&quot;95% of all historical periods&quot; is not 95 independent tests.
+
+Numbers come from data/retire-results.json, written by retire_4pct.py.
+Reuses the PNG rasteriser from fte_chart.py. Stdlib only.
+
+  python3 scripts/retire_chart.py
+&quot;&quot;&quot;
+import json, os, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fte_chart import render_png                                # noqa: E402
+
+BLUE, ORANGE, RED = &quot;#2f9bff&quot;, &quot;#ff6500&quot;, &quot;#d92b2b&quot;
+INK, DIM, GRID, PAPER = &quot;#1f2430&quot;, &quot;#5b6472&quot;, &quot;#d6dce4&quot;, &quot;#ffffff&quot;
+W, H = 1600, 1000
+L, R, T, B = 120, 60, 155, 150
+FONT = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&#x27;Helvetica Neue&#x27;,&quot;
+        &quot;Arial,sans-serif&quot;)
+YMAX = 5.5
+
+
+def main():
+    res = json.load(open(&quot;data/retire-results.json&quot;))
+    pts = res[&quot;by_start_year&quot;]
+    fails = [p for p in pts if not p[&quot;survived&quot;]]
+    y0, y1 = pts[0][&quot;year&quot;], pts[-1][&quot;year&quot;]
+    pw, ph = W - L - R, H - T - B
+
+    def x(year):
+        return L + (year - y0) / (y1 - y0) * pw
+
+    def y(v):
+        return T + (1 - min(v, YMAX) / YMAX) * ph
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+         f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{FONT}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;{PAPER}&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;56&quot; font-size=&quot;38&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;Every 4% retirement that ran out of money began in the same six &#x27;
+         f&#x27;years&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;98&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+         f&#x27;What you had left after a 30-year retirement drawing 4% a year, &#x27;
+         f&#x27;inflation-adjusted, from a 50/50 portfolio.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;128&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+         f&#x27;One dot per starting year, {y0}&amp;#8211;{y1}. Replication of Bengen &#x27;
+         f&#x27;(1994) and the Trinity Study (1998) on Shiller&amp;#8217;s data.&lt;/text&gt;&#x27;]
+
+    # grid
+    for i in range(int(YMAX) + 1):
+        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{y(i):.1f}&quot; x2=&quot;{L + pw}&quot; y2=&quot;{y(i):.1f}&quot; &#x27;
+                 f&#x27;stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{L - 16}&quot; y=&quot;{y(i) + 8:.1f}&quot; font-size=&quot;21&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{i}&amp;#215;&lt;/text&gt;&#x27;)
+    for yr in range(1880, y1 + 1, 20):
+        o.append(f&#x27;&lt;line x1=&quot;{x(yr):.1f}&quot; y1=&quot;{T}&quot; x2=&quot;{x(yr):.1f}&quot; &#x27;
+                 f&#x27;y2=&quot;{T + ph}&quot; stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{x(yr):.1f}&quot; y=&quot;{T + ph + 38}&quot; font-size=&quot;21&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;{yr}&lt;/text&gt;&#x27;)
+
+    # &quot;you ended with what you started&quot; reference
+    o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{y(1):.1f}&quot; x2=&quot;{L + pw}&quot; y2=&quot;{y(1):.1f}&quot; &#x27;
+             f&#x27;stroke=&quot;{DIM}&quot; stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;9 7&quot;/&gt;&#x27;)
+
+    # the failure band
+    fx0, fx1 = x(fails[0][&quot;year&quot;]) - 6, x(fails[-1][&quot;year&quot;]) + 6
+    o.append(f&#x27;&lt;rect x=&quot;{fx0:.1f}&quot; y=&quot;{T}&quot; width=&quot;{fx1 - fx0:.1f}&quot; &#x27;
+             f&#x27;height=&quot;{ph}&quot; fill=&quot;{RED}&quot; opacity=&quot;0.10&quot;/&gt;&#x27;)
+
+    # the series
+    d = &quot; &quot;.join(f&quot;{&#x27;M&#x27; if i == 0 else &#x27;L&#x27;}{x(p[&#x27;year&#x27;]):.1f},{y(p[&#x27;ending&#x27;]):.1f}&quot;
+                 for i, p in enumerate(pts))
+    o.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{BLUE}&quot; stroke-width=&quot;3.2&quot; &#x27;
+             f&#x27;stroke-linejoin=&quot;round&quot;/&gt;&#x27;)
+    for p in pts:
+        c = RED if not p[&quot;survived&quot;] else BLUE
+        o.append(f&#x27;&lt;circle cx=&quot;{x(p[&quot;year&quot;]):.1f}&quot; cy=&quot;{y(p[&quot;ending&quot;]):.1f}&quot; &#x27;
+                 f&#x27;r=&quot;{6.5 if not p[&quot;survived&quot;] else 3.4}&quot; fill=&quot;{c}&quot;/&gt;&#x27;)
+
+    # callouts
+    cx = (fx0 + fx1) / 2
+    o += [f&#x27;&lt;text x=&quot;{cx:.1f}&quot; y=&quot;{y(3.55):.1f}&quot; font-size=&quot;25&quot; &#x27;
+          f&#x27;font-weight=&quot;700&quot; fill=&quot;{RED}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+          f&#x27;{len(fails)} failures&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{cx:.1f}&quot; y=&quot;{y(3.30):.1f}&quot; font-size=&quot;22&quot; &#x27;
+          f&#x27;fill=&quot;{RED}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+          f&#x27;{fails[0][&quot;year&quot;]}&amp;#8211;{fails[-1][&quot;year&quot;]}&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{cx:.1f}&quot; y=&quot;{y(3.06):.1f}&quot; font-size=&quot;20&quot; &#x27;
+          f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;of {len(pts)} starting &#x27;
+          f&#x27;years&lt;/text&gt;&#x27;]
+
+    # the best case, labelled to the left so it cannot run off the canvas
+    best = max(pts, key=lambda p: p[&quot;ending&quot;])
+    o += [f&#x27;&lt;text x=&quot;{x(best[&quot;year&quot;]) - 16:.1f}&quot; y=&quot;{y(best[&quot;ending&quot;]) + 7:.1f}&quot; &#x27;
+          f&#x27;font-size=&quot;20&quot; fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;retired &#x27;
+          f&#x27;{best[&quot;year&quot;]}: finished with {best[&quot;ending&quot;]:.1f}&amp;#215;&lt;/text&gt;&#x27;]
+
+    # legend, parked in the empty top-left block
+    lx, ly = x(1884), y(5.15)
+    o += [f&#x27;&lt;line x1=&quot;{lx:.1f}&quot; y1=&quot;{ly:.1f}&quot; x2=&quot;{lx + 44:.1f}&quot; y2=&quot;{ly:.1f}&quot; &#x27;
+          f&#x27;stroke=&quot;{DIM}&quot; stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;9 7&quot;/&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{lx + 58:.1f}&quot; y=&quot;{ly + 7:.1f}&quot; font-size=&quot;21&quot; &#x27;
+          f&#x27;fill=&quot;{DIM}&quot;&gt;ended with what they started with&lt;/text&gt;&#x27;,
+          f&#x27;&lt;circle cx=&quot;{lx + 22:.1f}&quot; cy=&quot;{y(4.75):.1f}&quot; r=&quot;6.5&quot; &#x27;
+          f&#x27;fill=&quot;{RED}&quot;/&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{lx + 58:.1f}&quot; y=&quot;{y(4.75) + 7:.1f}&quot; font-size=&quot;21&quot; &#x27;
+          f&#x27;fill=&quot;{DIM}&quot;&gt;ran out of money&lt;/text&gt;&#x27;]
+
+    # axis labels + source
+    o += [f&#x27;&lt;text x=&quot;{L + pw / 2:.0f}&quot; y=&quot;{T + ph + 82}&quot; font-size=&quot;24&quot; &#x27;
+          f&#x27;fill=&quot;{INK}&quot; text-anchor=&quot;middle&quot;&gt;the year the retirement &#x27;
+          f&#x27;began&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;30&quot; y=&quot;{T + ph / 2:.0f}&quot; font-size=&quot;24&quot; fill=&quot;{INK}&quot; &#x27;
+          f&#x27;text-anchor=&quot;middle&quot; transform=&quot;rotate(-90 30 &#x27;
+          f&#x27;{T + ph / 2:.0f})&quot;&gt;wealth left after 30 years&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 26}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+          f&#x27;Data: Robert Shiller&amp;#8217;s series via github.com/datasets/&#x27;
+          f&#x27;s-and-p-500, government bonds  &amp;#183;  method, limitations and &#x27;
+          f&#x27;every number: namikakmandev.github.io/four-percent-rule.html&lt;/text&gt;&#x27;,
+          &#x27;&lt;/svg&gt;&#x27;]
+
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/four-percent-rule.svg&quot;
+    svg = &quot;\n&quot;.join(o)
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;wrote {path} ({os.path.getsize(path):,} bytes)&quot;)
+    render_png(svg, &quot;assets/linkedin/four-percent-rule.png&quot;)
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+        </div>
+
+        <div class="fp-card">
+          <h3>Reproduce it</h3>
+          <p>Everything is open: Shiller publishes the data, this site publishes the code, and
+            the analysis is stdlib-only and deterministic, so every number above reproduces
+            exactly.</p>
+          <p class="fp-eq">python3 scripts/fetch_retirement.py &amp;&amp; python3 scripts/retire_4pct.py
+            &amp;&amp; python3 scripts/retire_chart.py</p>
+          <p class="fp-links">
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_retirement.py">Fetch script</a>
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/retire_4pct.py">Replication script</a>
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/retire_chart.py">Chart script</a>
+            <a href="https://github.com/datasets/s-and-p-500">Shiller's data</a>
+          </p>
+          <p class="cc-note" style="color:var(--text-dim);font-size:.85rem">
+            Related: <a href="fte-calibration.html">FiveThirtyEight, tested</a> and
+            <a href="bigmac-halflife.html">The Big Mac index, tested</a> &mdash; the same
+            treatment applied to a publication's own open data rather than to a paper.</p>
+        </div>
+
+        <p class="data-note" style="font-size:.85rem">
+          Replicated papers: William P. Bengen, &ldquo;Determining Withdrawal Rates Using
+          Historical Data&rdquo;, <em>Journal of Financial Planning</em>, October 1994; and
+          Philip L. Cooley, Carl M. Hubbard &amp; Daniel T. Walz, &ldquo;Retirement Savings:
+          Choosing a Withdrawal Rate That Is Sustainable&rdquo;, <em>AAII Journal</em>, February
+          1998. Underlying data &copy; Robert J. Shiller, published openly and mirrored at
+          <a href="https://github.com/datasets/s-and-p-500">datasets/s-and-p-500</a>. This
+          replication is independent and not affiliated with or endorsed by any of the authors.
+          Method and any errors are mine. Written August&nbsp;2026.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
