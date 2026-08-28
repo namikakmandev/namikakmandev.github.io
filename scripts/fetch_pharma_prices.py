@@ -68,6 +68,8 @@ VENUES = {
     "sandia":    {"name": "Sandia Vet",              "country": "TR", "currency": "TRY"},
     "petilac":   {"name": "Petilac",                 "country": "TR", "currency": "TRY"},
     "vepet":     {"name": "Vepetzamani",             "country": "TR", "currency": "TRY"},
+    "didim":     {"name": "Didim Ama",               "country": "TR", "currency": "TRY"},
+    "vfh":       {"name": "VetForHealth",            "country": "TR", "currency": "TRY"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
@@ -103,19 +105,7 @@ TARGETS = [
     {"product": "zenrelia", "venue": "entirely", "kind": "multi",
      "url": "https://entirelypetspharmacy.com/zenrelia-tablets-for-dogs.html",
      "form": "tab"},
-    {"product": "cytopoint", "venue": "heartland", "kind": "multi",
-     "url": "https://www.heartlandvetsupply.com/searchresults.aspx?Search=cytopoint",
-     "form": "inj", "optional": True},
     # ---------------- GB ----------------
-    {"product": "apoquel", "venue": "vetuk", "kind": "multi",
-     "url": "https://www.vetuk.co.uk/pet-meds-prescription-only-apoquel-c-21_2231/apoquel-16mg-tablets-for-dogs-p-21189",
-     "form": "tab", "mg": 16},
-    {"product": "apoquel-chewable", "venue": "vetuk", "kind": "multi",
-     "url": "https://www.vetuk.co.uk/pet-meds-prescription-only-apoquel-chewable-c-21_2678/products-name-p-47146",
-     "form": "chew", "mg": 16},
-    {"product": "zenrelia", "venue": "vetuk", "kind": "multi",
-     "url": "https://www.vetuk.co.uk/zenrelia-15mg-film-coated-tablets-for-dogs-dspn483.html",
-     "form": "tab", "mg": 15},
     {"product": "apoquel", "venue": "pdo", "kind": "multi",
      "url": "https://www.petdrugsonline.co.uk/apoquel-16mg",
      "form": "tab", "mg": 16},
@@ -125,9 +115,6 @@ TARGETS = [
     {"product": "zenrelia", "venue": "pdo", "kind": "multi",
      "url": "https://www.petdrugsonline.co.uk/zenrelia-film-coated-tablets-for-dogs-15mg",
      "form": "tab", "mg": 15},
-    {"product": "cytopoint", "venue": "pdo", "kind": "multi",
-     "url": "https://www.petdrugsonline.co.uk/cytopoint",
-     "form": "inj"},
     {"product": "apoquel", "venue": "vetdisp", "kind": "sku",
      "url": "https://www.vetdispense.co.uk/apoquel/2431-16mg-apoquel-tablet-single-tablet.html",
      "form": "tab", "mg": 16, "n": 1},
@@ -146,13 +133,19 @@ TARGETS = [
     # ---------------- TR ----------------
     {"product": "apoquel", "venue": "sandia", "kind": "sku",
      "url": "https://shop.sandiavet.com/kopek-urunleri/apoquel-16-mg-20-tablet/",
-     "form": "tab", "mg": 16, "n": 20},
+     "form": "tab", "mg": 16, "n": 20, "optional": True},
     {"product": "apoquel", "venue": "petilac", "kind": "sku",
      "url": "https://www.petilac.com/urun/apoquel-16-mg-kasinti-tableti",
-     "form": "tab", "mg": 16, "n": 20},
+     "form": "tab", "mg": 16, "n": 20, "optional": True},
     {"product": "apoquel", "venue": "vepet", "kind": "sku",
      "url": "https://www.vepetzamani.com/urun/apoquel-16-mg-kasinti-tableti",
      "form": "tab", "mg": 16, "n": 20},
+    {"product": "apoquel", "venue": "didim", "kind": "sku",
+     "url": "https://www.didimama.com.tr/urun/apoquel-16-mg-20-tablet-stt-05-2026",
+     "form": "tab", "mg": 16, "n": 20, "optional": True},
+    {"product": "apoquel", "venue": "vfh", "kind": "sku",
+     "url": "https://www.vetforhealth.com/product-page/apoquel-16-mg-20-tablet",
+     "form": "tab", "mg": 16, "n": 20, "optional": True},
 ]
 
 PRICE_MIN, PRICE_MAX = 0.5, 200000.0   # TRY prices run to five digits
@@ -229,6 +222,13 @@ def extract_ldjson(html):
 
 
 def extract_meta(html):
+    # standard_amount (list price before placeholder tricks) wins when present
+    std = [v for p in re.findall(
+        r'<meta[^>]+og:price:standard_amount["\'][^>]+content=["\']([^"\']+)', html, re.I)
+        + re.findall(r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+og:price:standard_amount', html, re.I)
+        if (v := to_float(p)) is not None]
+    if std:
+        return [("", v) for v in std]
     out = []
     for pat in (r'<meta[^>]+(?:property|itemprop|name)=["\'](?:product:price:amount|og:price:amount|price)["\'][^>]+content=["\']([^"\']+)',
                 r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+(?:property|itemprop|name)=["\'](?:product:price:amount|og:price:amount|price)["\']'):
@@ -378,8 +378,12 @@ def discover_dump(session, html, t):
         r"<option[^>]*>[^<]*(?:\$|£|TL|₺|mg)[^<]*</option>", html, re.I)][:25]
     if "/products/" in t["url"]:
         d["shopify"] = [f"{l} -> {v}" for l, v in variants_shopify(session, t["url"])][:20]
+    m = re.search(r"var\s+combinations\s*=\s*(\{.*?\});", html, re.S)
+    if m: d["combinations"] = m.group(1)[:15000]
+    d["data_price"] = [x[:200] for x in re.findall(
+        r"<[^>]+data-(?:price|baseprice|varprice)[^>]*>", html, re.I)][:30]
     for m in re.finditer(
-            r".{0,80}(?:combinations|price_amount|productPrice|salesprice|attributes_values|VariantPrice).{0,120}",
+            r".{0,80}(?:price_amount|productPrice|salesprice|VariantPrice).{0,120}",
             html):
         if len(d["js_hits"]) >= 12: break
         d["js_hits"].append(m.group(0).replace("\n", " ")[:200])
