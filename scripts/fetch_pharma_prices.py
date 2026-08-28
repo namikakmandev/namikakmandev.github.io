@@ -345,7 +345,7 @@ def extract_visible(html, currency):
            "CZK": r"(?:Kč|CZK)", "HUF": r"(?:Ft|HUF)", "PLN": r"(?:zł|PLN)"}[currency]
     body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
     out = []
-    pats = ([rf"{sym}\s*([0-9][0-9.,]*)", rf"([0-9][0-9 \u00a0.,]*[0-9])\s*{sym}"]
+    pats = ([rf"{sym}\s*([0-9][0-9.,]*)", rf"([0-9][0-9 \u00a0.,]*[0-9])(?:,-)?\s*{sym}"]
             if currency in ("TRY", "EUR", "CZK", "HUF", "PLN") else [rf"{sym}\s*([0-9][0-9.,]*)"])
     for pat in pats:
         for p in re.findall(pat, body[:60000]):
