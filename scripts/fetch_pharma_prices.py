@@ -100,7 +100,6 @@ VENUES = {
     "blumberger": {"name": "Blumberger Apotheke",     "country": "DE", "currency": "EUR"},
     "pharmaservices": {"name": "PharmaServices",      "country": "FR", "currency": "EUR"},
     "centauro":  {"name": "Centauro",                 "country": "ES", "currency": "EUR"},
-    "ceneo":     {"name": "Ceneo.pl (comparator)",    "country": "PL", "currency": "PLN"},
     "petmart":   {"name": "PetMart",                  "country": "RO", "currency": "RON"},
     "perfectpet": {"name": "PerfectPet (clinic)",     "country": "RO", "currency": "RON",
                    "note": "per-dose price, administered at clinic"},
@@ -394,9 +393,6 @@ _ALPHA = "https://www.alphaportal2.hu/"
 # CEE reinforcement (comparator pages carry many shops' offers -> kind "agg")
 EXTRA_AGGS = [
     # product, venue, url, form, mg, n
-    ("apoquel", "ceneo", "https://www.ceneo.pl/107695335", "tab", 16, 20),
-    ("apoquel", "ceneo", "https://www.ceneo.pl/107695333", "tab", 16, 10),
-    ("apoquel", "ceneo", "https://www.ceneo.pl/107695329", "tab", 5.4, 20),
 ]
 for _pr, _ve, _u, _f, _mg, _n in EXTRA_AGGS:
     TARGETS.append({"product": _pr, "venue": _ve, "kind": "agg", "url": _u,
