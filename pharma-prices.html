@@ -181,18 +181,38 @@ function renderCostTable(data, fx, vat){
   // tablets singly while continental Europe sells 20s and 100s — so the table
   // is split into pack-size tiers and never mixes them. A country absent from
   // a tier simply has no comparable pack, which is itself the finding.
-  const TIERS = [
-    {key:1,   label:'sold singly, priced per tablet'},
-    {key:20,  label:'20-tablet pack'},
-    {key:100, label:'100-tablet pack'},
-  ];
   const CLINIC = new Set(['perfectpet']);   // per-dose clinic price, not retail
 
+  // Pack tiers are DERIVED, not declared. Which sizes a molecule is sold in
+  // differs by product and by market - Apoquel goes 1/10/20/100, Zenrelia
+  // 1/30/90 - so a hardcoded 1/20/100 silently threw away every Zenrelia and
+  // Numelvi row outside the UK and US. A pack size earns a block once at least
+  // two countries offer it; a size only one market sells is listed as excluded,
+  // which is itself a finding about how that market packages the drug.
+  const packsFor = (pid, dose) => {
+    const byPack = {};
+    obs.filter(o=>o.d===latestDate && o.product===pid && o.form===dose.form
+                  && o.mg===dose.mg && !CLINIC.has(o.venue))
+       .forEach(o=>{ (byPack[o.n] = byPack[o.n] || new Set()).add(o.country); });
+    return Object.entries(byPack)
+      .map(([n, cs]) => ({key: +n, markets: cs.size}))
+      .sort((a,b)=>a.key-b.key);
+  };
+  const unit = dose => dose.form === 'inj' ? 'vial' : 'tablet';
+  const tierLabel = (n, dose) => n === 1
+    ? (dose.form === 'inj' ? 'single vial' : 'sold singly, priced per tablet')
+    : `${n}-${unit(dose)} pack`;
+
+  const TIERSOF = {};
   const rows = [];
   const excluded = [];
   for(const [pid, dose] of Object.entries(DOSE)){
     if(dose.form === 'inj') continue;       // injections handled separately below
-    for(const tier of TIERS){
+    const packs = packsFor(pid, dose);
+    const tiers = packs.filter(t=>t.markets >= 2)
+                       .map(t=>({key:t.key, label:tierLabel(t.key, dose)}));
+    TIERSOF[pid] = tiers;
+    for(const tier of tiers){
       const perCountry = {};
       obs.filter(o=>o.d===latestDate && o.product===pid && o.form===dose.form
                     && o.mg===dose.mg && o.n===tier.key && !CLINIC.has(o.venue))
@@ -205,8 +225,9 @@ function renderCostTable(data, fx, vat){
         rows.push({pid, tier, o, local:o.unit*dose.unitsPerDay, usd, ex:exTax(o.country, usd)});
       }
     }
-    obs.filter(o=>o.d===latestDate && o.product===pid && o.mg===dose.mg
-                  && ![1,20,100].includes(o.n))
+    const solo = new Set(packs.filter(t=>t.markets < 2).map(t=>t.key));
+    obs.filter(o=>o.d===latestDate && o.product===pid && o.form===dose.form
+                  && o.mg===dose.mg && solo.has(o.n) && !CLINIC.has(o.venue))
        .forEach(o=>excluded.push(`${products[pid].name} in ${o.country} sells only in ${o.n}s`));
   }
 
@@ -218,7 +239,7 @@ function renderCostTable(data, fx, vat){
   let html = '<tr><th>Product · basis</th><th>Country</th><th>Venue</th><th>Shelf/day</th><th>Tax in it</th><th>USD/day ex-tax</th><th>vs cheapest</th></tr>';
   for(const [pid, dose] of Object.entries(DOSE)){
     if(dose.form === 'inj') continue;
-    for(const tier of TIERS){
+    for(const tier of (TIERSOF[pid] || [])){
       const g = rows.filter(r=>r.pid===pid && r.tier.key===tier.key)
                     .sort((a,b)=>(a.ex??a.usd??1e9)-(b.ex??b.usd??1e9));
       if(g.length < 2) continue;            // a tier of one compares nothing
@@ -237,7 +258,8 @@ function renderCostTable(data, fx, vat){
     }
   }
   // injections: same vial strength, same pack, retail only, shown as an interval
-  for(const vialPack of [1, 2]){
+  for(const vialPack of packsFor('cytopoint', DOSE.cytopoint)
+                          .filter(t=>t.markets >= 2).map(t=>t.key)){
     const inj = {};
     obs.filter(o=>o.d===latestDate && o.product==='cytopoint' && o.mg===DOSE.cytopoint.mg
                   && o.n===vialPack && !CLINIC.has(o.venue))
@@ -249,7 +271,7 @@ function renderCostTable(data, fx, vat){
     if(injRows.length < 2) continue;
     const cheapest = injRows[0].lo;
     html += `<tr class="group"><td colspan="7">Cytopoint ${DOSE.cytopoint.mg}mg — `
-          + `${vialPack === 1 ? 'single vial' : vialPack + '-vial pack'}, dosed every 4 to 8 weeks · `
+          + `${tierLabel(vialPack, DOSE.cytopoint)}, dosed every 4 to 8 weeks · `
           + `${injRows.length} markets</td></tr>`;
     for(const r of injRows){
       const rel = (r.lo!=null && cheapest) ? (r.lo===cheapest?'—':'+'+((r.lo/cheapest-1)*100).toFixed(0)+'%') : '—';
