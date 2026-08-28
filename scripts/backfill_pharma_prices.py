@@ -70,8 +70,10 @@ def main():
               "mode": "wayback-backfill", "targets": []}
     added_total = 0
 
+    # a target has earned a backfill once it has produced ANY live observation
+    proven = {(o["product"], o["venue"]) for o in store["observations"]}
     for t in fp.TARGETS:
-        if t.get("optional"):
+        if t.get("optional") and (t["product"], t["venue"]) not in proven:
             continue
         venue = fp.VENUES[t["venue"]]
         stamps = snapshots_for(session, t["url"])
