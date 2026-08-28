@@ -696,9 +696,12 @@ def scrape_multi(session, html, t, currency, allow_shopify=True):
                              "method": method, "label": label[:60]}
         if best:
             return list(best.values())
-    # fall back to page-level single observation, count unknown
+    # Fall back to a page-level single observation — but ONLY when the SKU is
+    # identifiable. On a category page with no declared strength the page
+    # minimum catches whatever cheap item is on screen (a delivery charge, a
+    # different product), which is unattributable, not a price.
     one = scrape_sku(html, t, currency)
-    if one:
+    if one and one.get("mg") is not None:
         one["method"] += "/page-level"
         return [one]
     return []
