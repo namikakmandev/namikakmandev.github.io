@@ -8,8 +8,15 @@
   :root{
     --bg:#0B1220; --card:#121B2C; --card2:#0F1726; --line:#1E2A40;
     --ink:#E8EEF7; --ink2:#9FB0C8; --ink3:#64748B;
-    --c1:#2A8FEF; --c2:#F05E00; --c3:#19C37D; --c4:#C77DFF; --c5:#FFC53D;
-    --dn:#E8637A;
+    /* Categorical series slots, stepped for THIS surface (#121B2C) rather than
+       inherited: the previous eight sat at OKLCH L 0.67-0.85, well above the
+       0.48-0.67 band a dark ground wants, so the lines glared. This set passes
+       the lightness band, the chroma floor, adjacent-pair CVD separation, the
+       normal-vision floor and 3:1 contrast on this surface. */
+    --c1:#3987E5; --c2:#D95926; --c3:#199E70; --c4:#C98500; --c5:#D55181;
+    --c6:#008300; --c7:#9085E9; --c8:#E66767;
+    /* Status, reserved: never a series colour. Price direction only. */
+    --up:#D03B3B; --down:#0CA30C;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif;padding:32px 16px}
@@ -97,7 +104,9 @@
 </div>
 
 <script>
-const RAWCOL = ['#2A8FEF','#F05E00','#19C37D','#C77DFF','#FFC53D','#7ED4E6','#E8637A','#9AE66E'];
+// Fixed order, never cycled by rank - see COLOROF below, which pins a series to
+// a slot for the life of the page so filtering cannot repaint it.
+const RAWCOL = ['#3987E5','#D95926','#199E70','#C98500','#D55181','#008300','#9085E9','#E66767'];
 const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands', CZ:'Czechia', HU:'Hungary', IT:'Italy', ES:'Spain', FR:'France', PL:'Poland', RO:'Romania', SK:'Slovakia', BG:'Bulgaria', BE:'Belgium', PT:'Portugal'};
 const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł', RON:'lei'};
 const FORM = {tab:'tablet', chew:'chewable', inj:'vial'};
@@ -483,7 +492,9 @@ Promise.all([
         let chg = '<span style="color:var(--ink3)">—</span>';
         if(h.length > 1 && h[0].v > 0){
           const pct = (o.unit/h[0].v - 1) * 100;
-          const col = Math.abs(pct) < 0.5 ? 'var(--ink2)' : (pct > 0 ? 'var(--c2)' : 'var(--c3)');
+          // reserved status tokens, not series slots; the sign carries the
+          // meaning on its own, so colour here is secondary encoding
+          const col = Math.abs(pct) < 0.5 ? 'var(--ink2)' : (pct > 0 ? 'var(--up)' : 'var(--down)');
           chg = `<span style="color:${col};font-weight:600">${pct>0?'+':''}${pct.toFixed(0)}%</span>`
               + `<div style="font-size:10.5px;color:var(--ink3)">since ${esc(h[0].d.slice(0,7))}</div>`;
         }
