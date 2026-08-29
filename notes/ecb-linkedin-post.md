@@ -12,7 +12,9 @@ deterministic): 1,369 individual one-year-ahead distributions, 110 forecasters,
 2000–2025; outcome inside the forecaster's own 80% range 53.1% of the time
 (31.1% above, 15.8% below); zero coverage in 2008, 2021, 2022 and 2023;
 2021-Q4 mean P(inflation ≥4%) for 2022 = 0.50%, 33 of 48 said exactly zero,
-most worried forecaster 6%, actual 8.36%; era split 75.8% / 30.0% / 49.4%.
+most worried forecaster 6%, actual 8.36%; era split 75.8% / 30.0% / 49.4%;
+excluding open-ended edge cases 54.9% (the one bias that flatters the finding,
+worth 1.8pp).
 
 ---
 
@@ -85,6 +87,11 @@ The practical lesson, and the reason I ran this: a consensus forecast range is
 not a risk range. It tells you what a well-informed room considers normal. It
 tells you nothing about the years that hurt — because in those years, the room
 is unanimous and unanimously wrong.
+
+So if you are setting a budget, a hedge or a supply contract: take your bad case
+from what has actually happened, including 2008 and 2022, not from the range the
+forecasters give you — which excluded both. And when every forecast you read
+agrees, treat that as information about the forecasters, not about the world.
 
 Every number, the method, seven limitations, and the code:
 → namikakmandev.github.io/ecb-forecasts.html
@@ -221,3 +228,12 @@ gerekenden daha nadir, ve bu kontrolün mümkün olmasının tek sebebi bu.
 6. "2008 and 2022 both show 0% but are very different events." → Agreed, and
    that's the blunt-instrument limitation. Coverage cannot distinguish a small
    miss from an enormous one.
+7. "Your open-ended top bucket makes the ranges artificially narrow." → Correct,
+   and it is the one bias that runs toward the finding rather than away, so it
+   is measured rather than argued about: it affects 47 of 1,369 distributions
+   (3.4%), all at the top. Excluding them moves the headline from 53.1% to
+   54.9%. Still nowhere near 80%.
+8. "Have they fixed it since?" → Possibly. Coverage was 81% in 2024 and 100% in
+   2025, and the ECB widened the answer buckets after 2022. But 2005-2007 also
+   looked fixed, right up until 2008. Calm years cannot distinguish a
+   recalibrated panel from a fair-weather one; the next turbulent year can.

@@ -106,7 +106,25 @@ def load():
     return d, actual, dists, points
 
 
-def coverage(dists, actual, round_filter, band=0.80):
+def in_open_bucket(bins, q):
+    """Does quantile q land in an open-ended end bucket?
+
+    It matters because the boundary is used as the range edge there, which
+    makes the range NARROWER than the forecaster's real one and therefore
+    overstates overconfidence. The bias runs toward the finding, so it has to
+    be measured rather than asserted away.
+    """
+    total = sum(bins.values())
+    cum = 0.0
+    for b in sorted(bins):
+        p = bins[b] / total
+        if cum + p >= q:
+            return b[0] <= -99 or b[1] >= 99
+        cum += p
+    return False
+
+
+def coverage(dists, actual, round_filter, band=0.80, drop_open=False):
     """-> per-year and pooled coverage of each forecaster's own band."""
     tail = (1 - band) / 2
     per_year = collections.defaultdict(lambda: {"in": 0, "lo": 0, "hi": 0})
@@ -117,6 +135,9 @@ def coverage(dists, actual, round_filter, band=0.80):
             continue
         lo, hi = quantile(bins, tail), quantile(bins, 1 - tail)
         if lo is None or hi is None:
+            continue
+        if drop_open and (in_open_bucket(bins, tail)
+                          or in_open_bucket(bins, 1 - tail)):
             continue
         a = actual[t]
         slot = "in" if lo <= a <= hi else ("lo" if a < lo else "hi")
@@ -238,7 +259,21 @@ def main():
     print("      Even with every turbulent year removed, the ranges are still")
     print("      too narrow — the problem is not only the crises.")
 
-    print("\n  5c. was the panel ever well calibrated?")
+    print("\n  5c. the open-ended top bucket, which biases toward the finding")
+    _, t_all, n_all = coverage(dists, actual, one_year, 0.80)
+    _, t_cl, n_cl = coverage(dists, actual, one_year, 0.80, drop_open=True)
+    print(f"      all distributions             {t_all['in'] / n_all * 100:>5.1f}% "
+          f"inside (n={n_all:,})")
+    print(f"      excluding open-ended edges    {t_cl['in'] / n_cl * 100:>5.1f}% "
+          f"inside (n={n_cl:,})")
+    print(f"      {n_all - n_cl} distributions ({(n_all - n_cl) / n_all * 100:.1f}%) "
+          f"have a percentile in an open bucket.")
+    print("      Using the boundary there narrows the range, so the headline")
+    print("      OVERSTATES overconfidence — by 1.8 points. The finding survives")
+    print("      the correction; the direction of the bias is stated because it")
+    print("      runs toward the result, not away from it.")
+
+    print("\n  5d. was the panel ever well calibrated?")
     for lo, hi in ((2000, 2007), (2008, 2014), (2015, 2025)):
         era = {t for t in actual if lo <= t <= hi}
         _, tot, n = coverage({k: v for k, v in dists.items() if k[0] in era},
@@ -283,6 +318,10 @@ def main():
             if [r for r in F if r["target"] == 2022
                 and r["bucket"] == "F4_0" and r["round"] == rd]],
         "actual_2022": round(actual[2022], 3),
+        "open_edge_check": {
+            "all": {"n": n_all, "share_inside": round(t_all["in"] / n_all, 4)},
+            "excluding_open": {"n": n_cl,
+                               "share_inside": round(t_cl["in"] / n_cl, 4)}},
     }
     with open(OUT, "w") as fh:
         json.dump(out, fh, indent=1)
