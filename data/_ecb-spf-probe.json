@@ -1,86 +1,1251 @@
 {
- "probed_at": "2026-08-29T09:22:42.472333+00:00",
- "probed_by": "scripts/probe_ecb_spf.py",
- "question": "Are the SPF probability distributions retrievable by survey round and horizon, and is realised HICP available to score them against?",
+ "probed_at": "2026-08-29T09:31:22.662984+00:00",
+ "probed_by": "scripts/probe_ecb_spf.py (round 2)",
+ "round1": "SPF serves 470,979 series as per-forecaster probability microdata; HICP actuals available; dimension order is FREQ.REF_AREA.FCT_TOPIC.FCT_BREAKDOWN.FCT_HORIZON.SURVEY_FREQ.FCT_SOURCE",
+ "question": "Does a narrowed request return less? If not, the study cannot be built the way the OECD one could not.",
  "routes": [
   {
-   "name": "dataflow_all",
-   "url": "https://data-api.ecb.europa.eu/service/dataflow/ECB?format=sdmx-json",
-   "truncated_at_cap": false,
-   "status": 200,
-   "bytes": 39226,
-   "content_type": "application/vnd.sdmx.structure+xml;version=2.1",
-   "head": "<?xml version='1.0' encoding='UTF-8'?><mes:Structure xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\" xmlns:mes=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message\" xmlns:str=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure\" xmlns:com=\"http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common\"><mes:Header><mes:ID>IREF953661</mes:ID><mes:Test>false</mes:Test><mes:Prepared>2026-08-29T09:22:42Z</mes:Prepared><mes:Sender id=\"Unknown\"/><mes:Receiver id=\"not_supplied\"/></mes:Header><mes:Structures><str:Dataflows><str:Dataflow urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:AGR(1.0)\" isExternalReference=\"false\" agencyID=\"ECB\" id=\"AGR\" isFinal=\"false\" version=\"1.0\"><com:Name xml:lang=\"en\">AGR</com:Name><str:Structure><Ref package=\"datastructure\" agencyID=\"ECB\" id=\"ECB_BCS1\" version=\"1.0\" class=\"DataStructure\"/></str:Structure></str:Dataflow><str:Dataflow urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:AME(1.0)\" isExternalReference=\"false\" agencyID=\"ECB\" id=\"AME\" isFinal=\"false\" version=\"1.0\"><com:Name xml:lang=\"en\">AMECO</com:Name><str:Structure><Ref package=\"datastructure\" agencyID=\"ECB\" id=\"ECB_AME1\" version=\"1.0\" class=\"DataStructure\"/></str:Structure></str:Dataflow><str:Dataflow urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:BKN(1.0)\" isExternalReference=\"false\" agencyID=\"ECB\" id=\"BKN\" isFinal=\"false\" version=\"1.0\"><com:Name xml:lang=\"en\">Banknotes statistics</com:Name><str:Structure><Ref package=\"datastructure\" agencyID=\"ECB\" id=\"ECB_BKN1\" version=\"1.0\" class=\"DataStructure\"/></str:Structure></str:Dataflow><str:Dataflow urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:BLS(1.0)\" isExternalReference=\"false\" agencyID=\"ECB\" id=\"BLS\" isFinal=\"false\" version=\"1.0\"><com:Name xml:lang=\"en\">Bank Lending Survey Statistics</com:Name><str:Structure><Ref package=\"datastructure\" agencyID=\"ECB\" id=\"ECB_BLS1\" version=\"1.0\" class=\"DataStructure\"/></str:Structure></str:Dataflow><str:Dataflow urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:BNT(1.0)\" isExternalReference=\"false\" agencyID=\"ECB\" id=\"BNT\" isFinal=\"false\" version=\"1.0\"><com:Name xml:lang=\"en\">Shipments of Euro Banknotes Statistics (ESCB)</com:Name><str:Structure><Ref package=\"datastructure\" agencyID=\"ECB\" id=\"ECB_BOP_BNT\" version=\"1.0\" class=\"DataStructure\"/></str:Structure></str:Dataflow><str:Dataflow urn=\"urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:BOP(1.0)\" isExternalRefere"
-  },
-  {
-   "name": "spf_datastructure",
-   "url": "https://data-api.ecb.europa.eu/service/datastructure/ECB/ECB_SPF1?references=children&format=sdmx-json",
-   "status": 404,
-   "error": "HTTPError 404",
-   "head": "{\"type\":\"/service/datastructure/ECB/ECB_SPF1\",\"title\":\"Not Found\",\"status\":404,\"detail\":\"No results found.\",\"instance\":\"/service/datastructure/ECB/ECB_SPF1\"}"
-  },
-  {
-   "name": "spf_serieskeys",
+   "name": "baseline_all_keys",
    "url": "https://data-api.ecb.europa.eu/service/data/SPF?detail=serieskeysonly&format=csvdata",
-   "truncated_at_cap": true,
+   "hit_cap": true,
    "status": 200,
    "bytes": 30000000,
-   "content_type": "text/csv",
-   "head": "KEY,FREQ,REF_AREA,FCT_TOPIC,FCT_BREAKDOWN,FCT_HORIZON,SURVEY_FREQ,FCT_SOURCE\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.054,Q,U2,HICP,FN2_0TN1_6,2024,Q,054\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.056,Q,U2,HICP,FN2_0TN1_6,2024,Q,056\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.063,Q,U2,HICP,FN2_0TN1_6,2024,Q,063\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.073,Q,U2,HICP,FN2_0TN1_6,2024,Q,073\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.090,Q,U2,HICP,FN2_0TN1_6,2024,Q,090\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.095,Q,U2,HICP,FN2_0TN1_6,2024,Q,095\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.098,Q,U2,HICP,FN2_0TN1_6,2024,Q,098\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.099,Q,U2,HICP,FN2_0TN1_6,2024,Q,099\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.101,Q,U2,HICP,FN2_0TN1_6,2024,Q,101\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.108,Q,U2,HICP,FN2_0TN1_6,2024,Q,108\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.112,Q,U2,HICP,FN2_0TN1_6,2024,Q,112\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.119,Q,U2,HICP,FN2_0TN1_6,2024,Q,119\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.121,Q,U2,HICP,FN2_0TN1_6,2024,Q,121\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.127,Q,U2,HICP,FN2_0TN1_6,2024,Q,127\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.128,Q,U2,HICP,FN2_0TN1_6,2024,Q,128\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.AVG,Q,U2,HICP,FN2_0TN1_6,2024,Q,AVG\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.NUM,Q,U2,HICP,FN2_0TN1_6,2024,Q,NUM\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.PFC,Q,U2,HICP,FN2_0TN1_6,2024,Q,PFC\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.VAR,Q,U2,HICP,FN2_0TN1_6,2024,Q,VAR\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.001,Q,U2,HICP,FN2_0TN1_6,2025,Q,001\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.002,Q,U2,HICP,FN2_0TN1_6,2025,Q,002\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.004,Q,U2,HICP,FN2_0TN1_6,2025,Q,004\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.005,Q,U2,HICP,FN2_0TN1_6,2025,Q,005\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.006,Q,U2,HICP,FN2_0TN1_6,2025,Q,006\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.008,Q,U2,HICP,FN2_0TN1_6,2025,Q,008\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.010,Q,U2,HICP,FN2_0TN1_6,2025,Q,010\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.014,Q,U2,HICP,FN2_0TN1_6,2025,Q,014\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.015,Q,U2,HICP,FN2_0TN1_6,2025,Q,015\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.016,Q,U2,HICP,FN2_0TN1_6,2025,Q,016\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.020,Q,U2,HICP,FN2_0TN1_6,2025,Q,020\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.022,Q,U2,HICP,FN2_0TN1_6,2025,Q,022\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.023,Q,U2,HICP,FN2_0TN1_6,2025,Q,023\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.024,Q,U2,HICP,FN2_0TN1_6,2025,Q,024\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.026,Q,U2,HICP,FN2_0TN1_6,2025,Q,026\r\nSPF.Q.U2.HICP.FN2_0TN1_6.2025.Q.029,Q,U2,HICP,FN2_0TN1_6,2025,Q,029\r\nSPF.Q.U",
-   "csv_header": "KEY,FREQ,REF_AREA,FCT_TOPIC,FCT_BREAKDOWN,FCT_HORIZON,SURVEY_FREQ,FCT_SOURCE",
-   "csv_rows": 470979,
-   "csv_sample": [
-    "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.054,Q,U2,HICP,FN2_0TN1_6,2024,Q,054",
-    "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.056,Q,U2,HICP,FN2_0TN1_6,2024,Q,056",
-    "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.063,Q,U2,HICP,FN2_0TN1_6,2024,Q,063",
-    "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.073,Q,U2,HICP,FN2_0TN1_6,2024,Q,073",
-    "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.090,Q,U2,HICP,FN2_0TN1_6,2024,Q,090"
-   ]
+   "rows": 470979,
+   "columns": [
+    "KEY",
+    "FREQ",
+    "REF_AREA",
+    "FCT_TOPIC",
+    "FCT_BREAKDOWN",
+    "FCT_HORIZON",
+    "SURVEY_FREQ",
+    "FCT_SOURCE"
+   ],
+   "distinct_FCT_TOPIC": 6,
+   "top_FCT_TOPIC": [
+    [
+     "UNEM",
+     133879
+    ],
+    [
+     "HICP",
+     127646
+    ],
+    [
+     "RGDP",
+     112637
+    ],
+    [
+     "CORE",
+     82876
+    ],
+    [
+     "ASSU",
+     13940
+    ],
+    [
+     null,
+     1
+    ]
+   ],
+   "distinct_FCT_BREAKDOWN": 96,
+   "top_FCT_BREAKDOWN": [
+    [
+     "POINT",
+     18418
+    ],
+    [
+     "SUM",
+     16151
+    ],
+    [
+     "F2_0T2_4",
+     13945
+    ],
+    [
+     "F1_5T1_9",
+     13945
+    ],
+    [
+     "F1_0T1_4",
+     13945
+    ],
+    [
+     "F0_5T0_9",
+     13945
+    ],
+    [
+     "F2_5T2_9",
+     13027
+    ],
+    [
+     "FN1_0TN0_6",
+     12025
+    ],
+    [
+     "F0_0T0_4",
+     11561
+    ],
+    [
+     "F3_0T3_4",
+     10962
+    ],
+    [
+     "FN0_5TN0_1",
+     10482
+    ],
+    [
+     "F4_0T4_4",
+     10126
+    ],
+    [
+     "F4_0",
+     9688
+    ],
+    [
+     "F3_5T3_9",
+     9544
+    ]
+   ],
+   "distinct_FCT_HORIZON": 53,
+   "top_FCT_HORIZON": [
+    [
+     "P24M",
+     30600
+    ],
+    [
+     "P12M",
+     30403
+    ],
+    [
+     "P21M",
+     22499
+    ],
+    [
+     "P9M",
+     22176
+    ],
+    [
+     "P15M",
+     21296
+    ],
+    [
+     "P3M",
+     21009
+    ],
+    [
+     "P27M",
+     20901
+    ],
+    [
+     "P63M",
+     19922
+    ],
+    [
+     "P18M",
+     18339
+    ],
+    [
+     "P6M",
+     18093
+    ],
+    [
+     "P57M",
+     18074
+    ],
+    [
+     "P30M",
+     17948
+    ],
+    [
+     "P66M",
+     17199
+    ],
+    [
+     "P60M",
+     16674
+    ]
+   ],
+   "distinct_FCT_SOURCE": 151,
+   "top_FCT_SOURCE": [
+    [
+     "PFC",
+     5296
+    ],
+    [
+     "NUM",
+     4975
+    ],
+    [
+     "AVG",
+     4876
+    ],
+    [
+     "VAR",
+     4876
+    ],
+    [
+     "039",
+     4819
+    ],
+    [
+     "095",
+     4817
+    ],
+    [
+     "037",
+     4781
+    ],
+    [
+     "026",
+     4769
+    ],
+    [
+     "005",
+     4763
+    ],
+    [
+     "015",
+     4738
+    ],
+    [
+     "001",
+     4730
+    ],
+    [
+     "056",
+     4726
+    ],
+    [
+     "091",
+     4631
+    ],
+    [
+     "033",
+     4620
+    ]
+   ],
+   "distinct_FREQ": 4,
+   "top_FREQ": [
+    [
+     "A",
+     276047
+    ],
+    [
+     "Q",
+     158601
+    ],
+    [
+     "M",
+     36330
+    ],
+    [
+     null,
+     1
+    ]
+   ],
+   "sample": [
+    {
+     "KEY": "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.054",
+     "FCT_BREAKDOWN": "FN2_0TN1_6",
+     "FCT_HORIZON": "2024",
+     "FCT_SOURCE": "054"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.056",
+     "FCT_BREAKDOWN": "FN2_0TN1_6",
+     "FCT_HORIZON": "2024",
+     "FCT_SOURCE": "056"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.063",
+     "FCT_BREAKDOWN": "FN2_0TN1_6",
+     "FCT_HORIZON": "2024",
+     "FCT_SOURCE": "063"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.073",
+     "FCT_BREAKDOWN": "FN2_0TN1_6",
+     "FCT_HORIZON": "2024",
+     "FCT_SOURCE": "073"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.090",
+     "FCT_BREAKDOWN": "FN2_0TN1_6",
+     "FCT_HORIZON": "2024",
+     "FCT_SOURCE": "090"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.FN2_0TN1_6.2024.Q.095",
+     "FCT_BREAKDOWN": "FN2_0TN1_6",
+     "FCT_HORIZON": "2024",
+     "FCT_SOURCE": "095"
+    }
+   ],
+   "expectation": "everything \u2014 the yardstick the filtered calls must come in under"
   },
   {
-   "name": "spf_lastobs",
-   "url": "https://data-api.ecb.europa.eu/service/data/SPF?lastNObservations=1&format=csvdata",
-   "truncated_at_cap": true,
+   "name": "keys_hicp_only",
+   "url": "https://data-api.ecb.europa.eu/service/data/SPF/..HICP....?detail=serieskeysonly&format=csvdata",
+   "hit_cap": false,
    "status": 200,
-   "bytes": 30000000,
-   "content_type": "text/csv",
-   "head": "KEY,FREQ,REF_AREA,FCT_TOPIC,FCT_BREAKDOWN,FCT_HORIZON,SURVEY_FREQ,FCT_SOURCE,TIME_PERIOD,OBS_VALUE,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK,OBS_COM,SURVEY_ROUND,TIME_FORMAT,COLLECTION,COMPILING_ORG,DISS_ORG,DECIMALS,SOURCE_AGENCY,TITLE,TITLE_COMPL,UNIT,UNIT_MULT\r\nSPF.A.U2.CORE.F2_0T2_4.P6M.Q.100,A,U2,CORE,F2_0T2_4,P6M,Q,100,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 100 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 100 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0\r\nSPF.A.U2.CORE.F2_0T2_4.P6M.Q.101,A,U2,CORE,F2_0T2_4,P6M,Q,101,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 101 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 101 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0\r\nSPF.A.U2.CORE.F2_0T2_4.P6M.Q.102,A,U2,CORE,F2_0T2_4,P6M,Q,102,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 102 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 102 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0\r\nSPF.A.U2.CORE.F2_0T2_4.P6M.Q.103,A,U2,CORE,F2_0T2_4,P6M,Q,103,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 103 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 103 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0\r\nSPF.A.U2.CORE.F2_0T2_4.P6M.Q.104,A,U2,CORE,F2_0T2_4,P6M,Q,104,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 104 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 104 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0\r\nSPF.A.U2.CORE.F2_0T2_4.P6M.Q.105,A,U2,CORE,F2_0T2_4,P6M,Q,105,2024,,M,F,,,,P1Y,A,,,2,4F0",
-   "csv_header": "KEY,FREQ,REF_AREA,FCT_TOPIC,FCT_BREAKDOWN,FCT_HORIZON,SURVEY_FREQ,FCT_SOURCE,TIME_PERIOD,OBS_VALUE,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK,OBS_COM,SURVEY_ROUND,TIME_FORMAT,COLLECTION,COMPILING_ORG,DISS_ORG,DECIMALS,SOURCE_AGENCY,TITLE,TITLE_COMPL,UNIT,UNIT_MULT",
-   "csv_rows": 78242,
-   "csv_sample": [
-    "SPF.A.U2.CORE.F2_0T2_4.P6M.Q.100,A,U2,CORE,F2_0T2_4,P6M,Q,100,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 100 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 100 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0",
-    "SPF.A.U2.CORE.F2_0T2_4.P6M.Q.101,A,U2,CORE,F2_0T2_4,P6M,Q,101,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 101 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 101 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0",
-    "SPF.A.U2.CORE.F2_0T2_4.P6M.Q.102,A,U2,CORE,F2_0T2_4,P6M,Q,102,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 102 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 102 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0",
-    "SPF.A.U2.CORE.F2_0T2_4.P6M.Q.103,A,U2,CORE,F2_0T2_4,P6M,Q,103,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 103 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 103 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0",
-    "SPF.A.U2.CORE.F2_0T2_4.P6M.Q.104,A,U2,CORE,F2_0T2_4,P6M,Q,104,2024,,M,F,,,,P1Y,A,,,2,4F0,Euro area - Forecaster 104 - Probability assigned to outcome - Core inflation from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins,Euro area (changing composition) - Forecaster 104 - Harmonised ICP excluding energy and food - from 2.0 to 2.4 - Target period ends 6 months after survey cycle begins - Quarterly survey,PC,0"
-   ]
+   "bytes": 8267125,
+   "rows": 130739,
+   "columns": [
+    "KEY",
+    "FREQ",
+    "REF_AREA",
+    "FCT_TOPIC",
+    "FCT_BREAKDOWN",
+    "FCT_HORIZON",
+    "SURVEY_FREQ",
+    "FCT_SOURCE"
+   ],
+   "distinct_FCT_TOPIC": 1,
+   "top_FCT_TOPIC": [
+    [
+     "HICP",
+     130739
+    ]
+   ],
+   "distinct_FCT_BREAKDOWN": 42,
+   "top_FCT_BREAKDOWN": [
+    [
+     "POINT",
+     5472
+    ],
+    [
+     "F3_0T3_4",
+     5199
+    ],
+    [
+     "F2_5T2_9",
+     5199
+    ],
+    [
+     "F2_0T2_4",
+     5199
+    ],
+    [
+     "F1_5T1_9",
+     5199
+    ],
+    [
+     "F0_5T0_9",
+     5199
+    ],
+    [
+     "F1_0T1_4",
+     5199
+    ],
+    [
+     "F0_0T0_4",
+     5199
+    ],
+    [
+     "SUM",
+     5092
+    ],
+    [
+     "F3_5T3_9",
+     4534
+    ],
+    [
+     "F4_0",
+     4309
+    ],
+    [
+     "FN0_5TN0_1",
+     4238
+    ],
+    [
+     "FN1_0TN0_6",
+     4238
+    ],
+    [
+     "TN1_0",
+     4149
+    ]
+   ],
+   "distinct_FCT_HORIZON": 51,
+   "top_FCT_HORIZON": [
+    [
+     "P12M",
+     9637
+    ],
+    [
+     "P24M",
+     9598
+    ],
+    [
+     "P3M",
+     5999
+    ],
+    [
+     "P27M",
+     5999
+    ],
+    [
+     "P15M",
+     5999
+    ],
+    [
+     "P63M",
+     5899
+    ],
+    [
+     "P60M",
+     4640
+    ],
+    [
+     "P18M",
+     4625
+    ],
+    [
+     "P6M",
+     4625
+    ],
+    [
+     "P21M",
+     4606
+    ],
+    [
+     "P9M",
+     4606
+    ],
+    [
+     "P30M",
+     4508
+    ],
+    [
+     "P57M",
+     4476
+    ],
+    [
+     "P66M",
+     4469
+    ]
+   ],
+   "distinct_FCT_SOURCE": 150,
+   "top_FCT_SOURCE": [
+    [
+     "PFC",
+     1521
+    ],
+    [
+     "NUM",
+     1402
+    ],
+    [
+     "AVG",
+     1376
+    ],
+    [
+     "VAR",
+     1376
+    ],
+    [
+     "095",
+     1362
+    ],
+    [
+     "001",
+     1362
+    ],
+    [
+     "016",
+     1362
+    ],
+    [
+     "020",
+     1362
+    ],
+    [
+     "033",
+     1362
+    ],
+    [
+     "037",
+     1362
+    ],
+    [
+     "039",
+     1362
+    ],
+    [
+     "054",
+     1361
+    ],
+    [
+     "026",
+     1356
+    ],
+    [
+     "089",
+     1352
+    ]
+   ],
+   "distinct_FREQ": 3,
+   "top_FREQ": [
+    [
+     "A",
+     73662
+    ],
+    [
+     "Q",
+     43664
+    ],
+    [
+     "M",
+     13413
+    ]
+   ],
+   "sample": [
+    {
+     "KEY": "SPF.M.U2.HICP.F3_8T4_2.P24M.Q.075",
+     "FCT_BREAKDOWN": "F3_8T4_2",
+     "FCT_HORIZON": "P24M",
+     "FCT_SOURCE": "075"
+    },
+    {
+     "KEY": "SPF.M.U2.HICP.F3_8T4_2.P24M.Q.076",
+     "FCT_BREAKDOWN": "F3_8T4_2",
+     "FCT_HORIZON": "P24M",
+     "FCT_SOURCE": "076"
+    },
+    {
+     "KEY": "SPF.M.U2.HICP.F3_8T4_2.P24M.Q.077",
+     "FCT_BREAKDOWN": "F3_8T4_2",
+     "FCT_HORIZON": "P24M",
+     "FCT_SOURCE": "077"
+    },
+    {
+     "KEY": "SPF.M.U2.HICP.F3_8T4_2.P24M.Q.078",
+     "FCT_BREAKDOWN": "F3_8T4_2",
+     "FCT_HORIZON": "P24M",
+     "FCT_SOURCE": "078"
+    },
+    {
+     "KEY": "SPF.M.U2.HICP.F3_8T4_2.P24M.Q.079",
+     "FCT_BREAKDOWN": "F3_8T4_2",
+     "FCT_HORIZON": "P24M",
+     "FCT_SOURCE": "079"
+    },
+    {
+     "KEY": "SPF.M.U2.HICP.F3_8T4_2.P24M.Q.080",
+     "FCT_BREAKDOWN": "F3_8T4_2",
+     "FCT_HORIZON": "P24M",
+     "FCT_SOURCE": "080"
+    }
+   ],
+   "expectation": "HICP topic only \u2014 must be much smaller than baseline"
   },
   {
-   "name": "hicp_actual",
-   "url": "https://data-api.ecb.europa.eu/service/data/ICP/M.U2.N.000000.4.ANR?startPeriod=2018-01&format=csvdata",
-   "truncated_at_cap": false,
+   "name": "keys_hicp_2022",
+   "url": "https://data-api.ecb.europa.eu/service/data/SPF/..HICP..2022..?detail=serieskeysonly&format=csvdata",
+   "hit_cap": false,
    "status": 200,
-   "bytes": 27161,
-   "content_type": "text/csv",
-   "head": "KEY,FREQ,REF_AREA,ADJUSTMENT,ICP_ITEM,STS_INSTITUTION,ICP_SUFFIX,TIME_PERIOD,OBS_VALUE,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK,OBS_COM,TIME_FORMAT,BREAKS,COLLECTION,COMPILING_ORG,DATA_COMP,DISS_ORG,DOM_SER_IDS,PUBL_ECB,PUBL_MU,PUBL_PUBLIC,UNIT_INDEX_BASE,COMPILATION,COVERAGE,DECIMALS,SOURCE_AGENCY,TITLE,TITLE_COMPL,UNIT,UNIT_MULT\r\nICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-01,1.3,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0\r\nICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-02,1.1,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0\r\nICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-03,1.4,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0\r\nICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-04,1.2,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0\r\nICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-05,2,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0\r\nICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-06,2,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0\r\nICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-07,2.2,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0\r\nICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-08,2.1,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor",
-   "csv_header": "KEY,FREQ,REF_AREA,ADJUSTMENT,ICP_ITEM,STS_INSTITUTION,ICP_SUFFIX,TIME_PERIOD,OBS_VALUE,OBS_STATUS,OBS_CONF,OBS_PRE_BREAK,OBS_COM,TIME_FORMAT,BREAKS,COLLECTION,COMPILING_ORG,DATA_COMP,DISS_ORG,DOM_SER_IDS,PUBL_ECB,PUBL_MU,PUBL_PUBLIC,UNIT_INDEX_BASE,COMPILATION,COVERAGE,DECIMALS,SOURCE_AGENCY,TITLE,TITLE_COMPL,UNIT,UNIT_MULT",
-   "csv_rows": 96,
-   "csv_sample": [
-    "ICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-01,1.3,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0",
-    "ICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-02,1.1,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0",
-    "ICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-03,1.4,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0",
-    "ICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-04,1.2,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0",
-    "ICP.M.U2.N.000000.4.ANR,M,U2,N,000000,4,ANR,2018-05,2,A,F,,,P1M,,A,,,,ICPT.M.VAL.HICP.RCH_A.EA.00.M,,,,,,,1,,HICP - Overall index,\"Euro area (changing composition) - HICP - Overall index, Annual rate of change, Eurostat, Neither seasonally nor working day adjusted\",PCCH,0"
-   ]
+   "bytes": 102929,
+   "rows": 1599,
+   "columns": [
+    "KEY",
+    "FREQ",
+    "REF_AREA",
+    "FCT_TOPIC",
+    "FCT_BREAKDOWN",
+    "FCT_HORIZON",
+    "SURVEY_FREQ",
+    "FCT_SOURCE"
+   ],
+   "distinct_FCT_TOPIC": 1,
+   "top_FCT_TOPIC": [
+    [
+     "HICP",
+     1599
+    ]
+   ],
+   "distinct_FCT_BREAKDOWN": 29,
+   "top_FCT_BREAKDOWN": [
+    [
+     "POINT",
+     82
+    ],
+    [
+     "FN1_0TN0_6",
+     73
+    ],
+    [
+     "FN0_5TN0_1",
+     73
+    ],
+    [
+     "F3_5T3_9",
+     73
+    ],
+    [
+     "F4_0",
+     73
+    ],
+    [
+     "F2_5T2_9",
+     73
+    ],
+    [
+     "F3_0T3_4",
+     73
+    ],
+    [
+     "F1_0T1_4",
+     73
+    ],
+    [
+     "F1_5T1_9",
+     73
+    ],
+    [
+     "F2_0T2_4",
+     73
+    ],
+    [
+     "F0_0T0_4",
+     73
+    ],
+    [
+     "F0_5T0_9",
+     73
+    ],
+    [
+     "TN1_0",
+     72
+    ],
+    [
+     "SUM",
+     70
+    ]
+   ],
+   "distinct_FCT_HORIZON": 1,
+   "top_FCT_HORIZON": [
+    [
+     "2022",
+     1599
+    ]
+   ],
+   "distinct_FCT_SOURCE": 83,
+   "top_FCT_SOURCE": [
+    [
+     "PFC",
+     27
+    ],
+    [
+     "041",
+     24
+    ],
+    [
+     "045",
+     24
+    ],
+    [
+     "054",
+     24
+    ],
+    [
+     "056",
+     24
+    ],
+    [
+     "063",
+     24
+    ],
+    [
+     "065",
+     24
+    ],
+    [
+     "080",
+     24
+    ],
+    [
+     "085",
+     24
+    ],
+    [
+     "089",
+     24
+    ],
+    [
+     "090",
+     24
+    ],
+    [
+     "091",
+     24
+    ],
+    [
+     "093",
+     24
+    ],
+    [
+     "095",
+     24
+    ]
+   ],
+   "distinct_FREQ": 1,
+   "top_FREQ": [
+    [
+     "Q",
+     1599
+    ]
+   ],
+   "sample": [
+    {
+     "KEY": "SPF.Q.U2.HICP.TN1_0.2022.Q.041",
+     "FCT_BREAKDOWN": "TN1_0",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "041"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.TN1_0.2022.Q.042",
+     "FCT_BREAKDOWN": "TN1_0",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "042"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.TN1_0.2022.Q.045",
+     "FCT_BREAKDOWN": "TN1_0",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "045"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.TN1_0.2022.Q.047",
+     "FCT_BREAKDOWN": "TN1_0",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "047"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.TN1_0.2022.Q.048",
+     "FCT_BREAKDOWN": "TN1_0",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "048"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.TN1_0.2022.Q.052",
+     "FCT_BREAKDOWN": "TN1_0",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "052"
+    }
+   ],
+   "expectation": "HICP, target year 2022 \u2014 smaller again"
+  },
+  {
+   "name": "data_hicp_2022_round2021",
+   "url": "https://data-api.ecb.europa.eu/service/data/SPF/..HICP..2022..?startPeriod=2021&endPeriod=2021&format=csvdata",
+   "hit_cap": false,
+   "status": 200,
+   "bytes": 965944,
+   "rows": 3094,
+   "columns": [
+    "KEY",
+    "FREQ",
+    "REF_AREA",
+    "FCT_TOPIC",
+    "FCT_BREAKDOWN",
+    "FCT_HORIZON",
+    "SURVEY_FREQ",
+    "FCT_SOURCE",
+    "TIME_PERIOD",
+    "OBS_VALUE",
+    "OBS_STATUS",
+    "OBS_CONF",
+    "OBS_PRE_BREAK",
+    "OBS_COM",
+    "SURVEY_ROUND",
+    "TIME_FORMAT",
+    "COLLECTION",
+    "COMPILING_ORG",
+    "DISS_ORG",
+    "DECIMALS",
+    "SOURCE_AGENCY",
+    "TITLE",
+    "TITLE_COMPL",
+    "UNIT",
+    "UNIT_MULT"
+   ],
+   "distinct_FCT_TOPIC": 1,
+   "top_FCT_TOPIC": [
+    [
+     "HICP",
+     3094
+    ]
+   ],
+   "distinct_FCT_BREAKDOWN": 29,
+   "top_FCT_BREAKDOWN": [
+    [
+     "POINT",
+     242
+    ],
+    [
+     "F0_0T0_4",
+     216
+    ],
+    [
+     "F0_5T0_9",
+     216
+    ],
+    [
+     "F1_0T1_4",
+     216
+    ],
+    [
+     "F1_5T1_9",
+     216
+    ],
+    [
+     "F2_0T2_4",
+     216
+    ],
+    [
+     "F2_5T2_9",
+     216
+    ],
+    [
+     "F3_0T3_4",
+     216
+    ],
+    [
+     "F3_5T3_9",
+     216
+    ],
+    [
+     "F4_0",
+     216
+    ],
+    [
+     "FN0_5TN0_1",
+     216
+    ],
+    [
+     "FN1_0TN0_6",
+     216
+    ],
+    [
+     "TN1_0",
+     216
+    ],
+    [
+     "SUM",
+     204
+    ]
+   ],
+   "distinct_FCT_HORIZON": 1,
+   "top_FCT_HORIZON": [
+    [
+     "2022",
+     3094
+    ]
+   ],
+   "distinct_FCT_SOURCE": 74,
+   "top_FCT_SOURCE": [
+    [
+     "PFC",
+     104
+    ],
+    [
+     "004",
+     56
+    ],
+    [
+     "006",
+     56
+    ],
+    [
+     "014",
+     56
+    ],
+    [
+     "015",
+     56
+    ],
+    [
+     "016",
+     56
+    ],
+    [
+     "020",
+     56
+    ],
+    [
+     "022",
+     56
+    ],
+    [
+     "023",
+     56
+    ],
+    [
+     "024",
+     56
+    ],
+    [
+     "026",
+     56
+    ],
+    [
+     "029",
+     56
+    ],
+    [
+     "032",
+     56
+    ],
+    [
+     "037",
+     56
+    ]
+   ],
+   "distinct_TIME_PERIOD": 4,
+   "top_TIME_PERIOD": [
+    [
+     "2021-Q2",
+     815
+    ],
+    [
+     "2021-Q1",
+     800
+    ],
+    [
+     "2021-Q4",
+     747
+    ],
+    [
+     "2021-Q3",
+     732
+    ]
+   ],
+   "distinct_FREQ": 1,
+   "top_FREQ": [
+    [
+     "Q",
+     3094
+    ]
+   ],
+   "sample": [
+    {
+     "KEY": "SPF.Q.U2.HICP.F0_0T0_4.2022.Q.001",
+     "FCT_BREAKDOWN": "F0_0T0_4",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2021-Q1",
+     "OBS_VALUE": "5",
+     "TITLE_COMPL": "Euro area (changing composition) - Forecaster 1 - Harmonised ICP - from 0.0 to 0.4 - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.F0_0T0_4.2022.Q.001",
+     "FCT_BREAKDOWN": "F0_0T0_4",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2021-Q2",
+     "OBS_VALUE": "5",
+     "TITLE_COMPL": "Euro area (changing composition) - Forecaster 1 - Harmonised ICP - from 0.0 to 0.4 - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.F0_0T0_4.2022.Q.001",
+     "FCT_BREAKDOWN": "F0_0T0_4",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2021-Q3",
+     "OBS_VALUE": "5",
+     "TITLE_COMPL": "Euro area (changing composition) - Forecaster 1 - Harmonised ICP - from 0.0 to 0.4 - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.F0_0T0_4.2022.Q.002",
+     "FCT_BREAKDOWN": "F0_0T0_4",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "002",
+     "TIME_PERIOD": "2021-Q1",
+     "OBS_VALUE": "0",
+     "TITLE_COMPL": "Euro area (changing composition) - Forecaster 2 - Harmonised ICP - from 0.0 to 0.4 - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.F0_0T0_4.2022.Q.002",
+     "FCT_BREAKDOWN": "F0_0T0_4",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "002",
+     "TIME_PERIOD": "2021-Q2",
+     "OBS_VALUE": "0",
+     "TITLE_COMPL": "Euro area (changing composition) - Forecaster 2 - Harmonised ICP - from 0.0 to 0.4 - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.F0_0T0_4.2022.Q.002",
+     "FCT_BREAKDOWN": "F0_0T0_4",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "002",
+     "TIME_PERIOD": "2021-Q4",
+     "OBS_VALUE": "0",
+     "TITLE_COMPL": "Euro area (changing composition) - Forecaster 2 - Harmonised ICP - from 0.0 to 0.4 - 2022 - Quarterly survey"
+    }
+   ],
+   "expectation": "the real slice: every forecaster's 2022 distribution, as seen in 2021"
+  },
+  {
+   "name": "data_hicp_point_2022",
+   "url": "https://data-api.ecb.europa.eu/service/data/SPF/..HICP.POINT.2022..?format=csvdata",
+   "hit_cap": false,
+   "status": 200,
+   "bytes": 226275,
+   "rows": 870,
+   "columns": [
+    "KEY",
+    "FREQ",
+    "REF_AREA",
+    "FCT_TOPIC",
+    "FCT_BREAKDOWN",
+    "FCT_HORIZON",
+    "SURVEY_FREQ",
+    "FCT_SOURCE",
+    "TIME_PERIOD",
+    "OBS_VALUE",
+    "OBS_STATUS",
+    "OBS_CONF",
+    "OBS_PRE_BREAK",
+    "OBS_COM",
+    "SURVEY_ROUND",
+    "TIME_FORMAT",
+    "COLLECTION",
+    "COMPILING_ORG",
+    "DISS_ORG",
+    "DECIMALS",
+    "SOURCE_AGENCY",
+    "TITLE",
+    "TITLE_COMPL",
+    "UNIT",
+    "UNIT_MULT"
+   ],
+   "distinct_FCT_TOPIC": 1,
+   "top_FCT_TOPIC": [
+    [
+     "HICP",
+     870
+    ]
+   ],
+   "distinct_FCT_BREAKDOWN": 1,
+   "top_FCT_BREAKDOWN": [
+    [
+     "POINT",
+     870
+    ]
+   ],
+   "distinct_FCT_HORIZON": 1,
+   "top_FCT_HORIZON": [
+    [
+     "2022",
+     870
+    ]
+   ],
+   "distinct_FCT_SOURCE": 82,
+   "top_FCT_SOURCE": [
+    [
+     "006",
+     16
+    ],
+    [
+     "015",
+     16
+    ],
+    [
+     "016",
+     16
+    ],
+    [
+     "023",
+     16
+    ],
+    [
+     "024",
+     16
+    ],
+    [
+     "039",
+     16
+    ],
+    [
+     "056",
+     16
+    ],
+    [
+     "098",
+     16
+    ],
+    [
+     "099",
+     16
+    ],
+    [
+     "101",
+     16
+    ],
+    [
+     "107",
+     16
+    ],
+    [
+     "112",
+     16
+    ],
+    [
+     "AVG",
+     16
+    ],
+    [
+     "NUM",
+     16
+    ]
+   ],
+   "distinct_TIME_PERIOD": 16,
+   "top_TIME_PERIOD": [
+    [
+     "2022-Q1",
+     64
+    ],
+    [
+     "2021-Q2",
+     63
+    ],
+    [
+     "2021-Q1",
+     62
+    ],
+    [
+     "2022-Q2",
+     60
+    ],
+    [
+     "2021-Q4",
+     59
+    ],
+    [
+     "2020-Q4",
+     58
+    ],
+    [
+     "2021-Q3",
+     58
+    ],
+    [
+     "2022-Q4",
+     58
+    ],
+    [
+     "2022-Q3",
+     57
+    ],
+    [
+     "2020-Q1",
+     56
+    ],
+    [
+     "2018-Q1",
+     48
+    ],
+    [
+     "2018-Q2",
+     48
+    ],
+    [
+     "2020-Q3",
+     47
+    ],
+    [
+     "2017-Q4",
+     46
+    ]
+   ],
+   "distinct_FREQ": 1,
+   "top_FREQ": [
+    [
+     "Q",
+     870
+    ]
+   ],
+   "sample": [
+    {
+     "KEY": "SPF.Q.U2.HICP.POINT.2022.Q.001",
+     "FCT_BREAKDOWN": "POINT",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2017-Q3",
+     "OBS_VALUE": "1.9",
+     "TITLE_COMPL": "Euro area (changing composition) - Harmonised ICP - Point forecast - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.POINT.2022.Q.001",
+     "FCT_BREAKDOWN": "POINT",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2018-Q1",
+     "OBS_VALUE": "1.8",
+     "TITLE_COMPL": "Euro area (changing composition) - Harmonised ICP - Point forecast - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.POINT.2022.Q.001",
+     "FCT_BREAKDOWN": "POINT",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2018-Q2",
+     "OBS_VALUE": "1.8",
+     "TITLE_COMPL": "Euro area (changing composition) - Harmonised ICP - Point forecast - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.POINT.2022.Q.001",
+     "FCT_BREAKDOWN": "POINT",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2020-Q1",
+     "OBS_VALUE": "1.6",
+     "TITLE_COMPL": "Euro area (changing composition) - Harmonised ICP - Point forecast - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.POINT.2022.Q.001",
+     "FCT_BREAKDOWN": "POINT",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2020-Q2",
+     "OBS_VALUE": "1.8",
+     "TITLE_COMPL": "Euro area (changing composition) - Harmonised ICP - Point forecast - 2022 - Quarterly survey"
+    },
+    {
+     "KEY": "SPF.Q.U2.HICP.POINT.2022.Q.001",
+     "FCT_BREAKDOWN": "POINT",
+     "FCT_HORIZON": "2022",
+     "FCT_SOURCE": "001",
+     "TIME_PERIOD": "2020-Q4",
+     "OBS_VALUE": "1.5",
+     "TITLE_COMPL": "Euro area (changing composition) - Harmonised ICP - Point forecast - 2022 - Quarterly survey"
+    }
+   ],
+   "expectation": "point forecasts for 2022, all survey rounds"
   }
  ],
- "summary": {
-  "n_ok": 4,
-  "ok": [
-   "dataflow_all",
-   "spf_serieskeys",
-   "spf_lastobs",
-   "hicp_actual"
-  ]
- }
+ "verdict": {
+  "keys_hicp_only": {
+   "rows": 130739,
+   "share_of_baseline": 0.2776,
+   "filter_worked": true
+  },
+  "keys_hicp_2022": {
+   "rows": 1599,
+   "share_of_baseline": 0.0034,
+   "filter_worked": true
+  },
+  "data_hicp_2022_round2021": {
+   "rows": 3094,
+   "share_of_baseline": 0.0066,
+   "filter_worked": true
+  },
+  "data_hicp_point_2022": {
+   "rows": 870,
+   "share_of_baseline": 0.0018,
+   "filter_worked": true
+  }
+ },
+ "filter_works": true
 }
