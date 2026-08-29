@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A consensus range is not a risk range — Namık Akman</title>
+  <meta name="description" content="The ECB's Survey of Professional Forecasters, tested on its own published microdata: 1,369 individual probability distributions, 110 forecasters, 2000–2025. When these forecasters give an 80% confidence range, the outcome lands inside it 53% of the time — and in 2008, 2021, 2022 and 2023, not one forecaster in the panel contained the outcome. Full numbers, method, limitations and reproducible scripts." />
+  <meta name="keywords" content="ECB, Survey of Professional Forecasters, SPF, inflation forecast, forecast calibration, overconfidence, euro area HICP, density forecast, coverage, reproducible analysis" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="When Europe's forecasters say they're 80% sure, they're right 53% of the time" />
+  <meta property="og:description" content="Tested on the ECB's own published forecaster microdata. In 2008, 2021, 2022 and 2023, not one of ~50 professional forecasters had euro-area inflation inside their own stated range." />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/ecb-forecasts.png" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .eb-grid{display:grid;gap:18px}
+    .eb-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .eb-card h3{margin-top:0}
+    .eb-hero img{width:100%;height:auto;display:block;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+    .eb-hero .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    .eb-table-wrap{overflow-x:auto}
+    .eb-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .eb-table th,.eb-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .eb-table th[scope=row],.eb-table thead th:first-child{text-align:left}
+    .eb-table .note{text-align:left;white-space:normal;color:var(--text-dim)}
+    .eb-head{color:var(--accent-2);font-weight:600}
+    .eb-bad{color:var(--loss);font-weight:600}
+    .eb-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    @media(max-width:820px){.eb-layers{grid-template-columns:1fr}}
+    .eb-layers .n{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .eb-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block;font-size:.85rem}
+    .eb-links a{margin-right:14px}
+    .eb-code{margin-top:12px}
+    .eb-code summary{cursor:pointer;font-weight:600;color:var(--accent);padding:6px 0}
+    .eb-code pre{overflow:auto;max-height:520px;background:var(--surface-2);border:1px solid var(--border);
+      border-radius:8px;padding:14px;font-size:.78rem;line-height:1.5;margin:8px 0 0}
+    .eb-warn{border-left:3px solid var(--accent-2);padding-left:14px;color:var(--text-dim);font-size:.9rem}
+  </style>
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container eb-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">A consensus range is not a risk range</h2>
+        </div>
+
+        <p class="data-note">
+          Four times a year the European Central Bank asks around fifty banks and research
+          houses what euro-area inflation will be &mdash; and asks for a
+          <strong>probability distribution</strong>, not a number. Every individual response is
+          published. This page tests them on that
+          <a href="https://data.ecb.europa.eu/">open microdata</a>: 1,369 individual forecasts,
+          110 forecasters, 2000&ndash;2025, and publishes every number, the method, its
+          limitations and the scripts.
+          <strong>The result: when these forecasters mark out a range they are 80% sure about,
+          the outcome lands inside it 53% of the time &mdash; and the failures all arrive
+          together, in the only years anyone needed a forecast.</strong>
+        </p>
+
+        <div class="eb-card eb-hero">
+          <img src="assets/linkedin/ecb-forecasts.png"
+               alt="Bar chart, 2000 to 2025, of the share of ECB professional forecasters whose own 80% confidence range contained actual euro-area inflation. Most bars fall below the 80% line. In 2008, 2021, 2022 and 2023 the bars are zero — not one forecaster in the panel contained the outcome.">
+          <p class="cap">Each bar is one year: the share of panellists whose own 80% range
+            contained the inflation that actually arrived, measured from the survey taken a year
+            earlier. The dashed line is where an honest 80% range would sit. Four bars are
+            empty. Regenerate with <code>python3 scripts/ecb_chart.py</code>.</p>
+        </div>
+
+        <div class="eb-layers">
+          <div class="eb-card">
+            <p class="n">1</p>
+            <h3>The ranges are too narrow</h3>
+            <p>Across 1,369 individual one-year-ahead distributions, the outcome lands inside the
+              forecaster's own 80% range <strong>53.1%</strong> of the time. And the misses are
+              lopsided: <strong>31%</strong> came in above the range against 16% below. They
+              under-predict inflation twice as often as they over-predict it.</p>
+          </div>
+          <div class="eb-card">
+            <p class="n">2</p>
+            <h3>The failures are simultaneous</h3>
+            <p>In <strong>2008, 2021, 2022 and 2023</strong>, not a single forecaster in the panel
+              had the outcome inside their range. Not one, out of roughly fifty, in four separate
+              years. These are not independent errors averaging out &mdash; the panel is wrong
+              together, or right together.</p>
+          </div>
+          <div class="eb-card">
+            <p class="n">3</p>
+            <h3>They are precise when it does not matter</h3>
+            <p>In 2007, 2018 and 2025 nearly every forecaster contained the outcome. Those were
+              calm years when the answer was &ldquo;about the same as last year&rdquo;. The
+              instrument is accurate in the years nobody needs it and fails in unison in the years
+              everybody does.</p>
+          </div>
+        </div>
+
+        <div class="eb-card">
+          <h3>Year by year</h3>
+          <p>For each target year: the share of forecasters whose own 80% range contained the
+            inflation that arrived, from the survey taken in the fourth quarter of the previous
+            year. An honest 80% range would sit near 80% every year.</p>
+          <div class="eb-table-wrap">
+            <table class="eb-table">
+              <thead><tr><th>Year forecast</th><th>Actual HICP</th><th>Forecasters</th>
+                <th>Contained the outcome</th><th>Share</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">2000</th><td>2.11%</td><td>54</td><td>19</td><td>35%</td></tr>
+                <tr><th scope="row">2001</th><td>2.35%</td><td>67</td><td>43</td><td>64%</td></tr>
+                <tr><th scope="row">2002</th><td>2.26%</td><td>54</td><td>29</td><td>54%</td></tr>
+                <tr><th scope="row">2003</th><td>2.08%</td><td>57</td><td>51</td><td>89%</td></tr>
+                <tr><th scope="row">2004</th><td>2.15%</td><td>59</td><td>41</td><td>69%</td></tr>
+                <tr><th scope="row">2005</th><td>2.19%</td><td>59</td><td>56</td><td>95%</td></tr>
+                <tr><th scope="row">2006</th><td>2.18%</td><td>53</td><td>52</td><td>98%</td></tr>
+                <tr><th scope="row">2007</th><td>2.12%</td><td>60</td><td>60</td><td>100%</td></tr>
+                <tr class="eb-bad"><th scope="row">2008</th><td>3.28%</td><td>56</td><td>0</td><td>0%</td></tr>
+                <tr><th scope="row">2009</th><td>0.30%</td><td>53</td><td>1</td><td>2%</td></tr>
+                <tr><th scope="row">2010</th><td>1.61%</td><td>51</td><td>37</td><td>73%</td></tr>
+                <tr><th scope="row">2011</th><td>2.71%</td><td>55</td><td>4</td><td>7%</td></tr>
+                <tr><th scope="row">2012</th><td>2.50%</td><td>58</td><td>24</td><td>41%</td></tr>
+                <tr><th scope="row">2013</th><td>1.35%</td><td>49</td><td>35</td><td>71%</td></tr>
+                <tr><th scope="row">2014</th><td>0.44%</td><td>48</td><td>10</td><td>21%</td></tr>
+                <tr><th scope="row">2015</th><td>0.18%</td><td>56</td><td>30</td><td>54%</td></tr>
+                <tr><th scope="row">2016</th><td>0.23%</td><td>51</td><td>25</td><td>49%</td></tr>
+                <tr><th scope="row">2017</th><td>1.53%</td><td>41</td><td>36</td><td>88%</td></tr>
+                <tr><th scope="row">2018</th><td>1.76%</td><td>49</td><td>47</td><td>96%</td></tr>
+                <tr><th scope="row">2019</th><td>1.19%</td><td>43</td><td>28</td><td>65%</td></tr>
+                <tr><th scope="row">2020</th><td>0.25%</td><td>46</td><td>11</td><td>24%</td></tr>
+                <tr class="eb-bad"><th scope="row">2021</th><td>2.60%</td><td>54</td><td>0</td><td>0%</td></tr>
+                <tr class="eb-bad"><th scope="row">2022</th><td>8.36%</td><td>48</td><td>0</td><td>0%</td></tr>
+                <tr class="eb-bad"><th scope="row">2023</th><td>5.47%</td><td>50</td><td>0</td><td>0%</td></tr>
+                <tr><th scope="row">2024</th><td>2.37%</td><td>52</td><td>42</td><td>81%</td></tr>
+                <tr><th scope="row">2025</th><td>2.12%</td><td>46</td><td>46</td><td>100%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="eb-card">
+          <h3>2021: the year nobody in Europe saw it coming</h3>
+          <p>The survey's top box is &ldquo;inflation of 4.0% or more&rdquo;. That was the widest
+            outcome the ECB thought worth asking about. Here is what the panel put on it, quarter
+            by quarter, for the year 2022.</p>
+          <div class="eb-table-wrap">
+            <table class="eb-table">
+              <thead><tr><th>Survey round</th><th>Panel size</th><th>Mean P(inflation &ge; 4%)</th>
+                <th>Said exactly zero</th><th>Most worried forecaster</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">2020 Q4</th><td>50</td><td>0.16%</td><td>44 of 50</td><td>6%</td></tr>
+                <tr><th scope="row">2021 Q1</th><td>52</td><td>0.11%</td><td>43 of 52</td><td>3%</td></tr>
+                <tr><th scope="row">2021 Q2</th><td>53</td><td>0.19%</td><td>43 of 53</td><td>3%</td></tr>
+                <tr><th scope="row">2021 Q3</th><td>47</td><td>0.19%</td><td>40 of 47</td><td>4%</td></tr>
+                <tr class="eb-head"><th scope="row">2021 Q4 &mdash; the last word before the year began</th>
+                    <td>48</td><td>0.50%</td><td>33 of 48</td><td>6%</td></tr>
+                <tr><th scope="row">2022 Q1</th><td>50</td><td>9.37%</td><td>17 of 50</td><td>64%</td></tr>
+                <tr><th scope="row">2022 Q2</th><td>47</td><td>85.15%</td><td>0 of 47</td><td>100%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:14px">Inflation came in at <strong>8.36%</strong> &mdash; more than
+            double the threshold two-thirds of the panel had called impossible. Then look at what
+            happened next: from 0.5% to 85% in six months. <strong>They were not stubborn. They
+            updated faster than almost anyone would have.</strong> The failure was not refusing to
+            change their minds; it was that nothing in their models put any weight on it until it
+            was already happening.</p>
+          <p class="eb-warn"><strong>And they were not ignoring their own hawks.</strong> The
+            forecaster most worried about 2022 inflation put the odds at 6%, and their own
+            historical average was 0.90% against a panel-wide 0.24% &mdash; slightly more cautious
+            than their peers, not a permanent pessimist. There were no pessimists being shouted
+            down. The maximum concern anyone in Europe expressed was six percent.</p>
+        </div>
+
+        <div class="eb-card">
+          <h3>Method</h3>
+          <ul>
+            <li><strong>Individual forecasters only.</strong> The ECB publishes its own aggregate
+              rows alongside the people &mdash; AVG, VAR, NUM, PFC. Averaging those in with human
+              responses produces probabilities above 100%, which is how the mistake announces
+              itself. Only numeric forecaster ids are used.</li>
+            <li><strong>Each forecaster is scored against their own range.</strong> Their bucketed
+              probabilities are turned into a distribution, the 10th and 90th percentiles are read
+              off it, and the question is simply whether realised inflation fell between them.</li>
+            <li><strong>Incomplete responses are dropped, not repaired.</strong> If a
+              forecaster's probabilities do not sum to roughly 100, the response is excluded rather
+              than renormalised.</li>
+            <li><strong>One year ahead</strong> means the survey taken in Q4 of the preceding
+              year, so the forecaster knew almost everything about the year before the one they
+              were forecasting.</li>
+          </ul>
+          <p class="eb-eq">honest 80% range &rarr; outcome inside it 80% of the time &nbsp;&middot;&nbsp;
+            observed: 53.1%</p>
+        </div>
+
+        <div class="eb-card">
+          <h3>Robustness</h3>
+          <div class="eb-table-wrap">
+            <table class="eb-table">
+              <thead><tr><th>Cut</th><th>Inside their own 80% range</th><th>n</th>
+                <th class="note">What it tests</th></tr></thead>
+              <tbody>
+                <tr class="eb-head"><th scope="row">One year ahead (headline)</th><td>53.1%</td>
+                    <td>1,369</td><td class="note">the main result</td></tr>
+                <tr><th scope="row">Nearly two years ahead</th><td>51.7%</td><td>1,346</td>
+                    <td class="note">not an artefact of one horizon</td></tr>
+                <tr><th scope="row">Same year, Q1 survey</th><td>63.6%</td><td>1,385</td>
+                    <td class="note">better with three months of the year already known &mdash; still not 80%</td></tr>
+                <tr><th scope="row">Every crisis year removed</th><td>65.5%</td><td>1,108</td>
+                    <td class="note">excluding 2008&ndash;09 and 2021&ndash;23; the ranges are too narrow even in calm times</td></tr>
+                <tr><th scope="row">2000&ndash;2007</th><td>75.8%</td><td>463</td>
+                    <td class="note">before the financial crisis they were close to honest</td></tr>
+                <tr><th scope="row">2008&ndash;2014</th><td>30.0%</td><td>370</td>
+                    <td class="note">and then they were not</td></tr>
+                <tr><th scope="row">2015&ndash;2025</th><td>49.4%</td><td>536</td>
+                    <td class="note">never recovered the old calibration</td></tr>
+                <tr><th scope="row">Open-ended edges excluded</th><td>54.9%</td><td>1,322</td>
+                    <td class="note">removes the 3.4% of cases where a percentile falls in the open top bucket &mdash; the one bias that flatters the finding</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:14px">That era split is the uncomfortable one. For the first eight
+            years of the euro these forecasters were roughly honest about their own uncertainty.
+            Then the world got harder and their ranges never widened to match it.</p>
+        </div>
+
+        <div class="eb-card">
+          <h3>Limitations</h3>
+          <ul>
+            <li><strong>The top bucket is open-ended.</strong> The survey's highest option is
+              &ldquo;4.0% or more&rdquo;, so a forecaster who expected 8% could not say so, and an
+              outcome of 8.36% can only be scored as &ldquo;above their range&rdquo;, never by how
+              far. The questionnaire could not express what happened. That limits the measurement
+              and is also part of the finding.</li>
+            <li><strong>Bucket widths change over time.</strong> The ECB revised the answer
+              options across the sample, including widening them after 2022. Ranges are computed
+              from whatever buckets were offered in that round, so a year's coverage depends
+              slightly on how fine the form was.</li>
+            <li><strong>Coverage is a blunt test.</strong> It asks only whether the outcome fell
+              inside the band, not how far outside. A miss by 0.1pp and a miss by 6pp count the
+              same. That makes 2008 and 2022 look alike when they are not.</li>
+            <li><strong>Panel composition changes.</strong> Forecasters join and leave, so the
+              2000 panel and the 2025 panel are not the same institutions, and the era comparison
+              is not a fixed group being tracked over time.</li>
+            <li><strong>Interpolation inside buckets, and a bias that runs toward the
+              finding.</strong> Percentiles are interpolated linearly within a bucket, assuming a
+              flat distribution inside each half-point band. Where a percentile falls in an
+              <em>open-ended</em> end bucket the boundary is used, which makes the range
+              <em>narrower</em> than the forecaster's real one &mdash; so it overstates
+              overconfidence rather than understating it. This affects 47 of 1,369 distributions
+              (3.4%), all at the top end. Excluding them entirely moves the headline from 53.1% to
+              <strong>54.9%</strong>. The finding survives; the direction is stated because the
+              bias favours the conclusion.</li>
+            <li><strong>This is not a claim about the ECB's own forecasts.</strong> The SPF is a
+              survey of outside institutions that the ECB collects and publishes. The ECB's own
+              staff projections are a different series and are not tested here.</li>
+            <li><strong>1,369 is not 1,369 independent facts.</strong> The distributions come
+              from roughly fifty forecasters across twenty-six years, and within any one year the
+              panel is looking at the same economy with much the same information &mdash; which is
+              precisely what finding 2 demonstrates. No confidence interval or p-value appears
+              anywhere on this page, deliberately. The year-by-year result does not need one:
+              0 of 48 is 0 of 48.</li>
+            <li><strong>No benchmark forecaster.</strong> The panel is scored against its own
+              stated confidence, not against a rival. Whether anyone else did better in these
+              years is a separate question this page does not answer.</li>
+          </ul>
+        </div>
+
+        <div class="eb-card">
+          <h3>What to do with this</h3>
+          <p>The point is not that forecasters are bad at their job. It is that a consensus
+            interval answers a narrower question than the one people use it for.</p>
+          <ul>
+            <li><strong>Read a consensus range as &ldquo;what this room considers
+              normal&rdquo;, not as a risk bound.</strong> It is a description of expert
+              agreement. It is not a distribution of what can happen, and on this record it is
+              about half as wide as it would need to be.</li>
+            <li><strong>Do not take your downside case from it.</strong> If a budget, a hedge or
+              a supply contract needs a bad-case number, take it from the actual dispersion of
+              history &mdash; including 2008 and 2022 &mdash; not from the forecasters' stated
+              uncertainty, which excluded both.</li>
+            <li><strong>Treat unanimity as a warning, not a confirmation.</strong> The years the
+              panel agreed most tightly are the years it was most completely wrong. When every
+              forecast you read says the same thing, that is information about the forecasters,
+              not about the world.</li>
+          </ul>
+          <p class="eb-warn"><strong>What would change this conclusion.</strong> Coverage in 2024
+            (81%) and 2025 (100%) is back at honest levels, and the ECB widened the survey's
+            answer buckets after 2022. That is either a genuine recalibration or the same
+            fair-weather accuracy that showed up in 2005&ndash;2007 before it failed. Three or
+            four more calm years cannot tell the two apart; the next turbulent year will.
+            Until then, assume the ranges are still too narrow.</p>
+        </div>
+
+        <div class="eb-card eb-code">
+          <h3>The scripts, in full</h3>
+          <p>Nothing is elided. These are the three files that produced every number and the chart on this page, exactly as they run.</p>
+            <details>
+              <summary>fetch_ecb_spf.py &mdash; collecting the survey and the outcomes (181 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Collect the ECB Survey of Professional Forecasters, and what actually happened.
+
+The SPF asks professional forecasters for a probability DISTRIBUTION over
+euro-area inflation, not just a number, and the ECB publishes every individual
+response. That makes the honest question answerable: not &quot;was the midpoint
+right&quot; but &quot;was the stated uncertainty truthful&quot;.
+
+Each row is one forecaster&#x27;s probability for one outcome bucket, for one target
+year, in one survey round:
+
+    SPF.Q.U2.HICP.F4_0.2022.Q.001  -&gt;  survey 2021-Q1, forecaster 001,
+                                       P(2022 inflation &gt;= 4.0%) = 0
+
+The buckets are half-point wide and the TOP one is open-ended at 4.0% or more,
+which is itself part of the story: 2022 came in at 8.4%, far outside the range
+the survey form even offered.
+
+Dimension order (verified from the CSV header, not assumed):
+    FREQ . REF_AREA . FCT_TOPIC . FCT_BREAKDOWN . FCT_HORIZON . SURVEY_FREQ
+    . FCT_SOURCE
+
+Filtering was verified to genuinely narrow the response before this was
+written — a target-year query returns 0.34% of the unfiltered rows.
+
+  python3 scripts/fetch_ecb_spf.py
+&quot;&quot;&quot;
+import argparse, csv, gzip, io, json, os, sys, time, urllib.error, urllib.request, zlib
+from collections import defaultdict
+from datetime import date
+
+API = &quot;https://data-api.ecb.europa.eu/service&quot;
+TIMEOUT = 180
+UA = &quot;namikakmandev-data/1.0 (+https://namikakmandev.github.io)&quot;
+TARGET_YEARS = list(range(2000, 2026))
+
+
+def fetch(url, tries=3):
+    for attempt in range(tries):
+        req = urllib.request.Request(url, headers={
+            &quot;User-Agent&quot;: UA, &quot;Accept&quot;: &quot;*/*&quot;,
+            &quot;Accept-Encoding&quot;: &quot;gzip, deflate&quot;})
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                raw = r.read()
+                enc = (r.headers.get(&quot;Content-Encoding&quot;) or &quot;&quot;).lower()
+                if &quot;gzip&quot; in enc:
+                    raw = gzip.GzipFile(fileobj=io.BytesIO(raw)).read()
+                elif &quot;deflate&quot; in enc:
+                    raw = zlib.decompress(raw, -zlib.MAX_WBITS)
+                return raw.decode(&quot;utf-8&quot;, &quot;replace&quot;)
+        except urllib.error.HTTPError as e:
+            if e.code in (404, 400):
+                return None
+            if attempt == tries - 1:
+                return None
+        except Exception:                                    # noqa: BLE001
+            if attempt == tries - 1:
+                return None
+        time.sleep(2 * (attempt + 1))
+    return None
+
+
+def rows_of(text):
+    return list(csv.DictReader(io.StringIO(text))) if text else []
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument(&quot;--out&quot;, default=&quot;data/ecb-spf.json&quot;)
+    args = ap.parse_args(argv)
+
+    print(&quot;ECB Survey of Professional Forecasters&quot;)
+    forecasts = []          # one row per (target, round, forecaster, bucket)
+    buckets_seen, misses = set(), []
+
+    for target in TARGET_YEARS:
+        text = fetch(f&quot;{API}/data/SPF/..HICP..{target}..?format=csvdata&quot;)
+        rs = rows_of(text)
+        if not rs:
+            misses.append({&quot;target&quot;: target, &quot;error&quot;: &quot;no rows&quot;})
+            print(f&quot;  {target}: —&quot;)
+            continue
+        kept = 0
+        for r in rs:
+            val = (r.get(&quot;OBS_VALUE&quot;) or &quot;&quot;).strip()
+            if val == &quot;&quot;:
+                continue
+            try:
+                v = float(val)
+            except ValueError:
+                continue
+            b = r.get(&quot;FCT_BREAKDOWN&quot;) or &quot;&quot;
+            buckets_seen.add(b)
+            forecasts.append({
+                &quot;target&quot;: target,
+                &quot;round&quot;: r.get(&quot;TIME_PERIOD&quot;),
+                &quot;who&quot;: r.get(&quot;FCT_SOURCE&quot;),
+                &quot;bucket&quot;: b,
+                &quot;v&quot;: v,
+            })
+            kept += 1
+        rounds = len({r[&quot;round&quot;] for r in forecasts if r[&quot;target&quot;] == target})
+        who = len({r[&quot;who&quot;] for r in forecasts if r[&quot;target&quot;] == target})
+        print(f&quot;  {target}: {kept:&gt;6,} values, {rounds:&gt;3} survey rounds, &quot;
+              f&quot;{who:&gt;3} forecasters&quot;)
+
+    # what actually happened: euro-area HICP, annual rate of change
+    print(&quot;\n  realised HICP&quot;)
+    actual = {}
+    for key, label in ((&quot;A.U2.N.000000.4.ANR&quot;, &quot;annual&quot;),
+                       (&quot;M.U2.N.000000.4.ANR&quot;, &quot;monthly&quot;)):
+        text = fetch(f&quot;{API}/data/ICP/{key}?format=csvdata&quot;)
+        rs = rows_of(text)
+        if not rs:
+            continue
+        if label == &quot;annual&quot;:
+            for r in rs:
+                try:
+                    actual[int(r[&quot;TIME_PERIOD&quot;])] = float(r[&quot;OBS_VALUE&quot;])
+                except (ValueError, KeyError, TypeError):
+                    pass
+            print(f&quot;    annual series: {len(actual)} years&quot;)
+            break
+        # fall back to averaging the monthly annual-rate series
+        by_year = defaultdict(list)
+        for r in rs:
+            try:
+                by_year[int(str(r[&quot;TIME_PERIOD&quot;])[:4])].append(
+                    float(r[&quot;OBS_VALUE&quot;]))
+            except (ValueError, KeyError, TypeError):
+                pass
+        actual = {y: round(sum(v) / len(v), 3)
+                  for y, v in by_year.items() if len(v) == 12}
+        print(f&quot;    monthly averaged to {len(actual)} complete years&quot;)
+
+    grouped = defaultdict(lambda: {&quot;who&quot;: [], &quot;bucket&quot;: [], &quot;v&quot;: []})
+    for r in forecasts:
+        g = grouped[f&quot;{r[&#x27;target&#x27;]}|{r[&#x27;round&#x27;]}&quot;]
+        g[&quot;who&quot;].append(r[&quot;who&quot;])
+        g[&quot;bucket&quot;].append(r[&quot;bucket&quot;])
+        g[&quot;v&quot;].append(round(r[&quot;v&quot;], 4))
+
+    doc = {
+        &quot;source&quot;: &quot;ECB Survey of Professional Forecasters, and ECB HICP&quot;,
+        &quot;source_url&quot;: &quot;https://data.ecb.europa.eu/&quot;,
+        &quot;note&quot;: (&quot;Individual forecaster probability distributions over euro-area &quot;
+                 &quot;inflation, by target year and survey round, published openly by &quot;
+                 &quot;the ECB. The top bucket is open-ended at 4.0% or more.&quot;),
+        &quot;fetched_by&quot;: &quot;scripts/fetch_ecb_spf.py&quot;,
+        &quot;fetched_at&quot;: date.today().isoformat(),
+        &quot;dimension_order&quot;: (&quot;FREQ.REF_AREA.FCT_TOPIC.FCT_BREAKDOWN.FCT_HORIZON.&quot;
+                            &quot;SURVEY_FREQ.FCT_SOURCE&quot;),
+        &quot;buckets&quot;: sorted(buckets_seen),
+        &quot;n_forecasts&quot;: len(forecasts),
+        &quot;n_misses&quot;: len(misses), &quot;misses&quot;: misses,
+        &quot;actual_hicp&quot;: {str(k): v for k, v in sorted(actual.items())},
+        &quot;encoding&quot;: (&quot;grouped: key &#x27;target|round&#x27; -&gt; parallel arrays &quot;
+                     &quot;who/bucket/v. who is the ECB&#x27;s forecaster id; &quot;
+                     &quot;non-numeric ids (AVG, VAR, NUM, PFC) are the ECB&#x27;s own &quot;
+                     &quot;aggregates, not people, and must be excluded from any &quot;
+                     &quot;panel statistic.&quot;),
+        &quot;grouped&quot;: grouped,
+    }
+    os.makedirs(os.path.dirname(args.out) or &quot;.&quot;, exist_ok=True)
+    with open(args.out, &quot;w&quot;) as fh:
+        json.dump(doc, fh, separators=(&quot;,&quot;, &quot;:&quot;))
+    size = os.path.getsize(args.out)
+    print(f&quot;\n  {len(forecasts):,} forecast values, {len(actual)} actual years&quot;)
+    print(f&quot;  buckets: {sorted(buckets_seen)}&quot;)
+    print(f&quot;  wrote {args.out} ({size:,} bytes)&quot;)
+    if size &gt; 60_000_000:
+        print(&quot;  ERROR: output far larger than expected&quot;)
+        return 1
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+            <details>
+              <summary>ecb_spf_calibration.py &mdash; the test itself (334 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Are the ECB forecasters&#x27; stated uncertainties honest?
+
+The ECB&#x27;s Survey of Professional Forecasters asks around fifty banks and
+research houses, every quarter, for a probability DISTRIBUTION over euro-area
+inflation — not a number. The ECB publishes every individual response. That
+makes the useful question answerable, and it is not the one usually asked.
+
+The usual question is whether the central forecast was right, which is easy to
+mock and tells you little. The question worth asking is whether the stated
+UNCERTAINTY was truthful: when a forecaster draws a range they are 80% sure
+about, does the outcome land inside it 80% of the time?
+
+It does not. It lands inside 53% of the time — and the failures are not spread
+evenly. They cluster into the years that mattered, where they are total: in
+2008, 2021, 2022 and 2023, not one forecaster in the panel had the outcome
+inside their own range. In calm years nearly all of them do.
+
+That is the finding. A consensus range is a fair-weather instrument: precise
+when nobody needs it, and wrong in unison exactly when somebody does.
+
+Method notes that matter:
+  - Individual forecasters only. FCT_SOURCE also carries the ECB&#x27;s own
+    aggregate rows (AVG, VAR, NUM, PFC); averaging those in with people
+    produces probabilities above 100%, which is how the mistake announces
+    itself.
+  - Responses whose probabilities do not sum to about 100 are dropped as
+    incomplete rather than renormalised.
+  - The top bucket is open-ended (&quot;4.0% or more&quot;), so a 2022 outcome of 8.4%
+    can only be scored as &quot;above their range&quot;, never by how far. The
+    questionnaire could not express what happened, which is part of the story.
+
+Stdlib only, deterministic.
+
+  python3 scripts/ecb_spf_calibration.py
+&quot;&quot;&quot;
+import collections, json, re, statistics, sys
+
+PANEL = &quot;data/ecb-spf.json&quot;
+OUT = &quot;data/ecb-spf-results.json&quot;
+TOL = 5.0            # how far a response&#x27;s probabilities may sum from 100
+BANDS = (0.80, 0.90)
+
+
+def bucket_range(code):
+    &quot;&quot;&quot;&#x27;F1_5T1_9&#x27; -&gt; (1.5, 1.9). Open ends become +/-99.&quot;&quot;&quot;
+    def num(neg, s):
+        v = float(s.replace(&quot;_&quot;, &quot;.&quot;))
+        return -v if neg else v
+    m = re.fullmatch(r&quot;F(N?)(\d+_\d+)T(N?)(\d+_\d+)&quot;, code)
+    if m:
+        a, b = num(m.group(1), m.group(2)), num(m.group(3), m.group(4))
+        return (min(a, b), max(a, b))
+    m = re.fullmatch(r&quot;F(N?)(\d+_\d+)&quot;, code)          # &quot;from X upwards&quot;
+    if m:
+        return (num(m.group(1), m.group(2)), 99.0)
+    m = re.fullmatch(r&quot;T(N?)(\d+_\d+)&quot;, code)          # &quot;up to X&quot;
+    if m:
+        return (-99.0, num(m.group(1), m.group(2)))
+    return None
+
+
+def quantile(bins, q):
+    &quot;&quot;&quot;Interpolated quantile of a bucketed distribution.&quot;&quot;&quot;
+    total = sum(bins.values())
+    if total &lt;= 0:
+        return None
+    cum = 0.0
+    for lo, hi in sorted(bins):
+        p = bins[(lo, hi)] / total
+        if cum + p &gt;= q:
+            if hi &gt;= 99:                                # open top
+                return lo
+            if lo &lt;= -99:                               # open bottom
+                return hi
+            return lo + (hi - lo) * ((q - cum) / p if p &gt; 0 else 0.0)
+        cum += p
+    return None
+
+
+def rows_of(doc):
+    &quot;&quot;&quot;Expand the committed panel: &#x27;target|round&#x27; -&gt; parallel who/bucket/v.&quot;&quot;&quot;
+    for key, g in doc[&quot;grouped&quot;].items():
+        target, rnd = key.split(&quot;|&quot;, 1)
+        for who, bucket, v in zip(g[&quot;who&quot;], g[&quot;bucket&quot;], g[&quot;v&quot;]):
+            yield {&quot;target&quot;: int(target), &quot;round&quot;: rnd, &quot;who&quot;: who,
+                   &quot;bucket&quot;: bucket, &quot;v&quot;: v}
+
+
+def load():
+    d = json.load(open(PANEL))
+    actual = {int(k): v for k, v in d[&quot;actual_hicp&quot;].items()}
+    d[&quot;forecasts&quot;] = list(rows_of(d))
+    rows = [r for r in d[&quot;forecasts&quot;] if str(r[&quot;who&quot;]).isdigit()]
+    dists = collections.defaultdict(dict)
+    points = {}
+    for r in rows:
+        if r[&quot;bucket&quot;] == &quot;POINT&quot;:
+            points[(r[&quot;target&quot;], r[&quot;round&quot;], r[&quot;who&quot;])] = r[&quot;v&quot;]
+            continue
+        if r[&quot;bucket&quot;] in (&quot;SUM&quot;, &quot;NUM&quot;):
+            continue
+        rng = bucket_range(r[&quot;bucket&quot;])
+        if rng:
+            dists[(r[&quot;target&quot;], r[&quot;round&quot;], r[&quot;who&quot;])][rng] = r[&quot;v&quot;]
+    return d, actual, dists, points
+
+
+def in_open_bucket(bins, q):
+    &quot;&quot;&quot;Does quantile q land in an open-ended end bucket?
+
+    It matters because the boundary is used as the range edge there, which
+    makes the range NARROWER than the forecaster&#x27;s real one and therefore
+    overstates overconfidence. The bias runs toward the finding, so it has to
+    be measured rather than asserted away.
+    &quot;&quot;&quot;
+    total = sum(bins.values())
+    cum = 0.0
+    for b in sorted(bins):
+        p = bins[b] / total
+        if cum + p &gt;= q:
+            return b[0] &lt;= -99 or b[1] &gt;= 99
+        cum += p
+    return False
+
+
+def coverage(dists, actual, round_filter, band=0.80, drop_open=False):
+    &quot;&quot;&quot;-&gt; per-year and pooled coverage of each forecaster&#x27;s own band.&quot;&quot;&quot;
+    tail = (1 - band) / 2
+    per_year = collections.defaultdict(lambda: {&quot;in&quot;: 0, &quot;lo&quot;: 0, &quot;hi&quot;: 0})
+    for (t, rd, who), bins in dists.items():
+        if t not in actual or not rd or not round_filter(t, rd):
+            continue
+        if abs(sum(bins.values()) - 100.0) &gt; TOL:
+            continue
+        lo, hi = quantile(bins, tail), quantile(bins, 1 - tail)
+        if lo is None or hi is None:
+            continue
+        if drop_open and (in_open_bucket(bins, tail)
+                          or in_open_bucket(bins, 1 - tail)):
+            continue
+        a = actual[t]
+        slot = &quot;in&quot; if lo &lt;= a &lt;= hi else (&quot;lo&quot; if a &lt; lo else &quot;hi&quot;)
+        per_year[t][slot] += 1
+    tot = {&quot;in&quot;: 0, &quot;lo&quot;: 0, &quot;hi&quot;: 0}
+    for v in per_year.values():
+        for k in tot:
+            tot[k] += v[k]
+    n = sum(tot.values())
+    return per_year, tot, n
+
+
+def hr(t):
+    print(f&quot;\n{&#x27;=&#x27; * 78}\n{t}\n{&#x27;=&#x27; * 78}&quot;)
+
+
+def main():
+    doc, actual, dists, points = load()
+    one_year = lambda t, rd: rd.startswith(f&quot;{t - 1}-Q4&quot;)
+
+    hr(&quot;0. The data&quot;)
+    print(f&quot;  source        {doc[&#x27;source&#x27;]}&quot;)
+    print(f&quot;  fetched       {doc[&#x27;fetched_at&#x27;]}&quot;)
+    print(f&quot;  forecasters   {len({w for _, _, w in dists})} individual &quot;
+          f&quot;(ECB aggregate rows AVG/VAR/NUM/PFC excluded)&quot;)
+    print(f&quot;  distributions {len(dists):,} across &quot;
+          f&quot;{len({t for t, _, _ in dists})} target years&quot;)
+    print(f&quot;  buckets       top is open-ended; the form&#x27;s widest option was &quot;
+          f&quot;&#x27;4.0% or more&#x27;&quot;)
+
+    hr(&quot;1. Do their stated ranges hold? (one year ahead)&quot;)
+    for band in BANDS:
+        per_year, tot, n = coverage(dists, actual, one_year, band)
+        print(f&quot;  a {band * 100:.0f}% range should contain the outcome &quot;
+              f&quot;{band * 100:.0f}% of the time&quot;)
+        print(f&quot;    it contains it            {tot[&#x27;in&#x27;]:&gt;5} of {n:,}  &quot;
+              f&quot;({tot[&#x27;in&#x27;] / n * 100:.1f}%)&quot;)
+        print(f&quot;    outcome came in ABOVE     {tot[&#x27;hi&#x27;]:&gt;5}  &quot;
+              f&quot;({tot[&#x27;hi&#x27;] / n * 100:.1f}%)&quot;)
+        print(f&quot;    outcome came in BELOW     {tot[&#x27;lo&#x27;]:&gt;5}  &quot;
+              f&quot;({tot[&#x27;lo&#x27;] / n * 100:.1f}%)\n&quot;)
+
+    hr(&quot;2. The failures are not spread out — they are total, in the years that mattered&quot;)
+    per_year, _, _ = coverage(dists, actual, one_year, 0.80)
+    print(f&quot;    {&#x27;year&#x27;:&lt;6}{&#x27;inflation&#x27;:&gt;11}{&#x27;forecasters&#x27;:&gt;13}&quot;
+          f&quot;{&#x27;outcome inside their own 80% range&#x27;:&gt;36}&quot;)
+    zero_years = []
+    for t in sorted(per_year):
+        v = per_year[t]
+        n = v[&quot;in&quot;] + v[&quot;lo&quot;] + v[&quot;hi&quot;]
+        if not n:
+            continue
+        share = v[&quot;in&quot;] / n
+        if v[&quot;in&quot;] == 0:
+            zero_years.append(t)
+        bar = &quot;#&quot; * round(share * 28)
+        print(f&quot;    {t:&lt;6}{actual[t]:&gt;10.2f}%{n:&gt;13}&quot;
+              f&quot;{v[&#x27;in&#x27;]:&gt;10}/{n:&lt;4}{share * 100:&gt;5.0f}%  {bar}&quot;)
+    print(f&quot;\n  Years where NOT ONE forecaster contained the outcome: &quot;
+          f&quot;{zero_years}&quot;)
+    print(&quot;  Those are the financial crisis and the inflation shock — the only&quot;)
+    print(&quot;  years anyone actually needed the forecast.&quot;)
+
+    hr(&quot;3. 2021: the year nobody in Europe saw it coming&quot;)
+    F = [r for r in doc[&quot;forecasts&quot;] if str(r[&quot;who&quot;]).isdigit()]
+    print(f&quot;  Target 2022. Actual inflation: {actual[2022]:.2f}%.&quot;)
+    print(f&quot;  The survey&#x27;s top box was &#x27;inflation of 4.0% or more&#x27;.\n&quot;)
+    print(f&quot;    {&#x27;survey round&#x27;:&lt;14}{&#x27;panel&#x27;:&gt;7}{&#x27;mean P(&gt;=4%)&#x27;:&gt;14}&quot;
+          f&quot;{&#x27;said exactly 0%&#x27;:&gt;17}{&#x27;most worried&#x27;:&gt;14}&quot;)
+    for rd in sorted({r[&quot;round&quot;] for r in F if r[&quot;target&quot;] == 2022}):
+        vals = [r[&quot;v&quot;] for r in F
+                if r[&quot;target&quot;] == 2022 and r[&quot;bucket&quot;] == &quot;F4_0&quot;
+                and r[&quot;round&quot;] == rd]
+        if not vals:
+            continue
+        print(f&quot;    {rd:&lt;14}{len(vals):&gt;7}{statistics.mean(vals):&gt;13.2f}%&quot;
+              f&quot;{sum(1 for v in vals if v == 0):&gt;12}/{len(vals):&lt;4}&quot;
+              f&quot;{max(vals):&gt;13.0f}%&quot;)
+    print(&quot;\n  In the last survey before the year began, two-thirds of the panel&quot;)
+    print(&quot;  put the probability at exactly zero. The most alarmed forecaster in&quot;)
+    print(&quot;  Europe said 6%. It came in at more than double the threshold they&quot;)
+    print(&quot;  were dismissing.&quot;)
+
+    hr(&quot;4. Were the few who worried simply always worried?&quot;)
+    rd = &quot;2021-Q4&quot;
+    top = sorted([(r[&quot;who&quot;], r[&quot;v&quot;]) for r in F
+                  if r[&quot;target&quot;] == 2022 and r[&quot;bucket&quot;] == &quot;F4_0&quot;
+                  and r[&quot;round&quot;] == rd], key=lambda x: -x[1])
+    print(f&quot;    {&#x27;forecaster&#x27;:&lt;12}{&#x27;P(&gt;=4%) for 2022&#x27;:&gt;18}&quot;
+          f&quot;{&#x27;their own average, 2000-2021&#x27;:&gt;30}&quot;)
+    for who, v in top[:6]:
+        prior = [r[&quot;v&quot;] for r in F if r[&quot;who&quot;] == who and r[&quot;bucket&quot;] == &quot;F4_0&quot;
+                 and r[&quot;target&quot;] &lt; 2022]
+        avg = statistics.mean(prior) if prior else float(&quot;nan&quot;)
+        print(f&quot;    #{who:&lt;11}{v:&gt;17.0f}%{avg:&gt;29.2f}%&quot;)
+    allp = [r[&quot;v&quot;] for r in F if r[&quot;bucket&quot;] == &quot;F4_0&quot; and r[&quot;target&quot;] &lt; 2022]
+    print(f&quot;\n  Panel-wide average P(&gt;=4%) before 2022: &quot;
+          f&quot;{statistics.mean(allp):.2f}%&quot;)
+    print(&quot;  So the ones who worried were not permanent pessimists being ignored.&quot;)
+    print(&quot;  There were no pessimists. The maximum concern anyone expressed was 6%.&quot;)
+
+    hr(&quot;5. Robustness&quot;)
+    print(&quot;  5a. the same test at other forecast horizons&quot;)
+    for label, filt in (
+            (&quot;1 year ahead  (prior Q4)&quot;, lambda t, rd: rd.startswith(f&quot;{t-1}-Q4&quot;)),
+            (&quot;~1.75 years   (prior Q1)&quot;, lambda t, rd: rd.startswith(f&quot;{t-1}-Q1&quot;)),
+            (&quot;same year     (own Q1)&quot;, lambda t, rd: rd.startswith(f&quot;{t}-Q1&quot;))):
+        _, tot, n = coverage(dists, actual, filt, 0.80)
+        if n:
+            print(f&quot;      {label:&lt;26} {tot[&#x27;in&#x27;] / n * 100:&gt;5.1f}% inside  &quot;
+                  f&quot;(n={n:,})&quot;)
+
+    print(&quot;\n  5b. dropping the crisis years entirely&quot;)
+    calm = {t for t in actual if t not in (2008, 2009, 2021, 2022, 2023)}
+    _, tot, n = coverage({k: v for k, v in dists.items() if k[0] in calm},
+                         actual, one_year, 0.80)
+    print(f&quot;      excluding 2008-09 and 2021-23   {tot[&#x27;in&#x27;] / n * 100:.1f}% &quot;
+          f&quot;inside (n={n:,})&quot;)
+    print(&quot;      Even with every turbulent year removed, the ranges are still&quot;)
+    print(&quot;      too narrow — the problem is not only the crises.&quot;)
+
+    print(&quot;\n  5c. the open-ended top bucket, which biases toward the finding&quot;)
+    _, t_all, n_all = coverage(dists, actual, one_year, 0.80)
+    _, t_cl, n_cl = coverage(dists, actual, one_year, 0.80, drop_open=True)
+    print(f&quot;      all distributions             {t_all[&#x27;in&#x27;] / n_all * 100:&gt;5.1f}% &quot;
+          f&quot;inside (n={n_all:,})&quot;)
+    print(f&quot;      excluding open-ended edges    {t_cl[&#x27;in&#x27;] / n_cl * 100:&gt;5.1f}% &quot;
+          f&quot;inside (n={n_cl:,})&quot;)
+    print(f&quot;      {n_all - n_cl} distributions ({(n_all - n_cl) / n_all * 100:.1f}%) &quot;
+          f&quot;have a percentile in an open bucket.&quot;)
+    print(&quot;      Using the boundary there narrows the range, so the headline&quot;)
+    print(&quot;      OVERSTATES overconfidence — by 1.8 points. The finding survives&quot;)
+    print(&quot;      the correction; the direction of the bias is stated because it&quot;)
+    print(&quot;      runs toward the result, not away from it.&quot;)
+
+    print(&quot;\n  5d. was the panel ever well calibrated?&quot;)
+    for lo, hi in ((2000, 2007), (2008, 2014), (2015, 2025)):
+        era = {t for t in actual if lo &lt;= t &lt;= hi}
+        _, tot, n = coverage({k: v for k, v in dists.items() if k[0] in era},
+                             actual, one_year, 0.80)
+        if n:
+            print(f&quot;      {lo}-{hi}   {tot[&#x27;in&#x27;] / n * 100:&gt;5.1f}% inside &quot;
+                  f&quot;(n={n:,})&quot;)
+
+    # ------------------------------------------------------------------ export
+    per_year80, tot80, n80 = coverage(dists, actual, one_year, 0.80)
+    out = {
+        &quot;generated_by&quot;: &quot;scripts/ecb_spf_calibration.py&quot;,
+        &quot;source_url&quot;: doc[&quot;source_url&quot;], &quot;fetched_at&quot;: doc[&quot;fetched_at&quot;],
+        &quot;n_distributions&quot;: n80,
+        &quot;n_forecasters&quot;: len({w for _, _, w in dists}),
+        &quot;coverage80&quot;: {&quot;inside&quot;: tot80[&quot;in&quot;], &quot;above&quot;: tot80[&quot;hi&quot;],
+                       &quot;below&quot;: tot80[&quot;lo&quot;],
+                       &quot;share_inside&quot;: round(tot80[&quot;in&quot;] / n80, 4)},
+        &quot;by_year&quot;: [{&quot;year&quot;: t, &quot;actual&quot;: round(actual[t], 3),
+                     &quot;n&quot;: per_year80[t][&quot;in&quot;] + per_year80[t][&quot;lo&quot;]
+                          + per_year80[t][&quot;hi&quot;],
+                     &quot;inside&quot;: per_year80[t][&quot;in&quot;],
+                     &quot;share&quot;: round(per_year80[t][&quot;in&quot;] /
+                                    max(1, per_year80[t][&quot;in&quot;]
+                                        + per_year80[t][&quot;lo&quot;]
+                                        + per_year80[t][&quot;hi&quot;]), 4)}
+                    for t in sorted(per_year80)],
+        &quot;zero_years&quot;: zero_years,
+        &quot;target2022&quot;: [
+            {&quot;round&quot;: rd,
+             &quot;n&quot;: len([r for r in F if r[&quot;target&quot;] == 2022
+                       and r[&quot;bucket&quot;] == &quot;F4_0&quot; and r[&quot;round&quot;] == rd]),
+             &quot;mean_p_ge4&quot;: round(statistics.mean(
+                 [r[&quot;v&quot;] for r in F if r[&quot;target&quot;] == 2022
+                  and r[&quot;bucket&quot;] == &quot;F4_0&quot; and r[&quot;round&quot;] == rd]), 3),
+             &quot;said_zero&quot;: sum(1 for r in F if r[&quot;target&quot;] == 2022
+                              and r[&quot;bucket&quot;] == &quot;F4_0&quot; and r[&quot;round&quot;] == rd
+                              and r[&quot;v&quot;] == 0),
+             &quot;max&quot;: max([r[&quot;v&quot;] for r in F if r[&quot;target&quot;] == 2022
+                         and r[&quot;bucket&quot;] == &quot;F4_0&quot; and r[&quot;round&quot;] == rd])}
+            for rd in sorted({r[&quot;round&quot;] for r in F if r[&quot;target&quot;] == 2022})
+            if [r for r in F if r[&quot;target&quot;] == 2022
+                and r[&quot;bucket&quot;] == &quot;F4_0&quot; and r[&quot;round&quot;] == rd]],
+        &quot;actual_2022&quot;: round(actual[2022], 3),
+        &quot;open_edge_check&quot;: {
+            &quot;all&quot;: {&quot;n&quot;: n_all, &quot;share_inside&quot;: round(t_all[&quot;in&quot;] / n_all, 4)},
+            &quot;excluding_open&quot;: {&quot;n&quot;: n_cl,
+                               &quot;share_inside&quot;: round(t_cl[&quot;in&quot;] / n_cl, 4)}},
+    }
+    with open(OUT, &quot;w&quot;) as fh:
+        json.dump(out, fh, indent=1)
+    print(f&quot;\n  wrote {OUT}\n&quot;)
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+            <details>
+              <summary>ecb_chart.py &mdash; the chart (127 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;The one chart for the ECB forecaster post.
+
+For each year: what share of the ECB&#x27;s professional forecasters had the actual
+inflation outcome inside their OWN stated 80% confidence range, measured from
+the survey taken a year earlier.
+
+An honest 80% range should contain the outcome 80% of the time — the dashed
+line. The bars sit well below it, and in four years they vanish entirely: 2008,
+2021, 2022 and 2023, where not one forecaster in the panel contained the
+outcome. Those are the financial crisis and the inflation shock. The years the
+bars reach the top are the years nobody needed a forecast.
+
+Numbers come from data/ecb-spf-results.json. Reuses the PNG rasteriser from
+fte_chart.py. Stdlib only.
+
+  python3 scripts/ecb_chart.py
+&quot;&quot;&quot;
+import json, os, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fte_chart import render_png                                # noqa: E402
+
+BLUE, RED, DIM = &quot;#2f9bff&quot;, &quot;#d92b2b&quot;, &quot;#5b6472&quot;
+INK, GRID, PAPER = &quot;#1f2430&quot;, &quot;#d6dce4&quot;, &quot;#ffffff&quot;
+W, H = 1600, 1000
+L, R, T, B = 110, 55, 165, 150
+FONT = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&#x27;Helvetica Neue&#x27;,&quot;
+        &quot;Arial,sans-serif&quot;)
+
+
+def main():
+    res = json.load(open(&quot;data/ecb-spf-results.json&quot;))
+    rows = [r for r in res[&quot;by_year&quot;] if r[&quot;n&quot;]]
+    zero = set(res[&quot;zero_years&quot;])
+    pw, ph = W - L - R, H - T - B
+    n = len(rows)
+    slot = pw / n
+    bw = slot * 0.68
+
+    def x(i):
+        return L + i * slot + (slot - bw) / 2
+
+    def y(v):
+        return T + (1 - v) * ph
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+         f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{FONT}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;{PAPER}&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;52&quot; font-size=&quot;37&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;When Europe&amp;#8217;s forecasters say they are 80% sure, they are &#x27;
+         f&#x27;right 53% of the time&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;94&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+         f&#x27;Share of ECB Survey of Professional Forecasters panellists whose own &#x27;
+         f&#x27;80% range contained actual euro-area inflation,&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;124&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+         f&#x27;from the survey taken one year earlier. &#x27;
+         f&#x27;{res[&quot;n_distributions&quot;]:,} individual forecasts, &#x27;
+         f&#x27;{res[&quot;n_forecasters&quot;]} forecasters, 2000&amp;#8211;2025.&lt;/text&gt;&#x27;]
+
+    for g in (0, 0.25, 0.5, 0.75, 1.0):
+        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{y(g):.1f}&quot; x2=&quot;{L + pw}&quot; &#x27;
+                 f&#x27;y2=&quot;{y(g):.1f}&quot; stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{L - 14}&quot; y=&quot;{y(g) + 8:.1f}&quot; font-size=&quot;21&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{g * 100:.0f}%&lt;/text&gt;&#x27;)
+
+    # what an honest 80% range would look like
+    o += [f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{y(0.8):.1f}&quot; x2=&quot;{L + pw}&quot; y2=&quot;{y(0.8):.1f}&quot; &#x27;
+          f&#x27;stroke=&quot;{INK}&quot; stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;9 7&quot;/&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L + pw * 0.34:.0f}&quot; y=&quot;{y(0.8) - 13:.1f}&quot; &#x27;
+          f&#x27;font-size=&quot;21&quot; font-weight=&quot;600&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+          f&#x27;an honest 80% range would sit here&lt;/text&gt;&#x27;]
+
+    for i, r in enumerate(rows):
+        share, yr = r[&quot;share&quot;], r[&quot;year&quot;]
+        col = RED if yr in zero else BLUE
+        if share &gt; 0:
+            o.append(f&#x27;&lt;rect x=&quot;{x(i):.1f}&quot; y=&quot;{y(share):.1f}&quot; &#x27;
+                     f&#x27;width=&quot;{bw:.1f}&quot; height=&quot;{(1 - share) * 0 + y(0) - y(share):.1f}&quot; &#x27;
+                     f&#x27;fill=&quot;{col}&quot; rx=&quot;3&quot;/&gt;&#x27;)
+        else:
+            # a zero bar is invisible; mark it so it reads as &quot;none&quot;, not &quot;no data&quot;
+            o.append(f&#x27;&lt;rect x=&quot;{x(i):.1f}&quot; y=&quot;{y(0) - 5:.1f}&quot; &#x27;
+                     f&#x27;width=&quot;{bw:.1f}&quot; height=&quot;5&quot; fill=&quot;{RED}&quot;/&gt;&#x27;)
+        if yr % 5 == 0 or yr in zero:
+            o.append(f&#x27;&lt;text x=&quot;{x(i) + bw / 2:.1f}&quot; y=&quot;{T + ph + 30}&quot; &#x27;
+                     f&#x27;font-size=&quot;20&quot; fill=&quot;{RED if yr in zero else DIM}&quot; &#x27;
+                     f&#x27;font-weight=&quot;{&quot;700&quot; if yr in zero else &quot;400&quot;}&quot; &#x27;
+                     f&#x27;text-anchor=&quot;middle&quot;&gt;{yr}&lt;/text&gt;&#x27;)
+
+    # call out the four total failures
+    zi = [i for i, r in enumerate(rows) if r[&quot;year&quot;] in zero]
+    if zi:
+        cx = x(zi[0]) + bw / 2
+        o += [f&#x27;&lt;text x=&quot;{cx:.1f}&quot; y=&quot;{y(0.30):.1f}&quot; font-size=&quot;24&quot; &#x27;
+              f&#x27;font-weight=&quot;700&quot; fill=&quot;{RED}&quot;&gt;not one forecaster&lt;/text&gt;&#x27;,
+              f&#x27;&lt;text x=&quot;{cx:.1f}&quot; y=&quot;{y(0.30) + 30:.1f}&quot; font-size=&quot;21&quot; &#x27;
+              f&#x27;fill=&quot;{RED}&quot;&gt;in the whole panel&lt;/text&gt;&#x27;,
+              f&#x27;&lt;text x=&quot;{cx:.1f}&quot; y=&quot;{y(0.30) + 58:.1f}&quot; font-size=&quot;20&quot; &#x27;
+              f&#x27;fill=&quot;{DIM}&quot;&gt;2008 &amp;#183; 2021 &amp;#183; 2022 &amp;#183; 2023&lt;/text&gt;&#x27;]
+        for i in zi:
+            o.append(f&#x27;&lt;line x1=&quot;{x(i) + bw / 2:.1f}&quot; y1=&quot;{y(0.0) - 10:.1f}&quot; &#x27;
+                     f&#x27;x2=&quot;{x(i) + bw / 2:.1f}&quot; y2=&quot;{y(0.22):.1f}&quot; &#x27;
+                     f&#x27;stroke=&quot;{RED}&quot; stroke-width=&quot;1.5&quot; &#x27;
+                     f&#x27;stroke-dasharray=&quot;4 4&quot;/&gt;&#x27;)
+
+    o += [f&#x27;&lt;text x=&quot;{L + pw / 2:.0f}&quot; y=&quot;{T + ph + 78}&quot; font-size=&quot;24&quot; &#x27;
+          f&#x27;fill=&quot;{INK}&quot; text-anchor=&quot;middle&quot;&gt;the year being forecast&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 26}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+          f&#x27;Data: ECB Survey of Professional Forecasters, individual responses, &#x27;
+          f&#x27;data.ecb.europa.eu  &amp;#183;  method and every number: &#x27;
+          f&#x27;namikakmandev.github.io/ecb-forecasts.html&lt;/text&gt;&#x27;,
+          &#x27;&lt;/svg&gt;&#x27;]
+
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/ecb-forecasts.svg&quot;
+    svg = &quot;\n&quot;.join(o)
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;wrote {path} ({os.path.getsize(path):,} bytes)&quot;)
+    render_png(svg, &quot;assets/linkedin/ecb-forecasts.png&quot;)
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+        </div>
+
+        <div class="eb-card">
+          <h3>Reproduce it</h3>
+          <p>The ECB publishes every individual response openly, precisely so that this kind of
+            check is possible. The analysis is stdlib-only and deterministic.</p>
+          <p class="eb-eq">python3 scripts/fetch_ecb_spf.py &amp;&amp; python3 scripts/ecb_spf_calibration.py
+            &amp;&amp; python3 scripts/ecb_chart.py</p>
+          <p class="eb-links">
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_ecb_spf.py">Fetch script</a>
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/ecb_spf_calibration.py">Analysis script</a>
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/ecb_chart.py">Chart script</a>
+            <a href="https://data.ecb.europa.eu/">ECB Data Portal</a>
+          </p>
+          <p class="cc-note" style="color:var(--text-dim);font-size:.85rem">
+            Related: <a href="fte-calibration.html">FiveThirtyEight, tested</a> &mdash; the same
+            calibration question asked of a forecaster who published their own scorecard, and
+            <a href="bigmac-halflife.html">The Big Mac index, tested</a>.</p>
+        </div>
+
+        <p class="data-note" style="font-size:.85rem">
+          Data &copy; European Central Bank, Survey of Professional Forecasters and HICP,
+          published openly via the <a href="https://data.ecb.europa.eu/">ECB Data Portal</a>.
+          This analysis is independent and not affiliated with or endorsed by the ECB or any
+          survey participant. Individual forecasters are identified only by the anonymous
+          numbers the ECB itself publishes. Method and any errors are mine.
+          Written August&nbsp;2026.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
