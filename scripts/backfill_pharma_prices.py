@@ -64,7 +64,7 @@ def main():
     session = requests.Session()
     store = json.loads(fp.DATA.read_text())
     assert store.get("schema") == 2
-    have = {(o["d"], o["sku"], o["venue"]) for o in store["observations"]}
+    have = {(o["d"], o["sku"], o["venue"], o.get("n")) for o in store["observations"]}
 
     report = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
               "mode": "wayback-backfill", "targets": []}
@@ -97,11 +97,11 @@ def main():
                 continue
             for r in rows:
                 sku = fp.sku_id(t["product"], t["form"], r.get("mg"))
-                key = (day, sku, t["venue"])
+                n = r.get("n") or 1
+                key = (day, sku, t["venue"], n)
                 if key in have:
                     continue
                 have.add(key)
-                n = r.get("n") or 1
                 store["observations"].append({
                     "d": day, "sku": sku, "product": t["product"],
                     "form": t["form"], "mg": r.get("mg"), "n": n,

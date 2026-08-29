@@ -69,9 +69,12 @@ def main():
     cand = json.loads(CANDIDATES.read_text())["candidates"]
     store = json.loads(fp.DATA.read_text())
     assert store.get("schema") == 2
-    have = {(o["d"], o["sku"], o["venue"]) for o in store["observations"]}
+    # pack size is part of a row's identity: the live scraper records Apoquel
+    # 16 mg in 20s AND in 100s at one venue on one day, and sku_id carries only
+    # product-form-strength. Leaving n out of the key pools two different goods.
+    have = {(o["d"], o["sku"], o["venue"], o.get("n")) for o in store["observations"]}
 
-    # (day, sku, venue) -> list of prices seen across duplicate URLs
+    # (day, sku, venue, pack) -> prices seen across genuinely duplicate URLs
     pool = defaultdict(list)
     meta_of = {}
     report = {"run": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -99,7 +102,7 @@ def main():
             if not (fp.PRICE_MIN <= price <= fp.PRICE_MAX):
                 continue
             sku = fp.sku_id(c["product"], c["form"], c["mg"])
-            key = (day, sku, c["venue"])
+            key = (day, sku, c["venue"], c["n"])
             if key in have:                  # live data and earlier passes always win
                 continue
             pool[key].append(price)
@@ -111,11 +114,11 @@ def main():
 
     added, wide = 0, []
     for key, prices in sorted(pool.items()):
-        day, sku, venue_key = key
+        day, sku, venue_key, _pack = key
         c, method = meta_of[key]
         lo, hi = min(prices), max(prices)
         if len(prices) > 1 and hi > lo * 1.5:
-            wide.append({"day": day, "sku": sku, "venue": venue_key,
+            wide.append({"day": day, "sku": sku, "venue": venue_key, "n": c["n"],
                          "urls": len(prices), "low": lo, "high": hi})
         store["observations"].append({
             "d": day, "sku": sku, "product": c["product"], "form": c["form"],
