@@ -71,6 +71,21 @@
   <div class="btns" id="ccbtns"></div>
   <div class="banner" id="banner"></div>
   <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <div class="chart-title">The five brands, side by side</div>
+    <div class="chart-sub" id="brandsub"></div>
+    <div id="brandbars"></div>
+    <div class="tblwrap" style="margin-top:12px"><table id="brandtable"></table></div>
+    <div class="chart-sub" id="brandnotes" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">The same five, over time</div>
+    <div class="chart-sub" id="trendsub"></div>
+    <div id="brandtrend"></div>
+  </div>
+
   <div class="grid2" id="charts"></div>
 
   <div class="card">
@@ -119,6 +134,43 @@ const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; r
 // cliff. Prices here move 2-4x over a decade, which zero-baseline bars show
 // perfectly well. Earlier observations sit in the de-emphasis grey and the
 // latest one takes the accent, so "where it is now" reads without a legend.
+// Horizontal bars, one per brand, so five products read as one comparison
+// instead of five cards. Cytopoint is drawn as an INTERVAL rather than a bar,
+// because its label says every 4 TO 8 weeks - the solid part is the 8-week
+// end, the faded part reaches the 4-week end, and both are true at once.
+function brandBars(rows, fmt){
+  if(!rows.length) return '<div class="chart-sub">nothing comparable here yet</div>';
+  const W = 760, PADL = 168, PADR = 128, BAR = 20, GAP = 16;
+  const H = rows.length * (BAR + GAP) + GAP;
+  const max = Math.max(...rows.map(r => r.hi ?? r.lo), 0.0001);
+  const x = v => PADL + (W - PADL - PADR) * v / max;
+  const R = 4;
+  let out = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="cost per day by brand">`;
+  rows.forEach((r, i) => {
+    const y = GAP / 2 + i * (BAR + GAP);
+    const x0 = PADL, xl = x(r.lo), xh = r.hi != null ? x(r.hi) : null;
+    // rounded data-end, square at the baseline
+    const bar = (a, b, fill, op) => {
+      const w = Math.max(1, b - a);
+      const rr = Math.min(R, w);
+      return `<path d="M${a} ${y} L${b - rr} ${y} Q${b} ${y} ${b} ${y + rr}`
+           + ` L${b} ${y + BAR - rr} Q${b} ${y + BAR} ${b - rr} ${y + BAR} L${a} ${y + BAR} Z"`
+           + ` fill="${fill}" opacity="${op}"/>`;
+    };
+    out += bar(x0, xl, r.color, 1);
+    if(xh != null && xh > xl){
+      out += bar(xl + 2, xh, r.color, .34);          // 2px surface gap between fills
+      out += `<line x1="${xh}" y1="${y}" x2="${xh}" y2="${y + BAR}" stroke="${r.color}" stroke-width="2"/>`;
+    }
+    out += `<text x="${PADL - 12}" y="${y + BAR / 2 + 4}" text-anchor="end" font-size="12.5"`
+         + ` fill="var(--ink)">${esc(r.name)}</text>`;
+    out += `<text x="${(xh ?? xl) + 10}" y="${y + BAR / 2 + 4}" font-size="12.5"`
+         + ` fill="var(--ink2)" style="font-variant-numeric:tabular-nums">${esc(r.label)}</text>`;
+    out += `<title>${esc(r.name)} — ${esc(r.label)} · ${esc(r.sub)}</title>`;
+  });
+  return out + '</svg>';
+}
+
 function sparkBars(points, fmt){
   if(points.length < 2) return '<span style="color:var(--ink3);font-size:11.5px">first reading</span>';
   const BAR = 3.5, GAP = 1.5, H = 24, R = 1.5;
@@ -359,6 +411,8 @@ function renderCostTable(data, fx, vat){
     'Clinic-administered pricing (PerfectPet, RO) is excluded from these retail comparisons.';
 }
 
+let FX = null, VAT = null;
+
 Promise.all([
   fetch('data/pharma-prices.json').then(r=>{ if(!r.ok) throw new Error('no data'); return r.json(); }),
   fetch('rates.json').then(r=>r.ok?r.json():null).catch(()=>null),
@@ -367,6 +421,7 @@ Promise.all([
 ]).then(([data, rates, aud, vat])=>{
   const fx = rates && rates.fx ? {...rates.fx, _asof: rates.fxAsof} : null;
   if(fx && aud && aud.rates){ for(const [k,v] of Object.entries(aud.rates)) if(v>0) fx[k+'USD'] = 1/v; }
+  FX = fx; VAT = vat;                   // the brand comparison below needs both
   try { renderCostTable(data, fx, vat); } catch(e) {
     document.getElementById('costnotes').textContent = 'cost table unavailable: ' + e.message;
   }
@@ -392,6 +447,13 @@ Promise.all([
   // Colour follows the entity, never its rank in the current view. The order is
   // computed once over ALL observations, so filtering to one country repaints
   // nothing - a series keeps its colour whatever else is on screen.
+  // A brand keeps one colour across the tiles, the side-by-side bars, the
+  // comparison table and its own chart. Two different orderings were in play
+  // (the product list and the dosing table), which painted Cytopoint blue in
+  // one place and rose in another.
+  const PCOLOR = {};
+  Object.keys(products).forEach((pid, i) => { PCOLOR[pid] = RAWCOL[i % RAWCOL.length]; });
+
   const COLOROF = {};
   [...new Set(obs.map(seriesKey))].sort().forEach((k, i) => { COLOROF[k] = RAWCOL[i % RAWCOL.length]; });
 
@@ -411,11 +473,148 @@ Promise.all([
     const dp = cur==='TRY'?0:2;
     const fmtOf = o => v => money(v, o.cur, o.cur==='TRY'||o.cur==='HUF'?0:2);
 
+    // ---- the five brands, side by side ----------------------------------
+    // Unit price cannot compare brands: they are different molecules at
+    // different strengths in different pack sizes. Cost per DAY at each label's
+    // own weight-matched dose can, and it is what the owner actually pays.
+    // Within one country VAT is the same rate on all five, so it cancels and
+    // local currency is the honest unit. Across countries neither holds, so
+    // that view converts to USD and strips each country's own veterinary VAT.
+    const toUSD = FX ? {USD:1, GBP:FX.GBPTRY/FX.USDTRY, TRY:1/FX.USDTRY,
+                        EUR:FX.EURTRY/FX.USDTRY, AUD:FX.AUDUSD??null, PLN:FX.PLNUSD??null,
+                        CZK:FX.CZKUSD??null, HUF:FX.HUFUSD??null, RON:FX.RONUSD??null} : null;
+    const exTax = (country, v) => {
+      const r = VAT && VAT.rates && VAT.rates[country];
+      if(v == null) return null;
+      if(!r) return v;
+      return r.display === 'exclusive' ? v : v/(1 + r.rate);
+    };
+    // one comparable number per brand: the cheapest tracked listing of the
+    // weight-matched SKU, at retail, converted only when it has to be
+    const brandNow = Object.entries(DOSE).map(([pid, dose], i) => {
+      const rows = co.filter(o => o.d === latestDate && o.product === pid
+                    && o.form === dose.form && o.mg === dose.mg && o.venue !== 'perfectpet');
+      if(!rows.length) return {pid, dose, i, missing: true};
+      let best = null;
+      for(const o of rows){
+        const perDay = o.unit * dose.unitsPerDay;
+        const v = all ? exTax(o.country, toUSD && toUSD[o.cur] != null ? perDay*toUSD[o.cur] : null)
+                      : perDay;
+        if(v == null) continue;
+        if(!best || v < best.v) best = {v, o};
+      }
+      if(!best) return {pid, dose, i, missing: true};
+      const hi = dose.unitsPerDayMax ? best.v * (dose.unitsPerDayMax/dose.unitsPerDay) : null;
+      return {pid, dose, i, o: best.o, lo: best.v, hi};
+    });
+
+    const shown = brandNow.filter(b => !b.missing).sort((a,b)=>a.lo-b.lo);
+    const cur2 = all ? 'USD' : (shown[0]?.o.cur || cur);
+    const dp2 = (cur2==='TRY'||cur2==='HUF') ? 0 : 2;
+    const fmtDay = v => money(v, cur2, dp2);
+
+    document.getElementById('brandsub').innerHTML =
+      `Cost of one day of maintenance therapy for a ~20 kg dog, ${all
+        ? '<b>converted to USD and stripped of each country\u2019s veterinary VAT</b>, cheapest tracked listing anywhere'
+        : `cheapest tracked listing in <b>${esc(CCNAME[cc]||cc)}</b>, in local currency`}.
+       Each brand is dosed to <b>its own label</b>, not to a common assumption.`;
+
+    document.getElementById('brandbars').innerHTML = brandBars(shown.map(b => ({
+      name: products[b.pid].name,
+      color: PCOLOR[b.pid],
+      lo: b.lo, hi: b.hi,
+      label: b.hi ? `${fmtDay(b.lo)}–${fmtDay(b.hi)}` : fmtDay(b.lo),
+      sub: `${b.dose.mg} mg · ${venues[b.o.venue].name}${all?` · ${b.o.country}`:''} · pack of ${b.o.n}`,
+    })), fmtDay);
+
+    const cheapest = shown[0]?.lo;
+    document.getElementById('brandtable').innerHTML =
+      '<tr><th>Brand</th><th>Dose used</th><th>Cheapest venue</th><th>Pack</th>'
+      + `<th>Cost per day</th><th>vs cheapest</th></tr>`
+      + brandNow.sort((a,b)=>(a.missing?1:0)-(b.missing?1:0) || a.lo-b.lo).map(b => {
+        if(b.missing) return `<tr><td>${esc(products[b.pid].name)}</td>
+          <td colspan="5" style="color:var(--ink3);text-align:left">not tracked ${all?'anywhere':'in this market'} at the weight-matched ${b.dose.mg} mg dose</td></tr>`;
+        // An interval ranked by its low end alone would claim a win it only has
+        // at one end of its own dosing window, so both ends are shown.
+        const pc = v => (v === cheapest ? '—' : `+${((v/cheapest - 1)*100).toFixed(0)}%`);
+        const rel = b.hi ? `${pc(b.lo)} to ${pc(b.hi)}` : pc(b.lo);
+        return `<tr>
+          <td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PCOLOR[b.pid]};margin-right:7px"></span>${esc(products[b.pid].name)}</td>
+          <td>${b.dose.mg} mg ${FORM[b.dose.form]}${b.dose.unitsPerDayMax?' q4–8wk':'/day'}</td>
+          <td>${all?`<span class="cc">${b.o.country}</span>`:''}${esc(venues[b.o.venue].name)}</td>
+          <td>${b.o.n}</td>
+          <td>${b.hi?`${fmtDay(b.lo)}–${fmtDay(b.hi)}`:fmtDay(b.lo)}</td>
+          <td>${rel}</td></tr>`;
+      }).join('');
+
+    document.getElementById('brandnotes').innerHTML =
+      '<b>What is held constant, and what is not.</b> Dose is matched to each label — Apoquel and '
+      + 'Apoquel Chewable 16 mg once daily, Zenrelia 15 mg, Numelvi 21.6 mg, Cytopoint 40 mg every '
+      + '<b>4 to 8 weeks</b>, which is why Cytopoint is an interval and not a bar. Channel is retail; '
+      + 'clinic-administered pricing is excluded. <b>Pack size is not held constant and cannot be</b> — '
+      + 'Apoquel sells in 10s, 20s and 100s while Zenrelia and Numelvi sell in 30s and 90s, so each '
+      + 'brand is shown at its own cheapest pack and the pack is named. A brand in a large pack is '
+      + 'therefore flattered against one sold singly. '
+      + 'Apoquel additionally needs <b>twice-daily dosing for 14 days</b> at the start, which Zenrelia '
+      + 'and Numelvi do not; that adds about 47% to its first month and is not in these figures. '
+      + '<b>Cytopoint is ordered by the cheap end of its own interval</b>, so where it leads it leads '
+      + 'only at the 8-week extreme; at the 4-week extreme it costs double and overlaps or beats every '
+      + 'tablet from the other side. Which end applies is a clinical question this data cannot answer.';
+    // ---- and the same five over time, on one axis -----------------------
+    // The per-product cards below answer "what did THIS brand do"; this one
+    // answers "which brand was cheaper, and when". Cytopoint is left out on
+    // purpose: its cost per day is an interval, and a line through the middle
+    // of an interval is a number nobody pays. It is in the bars above instead.
+    // Following the cheapest listing on each date produced a sawtooth, and the
+    // sawtooth was not price: on days when only one venue happened to be
+    // captured, "cheapest" was whichever shop the archive crawled, so the line
+    // jumped between sellers rather than tracking a price. Each brand is
+    // therefore pinned to ONE seller and ONE pack size - the (venue, pack) that
+    // has been observed most often - which is a continuous series somebody
+    // could actually have paid. The bars above still answer "cheapest today
+    // across every seller"; this answers "what has one shelf done".
+    const trend = Object.entries(DOSE).map(([pid, dose]) => {
+      if(dose.unitsPerDayMax) return null;      // an interval is not a line
+      const byVenue = {};
+      co.filter(o => o.product === pid && o.form === dose.form && o.mg === dose.mg
+                     && o.venue !== 'perfectpet')
+        .forEach(o => { (byVenue[`${o.venue}|${o.n}`] ??= []).push(o); });
+      const pick = Object.values(byVenue).sort((x, y) => y.length - x.length)[0];
+      if(!pick || pick.length < 2) return null;
+      const seen = {};
+      pick.forEach(o => {
+        const v = all ? exTax(o.country, toUSD && toUSD[o.cur] != null
+                              ? o.unit*dose.unitsPerDay*toUSD[o.cur] : null)
+                      : o.unit*dose.unitsPerDay;
+        if(v != null && (seen[o.d] == null || v < seen[o.d])) seen[o.d] = v;
+      });
+      const points = Object.entries(seen).sort().map(([d, v]) => ({d, v}));
+      if(points.length < 2) return null;
+      const o0 = pick[0];
+      return {label: `${products[pid].name} · ${all?o0.country+' ':''}${venues[o0.venue].name}`
+                     + (o0.n > 1 ? ` ×${o0.n}` : ''),
+              color: PCOLOR[pid], points, n: points.length};
+    }).filter(Boolean);
+
+    document.getElementById('trendsub').innerHTML = trend.length
+      ? `Cost per day at <b>one seller per brand</b> — the shop and pack size we have watched longest `
+        + `for each — ${all ? 'converted to USD and ex-VAT' : `in ${esc(CCNAME[cc]||cc)}, local currency`}. `
+        + 'Pinning each brand to a single shelf is deliberate: following the cheapest listing instead '
+        + 'produced a sawtooth that was coverage changing, not price. The bars above are the '
+        + 'cheapest-today view across all sellers. '
+        + '<b>Cytopoint is absent</b> — its cost per day is an interval, and a line through an interval '
+        + 'is a price nobody pays.'
+      : 'no brand here has two observations at one seller yet, so there is nothing honest to plot.';
+    document.getElementById('brandtrend').innerHTML = trend.length
+      ? lineChart(trend, {yFmt: v => money(v, cur2, dp2)})
+      : '<div class="chart-sub">nothing to plot</div>';
+    // ---------------------------------------------------------------------
+
     // tiles: cheapest latest unit price per product in this country
     document.getElementById('tiles').innerHTML = Object.entries(products).map(([pid,p],i)=>{
       const rows = co.filter(o=>o.product===pid && o.d===latestDate);
       if(!rows.length) return `<div class="tile"><div class="lab">${esc(p.name)}</div>
-        <div class="val" style="color:${RAWCOL[i]}">—</div><div class="note">not sold here / no data</div></div>`;
+        <div class="val" style="color:${PCOLOR[pid]}">—</div><div class="note">not sold here / no data</div></div>`;
       // These tiles are NOT converted, so across all markets a "cheapest" would be
       // comparing EUR 46.50 with GBP 0.74 by raw number - forint and lira rows
       // could never win on a digit count alone. In the all-markets view the tile
@@ -425,13 +624,13 @@ Promise.all([
       if(all){
         const mk = new Set(rows.map(o=>o.country)).size, vn = new Set(rows.map(o=>o.venue)).size;
         return `<div class="tile"><div class="lab">${esc(p.name)}</div>
-          <div class="val" style="color:${RAWCOL[i]}">${mk}</div>
+          <div class="val" style="color:${PCOLOR[pid]}">${mk}</div>
           <div class="note">market${mk===1?'':'s'} · ${vn} venue${vn===1?'':'s'} · ${rows.length} live SKUs<br>
           <span style="color:var(--ink3)">pick a country for its price</span></div></div>`;
       }
       const best = rows.reduce((a,b)=>a.unit<=b.unit?a:b);
       return `<div class="tile"><div class="lab">${esc(p.name)}</div>
-        <div class="val" style="color:${RAWCOL[i]}">${money(best.unit,best.cur,best.cur==='TRY'||best.cur==='HUF'?0:2)}</div>
+        <div class="val" style="color:${PCOLOR[pid]}">${money(best.unit,best.cur,best.cur==='TRY'||best.cur==='HUF'?0:2)}</div>
         <div class="note">per ${FORM[best.form]}${best.mg?` · ${best.mg} mg`:''} · ${esc(venues[best.venue].name)}</div></div>`;
     }).join('');
 
@@ -464,7 +663,7 @@ Promise.all([
           };
         });
       const curs = [...new Set(rows.map(o=>o.cur))];
-      return `<div class="card"><div class="chart-title" style="color:${RAWCOL[i]}">${esc(p.name)} — ${all?'all markets':esc(CCNAME[cc]||cc)}</div>
+      return `<div class="card"><div class="chart-title" style="color:${PCOLOR[pid]}">${esc(p.name)} — ${all?'all markets':esc(CCNAME[cc]||cc)}</div>
         <div class="chart-sub">${all
           ? 'each series <b>indexed to 100</b> at its own first observation — currencies differ, so this is the shape of the move, not the price'
           : `unit price per ${FORM[p.forms[0]]} (${curs[0]})`}</div>
