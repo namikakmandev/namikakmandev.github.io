@@ -28,13 +28,14 @@ jobs:
           MODE: ${{ inputs.mode }}
         run: |
           pip install requests
-          python scripts/probe_wayback_coverage.py
+          python scripts/harvest_wayback_targets.py
+          python scripts/backfill_from_candidates.py
       - name: Commit
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
           git add data/
-          git diff --cached --quiet || git commit -m "data: wayback coverage probe [skip ci]"
+          git diff --cached --quiet || git commit -m "data: wayback harvest backfill [skip ci]"
           for i in 1 2 3 4 5; do
             git push && break
             git pull --rebase origin "${GITHUB_REF_NAME}" || true
