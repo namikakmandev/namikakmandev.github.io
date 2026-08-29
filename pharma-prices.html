@@ -31,6 +31,9 @@
   .chart-sub{color:var(--ink3);font-size:12.5px;margin-bottom:8px}
   .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
   svg{display:block;width:100%;height:auto}
+  svg.spark{display:inline-block;width:auto;height:24px}
+  td.spark{text-align:left;width:1%;padding-right:14px}
+  td.chg{width:1%}
   .banner{background:var(--card2);border:1px dashed var(--line);border-radius:12px;padding:11px 15px;
           font-size:13.5px;color:var(--ink2);margin-bottom:16px}
   .banner b{color:var(--ink)}
@@ -81,7 +84,7 @@
   </div>
 
   <div class="card">
-    <div class="chart-title">Latest snapshot — every SKU, every venue</div>
+    <div class="chart-title">Every SKU, every venue — with its own price history</div>
     <div class="chart-sub" id="snapdate"></div>
     <div class="tblwrap"><table id="snaptable"></table></div>
   </div>
@@ -100,6 +103,45 @@ const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'
 const FORM = {tab:'tablet', chew:'chewable', inj:'vial'};
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; return (cur==='HUF'||cur==='CZK'||cur==='PLN'||cur==='RON' ? v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})+' '+SYM[cur] : SYM[cur]+v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})); };
+
+// A row's own price history as small bars, oldest to newest.
+// Bars grow from ZERO, never from the series minimum: a bar's length IS the
+// value, so a truncated baseline would redraw a 5% move as a full-height
+// cliff. Prices here move 2-4x over a decade, which zero-baseline bars show
+// perfectly well. Earlier observations sit in the de-emphasis grey and the
+// latest one takes the accent, so "where it is now" reads without a legend.
+function sparkBars(points, fmt){
+  if(points.length < 2) return '<span style="color:var(--ink3);font-size:11.5px">first reading</span>';
+  const BAR = 3.5, GAP = 1.5, H = 24, R = 1.5;
+  const pts = points.slice(-26);
+  const max = Math.max(...pts.map(p => p.v));
+  if(!(max > 0)) return '<span style="color:var(--ink3)">—</span>';
+  const w = pts.length * (BAR + GAP) - GAP;
+  const bars = pts.map((p, i) => {
+    const h = Math.max(2, (H - 1) * p.v / max);
+    const x = i * (BAR + GAP), y = H - h;
+    // rounded data-end, square at the baseline
+    const d = `M${x} ${H} L${x} ${(y+R).toFixed(1)} Q${x} ${y.toFixed(1)} ${x+R} ${y.toFixed(1)}`
+            + ` L${x+BAR-R} ${y.toFixed(1)} Q${x+BAR} ${y.toFixed(1)} ${x+BAR} ${(y+R).toFixed(1)}`
+            + ` L${x+BAR} ${H} Z`;
+    const last = i === pts.length - 1;
+    return `<path d="${d}" fill="${last ? 'var(--c1)' : 'var(--ink3)'}"><title>${esc(p.d)} · ${esc(fmt(p.v))}</title></path>`;
+  }).join('');
+  // A rule at the FIRST observation. Zero-baseline bars are the honest way to
+  // draw a price, but they flatten the thing being asked about: a 33% rise over
+  // a tall bar is a small wedge. The rule restores that read without truncating
+  // anything - bars above it are dearer than when tracking started, below it
+  // cheaper - and it is drawn, not implied, so nothing is exaggerated.
+  const y0 = H - Math.max(2, (H - 1) * pts[0].v / max);
+  const a = pts[0], b = pts[pts.length-1];
+  return `<svg class="spark" width="${w}" height="${H}" viewBox="0 0 ${w} ${H}" style="vertical-align:middle" role="img"`
+       + ` aria-label="${pts.length} observations, ${esc(fmt(a.v))} on ${esc(a.d)} to ${esc(fmt(b.v))} on ${esc(b.d)}">`
+       + `<title>${pts.length} observations · ${esc(a.d)} ${esc(fmt(a.v))} → ${esc(b.d)} ${esc(fmt(b.v))}</title>`
+       + bars
+       + `<line x1="0" y1="${y0.toFixed(1)}" x2="${w}" y2="${y0.toFixed(1)}" stroke="var(--ink2)"`
+       + ` stroke-width="1" stroke-dasharray="2 2" opacity=".55"><title>first tracked price · ${esc(fmt(a.v))}</title></line>`
+       + '</svg>';
+}
 
 function lineChart(series, {height=210, yFmt=v=>v.toFixed(2)}={}){
   const W=720, H=height, L=58, R=10, T=12, B=28;
@@ -324,7 +366,7 @@ Promise.all([
   const obs = (data.observations||[]).filter(o=>o.price>0);
   const products = data.meta.products, venues = data.meta.venues;
   const countries = [...new Set(obs.map(o=>o.country))].sort();
-  let cc = countries.includes('US') ? 'US' : countries[0];
+  let cc = 'ALL';                       // the table below defaults to every market
 
   const latestDate = obs.map(o=>o.d).sort().at(-1);
   document.getElementById('banner').innerHTML = obs.length
@@ -333,23 +375,54 @@ Promise.all([
        · latest ${esc(latestDate)}`
     : '<b>No data yet.</b> Run the workflow once from the Actions tab.';
 
-  function seriesKey(o){ return `${o.sku}@${o.venue}`; }
+  // Pack size is part of the series identity for the same reason it is part of
+  // a row's: a 10-pack unit price and a 100-pack unit price are different goods,
+  // and splicing them into one line draws a price move that never happened.
+  function seriesKey(o){ return `${o.sku}@${o.venue}@${o.n}`; }
+
+  // Colour follows the entity, never its rank in the current view. The order is
+  // computed once over ALL observations, so filtering to one country repaints
+  // nothing - a series keeps its colour whatever else is on screen.
+  const COLOROF = {};
+  [...new Set(obs.map(seriesKey))].sort().forEach((k, i) => { COLOROF[k] = RAWCOL[i % RAWCOL.length]; });
+
+  // every observation of one series, oldest first, for the row sparklines
+  const HISTORY = {};
+  obs.forEach(o => { (HISTORY[seriesKey(o)] ??= []).push({d: o.d, v: o.unit}); });
+  Object.values(HISTORY).forEach(a => a.sort((x, y) => x.d < y.d ? -1 : 1));
 
   function render(){
-    document.getElementById('ccbtns').innerHTML = countries.map(c=>
+    document.getElementById('ccbtns').innerHTML =
+      `<button class="btn ${cc==='ALL'?'on':''}" onclick="setCC('ALL')">All markets</button>` +
+      countries.map(c=>
       `<button class="btn ${c===cc?'on':''}" onclick="setCC('${c}')">${esc(CCNAME[c]||c)}</button>`).join('');
-    const co = obs.filter(o=>o.country===cc);
+    const all = cc === 'ALL';
+    const co = all ? obs : obs.filter(o=>o.country===cc);
     const cur = co[0]?.cur || 'USD';
     const dp = cur==='TRY'?0:2;
+    const fmtOf = o => v => money(v, o.cur, o.cur==='TRY'||o.cur==='HUF'?0:2);
 
     // tiles: cheapest latest unit price per product in this country
     document.getElementById('tiles').innerHTML = Object.entries(products).map(([pid,p],i)=>{
       const rows = co.filter(o=>o.product===pid && o.d===latestDate);
       if(!rows.length) return `<div class="tile"><div class="lab">${esc(p.name)}</div>
         <div class="val" style="color:${RAWCOL[i]}">—</div><div class="note">not sold here / no data</div></div>`;
+      // These tiles are NOT converted, so across all markets a "cheapest" would be
+      // comparing EUR 46.50 with GBP 0.74 by raw number - forint and lira rows
+      // could never win on a digit count alone. In the all-markets view the tile
+      // therefore reports coverage, which is a true statement about every row;
+      // pick a single country and it goes back to a price, in that country's
+      // own currency. Converted like-for-like prices live in the table below.
+      if(all){
+        const mk = new Set(rows.map(o=>o.country)).size, vn = new Set(rows.map(o=>o.venue)).size;
+        return `<div class="tile"><div class="lab">${esc(p.name)}</div>
+          <div class="val" style="color:${RAWCOL[i]}">${mk}</div>
+          <div class="note">market${mk===1?'':'s'} · ${vn} venue${vn===1?'':'s'} · ${rows.length} live SKUs<br>
+          <span style="color:var(--ink3)">pick a country for its price</span></div></div>`;
+      }
       const best = rows.reduce((a,b)=>a.unit<=b.unit?a:b);
       return `<div class="tile"><div class="lab">${esc(p.name)}</div>
-        <div class="val" style="color:${RAWCOL[i]}">${money(best.unit,cur,dp)}</div>
+        <div class="val" style="color:${RAWCOL[i]}">${money(best.unit,best.cur,best.cur==='TRY'||best.cur==='HUF'?0:2)}</div>
         <div class="note">per ${FORM[best.form]}${best.mg?` · ${best.mg} mg`:''} · ${esc(venues[best.venue].name)}</div></div>`;
     }).join('');
 
@@ -359,32 +432,71 @@ Promise.all([
       if(!rows.length) return '';
       const groups = {};
       rows.forEach(o=>{ (groups[seriesKey(o)] ??= {o, pts:{}}).pts[o.d] = Math.min(groups[seriesKey(o)].pts[o.d]??1e12, o.unit); });
+      // With one country in view the eight are ordered by strength; across all
+      // markets the eight with the most observations win, since the point of the
+      // all-markets view is which series actually have a shape to read.
       const series = Object.values(groups)
-        .sort((a,b)=>(a.o.mg??99)-(b.o.mg??99) || a.o.venue.localeCompare(b.o.venue))
+        .sort(all
+          ? (a,b)=>Object.keys(b.pts).length-Object.keys(a.pts).length
+          : (a,b)=>(a.o.mg??99)-(b.o.mg??99) || a.o.venue.localeCompare(b.o.venue))
         .slice(0,8)
-        .map((g,j)=>({
-          label: `${venues[g.o.venue].name}${g.o.mg?` · ${g.o.mg}mg`:''} (${FORM[g.o.form]})`,
-          color: RAWCOL[j%RAWCOL.length],
-          points: Object.entries(g.pts).sort().map(([d,v])=>({d,v}))
-        }));
-      return `<div class="card"><div class="chart-title" style="color:${RAWCOL[i]}">${esc(p.name)} — ${esc(cc)}</div>
-        <div class="chart-sub">unit price (${cur} per ${FORM[p.forms[0]]})</div>
-        ${lineChart(series,{yFmt:v=>money(v,cur,dp)})}</div>`;
+        .map(g=>{
+          const pts = Object.entries(g.pts).sort().map(([d,v])=>({d,v}));
+          // Across markets the series are in different currencies, and a forint
+          // line near 1,500 flattens every euro line onto the axis - one shared
+          // scale cannot carry both. Index each series to 100 at its own first
+          // observation instead: the levels were never comparable anyway, and
+          // the shape - which is the question - becomes directly readable.
+          const base = pts[0]?.v || 0;
+          return {
+            label: `${all?g.o.country+' ':''}${venues[g.o.venue].name}${g.o.mg?` · ${g.o.mg}mg`:''} (${FORM[g.o.form]}${g.o.n>1?` ×${g.o.n}`:''})`,
+            color: COLOROF[seriesKey(g.o)],
+            points: (all && base > 0) ? pts.map(q=>({d:q.d, v:100*q.v/base})) : pts
+          };
+        });
+      const curs = [...new Set(rows.map(o=>o.cur))];
+      return `<div class="card"><div class="chart-title" style="color:${RAWCOL[i]}">${esc(p.name)} — ${all?'all markets':esc(CCNAME[cc]||cc)}</div>
+        <div class="chart-sub">${all
+          ? 'each series <b>indexed to 100</b> at its own first observation — currencies differ, so this is the shape of the move, not the price'
+          : `unit price per ${FORM[p.forms[0]]} (${curs[0]})`}</div>
+        ${lineChart(series,{yFmt: all ? (v=>v.toFixed(0)) : (v=>money(v,cur,dp))})}</div>`;
     }).join('') || '<div class="card chart-sub">nothing tracked in this market yet</div>';
 
-    // snapshot table: all countries
-    document.getElementById('snapdate').textContent = 'As of ' + (latestDate||'—');
-    const latest = obs.filter(o=>o.d===latestDate)
-      .sort((a,b)=>a.product.localeCompare(b.product)||a.country.localeCompare(b.country)||(a.mg??99)-(b.mg??99));
+    // snapshot table, filtered by the same buttons, one row per live SKU
+    const latest = co.filter(o=>o.d===latestDate)
+      .sort((a,b)=>a.product.localeCompare(b.product)||a.country.localeCompare(b.country)
+                 ||(a.mg??99)-(b.mg??99)||a.n-b.n);
+    const withHist = latest.filter(o=>(HISTORY[seriesKey(o)]||[]).length>1).length;
+    document.getElementById('snapdate').innerHTML =
+      `As of ${esc(latestDate||'—')} · ${latest.length} SKUs`
+      + (all ? ' across every market' : ` in ${esc(CCNAME[cc]||cc)}`)
+      + ` · <b>${withHist}</b> with price history. Each bar is one observation, oldest at the left, `
+      + 'height is the unit price from zero; the last bar is today. Hover a bar for its date and price. '
+      + 'Change compares today with the first observation of that same SKU at that same venue and pack size.';
+
     document.getElementById('snaptable').innerHTML =
-      '<tr><th>Product</th><th>Venue</th><th>Form</th><th>mg</th><th>Pack</th><th>Price</th><th>Unit</th><th>Method</th></tr>' +
-      latest.map(o=>`<tr>
+      '<tr><th>Product</th><th>Venue</th><th>Form</th><th>mg</th><th>Pack</th><th>Price</th><th>Unit</th>'
+      + '<th style="text-align:left">Fluctuation</th><th>Change</th><th>Method</th></tr>' +
+      latest.map(o=>{
+        const h = HISTORY[seriesKey(o)] || [];
+        const fmt = fmtOf(o);
+        let chg = '<span style="color:var(--ink3)">—</span>';
+        if(h.length > 1 && h[0].v > 0){
+          const pct = (o.unit/h[0].v - 1) * 100;
+          const col = Math.abs(pct) < 0.5 ? 'var(--ink2)' : (pct > 0 ? 'var(--c2)' : 'var(--c3)');
+          chg = `<span style="color:${col};font-weight:600">${pct>0?'+':''}${pct.toFixed(0)}%</span>`
+              + `<div style="font-size:10.5px;color:var(--ink3)">since ${esc(h[0].d.slice(0,7))}</div>`;
+        }
+        return `<tr>
         <td>${esc(products[o.product].name)}</td>
         <td><span class="cc">${o.country}</span>${esc(venues[o.venue].name)}</td>
         <td>${FORM[o.form]}</td><td>${o.mg??'—'}</td><td>${o.n}</td>
-        <td>${money(o.price,o.cur,o.cur==='TRY'?0:2)}</td>
-        <td>${money(o.unit,o.cur,o.cur==='TRY'?0:2)}</td>
-        <td style="color:var(--ink3)">${esc(o.method)}</td></tr>`).join('');
+        <td>${money(o.price,o.cur,o.cur==='TRY'||o.cur==='HUF'?0:2)}</td>
+        <td>${money(o.unit,o.cur,o.cur==='TRY'||o.cur==='HUF'?0:2)}</td>
+        <td class="spark">${sparkBars(h, fmt)}</td>
+        <td class="chg">${chg}</td>
+        <td style="color:var(--ink3)">${esc(o.method)}</td></tr>`;
+      }).join('') || '<tr><td colspan="10" style="color:var(--ink3)">nothing tracked in this market yet</td></tr>';
   }
 
   window.setCC = c => { cc = c; render(); };
