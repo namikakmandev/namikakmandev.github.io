@@ -1,49 +1,54 @@
 #!/usr/bin/env python3
-"""Discovery probe for the ECB Survey of Professional Forecasters.
+"""ECB Survey of Professional Forecasters — probe round 2: does filtering work?
 
-The study: the SPF has run quarterly since 1999, and forecasters submit
-probability DISTRIBUTIONS, not just point forecasts. That makes it scorable the
-way FiveThirtyEight's archive was — the question is not whether the midpoint was
-right but whether the stated uncertainty was honest. In 2021 the panel put
-almost no probability on euro-area inflation above 4%; it reached 8.4%.
+Round 1 confirmed the study is possible. The SPF serves 470,979 series and the
+rows are microdata, one per forecaster per probability bucket:
 
-Two things have to exist for that study:
-  A) the SPF probability distributions, by survey round and horizon
-  B) realised HICP inflation, which is routine
+    SPF.A.U2.CORE.F2_0T2_4.P6M.Q.100
+    "Forecaster 100 - Probability assigned to outcome - Core inflation from
+     2.0 to 2.4 - Target period ends 6 months after survey round"
 
-This probe establishes what is actually served, and nothing else. It parses
-nothing, assumes no dimension names, and decides nothing. The lesson from the
-OECD attempt is written into it: check the response SIZE against what the query
-should return, because a filter that is silently ignored looks exactly like a
-filter that worked.
+Dimension order, from the CSV header:
+    FREQ . REF_AREA . FCT_TOPIC . FCT_BREAKDOWN . FCT_HORIZON . SURVEY_FREQ
+    . FCT_SOURCE
 
-Runs in GitHub Actions; the dev sandbox cannot reach the ECB.
+Round 1's unfiltered requests both hit the 30MB read cap, so before building
+anything this checks the one thing that wrecked the OECD attempt: whether a
+narrowed request actually returns less. A filter that is silently ignored looks
+exactly like a filter that worked, and the only tell is the response size.
+
+Each request below is paired with what it SHOULD return, and the probe reports
+the ratio rather than leaving it to be eyeballed later.
 
   python3 scripts/probe_ecb_spf.py     # -> data/_ecb-spf-probe.json
 """
-import gzip, io, json, os, sys, urllib.error, urllib.request, zlib
+import csv, gzip, io, json, os, sys, urllib.error, urllib.request, zlib
+from collections import Counter
 from datetime import datetime, timezone
 
 API = "https://data-api.ecb.europa.eu/service"
-TIMEOUT = 120
+TIMEOUT = 180
 MAX_BYTES = 30_000_000
-HEAD = 2500
-UA = "namikakmandev-data-probe/1.0 (+https://namikakmandev.github.io)"
+UA = "namikakmandev-data-probe/2.0 (+https://namikakmandev.github.io)"
 
+# (name, url, what a working filter should do)
 ROUTES = [
-    # 1. what dataflows exist at all, and which mention the survey
-    ("dataflow_all", f"{API}/dataflow/ECB?format=sdmx-json"),
-    # 2. the SPF structure — dimension names, before assuming any of them
-    ("spf_datastructure",
-     f"{API}/datastructure/ECB/ECB_SPF1?references=children&format=sdmx-json"),
-    # 3. series keys only: cheap, and shows how the cube is laid out
-    ("spf_serieskeys",
-     f"{API}/data/SPF?detail=serieskeysonly&format=csvdata"),
-    # 4. one observation per series — the smallest real data request
-    ("spf_lastobs", f"{API}/data/SPF?lastNObservations=1&format=csvdata"),
-    # 5. actuals: euro-area HICP, annual rate of change
-    ("hicp_actual",
-     f"{API}/data/ICP/M.U2.N.000000.4.ANR?startPeriod=2018-01&format=csvdata"),
+    ("baseline_all_keys",
+     f"{API}/data/SPF?detail=serieskeysonly&format=csvdata",
+     "everything — the yardstick the filtered calls must come in under"),
+    ("keys_hicp_only",
+     f"{API}/data/SPF/..HICP....?detail=serieskeysonly&format=csvdata",
+     "HICP topic only — must be much smaller than baseline"),
+    ("keys_hicp_2022",
+     f"{API}/data/SPF/..HICP..2022..?detail=serieskeysonly&format=csvdata",
+     "HICP, target year 2022 — smaller again"),
+    ("data_hicp_2022_round2021",
+     f"{API}/data/SPF/..HICP..2022..?startPeriod=2021&endPeriod=2021"
+     f"&format=csvdata",
+     "the real slice: every forecaster's 2022 distribution, as seen in 2021"),
+    ("data_hicp_point_2022",
+     f"{API}/data/SPF/..HICP.POINT.2022..?format=csvdata",
+     "point forecasts for 2022, all survey rounds"),
 ]
 
 
@@ -54,57 +59,81 @@ def get(url, note):
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
             raw = r.read(MAX_BYTES)
-            rec["truncated_at_cap"] = len(raw) >= MAX_BYTES
+            rec["hit_cap"] = len(raw) >= MAX_BYTES
             enc = (r.headers.get("Content-Encoding") or "").lower()
             if "gzip" in enc:
                 raw = gzip.GzipFile(fileobj=io.BytesIO(raw)).read()
             elif "deflate" in enc:
                 raw = zlib.decompress(raw, -zlib.MAX_WBITS)
-            rec.update(status=r.status, bytes=len(raw),
-                       content_type=r.headers.get("Content-Type", ""))
+            rec.update(status=r.status, bytes=len(raw))
             text = raw.decode("utf-8", "replace")
-            rec["head"] = text[:HEAD]
-            if "csv" in rec["content_type"].lower() or text[:200].count(",") > 3:
-                lines = text.splitlines()
-                rec["csv_header"] = lines[0] if lines else ""
-                rec["csv_rows"] = len(lines) - 1
-                rec["csv_sample"] = lines[1:6]
-            else:
-                try:
-                    j = json.loads(text)
-                    rec["json_top_keys"] = list(j)[:20]
-                    blob = json.dumps(j)
-                    rec["mentions_spf"] = blob.upper().count("SPF")
-                except Exception:
-                    pass
+            rows = list(csv.DictReader(io.StringIO(text)))
+            rec["rows"] = len(rows)
+            if rows:
+                rec["columns"] = list(rows[0])
+                for dim in ("FCT_TOPIC", "FCT_BREAKDOWN", "FCT_HORIZON",
+                            "FCT_SOURCE", "TIME_PERIOD", "FREQ"):
+                    if dim in rows[0]:
+                        vals = Counter(r.get(dim) for r in rows)
+                        rec[f"distinct_{dim}"] = len(vals)
+                        rec[f"top_{dim}"] = vals.most_common(14)
+                rec["sample"] = [
+                    {k: v for k, v in r.items()
+                     if k in ("KEY", "FCT_BREAKDOWN", "FCT_HORIZON",
+                              "FCT_SOURCE", "TIME_PERIOD", "OBS_VALUE",
+                              "TITLE_COMPL")}
+                    for r in rows[:6]]
     except urllib.error.HTTPError as e:
-        body = (e.read(HEAD) or b"").decode("utf-8", "replace")
-        rec.update(status=e.code, error=f"HTTPError {e.code}", head=body)
+        rec.update(status=e.code, error=f"HTTPError {e.code}",
+                   head=(e.read(600) or b"").decode("utf-8", "replace"))
     except Exception as e:                                   # noqa: BLE001
         rec.update(status=None, error=f"{type(e).__name__}: {e}")
-    print(f"  {str(rec.get('status')):>5}  {rec.get('bytes', 0):>10,}b  "
-          f"rows={str(rec.get('csv_rows', '-')):>8}  {note}  "
-          f"{str(rec.get('error', ''))[:50]}")
+    print(f"  {str(rec.get('status')):>5} {rec.get('bytes', 0):>11,}b "
+          f"rows={rec.get('rows', 0):>8,} cap={str(rec.get('hit_cap', False)):<5} "
+          f"{note}  {str(rec.get('error', ''))[:40]}")
     return rec
 
 
 def main():
-    print("ECB Survey of Professional Forecasters — discovery probe")
-    print("  can the probability distributions be retrieved, and the actuals\n")
+    print("ECB SPF — probe round 2: proving the filter actually filters\n")
     out = {"probed_at": datetime.now(timezone.utc).isoformat(),
-           "probed_by": "scripts/probe_ecb_spf.py",
-           "question": ("Are the SPF probability distributions retrievable by "
-                        "survey round and horizon, and is realised HICP "
-                        "available to score them against?"),
-           "routes": [get(u, n) for n, u in ROUTES]}
-    ok = [r for r in out["routes"] if r.get("status") == 200]
-    out["summary"] = {"n_ok": len(ok), "ok": [r["name"] for r in ok]}
+           "probed_by": "scripts/probe_ecb_spf.py (round 2)",
+           "round1": ("SPF serves 470,979 series as per-forecaster probability "
+                      "microdata; HICP actuals available; dimension order is "
+                      "FREQ.REF_AREA.FCT_TOPIC.FCT_BREAKDOWN.FCT_HORIZON."
+                      "SURVEY_FREQ.FCT_SOURCE"),
+           "question": ("Does a narrowed request return less? If not, the study "
+                        "cannot be built the way the OECD one could not."),
+           "routes": []}
+    for name, url, expect in ROUTES:
+        r = get(url, name)
+        r["expectation"] = expect
+        out["routes"].append(r)
+
+    base = next((r for r in out["routes"] if r["name"] == "baseline_all_keys"),
+                {})
+    b_rows = base.get("rows") or 0
+    verdict = {}
+    for r in out["routes"][1:]:
+        if r.get("rows") is not None and b_rows:
+            ratio = r["rows"] / b_rows
+            verdict[r["name"]] = {"rows": r["rows"], "share_of_baseline": round(ratio, 4),
+                                  "filter_worked": ratio < 0.9}
+    out["verdict"] = verdict
+    out["filter_works"] = all(v["filter_worked"] for v in verdict.values()) \
+        if verdict else None
+
+    print("\n  filter check:")
+    for k, v in verdict.items():
+        print(f"    {k:<26} {v['rows']:>8,} rows  "
+              f"{v['share_of_baseline'] * 100:>6.2f}% of baseline  "
+              f"{'OK' if v['filter_worked'] else 'IGNORED'}")
+    print(f"\n  filters work: {out['filter_works']}")
+
     os.makedirs("data", exist_ok=True)
     path = "data/_ecb-spf-probe.json"
     with open(path, "w") as fh:
         json.dump(out, fh, indent=1)
-    print(f"\n  {len(ok)}/{len(out['routes'])} answered: "
-          f"{[r['name'] for r in ok]}")
     print(f"  wrote {path} ({os.path.getsize(path):,} bytes)")
     return 0
 
