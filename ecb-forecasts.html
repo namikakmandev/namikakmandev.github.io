@@ -228,6 +228,8 @@
                     <td class="note">and then they were not</td></tr>
                 <tr><th scope="row">2015&ndash;2025</th><td>49.4%</td><td>536</td>
                     <td class="note">never recovered the old calibration</td></tr>
+                <tr><th scope="row">Open-ended edges excluded</th><td>54.9%</td><td>1,322</td>
+                    <td class="note">removes the 3.4% of cases where a percentile falls in the open top bucket &mdash; the one bias that flatters the finding</td></tr>
               </tbody>
             </table>
           </div>
@@ -254,18 +256,54 @@
             <li><strong>Panel composition changes.</strong> Forecasters join and leave, so the
               2000 panel and the 2025 panel are not the same institutions, and the era comparison
               is not a fixed group being tracked over time.</li>
-            <li><strong>Interpolation inside buckets.</strong> Percentiles are interpolated
-              linearly within a bucket, which assumes a flat distribution inside each half-point
-              band. For open-ended end buckets the boundary is used, which is conservative &mdash;
-              it makes the ranges look wider, and therefore the forecasters look better, than they
-              are.</li>
+            <li><strong>Interpolation inside buckets, and a bias that runs toward the
+              finding.</strong> Percentiles are interpolated linearly within a bucket, assuming a
+              flat distribution inside each half-point band. Where a percentile falls in an
+              <em>open-ended</em> end bucket the boundary is used, which makes the range
+              <em>narrower</em> than the forecaster's real one &mdash; so it overstates
+              overconfidence rather than understating it. This affects 47 of 1,369 distributions
+              (3.4%), all at the top end. Excluding them entirely moves the headline from 53.1% to
+              <strong>54.9%</strong>. The finding survives; the direction is stated because the
+              bias favours the conclusion.</li>
             <li><strong>This is not a claim about the ECB's own forecasts.</strong> The SPF is a
               survey of outside institutions that the ECB collects and publishes. The ECB's own
               staff projections are a different series and are not tested here.</li>
+            <li><strong>1,369 is not 1,369 independent facts.</strong> The distributions come
+              from roughly fifty forecasters across twenty-six years, and within any one year the
+              panel is looking at the same economy with much the same information &mdash; which is
+              precisely what finding 2 demonstrates. No confidence interval or p-value appears
+              anywhere on this page, deliberately. The year-by-year result does not need one:
+              0 of 48 is 0 of 48.</li>
             <li><strong>No benchmark forecaster.</strong> The panel is scored against its own
               stated confidence, not against a rival. Whether anyone else did better in these
               years is a separate question this page does not answer.</li>
           </ul>
+        </div>
+
+        <div class="eb-card">
+          <h3>What to do with this</h3>
+          <p>The point is not that forecasters are bad at their job. It is that a consensus
+            interval answers a narrower question than the one people use it for.</p>
+          <ul>
+            <li><strong>Read a consensus range as &ldquo;what this room considers
+              normal&rdquo;, not as a risk bound.</strong> It is a description of expert
+              agreement. It is not a distribution of what can happen, and on this record it is
+              about half as wide as it would need to be.</li>
+            <li><strong>Do not take your downside case from it.</strong> If a budget, a hedge or
+              a supply contract needs a bad-case number, take it from the actual dispersion of
+              history &mdash; including 2008 and 2022 &mdash; not from the forecasters' stated
+              uncertainty, which excluded both.</li>
+            <li><strong>Treat unanimity as a warning, not a confirmation.</strong> The years the
+              panel agreed most tightly are the years it was most completely wrong. When every
+              forecast you read says the same thing, that is information about the forecasters,
+              not about the world.</li>
+          </ul>
+          <p class="eb-warn"><strong>What would change this conclusion.</strong> Coverage in 2024
+            (81%) and 2025 (100%) is back at honest levels, and the ECB widened the survey's
+            answer buckets after 2022. That is either a genuine recalibration or the same
+            fair-weather accuracy that showed up in 2005&ndash;2007 before it failed. Three or
+            four more calm years cannot tell the two apart; the next turbulent year will.
+            Until then, assume the ranges are still too narrow.</p>
         </div>
 
         <div class="eb-card eb-code">
@@ -456,7 +494,7 @@ if __name__ == &quot;__main__&quot;:
 </code></pre>
             </details>
             <details>
-              <summary>ecb_spf_calibration.py &mdash; the test itself (295 lines)</summary>
+              <summary>ecb_spf_calibration.py &mdash; the test itself (334 lines)</summary>
               <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Are the ECB forecasters&#x27; stated uncertainties honest?
 
@@ -565,7 +603,25 @@ def load():
     return d, actual, dists, points
 
 
-def coverage(dists, actual, round_filter, band=0.80):
+def in_open_bucket(bins, q):
+    &quot;&quot;&quot;Does quantile q land in an open-ended end bucket?
+
+    It matters because the boundary is used as the range edge there, which
+    makes the range NARROWER than the forecaster&#x27;s real one and therefore
+    overstates overconfidence. The bias runs toward the finding, so it has to
+    be measured rather than asserted away.
+    &quot;&quot;&quot;
+    total = sum(bins.values())
+    cum = 0.0
+    for b in sorted(bins):
+        p = bins[b] / total
+        if cum + p &gt;= q:
+            return b[0] &lt;= -99 or b[1] &gt;= 99
+        cum += p
+    return False
+
+
+def coverage(dists, actual, round_filter, band=0.80, drop_open=False):
     &quot;&quot;&quot;-&gt; per-year and pooled coverage of each forecaster&#x27;s own band.&quot;&quot;&quot;
     tail = (1 - band) / 2
     per_year = collections.defaultdict(lambda: {&quot;in&quot;: 0, &quot;lo&quot;: 0, &quot;hi&quot;: 0})
@@ -576,6 +632,9 @@ def coverage(dists, actual, round_filter, band=0.80):
             continue
         lo, hi = quantile(bins, tail), quantile(bins, 1 - tail)
         if lo is None or hi is None:
+            continue
+        if drop_open and (in_open_bucket(bins, tail)
+                          or in_open_bucket(bins, 1 - tail)):
             continue
         a = actual[t]
         slot = &quot;in&quot; if lo &lt;= a &lt;= hi else (&quot;lo&quot; if a &lt; lo else &quot;hi&quot;)
@@ -697,7 +756,21 @@ def main():
     print(&quot;      Even with every turbulent year removed, the ranges are still&quot;)
     print(&quot;      too narrow — the problem is not only the crises.&quot;)
 
-    print(&quot;\n  5c. was the panel ever well calibrated?&quot;)
+    print(&quot;\n  5c. the open-ended top bucket, which biases toward the finding&quot;)
+    _, t_all, n_all = coverage(dists, actual, one_year, 0.80)
+    _, t_cl, n_cl = coverage(dists, actual, one_year, 0.80, drop_open=True)
+    print(f&quot;      all distributions             {t_all[&#x27;in&#x27;] / n_all * 100:&gt;5.1f}% &quot;
+          f&quot;inside (n={n_all:,})&quot;)
+    print(f&quot;      excluding open-ended edges    {t_cl[&#x27;in&#x27;] / n_cl * 100:&gt;5.1f}% &quot;
+          f&quot;inside (n={n_cl:,})&quot;)
+    print(f&quot;      {n_all - n_cl} distributions ({(n_all - n_cl) / n_all * 100:.1f}%) &quot;
+          f&quot;have a percentile in an open bucket.&quot;)
+    print(&quot;      Using the boundary there narrows the range, so the headline&quot;)
+    print(&quot;      OVERSTATES overconfidence — by 1.8 points. The finding survives&quot;)
+    print(&quot;      the correction; the direction of the bias is stated because it&quot;)
+    print(&quot;      runs toward the result, not away from it.&quot;)
+
+    print(&quot;\n  5d. was the panel ever well calibrated?&quot;)
     for lo, hi in ((2000, 2007), (2008, 2014), (2015, 2025)):
         era = {t for t in actual if lo &lt;= t &lt;= hi}
         _, tot, n = coverage({k: v for k, v in dists.items() if k[0] in era},
@@ -742,6 +815,10 @@ def main():
             if [r for r in F if r[&quot;target&quot;] == 2022
                 and r[&quot;bucket&quot;] == &quot;F4_0&quot; and r[&quot;round&quot;] == rd]],
         &quot;actual_2022&quot;: round(actual[2022], 3),
+        &quot;open_edge_check&quot;: {
+            &quot;all&quot;: {&quot;n&quot;: n_all, &quot;share_inside&quot;: round(t_all[&quot;in&quot;] / n_all, 4)},
+            &quot;excluding_open&quot;: {&quot;n&quot;: n_cl,
+                               &quot;share_inside&quot;: round(t_cl[&quot;in&quot;] / n_cl, 4)}},
     }
     with open(OUT, &quot;w&quot;) as fh:
         json.dump(out, fh, indent=1)
