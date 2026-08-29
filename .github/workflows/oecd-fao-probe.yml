@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       stage:
-        description: "probe = discovery dump only | fetch = collect the vintages"
+        description: "probe | fetch | ecb = ECB SPF discovery"
         default: "probe"
 
 permissions:
@@ -22,8 +22,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Probe ECB Survey of Professional Forecasters
+        if: ${{ inputs.stage == 'ecb' }}
+        run: python scripts/probe_ecb_spf.py
       - name: Probe OECD + FAO access routes
-        if: ${{ inputs.stage != 'fetch' }}
+        if: ${{ inputs.stage == 'probe' }}
         run: python scripts/probe_oecd_fao.py
       - name: Collect Outlook vintages
         if: ${{ inputs.stage == 'fetch' }}
@@ -32,7 +35,7 @@ jobs:
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add data/_oecd-fao-probe.json data/oecd-fao-vintages.json 2>/dev/null || true
+          git add data/_oecd-fao-probe.json data/oecd-fao-vintages.json data/_ecb-spf-probe.json 2>/dev/null || true
           git diff --cached --quiet || git commit -m "data: OECD-FAO Outlook probe/vintages [skip ci]"
           for i in 1 2 3 4; do
             git push origin HEAD && break
