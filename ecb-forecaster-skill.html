@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The consensus hides who is worth listening to — Namık Akman</title>
+  <meta name="description" content="The ECB asks fifty forecasters the same question and averages the answers. Following each anonymous forecaster individually across 26 years: the gap between the most and least reliable is 57 percentage points, a good record predicts a good future record (r = +0.46), and only 1 of 64 ever clears the confidence bar they set themselves." />
+  <meta name="keywords" content="ECB, Survey of Professional Forecasters, forecaster skill, calibration, overconfidence, consensus forecast, euro area inflation, reproducible analysis" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="The consensus hides who is worth listening to" />
+  <meta property="og:description" content="Fifty forecasters, one averaged number. Followed individually, the gap between best and worst is 57 percentage points — and it persists for decades." />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/ecb-forecaster-skill.png" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .fs-grid{display:grid;gap:18px}
+    .fs-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .fs-card h3{margin-top:0}
+    .fs-hero img{width:100%;height:auto;display:block;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+    .fs-hero .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    .fs-table-wrap{overflow-x:auto}
+    .fs-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .fs-table th,.fs-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .fs-table th[scope=row],.fs-table thead th:first-child{text-align:left}
+    .fs-table .note{text-align:left;white-space:normal;color:var(--text-dim)}
+    .fs-head{color:var(--accent-2);font-weight:600}
+    .fs-bad{color:var(--loss);font-weight:600}
+    .fs-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    @media(max-width:820px){.fs-layers{grid-template-columns:1fr}}
+    .fs-layers .n{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .fs-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block;font-size:.85rem}
+    .fs-links a{margin-right:14px}
+    .fs-code{margin-top:12px}
+    .fs-code summary{cursor:pointer;font-weight:600;color:var(--accent);padding:6px 0}
+    .fs-code pre{overflow:auto;max-height:520px;background:var(--surface-2);border:1px solid var(--border);
+      border-radius:8px;padding:14px;font-size:.78rem;line-height:1.5;margin:8px 0 0}
+    .fs-warn{border-left:3px solid var(--accent-2);padding-left:14px;color:var(--text-dim);font-size:.9rem}
+  </style>
+</head>
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container fs-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">The consensus hides who is worth listening to</h2>
+        </div>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          Every quarter the European Central Bank asks about fifty banks and research houses the
+          same question, and gets fifty different answers.
+        </p>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          Then it averages them into one number, and that is the number everybody quotes.
+        </p>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          The ECB also publishes the fifty answers separately. So I followed each forecaster
+          individually, for twenty-six years.
+        </p>
+
+        <p class="data-note">
+          They are not the same. The gap between the most and least reliable forecaster in that
+          room is <strong>57 percentage points</strong>, it is far too large to be luck, and a good
+          record predicts a good future record decades later. None of that reaches you, because the
+          average destroys it &mdash; and the names are anonymous anyway.
+        </p>
+
+        <p class="data-note" style="font-size:.85rem;color:var(--text-dim)">
+          Companion to <a href="ecb-forecasts.html">A consensus range is not a risk range</a>,
+          which scored the panel as a whole. Same data, no new fetching: 64 forecasters with ten or
+          more scored years, 1,184 forecasts, euro-area inflation, 2000&ndash;2025.
+        </p>
+
+        <div class="fs-card fs-hero">
+          <img src="assets/linkedin/ecb-forecaster-skill.png"
+               alt="Bar chart of 64 anonymous ECB forecasters ranked by how much better or worse their 80% ranges held up than an average forecaster facing the same years. Bars run from minus 33 points to plus 23 points, breaking out of the grey band showing what luck alone would produce.">
+          <p class="cap">One bar per forecaster, worst to best. Each is measured against what an
+            average forecaster facing <em>that forecaster's own years</em> would have managed. The
+            grey band is the spread luck alone would produce if everyone were equally good; fifteen
+            forecasters sit outside it. Regenerate with
+            <code>python3 scripts/ecb_forecaster_skill.py</code>.</p>
+        </div>
+
+        <div class="fs-layers">
+          <div class="fs-card">
+            <p class="n">1</p>
+            <h3>The differences are real</h3>
+            <p>The spread across forecasters is <strong>13.5&nbsp;points</strong>. If every
+              forecaster were equally good and the variation were pure luck, it would be
+              8.4&nbsp;points. Across 20,000 simulations the observed spread was never matched
+              &mdash; <strong>p&nbsp;&lt;&nbsp;0.001</strong>.</p>
+          </div>
+          <div class="fs-card">
+            <p class="n">2</p>
+            <h3>And they last</h3>
+            <p>Split each forecaster's career in half. The first half predicts the second at
+              <strong>r&nbsp;=&nbsp;+0.46</strong> (permutation p&nbsp;=&nbsp;0.0002). Being honest
+              about your own uncertainty is a durable trait, not a run of form &mdash; the same
+              desks stay reliable for decades.</p>
+          </div>
+          <div class="fs-card">
+            <p class="n">3</p>
+            <h3>But almost nobody is good enough</h3>
+            <p>Only <strong>1 of 64</strong> forecasters had their 80% ranges actually hold 80% of
+              the time. The best in Europe is merely adequate. The trait is real, persistent, and
+              almost universally insufficient.</p>
+          </div>
+        </div>
+
+        <div class="fs-card">
+          <h3>The confounder that had to go first</h3>
+          <p>Forecasters cover different years, and years are not equally hard. The panel as a whole
+            managed <strong>100% coverage in 2007 and 0% in 2008</strong>. Anyone active only in the
+            calm stretch would look brilliant for nothing.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>Year</th><th>Panel coverage</th><th class="note"></th></tr></thead>
+              <tbody>
+                <tr><th scope="row">2007</th><td>100%</td><td class="note">easiest &mdash; every forecaster contained the outcome</td></tr>
+                <tr><th scope="row">2025</th><td>100%</td><td class="note"></td></tr>
+                <tr><th scope="row">2006</th><td>98%</td><td class="note"></td></tr>
+                <tr class="fs-bad"><th scope="row">2008, 2021, 2022, 2023</th><td>0%</td>
+                    <td class="note">hardest &mdash; not one forecaster contained the outcome, in any of them</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:14px">So every forecaster is scored against what an average
+            forecaster facing <em>their exact years</em> would have achieved. A forecaster who was
+            present for 2008 is not punished for it; a forecaster who sat out 2008 gets no credit
+            for missing it.</p>
+          <p class="fs-warn"><strong>Controlling for it made the result stronger, not weaker.</strong>
+            Before the adjustment the spread was 14.2 points against 11.9 from luck
+            (p&nbsp;=&nbsp;0.016). After it, 13.5 against 8.4 (p&nbsp;&lt;&nbsp;0.001). Year
+            composition had been masking the signal, not creating it. That is the opposite of what
+            a confounder usually does, and worth stating plainly.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>The extremes</h3>
+          <p>Scores are percentage points above or below a year-matched average forecaster. The
+            coverage column is the raw share of years their own 80% range contained the outcome
+            &mdash; where 80% is the honest target.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>Forecaster</th><th>Skill vs year-matched average</th><th>Years scored</th>
+                <th>Raw coverage</th></tr></thead>
+              <tbody>
+                <tr class="fs-head"><th scope="row">#016</th><td>+23pp</td><td>25</td><td>76%</td></tr>
+                <tr><th scope="row">#115</th><td>+22pp</td><td>11</td><td>73%</td></tr>
+                <tr><th scope="row">#089</th><td>+20pp</td><td>26</td><td>73%</td></tr>
+                <tr><th scope="row">#092</th><td>+18pp</td><td>15</td><td>80%</td></tr>
+                <tr><th scope="row">#088</th><td>+18pp</td><td>13</td><td>77%</td></tr>
+                <tr><td colspan="4" class="note" style="text-align:center">&middot; &middot; &middot; 54 forecasters in between &middot; &middot; &middot;</td></tr>
+                <tr><th scope="row">#070</th><td>&minus;23pp</td><td>15</td><td>33%</td></tr>
+                <tr><th scope="row">#063</th><td>&minus;26pp</td><td>14</td><td>36%</td></tr>
+                <tr><th scope="row">#093</th><td>&minus;26pp</td><td>26</td><td>27%</td></tr>
+                <tr><th scope="row">#029</th><td>&minus;29pp</td><td>21</td><td>19%</td></tr>
+                <tr class="fs-bad"><th scope="row">#101</th><td>&minus;33pp</td><td>17</td><td>12%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cap" style="font-size:.85rem;color:var(--text-dim);margin-top:8px">
+            Forecaster #101 published a range they were 80% confident in, seventeen times. It
+            contained the answer twice. Forecaster #093 has the longest possible record &mdash; all
+            26 years &mdash; and sits 26 points below average, so this is not a small-sample
+            artefact at the bottom either.</p>
+          <p class="fs-warn"><strong>Nobody knows who these are, and this makes no attempt to find
+            out.</strong> The ECB publishes panellists only by number and provides no mapping. The
+            numbers are stable identities &mdash; #016 in 2000 is the same desk as #016 in 2022
+            &mdash; which is what makes following a career possible without ever knowing whose it
+            is. Speculating about which institution holds which number would be both unfounded and
+            a misuse of data published on the understanding that it stays anonymous.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Method</h3>
+          <ul>
+            <li><strong>The score.</strong> For each forecaster: how many years their own 80% range
+              contained the outcome, minus how many an average forecaster facing the same years
+              would have got. Divided by the number of years, so it reads as percentage points.</li>
+            <li><strong>Is the spread real?</strong> Simulate 20,000 panels in which every
+              forecaster is identical, each year's difficulty held at its actual value, and compare
+              the observed spread to that distribution. This is a null built from the data, not a
+              table lookup.</li>
+            <li><strong>Does it persist?</strong> Split each career in half by year, score both
+              halves the same way, and correlate. Significance by permutation &mdash; shuffle the
+              second halves 20,000 times and see how often chance produces a correlation this
+              large.</li>
+            <li><strong>Who counts.</strong> Forecasters with at least ten scored years. A shorter
+              record cannot distinguish skill from luck in either direction.</li>
+          </ul>
+          <p class="fs-eq">skill = (their hits &minus; year-matched expected hits) &divide; years</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Limitations</h3>
+          <ul>
+            <li><strong>Ten years is still a short record.</strong> A forecaster with exactly ten
+              scored years has a wide luck band around them, which is why the grey band on the
+              chart is drawn from simulation rather than assumed. Fifteen of 64 sit outside it; the
+              other 49 are individually indistinguishable from average, however their bar looks.</li>
+            <li><strong>Skill at what, exactly.</strong> This measures honesty about uncertainty
+              &mdash; whether a stated range behaves like one. It does not measure whether the
+              central forecast was close, which is a different and more commonly asked question. A
+              forecaster could score well here by being usefully vague.</li>
+            <li><strong>Coverage is blunt.</strong> Being outside the range by 0.1pp and by 6pp
+              count the same. Carried over from the companion study, and unchanged.</li>
+            <li><strong>Survivorship.</strong> Forecasters who left the panel early are excluded by
+              the ten-year rule. If institutions leave <em>because</em> they forecast badly, the
+              surviving panel looks better than the profession does.</li>
+            <li><strong>One test each, but two tests total.</strong> Two hypotheses were tested on
+              the same data. Both clear conventional thresholds by a wide margin
+              (p&nbsp;&lt;&nbsp;0.001 and p&nbsp;=&nbsp;0.0002), so a correction for testing twice
+              would not change either verdict &mdash; but they were not pre-registered, and the
+              year-adjustment was added after seeing the unadjusted result.</li>
+            <li><strong>The open-ended top bucket.</strong> Inherited from the companion study: a
+              percentile landing in the open top bucket uses the boundary, which narrows the range
+              slightly and overstates overconfidence. It affects 3.4% of distributions and applies
+              to everyone roughly equally, so it should not bias the comparison <em>between</em>
+              forecasters.</li>
+          </ul>
+        </div>
+
+        <div class="fs-card">
+          <h3>What to do with this</h3>
+          <ul>
+            <li><strong>Stop treating &ldquo;the consensus&rdquo; as one voice.</strong> It is an
+              average over people who differ by 57 points in reliability. The number you are handed
+              carries none of that, and the dispersion is real information that aggregation
+              deletes.</li>
+            <li><strong>When you can see individual forecasters, track them.</strong> The evidence
+              here says past reliability predicts future reliability. Where a forecaster is named
+              &mdash; a broker, an analyst, a supplier's demand plan &mdash; keeping your own score
+              is worth more than the current consensus.</li>
+            <li><strong>Do not expect anyone to be good enough.</strong> One in sixty-four cleared
+              their own bar. Even choosing well leaves you with ranges that are too narrow.</li>
+          </ul>
+          <p class="fs-warn"><strong>What would change this conclusion.</strong> If the persistence
+            is an artefact of forecasters having stable <em>styles</em> rather than stable
+            <em>skill</em> &mdash; someone who always quotes wide ranges will score well here
+            without being more informative &mdash; then the right response is to prefer wide
+            forecasters, not better ones. Separating the two needs a sharpness measure alongside
+            coverage, which this study does not compute. Treat the persistence as established and
+            its interpretation as open.</p>
+        </div>
+
+        <div class="fs-card fs-code">
+          <h3>The script, in full</h3>
+          <p>Nothing is elided. This is the file that produced every number and the chart on this page, exactly as it runs.</p>
+            <details>
+              <summary>ecb_forecaster_skill.py (277 lines)</summary>
+              <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Is any individual ECB forecaster consistently honest about uncertainty?
+
+The companion study (ecb_spf_calibration.py) scored the panel as a whole: when
+these forecasters mark out a range they are 80% sure about, the outcome lands
+inside it 53% of the time. This asks a different question of the same data.
+
+The ECB anonymises panellists by number and publishes no mapping, so nobody
+outside the ECB knows which institution is which — and this makes no attempt to
+find out. But the numbers are stable identities: #016 in 2000 is the same desk
+as #016 in 2022. So an individual record can be followed for a quarter of a
+century without ever knowing whose it is.
+
+The confounder that had to be removed first: forecasters cover different years,
+and years differ enormously in difficulty — the panel managed 100% coverage in
+2007 and 0% in 2008. Anyone active only in the calm years would look brilliant
+for free. So each forecaster is scored against what an average forecaster
+facing THEIR EXACT YEARS would have achieved. Controlling for it makes the
+result stronger, not weaker; it had been masking the signal.
+
+Two tests, both against explicit null distributions rather than a table:
+  - is the spread across forecasters wider than luck would produce, if every
+    forecaster were equally good?
+  - does the first half of a forecaster&#x27;s career predict the second half?
+
+Stdlib only, seeded, deterministic.
+
+  python3 scripts/ecb_forecaster_skill.py
+&quot;&quot;&quot;
+import collections, json, os, random, statistics, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ecb_spf_calibration import load, quantile, TOL          # noqa: E402
+from fte_chart import render_png                              # noqa: E402
+
+SEED = 42
+ITERS = 20_000
+MIN_YEARS = 10          # a record shorter than this says nothing either way
+BAND = 0.80
+OUT = &quot;data/ecb-forecaster-skill.json&quot;
+
+
+def records(dists, actual):
+    &quot;&quot;&quot;-&gt; {forecaster: [(year, hit)]} one year ahead, their own 80% band.&quot;&quot;&quot;
+    one = lambda t, rd: rd.startswith(f&quot;{t - 1}-Q4&quot;)
+    rec = collections.defaultdict(list)
+    tail = (1 - BAND) / 2
+    for (t, rd, who), bins in dists.items():
+        if t not in actual or not rd or not one(t, rd):
+            continue
+        if abs(sum(bins.values()) - 100.0) &gt; TOL:
+            continue
+        lo, hi = quantile(bins, tail), quantile(bins, 1 - tail)
+        if lo is None or hi is None:
+            continue
+        rec[who].append((t, 1 if lo &lt;= actual[t] &lt;= hi else 0))
+    return {w: v for w, v in rec.items() if len(v) &gt;= MIN_YEARS}
+
+
+def year_difficulty(elig):
+    &quot;&quot;&quot;Panel coverage per year — how hard that year was for everyone.&quot;&quot;&quot;
+    by = collections.defaultdict(list)
+    for v in elig.values():
+        for t, h in v:
+            by[t].append(h)
+    return {t: sum(h) / len(h) for t, h in by.items()}
+
+
+def skill(elig, p_y):
+    &quot;&quot;&quot;Hits above what the same years would give an average forecaster.&quot;&quot;&quot;
+    return {w: (sum(h for _, h in v) - sum(p_y[t] for t, _ in v)) / len(v)
+            for w, v in elig.items()}
+
+
+def hr(t):
+    print(f&quot;\n{&#x27;=&#x27; * 78}\n{t}\n{&#x27;=&#x27; * 78}&quot;)
+
+
+def main():
+    doc, actual, dists, _ = load()
+    elig = records(dists, actual)
+    p_y = year_difficulty(elig)
+    score = skill(elig, p_y)
+    rng = random.Random(SEED)
+
+    hr(&quot;0. The panel, followed individually&quot;)
+    print(f&quot;  forecasters with {MIN_YEARS}+ scored years   {len(elig)}&quot;)
+    print(f&quot;  forecasts scored                    &quot;
+          f&quot;{sum(len(v) for v in elig.values()):,}&quot;)
+    print(f&quot;  pooled coverage                     &quot;
+          f&quot;{sum(h for v in elig.values() for _, h in v) / sum(len(v) for v in elig.values()) * 100:.1f}%&quot;)
+    print(&quot;  Forecasters are anonymous. The ECB publishes them only by number,&quot;)
+    print(&quot;  and nothing here attempts to identify them.&quot;)
+
+    hr(&quot;1. Year difficulty — the confounder that had to go first&quot;)
+    for t in sorted(p_y):
+        bar = &quot;#&quot; * round(p_y[t] * 30)
+        print(f&quot;    {t}  {p_y[t] * 100:&gt;5.0f}%  {bar}&quot;)
+    print(&quot;\n  A forecaster active only in 2003-2007 would look brilliant for&quot;)
+    print(&quot;  free. Every score below is measured against what an average&quot;)
+    print(&quot;  forecaster facing that forecaster&#x27;s own years would have managed.&quot;)
+
+    hr(&quot;2. Is the spread wider than luck?&quot;)
+    obs = statistics.pstdev(list(score.values()))
+    sims = []
+    for _ in range(ITERS):
+        s = []
+        for v in elig.values():
+            exp = sum(p_y[t] for t, _ in v)
+            got = sum(1 for t, _ in v if rng.random() &lt; p_y[t])
+            s.append((got - exp) / len(v))
+        sims.append(statistics.pstdev(s))
+    sims.sort()
+    p_spread = sum(1 for x in sims if x &gt;= obs) / len(sims)
+    print(f&quot;  observed spread across forecasters   {obs * 100:.1f}pp&quot;)
+    print(f&quot;  if every forecaster were equal       median &quot;
+          f&quot;{statistics.median(sims) * 100:.1f}pp, 95th &quot;
+          f&quot;{sims[int(0.95 * len(sims))] * 100:.1f}pp&quot;)
+    print(f&quot;  p = {p_spread:.4f}  -&gt; &quot;
+          f&quot;{&#x27;real differences between forecasters&#x27; if p_spread &lt; 0.05 else &#x27;indistinguishable from luck&#x27;}&quot;)
+
+    srt = sorted(score.items(), key=lambda x: -x[1])
+    print(f&quot;\n  best  &quot; + &quot;, &quot;.join(f&quot;#{w} {v * 100:+.0f}pp&quot; for w, v in srt[:5]))
+    print(f&quot;  worst &quot; + &quot;, &quot;.join(f&quot;#{w} {v * 100:+.0f}pp&quot; for w, v in srt[-5:]))
+    print(f&quot;  gap between best and worst: &quot;
+          f&quot;{(srt[0][1] - srt[-1][1]) * 100:.0f} percentage points&quot;)
+
+    hr(&quot;3. Does a good record keep being good?&quot;)
+    pairs = []
+    for w, v in elig.items():
+        v = sorted(v)
+        if len(v) &lt; 12:
+            continue
+        h = len(v) // 2
+
+        def sc(part):
+            return (sum(x for _, x in part)
+                    - sum(p_y[t] for t, _ in part)) / len(part)
+        pairs.append((sc(v[:h]), sc(v[h:])))
+    xs = [a for a, _ in pairs]
+    ys = [b for _, b in pairs]
+    mx, my = statistics.mean(xs), statistics.mean(ys)
+    num = sum((a - mx) * (b - my) for a, b in pairs)
+    den = (sum((a - mx) ** 2 for a in xs) * sum((b - my) ** 2 for b in ys)) ** .5
+    r = num / den if den else float(&quot;nan&quot;)
+    hit = 0
+    for _ in range(ITERS):
+        sh = ys[:]
+        rng.shuffle(sh)
+        m2 = statistics.mean(sh)
+        nn = sum((a - mx) * (b - m2) for a, b in zip(xs, sh))
+        dd = (sum((a - mx) ** 2 for a in xs)
+              * sum((b - m2) ** 2 for b in sh)) ** .5
+        if dd and abs(nn / dd) &gt;= abs(r):
+            hit += 1
+    p_split = hit / ITERS
+    print(f&quot;  first half of a career vs second half, n={len(pairs)} forecasters&quot;)
+    print(f&quot;  r = {r:+.3f}   permutation p = {p_split:.4f}&quot;)
+    print(f&quot;  -&gt; {&#x27;honesty about uncertainty is a durable trait&#x27; if p_split &lt; 0.05 else &#x27;no persistence&#x27;}&quot;)
+
+    hr(&quot;4. But almost nobody clears the bar&quot;)
+    cov = {w: sum(h for _, h in v) / len(v) for w, v in elig.items()}
+    good = sorted((c for c in cov.values() if c &gt;= BAND), reverse=True)
+    print(f&quot;  forecasters whose 80% ranges actually held 80% of the time: &quot;
+          f&quot;{len(good)} of {len(cov)}&quot;)
+    print(&quot;  Skill in being honest about uncertainty is real, persistent, and&quot;)
+    print(&quot;  almost universally insufficient.&quot;)
+
+    # ------------------------------------------------------------------ export
+    pool = []
+    for _ in range(4000):
+        for v in elig.values():
+            exp = sum(p_y[t] for t, _ in v)
+            got = sum(1 for t, _ in v if rng.random() &lt; p_y[t])
+            pool.append((got - exp) / len(v))
+    pool.sort()
+    luck = [pool[int(0.025 * len(pool))], pool[int(0.975 * len(pool))]]
+
+    out = {
+        &quot;generated_by&quot;: &quot;scripts/ecb_forecaster_skill.py&quot;,
+        &quot;source_url&quot;: doc[&quot;source_url&quot;], &quot;fetched_at&quot;: doc[&quot;fetched_at&quot;],
+        &quot;note&quot;: (&quot;Forecasters are anonymous; the ECB publishes them only by &quot;
+                 &quot;number and this makes no attempt to identify them.&quot;),
+        &quot;seed&quot;: SEED, &quot;iters&quot;: ITERS, &quot;min_years&quot;: MIN_YEARS,
+        &quot;n_forecasters&quot;: len(elig),
+        &quot;n_forecasts&quot;: sum(len(v) for v in elig.values()),
+        &quot;year_difficulty&quot;: {str(t): round(p, 4) for t, p in sorted(p_y.items())},
+        &quot;spread&quot;: {&quot;observed_sd&quot;: round(obs, 4),
+                   &quot;null_median_sd&quot;: round(statistics.median(sims), 4),
+                   &quot;p&quot;: round(p_spread, 4)},
+        &quot;split_half&quot;: {&quot;n&quot;: len(pairs), &quot;r&quot;: round(r, 4),
+                       &quot;p&quot;: round(p_split, 4)},
+        &quot;luck_band&quot;: [round(luck[0], 4), round(luck[1], 4)],
+        &quot;above_bar&quot;: len(good),
+        &quot;scores&quot;: [{&quot;who&quot;: w, &quot;skill&quot;: round(v, 4), &quot;years&quot;: len(elig[w]),
+                    &quot;coverage&quot;: round(cov[w], 4)} for w, v in srt],
+    }
+    with open(OUT, &quot;w&quot;) as fh:
+        json.dump(out, fh, indent=1)
+    print(f&quot;\n  wrote {OUT}&quot;)
+    chart(out)
+    return 0
+
+
+def chart(res):
+    &quot;&quot;&quot;One bar per forecaster, sorted, against the band luck alone would give.&quot;&quot;&quot;
+    srt = sorted(res[&quot;scores&quot;], key=lambda r: r[&quot;skill&quot;])
+    lo_b, hi_b = res[&quot;luck_band&quot;]
+    W, H, L, R, T, B = 1600, 1000, 90, 60, 175, 140
+    pw, ph = W - L - R, H - T - B
+    n = len(srt)
+    slot = pw / n
+    bw = slot * 0.72
+    lim = 0.38
+    BLUE, RED, DIM, INK, GRID = &quot;#2f9bff&quot;, &quot;#d92b2b&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;, &quot;#d6dce4&quot;
+    F = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&quot;
+         &quot;&#x27;Helvetica Neue&#x27;,Arial,sans-serif&quot;)
+
+    def x(i):
+        return L + i * slot + (slot - bw) / 2
+
+    def y(v):
+        return T + (1 - (v + lim) / (2 * lim)) * ph
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+         f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;52&quot; font-size=&quot;37&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;They are not interchangeable &amp;#8212; and the consensus hides it&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;94&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;Each bar is one &#x27;
+         f&#x27;anonymous ECB forecaster: how much better or worse their 80% ranges &#x27;
+         f&#x27;held up than an average&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;124&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;forecaster facing &#x27;
+         f&#x27;the same years. {n} forecasters with {res[&quot;min_years&quot;]}+ scored &#x27;
+         f&#x27;years, euro-area inflation, 2000&amp;#8211;2025.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;154&quot; font-size=&quot;21&quot; fill=&quot;{DIM}&quot;&gt;Grey band = the &#x27;
+         f&#x27;spread pure luck would produce if every forecaster were equally &#x27;
+         f&#x27;good.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;rect x=&quot;{L}&quot; y=&quot;{y(hi_b):.1f}&quot; width=&quot;{pw}&quot; &#x27;
+         f&#x27;height=&quot;{y(lo_b) - y(hi_b):.1f}&quot; fill=&quot;{DIM}&quot; opacity=&quot;0.13&quot;/&gt;&#x27;]
+    for g in (-0.3, -0.15, 0, 0.15, 0.3):
+        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{y(g):.1f}&quot; x2=&quot;{L + pw}&quot; y2=&quot;{y(g):.1f}&quot; &#x27;
+                 f&#x27;stroke=&quot;{GRID if g else INK}&quot; stroke-width=&quot;{2 if g == 0 else 1}&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{L - 12}&quot; y=&quot;{y(g) + 7:.1f}&quot; font-size=&quot;20&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{g * 100:+.0f}pp&lt;/text&gt;&#x27;)
+    for i, r in enumerate(srt):
+        v = r[&quot;skill&quot;]
+        col = BLUE if v &gt;= 0 else RED
+        y0, y1 = (y(v), y(0)) if v &gt;= 0 else (y(0), y(v))
+        o.append(f&#x27;&lt;rect x=&quot;{x(i):.1f}&quot; y=&quot;{y0:.1f}&quot; width=&quot;{bw:.1f}&quot; &#x27;
+                 f&#x27;height=&quot;{max(1, y1 - y0):.1f}&quot; fill=&quot;{col}&quot; rx=&quot;2&quot;/&gt;&#x27;)
+    best, worst = srt[-1], srt[0]
+    o += [f&#x27;&lt;text x=&quot;{x(n - 1) + bw / 2:.1f}&quot; y=&quot;{y(best[&quot;skill&quot;]) - 16:.1f}&quot; &#x27;
+          f&#x27;font-size=&quot;21&quot; font-weight=&quot;700&quot; fill=&quot;{BLUE}&quot; text-anchor=&quot;end&quot;&gt;&#x27;
+          f&#x27;#{best[&quot;who&quot;]}: {best[&quot;skill&quot;] * 100:+.0f}pp&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{x(0) + bw / 2:.1f}&quot; y=&quot;{y(worst[&quot;skill&quot;]) + 30:.1f}&quot; &#x27;
+          f&#x27;font-size=&quot;21&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot; text-anchor=&quot;start&quot;&gt;&#x27;
+          f&#x27;#{worst[&quot;who&quot;]}: {worst[&quot;skill&quot;] * 100:+.0f}pp&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L + pw / 2:.0f}&quot; y=&quot;{T + ph + 62}&quot; font-size=&quot;24&quot; &#x27;
+          f&#x27;fill=&quot;{INK}&quot; text-anchor=&quot;middle&quot;&gt;one bar per forecaster, worst to &#x27;
+          f&#x27;best&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 26}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;Data: ECB &#x27;
+          f&#x27;Survey of Professional Forecasters, individual responses. &#x27;
+          f&#x27;Forecasters are anonymous; the ECB publishes them only by &#x27;
+          f&#x27;number.&lt;/text&gt;&#x27;, &#x27;&lt;/svg&gt;&#x27;]
+    svg = &quot;\n&quot;.join(o)
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/ecb-forecaster-skill.svg&quot;
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;  wrote {path}&quot;)
+    render_png(svg, &quot;assets/linkedin/ecb-forecaster-skill.png&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</code></pre>
+            </details>
+        </div>
+
+        <div class="fs-card">
+          <h3>Reproduce it</h3>
+          <p>Runs from the data committed for the companion study &mdash; no fetching required.
+            Stdlib only, seeded, verified byte-identical across runs.</p>
+          <p class="fs-eq">python3 scripts/ecb_forecaster_skill.py</p>
+          <p class="fs-links">
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/ecb_forecaster_skill.py">Analysis script</a>
+            <a href="https://github.com/namikakmandev/namikakmandev.github.io/blob/main/scripts/fetch_ecb_spf.py">Fetch script</a>
+            <a href="https://data.ecb.europa.eu/">ECB Data Portal</a>
+            <a href="ecb-forecasts.html">The companion study</a>
+          </p>
+        </div>
+
+        <p class="data-note" style="font-size:.85rem">
+          Data &copy; European Central Bank, Survey of Professional Forecasters, published openly
+          via the <a href="https://data.ecb.europa.eu/">ECB Data Portal</a>. This analysis is
+          independent and not affiliated with or endorsed by the ECB or any survey participant.
+          Forecasters are identified only by the anonymous numbers the ECB itself publishes, and no
+          attempt is made to link a number to an institution. Method and any errors are mine.
+          Written August&nbsp;2026.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
