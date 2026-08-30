@@ -70,6 +70,13 @@
 
   <div class="btns" id="ccbtns"></div>
   <div class="banner" id="banner"></div>
+  <div class="card">
+    <div class="chart-title">How much weight each market carries</div>
+    <div class="chart-sub" id="weightsub"></div>
+    <div class="tblwrap"><table id="weighttable"></table></div>
+    <div class="chart-sub" id="weightnotes" style="margin-top:10px"></div>
+  </div>
+
   <div class="tiles" id="tiles"></div>
 
   <div class="card">
@@ -905,6 +912,95 @@ Promise.all([
     document.getElementById('brandtrend').innerHTML = trend.length
       ? lineChart(trend, {yFmt: v => money(v, cur2, dp2)})
       : '<div class="chart-sub">nothing to plot</div>';
+    // ---------------------------------------------------------------------
+
+    // ---- how much weight each market carries ----------------------------
+    // The honest ceiling first: nothing here is a transaction. These are prices
+    // a shop published on a page, and a published price is an ASK. It is not
+    // evidence that a dog was treated at it, nor of how many were. No venue
+    // count changes that. What a venue count DOES change is how much of the
+    // retailer-to-retailer variation we can see, and that is worth grading.
+    const RETAIL = o => o.venue !== 'perfectpet';
+    const wk = {};
+    obs.filter(RETAIL).forEach(o => {
+      const w = wk[o.country] ??= {ven:new Set(), live:new Set(), prod:new Set(),
+                                   n:0, days:new Set(), hist:0};
+      w.ven.add(o.venue); w.prod.add(o.product); w.n++; w.days.add(o.d);
+      if(o.hist) w.hist++;
+      if(o.d === latestDate) w.live.add(o.venue);
+    });
+    // cross-venue agreement: the same SKU and pack, the same day, two shops
+    const share = {};
+    obs.filter(o => o.d === latestDate && RETAIL(o)).forEach(o => {
+      ((share[o.country] ??= {})[`${o.sku}|${o.n}`] ??= []).push(o.unit);
+    });
+    const spreadOf = country => {
+      const arr = Object.values(share[country] || {}).filter(v => v.length > 1)
+        .map(v => Math.max(...v) / Math.min(...v) - 1).sort((a,b)=>a-b);
+      if(!arr.length) return null;
+      return {n: arr.length, med: arr.length % 2 ? arr[(arr.length-1)/2]
+              : (arr[arr.length/2-1] + arr[arr.length/2]) / 2};
+    };
+    // Grades describe EVIDENCE, never accuracy: a single shop can quote the
+    // right price and five shops can all be wrong. What the grade says is how
+    // much of the variation around that price we are in a position to see.
+    // Depth is repeat observation over TIME, not row count: one shop listing ten
+    // SKUs on one day is ten rows and still one day, which tells you nothing
+    // about whether the price holds. Days are the discriminator, shops are the
+    // corroboration, and the two are graded separately.
+    const gradeOf = w => {
+      const sp = spreadOf(w.cc), shops = w.live.size, days = w.days.size;
+      if(shops >= 2 && sp && days > 5)  return {g:'corroborated, over time',  t:'var(--down)'};
+      if(shops >= 2 && sp)              return {g:'corroborated, one day',    t:'var(--c3)'};
+      if(shops >= 2 && days > 5)        return {g:'two shops, no shared SKU', t:'var(--c4)'};
+      if(shops >= 2)                    return {g:'two shops, one snapshot',  t:'var(--c4)'};
+      if(days > 5)                      return {g:'deep, but one shop',       t:'var(--c4)'};
+      if(days > 1)                      return {g:'thin, one shop',           t:'var(--up)'};
+      return {g:'a trace',                                                    t:'var(--up)'};
+    };
+    const wrows = Object.entries(wk).map(([ccode, w]) => {
+      w.cc = ccode;
+      const d = [...w.days].sort();
+      return {cc: ccode, w, sp: spreadOf(ccode), grade: gradeOf(w), from: d[0], to: d.at(-1)};
+    }).sort((a, b) => b.w.live.size - a.w.live.size || b.w.n - a.w.n);
+
+    const canCheck = wrows.filter(r => r.sp).length;
+    const oneShop = wrows.filter(r => r.w.live.size === 1).length;
+    document.getElementById('weightsub').innerHTML =
+      '<b>Nothing on this page is a transaction.</b> Every figure is a price a shop published on a page — '
+      + 'an <i>ask</i>. It is not evidence that a dog was treated at it, and it says nothing about how many '
+      + 'were. Coupons, autoship rates, vet-channel dispensing and any negotiated price are all invisible '
+      + `here. Within that ceiling the markets differ enormously, and this is the difference: `
+      + `<b>${oneShop} of ${wrows.length}</b> rest on a single shop, and only <b>${canCheck}</b> have two `
+      + 'shops quoting the same SKU on the same day, which is the only internal check available.';
+
+    document.getElementById('weighttable').innerHTML =
+      '<tr><th>Market</th><th>Shops today</th><th>Products</th><th>Obs</th><th>Days</th>'
+      + '<th>Tracked since</th><th>Two shops, one SKU</th><th style="text-align:left">What that supports</th></tr>'
+      + wrows.map(r => `<tr${r.cc===cc?' style="background:rgba(57,135,229,.10)"':''}>
+        <td><span class="cc">${r.cc}</span>${esc(CCNAME[r.cc]||r.cc)}</td>
+        <td>${r.w.live.size}</td><td>${r.w.prod.size} of 5</td><td>${r.w.n}</td><td>${r.w.days.size}</td>
+        <td>${esc(r.from.slice(0,7))}</td>
+        <td>${r.sp ? `${r.sp.n} SKU${r.sp.n>1?'s':''}, they differ ${(r.sp.med*100).toFixed(0)}%`
+                   : '<span style="color:var(--ink3)">not possible</span>'}</td>
+        <td style="text-align:left;color:${r.grade.t}">${esc(r.grade.g)}</td></tr>`).join('');
+
+    const spreads = wrows.filter(r => r.sp).map(r => r.sp.med).sort((a,b)=>a-b);
+    const medSpread = spreads.length ? spreads[Math.floor(spreads.length/2)] : null;
+    document.getElementById('weightnotes').innerHTML =
+      (medSpread != null
+        ? `<b>Where two shops in one market do quote the same SKU, they differ by about `
+          + `${(medSpread*100).toFixed(0)}% on the day</b> — so a market represented by one shop is carrying `
+          + 'at least that much unseen retailer variation, and probably more, since one shop cannot show '
+          + 'you its own dispersion. '
+        : '')
+      + 'A grade here describes <b>evidence, not accuracy</b>: a single shop can quote exactly the right '
+      + 'price and five shops can all be wrong together. What it says is how much of the variation around '
+      + 'that price we are in a position to see. '
+      + '<b>Two consequences worth carrying into every other panel.</b> The Netherlands has four years of '
+      + 'history and five products from <i>one</i> pharmacy, so the Dutch inflation figure is that shop\u2019s '
+      + 'pricing policy as much as the country\u2019s. And several markets are a one-day, one-shop, '
+      + 'one-product reading — real, published, verifiable, and not a market average by any stretch.';
     // ---------------------------------------------------------------------
 
     // tiles: cheapest latest unit price per product in this country
