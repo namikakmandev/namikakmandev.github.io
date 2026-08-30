@@ -81,6 +81,13 @@
   </div>
 
   <div class="card">
+    <div class="chart-title">What Cytopoint has to do to be worth it</div>
+    <div class="chart-sub" id="cytosub"></div>
+    <div id="cytoplot"></div>
+    <div class="chart-sub" id="cytonotes" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
     <div class="chart-title">Zoetis versus the challengers</div>
     <div class="chart-sub" id="makersub"></div>
     <div class="tblwrap"><table id="makertable"></table></div>
@@ -145,6 +152,43 @@ const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; r
 // instead of five cards. Cytopoint is drawn as an INTERVAL rather than a bar,
 // because its label says every 4 TO 8 weeks - the solid part is the 8-week
 // end, the faded part reaches the 4-week end, and both are true at once.
+// Cytopoint cannot be ranked on price, because its cost per day divides by a
+// number a vet chooses, not one a shop prints. So the question is inverted:
+// how many days must one vial cover to match the tablet on the same shelf?
+// That answer is a pure ratio - no currency, no VAT, no FX - and it is checked
+// against the label's own 28-to-56-day window, drawn here as the shaded band.
+function breakEvenPlot(rows){
+  if(!rows.length) return '<div class="chart-sub">no shop here sells Cytopoint and a tablet on the same day</div>';
+  const W = 820, PADL = 306, PADR = 78, ROW = 21, TOP = 30, LO = 28, HI = 56;
+  const H = TOP + rows.length * ROW + 10;
+  const maxD = Math.max(HI * 1.35, ...rows.map(r => r.days)) * 1.04;
+  const x = d => PADL + (W - PADL - PADR) * d / maxD;
+  let out = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="break-even dosing interval by shop">`;
+  // the label window, recessive: it is the reference, not the data
+  out += `<rect x="${x(LO)}" y="${TOP - 14}" width="${x(HI) - x(LO)}" height="${rows.length*ROW + 8}"`
+       + ` fill="var(--c1)" opacity=".10"/>`;
+  for(const t of [LO, 42, HI]){
+    out += `<line x1="${x(t)}" y1="${TOP - 14}" x2="${x(t)}" y2="${TOP + rows.length*ROW - 6}"`
+         + ` stroke="var(--line)" stroke-width="1"/>`
+         + `<text x="${x(t)}" y="${TOP - 19}" text-anchor="middle" font-size="10.5" fill="var(--ink3)">${t}d</text>`;
+  }
+  out += `<text x="${x((LO+HI)/2)}" y="${TOP + rows.length*ROW + 6}" text-anchor="middle" font-size="10.5"`
+       + ` fill="var(--ink3)">what the label allows</text>`;
+  rows.forEach((r, i) => {
+    const y = TOP + i * ROW;
+    out += `<text x="${PADL - 12}" y="${y + 4}" text-anchor="end" font-size="12" fill="var(--ink)">${esc(r.label)}</text>`;
+    const clipped = r.days > maxD;
+    const cx = x(Math.min(r.days, maxD));
+    out += `<line x1="${PADL}" y1="${y}" x2="${cx}" y2="${y}" stroke="${r.color}" stroke-width="1.5" opacity=".38"/>`;
+    // 2px surface ring so a dot landing on the band edge still reads
+    out += `<circle cx="${cx}" cy="${y}" r="5" fill="${r.color}" stroke="var(--card)" stroke-width="2">`
+         + `<title>${esc(r.label)} — ${r.days.toFixed(0)} days. ${esc(r.verdict)}</title></circle>`;
+    out += `<text x="${cx + 11}" y="${y + 4}" font-size="11.5" fill="var(--ink2)"`
+         + ` style="font-variant-numeric:tabular-nums">${r.days.toFixed(0)}d${clipped?'+':''}</text>`;
+  });
+  return out + '</svg>';
+}
+
 function brandBars(rows, fmt){
   if(!rows.length) return '<div class="chart-sub">nothing comparable here yet</div>';
   const W = 760, PADL = 168, PADR = 128, BAR = 20, GAP = 16;
@@ -603,6 +647,76 @@ Promise.all([
       + '<b>Cytopoint is ordered by the cheap end of its own interval</b>, so where it leads it leads '
       + 'only at the 8-week extreme; at the 4-week extreme it costs double and overlaps or beats every '
       + 'tablet from the other side. Which end applies is a clinical question this data cannot answer.';
+    // ---- what Cytopoint has to do to be worth it ------------------------
+    // Break-even = vial price / tablet cost per day = the number of days one
+    // vial must cover to match that shelf. A ratio of two prices from the SAME
+    // till, so currency, VAT and retailer margin all cancel and no conversion
+    // is needed - which is why this view is identical whether one country or
+    // all of them is selected.
+    const LOD = 28, HID = 56;                 // the label's own window
+    const cytoRows = [];
+    const perShop = {};
+    co.filter(o => o.d === latestDate && o.venue !== 'perfectpet').forEach(o => {
+      const isCyto = o.product === 'cytopoint' && o.form === 'inj' && o.mg === DOSE.cytopoint.mg;
+      const d = DOSE[o.product];
+      const isTab = d && !d.unitsPerDayMax && o.form === d.form && o.mg === d.mg;
+      if(!isCyto && !isTab) return;
+      const k = `${o.country}|${o.venue}`;
+      const slot = isCyto ? 'cyto' : o.product;
+      (perShop[k] ??= {})[slot] = (perShop[k][slot] && perShop[k][slot].unit <= o.unit)
+        ? perShop[k][slot] : o;
+    });
+    for(const [k, v] of Object.entries(perShop)){
+      if(!v.cyto) continue;
+      const [ccode, vkey] = k.split('|');
+      for(const pid of Object.keys(DOSE)){
+        if(pid === 'cytopoint' || !v[pid]) continue;
+        const days = v.cyto.unit / v[pid].unit;   // both are per-unit, tablets are 1/day
+        if(!isFinite(days) || days <= 0) continue;
+        cytoRows.push({
+          days, color: PCOLOR[pid],
+          label: `${ccode} ${venues[vkey].name.length > 15
+                      ? venues[vkey].name.slice(0, 14) + '\u2026'
+                      : venues[vkey].name} · ${products[pid].name}`,
+          verdict: days < LOD ? 'cheaper than the tablet even at 4-week dosing'
+                 : days > HID ? 'dearer than the tablet even at 8-week dosing'
+                 : `cheaper only if the dog goes ${days.toFixed(0)}+ days between injections`,
+        });
+      }
+    }
+    cytoRows.sort((a, b) => a.days - b.days);
+    const bdays = cytoRows.map(r => r.days);
+    const bmed = bdays.length ? (bdays.length % 2
+        ? bdays[(bdays.length-1)/2]
+        : (bdays[bdays.length/2-1] + bdays[bdays.length/2]) / 2) : null;
+    const never = cytoRows.filter(r => r.days > HID).length;
+    const always = cytoRows.filter(r => r.days < LOD).length;
+
+    document.getElementById('cytosub').innerHTML = cytoRows.length
+      ? 'Cytopoint cannot be ranked against the tablets on price, because its cost per day divides by '
+        + 'how long the vial holds — a clinical decision, not a printed number. So the question is turned '
+        + 'round: <b>how many days must one 40 mg vial cover to cost the same per day as the tablet on '
+        + `the same shelf?</b> Each dot is one shop and one tablet, ${latestDate}. The band is the label's `
+        + `own <b>4-to-8-week</b> window. This is a ratio of two prices from one till, so currency, VAT and `
+        + 'retailer margin cancel — no conversion is applied or needed.'
+      : '';
+    document.getElementById('cytoplot').innerHTML = breakEvenPlot(cytoRows);
+
+    document.getElementById('cytonotes').innerHTML = cytoRows.length
+      ? `<b>Median break-even ${bmed.toFixed(0)} days</b>, across ${cytoRows.length} shop-and-tablet pairs`
+        + `${all ? '' : ` in ${esc(CCNAME[cc]||cc)}`}. `
+        + `<b>${always} of ${cytoRows.length} fall left of the band</b> — so at four-week dosing Cytopoint `
+        + `is ${always ? 'almost never' : '<b>never</b>'} the cheaper option. `
+        + `${never} fall to the right of it, where no interval the label permits makes it cheaper at all. `
+        + '<b>Every figure here is a floor.</b> These are drug prices only, and a vial has to be injected '
+        + 'by someone while tablets are posted to the owner; an administration fee lengthens each '
+        + 'break-even by the fee divided by the tablet\u2019s daily cost — on a €1.73/day tablet, about six '
+        + 'days per €10, so a €30 consultation pushes the median past what the label allows. Visit fees '
+        + 'are not in this dataset, so that is a sensitivity rather than a measurement — but its direction '
+        + 'is certain, and it only ever runs against Cytopoint.'
+      : 'No shop in this view lists Cytopoint and a weight-matched tablet on the same day.';
+    // ---------------------------------------------------------------------
+
     // ---- Zoetis versus the challengers ----------------------------------
     // Two separate questions, and only one of them has a clean answer.
     // (1) WHERE ARE PRICES NOW. Straightforward: the same cost-per-day figures
@@ -667,8 +781,12 @@ Promise.all([
     for(const f of firmRows){
       const b = f.oral;
       const rel = b.lo === base ? '—' : `+${((b.lo/base - 1)*100).toFixed(0)}%`;
-      const inj = f.inj ? `${esc(products[f.inj.pid].name)} ${fmtDay(f.inj.lo)}–${fmtDay(f.inj.hi)}`
-                        : '<span style="color:var(--ink3)">—</span>';
+      // the interval itself is not comparable across owners; its break-even is
+      const inj = f.inj
+        ? (bmed != null
+            ? `${esc(products[f.inj.pid].name)} — vial must last <b>${bmed.toFixed(0)} days</b> to match a tablet`
+            : `${esc(products[f.inj.pid].name)} ${fmtDay(f.inj.lo)}–${fmtDay(f.inj.hi)}`)
+        : '<span style="color:var(--ink3)">—</span>';
       mt += `<tr><td><b>${esc(f.firm)}</b></td>
         <td style="text-align:left">${f.names.map(esc).join(', ')}</td>
         <td>${fmtDay(b.lo)} <span style="color:var(--ink3)">(${esc(products[b.pid].name)})</span></td>
