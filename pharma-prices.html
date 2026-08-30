@@ -189,14 +189,21 @@ function breakEvenPlot(rows){
   return out + '</svg>';
 }
 
-function brandBars(rows, fmt){
+function brandBars(rows, ref){
   if(!rows.length) return '<div class="chart-sub">nothing comparable here yet</div>';
-  const W = 760, PADL = 168, PADR = 128, BAR = 20, GAP = 16;
+  const W = 760, PADL = 168, PADR = 150, BAR = 20, GAP = 26;
   const H = rows.length * (BAR + GAP) + GAP;
   const max = Math.max(...rows.map(r => r.hi ?? r.lo), 0.0001);
   const x = v => PADL + (W - PADL - PADR) * v / max;
   const R = 4;
   let out = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="cost per day by brand">`;
+  // Apoquel is the incumbent, so it is the benchmark: a dashed rule at its own
+  // cost per day, and every other bar carries its gap to that rule in the space
+  // between the bars. Cytopoint's gap is a range because its cost is.
+  if(ref && ref.lo > 0){
+    out += `<line x1="${x(ref.lo)}" y1="6" x2="${x(ref.lo)}" y2="${H - 6}" stroke="var(--ink3)"`
+         + ` stroke-width="1" stroke-dasharray="3 3" opacity=".4"><title>${esc(ref.name)}, the benchmark</title></line>`;
+  }
   rows.forEach((r, i) => {
     const y = GAP / 2 + i * (BAR + GAP);
     const x0 = PADL, xl = x(r.lo), xh = r.hi != null ? x(r.hi) : null;
@@ -217,6 +224,25 @@ function brandBars(rows, fmt){
          + ` fill="var(--ink)">${esc(r.name)}</text>`;
     out += `<text x="${(xh ?? xl) + 10}" y="${y + BAR / 2 + 4}" font-size="12.5"`
          + ` fill="var(--ink2)" style="font-variant-numeric:tabular-nums">${esc(r.label)}</text>`;
+    // the gap to the benchmark, printed in the gap between the bars
+    if(ref && ref.lo > 0 && r.pid !== ref.pid){
+      const pc = v => ((v / ref.lo - 1) * 100);
+      const a = pc(r.lo), b2 = r.hi != null ? pc(r.hi) : null;
+      // same rounding the label prints, so a reader is never shown a coloured
+      // "0%"; a gap under half a point is level, not an improvement
+      const shown0 = +a.toFixed(0);
+      const tone = b2 != null ? 'var(--ink2)'
+                 : shown0 === 0 ? 'var(--ink2)'
+                 : shown0 > 0 ? 'var(--up)' : 'var(--down)';
+      const txt = b2 == null
+        ? (shown0 === 0 ? `level with ${ref.short}`
+                        : `${shown0 > 0 ? '+' : ''}${shown0}% vs ${ref.short}`)
+        : `${a > 0 ? '+' : ''}${a.toFixed(0)}% to ${b2 > 0 ? '+' : ''}${b2.toFixed(0)}% vs ${ref.short}`;
+      out += `<text x="${PADL}" y="${y + BAR + 13}" font-size="11" fill="${tone}"`
+           + ` style="font-variant-numeric:tabular-nums">${esc(txt)}</text>`;
+    } else if(ref && r.pid === ref.pid){
+      out += `<text x="${PADL}" y="${y + BAR + 13}" font-size="11" fill="var(--ink3)">the benchmark</text>`;
+    }
     out += `<title>${esc(r.name)} — ${esc(r.label)} · ${esc(r.sub)}</title>`;
   });
   return out + '</svg>';
@@ -606,13 +632,15 @@ Promise.all([
         : `cheapest tracked listing in <b>${esc(CCNAME[cc]||cc)}</b>, in local currency`}.
        Each brand is dosed to <b>its own label</b>, not to a common assumption.`;
 
+    const benchmark = shown.find(b => b.pid === 'apoquel');
     document.getElementById('brandbars').innerHTML = brandBars(shown.map(b => ({
+      pid: b.pid,
       name: products[b.pid].name,
       color: PCOLOR[b.pid],
       lo: b.lo, hi: b.hi,
       label: b.hi ? `${fmtDay(b.lo)}–${fmtDay(b.hi)}` : fmtDay(b.lo),
       sub: `${b.dose.mg} mg · ${venues[b.o.venue].name}${all?` · ${b.o.country}`:''} · pack of ${b.o.n}`,
-    })), fmtDay);
+    })), benchmark ? {pid: 'apoquel', lo: benchmark.lo, name: products.apoquel.name, short: 'Apoquel'} : null);
 
     const cheapest = shown[0]?.lo;
     document.getElementById('brandtable').innerHTML =
@@ -642,6 +670,7 @@ Promise.all([
       + 'Apoquel sells in 10s, 20s and 100s while Zenrelia and Numelvi sell in 30s and 90s, so each '
       + 'brand is shown at its own cheapest pack and the pack is named. A brand in a large pack is '
       + 'therefore flattered against one sold singly. '
+      + '<b>The dashed rule is Apoquel</b>, the incumbent, and each bar carries its gap to it. Apoquel has been the default prescription since 2013, so what a rival costs against it is the number that decides a switch; Cytopoint\u2019s gap is a range for the same reason its bar is. '
       + 'Apoquel additionally needs <b>twice-daily dosing for 14 days</b> at the start, which Zenrelia '
       + 'and Numelvi do not; that adds about 47% to its first month and is not in these figures. '
       + '<b>Cytopoint is ordered by the cheap end of its own interval</b>, so where it leads it leads '
