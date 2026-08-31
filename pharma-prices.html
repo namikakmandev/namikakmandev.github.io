@@ -28,6 +28,12 @@
   .btn{background:var(--card2);border:1px solid var(--line);color:var(--ink2);font-size:13px;font-weight:600;
        padding:7px 16px;border-radius:9px;cursor:pointer}
   .btn.on{background:rgba(42,143,239,.14);border-color:rgba(42,143,239,.5);color:var(--c1)}
+  /* Venue evidence badge. Monochrome on purpose: it grades our observation
+     record, not the business, and a colour here would read as a verdict on a
+     shop we know nothing commercial about. */
+  .vb{font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+      border:1px solid var(--line);border-radius:5px;padding:1px 5px;margin-left:7px;
+      white-space:nowrap;cursor:help}
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:0 0 18px}
   .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
   .tile .lab{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
@@ -107,6 +113,8 @@
     <div class="chart-sub" id="brandsub"></div>
     <div id="brandbars"></div>
     <div class="tblwrap" style="margin-top:12px"><table id="brandtable"></table></div>
+    <div class="chart-sub" id="brandevidence" style="margin-top:10px"></div>
+    <div class="chart-sub" id="chewnote" style="margin-top:10px"></div>
     <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--c1);font-size:13px">
       What is held constant, and what is not</summary>
       <div class="chart-sub" id="brandnotes" style="margin-top:8px"></div></details>
@@ -180,6 +188,50 @@
 const RAWCOL = ['#3987E5','#D95926','#199E70','#C98500','#D55181','#008300','#9085E9','#E66767'];
 const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands', CZ:'Czechia', HU:'Hungary', IT:'Italy', ES:'Spain', FR:'France', PL:'Poland', RO:'Romania', SK:'Slovakia', BG:'Bulgaria', BE:'Belgium', PT:'Portugal', SE:'Sweden', FI:'Finland', NO:'Norway', DK:'Denmark', AT:'Austria', CH:'Switzerland', IE:'Ireland', GR:'Greece', HR:'Croatia', SI:'Slovenia', MT:'Malta', CY:'Cyprus', LT:'Lithuania', LV:'Latvia', EE:'Estonia', LU:'Luxembourg'};
 const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł', RON:'lei', SEK:'kr'};
+
+// ---- how much we actually know about each shop ---------------------------
+// This grades OUR OBSERVATION RECORD and nothing else. It is not a rating of
+// the shop: this study has no data on any retailer's size, traffic, sales
+// volume or trustworthiness, and inventing one would be worse than saying
+// nothing. What it does say is how far a price can be trusted to be a standing
+// price rather than a single glimpse - a shop seen on 28 separate days is a
+// series; a shop seen twice could be mid-promotion and nothing here would show
+// it.
+let VSTAT = {};
+function buildVenueStats(obs, latestDate){
+  const st = {};
+  for(const o of obs){
+    const v = st[o.venue] || (st[o.venue] = {days:new Set(), hist:0, live:0, skus:new Set()});
+    v.days.add(o.d); v.skus.add(o.sku);
+    o.hist ? v.hist++ : v.live++;
+  }
+  for(const v of Object.values(st)){
+    const days = [...v.days].sort();
+    v.n = days.length; v.first = days[0]; v.last = days[days.length-1];
+    v.current = v.last === latestDate;
+    // Depth of record, except that a shop which has stopped returning prices is
+    // flagged whatever its depth: a long history is no comfort when the last
+    // reading is three years old.
+    v.tier = !v.current ? 'stale' : v.n >= 20 ? 'deep' : v.n >= 3 ? 'tracked' : 'new';
+  }
+  return st;
+}
+const VTIER = {
+  deep:    {lab:'deep',    ink:'var(--ink)',  why:'seen on 20 or more separate days and still returning prices'},
+  tracked: {lab:'tracked', ink:'var(--ink2)', why:'seen on several days and still returning prices'},
+  new:     {lab:'new',     ink:'var(--ink3)', why:'added within the last few days — one or two readings, so a promotion would be indistinguishable from a standing price'},
+  stale:   {lab:'stale',   ink:'var(--ink3)', why:'no longer returning prices — this is the last figure captured, not a current one'},
+};
+const vBadge = key => {
+  const v = VSTAT[key]; if(!v) return '';
+  const t = VTIER[v.tier];
+  const title = `${t.lab}: ${t.why}. ${v.n} day${v.n===1?'':'s'} observed, ${v.first} to ${v.last}; `
+    + `${v.live} live reading${v.live===1?'':'s'} and ${v.hist} from web archives; `
+    + `${v.skus.size} SKU${v.skus.size===1?'':'s'}.`;
+  return `<span class="vb" style="color:${t.ink}" title="${esc(title)}">${t.lab}`
+       + `<span style="opacity:.55"> ${v.n}d</span></span>`;
+};
+
 const FORM = {tab:'tablet', chew:'chewable', inj:'vial'};
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; return (cur==='HUF'||cur==='CZK'||cur==='PLN'||cur==='RON'||cur==='SEK' ? v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})+' '+SYM[cur] : SYM[cur]+v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})); };
@@ -427,6 +479,12 @@ function renderCostTable(data, fx, vat){
   const obs = (data.observations||[]).filter(o=>o.price>0);
   const products = data.meta.products, venues = data.meta.venues;
   const latestDate = obs.map(o=>o.d).sort().at(-1);
+
+  // Built here because renderCostTable runs first and already has `obs`; the
+  // badge is also printed by the second .then block, which is a separate
+  // scope, so the store and the renderer live at module level.
+  VSTAT = buildVenueStats(obs, latestDate);
+
   const toUSD = {USD:1, GBP: fx? fx.GBPTRY/fx.USDTRY : null, TRY: fx? 1/fx.USDTRY : null,
                  EUR: fx? fx.EURTRY/fx.USDTRY : null, AUD: fx? fx.AUDUSD??null : null,
                  PLN: fx? fx.PLNUSD??null : null, CZK: fx? fx.CZKUSD??null : null,
@@ -521,7 +579,7 @@ function renderCostTable(data, fx, vat){
         const bar = v!=null ? `<span style="display:inline-block;width:80px;height:7px;background:var(--card2);border:1px solid var(--line);border-radius:4px;overflow:hidden;vertical-align:1px;margin-left:8px"><i style="display:block;height:100%;width:${(100*v/maxUSD).toFixed(0)}%;background:var(--c1)"></i></span>` : '';
         const rel = (v!=null && cheapest) ? `${v===cheapest?'—':'+'+((v/cheapest-1)*100).toFixed(0)+'%'}` : '—';
         html += `<tr><td></td><td><span class="cc">${r.o.country}</span>${esc(CCNAME[r.o.country]||r.o.country)}</td>
-          <td>${esc(venues[r.o.venue].name)}</td>
+          <td>${esc(venues[r.o.venue].name)}${vBadge(r.o.venue)}</td>
           <td>${money(r.local,r.o.cur,r.o.cur==='TRY'||r.o.cur==='HUF'?0:2)}</td>
           <td>${taxCell(r.o.country)}</td>
           <td>${v!=null?'$'+v.toFixed(2)+bar:'—'}</td><td>${rel}</td></tr>`;
@@ -547,7 +605,7 @@ function renderCostTable(data, fx, vat){
     for(const r of injRows){
       const rel = (r.lo!=null && cheapest) ? (r.lo===cheapest?'—':'+'+((r.lo/cheapest-1)*100).toFixed(0)+'%') : '—';
       html += `<tr><td></td><td><span class="cc">${r.o.country}</span>${esc(CCNAME[r.o.country]||r.o.country)}</td>
-        <td>${esc(venues[r.o.venue].name)}</td>
+        <td>${esc(venues[r.o.venue].name)}${vBadge(r.o.venue)}</td>
         <td>${money(r.o.unit,r.o.cur,r.o.cur==='TRY'||r.o.cur==='HUF'?0:2)}/vial</td>
         <td>${taxCell(r.o.country)}</td>
         <td>${r.lo!=null?'$'+r.lo.toFixed(2)+'–$'+r.hi.toFixed(2):'—'}</td><td>${rel}</td></tr>`;
@@ -718,18 +776,31 @@ Promise.all([
       // make the shelf view a second copy of the per-day view. Injectables are
       // the exception: one vial IS the unit a buyer takes home.
       const isBox = o => dose.form === 'inj' || o.n > 1;
-      let boxBest = null;
+      // TWO different boxes, because the shelf and the year ask different
+      // questions. The shelf wants the cheapest pack outright - the smallest
+      // number on the shelf edge, which is what a buyer reaches for. The year
+      // wants the cheapest pack PER TABLET, because nobody buying a year's
+      // supply buys thirty-seven 10-packs from a shop that also sells 100s.
+      // Diermedicatie is the case in point: Apoquel is EUR 3.325 a tablet in
+      // its 10-pack and EUR 2.993 in its 100-pack, so ranking the year off the
+      // cheapest box overstated Apoquel by about 11% against brands whose
+      // small pack happens to be their only pack.
+      let boxBest = null, boxValue = null;
       for(const o of rows){
         if(!isBox(o)) continue;
         const v = all ? exTax(o.country, toUSD && toUSD[o.cur] != null ? o.price*toUSD[o.cur] : null)
                       : o.price;
         if(v == null) continue;
         if(!boxBest || v < boxBest.v) boxBest = {v, o};
+        const per = v / o.n;                       // cost per tablet, same tax basis
+        if(!boxValue || per < boxValue.per) boxValue = {v, o, per};
       }
-      const days = boxBest ? boxBest.o.n / dose.unitsPerDay : null;
+      const packDays = b => b ? b.o.n / dose.unitsPerDay : null;
       return {pid, dose, i, o: best.o, lo: best.v, hi,
-              box: boxBest, boxDays: days,
-              boxDaysMax: (boxBest && dose.unitsPerDayMax) ? boxBest.o.n / dose.unitsPerDayMax : null};
+              box: boxBest, boxDays: packDays(boxBest),
+              boxDaysMax: (boxBest && dose.unitsPerDayMax) ? boxBest.o.n / dose.unitsPerDayMax : null,
+              val: boxValue, valDays: packDays(boxValue),
+              valDaysMax: (boxValue && dose.unitsPerDayMax) ? boxValue.o.n / dose.unitsPerDayMax : null};
     });
 
     const SHELF = basis === 'shelf';
@@ -744,11 +815,12 @@ Promise.all([
     // replacing it.
     const YEARDAYS = 365;
     // Longest dosing interval = fewest vials = cheapest year, so it is the low end.
-    const yrLo = b => b.box ? b.box.v * YEARDAYS / b.boxDays : null;
-    const yrHi = b => (b.box && b.boxDaysMax) ? b.box.v * YEARDAYS / b.boxDaysMax : null;
+    const yrLo = b => b.val ? b.val.v * YEARDAYS / b.valDays : null;
+    const yrHi = b => (b.val && b.valDaysMax) ? b.val.v * YEARDAYS / b.valDaysMax : null;
     const val   = b => SHELF ? (b.box ? b.box.v : null) : YEAR ? yrLo(b) : b.lo;
     const valHi = b => SHELF ? null : YEAR ? yrHi(b) : b.hi;
-    const srcOf = b => (SHELF || YEAR) ? b.box.o : b.o;
+    const packOf = b => YEAR ? b.val : b.box;              // which pack this view prices
+    const srcOf = b => (SHELF || YEAR) ? packOf(b).o : b.o;
     const boxesPerYear = d => YEARDAYS / d;
     const shown = brandNow.filter(b => !b.missing && val(b) != null)
                           .sort((a, b) => val(a) - val(b));
@@ -756,7 +828,7 @@ Promise.all([
     // leaving the reader to notice
     const orderShelf = brandNow.filter(b => !b.missing && b.box)
       .sort((a,b)=>a.box.v-b.box.v).map(b=>b.pid);
-    const orderYear = brandNow.filter(b => !b.missing && b.box)
+    const orderYear = brandNow.filter(b => !b.missing && b.val)
       .sort((a,b)=>yrLo(a)-yrLo(b)).map(b=>b.pid);
     const flipped = orderShelf.join() !== orderYear.join();
     const cur2 = all ? 'USD' : (shown[0] ? srcOf(shown[0]).cur : cur);
@@ -808,6 +880,8 @@ Promise.all([
           `<div class="chart-sub" style="padding:18px 0">${why}</div>`;
         document.getElementById('brandtable').innerHTML = '';
         document.getElementById('brandnotes').innerHTML = '';
+        document.getElementById('brandevidence').innerHTML = '';
+        document.getElementById('chewnote').innerHTML = '';
         return;
       }
 
@@ -820,10 +894,10 @@ Promise.all([
         label: SHELF
           ? `${fmtDay(b.box.v)}  ·  lasts ${dayTxt(b.boxDays)}`
           : YEAR
-          ? `${fmtDay(val(b))} a year  ·  ${boxTxt(boxesPerYear(b.boxDays))}`
+          ? `${fmtDay(val(b))} a year  ·  ${boxTxt(boxesPerYear(b.valDays))}`
           : (b.hi ? `${fmtDay(b.lo)}–${fmtDay(b.hi)}` : fmtDay(b.lo)),
         sub: (SHELF || YEAR)
-          ? `${b.dose.mg} mg · pack of ${b.box.o.n} · ${venues[b.box.o.venue].name}${all?` · ${b.box.o.country}`:''}`
+          ? `${b.dose.mg} mg · pack of ${packOf(b).o.n} · ${venues[packOf(b).o.venue].name}${all?` · ${packOf(b).o.country}`:''}`
           : `${b.dose.mg} mg · ${venues[b.o.venue].name}${all?` · ${b.o.country}`:''} · pack of ${b.o.n}`,
       })), benchmark
         ? {pid: 'apoquel', lo: val(benchmark),
@@ -856,11 +930,62 @@ Promise.all([
           return `<tr>
             <td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PCOLOR[b.pid]};margin-right:7px"></span>${esc(products[b.pid].name)}</td>
             <td>${b.dose.mg} mg ${FORM[b.dose.form]}${b.dose.unitsPerDayMax?' q4–8wk':'/day'}</td>
-            <td>${all?`<span class="cc">${src.country}</span>`:''}${esc(venues[src.venue].name)}</td>
+            <td>${all?`<span class="cc">${src.country}</span>`:''}${esc(venues[src.venue].name)}${vBadge(src.venue)}</td>
             <td>${src.n}</td>
             <td>${valHi(b) ? `${fmtDay(val(b))}–${fmtDay(valHi(b))}` : fmtDay(val(b))}</td>
             <td>${rel}</td></tr>`;
         }).join('');
+
+      // The badge is not decoration here: the year ranking currently rests on a
+      // shop seen twice, and a reader who cannot see that is being misled by
+      // precision the data does not have.
+      const thin = shown.filter(b => (VSTAT[srcOf(b).venue]||{}).tier === 'new');
+      document.getElementById('brandevidence').innerHTML =
+        '<b>How solid is each shop?</b> The badge after every venue grades <b>our record of that '
+        + 'shop</b> \u2014 <span class="vb" style="color:var(--ink)">deep</span> is 20 or more separate '
+        + 'days observed, <span class="vb" style="color:var(--ink2)">tracked</span> several, '
+        + '<span class="vb" style="color:var(--ink3)">new</span> one or two, '
+        + '<span class="vb" style="color:var(--ink3)">stale</span> no longer returning prices. Hover '
+        + 'for the dates. It says nothing about the shop\u2019s size, traffic or trustworthiness: '
+        + 'this study has no data on any of that, and a made-up score would be worse than none. '
+        + (thin.length
+           ? `<b>Read this view with that in mind</b> \u2014 ${thin.length === shown.length ? 'every brand here is' : thin.map(b=>esc(products[b.pid].name)).join(', ') + (thin.length>1?' are':' is')} priced off a shop seen only once or twice. A promotion would look identical to a standing price.`
+           : 'Every brand in this view is priced off a shop with a multi-day record.');
+
+      // Same shop, same day, same pack size, tablet against chewable. Everything
+      // that usually confounds a cross-brand comparison - retailer margin, VAT,
+      // currency, pack tier - cancels, so what is left is Zoetis's own pricing
+      // of the two formulations against each other.
+      (() => {
+        const pkey = o => `${o.venue}|${o.n}`;
+        const tabs = {}, chews = {};
+        for(const o of co){
+          if(o.d !== latestDate || o.mg !== 16) continue;
+          if(o.product === 'apoquel') tabs[pkey(o)] = o;
+          else if(o.product === 'apoquel-chewable') chews[pkey(o)] = o;
+        }
+        const pairs = Object.keys(tabs).filter(k => chews[k])
+          .map(k => ({t: tabs[k], c: chews[k], d: (chews[k].unit / tabs[k].unit - 1) * 100}))
+          .sort((a, b) => a.d - b.d);
+        const el = document.getElementById('chewnote');
+        if(pairs.length < 2){ el.innerHTML = ''; return; }
+        // Half a point is below the resolution of a shelf price, so it counts as
+        // the same price, not a win for either formulation.
+        const same  = pairs.filter(p => Math.abs(p.d) < 0.5).length;
+        const cheap = pairs.filter(p => p.d <= -0.5).length;
+        const dearP = pairs.filter(p => p.d >= 0.5);
+        el.innerHTML =
+          '<b>Is the chewable dearer than the plain tablet?</b> No \u2014 and this is the one '
+          + 'comparison on the page with nothing left to argue about. Pairing the two <b>at the same '
+          + 'shop, on the same day, in the same pack size</b> cancels retailer margin, VAT, currency '
+          + 'and pack tier, leaving only how Zoetis prices the two formulations against each other. '
+          + `Across <b>${pairs.length}</b> such pairs the chewable is <b>cheaper in ${cheap}</b>, `
+          + `<b>identical in ${same}</b>, and dearer in <b>${dearP.length}</b>`
+          + (dearP.length ? ` (${dearP.map(p=>`${esc(p.t.country)} +${p.d.toFixed(1)}%`).join(', ')})` : '')
+          + `. The widest gap is ${esc(CCNAME[pairs[0].t.country]||pairs[0].t.country)} at `
+          + `${pairs[0].d.toFixed(1)}%. So where this card puts the chewable below plain Apoquel, that `
+          + 'is a real price difference, not an artefact of comparing different shops or pack sizes.';
+      })();
 
       document.getElementById('brandnotes').innerHTML =
         (flipped
@@ -892,6 +1017,14 @@ Promise.all([
         + 'that decides a switch. '
         + 'Apoquel additionally needs <b>twice-daily dosing for 14 days</b> at the start, which Zenrelia '
         + 'and Numelvi do not; that adds about 47% to its first month and is not in these figures. '
+        + '<b>Does a dog take this all year?</b> Not necessarily, and the year view does not claim so \u2014 '
+        + '365 days is a <b>unit of comparison</b>, not a forecast of consumption. Atopic dermatitis '
+        + 'driven by house dust mite tends to be perennial; pollen-driven disease is seasonal and may '
+        + 'be treated for three to six months. It matters less than it looks: the arithmetic is linear, '
+        + 'so a six-month course halves every figure here and <b>changes no ranking at all</b>. The one '
+        + 'asymmetry runs against Apoquel \u2014 its 14-day twice-daily induction is a fixed cost that '
+        + 'does not scale with the course, so the shorter the treatment the worse Apoquel looks, not '
+        + 'better. That cost is not in these figures either way. '
         + '<b>Cytopoint is excluded from all three views.</b> It is an injectable dosed every 4 to 8 '
         + 'weeks, so it has no shelf price comparable to a pack of tablets and no single cost per day — '
         + 'only an interval whose width is a clinical question, not a pricing one. Putting it in a bar '
@@ -1139,8 +1272,8 @@ Promise.all([
       + '<li><b>Zenrelia undercuts Apoquel by about a third</b> at the same till, and Numelvi by about '
         + 'a tenth. The ordering never inverts in any shop stocking both.</li>'
       + '<li><b>The cheapest box is usually the smallest box.</b> Apoquel is at once the cheapest thing '
-        + 'on the shelf and the dearest way to treat a dog for a year — about 94% more than Zenrelia '
-        + 'once both are priced over the same 365 days.</li>'
+        + 'on the shelf and the dearest way to treat a dog for a year — 62% more than Zenrelia once '
+        + 'both are priced over the same 365 days, each at its own best-value pack.</li>'
       + '<li><b>Which shop you track matters more than which country.</b> Three US pharmacies span '
         + '+2.0% to +11.1% a year on the same molecules.</li>'
       + '<li><b>Cytopoint cannot be ranked on price</b> \u2014 a vial must last 42 days to match a '
@@ -1365,7 +1498,7 @@ Promise.all([
         }
         return `<tr>
         <td>${esc(products[o.product].name)}</td>
-        <td><span class="cc">${o.country}</span>${esc(venues[o.venue].name)}</td>
+        <td><span class="cc">${o.country}</span>${esc(venues[o.venue].name)}${vBadge(o.venue)}</td>
         <td>${FORM[o.form]}</td><td>${o.mg??'—'}</td><td>${o.n}</td>
         <td>${money(o.price,o.cur,o.cur==='TRY'||o.cur==='HUF'?0:2)}</td>
         <td>${money(o.unit,o.cur,o.cur==='TRY'||o.cur==='HUF'?0:2)}</td>
@@ -1415,7 +1548,7 @@ Promise.all([
            + 'molecules, in the same country, over the same window.'
          : '');
 
-    const line = r => `<tr><td><span class="cc">${r.cc}</span>${esc(venues[r.o.venue].name)}</td>
+    const line = r => `<tr><td><span class="cc">${r.cc}</span>${esc(venues[r.o.venue].name)}${vBadge(r.o.venue)}</td>
       <td style="text-align:left">${esc(products[r.o.product].name)}${r.o.mg?` ${r.o.mg}mg`:''}${r.o.n>1?` ×${r.o.n}`:''}</td>
       <td>${money(r.o.unit, r.o.cur, r.o.cur==='HUF'||r.o.cur==='TRY'?0:2)} <span style="color:var(--ink3)">${esc(r.o.d.slice(0,7))}</span></td>
       <td>${money(r.last.unit, r.last.cur, r.last.cur==='HUF'||r.last.cur==='TRY'?0:2)}</td>
