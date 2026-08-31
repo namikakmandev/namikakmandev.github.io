@@ -142,8 +142,8 @@
             <p class="n">3</p>
             <h3>But almost nobody is good enough</h3>
             <p>Only <strong>1 of 64</strong> forecasters had their 80% ranges actually hold 80% of
-              the time. The best in Europe is merely adequate. The trait is real, persistent, and
-              almost universally insufficient.</p>
+              the time &mdash; and that one sat out 2021&ndash;2023. Nobody who was in the room for
+              the hard years cleared the bar they set themselves.</p>
           </div>
         </div>
 
@@ -245,6 +245,38 @@
             &mdash; which is what makes following a career possible without ever knowing whose it
             is. Speculating about which institution holds which number would be both unfounded and
             a misuse of data published on the understanding that it stays anonymous.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>The one who cleared the bar</h3>
+          <p>One forecaster out of 64 had their 80% ranges hold 80% of the time. It is
+            <strong>#092</strong>, inside its own range in <strong>12 of 15 years</strong> &mdash;
+            exactly 80.0%. Worth looking at closely, because the achievement is cheaper than it
+            sounds.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>#092</th><th>Value</th><th class="note"></th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Coverage</th><td>80.0%</td>
+                    <td class="note">12 of 15 years &mdash; it clears the bar by nothing at all</td></tr>
+                <tr><th scope="row">Record</th><td>2000&ndash;2017</td>
+                    <td class="note">15 scored years, then it leaves the panel</td></tr>
+                <tr class="fs-bad"><th scope="row">Hard years faced</th><td>2008 only</td>
+                    <td class="note">off the panel for 2021, 2022 and 2023 &mdash; the three that broke everyone else</td></tr>
+                <tr class="fs-bad"><th scope="row">Median range width</th><td>1.72pp</td>
+                    <td class="note">against a panel median of 1.22pp: the 59th narrowest of 64, so one of the widest on the panel</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fs-warn"><strong>So the honest version of &ldquo;1 of 64&rdquo; is narrower
+            still.</strong> One forecaster cleared the bar, on a short record, with unusually wide
+            ranges, having missed the three years that defeated the rest of the panel. Of the
+            forecasters who actually faced 2021&ndash;2023, <strong>none</strong> held to the
+            confidence they had published. That is a stronger statement than the headline, not a
+            weaker one.</p>
+          <p class="cap" style="font-size:.85rem;color:var(--text-dim);margin-top:8px">
+            #092 is a number, not a name. The ECB publishes panellists only by number and provides
+            no mapping; this makes no attempt to work out which institution it is.</p>
         </div>
 
         <div class="fs-card">
@@ -399,7 +431,7 @@
           <h3>The script, in full</h3>
           <p>Nothing is elided. This is the file that produced every number and the chart on this page, exactly as it runs.</p>
             <details>
-              <summary>ecb_forecaster_skill.py (722 lines)</summary>
+              <summary>ecb_forecaster_skill.py (750 lines)</summary>
               <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Is any individual ECB forecaster consistently honest about uncertainty?
 
@@ -699,7 +731,34 @@ def main():
     good = sorted((c for c in cov.values() if c &gt;= BAND), reverse=True)
     print(f&quot;  forecasters whose 80% ranges actually held 80% of the time: &quot;
           f&quot;{len(good)} of {len(cov)}&quot;)
-    print(&quot;  Skill in being honest about uncertainty is real, persistent, and&quot;)
+
+    # Whoever clears the bar deserves the same scrutiny as everyone else:
+    # a short record, a wide range, or an absence from the hard years all
+    # make the achievement cheaper than it looks.
+    dead_set = set(dead)
+    cleared = []
+    for w in sorted(cov, key=lambda k: -cov[k]):
+        if cov[w] &lt; BAND:
+            continue
+        yrs = sorted(t for t, *_ in elig[w])
+        faced = sorted(dead_set &amp; set(yrs))
+        narrower = sum(1 for o in width if width[o] &lt; width[w])
+        cleared.append({&quot;who&quot;: w, &quot;coverage&quot;: round(cov[w], 4),
+                        &quot;years&quot;: len(yrs), &quot;first&quot;: yrs[0], &quot;last&quot;: yrs[-1],
+                        &quot;width&quot;: round(width[w], 3),
+                        &quot;width_rank_narrowest&quot;: narrower + 1,
+                        &quot;zero_years_faced&quot;: faced,
+                        &quot;zero_years_missed&quot;: sorted(dead_set - set(yrs))})
+        print(f&quot;\n  #{w}: inside {round(cov[w] * len(yrs))} of {len(yrs)} years &quot;
+              f&quot;({cov[w] * 100:.0f}%), {yrs[0]}-{yrs[-1]}&quot;)
+        print(f&quot;    median range width {width[w]:.2f}pp against a panel median &quot;
+              f&quot;of {statistics.median(xs):.2f}pp&quot;)
+        print(f&quot;    -&gt; the {narrower + 1}th narrowest of {len(width)}; &quot;
+              f&quot;{&#x27;one of the widest on the panel&#x27; if narrower + 1 &gt; len(width) * .75 else &#x27;mid-pack on width&#x27;}&quot;)
+        print(f&quot;    of the {len(dead_set)} years nobody was inside, it faced &quot;
+              f&quot;{faced or &#x27;none&#x27;} and was off the panel for &quot;
+              f&quot;{sorted(dead_set - set(yrs)) or &#x27;none&#x27;}&quot;)
+    print(&quot;\n  Skill in being honest about uncertainty is real, persistent, and&quot;)
     print(&quot;  almost universally insufficient.&quot;)
 
     # ------------------------------------------------------------------ export
@@ -735,6 +794,7 @@ def main():
                        &quot;p&quot;: round(p_split, 4)},
         &quot;luck_band&quot;: [round(luck[0], 4), round(luck[1], 4)],
         &quot;above_bar&quot;: len(good),
+        &quot;cleared_the_bar&quot;: cleared,
         &quot;width&quot;: {&quot;r_with_skill&quot;: round(r_w, 4),
                   &quot;r2&quot;: round(r_w * r_w, 4),
                   &quot;median_width_pp&quot;: round(statistics.median(xs), 3),
