@@ -108,6 +108,10 @@ VENUES = {
     "loravet":   {"name": "LoraVet",                  "country": "BG", "currency": "EUR"},
     "puppypharma": {"name": "Puppy Pharma",           "country": "BG", "currency": "EUR"},
     "herzlich":  {"name": "Herzlich-Apotheke",        "country": "DE", "currency": "EUR"},
+    # Luxembourg permits online sale of non-prescription medicines only, yet this
+    # licensed pharmacy carries a veterinary-medicines category and an Apoquel
+    # product page. Whether it prints a price decides the market either way.
+    "pharmaglobe": {"name": "Pharmaglobe",            "country": "LU", "currency": "EUR"},
     # Sweden deregulated its pharmacy market in 2009 and veterinary medicines sit
     # OUTSIDE the reimbursement scheme, so pricing is free and pharmacies compete
     # openly on it. That makes SE the one Nordic market that publishes these
@@ -212,6 +216,10 @@ TARGETS = [
     {"product": "numelvi", "venue": "viovet", "kind": "multi",
      "url": "https://www.viovet.co.uk/Numelvi-Tablets-for-Dogs/c180052/",
      "form": "tab", "optional": True},
+    # ---------------- LU ----------------
+    {"product": "apoquel", "venue": "pharmaglobe", "kind": "sku",
+     "url": "https://www.pharmaglobe.lu/medicaments-veterinaires/apoquel-36-mg-20-comprimes-pellicules-chien-medicament-veterinaire",
+     "form": "tab", "mg": 3.6, "n": 20, "optional": True},
     # ---------------- SE ----------------
     # Sweden is the one Nordic market that publishes these on consumer pages.
     # Apotea 403s datacenter addresses and VetApotek's product URL 404s, so
