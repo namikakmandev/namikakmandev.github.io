@@ -70,6 +70,75 @@ def hit(name, url, note="", want=None):
     return rec
 
 
+def zip_probe(name, url, note=""):
+    """Open the Drugs@FDA archive and report what is actually inside it.
+
+    Eroom's Law counts NEW MOLECULAR ENTITIES, not approvals. openFDA's counts
+    are every approval — generics, new formulations, new indications — so the
+    whole study turns on whether the NME flag exists somewhere retrievable.
+    Drugs@FDA is said to carry a submission classification; this checks.
+    """
+    import io, zipfile
+    rec = {"name": name, "url": url, "note": note}
+    t0 = time.time()
+    try:
+        req = urllib.request.Request(url, headers=UA)
+        with urllib.request.urlopen(req, timeout=180) as r:
+            body = r.read(CAP + 1)
+        rec["bytes"] = len(body)
+        rec["capped"] = len(body) > CAP
+        z = zipfile.ZipFile(io.BytesIO(body[:CAP]))
+        rec["members"] = [{"name": i.filename, "size": i.file_size}
+                          for i in z.infolist()]
+        # the lookup table is small; read it whole and show every class
+        for i in z.infolist():
+            low = i.filename.lower()
+            if "submissionclass" in low or "submission_class" in low:
+                txt = z.read(i).decode("utf-8", "replace")
+                rows = [l.split("\t") for l in txt.splitlines()]
+                rec["submission_classes"] = rows[:60]
+                rec["nme_rows"] = [r for r in rows
+                                   if any("molecular" in c.lower() for c in r)]
+            if low.endswith("submissions.txt"):
+                txt = z.read(i).decode("utf-8", "replace")
+                lines = txt.splitlines()
+                rec["submissions_header"] = lines[0].split("\t")
+                rec["submissions_rows"] = len(lines) - 1
+                rec["submissions_sample"] = [l.split("\t") for l in lines[1:4]]
+    except Exception as ex:
+        rec["error"] = f"{type(ex).__name__}: {ex}"
+    rec["seconds"] = round(time.time() - t0, 1)
+    print(f"  zip {name}: {rec.get('bytes', 0):,}b, "
+          f"{len(rec.get('members', []))} members"
+          f"{'  ERR ' + rec['error'] if rec.get('error') else ''}")
+    return rec
+
+
+def fred_meta(sid):
+    """FRED's own title and units for a series id. Never label a series by guess:
+    Y694RC1A027NBEA was assumed to be pharma R&D and that assumption is exactly
+    what this checks."""
+    rec = {"name": f"fred-meta/{sid}", "series_id": sid}
+    try:
+        req = urllib.request.Request(
+            f"https://fred.stlouisfed.org/data/{sid}.txt", headers=UA)
+        with urllib.request.urlopen(req, timeout=60) as r:
+            txt = r.read(200_000).decode("utf-8", "replace")
+        head, _, body = txt.partition("DATE")
+        rec["metadata"] = [l.strip() for l in head.splitlines() if l.strip()][:12]
+        rows = [l.split() for l in body.splitlines() if l and l[0].isdigit()]
+        if rows:
+            rec["first"], rec["last"] = rows[0], rows[-1]
+            rec["n_obs"] = len(rows)
+    except Exception as ex:
+        rec["error"] = f"{type(ex).__name__}: {ex}"
+    t = next((m for m in rec.get("metadata", []) if m.lower().startswith("title")), "?")
+    print(f"  {sid}: {t[:70]}")
+    print(f"      {rec.get('n_obs', 0)} obs, {rec.get('first', ['?'])[0]} "
+          f"-> {rec.get('last', ['?'])[0]}")
+    return rec
+
+
 def main():
     routes = []
 
@@ -125,8 +194,20 @@ def main():
         "https://www.nature.com/articles/nrd3681",
         "the paper itself — is anything open, or is it all paywalled"))
 
+    # ---- round 2: the two things a 200 does not answer -------------------
+    print("\n  what is actually inside the Drugs@FDA archive:")
+    routes.append(zip_probe(
+        "fda/drugsfda-zip-contents",
+        "https://www.fda.gov/media/89850/download",
+        "does an NME / new-molecular-entity flag exist anywhere in here"))
+
+    print("\n  what those FRED ids actually are:")
+    meta = [fred_meta(s) for s in ("Y694RC1A027NBEA", "Y006RC1A027NBEA",
+                                   "A191RD3A086NBEA", "PCU325412325412")]
+
     os.makedirs("data", exist_ok=True)
     doc = {"probe": "pharma / Eroom's Law data availability",
+           "fred_metadata": meta,
            "generated_by": "scripts/probe_pharma.py",
            "fetched_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "cap_bytes": CAP,
