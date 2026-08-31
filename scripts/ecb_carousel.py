@@ -53,6 +53,8 @@ def build_html():
     misses = pooled["too_low"] + pooled["too_high"]
     low_share = round(pooled["too_low"] / misses * 100)
     assert md["zero_coverage_all_too_low"], "the one-way claim no longer holds"
+    bar = r["cleared_the_bar"][0]
+    assert bar["zero_years_missed"], "the one who cleared the bar now faced them all"
     best, worst = r["scores"][0]["who"], r["scores"][-1]["who"]
     wide = r["width"]["by_forecaster"][best] / r["width"]["by_forecaster"][worst]
 
@@ -131,6 +133,10 @@ def build_html():
             <p class="big">{r["above_bar"]} of {n}</p>
             <p class="lede">hit their own 80% standard. Not my standard
               &mdash; theirs.</p>
+            <p class="lede r"><b>And that one was off the panel for
+              {", ".join(str(y) for y in bar["zero_years_missed"])}. Of the
+              forecasters who actually faced the hard years, none held to the
+              confidence they had published.</b></p>
             <p class="note">Method, every number and the full script:<br>
               <b>namikakmandev.github.io/ecb-forecaster-skill.html</b><br>
               Data: ECB Survey of Professional Forecasters, published openly.</p>''',
