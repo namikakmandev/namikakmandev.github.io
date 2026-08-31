@@ -59,60 +59,29 @@ forecasts, euro-area inflation 2000&ndash;2025.
 
 ## English
 
+The deck carries the explanation. The body only has to hook and hand off.
+
 📊 I work in pricing. Every plan I build rests on an inflation forecast.
 
-So it matters who makes them.
+⚠️ In 2022 inflation came in at 8.4%. Of the 58 ECB forecasters who
+answered that round, not one had it inside their own range.
 
-Every quarter the ECB asks about 50 banks and research institutes across Europe
-the same question. Not just &ldquo;what will inflation be&rdquo; &mdash; but
-&ldquo;give us a range you are 80% sure about.&rdquo;
+So I scored all 26 years, one at a time.
 
-That is a promise you can check. If you say you are 80% sure, then over 20 years
-the answer should land inside your range about 16 times.
+🟥 Four years are solid red: 2008, 2021, 2022, 2023. Nobody was inside
+their range.
 
-⚠️ In 2022 inflation came in at 8.4%. Of the 58 who answered that round,
-not one had it inside their range.
+⬇️ And all of them were short. 178 forecasts, 178 underestimates, zero
+overestimates.
 
-So I went back and scored all 26 years, one forecaster at a time. That is the
-first slide: one row per forecaster, one column per year.
+🤔 But the catch: &ldquo;costs will rise 0&ndash;10%&rdquo; is almost
+never wrong and almost never useful. The best forecaster's ranges are
+2.5&times; wider than the worst's.
 
-🟩 Green: inflation landed inside that forecaster's range.
-🟥 Red: it did not.
+✅ So score a forecast twice: how often it was right, and how wide it had
+to be.
 
-Four whole columns are red: 2008, 2021, 2022 and 2023. Nobody on the panel was
-inside their own range.
-
-⬇️ And they were all wrong the same way. Every single one was
-<b>short</b>. 178 forecasts across those four years, 178 underestimates, zero
-overestimates. When this panel fails completely, it does not see costs coming.
-
-Then I found the catch.
-
-🤔 A range can be right just by being huge.
-
-If your supplier says &ldquo;costs will rise between 0% and 10%&rdquo;, they
-will almost always be right. And they have told you nothing you can price on.
-
-That is what separates the best forecaster here from the worst. The best one's
-ranges are 2.5&times; wider. Width alone explains 47% of the gap between them.
-So about half of being good at this is just being vague.
-
-✅ Which means you should score a forecast twice, not once:
-
-1. How often was the answer inside the range?
-2. How wide did the range have to be?
-
-The first number can be bought. Only the second tells you whether they actually
-know something.
-
-And then the last number.
-
-📉 1 of 64 forecasters hit their own 80% standard.
-
-Not my standard. Theirs. They said 80%, and 63 of 64 delivered less.
-
-So: everyone's ranges are too tight &mdash; and the ones who look best are
-mostly just the least tight.
+1 of 64 hit their own 80% standard.
 
 🔗 namikakmandev.github.io/ecb-forecaster-skill.html
 Data: @European Central Bank Survey of Professional Forecasters.
@@ -124,60 +93,24 @@ Data: @European Central Bank Survey of Professional Forecasters.
 📊 Fiyatlama yapıyorum. Kurduğum her plan bir enflasyon tahminine
 dayanıyor.
 
-O yüzden bu tahminleri kimin yaptığı önemli.
-
-ECB her çeyrek Avrupa'daki 50 kadar bankaya ve araştırma kurumuna aynı soruyu
-soruyor. Sadece &ldquo;enflasyon ne olacak&rdquo; değil &mdash; &ldquo;%80 emin
-olduğunuz bir aralık verin.&rdquo;
-
-Bu, kontrol edilebilir bir söz. %80 eminseniz, 20 yılda cevabın aralığınızın
-içine yaklaşık 16 kez düşmesi gerekir.
-
-⚠️ 2022'de enflasyon %8,4 geldi. O turda cevap veren 58 tahmincinin
+⚠️ 2022'de enflasyon %8,4 geldi. O turda cevap veren 58 ECB tahmincisinin
 hiçbirinde bu, kendi aralığının içinde değildi.
 
-Ben de 26 yılın hepsini, tahminci tahminci puanladım. İlk görsel bu: her satır
-bir tahminci, her sütun bir yıl.
+26 yılın hepsini tek tek puanladım.
 
-🟩 Yeşil: enflasyon o tahmincinin aralığının içine düştü.
-🟥 Kırmızı: düşmedi.
+🟥 Dört yıl tamamen kırmızı: 2008, 2021, 2022, 2023. Kimse kendi
+aralığının içinde değil.
 
-Dört sütun tamamen kırmızı: 2008, 2021, 2022 ve 2023. Panelde kendi aralığının
-içinde kalan tek bir kişi yok.
+⬇️ Ve hepsi düşük tahmin etti. 178 tahmin, 178 eksik, sıfır fazla.
 
-⬇️ Ve hepsi aynı yönde yanıldı. Hepsi <b>düşük</b> tahmin etti. O dört
-yılda 178 tahmin, 178 eksik tahmin, sıfır fazla tahmin. Bu panel tamamen
-şaşırdığında, maliyetlerin geldiğini göremiyor.
+🤔 Ama işin püf noktası: &ldquo;maliyetler %0&ndash;10 artacak&rdquo;
+demek neredeyse hiç yanlış çıkmaz ve neredeyse hiç işe yaramaz. En iyi
+tahmincinin aralıkları en kötününkinin 2,5 katı geniş.
 
-Sonra işin püf noktasını buldum.
+✅ O yüzden bir tahmini iki kez puanlayın: kaç kez doğru çıktı, ve ne kadar
+geniş olmak zorunda kaldı.
 
-🤔 Bir aralık, sırf çok geniş olduğu için de doğru çıkabilir.
-
-Tedarikçiniz &ldquo;maliyetler %0 ile %10 arasında artacak&rdquo; derse
-neredeyse her zaman haklı çıkar. Ve size fiyat kurabileceğiniz hiçbir şey
-söylememiştir.
-
-Buradaki en iyi tahminciyi en kötüden ayıran şey de bu. En iyinin aralıkları 2,5
-kat daha geniş. Aradaki farkın %47'sini tek başına genişlik açıklıyor. Yani bu
-işte iyi olmanın yarısı, muğlak kalmak.
-
-✅ Bu da şu demek: bir tahmini bir değil, iki kez puanlayın.
-
-1. Cevap kaç kez aralığın içinde kaldı?
-2. Aralık bunun için ne kadar geniş olmak zorunda kaldı?
-
-Birinci sayı satın alınabilir. Gerçekten bir şey bilip bilmediklerini size
-yalnızca ikincisi söyler.
-
-Ve son sayı.
-
-📉 64 tahminciden 1'i kendi %80 standardını tutturdu.
-
-Benim standardım değil. Kendilerininki. %80 dediler, 64'ün 63'ü daha azını
-verdi.
-
-Yani: herkesin aralıkları fazla dar &mdash; ve en iyi görünenler de aslında
-sadece en az dar olanlar.
+64 tahminciden 1'i kendi %80 standardını tutturdu.
 
 🔗 namikakmandev.github.io/ecb-forecaster-skill.html
 Veri: @European Central Bank Survey of Professional Forecasters.
