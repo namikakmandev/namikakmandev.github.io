@@ -1,0 +1,71 @@
+name: Pharma price tracker
+
+# Daily scrape of 5 canine dermatology product prices (Cytopoint, Apoquel,
+# Apoquel Chewable, Numelvi, Zenrelia) from online pet pharmacies across 15
+# markets. Appends to data/pharma-prices.json; per-run diagnostics go to
+# data/_pharma-prices-report.json so a broken extractor is visible without
+# re-running locally.
+#
+# This repo is private and therefore has no GitHub Pages host, so the run
+# also bakes a self-contained pharma-report.html that opens straight off
+# disk. That file is the thing to read - pharma-prices.html is the source
+# it is built from and needs a web server to work.
+
+on:
+  schedule:
+    - cron: "37 13 * * *"   # daily 13:37 UTC — US stores' pages are warm, avoids :00 crowds
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pharma-prices
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      # rates.json is built in the public portfolio repo from TCMB/EVDS behind
+      # secrets this repo does not hold. Rather than duplicate the keys, take
+      # the published copy - it is the same file, already refreshed daily. A
+      # failure here is not fatal: the committed copy simply goes stale.
+      - name: Refresh FX rates from the published copy
+        continue-on-error: true
+        run: |
+          curl -fsS --max-time 30 https://namikakmandev.github.io/rates.json -o rates.new.json
+          python -c "import json,sys; json.load(open('rates.new.json'))"
+          mv rates.new.json rates.json
+
+      - name: Scrape prices
+        run: python scripts/fetch_pharma_prices.py
+
+      - name: Flag parse artifacts
+        continue-on-error: true
+        run: python scripts/pharma_outlier_check.py
+
+      - name: Build the self-contained report
+        run: python scripts/build_pharma_report.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add data/pharma-prices.json data/_pharma-prices-report.json \
+                  rates.json pharma-report.html
+          git diff --cached --quiet && { echo "no changes"; exit 0; }
+          git commit -m "data: refresh pharma prices [skip ci]"
+          for i in 1 2 3 4; do
+            git push origin HEAD && break
+            git pull --rebase || exit 1
+          done
