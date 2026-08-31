@@ -74,8 +74,8 @@ So it matters who makes them. Every quarter the ECB asks about 50 banks and
 research institutes across Europe where inflation will land, and how sure they
 are about it.
 
-⚠️ In 2022 it came in at 8.4%. Not one of the 50 had that inside
-their own range.
+⚠️ In 2022 it came in at 8.4%. Of the 58 who answered that round, not one
+had it inside their own range.
 
 So I checked all 26 years.
 
@@ -112,8 +112,8 @@ O yüzden bu tahminleri kimin yaptığı önemli. ECB her çeyrek Avrupa'daki 50
 kadar bankaya ve araştırma kurumuna enflasyonun nereye geleceğini ve bundan ne
 kadar emin olduklarını soruyor.
 
-⚠️ 2022'de enflasyon %8,4 geldi. 50 tahmincinin hiçbirinde bu, kendi
-aralığının içinde değildi.
+⚠️ 2022'de enflasyon %8,4 geldi. O turda cevap veren 58 tahmincinin
+hiçbirinde bu, kendi aralığının içinde değildi.
 
 26 yılın hepsine baktım.
 
