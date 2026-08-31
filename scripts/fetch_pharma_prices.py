@@ -108,6 +108,21 @@ VENUES = {
     "loravet":   {"name": "LoraVet",                  "country": "BG", "currency": "EUR"},
     "puppypharma": {"name": "Puppy Pharma",           "country": "BG", "currency": "EUR"},
     "herzlich":  {"name": "Herzlich-Apotheke",        "country": "DE", "currency": "EUR"},
+    # Sweden deregulated its pharmacy market in 2009 and veterinary medicines sit
+    # OUTSIDE the reimbursement scheme, so pricing is free and pharmacies compete
+    # openly on it. That makes SE the one Nordic market that publishes these
+    # prices on ordinary consumer product pages.
+    "apotea":    {"name": "Apotea",                   "country": "SE", "currency": "SEK"},
+    "apoteket":  {"name": "Apoteket",                 "country": "SE", "currency": "SEK"},
+    "vetapotek": {"name": "VetApotek",                "country": "SE", "currency": "SEK"},
+    # Finland publishes prices but gates the PURCHASE: Fimea has not brought
+    # veterinary prescriptions into the online e-prescription flow, so a
+    # pharmacist adds the item to the basket by chat or phone. Price visibility
+    # and online purchasability are separate things here, and only the first
+    # is what this tracker measures.
+    "oloapteekki": {"name": "Olo-apteekki",           "country": "FI", "currency": "EUR"},
+    "yliopisto":  {"name": "Yliopiston Apteekki",     "country": "FI", "currency": "EUR"},
+    "kauniainen": {"name": "Kauniaisten Apteekki",    "country": "FI", "currency": "EUR"},
 }
 
 # kind: "sku" = page sells exactly the declared form/strength/count
@@ -207,6 +222,68 @@ TARGETS = [
     {"product": "numelvi", "venue": "viovet", "kind": "multi",
      "url": "https://www.viovet.co.uk/Numelvi-Tablets-for-Dogs/c180052/",
      "form": "tab", "optional": True},
+    # ---------------- SE ----------------
+    {"product": "apoquel", "venue": "apotea", "kind": "sku",
+     "url": "https://www.apotea.se/apoquel-filmdragerad-tablett-16-mg-orion-pharma-ab",
+     "form": "tab", "mg": 16, "n": 100},
+    {"product": "apoquel", "venue": "apotea", "kind": "sku",
+     "url": "https://www.apotea.se/apoquel-filmdragerad-tablett-36-mg-1",
+     "form": "tab", "mg": 3.6, "n": 100, "optional": True},
+    {"product": "apoquel-chewable", "venue": "apotea", "kind": "sku",
+     "url": "https://www.apotea.se/apoquel-tuggtablett-54-mg-1",
+     "form": "chew", "mg": 5.4, "n": 100, "optional": True},
+    {"product": "apoquel-chewable", "venue": "apotea", "kind": "sku",
+     "url": "https://www.apotea.se/apoquel-tuggtablett-36-mg",
+     "form": "chew", "mg": 3.6, "n": 100, "optional": True},
+    {"product": "cytopoint", "venue": "apotea", "kind": "sku",
+     "url": "https://www.apotea.se/cytopoint-inj-vatska-losning-30-mg",
+     "form": "inj", "mg": 30, "n": 2, "optional": True},
+    {"product": "numelvi", "venue": "apotea", "kind": "sku",
+     "url": "https://www.apotea.se/numelvi-tablett-316-mg",
+     "form": "tab", "mg": 31.6, "optional": True},
+    {"product": "numelvi", "venue": "apotea", "kind": "sku",
+     "url": "https://www.apotea.se/numelvi-tablett-72-mg",
+     "form": "tab", "mg": 7.2, "optional": True},
+    {"product": "apoquel", "venue": "apoteket", "kind": "sku",
+     "url": "https://www.apoteket.se/produkt/apoquel-filmdragerad-tablett-16-mg-100-styck-blister-643023/",
+     "form": "tab", "mg": 16, "n": 100},
+    {"product": "apoquel", "venue": "apoteket", "kind": "sku",
+     "url": "https://www.apoteket.se/produkt/apoquel-filmdragerad-tablett-54-mg-100-tabletter-blister-316875/",
+     "form": "tab", "mg": 5.4, "n": 100, "optional": True},
+    {"product": "cytopoint", "venue": "apoteket", "kind": "sku",
+     "url": "https://www.apoteket.se/produkt/cytopoint-injektionsvatska-losning-40-mg-2-x-1-styck-injektionsflaska-648974/",
+     "form": "inj", "mg": 40, "n": 2, "optional": True},
+    {"product": "cytopoint", "venue": "apoteket", "kind": "sku",
+     "url": "https://www.apoteket.se/produkt/cytopoint-injektionsvatska-losning-20-mg-2-x-1-styck-injektionsflaska-648973/",
+     "form": "inj", "mg": 20, "n": 2, "optional": True},
+    {"product": "numelvi", "venue": "apoteket", "kind": "sku",
+     "url": "https://www.apoteket.se/produkt/numelvi-tablett-216-mg-1-x-30-tabletter-blister-1578299/",
+     "form": "tab", "mg": 21.6, "n": 30, "optional": True},
+    {"product": "cytopoint", "venue": "vetapotek", "kind": "sku",
+     "url": "https://vetapotek.se/produkt/cytopoint-inj-vatska-losning-30-mg-2-x-1-styck-7046265303688/",
+     "form": "inj", "mg": 30, "n": 2, "optional": True},
+    # ---------------- FI ----------------
+    {"product": "apoquel", "venue": "oloapteekki", "kind": "sku",
+     "url": "https://www.oloapteekki.fi/apoquel-16-mg-100-fol-vet-tabl-kalvopaall-koiralle-78457",
+     "form": "tab", "mg": 16, "n": 100},
+    {"product": "apoquel", "venue": "oloapteekki", "kind": "sku",
+     "url": "https://www.oloapteekki.fi/apoquel-5-4-mg-100-fol-vet-tabl-kalvopaall-koiralle-405052",
+     "form": "tab", "mg": 5.4, "n": 100, "optional": True},
+    {"product": "apoquel", "venue": "oloapteekki", "kind": "sku",
+     "url": "https://www.oloapteekki.fi/apoquel-3-6-mg-100-fol-vet-tabl-kalvopaall-koiralle-488228",
+     "form": "tab", "mg": 3.6, "n": 100, "optional": True},
+    {"product": "cytopoint", "venue": "oloapteekki", "kind": "sku",
+     "url": "https://www.oloapteekki.fi/cytopoint-20-mg-ml-2x1-ml-vet-inj-liuos-koiralle-199635",
+     "form": "inj", "mg": 20, "n": 2, "optional": True},
+    {"product": "numelvi", "venue": "kauniainen", "kind": "sku",
+     "url": "https://kauniaistenapteekki.fi/fi/numelvi-tabletti-7-2-mg-koira-30-fol.html",
+     "form": "tab", "mg": 7.2, "n": 30, "optional": True},
+    {"product": "apoquel", "venue": "yliopisto", "kind": "sku",
+     "url": "https://www.yliopistonapteekki.fi/apoquel-koiralle-3-6mg-vet-tabl-100-fol-51634.html",
+     "form": "tab", "mg": 3.6, "n": 100, "optional": True},
+    {"product": "apoquel", "venue": "yliopisto", "kind": "sku",
+     "url": "https://www.yliopistonapteekki.fi/apoquel-koiralle-5-4mg-vet-tabl-20-fol-51635.html",
+     "form": "tab", "mg": 5.4, "n": 20, "optional": True},
     # ---------------- TR ----------------
     {"product": "apoquel", "venue": "sandia", "kind": "sku",
      "url": "https://shop.sandiavet.com/kopek-urunleri/apoquel-16-mg-20-tablet/",
@@ -584,11 +661,12 @@ def extract_inline_js(html):
 def extract_visible(html, currency):
     sym = {"USD": r"\$", "AUD": r"\$", "GBP": "£", "TRY": r"(?:₺|TL)", "EUR": "€",
            "CZK": r"(?:Kč|CZK)", "HUF": r"(?:Ft|HUF)", "PLN": r"(?:zł|PLN)",
-           "RON": r"(?:lei|RON)"}[currency]
+           "RON": r"(?:lei|RON)", "SEK": r"(?:kr|SEK)"}[currency]
     body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
     out = []
     pats = ([rf"{sym}\s*([0-9][0-9.,]*)", rf"([0-9][0-9 \u00a0.,]*[0-9])(?:,-)?\s*{sym}"]
-            if currency in ("TRY", "EUR", "CZK", "HUF", "PLN", "RON") else [rf"{sym}\s*([0-9][0-9.,]*)"])
+            if currency in ("TRY", "EUR", "CZK", "HUF", "PLN", "RON", "SEK")
+            else [rf"{sym}\s*([0-9][0-9.,]*)"])
     for pat in pats:
         for p in re.findall(pat, body[:60000]):
             v = to_float(p)
