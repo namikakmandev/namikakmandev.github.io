@@ -60,11 +60,20 @@ forecasts, euro-area inflation 2000&ndash;2025.
 I price for a living. Which means every year I build a plan on top of somebody
 else's inflation forecast.
 
-In 2022 euro-area inflation came in at 8.4%. Not one of the ECB's fifty
-forecasters had that inside the range they had published.
+So it is worth knowing who that somebody is. Every quarter the ECB surveys about
+fifty banks, research institutes and forecasting houses across Europe. It does
+not just ask them for a number &mdash; it asks each one for a full probability
+distribution. Where do you think inflation lands, and how sure are you? Then it
+averages them into the consensus figure that ends up in everyone's slide deck.
+(These are outside institutions, not the ECB's own staff projections.)
+
+Then 2022. Euro-area inflation came in at 8.4% &mdash; the highest in the euro's
+history, and the year every cost line I work with moved at once.
+
+Not one of the fifty had that inside the range they had published.
 
 So I went back and checked all 26 years. The ECB publishes each forecaster
-separately, not just the average everyone quotes.
+separately, not just the average.
 
 [ image 2 &mdash; the grid ]
 
@@ -96,11 +105,20 @@ Data: @European Central Bank Survey of Professional Forecasters, published openl
 Fiyatlama yapıyorum. Yani her yıl, başkasının enflasyon tahmininin üstüne plan
 kuruyorum.
 
-2022'de euro bölgesi enflasyonu %8,4 geldi. ECB'nin elli tahmincisinden tek
-birinin bile yayımladığı aralığın içinde değildi.
+O &ldquo;başkası&rdquo; kim, bilmekte fayda var. ECB her çeyrek Avrupa'daki elli
+kadar bankaya, araştırma kurumuna ve tahmin kuruluşuna anket yapıyor. Sadece bir
+sayı da istemiyor &mdash; her birinden tam bir olasılık dağılımı istiyor.
+Enflasyon sizce nereye gelir, ve ne kadar eminsiniz? Sonra hepsini herkesin
+sunumuna giren o tek konsensüs rakamına indiriyor. (Bunlar dışarıdaki kurumlar;
+ECB'nin kendi personel projeksiyonları değil.)
 
-Ben de 26 yılın hepsine baktım. ECB herkesin alıntıladığı ortalamayı değil, her
-tahminciyi ayrı ayrı yayımlıyor.
+Sonra 2022. Euro bölgesi enflasyonu %8,4 geldi &mdash; euronun tarihindeki en
+yüksek seviye, ve çalıştığım bütün maliyet kalemlerinin aynı anda oynadığı yıl.
+
+Elli tahminciden tek birinin bile yayımladığı aralığın içinde değildi.
+
+Ben de 26 yılın hepsine baktım. ECB ortalamayı değil, her tahminciyi ayrı ayrı
+yayımlıyor.
 
 [ görsel 2 &mdash; ızgara ]
 
