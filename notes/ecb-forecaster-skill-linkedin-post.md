@@ -68,68 +68,75 @@ forecasts, euro-area inflation 2000&ndash;2025.
 
 ## English
 
-I work in pricing. Every plan I build rests on an inflation forecast.
+📊 I work in pricing. Every plan I build rests on an inflation forecast.
 
 So it matters who makes them. Every quarter the ECB asks about fifty banks and
 research institutes across Europe where inflation will land, and how sure they
 are about it.
 
-In 2022 it came in at 8.4%. Not one of the fifty had that inside their own
-range.
+⚠️ In 2022 it came in at 8.4%. Not one of the fifty had that inside
+their own range.
 
-I checked all 26 years.
+So I checked all 26 years.
 
 [ image 2 &mdash; the grid ]
 
-Green: inflation landed inside that forecaster's range. Red: it did not.
+🟩 Green: inflation landed inside that forecaster's range.
+🟥 Red: it did not.
 
 Four years are all red: 2008, 2021, 2022 and 2023.
 
 [ image 3 &mdash; best vs worst ]
 
-And the best forecaster? Their ranges are twice as wide as the worst one's. Half
-of looking good here is simply admitting you don't know.
+🤔 But here is the catch. &ldquo;Costs will rise 0&ndash;10%&rdquo; is
+almost never wrong and almost never useful. The best forecaster's ranges are
+2.5&times; wider than the worst one's &mdash; so half of looking good here is
+just being vague.
 
-So judge a forecast two ways, not one. How often it was right, and how wide it
-had to be to get there.
+✅ So score a forecast twice: how often it was right, and how narrow it
+dared to be.
 
 1 of 64 met their own 80% standard.
 
-namikakmandev.github.io/ecb-forecaster-skill.html
+🔗 namikakmandev.github.io/ecb-forecaster-skill.html
 Data: @European Central Bank Survey of Professional Forecasters.
 
 ---
 
 ## Türkçe
 
-Fiyatlama yapıyorum. Kurduğum her plan bir enflasyon tahminine dayanıyor.
+📊 Fiyatlama yapıyorum. Kurduğum her plan bir enflasyon tahminine
+dayanıyor.
 
 O yüzden bu tahminleri kimin yaptığı önemli. ECB her çeyrek Avrupa'daki elli
 kadar bankaya ve araştırma kurumuna enflasyonun nereye geleceğini ve bundan ne
 kadar emin olduklarını soruyor.
 
-2022'de enflasyon %8,4 geldi. Elli tahmincinin hiçbirinde bu, kendi aralığının
-içinde değildi.
+⚠️ 2022'de enflasyon %8,4 geldi. Elli tahmincinin hiçbirinde bu, kendi
+aralığının içinde değildi.
 
 26 yılın hepsine baktım.
 
 [ görsel 2 &mdash; ızgara ]
 
-Yeşil: enflasyon o tahmincinin aralığının içine düştü. Kırmızı: düşmedi.
+🟩 Yeşil: enflasyon o tahmincinin aralığının içine düştü.
+🟥 Kırmızı: düşmedi.
 
 Dört yıl tamamen kırmızı: 2008, 2021, 2022 ve 2023.
 
 [ görsel 3 &mdash; en iyi ve en kötü ]
 
-Peki en iyi tahminci? Aralıkları en kötününkinin iki katı geniş. Burada iyi
-görünmenin yarısı, bilmediğini kabul etmek.
+🤔 Ama işin püf noktası şu. &ldquo;Maliyetler %0&ndash;10 artacak&rdquo;
+demek neredeyse hiç yanlış çıkmaz ve neredeyse hiç işe yaramaz. En iyi
+tahmincinin aralıkları en kötününkinin 2,5 katı geniş &mdash; yani burada iyi
+görünmenin yarısı, muğlak kalmak.
 
-Yani bir tahmini tek değil iki şekilde değerlendirin. Kaç kez doğru çıktı, ve
-bunun için ne kadar geniş olmak zorunda kaldı.
+✅ O yüzden bir tahmini iki kez puanlayın: kaç kez doğru çıktı, ve ne kadar
+dar olmayı göze aldı.
 
 64 tahminciden 1'i kendi %80 standardını tutturdu.
 
-namikakmandev.github.io/ecb-forecaster-skill.html
+🔗 namikakmandev.github.io/ecb-forecaster-skill.html
 Veri: @European Central Bank Survey of Professional Forecasters.
 
 ---
