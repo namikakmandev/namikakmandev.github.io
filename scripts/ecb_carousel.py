@@ -57,26 +57,33 @@ def build_html():
     wide = r["width"]["by_forecaster"][best] / r["width"]["by_forecaster"][worst]
 
     slides = [
-        # 1 — the hook
+        # 1 — the grid leads. It is the thumbnail in the feed, so it carries a
+        # headline of its own: the pattern reads at any size, the words do not.
+        f'''<h1 class="tight">Four years when Europe&rsquo;s inflation
+              forecasters <span class="r">all missed together</span></h1>
+            {svg("ecb-forecaster-skill.svg")}''',
+
+        # 2 — why I went looking
         f'''<p class="kicker">ECB Survey of Professional Forecasters &middot;
               euro area &middot; 2000&ndash;2025</p>
-            <h1>Four years when Europe&rsquo;s inflation forecasters
-              <span class="r">all missed together</span></h1>
-            <p class="lede">Every quarter the ECB asks about fifty banks and
-              research institutes where inflation will land &mdash; and how sure
-              they are about it.</p>
-            <p class="lede">In 2022 it came in at <b>8.4%</b>. Not one of the
-              fifty had that inside their own range.</p>
-            <p class="lede">So I checked all 26 years.</p>''',
+            <h2>I work in pricing.</h2>
+            <p class="lede">Every plan I build rests on an inflation
+              forecast.</p>
+            <p class="lede">Every quarter the ECB asks about 50 banks and
+              research institutes across Europe where inflation will land, and
+              how sure they are about it.</p>
+            <p class="lede r"><b>In 2022 it came in at 8.4%. Of the 58 who
+              answered that round, not one had it inside their range.</b></p>
+            <p class="lede">So I went back and scored all 26 years, one
+              forecaster at a time.</p>''',
 
-        # 2 — what the data is
-        f'''<h2>What the survey actually asks</h2>
-            <p class="lede">Not &ldquo;what is your number&rdquo;. Each
-              institution submits a full probability distribution: where
-              inflation lands, and how confident they are.</p>
-            <p class="lede">That is what makes this checkable. You can score
-              whether someone was honest about their uncertainty, not just
-              whether their midpoint was close.</p>
+        # 3 — what makes it checkable
+        f'''<h2>The promise you can check</h2>
+            <p class="lede">The ECB does not just ask for a number. It asks each
+              institution for a range they are <b>80% sure</b> about.</p>
+            <p class="lede">That is a promise with a test attached. If you say
+              80%, then over 20 years the answer should land inside your range
+              about 16 times.</p>
             <div class="facts">
               <div><b>{n}</b><span>forecasters with 10+ scored years</span></div>
               <div><b>{r["n_forecasts"]:,}</b><span>forecasts scored</span></div>
@@ -86,19 +93,11 @@ def build_html():
               own staff projections. The ECB publishes panellists only by
               number; nothing here identifies any of them.</p>''',
 
-        # 3 — the year bars. The charts carry their own titles and source
-        # lines, so a slide heading here would only repeat them.
-        f'''{svg("ecb-forecaster-hero.svg")}''',
-
-        # 4 — the grid
-        f'''{svg("ecb-forecaster-skill.svg")}''',
-
-        # 5 — the columns
+        # 4 — the columns
         f'''<h2>Read it down the columns</h2>
             <p class="big r">{", ".join(zero[:-1])} and {zero[-1]}</p>
             <p class="lede">In each of those years, <b>not one</b> forecaster on
-              the panel contained the outcome. The years a range was worth most
-              are the years it carried no information.</p>
+              the panel contained the outcome.</p>
             <p class="lede">And they were all wrong the same way.
               <b>{md["zero_coverage_n"]} forecasts across those four years,
               {md["zero_coverage_n"]} underestimates, zero overestimates.</b>
@@ -108,29 +107,30 @@ def build_html():
               {low_share}% of misses were too low and {100 - low_share}% too
               high. It is the total failures that are one-sided.</p>''',
 
-        # 6 — the caveat
+        # 5 — the rows, and the catch
         f'''{svg("ecb-forecaster-ranges.svg")}
-            <p class="lede">Read it across the rows instead and they are not
-              interchangeable: best to worst is <b>{gap} percentage
-              points</b>, far too wide to be luck.</p>
-            <p class="lede">But the best forecaster publishes ranges
-              <b>{wide:.1f}&times; wider</b> than the worst. Width alone explains
-              <b>{r2}%</b> of the score.</p>
-            <p class="lede">Half of looking good here is simply admitting you
-              don&rsquo;t know. Useful &mdash; but not the same as accuracy.</p>''',
+            <p class="lede">Across the rows they are not interchangeable: best
+              to worst is <b>{gap} percentage points</b>, far too wide to be
+              luck.</p>
+            <p class="lede">But a range can be right just by being huge. The
+              best forecaster&rsquo;s ranges are <b>{wide:.1f}&times; wider</b>
+              than the worst&rsquo;s, and width alone explains <b>{r2}%</b> of
+              the score.</p>''',
 
-        # 7 — the outcome
+        # 6 — the outcome
         f'''<h2>What to do with it</h2>
-            <p class="lede">Judge a forecast on two measures, not one:</p>
+            <p class="lede">&ldquo;Costs will rise 0&ndash;10%&rdquo; is almost
+              never wrong and almost never useful. So score a forecast twice,
+              not once:</p>
             <ol>
               <li>How often the outcome fell inside the stated range.</li>
               <li>How wide that range had to be to manage it.</li>
             </ol>
-            <p class="lede">Only the second tells you whether they know
-              anything. Where a forecaster is named &mdash; a broker, an analyst,
-              a supplier&rsquo;s demand plan &mdash; keep both columns yourself.</p>
+            <p class="lede">The first number can be bought. Only the second
+              tells you whether they know anything.</p>
             <p class="big">{r["above_bar"]} of {n}</p>
-            <p class="lede">met the 80% standard they set themselves.</p>
+            <p class="lede">hit their own 80% standard. Not my standard
+              &mdash; theirs.</p>
             <p class="note">Method, every number and the full script:<br>
               <b>namikakmandev.github.io/ecb-forecaster-skill.html</b><br>
               Data: ECB Survey of Professional Forecasters, published openly.</p>''',
@@ -149,6 +149,7 @@ def build_html():
                margin: 0 0 .28in; }}
     h1 {{ font-size: 33pt; line-height: 1.14; margin: 0 0 .28in;
           letter-spacing: -.01em; }}
+    h1.tight {{ font-size: 27pt; margin: 0 0 .16in; }}
     h2 {{ font-size: 24pt; line-height: 1.18; margin: 0 0 .22in;
           letter-spacing: -.01em; }}
     .lede {{ font-size: 14pt; line-height: 1.5; color: {INK}; margin: 0 0 .17in; }}

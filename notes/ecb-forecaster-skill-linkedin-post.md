@@ -2,29 +2,20 @@
 
 ## What to upload
 
-Two ways to post this. Pick one.
+**One file: `notes/ecb-forecaster-carousel.pdf`.** Post it as a LinkedIn
+document, with the copy below as the body.
 
-### A. Document post (carousel) &mdash; recommended
-
-Upload **one file**: `notes/ecb-forecaster-carousel.pdf`
-
-Seven portrait slides, 4:5, the same page size as the earlier carousels in this
-folder. LinkedIn renders a document larger than a feed image and lets people
-swipe and zoom, which is what the 64&times;26 grid needs. Rebuild with
+Six portrait slides, 4:5, same page size as the earlier carousels in this
+folder. Slide 1 is the grid, so the grid is also the thumbnail in the feed &mdash;
+it carries a headline of its own for that reason. Rebuild with
 `python3 scripts/ecb_carousel.py`.
 
-### B. Three images
+The copy below has no image cues in it. The deck carries the visuals; the text
+stands on its own underneath.
 
-| # | File | Size |
-|---|---|---|
-| 1 | `assets/linkedin/ecb-forecaster-hero.png` | 1600&times;1600 |
-| 2 | `assets/linkedin/ecb-forecaster-skill.png` | 1600&times;1314 |
-| 3 | `assets/linkedin/ecb-forecaster-ranges.png` | 1600&times;1188 |
-
-In that order. Image 1 is the one that has to work without a tap.
-
-**Either way, one link in the body:**
-`namikakmandev.github.io/ecb-forecaster-skill.html`
+**Three standalone images** are still built if you would rather post images than
+a document: `assets/linkedin/ecb-forecaster-hero.png` (square, the one that has
+to work without a tap), then `-skill.png` (the grid), then `-ranges.png`.
 
 ### Why the hero image exists
 
@@ -82,29 +73,25 @@ the answer should land inside your range about 16 times.
 ⚠️ In 2022 inflation came in at 8.4%. Of the 58 who answered that round,
 not one had it inside their range.
 
-So I went back and scored all 26 years, one forecaster at a time.
-
-[ image 2 &mdash; the grid ]
+So I went back and scored all 26 years, one forecaster at a time. That is the
+first slide: one row per forecaster, one column per year.
 
 🟩 Green: inflation landed inside that forecaster's range.
 🟥 Red: it did not.
 
-Four whole columns are red: 2008, 2021, 2022 and 2023. In those years nobody on
-the panel was inside their own range.
+Four whole columns are red: 2008, 2021, 2022 and 2023. Nobody on the panel was
+inside their own range.
 
-⬇️ And they were all wrong the same way. Every single one was <b>short</b>. 178
-forecasts across those four years, 178 underestimates, zero overestimates.
-
-When this panel fails completely, it does not see costs coming.
+⬇️ And they were all wrong the same way. Every single one was
+<b>short</b>. 178 forecasts across those four years, 178 underestimates, zero
+overestimates. When this panel fails completely, it does not see costs coming.
 
 Then I found the catch.
 
-[ image 3 &mdash; best vs worst ]
-
 🤔 A range can be right just by being huge.
 
-If your supplier says &ldquo;costs will rise between 0% and 10%&rdquo;, they will
-almost always be right. And they have told you nothing you can price on.
+If your supplier says &ldquo;costs will rise between 0% and 10%&rdquo;, they
+will almost always be right. And they have told you nothing you can price on.
 
 That is what separates the best forecaster here from the worst. The best one's
 ranges are 2.5&times; wider. Width alone explains 47% of the gap between them.
@@ -149,24 +136,20 @@ içine yaklaşık 16 kez düşmesi gerekir.
 ⚠️ 2022'de enflasyon %8,4 geldi. O turda cevap veren 58 tahmincinin
 hiçbirinde bu, kendi aralığının içinde değildi.
 
-Ben de 26 yılın hepsini, tahminci tahminci puanladım.
-
-[ görsel 2 &mdash; ızgara ]
+Ben de 26 yılın hepsini, tahminci tahminci puanladım. İlk görsel bu: her satır
+bir tahminci, her sütun bir yıl.
 
 🟩 Yeşil: enflasyon o tahmincinin aralığının içine düştü.
 🟥 Kırmızı: düşmedi.
 
-Dört sütun tamamen kırmızı: 2008, 2021, 2022 ve 2023. O yıllarda panelde kendi
-aralığının içinde kalan tek bir kişi yok.
+Dört sütun tamamen kırmızı: 2008, 2021, 2022 ve 2023. Panelde kendi aralığının
+içinde kalan tek bir kişi yok.
 
-⬇️ Ve hepsi aynı yönde yanıldı. Hepsi <b>düşük</b> tahmin etti. O dört yılda 178
-tahmin, 178 eksik tahmin, sıfır fazla tahmin.
-
-Bu panel tamamen şaşırdığında, maliyetlerin geldiğini göremiyor.
+⬇️ Ve hepsi aynı yönde yanıldı. Hepsi <b>düşük</b> tahmin etti. O dört
+yılda 178 tahmin, 178 eksik tahmin, sıfır fazla tahmin. Bu panel tamamen
+şaşırdığında, maliyetlerin geldiğini göremiyor.
 
 Sonra işin püf noktasını buldum.
-
-[ görsel 3 &mdash; en iyi ve en kötü ]
 
 🤔 Bir aralık, sırf çok geniş olduğu için de doğru çıkabilir.
 
