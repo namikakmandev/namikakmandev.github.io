@@ -56,6 +56,18 @@
   .method b{color:var(--ink)}
   footer{color:var(--ink3);font-size:12.5px;margin-top:8px}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:6px}
+  .viewtabs{display:flex;gap:8px;margin:18px 0 14px}
+  .vt{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--ink2);
+      font-size:14px;font-weight:600;padding:6px 2px;margin-right:16px;cursor:pointer}
+  .vt.on{color:var(--ink);border-bottom-color:var(--c1)}
+  .vt:focus-visible{outline:2px solid var(--c1);outline-offset:3px}
+  body.app .f-only{display:none}
+  body:not(.app) .a-only{display:none}
+  .lede{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--c1);
+        border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:15px;line-height:1.55}
+  .lede b{color:var(--ink)}
+  .lede ol{margin:8px 0 0 20px;color:var(--ink2)}
+  .lede li{margin:5px 0}
   ul.lims{list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:4px}
   ul.lims li{background:var(--card2);border:1px solid var(--line);border-radius:10px;
              padding:10px 14px;font-size:13px;color:var(--ink2)}
@@ -72,79 +84,82 @@
   Zoetis (Cytopoint, Apoquel), Merck (Numelvi) and Elanco (Zenrelia) compete — tracked per
   <b>form &amp; strength</b>, per <b>venue</b>, per <b>country</b>, from online pet pharmacies across 15 markets, with history reconstructed back to 2016.</p>
 
+  <div class="viewtabs">
+    <button class="vt on" id="vt-find" onclick="setView('find')">Findings</button>
+    <button class="vt" id="vt-app" onclick="setView('app')">Appendix &amp; method</button>
+  </div>
+
   <div class="btns" id="ccbtns"></div>
+  <div class="lede" id="headline"></div>
   <div class="banner" id="banner"></div>
-  <div class="card">
+  <div class="card a-only">
     <div class="chart-title">How much weight each market carries</div>
     <div class="chart-sub" id="weightsub"></div>
     <div class="tblwrap"><table id="weighttable"></table></div>
     <div class="chart-sub" id="weightnotes" style="margin-top:10px"></div>
   </div>
 
-  <div class="tiles" id="tiles"></div>
+  <div class="tiles a-only" id="tiles"></div>
 
-  <div class="card">
+  <div class="card f-only">
     <div class="chart-title">The five brands, side by side</div>
     <div class="btns" id="basisbtns" style="margin-bottom:10px"></div>
     <div class="chart-sub" id="brandsub"></div>
     <div id="brandbars"></div>
     <div class="tblwrap" style="margin-top:12px"><table id="brandtable"></table></div>
-    <div class="chart-sub" id="brandnotes" style="margin-top:10px"></div>
+    <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--c1);font-size:13px">
+      What is held constant, and what is not</summary>
+      <div class="chart-sub" id="brandnotes" style="margin-top:8px"></div></details>
   </div>
 
-  <div class="card">
+  <div class="card a-only">
     <div class="chart-title">What Cytopoint has to do to be worth it</div>
     <div class="chart-sub" id="cytosub"></div>
     <div id="cytoplot"></div>
     <div class="chart-sub" id="cytonotes" style="margin-top:10px"></div>
   </div>
 
-  <div class="card">
+  <div class="card f-only">
     <div class="chart-title">Zoetis versus the challengers</div>
     <div class="chart-sub" id="makersub"></div>
     <div class="tblwrap"><table id="makertable"></table></div>
-    <div class="chart-sub" id="makernotes" style="margin-top:10px"></div>
+    <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--c1);font-size:13px">
+      Why the slowdown is not a finding</summary>
+      <div class="chart-sub" id="makernotes" style="margin-top:8px"></div></details>
   </div>
 
-  <div class="card">
+  <div class="card a-only">
     <div class="chart-title">The same five, over time</div>
     <div class="chart-sub" id="trendsub"></div>
     <div id="brandtrend"></div>
   </div>
 
-  <div class="grid2" id="charts"></div>
+  <div class="grid2 a-only" id="charts"></div>
 
-  <div class="card">
+  <div class="card f-only">
     <div class="chart-title">Cost per itch-free day — like-for-like blocks</div>
-    <div class="chart-sub">Maintenance therapy for a ~20 kg dog. Each block holds <b>four</b> things
-      constant — dose (the weight-matched strength: Apoquel 16 mg, Zenrelia 15 mg, Numelvi 21.6 mg,
-      Cytopoint 40 mg), form, <b>pack size</b>, and channel (retail; clinic-administered pricing is
-      excluded). Blocks are never compared with each other: a per-tablet price and a 100-pack unit
-      price are different goods, and the bulk discount inside a single venue runs 4–31%. No pack size
-      exists in all fifteen markets — the US, UK and Australia sell these tablets singly while
-      continental Europe sells 20s and 100s — which is why the table is tiered rather than ranked.
-      Cytopoint is a range because its label says every <b>4 to 8 weeks</b>, not monthly; Apoquel
-      additionally needs <b>twice-daily dosing for 14 days</b> (Zenrelia and Numelvi do not), adding
-      ~47% to its first month, not included below. Converted with ECB cross-rates from
-      <a style="color:var(--c1)" href="rates.json">rates.json</a>.</div>
+    <div class="chart-sub">Each block holds dose, form, <b>pack size</b> and channel constant, and blocks
+      are never compared with each other. Ranked ex-VAT, at each country&rsquo;s own veterinary rate.</div>
     <div class="tblwrap"><table id="costtable"></table></div>
-    <div class="chart-sub" id="costnotes" style="margin-top:8px"></div>
+    <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--c1);font-size:13px">
+      How the blocks are built, and the tax adjustment</summary>
+      <div class="chart-sub" id="costnotes" style="margin-top:8px"></div></details>
   </div>
 
-  <div class="card">
+  <div class="card a-only">
     <div class="chart-title">Every SKU, every venue — with its own price history</div>
     <div class="chart-sub" id="snapdate"></div>
     <div class="tblwrap"><table id="snaptable"></table></div>
   </div>
 
-  <div class="card">
+  <div class="card a-only">
     <div class="chart-title">How fast these prices climb</div>
     <div class="chart-sub" id="inflsub"></div>
     <div class="tblwrap"><table id="infltable"></table></div>
     <div class="chart-sub" id="inflnotes" style="margin-top:10px"></div>
   </div>
 
-  <div class="card">
+  <div class="card a-only">
     <div class="chart-title">What this can and cannot support</div>
     <div class="chart-sub">Everything below is a limit on the panels above. Several are corrections to
       figures this page published earlier and later had to withdraw; those are kept rather than quietly
@@ -152,7 +167,7 @@
     <ul class="lims" id="limitations"></ul>
   </div>
 
-  <div class="card method" id="method"></div>
+  <div class="card method a-only" id="method"></div>
 
   <footer>Data: <a style="color:var(--ink3)" href="data/pharma-prices.json">data/pharma-prices.json</a> ·
   refreshed daily by <code>scripts/fetch_pharma_prices.py</code> via GitHub Actions. List prices in each
@@ -689,9 +704,15 @@ Promise.all([
       }
       if(!best) return {pid, dose, i, missing: true};
       const hi = dose.unitsPerDayMax ? best.v * (dose.unitsPerDayMax/dose.unitsPerDay) : null;
-      // the same brand as a BOX: cheapest pack outright, and how long it lasts
+      // the same brand as a BOX: cheapest pack outright, and how long it lasts.
+      // A tablet listing of n=1 is a per-tablet price, not a box - several UK,
+      // US and AU pharmacies quote by the tablet - so admitting it here would
+      // make the shelf view a second copy of the per-day view. Injectables are
+      // the exception: one vial IS the unit a buyer takes home.
+      const isBox = o => dose.form === 'inj' || o.n > 1;
       let boxBest = null;
       for(const o of rows){
+        if(!isBox(o)) continue;
         const v = all ? exTax(o.country, toUSD && toUSD[o.cur] != null ? o.price*toUSD[o.cur] : null)
                       : o.price;
         if(v == null) continue;
@@ -723,18 +744,17 @@ Promise.all([
       + `<button class="btn ${SHELF?'':'on'}" onclick="setBasis('day')">What a day costs</button>`;
 
     document.getElementById('brandsub').innerHTML = SHELF
-      ? 'What a buyer actually compares at the counter: <b>the price on the box</b>, cheapest pack of '
-        + `each brand${all ? ', converted to USD and ex-VAT' : ` in <b>${esc(CCNAME[cc]||cc)}</b>`}. `
-        + 'Nobody divides by pack size in a shop, so this is the comparison that gets made — and it is '
-        + 'not the comparison that decides what the year costs. Each bar is labelled with how long that '
-        + 'box lasts a ~20 kg dog.'
+      ? `<b>The price on the box</b>, cheapest pack of each brand${all ? ', in USD ex-VAT' : ` in ${esc(CCNAME[cc]||cc)}`}`
+        + ' — the comparison a buyer actually makes. Each bar says how long that box lasts a ~20 kg dog.'
+        + ' Shops that quote by the single tablet are excluded here: a per-tablet price is not a box.'
+        + ' The gaps under each bar compare <b>boxes</b>, not equal treatment periods \u2014 that is what the other view is for.'
       : `Cost of one day of maintenance therapy for a ~20 kg dog, ${all
         ? '<b>converted to USD and stripped of each country\u2019s veterinary VAT</b>, cheapest tracked listing anywhere'
         : `cheapest tracked listing in <b>${esc(CCNAME[cc]||cc)}</b>, in local currency`}.
        Each brand is dosed to <b>its own label</b>, not to a common assumption.`;
 
     const benchmark = shown.find(b => b.pid === 'apoquel');
-    const dayTxt = n => n >= 365 ? `${(n/365).toFixed(1)} years` : `${Math.round(n)} days`;
+    const dayTxt = n => n >= 365 ? `${(n/365).toFixed(1)} years` : `${Math.round(n)} day${Math.round(n)===1?'':'s'}`;
     document.getElementById('brandbars').innerHTML = brandBars(shown.map(b => ({
       pid: b.pid,
       name: products[b.pid].name,
@@ -752,23 +772,34 @@ Promise.all([
          name: products.apoquel.name, short: 'Apoquel'}
       : null);
 
-    const cheapest = shown[0]?.lo;
+    // The comparison column has to be on the SAME basis as the ranking above it,
+    // or a box-ranked leader gets measured against a per-day cheapest and the
+    // gaps come out signed the wrong way.
+    const cheapest = shown[0] ? val(shown[0]) : null;
+    const signed = v => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(0)}%`;
     document.getElementById('brandtable').innerHTML =
       '<tr><th>Brand</th><th>Dose used</th><th>Cheapest venue</th><th>Pack</th>'
-      + `<th>Cost per day</th><th>vs cheapest</th></tr>`
-      + brandNow.sort((a,b)=>(a.missing?1:0)-(b.missing?1:0) || a.lo-b.lo).map(b => {
-        if(b.missing) return `<tr><td>${esc(products[b.pid].name)}</td>
+      + `<th>${SHELF ? 'Price on the box' : 'Cost per day'}</th><th>vs cheapest</th></tr>`
+      + brandNow.slice().sort((a,b)=>(a.missing?1:0)-(b.missing?1:0)
+                                   || ((val(a) ?? Infinity) - (val(b) ?? Infinity))).map(b => {
+        if(b.missing || val(b) == null) return `<tr><td>${esc(products[b.pid].name)}</td>
           <td colspan="5" style="color:var(--ink3);text-align:left">not tracked ${all?'anywhere':'in this market'} at the weight-matched ${b.dose.mg} mg dose</td></tr>`;
+        const gap = v => (v == null || !cheapest) ? null : (v/cheapest - 1)*100;
         // An interval ranked by its low end alone would claim a win it only has
-        // at one end of its own dosing window, so both ends are shown.
-        const pc = v => (v === cheapest ? '—' : `+${((v/cheapest - 1)*100).toFixed(0)}%`);
-        const rel = b.hi ? `${pc(b.lo)} to ${pc(b.hi)}` : pc(b.lo);
+        // at one end of its own dosing window, so both ends are shown. Inside an
+        // interval the cheapest end prints as +0%, not as a dash, or the row
+        // reads "- to +100%". A box price has no such interval: the dosing
+        // window does not change what the box costs.
+        const rel = (!SHELF && b.hi)
+          ? `${signed(gap(b.lo))} to ${signed(gap(b.hi))}`
+          : (gap(val(b)) == null ? '—' : val(b) === cheapest ? '—' : signed(gap(val(b))));
+        const src = SHELF ? b.box.o : b.o;
         return `<tr>
           <td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PCOLOR[b.pid]};margin-right:7px"></span>${esc(products[b.pid].name)}</td>
           <td>${b.dose.mg} mg ${FORM[b.dose.form]}${b.dose.unitsPerDayMax?' q4–8wk':'/day'}</td>
-          <td>${all?`<span class="cc">${b.o.country}</span>`:''}${esc(venues[b.o.venue].name)}</td>
-          <td>${b.o.n}</td>
-          <td>${b.hi?`${fmtDay(b.lo)}–${fmtDay(b.hi)}`:fmtDay(b.lo)}</td>
+          <td>${all?`<span class="cc">${src.country}</span>`:''}${esc(venues[src.venue].name)}</td>
+          <td>${src.n}</td>
+          <td>${SHELF ? fmtDay(b.box.v) : (b.hi?`${fmtDay(b.lo)}–${fmtDay(b.hi)}`:fmtDay(b.lo))}</td>
           <td>${rel}</td></tr>`;
       }).join('');
 
@@ -782,7 +813,10 @@ Promise.all([
       + 'clinic-administered pricing is excluded. <b>Pack size is not held constant and cannot be</b> — '
       + 'Apoquel sells in 10s, 20s and 100s while Zenrelia and Numelvi sell in 30s and 90s, so each '
       + 'brand is shown at its own cheapest pack and the pack is named. A brand in a large pack is '
-      + 'therefore flattered against one sold singly. '
+      + 'therefore flattered against one sold singly. <b>The box view drops per-tablet listings</b> — '
+      + 'several UK, US and Australian pharmacies quote by the tablet, and admitting those as "boxes" '
+      + 'would collapse the shelf view into a second copy of the per-day view. One vial of Cytopoint '
+      + 'is kept, because a vial is what a buyer takes home. '
       + '<b>The dashed rule is Apoquel</b>, the incumbent, and each bar carries its gap to it. Apoquel has been the default prescription since 2013, so what a rival costs against it is the number that decides a switch; Cytopoint\u2019s gap is a range for the same reason its bar is. '
       + 'Apoquel additionally needs <b>twice-daily dosing for 14 days</b> at the start, which Zenrelia '
       + 'and Numelvi do not; that adds about 47% to its first month and is not in these figures. '
@@ -1019,6 +1053,22 @@ Promise.all([
       ? lineChart(trend, {yFmt: v => money(v, cur2, dp2)})
       : '<div class="chart-sub">nothing to plot</div>';
     // ---------------------------------------------------------------------
+
+    // The findings view leads with the conclusions rather than the workings.
+    // Everything that qualifies them is a click away, not deleted - which is
+    // why the appendix exists rather than a shorter page.
+    document.getElementById('headline').innerHTML =
+      '<b>Four things survived every correction this study made to itself.</b>'
+      + '<ol>'
+      + '<li><b>Zenrelia undercuts Apoquel by about a third</b> at the same till, and Numelvi by about '
+        + 'a tenth. The ordering never inverts in any shop stocking both.</li>'
+      + '<li><b>The cheapest box is usually the smallest box.</b> Apoquel is at once the cheapest thing '
+        + 'on a Dutch shelf and the dearest way to treat a dog for a year.</li>'
+      + '<li><b>Which shop you track matters more than which country.</b> Three US pharmacies span '
+        + '+2.0% to +11.1% a year on the same molecules.</li>'
+      + '<li><b>Cytopoint cannot be ranked on price</b> \u2014 a vial must last 42 days to match a '
+        + 'tablet, 59 once a consultation is counted, against a label maximum of 56.</li>'
+      + '</ol>';
 
     // ---- how much weight each market carries ----------------------------
     // The honest ceiling first: nothing here is a transaction. These are prices
@@ -1331,6 +1381,12 @@ Promise.all([
 
   window.setCC = c => { cc = c; render(); };
   window.setBasis = b => { basis = b; render(); };
+  window.setView = v => {
+    document.body.classList.toggle('app', v === 'app');
+    document.getElementById('vt-find').classList.toggle('on', v !== 'app');
+    document.getElementById('vt-app').classList.toggle('on', v === 'app');
+    window.scrollTo({top: 0, behavior: 'instant'});
+  };
   render();
 
   document.getElementById('method').innerHTML =
