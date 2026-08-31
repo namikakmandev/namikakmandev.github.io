@@ -75,6 +75,10 @@
                          margin-left:8px}
   .gpanel:not([open])>summary::after{content:'+'}
   .gpanel{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  /* the aggregate panel leads the grid, so it gets the accent border rather
+     than a colour of its own - colour on this page means a brand */
+  .gall{border-color:rgba(57,135,229,.45);background:rgba(57,135,229,.06)}
+  .gglobe{color:var(--c1);font-size:13px;line-height:1;flex:none}
   .gpanel>summary{cursor:pointer;list-style:none;outline:none}
   .gpanel>summary::-webkit-details-marker{display:none}
   .ghead{display:flex;align-items:center;gap:8px;font-size:13.5px}
@@ -82,7 +86,11 @@
   /* the cheapest-brand figure is the panel's headline, so it sits right */
   .gcheap{margin-left:auto;color:var(--ink2);font-variant-numeric:tabular-nums;font-size:12.5px}
   .gbars{margin-top:9px;display:flex;flex-direction:column;gap:5px}
-  .gbar{display:grid;grid-template-columns:118px 1fr 50px;align-items:center;gap:8px;font-size:11.5px}
+  /* the value column carries two lines now - the figure and its gap to the
+     panel's cheapest brand - so the row is baseline-aligned, not centred */
+  .gbar{display:grid;grid-template-columns:112px 1fr 78px;align-items:center;gap:8px;font-size:11.5px}
+  .gpct{display:block;color:var(--ink3);font-size:10px;line-height:1.25;margin-top:1px;
+        white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .gname{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* the track is the shared scale made visible: every panel's 100% is the same
      number, so an empty track carries information too */
@@ -108,6 +116,15 @@
          flex-wrap:wrap;gap:2px}
   .gshop .vb{margin-left:4px}
   .gvat{color:var(--ink3);font-size:11px;margin-top:8px}
+  /* disclosure for long prose: the summary is the claim, the body the argument */
+  .disc>summary{cursor:pointer;list-style:none;color:var(--ink2)}
+  .disc>summary::-webkit-details-marker{display:none}
+  /* nbsp, because a plain leading space collapses at the inline boundary and
+     the affordance ends up glued to the last word */
+  .disc>summary::after{content:'\00a0\00a0\25b8\00a0more';color:var(--c1);font-size:11.5px;
+                       white-space:nowrap;font-weight:600}
+  .disc[open]>summary::after{content:'\00a0\00a0\25be\00a0less'}
+  .discb{margin-top:7px;padding-left:11px;border-left:2px solid var(--line)}
   .gabs{display:inline-flex;align-items:center;gap:5px;background:var(--card2);border:1px solid var(--line);
         border-radius:8px;padding:3px 8px;margin:3px 5px 0 0;font-size:12px;cursor:help}
   .gabs .flag{width:16px;height:auto;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.22)}
@@ -362,6 +379,13 @@ const ccChip = cc => {
            : `<span class="cc cctext" title="${esc(CCNAME[cc] || cc)}">${esc(cc)}</span>`;
 };
 const flag = flagSVG;   // used where a chip would be too heavy
+
+// Long prose folds into a disclosure, but never the point it makes: the summary
+// keeps the CONCLUSION and the body keeps the JUSTIFICATION. A reader who never
+// opens one still learns everything the page is claiming; what they skip is why
+// we are entitled to claim it.
+const disclose = (head, body) =>
+  `<details class="disc"><summary>${head}</summary><div class="discb">${body}</div></details>`;
 
 const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł', RON:'lei', SEK:'kr'};
 
@@ -1155,27 +1179,28 @@ Promise.all([
       // shop seen twice, and a reader who cannot see that is being misled by
       // precision the data does not have.
       const thin = shown.filter(b => (VSTAT[srcOf(b).venue]||{}).tier === 'new');
-      document.getElementById('brandevidence').innerHTML =
-        '<b>How solid is each shop?</b> The badge after every venue grades <b>our record of that '
-        + 'shop</b> \u2014 <span class="vb" style="color:var(--ink)">deep</span> is 20 or more separate '
-        + 'days observed, <span class="vb" style="color:var(--ink2)">tracked</span> several, '
-        + '<span class="vb" style="color:var(--ink3)">new</span> one or two, '
-        + '<span class="vb" style="color:var(--ink3)">stale</span> no longer returning prices. Hover '
-        + 'for the dates. It says nothing about the shop\u2019s size, traffic or trustworthiness: '
-        + 'this study has no data on any of that, and a made-up score would be worse than none. '
+      document.getElementById('brandevidence').innerHTML = disclose(
+        '<b>How solid is each shop, and are these averages?</b> Each venue carries a badge grading '
+        + 'our record of it, and <b>every figure here is a minimum, never a mean.</b>'
         + (thin.length
-           ? `<b>Read this view with that in mind</b> \u2014 ${thin.length === shown.length ? 'every brand here is' : thin.map(b=>esc(products[b.pid].name)).join(', ') + (thin.length>1?' are':' is')} priced off a shop seen only once or twice. A promotion would look identical to a standing price.`
-           : 'Every brand in this view is priced off a shop with a multi-day record.')
-        + ' <b>These are minima, not averages.</b> Every figure on this card is the cheapest '
-        + 'qualifying listing, never a mean across shops \u2014 and deliberately not a weighted one, '
-        + 'because weighting needs each shop\u2019s sales volume and no retailer publishes it. An '
-        + 'unweighted mean would be worse than the minimum, not better: it would quietly assert that '
-        + 'a shop selling ten boxes a year counts as much as one selling ten thousand. The minimum is '
-        + 'at least a price somebody can actually pay. What it costs is that it tracks the keenest '
-        + 'shop rather than the typical one, and that gap is worth knowing: '
-        + spreadTxt()
+           ? ` <b>${thin.length === shown.length ? 'Every brand here is' : thin.map(b=>esc(products[b.pid].name)).join(', ') + (thin.length>1?' are':' is')} priced off a shop seen only once or twice.</b>`
+           : ''),
+        '<b>What the badge means.</b> <span class="vb" style="color:var(--ink)">deep</span> is 20 or '
+        + 'more separate days observed, <span class="vb" style="color:var(--ink2)">tracked</span> '
+        + 'several, <span class="vb" style="color:var(--ink3)">new</span> one or two, '
+        + '<span class="vb" style="color:var(--ink3)">stale</span> no longer returning prices. Hover '
+        + 'for the dates. It says nothing about the shop\u2019s size, traffic or trustworthiness: this '
+        + 'study has no data on any of that, and a made-up score would be worse than none. '
+        + (thin.length ? 'On a shop seen once or twice a promotion is indistinguishable from a '
+                       + 'standing price. ' : '')
+        + '<b>Why minima and not averages.</b> A weighted average needs each shop\u2019s sales volume, '
+        + 'and no retailer publishes it. An unweighted mean would be worse than the minimum rather '
+        + 'than better: it would quietly assert that a shop selling ten boxes a year counts as much '
+        + 'as one selling ten thousand. The minimum is at least a price somebody can actually pay. '
+        + 'What it costs is that it tracks the keenest shop rather than the typical one, and that gap '
+        + 'is worth knowing: ' + spreadTxt()
         + ' The appendix table lists every venue separately, so the spread is visible rather than '
-        + 'averaged away.';
+        + 'averaged away.');
 
       // Same shop, same day, same pack size, tablet against chewable. Everything
       // that usually confounds a cross-brand comparison - retailer margin, VAT,
@@ -1199,17 +1224,18 @@ Promise.all([
         const same  = pairs.filter(p => Math.abs(p.d) < 0.5).length;
         const cheap = pairs.filter(p => p.d <= -0.5).length;
         const dearP = pairs.filter(p => p.d >= 0.5);
-        el.innerHTML =
-          '<b>Is the chewable dearer than the plain tablet?</b> No \u2014 and this is the one '
-          + 'comparison on the page with nothing left to argue about. Pairing the two <b>at the same '
-          + 'shop, on the same day, in the same pack size</b> cancels retailer margin, VAT, currency '
-          + 'and pack tier, leaving only how Zoetis prices the two formulations against each other. '
-          + `Across <b>${pairs.length}</b> such pairs the chewable is <b>cheaper in ${cheap}</b>, `
-          + `<b>identical in ${same}</b>, and dearer in <b>${dearP.length}</b>`
-          + (dearP.length ? ` (${dearP.map(p=>`${esc(p.t.country)} +${p.d.toFixed(1)}%`).join(', ')})` : '')
-          + `. The widest gap is ${esc(CCNAME[pairs[0].t.country]||pairs[0].t.country)} at `
+        el.innerHTML = disclose(
+          `<b>Is the chewable dearer than the plain tablet?</b> No \u2014 across <b>${pairs.length}</b> `
+          + `same-shop, same-pack pairs it is <b>cheaper in ${cheap}</b>, identical in ${same}, and `
+          + `dearer in only ${dearP.length}.`,
+          'This is the one comparison on the page with nothing left to argue about. Pairing the two '
+          + '<b>at the same shop, on the same day, in the same pack size</b> cancels retailer margin, '
+          + 'VAT, currency and pack tier, leaving only how Zoetis prices the two formulations against '
+          + 'each other. '
+          + (dearP.length ? `The exceptions are ${dearP.map(p2=>`${esc(CCNAME[p2.t.country]||p2.t.country)} +${p2.d.toFixed(1)}%`).join(' and ')}. ` : '')
+          + `The widest gap either way is ${esc(CCNAME[pairs[0].t.country]||pairs[0].t.country)} at `
           + `${pairs[0].d.toFixed(1)}%. So where this card puts the chewable below plain Apoquel, that `
-          + 'is a real price difference, not an artefact of comparing different shops or pack sizes.';
+          + 'is a real price difference, not an artefact of comparing different shops or pack sizes.');
       })();
 
       document.getElementById('brandnotes').innerHTML =
@@ -1308,24 +1334,48 @@ Promise.all([
       }
       if(!panels.length){ grid.innerHTML = ''; return; }
       panels.sort((a,b) => a.brands[0].v - b.brands[0].v);
+
+      // An ALL MARKETS panel, pinned first. The grid answers "where"; the
+      // question under it is what each brand costs at its best anywhere, which
+      // is the comparison the card above this one makes. Built by taking the
+      // cheapest country panel per brand rather than re-deriving it from the
+      // observations, so this panel can never disagree with the panels it
+      // summarises.
+      const nMarkets = panels.length;
+      const bestAny = {};
+      for(const q of panels) for(const b of q.brands)
+        if(!bestAny[b.pid] || b.v < bestAny[b.pid].v) bestAny[b.pid] = b;
+      if(Object.keys(bestAny).length)
+        panels.unshift({country: 'ALL', brands: Object.values(bestAny).sort((a,b)=>a.v-b.v)});
+
       const top = Math.max(...panels.flatMap(p => p.brands.map(b => b.v)));
 
       document.getElementById('gridsub').innerHTML =
-        `<b>${panels.length} markets</b> that publish a price, each showing what a day of treatment `
+        `<b>${nMarkets} markets</b> that publish a price, each showing what a day of treatment `
         + 'costs a ~20 kg dog. <b>Every panel shares one scale</b> and one basis — USD with each '
         + 'country&rsquo;s veterinary VAT removed — so bar lengths mean the same thing across the grid; '
         + 'a panel scaled to its own maximum would make a dear market look cheap. Colour is the brand, '
         + 'the same everywhere on this page. Markets run cheapest first. <b>Open any panel</b> for the '
-        + 'shop, the pack, the local price and how much we know about that shop.';
+        + 'shop, the pack, the local price and how much we know about that shop. The starred panel is '
+        + '<b>every market at once</b> — each brand at its cheapest anywhere, which is the same '
+        + 'comparison the card above makes. Inside each panel, every bar carries its gap to that '
+        + 'market&rsquo;s cheapest brand.';
 
       grid.innerHTML = panels.map(p => {
-        const bars = p.brands.map(b => {
+        const base = p.brands[0].v;
+        const bars = p.brands.map((b, i) => {
           const w = Math.max(1.5, (b.v / top) * 100);
+          const gap = (b.v / base - 1) * 100;
+          // Rounded before it is judged, so a reader is never shown a "+0%"
+          // sitting next to two different numbers.
+          const shown = +gap.toFixed(0);
+          const pct = i === 0 ? 'cheapest here'
+                    : shown === 0 ? 'same' : `+${shown}% vs ${esc(products[p.brands[0].pid].name)}`;
           return `<div class="gbar"><span class="gname">${esc(products[b.pid].name)}</span>`
                + `<span class="gtrack"><span class="gfill" style="width:${w}%;background:${PCOLOR[b.pid]}"></span></span>`
-               + `<span class="gval">${money(b.v, 'USD', 2)}</span></div>`;
+               + `<span class="gval">${money(b.v, 'USD', 2)}<span class="gpct">${pct}</span></span></div>`;
         }).join('');
-        const missing = Object.entries(DOSE)
+        const missing = p.country === 'ALL' ? [] : Object.entries(DOSE)
           .filter(([pid, d]) => d.form !== 'inj' && !p.brands.some(b => b.pid === pid))
           .map(([pid]) => products[pid].name);
         // A four-column table does not belong in a 300px panel - it collided with
@@ -1337,21 +1387,27 @@ Promise.all([
             + `<span class="gbrand">${esc(products[b.pid].name)}</span>`
             + `<span class="glocal">${money(b.o.unit, b.o.cur, (b.o.cur==='HUF'||b.o.cur==='TRY')?0:2)}`
             + `<span class="gper">/${FORM[DOSE[b.pid].form].slice(0,4)}</span></span>`
-            + `<span class="gshop">${esc(venues[b.o.venue].name)} · `
+            + `<span class="gshop">${p.country === 'ALL' ? `${flagSVG(b.o.country)} ` : ''}`
+            + `${esc(venues[b.o.venue].name)} · `
             + `${b.boxed ? `pack of ${b.o.n}` : 'sold by the tablet'}${vBadge(b.o.venue)}</span>`
             + `</div>`).join('');
+        const isAll = p.country === 'ALL';
         const r = VAT && VAT.rates && VAT.rates[p.country];
         // Open by default: the point of the grid is to read every market at once,
         // and a wall of closed rows makes that a click each. They still collapse.
-        return `<details class="gpanel" open><summary>`
-          + `<span class="ghead">${flagSVG(p.country)}<b>${esc(CCNAME[p.country]||p.country)}</b>`
+        return `<details class="gpanel${isAll ? ' gall' : ''}" open><summary>`
+          + `<span class="ghead">${isAll ? '<span class="gglobe">\u2605</span>' : flagSVG(p.country)}`
+          + `<b>${isAll ? 'All markets \u2014 cheapest anywhere' : esc(CCNAME[p.country]||p.country)}</b>`
           + `<span class="gcheap">${money(p.brands[0].v, 'USD', 2)}/day</span></span></summary>`
           + `<div class="gbars">${bars}`
           + (missing.length ? `<div class="gmiss">not tracked here: ${esc(missing.join(', '))}</div>` : '')
           + `</div>`
           + `<div class="gdetail"><div class="ghint">local price per unit, and where it came from</div>`
           + `${detail}</div>`
-          + `<div class="gvat">${r ? (r.display === 'exclusive'
+          + `<div class="gvat">${isAll
+              ? 'Each brand is shown at its cheapest market, so a different country can appear on '
+                + 'every row. Each figure already has its own country\u2019s veterinary VAT removed.'
+              : r ? (r.display === 'exclusive'
               ? 'Prices are quoted before tax in this market, so nothing was removed.'
               : `${(r.rate*100).toFixed(0)}% veterinary VAT removed${r.confidence === 'low' ? ' (rate uncertain)' : ''}.`)
               : 'No VAT rate on file, so this panel still carries tax and is not comparable.'}</div>`
@@ -1378,13 +1434,16 @@ Promise.all([
       // Named explicitly: these are markets we DO have prices for, held out only
       // because no USD rate reached the page for their currency. Silently
       // omitting them would read as "no data".
+      // The missing-market declarations stay in the open: they are statements
+      // about what is NOT here, and folding those would be the quiet omission
+      // the whole card is built to avoid. Only the methodology folds.
       document.getElementById('gridnotes').innerHTML =
         (unconverted.length
-          ? `<b>${unconverted.length} tracked market${unconverted.length>1?'s are':' is'} missing from the grid `
-            + `above:</b> ${unconverted.map(c => esc(CCNAME[c]||c)).join(', ')}. We hold prices for `
-            + `${unconverted.length>1?'them':'it'}, but no USD rate for `
-            + `${unconverted.length>1?'those currencies':'that currency'} reached the page, and a panel `
-            + 'cannot join a shared scale without one. Use the country filter at the top to see '
+          ? `<b>${unconverted.length} tracked market${unconverted.length>1?'s are':' is'} missing from `
+            + `the grid above:</b> ${unconverted.map(c => esc(CCNAME[c]||c)).join(', ')}. We hold `
+            + `prices for ${unconverted.length>1?'them':'it'}, but no USD rate for `
+            + `${unconverted.length>1?'those currencies':'that currency'} reached the page, and a `
+            + 'panel cannot join a shared scale without one. Use the country filter at the top to see '
             + `${unconverted.length>1?'them':'it'} in local currency. `
           : '')
         + (tabletless.length
@@ -1392,14 +1451,16 @@ Promise.all([
             + `${tabletless.length>1?'are':'is'} tracked but absent here</b> for a different reason: `
             + `${tabletless.length>1?'those markets stock':'that market stocks'} none of the daily `
             + 'tablets at the weight-matched dose — only Cytopoint, which this card excludes throughout. '
-          : '') +
-        '<b>What this grid can and cannot show.</b> Every bar is the cheapest qualifying listing in '
-        + 'that market, not an average, for the reasons set out above — so the grid compares each '
-        + 'country at its keenest shop, which is not the same as its typical shop. Coverage is uneven '
-        + 'and deliberately not hidden: a market with one tracked shop shows that shop&rsquo;s price '
-        + 'as though it were the market&rsquo;s, and the badge inside each panel says how thin that is. '
-        + 'Missing brands are named rather than left blank, because a short panel usually means a brand '
-        + 'is not sold there, not that it is expensive.';
+          : '')
+        + disclose('<b>What this grid can and cannot show</b>',
+          'Every bar is the cheapest qualifying listing in that market, not an average, for the '
+          + 'reasons set out above — so the grid compares each country at its keenest shop, which is '
+          + 'not the same as its typical shop. Coverage is uneven and deliberately not hidden: a '
+          + 'market with one tracked shop shows that shop&rsquo;s price as though it were the '
+          + 'market&rsquo;s, and the badge inside each panel says how thin that is. Missing brands '
+          + 'are named rather than left blank, because a short panel usually means a brand is not '
+          + 'sold there, not that it is expensive.');
+
     })();
 
     // ---- what Cytopoint has to do to be worth it ------------------------
