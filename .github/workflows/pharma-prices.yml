@@ -31,6 +31,13 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
+      # Committed so the report works where a live FX call cannot run: inside a
+      # published artifact's CSP, and offline. Non-fatal - the page falls back
+      # to the live call, and the script keeps any existing file on failure.
+      - name: Refresh USD cross-rates
+        continue-on-error: true
+        run: python scripts/fetch_fx_usd.py
+
       - name: Scrape prices
         run: python scripts/fetch_pharma_prices.py
 
@@ -38,7 +45,7 @@ jobs:
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add data/pharma-prices.json data/_pharma-prices-report.json
+          git add data/pharma-prices.json data/_pharma-prices-report.json data/fx-usd.json
           git diff --cached --quiet && { echo "no changes"; exit 0; }
           git commit -m "data: refresh pharma prices [skip ci]"
           for i in 1 2 3 4; do

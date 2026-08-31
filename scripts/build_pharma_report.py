@@ -29,6 +29,8 @@ SOURCES = [
      "data", "data/pharma-prices.json", True),
     ("fetch('rates.json').then(r=>r.ok?r.json():null).catch(()=>null)",
      "rates", "rates.json", False),
+    ("fetch('data/fx-usd.json').then(r=>r.ok?r.json():null).catch(()=>null)",
+     "fx", "data/fx-usd.json", False),
     ("fetch('data/vat-vet-medicines.json').then(r=>r.ok?r.json():null).catch(()=>null)",
      "vat", "data/vat-vet-medicines.json", False),
     ("fetch('data/vet-cpi-us.json').then(r=>r.ok?r.json():null).catch(()=>null)",
