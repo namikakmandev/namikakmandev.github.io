@@ -176,6 +176,41 @@
         </div>
 
         <div class="fs-card">
+          <h3>When it fails, it fails one way</h3>
+          <p>A miss has a direction. Either the outcome beat the top of the range
+            &mdash; the forecaster was short &mdash; or it fell under the bottom.
+            Across all 26 years the panel misses both ways: of 558 misses,
+            <strong>65% were too low</strong> and 35% too high. 2009, 2014 and
+            2020 were years it overshot.</p>
+          <p class="fs-warn"><strong>But the four total failures are not mixed at
+            all.</strong> In 2008, 2021, 2022 and 2023 &mdash; the years when not
+            one forecaster contained the outcome &mdash; every single miss was on
+            the low side. <strong>178 forecasts, 178 underestimates, zero
+            overestimates.</strong> When this panel breaks down completely, it
+            breaks down in the same direction: it does not see costs
+            coming.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>Year</th><th>Inside</th><th>Too low</th>
+                <th>Too high</th><th>Actual</th></tr></thead>
+              <tbody>
+                <tr class="fs-bad"><th scope="row">2008</th><td>0</td><td>48</td><td>0</td><td>3.28%</td></tr>
+                <tr class="fs-bad"><th scope="row">2021</th><td>0</td><td>46</td><td>0</td><td>2.60%</td></tr>
+                <tr class="fs-bad"><th scope="row">2022</th><td>0</td><td>41</td><td>0</td><td>8.36%</td></tr>
+                <tr class="fs-bad"><th scope="row">2023</th><td>0</td><td>43</td><td>0</td><td>5.47%</td></tr>
+                <tr><th scope="row">2009</th><td>1</td><td>0</td><td>46</td><td>0.30%</td></tr>
+                <tr><th scope="row">2020</th><td>10</td><td>0</td><td>31</td><td>0.25%</td></tr>
+                <tr class="fs-head"><th scope="row">2007, 2025</th><td>all</td><td>0</td><td>0</td><td>2.12%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cap" style="font-size:.85rem;color:var(--text-dim);margin-top:8px">
+            Counts are over the 64 forecasters with ten or more scored years, so
+            they are smaller than the full panel of that round. The full
+            year-by-year table is printed by the script.</p>
+        </div>
+
+        <div class="fs-card">
           <h3>The extremes</h3>
           <p>Scores are percentage points above or below a year-matched average forecaster. The
             coverage column is the raw share of years their own 80% range contained the outcome
@@ -276,6 +311,10 @@
               large.</li>
             <li><strong>Who counts.</strong> Forecasters with at least ten scored years. A shorter
               record cannot distinguish skill from luck in either direction.</li>
+            <li><strong>Which way did it miss?</strong> For every scored
+              forecast, compare the outcome to the range: inside, above the top
+              (too low), or below the bottom (too high). Counted per year and
+              pooled.</li>
             <li><strong>Is it just width?</strong> Take each forecaster's median published range
               width and correlate it with their score. Then split careers in half, regress each
               half's score on that half's width with one pooled line, and re-run the split-half
@@ -360,7 +399,7 @@
           <h3>The script, in full</h3>
           <p>Nothing is elided. This is the file that produced every number and the chart on this page, exactly as it runs.</p>
             <details>
-              <summary>ecb_forecaster_skill.py (678 lines)</summary>
+              <summary>ecb_forecaster_skill.py (722 lines)</summary>
               <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Is any individual ECB forecaster consistently honest about uncertainty?
 
@@ -477,6 +516,43 @@ def main():
     print(&quot;\n  A forecaster active only in 2003-2007 would look brilliant for&quot;)
     print(&quot;  free. Every score below is measured against what an average&quot;)
     print(&quot;  forecaster facing that forecaster&#x27;s own years would have managed.&quot;)
+
+    hr(&quot;1b. When the panel fails, which way does it fail?&quot;)
+    # A miss is not a direction-free event. Either the outcome beat the top of
+    # the range (they were short) or it fell under the bottom (they were high).
+    side = {}
+    for t in sorted(p_y):
+        ins = low = high = 0
+        for v in elig.values():
+            for yr, h, d, lo, hi, _c in v:
+                if yr != t:
+                    continue
+                if h:                  ins += 1
+                elif actual[t] &gt; hi:   low += 1
+                else:                  high += 1
+        side[t] = (ins, low, high)
+    print(f&quot;    {&#x27;year&#x27;:&lt;7}{&#x27;n&#x27;:&gt;4}{&#x27;inside&#x27;:&gt;8}{&#x27;too low&#x27;:&gt;9}{&#x27;too high&#x27;:&gt;10}&quot;
+          f&quot;   actual&quot;)
+    for t in sorted(side):
+        ins, low, high = side[t]
+        flag = &quot;   &lt;- nobody inside&quot; if ins == 0 else &quot;&quot;
+        print(f&quot;    {t:&lt;7}{ins + low + high:&gt;4}{ins:&gt;8}{low:&gt;9}{high:&gt;10}&quot;
+              f&quot;   {actual[t]:&gt;5.2f}%{flag}&quot;)
+    dead = [t for t in side if side[t][0] == 0]
+    dn = sum(side[t][1] + side[t][2] for t in dead)
+    dlow = sum(side[t][1] for t in dead)
+    ins = sum(v[0] for v in side.values())
+    low = sum(v[1] for v in side.values())
+    high = sum(v[2] for v in side.values())
+    print(f&quot;\n  pooled: {ins} inside, {low} too low, {high} too high&quot;)
+    print(f&quot;  of the {low + high} misses, {low / (low + high) * 100:.0f}% were &quot;
+          f&quot;too low — the panel is wrong in both directions, but more often&quot;)
+    print(f&quot;  wrong by underestimating.&quot;)
+    print(f&quot;\n  in the {len(dead)} years nobody was inside &quot;
+          f&quot;({&#x27;, &#x27;.join(str(t) for t in sorted(dead))}):&quot;)
+    print(f&quot;    {dlow} of {dn} forecasts too low, {dn - dlow} too high&quot;)
+    print(f&quot;  -&gt; {&#x27;every single one was short&#x27; if dlow == dn else &#x27;mixed&#x27;}. &quot;
+          f&quot;When this panel fails completely, it fails one way.&quot;)
 
     hr(&quot;2. Is the spread wider than luck?&quot;)
     obs = statistics.pstdev(list(score.values()))
@@ -645,6 +721,13 @@ def main():
         &quot;n_forecasters&quot;: len(elig),
         &quot;n_forecasts&quot;: sum(len(v) for v in elig.values()),
         &quot;year_difficulty&quot;: {str(t): round(p, 4) for t, p in sorted(p_y.items())},
+        &quot;miss_direction&quot;: {
+            &quot;by_year&quot;: {str(t): {&quot;inside&quot;: a, &quot;too_low&quot;: b, &quot;too_high&quot;: c}
+                        for t, (a, b, c) in sorted(side.items())},
+            &quot;pooled&quot;: {&quot;inside&quot;: ins, &quot;too_low&quot;: low, &quot;too_high&quot;: high},
+            &quot;zero_coverage_years&quot;: sorted(dead),
+            &quot;zero_coverage_all_too_low&quot;: dlow == dn,
+            &quot;zero_coverage_n&quot;: dn},
         &quot;spread&quot;: {&quot;observed_sd&quot;: round(obs, 4),
                    &quot;null_median_sd&quot;: round(statistics.median(sims), 4),
                    &quot;p&quot;: round(p_spread, 4)},
