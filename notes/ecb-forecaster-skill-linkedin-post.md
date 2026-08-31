@@ -57,83 +57,68 @@ forecasts, euro-area inflation 2000&ndash;2025.
 
 ## English
 
-I work in pricing. Every plan I build sits on an inflation forecast.
+I work in pricing. Every plan I build rests on an inflation forecast.
 
-So it is worth knowing where that forecast comes from. Each quarter the ECB
-surveys around fifty banks and research institutes across Europe. It asks each
-one not for a number but for a probability distribution: where will inflation
-land, and how confident are you. Those answers become the consensus figure most
-of us quote.
+So it matters who makes them. Every quarter the ECB asks about fifty banks and
+research institutes across Europe where inflation will land, and how sure they
+are about it.
 
-In 2022 euro-area inflation reached 8.4%, the highest in the euro's history.
-None of the fifty had it inside the range they had published.
+In 2022 it came in at 8.4%. Not one of the fifty had that inside their own
+range.
 
-The ECB publishes each forecaster separately, so I scored all 26 years.
+I checked all 26 years.
 
 [ image 2 &mdash; the grid ]
 
-Green: the outcome landed inside that forecaster's range. Red: it did not.
+Green: inflation landed inside that forecaster's range. Red: it did not.
 
-Four columns are entirely red: 2008, 2021, 2022 and 2023. In those years the
-stated confidence carried no information.
+Four years are all red: 2008, 2021, 2022 and 2023.
 
 [ image 3 &mdash; best vs worst ]
 
-The forecasters are not interchangeable. But the best also publishes ranges
-twice as wide as the worst, and width alone explains 47% of the score. Roughly
-half of what looks like skill is a willingness to admit uncertainty.
+And the best forecaster? Their ranges are twice as wide as the worst one's. Half
+of looking good here is simply admitting you don't know.
 
-Useful, but not the same as accuracy.
+So judge a forecast two ways, not one. How often it was right, and how wide it
+had to be to get there.
 
-The practical point: score a forecast on two measures, not one. How often the
-outcome fell inside the stated range, and how wide that range had to be.
+1 of 64 met their own 80% standard.
 
-Only 1 of 64 met their own 80% standard.
-
-Method and code: namikakmandev.github.io/ecb-forecaster-skill.html
+namikakmandev.github.io/ecb-forecaster-skill.html
 Data: @European Central Bank Survey of Professional Forecasters.
 
 ---
 
 ## Türkçe
 
-Fiyatlama alanında çalışıyorum. Kurduğum her plan bir enflasyon tahmininin
-üzerine oturuyor.
+Fiyatlama yapıyorum. Kurduğum her plan bir enflasyon tahminine dayanıyor.
 
-Bu yüzden o tahminin nereden geldiğini bilmekte fayda var. ECB her çeyrek
-Avrupa'da elli kadar banka ve araştırma kurumuna anket yapıyor. Her birinden tek
-bir sayı değil, bir olasılık dağılımı istiyor: enflasyon nereye gelir, ve ne
-kadar eminsiniz. Bu cevaplar çoğumuzun alıntıladığı konsensüs rakamına
-dönüşüyor.
+O yüzden bu tahminleri kimin yaptığı önemli. ECB her çeyrek Avrupa'daki elli
+kadar bankaya ve araştırma kurumuna enflasyonun nereye geleceğini ve bundan ne
+kadar emin olduklarını soruyor.
 
-2022'de euro bölgesi enflasyonu %8,4'e ulaştı; euronun tarihindeki en yüksek
-seviye. Elli tahmincinin hiçbirinde bu, yayımladıkları aralığın içinde değildi.
+2022'de enflasyon %8,4 geldi. Elli tahmincinin hiçbirinde bu, kendi aralığının
+içinde değildi.
 
-ECB her tahminciyi ayrı ayrı da yayımlıyor, ben de 26 yılın tamamını puanladım.
+26 yılın hepsine baktım.
 
 [ görsel 2 &mdash; ızgara ]
 
-Yeşil: sonuç o tahmincinin aralığının içine düştü. Kırmızı: düşmedi.
+Yeşil: enflasyon o tahmincinin aralığının içine düştü. Kırmızı: düşmedi.
 
-Dört sütun tamamen kırmızı: 2008, 2021, 2022 ve 2023. Bu yıllarda beyan edilen
-güven aralığı hiçbir bilgi taşımıyordu.
+Dört yıl tamamen kırmızı: 2008, 2021, 2022 ve 2023.
 
 [ görsel 3 &mdash; en iyi ve en kötü ]
 
-Tahminciler birbirinin yerine geçmiyor. Ama en iyisi aynı zamanda en kötünün iki
-katı geniş aralıklar yayımlıyor ve skorun %47'sini tek başına genişlik
-açıklıyor. Yetenek gibi görünen şeyin kabaca yarısı, belirsizliği kabul etme
-isteği.
+Peki en iyi tahminci? Aralıkları en kötününkinin iki katı geniş. Burada iyi
+görünmenin yarısı, bilmediğini kabul etmek.
 
-Değerli, ama isabet ile aynı şey değil.
+Yani bir tahmini tek değil iki şekilde değerlendirin. Kaç kez doğru çıktı, ve
+bunun için ne kadar geniş olmak zorunda kaldı.
 
-Pratik sonuç: bir tahmini tek ölçüyle değil iki ölçüyle puanlayın. Sonuç kaç kez
-beyan edilen aralığın içinde kaldı, ve o aralık ne kadar geniş olmak zorunda
-kaldı.
+64 tahminciden 1'i kendi %80 standardını tutturdu.
 
-64 tahminciden yalnızca 1'i kendi %80 standardını tutturdu.
-
-Yöntem ve kod: namikakmandev.github.io/ecb-forecaster-skill.html
+namikakmandev.github.io/ecb-forecaster-skill.html
 Veri: @European Central Bank Survey of Professional Forecasters.
 
 ---
