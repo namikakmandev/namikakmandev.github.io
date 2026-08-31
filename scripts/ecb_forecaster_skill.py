@@ -115,6 +115,43 @@ def main():
     print("  free. Every score below is measured against what an average")
     print("  forecaster facing that forecaster's own years would have managed.")
 
+    hr("1b. When the panel fails, which way does it fail?")
+    # A miss is not a direction-free event. Either the outcome beat the top of
+    # the range (they were short) or it fell under the bottom (they were high).
+    side = {}
+    for t in sorted(p_y):
+        ins = low = high = 0
+        for v in elig.values():
+            for yr, h, d, lo, hi, _c in v:
+                if yr != t:
+                    continue
+                if h:                  ins += 1
+                elif actual[t] > hi:   low += 1
+                else:                  high += 1
+        side[t] = (ins, low, high)
+    print(f"    {'year':<7}{'n':>4}{'inside':>8}{'too low':>9}{'too high':>10}"
+          f"   actual")
+    for t in sorted(side):
+        ins, low, high = side[t]
+        flag = "   <- nobody inside" if ins == 0 else ""
+        print(f"    {t:<7}{ins + low + high:>4}{ins:>8}{low:>9}{high:>10}"
+              f"   {actual[t]:>5.2f}%{flag}")
+    dead = [t for t in side if side[t][0] == 0]
+    dn = sum(side[t][1] + side[t][2] for t in dead)
+    dlow = sum(side[t][1] for t in dead)
+    ins = sum(v[0] for v in side.values())
+    low = sum(v[1] for v in side.values())
+    high = sum(v[2] for v in side.values())
+    print(f"\n  pooled: {ins} inside, {low} too low, {high} too high")
+    print(f"  of the {low + high} misses, {low / (low + high) * 100:.0f}% were "
+          f"too low — the panel is wrong in both directions, but more often")
+    print(f"  wrong by underestimating.")
+    print(f"\n  in the {len(dead)} years nobody was inside "
+          f"({', '.join(str(t) for t in sorted(dead))}):")
+    print(f"    {dlow} of {dn} forecasts too low, {dn - dlow} too high")
+    print(f"  -> {'every single one was short' if dlow == dn else 'mixed'}. "
+          f"When this panel fails completely, it fails one way.")
+
     hr("2. Is the spread wider than luck?")
     obs = statistics.pstdev(list(score.values()))
     sims = []
@@ -282,6 +319,13 @@ def main():
         "n_forecasters": len(elig),
         "n_forecasts": sum(len(v) for v in elig.values()),
         "year_difficulty": {str(t): round(p, 4) for t, p in sorted(p_y.items())},
+        "miss_direction": {
+            "by_year": {str(t): {"inside": a, "too_low": b, "too_high": c}
+                        for t, (a, b, c) in sorted(side.items())},
+            "pooled": {"inside": ins, "too_low": low, "too_high": high},
+            "zero_coverage_years": sorted(dead),
+            "zero_coverage_all_too_low": dlow == dn,
+            "zero_coverage_n": dn},
         "spread": {"observed_sd": round(obs, 4),
                    "null_median_sd": round(statistics.median(sims), 4),
                    "p": round(p_spread, 4)},
