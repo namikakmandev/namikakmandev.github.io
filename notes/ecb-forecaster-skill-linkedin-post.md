@@ -70,11 +70,11 @@ forecasts, euro-area inflation 2000&ndash;2025.
 
 📊 I work in pricing. Every plan I build rests on an inflation forecast.
 
-So it matters who makes them. Every quarter the ECB asks about fifty banks and
+So it matters who makes them. Every quarter the ECB asks about 50 banks and
 research institutes across Europe where inflation will land, and how sure they
 are about it.
 
-⚠️ In 2022 it came in at 8.4%. Not one of the fifty had that inside
+⚠️ In 2022 it came in at 8.4%. Not one of the 50 had that inside
 their own range.
 
 So I checked all 26 years.
@@ -108,11 +108,11 @@ Data: @European Central Bank Survey of Professional Forecasters.
 📊 Fiyatlama yapıyorum. Kurduğum her plan bir enflasyon tahminine
 dayanıyor.
 
-O yüzden bu tahminleri kimin yaptığı önemli. ECB her çeyrek Avrupa'daki elli
+O yüzden bu tahminleri kimin yaptığı önemli. ECB her çeyrek Avrupa'daki 50
 kadar bankaya ve araştırma kurumuna enflasyonun nereye geleceğini ve bundan ne
 kadar emin olduklarını soruyor.
 
-⚠️ 2022'de enflasyon %8,4 geldi. Elli tahmincinin hiçbirinde bu, kendi
+⚠️ 2022'de enflasyon %8,4 geldi. 50 tahmincinin hiçbirinde bu, kendi
 aralığının içinde değildi.
 
 26 yılın hepsine baktım.
