@@ -360,7 +360,7 @@
           <h3>The script, in full</h3>
           <p>Nothing is elided. This is the file that produced every number and the chart on this page, exactly as it runs.</p>
             <details>
-              <summary>ecb_forecaster_skill.py (592 lines)</summary>
+              <summary>ecb_forecaster_skill.py (678 lines)</summary>
               <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Is any individual ECB forecaster consistently honest about uncertainty?
 
@@ -682,6 +682,7 @@ def main():
         json.dump(out, fh, indent=1)
     print(f&quot;\n  wrote {OUT}&quot;)
     chart(out)
+    chart_hero(out)
     chart_ranges(out)
     return 0
 
@@ -848,6 +849,91 @@ def chart(res):
         fh.write(svg)
     print(f&quot;  wrote {path}&quot;)
     render_png(svg, &quot;assets/linkedin/ecb-forecaster-skill.png&quot;, W, H)
+
+
+def chart_hero(res):
+    &quot;&quot;&quot;A feed-legible opener. The grid is unreadable at phone width; this is the
+    one column-story from it, in type large enough to survive the downscale.&quot;&quot;&quot;
+    diff = {int(k): v for k, v in res[&quot;year_difficulty&quot;].items()}
+    years = sorted(diff)
+    W, H, L, R, T, B = 1600, 1600, 130, 70, 470, 360
+    pw, ph = W - L - R, H - T - B
+    GREEN, RED, DIM, INK, GRID = (&quot;#2e9e5b&quot;, &quot;#d94040&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;,
+                                  &quot;#dfe4ea&quot;)
+    F = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&quot;
+         &quot;&#x27;Helvetica Neue&#x27;,Arial,sans-serif&quot;)
+    slot = pw / len(years)
+    bw = slot * 0.66
+
+    def bx(t):
+        return L + (t - years[0]) * slot + (slot - bw) / 2
+
+    def by(v):
+        return T + (1 - v) * ph
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+         f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;120&quot; font-size=&quot;62&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;Four years when Europe&amp;#8217;s inflation&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;196&quot; font-size=&quot;62&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;forecasters &lt;tspan fill=&quot;{RED}&quot;&gt;all missed together&lt;/tspan&gt;&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;270&quot; font-size=&quot;33&quot; fill=&quot;{DIM}&quot;&gt;Each bar: the share &#x27;
+         f&#x27;of the ECB&amp;#8217;s forecaster panel whose own 80% range&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;314&quot; font-size=&quot;33&quot; fill=&quot;{DIM}&quot;&gt;contained that &#x27;
+         f&#x27;year&amp;#8217;s euro-area inflation. 64 forecasters, 2000&amp;#8211;2025.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;378&quot; font-size=&quot;30&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot;&gt;&#x27;
+         f&#x27;In 2008, and again in 2021, 2022 and 2023: not one of them.&lt;/text&gt;&#x27;]
+
+    for g in (0, .25, .5, .75, 1):
+        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{by(g):.1f}&quot; x2=&quot;{L + pw}&quot; &#x27;
+                 f&#x27;y2=&quot;{by(g):.1f}&quot; stroke=&quot;{GRID if g else &quot;#9aa4b2&quot;}&quot; &#x27;
+                 f&#x27;stroke-width=&quot;{1 if g else 2}&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{L - 18}&quot; y=&quot;{by(g) + 11:.1f}&quot; font-size=&quot;30&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{g * 100:.0f}%&lt;/text&gt;&#x27;)
+
+    for t in years:
+        v = diff[t]
+        zero = v == 0
+        o.append(f&#x27;&lt;rect x=&quot;{bx(t):.1f}&quot; y=&quot;{by(v):.1f}&quot; width=&quot;{bw:.1f}&quot; &#x27;
+                 f&#x27;height=&quot;{max(3.0, by(0) - by(v)):.1f}&quot; &#x27;
+                 f&#x27;fill=&quot;{RED if zero else GREEN}&quot; rx=&quot;3&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{bx(t) + bw / 2:.1f}&quot; y=&quot;{by(0) + 44:.1f}&quot; &#x27;
+                 f&#x27;font-size=&quot;{28 if zero else 25}&quot; &#x27;
+                 f&#x27;font-weight=&quot;{700 if zero else 400}&quot; &#x27;
+                 f&#x27;fill=&quot;{RED if zero else DIM}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+                 f&#x27;&amp;#8217;{str(t)[2:]}&lt;/text&gt;&#x27;)
+        if zero:
+            o.append(f&#x27;&lt;text x=&quot;{bx(t) + bw / 2:.1f}&quot; y=&quot;{by(0) - 16:.1f}&quot; &#x27;
+                     f&#x27;font-size=&quot;30&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot; &#x27;
+                     f&#x27;text-anchor=&quot;middle&quot;&gt;0%&lt;/text&gt;&#x27;)
+
+    sy = T + ph + 130
+    sk = [r[&quot;skill&quot;] for r in res[&quot;scores&quot;]]
+    stats = ((f&#x27;{res[&quot;n_forecasters&quot;]}&#x27;, &#x27;forecasters, followed&#x27;),
+             (f&#x27;{(max(sk) - min(sk)) * 100:.0f}pp&#x27;, &#x27;best to worst&#x27;),
+             (f&#x27;{res[&quot;above_bar&quot;]} of {res[&quot;n_forecasters&quot;]}&#x27;,
+              &#x27;cleared their own bar&#x27;))
+    for i, (big, lab) in enumerate(stats):
+        x = L + i * (pw / 3)
+        o.append(f&#x27;&lt;text x=&quot;{x:.0f}&quot; y=&quot;{sy}&quot; font-size=&quot;66&quot; font-weight=&quot;700&quot; &#x27;
+                 f&#x27;fill=&quot;{INK}&quot;&gt;{big}&lt;/text&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{x:.0f}&quot; y=&quot;{sy + 44}&quot; font-size=&quot;29&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+                 f&#x27;{lab}&lt;/text&gt;&#x27;)
+
+    o += [f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 62}&quot; font-size=&quot;26&quot; fill=&quot;{DIM}&quot;&gt;Data: ECB &#x27;
+          f&#x27;Survey of Professional Forecasters, individual responses, &#x27;
+          f&#x27;one-year-ahead vs euro-area HICP.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 26}&quot; font-size=&quot;26&quot; fill=&quot;{DIM}&quot;&gt;Method and &#x27;
+          f&#x27;every number: &#x27;
+          f&#x27;namikakmandev.github.io/ecb-forecaster-skill.html&lt;/text&gt;&#x27;, &#x27;&lt;/svg&gt;&#x27;]
+    svg = &quot;\n&quot;.join(o)
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/ecb-forecaster-hero.svg&quot;
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;  wrote {path}&quot;)
+    render_png(svg, &quot;assets/linkedin/ecb-forecaster-hero.png&quot;, W, H)
 
 
 def chart_ranges(res):

@@ -319,6 +319,7 @@ def main():
         json.dump(out, fh, indent=1)
     print(f"\n  wrote {OUT}")
     chart(out)
+    chart_hero(out)
     chart_ranges(out)
     return 0
 
@@ -485,6 +486,91 @@ def chart(res):
         fh.write(svg)
     print(f"  wrote {path}")
     render_png(svg, "assets/linkedin/ecb-forecaster-skill.png", W, H)
+
+
+def chart_hero(res):
+    """A feed-legible opener. The grid is unreadable at phone width; this is the
+    one column-story from it, in type large enough to survive the downscale."""
+    diff = {int(k): v for k, v in res["year_difficulty"].items()}
+    years = sorted(diff)
+    W, H, L, R, T, B = 1600, 1600, 130, 70, 470, 360
+    pw, ph = W - L - R, H - T - B
+    GREEN, RED, DIM, INK, GRID = ("#2e9e5b", "#d94040", "#5b6472", "#1f2430",
+                                  "#dfe4ea")
+    F = ("-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,"
+         "'Helvetica Neue',Arial,sans-serif")
+    slot = pw / len(years)
+    bw = slot * 0.66
+
+    def bx(t):
+        return L + (t - years[0]) * slot + (slot - bw) / 2
+
+    def by(v):
+        return T + (1 - v) * ph
+
+    o = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+         f'viewBox="0 0 {W} {H}" font-family="{F}">',
+         f'<rect width="{W}" height="{H}" fill="#fff"/>',
+         f'<text x="{L}" y="120" font-size="62" font-weight="700" fill="{INK}">'
+         f'Four years when Europe&#8217;s inflation</text>',
+         f'<text x="{L}" y="196" font-size="62" font-weight="700" fill="{INK}">'
+         f'forecasters <tspan fill="{RED}">all missed together</tspan></text>',
+         f'<text x="{L}" y="270" font-size="33" fill="{DIM}">Each bar: the share '
+         f'of the ECB&#8217;s forecaster panel whose own 80% range</text>',
+         f'<text x="{L}" y="314" font-size="33" fill="{DIM}">contained that '
+         f'year&#8217;s euro-area inflation. 64 forecasters, 2000&#8211;2025.</text>',
+         f'<text x="{L}" y="378" font-size="30" font-weight="700" fill="{RED}">'
+         f'In 2008, and again in 2021, 2022 and 2023: not one of them.</text>']
+
+    for g in (0, .25, .5, .75, 1):
+        o.append(f'<line x1="{L}" y1="{by(g):.1f}" x2="{L + pw}" '
+                 f'y2="{by(g):.1f}" stroke="{GRID if g else "#9aa4b2"}" '
+                 f'stroke-width="{1 if g else 2}"/>')
+        o.append(f'<text x="{L - 18}" y="{by(g) + 11:.1f}" font-size="30" '
+                 f'fill="{DIM}" text-anchor="end">{g * 100:.0f}%</text>')
+
+    for t in years:
+        v = diff[t]
+        zero = v == 0
+        o.append(f'<rect x="{bx(t):.1f}" y="{by(v):.1f}" width="{bw:.1f}" '
+                 f'height="{max(3.0, by(0) - by(v)):.1f}" '
+                 f'fill="{RED if zero else GREEN}" rx="3"/>')
+        o.append(f'<text x="{bx(t) + bw / 2:.1f}" y="{by(0) + 44:.1f}" '
+                 f'font-size="{28 if zero else 25}" '
+                 f'font-weight="{700 if zero else 400}" '
+                 f'fill="{RED if zero else DIM}" text-anchor="middle">'
+                 f'&#8217;{str(t)[2:]}</text>')
+        if zero:
+            o.append(f'<text x="{bx(t) + bw / 2:.1f}" y="{by(0) - 16:.1f}" '
+                     f'font-size="30" font-weight="700" fill="{RED}" '
+                     f'text-anchor="middle">0%</text>')
+
+    sy = T + ph + 130
+    sk = [r["skill"] for r in res["scores"]]
+    stats = ((f'{res["n_forecasters"]}', 'forecasters, followed'),
+             (f'{(max(sk) - min(sk)) * 100:.0f}pp', 'best to worst'),
+             (f'{res["above_bar"]} of {res["n_forecasters"]}',
+              'cleared their own bar'))
+    for i, (big, lab) in enumerate(stats):
+        x = L + i * (pw / 3)
+        o.append(f'<text x="{x:.0f}" y="{sy}" font-size="66" font-weight="700" '
+                 f'fill="{INK}">{big}</text>')
+        o.append(f'<text x="{x:.0f}" y="{sy + 44}" font-size="29" fill="{DIM}">'
+                 f'{lab}</text>')
+
+    o += [f'<text x="{L}" y="{H - 62}" font-size="26" fill="{DIM}">Data: ECB '
+          f'Survey of Professional Forecasters, individual responses, '
+          f'one-year-ahead vs euro-area HICP.</text>',
+          f'<text x="{L}" y="{H - 26}" font-size="26" fill="{DIM}">Method and '
+          f'every number: '
+          f'namikakmandev.github.io/ecb-forecaster-skill.html</text>', '</svg>']
+    svg = "\n".join(o)
+    os.makedirs("assets/linkedin", exist_ok=True)
+    path = "assets/linkedin/ecb-forecaster-hero.svg"
+    with open(path, "w") as fh:
+        fh.write(svg)
+    print(f"  wrote {path}")
+    render_png(svg, "assets/linkedin/ecb-forecaster-hero.png", W, H)
 
 
 def chart_ranges(res):

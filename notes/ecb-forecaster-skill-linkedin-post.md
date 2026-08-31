@@ -1,16 +1,45 @@
 # Forecaster skill — LinkedIn assets
 
-**Format: two images + short text + one link.** Nothing else.
+## What to upload
 
-| | |
-|---|---|
-| Image 1 | `assets/linkedin/ecb-forecaster-skill.png` — the 64 × 26 grid |
-| Image 2 | `assets/linkedin/ecb-forecaster-ranges.png` — best vs worst, year by year |
-| Link | `namikakmandev.github.io/ecb-forecaster-skill.html` |
-| Regenerate | `python3 scripts/ecb_forecaster_skill.py` |
+Upload **three images, in this order.** All three regenerate with
+`python3 scripts/ecb_forecaster_skill.py`.
+
+| # | File | Size | Why it is there |
+|---|---|---|---|
+| 1 | `assets/linkedin/ecb-forecaster-hero.png` | 1600&times;1600, 125 KB | The one people see in the feed without tapping. Square, big type. |
+| 2 | `assets/linkedin/ecb-forecaster-skill.png` | 1600&times;1314, 114 KB | The full grid. Tap to zoom. |
+| 3 | `assets/linkedin/ecb-forecaster-ranges.png` | 1600&times;1188, 123 KB | Best vs worst, year by year. The width story. |
+
+**Plus one link in the body:** `namikakmandev.github.io/ecb-forecaster-skill.html`
+
+Nothing else. No PDF, no document post, no video.
+
+### Why the hero image exists
+
+The grid is 64 rows by 26 columns. LinkedIn renders a feed image at roughly
+500px wide on a phone, so a 1600px chart shrinks by more than 3&times; and every
+label in it becomes about 5px tall &mdash; unreadable. Checked, not assumed:
+rendered at 500px the colour pattern still reads (the red columns are obvious)
+but the years and percentages are gone.
+
+So image 1 carries the point on its own at feed size, and images 2 and 3 are
+for the people who tap. Do not post the grid first.
+
+### Alt text (LinkedIn asks; it matters for reach)
+
+1. Bar chart of the share of the ECB forecaster panel whose own 80% range
+   contained that year's euro-area inflation, 2000 to 2025. Four bars sit at
+   zero: 2008, 2021, 2022 and 2023.
+2. A grid of 64 anonymous ECB forecasters by 26 years. Green means inflation
+   landed inside the range that forecaster published, red means it did not. The
+   2008 and 2021 to 2023 columns are solid red.
+3. The published 80% ranges of the best and the worst forecaster on the panel,
+   year by year, against actual inflation. The best one's ranges are twice as
+   wide.
 
 Every number: 64 forecasters with 10+ scored years, 1,184 one-year-ahead
-forecasts, euro-area inflation 2000–2025.
+forecasts, euro-area inflation 2000&ndash;2025.
 
 ---
 
@@ -35,7 +64,7 @@ It also publishes the fifty answers separately.
 
 So I followed each one — anonymously, they're only numbers — for 26 years.
 
-[ image 1 ]
+[ image 2 &mdash; the grid ]
 
 Green = inflation landed inside the range that forecaster published.
 Red = it didn't.
@@ -46,7 +75,7 @@ panel was inside their own range. Four years where everybody missed together.
 **Across the rows:** they are not interchangeable. Best to worst is 57
 percentage points — far too wide to be luck.
 
-[ image 2 ]
+[ image 3 &mdash; best vs worst ]
 
 Here's the part I nearly got wrong.
 
@@ -79,7 +108,7 @@ Ama elli cevabı ayrı ayrı da yayımlıyor.
 
 Ben de her birini — isimsiz, sadece numaralar — 26 yıl boyunca takip ettim.
 
-[ görsel 1 ]
+[ görsel 2 &mdash; ızgara ]
 
 Yeşil = enflasyon o tahmincinin kendi açıkladığı aralığın içine düştü.
 Kırmızı = düşmedi.
@@ -90,7 +119,7 @@ bile kendi aralığının içinde değil. Herkesin birlikte ıskaladığı dört
 **Satırlara bakın:** hepsi aynı değil. En iyi ile en kötü arasında 57 puan fark
 var — şansla açıklanamayacak kadar büyük.
 
-[ görsel 2 ]
+[ görsel 3 &mdash; en iyi ve en kötü ]
 
 Ve neredeyse yanlış anlatacağım kısım.
 
