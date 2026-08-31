@@ -958,6 +958,25 @@ Promise.all([
       if(days > 1)                      return {g:'thin, one shop',           t:'var(--up)'};
       return {g:'a trace',                                                    t:'var(--up)'};
     };
+    // Markets we TRIED and got nothing from. Built from observations alone this
+    // table listed only the places that worked, so the failures vanished and the
+    // coverage read better than it is. A market that publishes no price is a
+    // finding about that market, not an empty row to leave out.
+    const EMPTY = {
+      PL: 'Prescription dispensing runs through the vet channel. Of the storefronts tracked, one refuses '
+        + 'cloud runners outright and the other serves a Spanish-language catalogue in euros, which would '
+        + 'attach Spanish prices to Poland; the price comparator quoted minima its own pages contradicted '
+        + 'and was retired.',
+      BE: 'Every indexed product URL at all three pharmacies returns 404 — the shop software rotates '
+        + 'product IDs, so a link that resolves today is dead within weeks.',
+      PT: 'Both candidates were dropped after live tests: the pharmacy blocks datacenter addresses, and '
+        + 'the comparator returned minima its own product pages did not support.',
+    };
+    const tried = Object.keys(EMPTY)
+      .filter(ccode => Object.values(venues).some(v => v.country === ccode) && !wk[ccode])
+      .map(ccode => ({cc: ccode, why: EMPTY[ccode],
+                      venues: Object.values(venues).filter(v => v.country === ccode).length}));
+
     const wrows = Object.entries(wk).map(([ccode, w]) => {
       w.cc = ccode;
       const d = [...w.days].sort();
@@ -972,7 +991,10 @@ Promise.all([
       + 'were. Coupons, autoship rates, vet-channel dispensing and any negotiated price are all invisible '
       + `here. Within that ceiling the markets differ enormously, and this is the difference: `
       + `<b>${oneShop} of ${wrows.length}</b> rest on a single shop, and only <b>${canCheck}</b> have two `
-      + 'shops quoting the same SKU on the same day, which is the only internal check available.';
+      + 'shops quoting the same SKU on the same day, which is the only internal check available. '
+      + (tried.length ? `<b>${tried.length} further markets are tracked and yield nothing at all</b>, and `
+        + 'they are listed at the foot of the table rather than left out — a coverage table that shows '
+        + 'only the markets that worked is not a coverage table.' : '');
 
     document.getElementById('weighttable').innerHTML =
       '<tr><th>Market</th><th>Shops today</th><th>Products</th><th>Obs</th><th>Days</th>'
@@ -983,7 +1005,16 @@ Promise.all([
         <td>${esc(r.from.slice(0,7))}</td>
         <td>${r.sp ? `${r.sp.n} SKU${r.sp.n>1?'s':''}, they differ ${(r.sp.med*100).toFixed(0)}%`
                    : '<span style="color:var(--ink3)">not possible</span>'}</td>
-        <td style="text-align:left;color:${r.grade.t}">${esc(r.grade.g)}</td></tr>`).join('');
+        <td style="text-align:left;color:${r.grade.t}">${esc(r.grade.g)}</td></tr>`).join('')
+      + (tried.length
+         ? '<tr class="group"><td colspan="8">Tracked, and publishing no price we can record</td></tr>'
+           + tried.map(t => `<tr>
+             <td><span class="cc">${t.cc}</span>${esc(CCNAME[t.cc]||t.cc)}</td>
+             <td>0</td><td>0 of 5</td><td>0</td><td>0</td>
+             <td><span style="color:var(--ink3)">—</span></td>
+             <td><span style="color:var(--ink3)">${t.venues} tried</span></td>
+             <td style="text-align:left;color:var(--ink2)">${esc(t.why)}</td></tr>`).join('')
+         : '');
 
     const spreads = wrows.filter(r => r.sp).map(r => r.sp.med).sort((a,b)=>a-b);
     const medSpread = spreads.length ? spreads[Math.floor(spreads.length/2)] : null;
@@ -1000,7 +1031,11 @@ Promise.all([
       + '<b>Two consequences worth carrying into every other panel.</b> The Netherlands has four years of '
       + 'history and five products from <i>one</i> pharmacy, so the Dutch inflation figure is that shop\u2019s '
       + 'pricing policy as much as the country\u2019s. And several markets are a one-day, one-shop, '
-      + 'one-product reading — real, published, verifiable, and not a market average by any stretch.';
+      + 'one-product reading — real, published, verifiable, and not a market average by any stretch. '
+      + '<b>The empty rows are the honest part.</b> Poland is not absent because nobody looked — it is '
+      + 'absent because Polish retail does not publish these prices, which is a fact about how the drug '
+      + 'is sold there rather than a gap to be closed by trying harder. Belgium and Portugal are absent '
+      + 'for their own reasons, spelled out beside them. Read all three as findings, not as a to-do list.';
     // ---------------------------------------------------------------------
 
     // tiles: cheapest latest unit price per product in this country
