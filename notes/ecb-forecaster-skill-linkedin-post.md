@@ -2,18 +2,29 @@
 
 ## What to upload
 
-Upload **three images, in this order.** All three regenerate with
-`python3 scripts/ecb_forecaster_skill.py`.
+Two ways to post this. Pick one.
 
-| # | File | Size | Why it is there |
-|---|---|---|---|
-| 1 | `assets/linkedin/ecb-forecaster-hero.png` | 1600&times;1600, 125 KB | The one people see in the feed without tapping. Square, big type. |
-| 2 | `assets/linkedin/ecb-forecaster-skill.png` | 1600&times;1314, 114 KB | The full grid. Tap to zoom. |
-| 3 | `assets/linkedin/ecb-forecaster-ranges.png` | 1600&times;1188, 123 KB | Best vs worst, year by year. The width story. |
+### A. Document post (carousel) &mdash; recommended
 
-**Plus one link in the body:** `namikakmandev.github.io/ecb-forecaster-skill.html`
+Upload **one file**: `notes/ecb-forecaster-carousel.pdf`
 
-Nothing else. No PDF, no document post, no video.
+Seven portrait slides, 4:5, the same page size as the earlier carousels in this
+folder. LinkedIn renders a document larger than a feed image and lets people
+swipe and zoom, which is what the 64&times;26 grid needs. Rebuild with
+`python3 scripts/ecb_carousel.py`.
+
+### B. Three images
+
+| # | File | Size |
+|---|---|---|
+| 1 | `assets/linkedin/ecb-forecaster-hero.png` | 1600&times;1600 |
+| 2 | `assets/linkedin/ecb-forecaster-skill.png` | 1600&times;1314 |
+| 3 | `assets/linkedin/ecb-forecaster-ranges.png` | 1600&times;1188 |
+
+In that order. Image 1 is the one that has to work without a tap.
+
+**Either way, one link in the body:**
+`namikakmandev.github.io/ecb-forecaster-skill.html`
 
 ### Why the hero image exists
 
@@ -57,68 +68,75 @@ forecasts, euro-area inflation 2000&ndash;2025.
 
 ## English
 
-I work in pricing. Every plan I build rests on an inflation forecast.
+📊 I work in pricing. Every plan I build rests on an inflation forecast.
 
-So it matters who makes them. Every quarter the ECB asks about fifty banks and
+So it matters who makes them. Every quarter the ECB asks about 50 banks and
 research institutes across Europe where inflation will land, and how sure they
 are about it.
 
-In 2022 it came in at 8.4%. Not one of the fifty had that inside their own
-range.
+⚠️ In 2022 it came in at 8.4%. Of the 58 who answered that round, not one
+had it inside their own range.
 
-I checked all 26 years.
+So I checked all 26 years.
 
 [ image 2 &mdash; the grid ]
 
-Green: inflation landed inside that forecaster's range. Red: it did not.
+🟩 Green: inflation landed inside that forecaster's range.
+🟥 Red: it did not.
 
 Four years are all red: 2008, 2021, 2022 and 2023.
 
 [ image 3 &mdash; best vs worst ]
 
-And the best forecaster? Their ranges are twice as wide as the worst one's. Half
-of looking good here is simply admitting you don't know.
+🤔 But here is the catch. &ldquo;Costs will rise 0&ndash;10%&rdquo; is
+almost never wrong and almost never useful. The best forecaster's ranges are
+2.5&times; wider than the worst one's &mdash; so half of looking good here is
+just being vague.
 
-So judge a forecast two ways, not one. How often it was right, and how wide it
-had to be to get there.
+✅ So score a forecast twice: how often it was right, and how narrow it
+dared to be.
 
 1 of 64 met their own 80% standard.
 
-namikakmandev.github.io/ecb-forecaster-skill.html
+🔗 namikakmandev.github.io/ecb-forecaster-skill.html
 Data: @European Central Bank Survey of Professional Forecasters.
 
 ---
 
 ## Türkçe
 
-Fiyatlama yapıyorum. Kurduğum her plan bir enflasyon tahminine dayanıyor.
+📊 Fiyatlama yapıyorum. Kurduğum her plan bir enflasyon tahminine
+dayanıyor.
 
-O yüzden bu tahminleri kimin yaptığı önemli. ECB her çeyrek Avrupa'daki elli
+O yüzden bu tahminleri kimin yaptığı önemli. ECB her çeyrek Avrupa'daki 50
 kadar bankaya ve araştırma kurumuna enflasyonun nereye geleceğini ve bundan ne
 kadar emin olduklarını soruyor.
 
-2022'de enflasyon %8,4 geldi. Elli tahmincinin hiçbirinde bu, kendi aralığının
-içinde değildi.
+⚠️ 2022'de enflasyon %8,4 geldi. O turda cevap veren 58 tahmincinin
+hiçbirinde bu, kendi aralığının içinde değildi.
 
 26 yılın hepsine baktım.
 
 [ görsel 2 &mdash; ızgara ]
 
-Yeşil: enflasyon o tahmincinin aralığının içine düştü. Kırmızı: düşmedi.
+🟩 Yeşil: enflasyon o tahmincinin aralığının içine düştü.
+🟥 Kırmızı: düşmedi.
 
 Dört yıl tamamen kırmızı: 2008, 2021, 2022 ve 2023.
 
 [ görsel 3 &mdash; en iyi ve en kötü ]
 
-Peki en iyi tahminci? Aralıkları en kötününkinin iki katı geniş. Burada iyi
-görünmenin yarısı, bilmediğini kabul etmek.
+🤔 Ama işin püf noktası şu. &ldquo;Maliyetler %0&ndash;10 artacak&rdquo;
+demek neredeyse hiç yanlış çıkmaz ve neredeyse hiç işe yaramaz. En iyi
+tahmincinin aralıkları en kötününkinin 2,5 katı geniş &mdash; yani burada iyi
+görünmenin yarısı, muğlak kalmak.
 
-Yani bir tahmini tek değil iki şekilde değerlendirin. Kaç kez doğru çıktı, ve
-bunun için ne kadar geniş olmak zorunda kaldı.
+✅ O yüzden bir tahmini iki kez puanlayın: kaç kez doğru çıktı, ve ne kadar
+dar olmayı göze aldı.
 
 64 tahminciden 1'i kendi %80 standardını tutturdu.
 
-namikakmandev.github.io/ecb-forecaster-skill.html
+🔗 namikakmandev.github.io/ecb-forecaster-skill.html
 Veri: @European Central Bank Survey of Professional Forecasters.
 
 ---
