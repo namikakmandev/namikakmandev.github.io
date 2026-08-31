@@ -2,18 +2,29 @@
 
 ## What to upload
 
-Upload **three images, in this order.** All three regenerate with
-`python3 scripts/ecb_forecaster_skill.py`.
+Two ways to post this. Pick one.
 
-| # | File | Size | Why it is there |
-|---|---|---|---|
-| 1 | `assets/linkedin/ecb-forecaster-hero.png` | 1600&times;1600, 125 KB | The one people see in the feed without tapping. Square, big type. |
-| 2 | `assets/linkedin/ecb-forecaster-skill.png` | 1600&times;1314, 114 KB | The full grid. Tap to zoom. |
-| 3 | `assets/linkedin/ecb-forecaster-ranges.png` | 1600&times;1188, 123 KB | Best vs worst, year by year. The width story. |
+### A. Document post (carousel) &mdash; recommended
 
-**Plus one link in the body:** `namikakmandev.github.io/ecb-forecaster-skill.html`
+Upload **one file**: `notes/ecb-forecaster-carousel.pdf`
 
-Nothing else. No PDF, no document post, no video.
+Seven portrait slides, 4:5, the same page size as the earlier carousels in this
+folder. LinkedIn renders a document larger than a feed image and lets people
+swipe and zoom, which is what the 64&times;26 grid needs. Rebuild with
+`python3 scripts/ecb_carousel.py`.
+
+### B. Three images
+
+| # | File | Size |
+|---|---|---|
+| 1 | `assets/linkedin/ecb-forecaster-hero.png` | 1600&times;1600 |
+| 2 | `assets/linkedin/ecb-forecaster-skill.png` | 1600&times;1314 |
+| 3 | `assets/linkedin/ecb-forecaster-ranges.png` | 1600&times;1188 |
+
+In that order. Image 1 is the one that has to work without a tap.
+
+**Either way, one link in the body:**
+`namikakmandev.github.io/ecb-forecaster-skill.html`
 
 ### Why the hero image exists
 
