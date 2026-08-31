@@ -85,6 +85,7 @@
 
   <div class="card">
     <div class="chart-title">The five brands, side by side</div>
+    <div class="btns" id="basisbtns" style="margin-bottom:10px"></div>
     <div class="chart-sub" id="brandsub"></div>
     <div id="brandbars"></div>
     <div class="tblwrap" style="margin-top:12px"><table id="brandtable"></table></div>
@@ -217,7 +218,8 @@ function breakEvenPlot(rows){
 
 function brandBars(rows, ref){
   if(!rows.length) return '<div class="chart-sub">nothing comparable here yet</div>';
-  const W = 760, PADL = 168, PADR = 150, BAR = 20, GAP = 26;
+  const longest = Math.max(...rows.map(r => String(r.label).length), 8);
+  const W = 760, PADL = 168, PADR = Math.min(330, 26 + longest * 7), BAR = 20, GAP = 26;
   const H = rows.length * (BAR + GAP) + GAP;
   const max = Math.max(...rows.map(r => r.hi ?? r.lo), 0.0001);
   const x = v => PADL + (W - PADL - PADR) * v / max;
@@ -607,6 +609,12 @@ Promise.all([
   const products = data.meta.products, venues = data.meta.venues;
   const countries = [...new Set(obs.map(o=>o.country))].sort();
   let cc = 'ALL';                       // the table below defaults to every market
+  // Two honest answers to "which is cheaper", and they disagree. A buyer at the
+  // counter compares BOXES; the box is what has a price on it. Cost per day is
+  // what the buyer actually spends, but it is arithmetic nobody does in a shop.
+  // The cheapest box is very often the smallest box, so the two orders differ -
+  // in every market tracked here, as it turns out.
+  let basis = 'shelf';
 
   const latestDate = obs.map(o=>o.d).sort().at(-1);
   document.getElementById('banner').innerHTML = obs.length
@@ -681,29 +689,68 @@ Promise.all([
       }
       if(!best) return {pid, dose, i, missing: true};
       const hi = dose.unitsPerDayMax ? best.v * (dose.unitsPerDayMax/dose.unitsPerDay) : null;
-      return {pid, dose, i, o: best.o, lo: best.v, hi};
+      // the same brand as a BOX: cheapest pack outright, and how long it lasts
+      let boxBest = null;
+      for(const o of rows){
+        const v = all ? exTax(o.country, toUSD && toUSD[o.cur] != null ? o.price*toUSD[o.cur] : null)
+                      : o.price;
+        if(v == null) continue;
+        if(!boxBest || v < boxBest.v) boxBest = {v, o};
+      }
+      const days = boxBest ? boxBest.o.n / dose.unitsPerDay : null;
+      return {pid, dose, i, o: best.o, lo: best.v, hi,
+              box: boxBest, boxDays: days,
+              boxDaysMax: (boxBest && dose.unitsPerDayMax) ? boxBest.o.n / dose.unitsPerDayMax : null};
     });
 
-    const shown = brandNow.filter(b => !b.missing).sort((a,b)=>a.lo-b.lo);
+    const SHELF = basis === 'shelf';
+    const val = b => SHELF ? (b.box ? b.box.v : null) : b.lo;
+    const shown = brandNow.filter(b => !b.missing && val(b) != null)
+                          .sort((a, b) => val(a) - val(b));
+    // the two orders, so the page can say where they disagree rather than
+    // leaving the reader to notice
+    const orderShelf = brandNow.filter(b => !b.missing && b.box)
+      .sort((a,b)=>a.box.v-b.box.v).map(b=>b.pid);
+    const orderDay = brandNow.filter(b => !b.missing && b.box)
+      .sort((a,b)=>a.lo-b.lo).map(b=>b.pid);
+    const flipped = orderShelf.join() !== orderDay.join();
     const cur2 = all ? 'USD' : (shown[0]?.o.cur || cur);
     const dp2 = (cur2==='TRY'||cur2==='HUF') ? 0 : 2;
     const fmtDay = v => money(v, cur2, dp2);
 
-    document.getElementById('brandsub').innerHTML =
-      `Cost of one day of maintenance therapy for a ~20 kg dog, ${all
+    document.getElementById('basisbtns').innerHTML =
+      `<button class="btn ${SHELF?'on':''}" onclick="setBasis('shelf')">What the box costs</button>`
+      + `<button class="btn ${SHELF?'':'on'}" onclick="setBasis('day')">What a day costs</button>`;
+
+    document.getElementById('brandsub').innerHTML = SHELF
+      ? 'What a buyer actually compares at the counter: <b>the price on the box</b>, cheapest pack of '
+        + `each brand${all ? ', converted to USD and ex-VAT' : ` in <b>${esc(CCNAME[cc]||cc)}</b>`}. `
+        + 'Nobody divides by pack size in a shop, so this is the comparison that gets made — and it is '
+        + 'not the comparison that decides what the year costs. Each bar is labelled with how long that '
+        + 'box lasts a ~20 kg dog.'
+      : `Cost of one day of maintenance therapy for a ~20 kg dog, ${all
         ? '<b>converted to USD and stripped of each country\u2019s veterinary VAT</b>, cheapest tracked listing anywhere'
         : `cheapest tracked listing in <b>${esc(CCNAME[cc]||cc)}</b>, in local currency`}.
        Each brand is dosed to <b>its own label</b>, not to a common assumption.`;
 
     const benchmark = shown.find(b => b.pid === 'apoquel');
+    const dayTxt = n => n >= 365 ? `${(n/365).toFixed(1)} years` : `${Math.round(n)} days`;
     document.getElementById('brandbars').innerHTML = brandBars(shown.map(b => ({
       pid: b.pid,
       name: products[b.pid].name,
       color: PCOLOR[b.pid],
-      lo: b.lo, hi: b.hi,
-      label: b.hi ? `${fmtDay(b.lo)}–${fmtDay(b.hi)}` : fmtDay(b.lo),
-      sub: `${b.dose.mg} mg · ${venues[b.o.venue].name}${all?` · ${b.o.country}`:''} · pack of ${b.o.n}`,
-    })), benchmark ? {pid: 'apoquel', lo: benchmark.lo, name: products.apoquel.name, short: 'Apoquel'} : null);
+      lo: SHELF ? b.box.v : b.lo,
+      hi: SHELF ? null : b.hi,
+      label: SHELF
+        ? `${fmtDay(b.box.v)}  ·  lasts ${b.boxDaysMax ? dayTxt(b.boxDaysMax)+'\u2013'+dayTxt(b.boxDays) : dayTxt(b.boxDays)}`
+        : (b.hi ? `${fmtDay(b.lo)}–${fmtDay(b.hi)}` : fmtDay(b.lo)),
+      sub: SHELF
+        ? `${b.dose.mg} mg · pack of ${b.box.o.n} · ${venues[b.box.o.venue].name}${all?` · ${b.box.o.country}`:''}`
+        : `${b.dose.mg} mg · ${venues[b.o.venue].name}${all?` · ${b.o.country}`:''} · pack of ${b.o.n}`,
+    })), benchmark
+      ? {pid: 'apoquel', lo: SHELF ? benchmark.box.v : benchmark.lo,
+         name: products.apoquel.name, short: 'Apoquel'}
+      : null);
 
     const cheapest = shown[0]?.lo;
     document.getElementById('brandtable').innerHTML =
@@ -726,6 +773,9 @@ Promise.all([
       }).join('');
 
     document.getElementById('brandnotes').innerHTML =
+      (flipped
+        ? `<b>The two views disagree, and they disagree in every market tracked here.</b> The cheapest box is <b>${esc(products[orderShelf[0]].name)}</b>; the cheapest day is <b>${esc(products[orderDay[0]].name)}</b>. That is not a rounding difference \u2014 the cheapest box is very often the smallest box, so a shelf that looks affordable can be the dearest way to treat a dog for a year. The buttons above swap between the comparison a buyer actually makes and the one that decides what they spend. `
+        : '<b>On this market the two views agree</b>, which is unusual \u2014 the cheapest box is also the cheapest day. Elsewhere they part company, because the cheapest box is very often the smallest box. ') +
       '<b>What is held constant, and what is not.</b> Dose is matched to each label — Apoquel and '
       + 'Apoquel Chewable 16 mg once daily, Zenrelia 15 mg, Numelvi 21.6 mg, Cytopoint 40 mg every '
       + '<b>4 to 8 weeks</b>, which is why Cytopoint is an interval and not a bar. Channel is retail; '
@@ -1280,6 +1330,7 @@ Promise.all([
   ].map(([h, b]) => `<li><b>${h}</b> ${b}</li>`).join('');
 
   window.setCC = c => { cc = c; render(); };
+  window.setBasis = b => { basis = b; render(); };
   render();
 
   document.getElementById('method').innerHTML =
