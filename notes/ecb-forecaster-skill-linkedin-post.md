@@ -57,88 +57,73 @@ forecasts, euro-area inflation 2000&ndash;2025.
 
 ## English
 
-The ECB asks about fifty banks and research houses the same question every
-quarter, then averages the answers into the number everybody quotes.
+I price for a living. Which means every year I build a plan on top of somebody
+else's inflation forecast.
 
-It also publishes the fifty answers separately.
+In 2022 euro-area inflation came in at 8.4%. Not one of the ECB's fifty
+forecasters had that inside the range they had published.
 
-So I followed each one — anonymously, they're only numbers — for 26 years.
+So I went back and checked all 26 years. The ECB publishes each forecaster
+separately, not just the average everyone quotes.
 
 [ image 2 &mdash; the grid ]
 
 Green = inflation landed inside the range that forecaster published.
 Red = it didn't.
 
-**Down the columns:** 2008, then 2021, 2022 and 2023. Not one forecaster on the
-panel was inside their own range. Four years where everybody missed together.
-
-**Across the rows:** they are not interchangeable. Best to worst is 57
-percentage points — far too wide to be luck.
+2008. Then 2021, 2022, 2023. Nobody. The years I most needed a range were the
+years the range was worthless.
 
 [ image 3 &mdash; best vs worst ]
 
-Here's the part I nearly got wrong.
+And the best of the 64? His ranges are twice as wide as the worst one's. Width
+alone explains 47% of the score.
 
-The best forecaster publishes ranges twice as wide as the worst. Width alone
-explains 47% of the score. Take it out and the "skill" drops from r = 0.46 to
-r = 0.28.
+So half of being good at this is just admitting you don't know.
 
-So half of being right is just a habit of admitting you don't know.
-
-Still a habit worth copying. It just isn't foresight.
-
-**What I'd do with it:** if you buy a forecast from anyone — a broker, an
-analyst, a supplier's demand plan — score them on two columns, not one. How
-often were they inside their range, and how wide did the range have to be.
-Only the second one tells you whether they know anything.
+It changed how I read a forecast. Now I ask two things instead of one: how often
+were you inside your range, and how wide did the range have to be.
 
 1 of 64 ever cleared their own 80% bar.
 
-Method, every number and the full script → namikakmandev.github.io/ecb-forecaster-skill.html
+Every number and the code → namikakmandev.github.io/ecb-forecaster-skill.html
 Data: @European Central Bank Survey of Professional Forecasters, published openly.
 
 ---
 
 ## Türkçe
 
-Avrupa Merkez Bankası her çeyrek elli kadar bankaya aynı soruyu soruyor, sonra
-cevapların ortalamasını alıyor. Herkesin alıntıladığı sayı o ortalama.
+Fiyatlama yapıyorum. Yani her yıl, başkasının enflasyon tahmininin üstüne plan
+kuruyorum.
 
-Ama elli cevabı ayrı ayrı da yayımlıyor.
+2022'de euro bölgesi enflasyonu %8,4 geldi. ECB'nin elli tahmincisinden tek
+birinin bile yayımladığı aralığın içinde değildi.
 
-Ben de her birini — isimsiz, sadece numaralar — 26 yıl boyunca takip ettim.
+Ben de 26 yılın hepsine baktım. ECB herkesin alıntıladığı ortalamayı değil, her
+tahminciyi ayrı ayrı yayımlıyor.
 
 [ görsel 2 &mdash; ızgara ]
 
-Yeşil = enflasyon o tahmincinin kendi açıkladığı aralığın içine düştü.
+Yeşil = enflasyon o tahmincinin açıkladığı aralığın içine düştü.
 Kırmızı = düşmedi.
 
-**Sütunlara bakın:** 2008, sonra 2021, 2022 ve 2023. Paneldeki tek bir tahminci
-bile kendi aralığının içinde değil. Herkesin birlikte ıskaladığı dört yıl.
-
-**Satırlara bakın:** hepsi aynı değil. En iyi ile en kötü arasında 57 puan fark
-var — şansla açıklanamayacak kadar büyük.
+2008. Sonra 2021, 2022, 2023. Hiç kimse. Aralığa en çok ihtiyaç duyduğum
+yıllarda aralık işe yaramıyordu.
 
 [ görsel 3 &mdash; en iyi ve en kötü ]
 
-Ve neredeyse yanlış anlatacağım kısım.
+Peki 64 kişinin en iyisi? Aralıkları en kötününkinin iki katı geniş. Skorun
+%47'sini tek başına genişlik açıklıyor.
 
-En iyi tahmincinin aralıkları en kötününkinin iki katı geniş. Skorun %47'sini
-tek başına genişlik açıklıyor. Onu çıkarınca "yetenek" r = 0,46'dan r = 0,28'e
-düşüyor.
+Yani bu işte iyi olmanın yarısı, bilmediğini kabul etmek.
 
-Yani haklı çıkmanın yarısı, bilmediğini kabul etme alışkanlığı.
-
-Yine de kopyalanmaya değer bir alışkanlık. Sadece öngörü değil.
-
-**Ne yapmalı:** birinden tahmin alıyorsanız — aracı kurum, analist, tedarikçinin
-talep planı — tek sütunla değil iki sütunla puanlayın. Kaç kez aralığın içinde
-kaldılar, ve aralık bunun için ne kadar geniş olmak zorunda kaldı. Bir şey bilip
-bilmediklerini size ikincisi söyler.
+Bir tahmini okuma şeklimi değiştirdi. Artık tek soru değil iki soru soruyorum:
+kaç kez aralığın içinde kaldın, ve aralık bunun için ne kadar geniş olmak
+zorunda kaldı.
 
 64 tahminciden yalnızca 1'i kendi %80 çıtasını tutturdu.
 
-Yöntem, bütün sayılar ve kodun tamamı → namikakmandev.github.io/ecb-forecaster-skill.html
+Bütün sayılar ve kod → namikakmandev.github.io/ecb-forecaster-skill.html
 Veri: @European Central Bank Survey of Professional Forecasters, açık kaynak.
 
 ---
