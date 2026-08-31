@@ -209,7 +209,7 @@ def _crop_png(path, height):
                  + chunk(b"IEND", b""))
 
 
-def render_png(svg, out_path):
+def render_png(svg, out_path, w=None, h=None):
     """Rasterise the SVG for LinkedIn, which will not accept an SVG upload.
 
     Inlined into a zero-margin page rather than loaded through <img>: a
@@ -219,6 +219,7 @@ def render_png(svg, out_path):
     the bottom, so the capture is padded and then cropped back to H.
     """
     import subprocess, tempfile
+    w, h = w or W, h or H
     chrome = find_chrome()
     if not chrome:
         print("  (no chromium found — SVG written, PNG skipped)")
@@ -231,11 +232,11 @@ def render_png(svg, out_path):
                      "svg{display:block}</style>" + svg)
         cmd = [chrome, "--headless", "--disable-gpu", "--no-sandbox",
                "--hide-scrollbars", "--force-device-scale-factor=1",
-               f"--window-size={W},{H + PAD}", "--default-background-color=FFFFFFFF",
+               f"--window-size={w},{h + PAD}", "--default-background-color=FFFFFFFF",
                f"--screenshot={out_path}", f"file://{page}"]
         r = subprocess.run(cmd, capture_output=True, text=True)
     if os.path.exists(out_path):
-        _crop_png(out_path, H)
+        _crop_png(out_path, h)
         print(f"wrote {out_path} ({os.path.getsize(out_path):,} bytes)")
     else:
         print(f"  (chromium failed, PNG skipped)\n{r.stderr[-400:]}")

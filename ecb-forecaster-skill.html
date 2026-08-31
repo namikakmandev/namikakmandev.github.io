@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The consensus hides who is worth listening to — Namık Akman</title>
-  <meta name="description" content="The ECB asks fifty forecasters the same question and averages the answers. Following each anonymous forecaster individually across 26 years: the gap between the most and least reliable is 57 percentage points, a good record predicts a good future record (r = +0.46), and only 1 of 64 ever clears the confidence bar they set themselves." />
+  <meta name="description" content="The ECB asks fifty forecasters the same question and averages the answers. Following each anonymous forecaster individually across 26 years: the gap between the most and least reliable is 57 percentage points, a good record predicts a good future record (r = +0.46) — though width alone explains 47% of that score, and only 1 of 64 ever clears the confidence bar they set themselves." />
   <meta name="keywords" content="ECB, Survey of Professional Forecasters, forecaster skill, calibration, overconfidence, consensus forecast, euro area inflation, reproducible analysis" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
   <meta property="og:title" content="The consensus hides who is worth listening to" />
-  <meta property="og:description" content="Fifty forecasters, one averaged number. Followed individually, the gap between best and worst is 57 percentage points — and it persists for decades." />
+  <meta property="og:description" content="Fifty forecasters, one averaged number. Followed individually, the gap between best and worst is 57 percentage points, it persists for decades — and about half of it is a habit of quoting wider ranges." />
   <meta property="og:type" content="article" />
   <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/ecb-forecaster-skill.png" />
   <link rel="stylesheet" href="css/style.css?v=30" />
@@ -79,8 +79,10 @@
         <p class="data-note">
           They are not the same. The gap between the most and least reliable forecaster in that
           room is <strong>57 percentage points</strong>, it is far too large to be luck, and a good
-          record predicts a good future record decades later. None of that reaches you, because the
-          average destroys it &mdash; and the names are anonymous anyway.
+          record predicts a good future record decades later. About half of that gap turns out to
+          be a habit of quoting wider ranges rather than knowing more &mdash; which is worth
+          knowing too. None of it reaches you, because the average destroys it, and the names are
+          anonymous anyway.
         </p>
 
         <p class="data-note" style="font-size:.85rem;color:var(--text-dim)">
@@ -91,12 +93,30 @@
 
         <div class="fs-card fs-hero">
           <img src="assets/linkedin/ecb-forecaster-skill.png"
-               alt="Bar chart of 64 anonymous ECB forecasters ranked by how much better or worse their 80% ranges held up than an average forecaster facing the same years. Bars run from minus 33 points to plus 23 points, breaking out of the grey band showing what luck alone would produce.">
-          <p class="cap">One bar per forecaster, worst to best. Each is measured against what an
-            average forecaster facing <em>that forecaster's own years</em> would have managed. The
-            grey band is the spread luck alone would produce if everyone were equally good; fifteen
-            forecasters sit outside it. Regenerate with
+               alt="A 64-row by 26-column grid. Each row is one anonymous ECB forecaster, sorted best at the top; each column is a year from 2000 to 2025. Green cells mean euro-area inflation landed inside the range that forecaster published; red means it did not; grey means they were not on the panel. The columns for 2008 and for 2021, 2022 and 2023 are solid red.">
+          <p class="cap"><strong>One row per forecaster, one column per year.</strong> Green means
+            inflation landed inside the 80% range <em>that forecaster</em> published for
+            <em>that year</em>; red means it did not; grey means they were not on the panel. The
+            percentages along the top are how much of the panel was inside that year. The bars on
+            the right are each forecaster's score against a year-matched average. Regenerate with
             <code>python3 scripts/ecb_forecaster_skill.py</code>.</p>
+        </div>
+
+        <p class="data-note">
+          Read it two ways. <strong>Down the columns</strong>: 2008, and then 2021, 2022 and 2023
+          in a row, are solid red &mdash; not one forecaster on the panel contained the outcome, in
+          any of those years. <strong>Across the rows</strong>: some are green far more often than
+          others, and that difference is too large and too persistent to be luck.
+        </p>
+
+        <div class="fs-card fs-hero">
+          <img src="assets/linkedin/ecb-forecaster-ranges.png"
+               alt="Two panels of range bars by year. The top panel is forecaster #016, the best of the panel, inside its own range 19 years out of 25; the bottom panel is forecaster #101, the worst, inside its own range 2 years out of 17. Each bar is the published 80% range and each dot is actual inflation. Both missed 2022, when inflation reached 8.4%.">
+          <p class="cap"><strong>What a miss actually looks like.</strong> The best and the worst
+            forecaster on the panel, year by year. Each bar is the 80% range they published; each
+            dot is what inflation did. Both were wrong about 2022 &mdash; but look at the bar
+            widths. #016's ranges are more than twice as wide as #101's, and that is a large part
+            of why #016 is right more often.</p>
         </div>
 
         <div class="fs-layers">
@@ -110,11 +130,13 @@
           </div>
           <div class="fs-card">
             <p class="n">2</p>
-            <h3>And they last</h3>
-            <p>Split each forecaster's career in half. The first half predicts the second at
-              <strong>r&nbsp;=&nbsp;+0.46</strong> (permutation p&nbsp;=&nbsp;0.0002). Being honest
-              about your own uncertainty is a durable trait, not a run of form &mdash; the same
-              desks stay reliable for decades.</p>
+            <h3>And they last &mdash; but half of it is style</h3>
+            <p>Split each forecaster's career in half: the first half predicts the second at
+              <strong>r&nbsp;=&nbsp;+0.46</strong> (p&nbsp;=&nbsp;0.0002). But a forecaster who
+              always quotes a wide range is inside it more often without knowing anything more, and
+              width alone explains <strong>47%</strong> of the score. Strip width out and the
+              persistence falls to <strong>r&nbsp;=&nbsp;+0.28</strong> (p&nbsp;=&nbsp;0.037).
+              Something durable survives. It is smaller than it first looked.</p>
           </div>
           <div class="fs-card">
             <p class="n">3</p>
@@ -161,19 +183,19 @@
           <div class="fs-table-wrap">
             <table class="fs-table">
               <thead><tr><th>Forecaster</th><th>Skill vs year-matched average</th><th>Years scored</th>
-                <th>Raw coverage</th></tr></thead>
+                <th>Raw coverage</th><th>Median range width</th></tr></thead>
               <tbody>
-                <tr class="fs-head"><th scope="row">#016</th><td>+23pp</td><td>25</td><td>76%</td></tr>
-                <tr><th scope="row">#115</th><td>+22pp</td><td>11</td><td>73%</td></tr>
-                <tr><th scope="row">#089</th><td>+20pp</td><td>26</td><td>73%</td></tr>
-                <tr><th scope="row">#092</th><td>+18pp</td><td>15</td><td>80%</td></tr>
-                <tr><th scope="row">#088</th><td>+18pp</td><td>13</td><td>77%</td></tr>
-                <tr><td colspan="4" class="note" style="text-align:center">&middot; &middot; &middot; 54 forecasters in between &middot; &middot; &middot;</td></tr>
-                <tr><th scope="row">#070</th><td>&minus;23pp</td><td>15</td><td>33%</td></tr>
-                <tr><th scope="row">#063</th><td>&minus;26pp</td><td>14</td><td>36%</td></tr>
-                <tr><th scope="row">#093</th><td>&minus;26pp</td><td>26</td><td>27%</td></tr>
-                <tr><th scope="row">#029</th><td>&minus;29pp</td><td>21</td><td>19%</td></tr>
-                <tr class="fs-bad"><th scope="row">#101</th><td>&minus;33pp</td><td>17</td><td>12%</td></tr>
+                <tr class="fs-head"><th scope="row">#016</th><td>+23pp</td><td>25</td><td>76%</td><td>2.49pp</td></tr>
+                <tr><th scope="row">#115</th><td>+22pp</td><td>11</td><td>73%</td><td>2.49pp</td></tr>
+                <tr><th scope="row">#089</th><td>+20pp</td><td>26</td><td>73%</td><td>1.57pp</td></tr>
+                <tr><th scope="row">#092</th><td>+18pp</td><td>15</td><td>80%</td><td>1.72pp</td></tr>
+                <tr><th scope="row">#088</th><td>+18pp</td><td>13</td><td>77%</td><td>1.80pp</td></tr>
+                <tr><td colspan="5" class="note" style="text-align:center">&middot; &middot; &middot; 54 forecasters in between &middot; &middot; &middot;</td></tr>
+                <tr><th scope="row">#070</th><td>&minus;23pp</td><td>15</td><td>33%</td><td>0.73pp</td></tr>
+                <tr><th scope="row">#063</th><td>&minus;26pp</td><td>14</td><td>36%</td><td>0.87pp</td></tr>
+                <tr><th scope="row">#093</th><td>&minus;26pp</td><td>26</td><td>27%</td><td>0.97pp</td></tr>
+                <tr><th scope="row">#029</th><td>&minus;29pp</td><td>21</td><td>19%</td><td>0.97pp</td></tr>
+                <tr class="fs-bad"><th scope="row">#101</th><td>&minus;33pp</td><td>17</td><td>12%</td><td>1.00pp</td></tr>
               </tbody>
             </table>
           </div>
@@ -188,6 +210,54 @@
             &mdash; which is what makes following a career possible without ever knowing whose it
             is. Speculating about which institution holds which number would be both unfounded and
             a misuse of data published on the understanding that it stays anonymous.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Better, or just vaguer?</h3>
+          <p>A forecaster who always says &ldquo;somewhere between 0% and 4%&rdquo; will be inside
+            their own range more often than one who says &ldquo;1.5% to 2.0%&rdquo;, without
+            knowing anything more. Since the score rewards being inside the range, it can be earned
+            by width alone. That is the obvious objection to everything above, so it gets its own
+            test.</p>
+          <p class="fs-warn"><strong>It is a real problem, and it is about half the story.</strong>
+            Across the 64 forecasters, median range width and skill correlate at
+            <strong>r&nbsp;=&nbsp;+0.69</strong>. Width alone explains <strong>47%</strong> of the
+            score. The best forecaster, #016, publishes ranges 2.49pp wide; the worst, #101,
+            publishes ranges 1.00pp wide, against a panel median of 1.22pp.</p>
+          <p class="fs-eq">range width = 90th percentile &minus; 10th percentile of that
+            forecaster's published distribution, that year; the figure quoted per forecaster is the
+            median across their scored years</p>
+          <p>Three things say the rest is not width:</p>
+          <ul>
+            <li><strong>Split the panel at the median width.</strong> Among the 32 narrower-than-
+              median forecasters the spread in skill is still <strong>10.7 points</strong>; among
+              the 32 wider-than-median ones, <strong>9.2 points</strong>. Holding width roughly
+              constant removes some of the gap, not most of it.</li>
+            <li><strong>Persistence survives, smaller.</strong> Fit one line through half-career
+              score against half-career width, take the residuals, and re-run the split-half test
+              on what width cannot explain. The correlation falls from
+              <strong>+0.46</strong> to <strong>+0.28</strong>, permutation
+              <strong>p&nbsp;=&nbsp;0.037</strong>, n&nbsp;=&nbsp;58. Weaker, marginal, still
+              there.</li>
+            <li><strong>Width is not free.</strong> A wide range is a worse answer to the question
+              you actually asked. If half the measured skill is a habit of publishing honest,
+              uncomfortable width, that is still the habit worth copying &mdash; it is just not the
+              same as foresight, and this page should not have called it that.</li>
+          </ul>
+          <p><strong>Robustness cut.</strong> The measured width is contaminated where a percentile
+            falls in one of the survey's open-ended end buckets, because the boundary is
+            substituted for the percentile and the range comes out too narrow. That happens in
+            <strong>41 of 1,184</strong> forecasts (3.5%). Drop them and the width correlation is
+            <strong>r&nbsp;=&nbsp;+0.691</strong> against +0.689 with them in. The artefact is not
+            what is driving this.</p>
+          <p><strong>No methodology break underneath it.</strong> The survey's histogram bins are on
+            the same 0.5pp grid in every year from 2000 to 2025, so a width measured in 2003 is
+            comparable with one measured in 2023. Only the open-ended top boundary moved (3.5% to
+            4.0% to 5.0%), which is the artefact the cut above tests.</p>
+          <p class="cap" style="font-size:.85rem;color:var(--text-dim);margin-top:8px">
+            This test was added after publication, in response to the limitation the first version
+            of this page had already flagged as open. The finding demoted the headline rather than
+            supporting it, which is why it is here rather than quietly dropped.</p>
         </div>
 
         <div class="fs-card">
@@ -206,6 +276,12 @@
               large.</li>
             <li><strong>Who counts.</strong> Forecasters with at least ten scored years. A shorter
               record cannot distinguish skill from luck in either direction.</li>
+            <li><strong>Is it just width?</strong> Take each forecaster's median published range
+              width and correlate it with their score. Then split careers in half, regress each
+              half's score on that half's width with one pooled line, and re-run the split-half
+              correlation on the residuals &mdash; the persistence that width cannot account for.
+              Then re-run the width correlation with every open-bucket forecast dropped, to check
+              the survey's end buckets are not producing it.</li>
           </ul>
           <p class="fs-eq">skill = (their hits &minus; year-matched expected hits) &divide; years</p>
         </div>
@@ -214,23 +290,39 @@
           <h3>Limitations</h3>
           <ul>
             <li><strong>Ten years is still a short record.</strong> A forecaster with exactly ten
-              scored years has a wide luck band around them, which is why the grey band on the
-              chart is drawn from simulation rather than assumed. Fifteen of 64 sit outside it; the
-              other 49 are individually indistinguishable from average, however their bar looks.</li>
+              scored years has a wide luck band around them, drawn by simulation rather than
+              assumed. Only fifteen of the 64 sit outside it; the other 49 are individually
+              indistinguishable from average, however green or red their row looks. The panel-level
+              spread is solid; any single row is not.</li>
             <li><strong>Skill at what, exactly.</strong> This measures honesty about uncertainty
               &mdash; whether a stated range behaves like one. It does not measure whether the
-              central forecast was close, which is a different and more commonly asked question. A
-              forecaster could score well here by being usefully vague.</li>
+              central forecast was close, which is a different and more commonly asked question.</li>
+            <li><strong>Width is only partly controlled.</strong> The median-split and the residual
+              regression both assume the width effect is roughly linear and stable within a career.
+              The regression line is fitted on the same half-careers whose residuals are then
+              correlated, which is a conditional test rather than a clean out-of-sample one. A
+              proper answer needs a scoring rule that charges for width directly &mdash; a
+              continuous ranked probability score over the full published distribution &mdash;
+              which this study does not compute. Read the residual r&nbsp;=&nbsp;+0.28 as
+              suggestive, not settled.</li>
+            <li><strong>The unit is the forecaster, not the year.</strong> The 64 scores are not
+              64 independent time-series observations, and the permutation nulls shuffle
+              forecasters rather than assume independence across years. But forecasters share
+              years, so their errors are correlated through whatever made a given year hard. The
+              year-difficulty adjustment removes the average of that; it cannot remove what is left
+              over.</li>
             <li><strong>Coverage is blunt.</strong> Being outside the range by 0.1pp and by 6pp
               count the same. Carried over from the companion study, and unchanged.</li>
             <li><strong>Survivorship.</strong> Forecasters who left the panel early are excluded by
               the ten-year rule. If institutions leave <em>because</em> they forecast badly, the
               surviving panel looks better than the profession does.</li>
-            <li><strong>One test each, but two tests total.</strong> Two hypotheses were tested on
-              the same data. Both clear conventional thresholds by a wide margin
-              (p&nbsp;&lt;&nbsp;0.001 and p&nbsp;=&nbsp;0.0002), so a correction for testing twice
-              would not change either verdict &mdash; but they were not pre-registered, and the
-              year-adjustment was added after seeing the unadjusted result.</li>
+            <li><strong>Five tests on one dataset, none pre-registered.</strong> The first two
+              clear conventional thresholds by a wide margin
+              (p&nbsp;&lt;&nbsp;0.001 and p&nbsp;=&nbsp;0.0002), so a correction for multiple
+              testing would not change them. The residual persistence test would not survive one:
+              p&nbsp;=&nbsp;0.037 against a Bonferroni threshold of 0.01 for five tests. It is
+              reported as marginal for that reason. The year-adjustment and the width test were
+              both added after seeing earlier results.</li>
             <li><strong>The open-ended top bucket.</strong> Inherited from the companion study: a
               percentile landing in the open top bucket uses the boundary, which narrows the range
               slightly and overstates overconfidence. It affects 3.4% of distributions and applies
@@ -246,27 +338,29 @@
               average over people who differ by 57 points in reliability. The number you are handed
               carries none of that, and the dispersion is real information that aggregation
               deletes.</li>
-            <li><strong>When you can see individual forecasters, track them.</strong> The evidence
-              here says past reliability predicts future reliability. Where a forecaster is named
-              &mdash; a broker, an analyst, a supplier's demand plan &mdash; keeping your own score
-              is worth more than the current consensus.</li>
+            <li><strong>When you can see individual forecasters, track them &mdash; and record
+              the width they quoted.</strong> Past reliability predicts future reliability, but
+              about half of that is a stable habit of quoting wider ranges. Score both: how often
+              they were inside, and how wide they had to be to manage it. A supplier who is right
+              inside &plusmn;1% beats one who is right inside &plusmn;3%, and only the second
+              column tells you which you have.</li>
             <li><strong>Do not expect anyone to be good enough.</strong> One in sixty-four cleared
               their own bar. Even choosing well leaves you with ranges that are too narrow.</li>
           </ul>
-          <p class="fs-warn"><strong>What would change this conclusion.</strong> If the persistence
-            is an artefact of forecasters having stable <em>styles</em> rather than stable
-            <em>skill</em> &mdash; someone who always quotes wide ranges will score well here
-            without being more informative &mdash; then the right response is to prefer wide
-            forecasters, not better ones. Separating the two needs a sharpness measure alongside
-            coverage, which this study does not compute. Treat the persistence as established and
-            its interpretation as open.</p>
+          <p class="fs-warn"><strong>What would change this conclusion.</strong> The first
+            version of this page listed exactly one open question: whether the persistence was
+            stable <em>style</em> rather than stable <em>skill</em>. Tested, it is about half
+            style. What would move it further is a scoring rule that charges for width directly, on
+            the full published distributions rather than the 80% range &mdash; if the residual
+            skill vanishes under one, the honest reading becomes &ldquo;prefer forecasters who
+            admit wide ranges&rdquo;, with nothing left over for foresight.</p>
         </div>
 
         <div class="fs-card fs-code">
           <h3>The script, in full</h3>
           <p>Nothing is elided. This is the file that produced every number and the chart on this page, exactly as it runs.</p>
             <details>
-              <summary>ecb_forecaster_skill.py (277 lines)</summary>
+              <summary>ecb_forecaster_skill.py (678 lines)</summary>
               <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Is any individual ECB forecaster consistently honest about uncertainty?
 
@@ -309,8 +403,21 @@ BAND = 0.80
 OUT = &quot;data/ecb-forecaster-skill.json&quot;
 
 
+def clipped(bins, q):
+    &quot;&quot;&quot;True if quantile q falls in an open-ended bucket, where the boundary is
+    substituted for the true percentile — which narrows the measured range.&quot;&quot;&quot;
+    total = sum(bins.values())
+    cum = 0.0
+    for lo, hi in sorted(bins):
+        pr = bins[(lo, hi)] / total
+        if cum + pr &gt;= q:
+            return hi &gt;= 99 or lo &lt;= -99
+        cum += pr
+    return False
+
+
 def records(dists, actual):
-    &quot;&quot;&quot;-&gt; {forecaster: [(year, hit)]} one year ahead, their own 80% band.&quot;&quot;&quot;
+    &quot;&quot;&quot;-&gt; {forecaster: [(year, hit, width, lo, hi, clipped)]} one year ahead.&quot;&quot;&quot;
     one = lambda t, rd: rd.startswith(f&quot;{t - 1}-Q4&quot;)
     rec = collections.defaultdict(list)
     tail = (1 - BAND) / 2
@@ -322,7 +429,9 @@ def records(dists, actual):
         lo, hi = quantile(bins, tail), quantile(bins, 1 - tail)
         if lo is None or hi is None:
             continue
-        rec[who].append((t, 1 if lo &lt;= actual[t] &lt;= hi else 0))
+        rec[who].append((t, 1 if lo &lt;= actual[t] &lt;= hi else 0, hi - lo,
+                         round(lo, 2), round(hi, 2),
+                         clipped(bins, tail) or clipped(bins, 1 - tail)))
     return {w: v for w, v in rec.items() if len(v) &gt;= MIN_YEARS}
 
 
@@ -330,14 +439,14 @@ def year_difficulty(elig):
     &quot;&quot;&quot;Panel coverage per year — how hard that year was for everyone.&quot;&quot;&quot;
     by = collections.defaultdict(list)
     for v in elig.values():
-        for t, h in v:
+        for t, h, *_ in v:
             by[t].append(h)
     return {t: sum(h) / len(h) for t, h in by.items()}
 
 
 def skill(elig, p_y):
     &quot;&quot;&quot;Hits above what the same years would give an average forecaster.&quot;&quot;&quot;
-    return {w: (sum(h for _, h in v) - sum(p_y[t] for t, _ in v)) / len(v)
+    return {w: (sum(h for _, h, *_ in v) - sum(p_y[t] for t, *_ in v)) / len(v)
             for w, v in elig.items()}
 
 
@@ -357,7 +466,7 @@ def main():
     print(f&quot;  forecasts scored                    &quot;
           f&quot;{sum(len(v) for v in elig.values()):,}&quot;)
     print(f&quot;  pooled coverage                     &quot;
-          f&quot;{sum(h for v in elig.values() for _, h in v) / sum(len(v) for v in elig.values()) * 100:.1f}%&quot;)
+          f&quot;{sum(h for v in elig.values() for _, h, *_ in v) / sum(len(v) for v in elig.values()) * 100:.1f}%&quot;)
     print(&quot;  Forecasters are anonymous. The ECB publishes them only by number,&quot;)
     print(&quot;  and nothing here attempts to identify them.&quot;)
 
@@ -375,8 +484,8 @@ def main():
     for _ in range(ITERS):
         s = []
         for v in elig.values():
-            exp = sum(p_y[t] for t, _ in v)
-            got = sum(1 for t, _ in v if rng.random() &lt; p_y[t])
+            exp = sum(p_y[t] for t, *_ in v)
+            got = sum(1 for t, *_ in v if rng.random() &lt; p_y[t])
             s.append((got - exp) / len(v))
         sims.append(statistics.pstdev(s))
     sims.sort()
@@ -403,8 +512,8 @@ def main():
         h = len(v) // 2
 
         def sc(part):
-            return (sum(x for _, x in part)
-                    - sum(p_y[t] for t, _ in part)) / len(part)
+            return (sum(x for _, x, *_ in part)
+                    - sum(p_y[t] for t, *_ in part)) / len(part)
         pairs.append((sc(v[:h]), sc(v[h:])))
     xs = [a for a, _ in pairs]
     ys = [b for _, b in pairs]
@@ -427,8 +536,90 @@ def main():
     print(f&quot;  r = {r:+.3f}   permutation p = {p_split:.4f}&quot;)
     print(f&quot;  -&gt; {&#x27;honesty about uncertainty is a durable trait&#x27; if p_split &lt; 0.05 else &#x27;no persistence&#x27;}&quot;)
 
-    hr(&quot;4. But almost nobody clears the bar&quot;)
-    cov = {w: sum(h for _, h in v) / len(v) for w, v in elig.items()}
+    hr(&quot;4. Is the best forecaster better, or just vaguer?&quot;)
+    width = {w: statistics.median(d for _, _, d, *_ in v) for w, v in elig.items()}
+    xs = [width[w] for w in elig]
+    ys = [score[w] for w in elig]
+    mx, my = statistics.mean(xs), statistics.mean(ys)
+    num = sum((a - mx) * (b - my) for a, b in zip(xs, ys))
+    den = (sum((a - mx) ** 2 for a in xs)
+           * sum((b - my) ** 2 for b in ys)) ** .5
+    r_w = num / den if den else float(&quot;nan&quot;)
+    print(&quot;  A forecaster who always quotes a wide range will be inside it more&quot;)
+    print(&quot;  often without knowing anything more. So how much of the score is&quot;)
+    print(&quot;  simply width?\n&quot;)
+    print(f&quot;  correlation between median range width and skill: r = {r_w:+.3f}&quot;)
+    print(f&quot;  width explains {r_w * r_w * 100:.0f}% of the skill score&quot;)
+    print(f&quot;  median range width across the panel: &quot;
+          f&quot;{statistics.median(xs):.2f} percentage points\n&quot;)
+    srt_w = sorted(elig, key=lambda w: -score[w])
+    print(f&quot;    {&#x27;forecaster&#x27;:&lt;12}{&#x27;skill&#x27;:&gt;9}{&#x27;median range width&#x27;:&gt;22}&quot;)
+    for w in srt_w[:3] + srt_w[-3:]:
+        print(f&quot;    #{w:&lt;11}{score[w] * 100:&gt;+8.0f}pp{width[w]:&gt;20.2f}pp&quot;)
+    narrow = [w for w in elig if width[w] &lt; statistics.median(xs)]
+    wide = [w for w in elig if width[w] &gt;= statistics.median(xs)]
+    print()
+    for name, grp in ((&quot;narrower-than-median&quot;, narrow), (&quot;wider-than-median&quot;, wide)):
+        sk = [score[w] for w in grp]
+        print(f&quot;    among {name} forecasters (n={len(grp)}): spread still &quot;
+              f&quot;{statistics.pstdev(sk) * 100:.1f}pp, &quot;
+              f&quot;best {max(sk) * 100:+.0f}pp worst {min(sk) * 100:+.0f}pp&quot;)
+    # Does the persistence survive width? Split each career in half, take each
+    # half&#x27;s score AND its median width, strip the width effect with one pooled
+    # regression line, and re-run the split-half correlation on the residuals.
+    halves = []
+    for w, v in elig.items():
+        v = sorted(v)
+        if len(v) &lt; 12:
+            continue
+        h = len(v) // 2
+
+        def hs(part):
+            return ((sum(x for _, x, *_ in part)
+                     - sum(p_y[t] for t, *_ in part)) / len(part),
+                    statistics.median(d for _, _, d, *_ in part))
+        halves.append((hs(v[:h]), hs(v[h:])))
+    ws = [d for pair in halves for _, d in pair]
+    ss = [q for pair in halves for q, _ in pair]
+    mw, ms = statistics.mean(ws), statistics.mean(ss)
+    sw = sum((a - mw) ** 2 for a in ws)
+    b = sum((a - mw) * (q - ms) for a, q in zip(ws, ss)) / sw if sw else 0.0
+    res = [(q1 - (ms + b * (d1 - mw)), q2 - (ms + b * (d2 - mw)))
+           for (q1, d1), (q2, d2) in halves]
+    r_res, p_res = corr_perm(res, rng, ITERS)
+    print(f&quot;\n  persistence on raw scores:            r = {r:+.3f}&quot;)
+    print(f&quot;  persistence after removing width:     r = {r_res:+.3f}   &quot;
+          f&quot;permutation p = {p_res:.4f}&quot;)
+    print(f&quot;  -&gt; {&#x27;a durable habit of quoting wider ranges explains part of it,&#x27; if p_res &lt; 0.05 else &#x27;nothing survives:&#x27;}&quot;)
+    print(f&quot;     {&#x27;but something that is not width still persists&#x27; if p_res &lt; 0.05 else &#x27;the persistence was width all along&#x27;}&quot;)
+
+    # The open-ended buckets substitute a boundary for a percentile, which
+    # narrows the measured range. Re-run the width correlation on the years
+    # where no boundary was substituted, and see whether it moves.
+    clean = {w: [x for x in v if not x[5]] for w, v in elig.items()}
+    clean = {w: v for w, v in clean.items() if len(v) &gt;= MIN_YEARS}
+    n_clip = sum(1 for v in elig.values() for x in v if x[5])
+    n_all = sum(len(v) for v in elig.values())
+    cw = {w: statistics.median(d for _, _, d, *_ in v) for w, v in clean.items()}
+    cxs = [cw[w] for w in clean]
+    cys = [score[w] for w in clean]
+    mcx, mcy = statistics.mean(cxs), statistics.mean(cys)
+    cnum = sum((a - mcx) * (b - mcy) for a, b in zip(cxs, cys))
+    cden = (sum((a - mcx) ** 2 for a in cxs)
+            * sum((b - mcy) ** 2 for b in cys)) ** .5
+    r_clean = cnum / cden if cden else float(&quot;nan&quot;)
+    print(f&quot;\n  robustness: {n_clip} of {n_all} forecasts ({n_clip / n_all * 100:.1f}%) &quot;
+          f&quot;had a percentile fall in an open-ended bucket,&quot;)
+    print(f&quot;  where the boundary is substituted and the measured range narrows.&quot;)
+    print(f&quot;  dropping them ({len(clean)} forecasters still have {MIN_YEARS}+ years): &quot;
+          f&quot;r = {r_clean:+.3f} against {r_w:+.3f}&quot;)
+
+    print(&quot;\n  So roughly half the score is style, not skill. Something remains&quot;)
+    print(&quot;  after width is held roughly constant — but the headline number&quot;)
+    print(&quot;  overstates how much of it is knowing anything.&quot;)
+
+    hr(&quot;5. But almost nobody clears the bar&quot;)
+    cov = {w: sum(h for _, h, *_ in v) / len(v) for w, v in elig.items()}
     good = sorted((c for c in cov.values() if c &gt;= BAND), reverse=True)
     print(f&quot;  forecasters whose 80% ranges actually held 80% of the time: &quot;
           f&quot;{len(good)} of {len(cov)}&quot;)
@@ -439,8 +630,8 @@ def main():
     pool = []
     for _ in range(4000):
         for v in elig.values():
-            exp = sum(p_y[t] for t, _ in v)
-            got = sum(1 for t, _ in v if rng.random() &lt; p_y[t])
+            exp = sum(p_y[t] for t, *_ in v)
+            got = sum(1 for t, *_ in v if rng.random() &lt; p_y[t])
             pool.append((got - exp) / len(v))
     pool.sort()
     luck = [pool[int(0.025 * len(pool))], pool[int(0.975 * len(pool))]]
@@ -461,6 +652,29 @@ def main():
                        &quot;p&quot;: round(p_split, 4)},
         &quot;luck_band&quot;: [round(luck[0], 4), round(luck[1], 4)],
         &quot;above_bar&quot;: len(good),
+        &quot;width&quot;: {&quot;r_with_skill&quot;: round(r_w, 4),
+                  &quot;r2&quot;: round(r_w * r_w, 4),
+                  &quot;median_width_pp&quot;: round(statistics.median(xs), 3),
+                  &quot;by_forecaster&quot;: {w: round(width[w], 3) for w in elig},
+                  &quot;clipping_cut&quot;: {&quot;n_clipped&quot;: n_clip, &quot;n_all&quot;: n_all,
+                                   &quot;n_forecasters&quot;: len(clean),
+                                   &quot;r&quot;: round(r_clean, 4)},
+                  &quot;split_half_residual&quot;: {&quot;n&quot;: len(halves),
+                                          &quot;r&quot;: round(r_res, 4),
+                                          &quot;p&quot;: round(p_res, 4)},
+                  &quot;strata&quot;: {name: {&quot;n&quot;: len(grp),
+                                    &quot;sd&quot;: round(statistics.pstdev(
+                                        [score[w] for w in grp]), 4)}
+                             for name, grp in ((&quot;narrow&quot;, narrow),
+                                               (&quot;wide&quot;, wide))}},
+        &quot;grid&quot;: [{&quot;who&quot;: w, &quot;skill&quot;: round(v, 4),
+                  &quot;width&quot;: round(width[w], 3),
+                  &quot;years&quot;: {str(t): int(h) for t, h, *_ in sorted(elig[w])}}
+                 for w, v in srt],
+        &quot;examples&quot;: {w: [{&quot;year&quot;: t, &quot;lo&quot;: lo, &quot;hi&quot;: hi,
+                          &quot;actual&quot;: round(actual[t], 2), &quot;hit&quot;: int(h)}
+                         for t, h, d, lo, hi, _c in sorted(elig[w])]
+                     for w in (srt[0][0], srt[-1][0])},
         &quot;scores&quot;: [{&quot;who&quot;: w, &quot;skill&quot;: round(v, 4), &quot;years&quot;: len(elig[w]),
                     &quot;coverage&quot;: round(cov[w], 4)} for w, v in srt],
     }
@@ -468,82 +682,363 @@ def main():
         json.dump(out, fh, indent=1)
     print(f&quot;\n  wrote {OUT}&quot;)
     chart(out)
+    chart_hero(out)
+    chart_ranges(out)
     return 0
 
 
+def corr_perm(pairs, rng, iters):
+    &quot;&quot;&quot;Pearson r over (x, y) pairs, with a two-sided permutation p-value.&quot;&quot;&quot;
+    xs = [a for a, _ in pairs]
+    ys = [b for _, b in pairs]
+    mx, my = statistics.mean(xs), statistics.mean(ys)
+    sx = sum((a - mx) ** 2 for a in xs)
+
+    def rr(zs):
+        mz = statistics.mean(zs)
+        dd = (sx * sum((b - mz) ** 2 for b in zs)) ** .5
+        if not dd:
+            return float(&quot;nan&quot;)
+        return sum((a - mx) * (b - mz) for a, b in zip(xs, zs)) / dd
+    r = rr(ys)
+    hit = 0
+    for _ in range(iters):
+        sh = ys[:]
+        rng.shuffle(sh)
+        v = rr(sh)
+        if v == v and abs(v) &gt;= abs(r):
+            hit += 1
+    return r, hit / iters
+
+
 def chart(res):
-    &quot;&quot;&quot;One bar per forecaster, sorted, against the band luck alone would give.&quot;&quot;&quot;
-    srt = sorted(res[&quot;scores&quot;], key=lambda r: r[&quot;skill&quot;])
-    lo_b, hi_b = res[&quot;luck_band&quot;]
-    W, H, L, R, T, B = 1600, 1000, 90, 60, 175, 140
-    pw, ph = W - L - R, H - T - B
-    n = len(srt)
-    slot = pw / n
-    bw = slot * 0.72
-    lim = 0.38
-    BLUE, RED, DIM, INK, GRID = &quot;#2f9bff&quot;, &quot;#d92b2b&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;, &quot;#d6dce4&quot;
+    &quot;&quot;&quot;Forecaster x year: which years each one was inside its own range.&quot;&quot;&quot;
+    rows = sorted(res[&quot;grid&quot;], key=lambda r: -r[&quot;skill&quot;])
+    years = list(range(2000, 2026))
+    diff = {int(k): v for k, v in res[&quot;year_difficulty&quot;].items()}
+    n = len(rows)
+    W, L, T, R = 1600, 118, 300, 56
+    CW, CH, BARW, GAP = 44.0, 12.0, 170, 26
+    GW = CW * len(years)
+    H = int(T + CH * n + 246)
+    GREEN, RED, ABSENT = &quot;#2e9e5b&quot;, &quot;#d94040&quot;, &quot;#eceff3&quot;
+    BLUE, DIM, INK, GRID = &quot;#2f9bff&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;, &quot;#c9d1db&quot;
     F = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&quot;
          &quot;&#x27;Helvetica Neue&#x27;,Arial,sans-serif&quot;)
+    BX = L + GW + GAP
 
-    def x(i):
-        return L + i * slot + (slot - bw) / 2
+    def cx(t):
+        return L + (t - years[0]) * CW
 
-    def y(v):
-        return T + (1 - (v + lim) / (2 * lim)) * ph
+    def sx(v):
+        return BX + BARW / 2 + (v / 0.40) * (BARW / 2)
 
     o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
          f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
          f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
-         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;52&quot; font-size=&quot;37&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
-         f&#x27;They are not interchangeable &amp;#8212; and the consensus hides it&lt;/text&gt;&#x27;,
-         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;94&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;Each bar is one &#x27;
-         f&#x27;anonymous ECB forecaster: how much better or worse their 80% ranges &#x27;
-         f&#x27;held up than an average&lt;/text&gt;&#x27;,
-         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;124&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;forecaster facing &#x27;
-         f&#x27;the same years. {n} forecasters with {res[&quot;min_years&quot;]}+ scored &#x27;
-         f&#x27;years, euro-area inflation, 2000&amp;#8211;2025.&lt;/text&gt;&#x27;,
-         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;154&quot; font-size=&quot;21&quot; fill=&quot;{DIM}&quot;&gt;Grey band = the &#x27;
-         f&#x27;spread pure luck would produce if every forecaster were equally &#x27;
-         f&#x27;good.&lt;/text&gt;&#x27;,
-         f&#x27;&lt;rect x=&quot;{L}&quot; y=&quot;{y(hi_b):.1f}&quot; width=&quot;{pw}&quot; &#x27;
-         f&#x27;height=&quot;{y(lo_b) - y(hi_b):.1f}&quot; fill=&quot;{DIM}&quot; opacity=&quot;0.13&quot;/&gt;&#x27;]
-    for g in (-0.3, -0.15, 0, 0.15, 0.3):
-        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{y(g):.1f}&quot; x2=&quot;{L + pw}&quot; y2=&quot;{y(g):.1f}&quot; &#x27;
-                 f&#x27;stroke=&quot;{GRID if g else INK}&quot; stroke-width=&quot;{2 if g == 0 else 1}&quot;/&gt;&#x27;)
-        o.append(f&#x27;&lt;text x=&quot;{L - 12}&quot; y=&quot;{y(g) + 7:.1f}&quot; font-size=&quot;20&quot; &#x27;
-                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{g * 100:+.0f}pp&lt;/text&gt;&#x27;)
-    for i, r in enumerate(srt):
-        v = r[&quot;skill&quot;]
-        col = BLUE if v &gt;= 0 else RED
-        y0, y1 = (y(v), y(0)) if v &gt;= 0 else (y(0), y(v))
-        o.append(f&#x27;&lt;rect x=&quot;{x(i):.1f}&quot; y=&quot;{y0:.1f}&quot; width=&quot;{bw:.1f}&quot; &#x27;
-                 f&#x27;height=&quot;{max(1, y1 - y0):.1f}&quot; fill=&quot;{col}&quot; rx=&quot;2&quot;/&gt;&#x27;)
-    best, worst = srt[-1], srt[0]
-    o += [f&#x27;&lt;text x=&quot;{x(n - 1) + bw / 2:.1f}&quot; y=&quot;{y(best[&quot;skill&quot;]) - 16:.1f}&quot; &#x27;
-          f&#x27;font-size=&quot;21&quot; font-weight=&quot;700&quot; fill=&quot;{BLUE}&quot; text-anchor=&quot;end&quot;&gt;&#x27;
-          f&#x27;#{best[&quot;who&quot;]}: {best[&quot;skill&quot;] * 100:+.0f}pp&lt;/text&gt;&#x27;,
-          f&#x27;&lt;text x=&quot;{x(0) + bw / 2:.1f}&quot; y=&quot;{y(worst[&quot;skill&quot;]) + 30:.1f}&quot; &#x27;
-          f&#x27;font-size=&quot;21&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot; text-anchor=&quot;start&quot;&gt;&#x27;
-          f&#x27;#{worst[&quot;who&quot;]}: {worst[&quot;skill&quot;] * 100:+.0f}pp&lt;/text&gt;&#x27;,
-          f&#x27;&lt;text x=&quot;{L + pw / 2:.0f}&quot; y=&quot;{T + ph + 62}&quot; font-size=&quot;24&quot; &#x27;
-          f&#x27;fill=&quot;{INK}&quot; text-anchor=&quot;middle&quot;&gt;one bar per forecaster, worst to &#x27;
-          f&#x27;best&lt;/text&gt;&#x27;,
-          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 26}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;Data: ECB &#x27;
-          f&#x27;Survey of Professional Forecasters, individual responses. &#x27;
-          f&#x27;Forecasters are anonymous; the ECB publishes them only by &#x27;
-          f&#x27;number.&lt;/text&gt;&#x27;, &#x27;&lt;/svg&gt;&#x27;]
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;54&quot; font-size=&quot;36&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;ECB inflation panel, 2000&amp;#8211;2025: green = the outcome landed &#x27;
+         f&#x27;inside their range&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;98&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;One row per &#x27;
+         f&#x27;anonymous ECB forecaster ({n} of them, sorted best at the top), one &#x27;
+         f&#x27;column per year. Each said where euro-area&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;128&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;inflation would &#x27;
+         f&#x27;land with 80% confidence. &#x27;
+         f&#x27;&lt;tspan fill=&quot;{GREEN}&quot; font-weight=&quot;700&quot;&gt;Green&lt;/tspan&gt; = it did. &#x27;
+         f&#x27;&lt;tspan fill=&quot;{RED}&quot; font-weight=&quot;700&quot;&gt;Red&lt;/tspan&gt; = it did not. &#x27;
+         f&#x27;Grey = not on the panel that year.&lt;/text&gt;&#x27;]
+
+    # ---- legend
+    ly = 158
+    for i, (col, lab) in enumerate(((GREEN, &quot;inside their range&quot;),
+                                    (RED, &quot;missed&quot;),
+                                    (ABSENT, &quot;not on the panel&quot;))):
+        lx = L + i * 300
+        o.append(f&#x27;&lt;rect x=&quot;{lx}&quot; y=&quot;{ly}&quot; width=&quot;26&quot; height=&quot;15&quot; fill=&quot;{col}&quot; &#x27;
+                 f&#x27;rx=&quot;2&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{lx + 36}&quot; y=&quot;{ly + 13}&quot; font-size=&quot;21&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot;&gt;{lab}&lt;/text&gt;&#x27;)
+
+    # ---- year headers
+    for t in years:
+        hard = diff.get(t, 1) == 0
+        o.append(f&#x27;&lt;text x=&quot;{cx(t) + CW / 2:.1f}&quot; y=&quot;{T - 46}&quot; font-size=&quot;17&quot; &#x27;
+                 f&#x27;font-weight=&quot;{700 if hard else 400}&quot; &#x27;
+                 f&#x27;fill=&quot;{RED if hard else DIM}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+                 f&#x27;{t}&lt;/text&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{cx(t) + CW / 2:.1f}&quot; y=&quot;{T - 22}&quot; font-size=&quot;16&quot; &#x27;
+                 f&#x27;font-weight=&quot;{700 if hard else 400}&quot; &#x27;
+                 f&#x27;fill=&quot;{RED if hard else DIM}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+                 f&#x27;{diff.get(t, 0) * 100:.0f}%&lt;/text&gt;&#x27;)
+    o.append(f&#x27;&lt;text x=&quot;{L - 14}&quot; y=&quot;{T - 22}&quot; font-size=&quot;16&quot; fill=&quot;{DIM}&quot; &#x27;
+             f&#x27;text-anchor=&quot;end&quot;&gt;panel inside&lt;/text&gt;&#x27;)
+
+    # ---- cells
+    for r, row in enumerate(rows):
+        yy = T + r * CH
+        for t in years:
+            h = row[&quot;years&quot;].get(str(t))
+            col = ABSENT if h is None else (GREEN if h else RED)
+            o.append(f&#x27;&lt;rect x=&quot;{cx(t):.1f}&quot; y=&quot;{yy:.1f}&quot; &#x27;
+                     f&#x27;width=&quot;{CW - 1.5:.1f}&quot; height=&quot;{CH - 1.5:.1f}&quot; &#x27;
+                     f&#x27;fill=&quot;{col}&quot;/&gt;&#x27;)
+
+    # ---- skill bars on the right
+    o.append(f&#x27;&lt;text x=&quot;{BX + BARW / 2:.0f}&quot; y=&quot;{T - 46}&quot; font-size=&quot;17&quot; &#x27;
+             f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;their score&lt;/text&gt;&#x27;)
+    o.append(f&#x27;&lt;text x=&quot;{BX + BARW / 2:.0f}&quot; y=&quot;{T - 22}&quot; font-size=&quot;16&quot; &#x27;
+             f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;vs an average panellist&lt;/text&gt;&#x27;)
+    o.append(f&#x27;&lt;line x1=&quot;{sx(0):.1f}&quot; y1=&quot;{T}&quot; x2=&quot;{sx(0):.1f}&quot; &#x27;
+             f&#x27;y2=&quot;{T + CH * n:.1f}&quot; stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+    for r, row in enumerate(rows):
+        v, yy = row[&quot;skill&quot;], T + r * CH
+        x0, x1 = (sx(0), sx(v)) if v &gt;= 0 else (sx(v), sx(0))
+        o.append(f&#x27;&lt;rect x=&quot;{x0:.1f}&quot; y=&quot;{yy + 1:.1f}&quot; &#x27;
+                 f&#x27;width=&quot;{max(1.0, x1 - x0):.1f}&quot; height=&quot;{CH - 3:.1f}&quot; &#x27;
+                 f&#x27;fill=&quot;{BLUE if v &gt;= 0 else RED}&quot; opacity=&quot;0.85&quot;/&gt;&#x27;)
+    for r, lab in ((0, &quot;best&quot;), (n - 1, &quot;worst&quot;)):
+        row, yy = rows[r], T + r * CH + CH - 2
+        o.append(f&#x27;&lt;text x=&quot;{L - 14}&quot; y=&quot;{yy:.1f}&quot; font-size=&quot;18&quot; &#x27;
+                 f&#x27;font-weight=&quot;700&quot; fill=&quot;{INK}&quot; text-anchor=&quot;end&quot;&gt;&#x27;
+                 f&#x27;{lab} #{row[&quot;who&quot;]}&lt;/text&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{BX + BARW + 12}&quot; y=&quot;{yy:.1f}&quot; font-size=&quot;18&quot; &#x27;
+                 f&#x27;font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+                 f&#x27;{row[&quot;skill&quot;] * 100:+.0f}pp&lt;/text&gt;&#x27;)
+
+    # ---- the all-red columns
+    gy = T + CH * n
+    runs, cur = [], []
+    for t in years:
+        if diff.get(t, 1) == 0:
+            cur.append(t)
+        elif cur:
+            runs.append(cur)
+            cur = []
+    if cur:
+        runs.append(cur)
+    for run in runs:
+        x0, x1 = cx(run[0]), cx(run[-1]) + CW - 1.5
+        o.append(f&#x27;&lt;path d=&quot;M{x0:.1f} {gy + 10} L{x0:.1f} {gy + 20} &#x27;
+                 f&#x27;L{x1:.1f} {gy + 20} L{x1:.1f} {gy + 10}&quot; fill=&quot;none&quot; &#x27;
+                 f&#x27;stroke=&quot;{RED}&quot; stroke-width=&quot;2&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{(x0 + x1) / 2:.1f}&quot; y=&quot;{gy + 44}&quot; font-size=&quot;19&quot; &#x27;
+                 f&#x27;font-weight=&quot;700&quot; fill=&quot;{RED}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+                 f&#x27;{&quot;nobody&quot; if len(run) == 1 else &quot;nobody, 3 years running&quot;}&#x27;
+                 f&#x27;&lt;/text&gt;&#x27;)
+
+    o += [f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 104}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+          f&#x27;The columns are the story: in 2008, and again through &#x27;
+          f&#x27;2021&amp;#8211;2023, not one of the {n} was inside the range they &#x27;
+          f&#x27;themselves had published.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 74}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;The rows &#x27;
+          f&#x27;are the other story: some are green far more often than others &#x27;
+          f&#x27;&amp;#8212; but the best of them still quotes a wider range.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 42}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;Data: ECB &#x27;
+          f&#x27;Survey of Professional Forecasters, individual responses, &#x27;
+          f&#x27;one-year-ahead (Q4 round of the year before) vs euro-area HICP, &#x27;
+          f&#x27;{res[&quot;min_years&quot;]}+ scored years each.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 16}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;Forecasters &#x27;
+          f&#x27;are anonymous; the ECB publishes them only by number. &amp;#183; method &#x27;
+          f&#x27;and every number: &#x27;
+          f&#x27;namikakmandev.github.io/ecb-forecaster-skill.html&lt;/text&gt;&#x27;,
+          &#x27;&lt;/svg&gt;&#x27;]
     svg = &quot;\n&quot;.join(o)
     os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
     path = &quot;assets/linkedin/ecb-forecaster-skill.svg&quot;
     with open(path, &quot;w&quot;) as fh:
         fh.write(svg)
     print(f&quot;  wrote {path}&quot;)
-    render_png(svg, &quot;assets/linkedin/ecb-forecaster-skill.png&quot;)
+    render_png(svg, &quot;assets/linkedin/ecb-forecaster-skill.png&quot;, W, H)
+
+
+def chart_hero(res):
+    &quot;&quot;&quot;A feed-legible opener. The grid is unreadable at phone width; this is the
+    one column-story from it, in type large enough to survive the downscale.&quot;&quot;&quot;
+    diff = {int(k): v for k, v in res[&quot;year_difficulty&quot;].items()}
+    years = sorted(diff)
+    W, H, L, R, T, B = 1600, 1600, 130, 70, 470, 360
+    pw, ph = W - L - R, H - T - B
+    GREEN, RED, DIM, INK, GRID = (&quot;#2e9e5b&quot;, &quot;#d94040&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;,
+                                  &quot;#dfe4ea&quot;)
+    F = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&quot;
+         &quot;&#x27;Helvetica Neue&#x27;,Arial,sans-serif&quot;)
+    slot = pw / len(years)
+    bw = slot * 0.66
+
+    def bx(t):
+        return L + (t - years[0]) * slot + (slot - bw) / 2
+
+    def by(v):
+        return T + (1 - v) * ph
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+         f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;120&quot; font-size=&quot;62&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;Four years when Europe&amp;#8217;s inflation&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;196&quot; font-size=&quot;62&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;forecasters &lt;tspan fill=&quot;{RED}&quot;&gt;all missed together&lt;/tspan&gt;&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;270&quot; font-size=&quot;33&quot; fill=&quot;{DIM}&quot;&gt;Each bar: the share &#x27;
+         f&#x27;of the ECB&amp;#8217;s forecaster panel whose own 80% range&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;314&quot; font-size=&quot;33&quot; fill=&quot;{DIM}&quot;&gt;contained that &#x27;
+         f&#x27;year&amp;#8217;s euro-area inflation. 64 forecasters, 2000&amp;#8211;2025.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;378&quot; font-size=&quot;30&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot;&gt;&#x27;
+         f&#x27;In 2008, and again in 2021, 2022 and 2023: not one of them.&lt;/text&gt;&#x27;]
+
+    for g in (0, .25, .5, .75, 1):
+        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{by(g):.1f}&quot; x2=&quot;{L + pw}&quot; &#x27;
+                 f&#x27;y2=&quot;{by(g):.1f}&quot; stroke=&quot;{GRID if g else &quot;#9aa4b2&quot;}&quot; &#x27;
+                 f&#x27;stroke-width=&quot;{1 if g else 2}&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{L - 18}&quot; y=&quot;{by(g) + 11:.1f}&quot; font-size=&quot;30&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{g * 100:.0f}%&lt;/text&gt;&#x27;)
+
+    for t in years:
+        v = diff[t]
+        zero = v == 0
+        o.append(f&#x27;&lt;rect x=&quot;{bx(t):.1f}&quot; y=&quot;{by(v):.1f}&quot; width=&quot;{bw:.1f}&quot; &#x27;
+                 f&#x27;height=&quot;{max(3.0, by(0) - by(v)):.1f}&quot; &#x27;
+                 f&#x27;fill=&quot;{RED if zero else GREEN}&quot; rx=&quot;3&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{bx(t) + bw / 2:.1f}&quot; y=&quot;{by(0) + 44:.1f}&quot; &#x27;
+                 f&#x27;font-size=&quot;{28 if zero else 25}&quot; &#x27;
+                 f&#x27;font-weight=&quot;{700 if zero else 400}&quot; &#x27;
+                 f&#x27;fill=&quot;{RED if zero else DIM}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+                 f&#x27;&amp;#8217;{str(t)[2:]}&lt;/text&gt;&#x27;)
+        if zero:
+            o.append(f&#x27;&lt;text x=&quot;{bx(t) + bw / 2:.1f}&quot; y=&quot;{by(0) - 16:.1f}&quot; &#x27;
+                     f&#x27;font-size=&quot;30&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot; &#x27;
+                     f&#x27;text-anchor=&quot;middle&quot;&gt;0%&lt;/text&gt;&#x27;)
+
+    sy = T + ph + 130
+    sk = [r[&quot;skill&quot;] for r in res[&quot;scores&quot;]]
+    stats = ((f&#x27;{res[&quot;n_forecasters&quot;]}&#x27;, &#x27;forecasters, followed&#x27;),
+             (f&#x27;{(max(sk) - min(sk)) * 100:.0f}pp&#x27;, &#x27;best to worst&#x27;),
+             (f&#x27;{res[&quot;above_bar&quot;]} of {res[&quot;n_forecasters&quot;]}&#x27;,
+              &#x27;cleared their own bar&#x27;))
+    for i, (big, lab) in enumerate(stats):
+        x = L + i * (pw / 3)
+        o.append(f&#x27;&lt;text x=&quot;{x:.0f}&quot; y=&quot;{sy}&quot; font-size=&quot;66&quot; font-weight=&quot;700&quot; &#x27;
+                 f&#x27;fill=&quot;{INK}&quot;&gt;{big}&lt;/text&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{x:.0f}&quot; y=&quot;{sy + 44}&quot; font-size=&quot;29&quot; fill=&quot;{DIM}&quot;&gt;&#x27;
+                 f&#x27;{lab}&lt;/text&gt;&#x27;)
+
+    o += [f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 62}&quot; font-size=&quot;26&quot; fill=&quot;{DIM}&quot;&gt;Data: ECB &#x27;
+          f&#x27;Survey of Professional Forecasters, individual responses, &#x27;
+          f&#x27;one-year-ahead vs euro-area HICP.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 26}&quot; font-size=&quot;26&quot; fill=&quot;{DIM}&quot;&gt;Method and &#x27;
+          f&#x27;every number: &#x27;
+          f&#x27;namikakmandev.github.io/ecb-forecaster-skill.html&lt;/text&gt;&#x27;, &#x27;&lt;/svg&gt;&#x27;]
+    svg = &quot;\n&quot;.join(o)
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/ecb-forecaster-hero.svg&quot;
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;  wrote {path}&quot;)
+    render_png(svg, &quot;assets/linkedin/ecb-forecaster-hero.png&quot;, W, H)
+
+
+def chart_ranges(res):
+    &quot;&quot;&quot;The best and the worst forecaster, year by year, in percentage points.&quot;&quot;&quot;
+    ex = res[&quot;examples&quot;]
+    who = [r[&quot;who&quot;] for r in sorted(res[&quot;grid&quot;], key=lambda r: -r[&quot;skill&quot;])]
+    best, worst = who[0], who[-1]
+    years = list(range(2000, 2026))
+    W, L, R, PH, TOP, GAPY = 1600, 118, 60, 340, 232, 128
+    H = TOP + PH + GAPY + PH + 148
+    PW = W - L - R
+    LO, HI = -1.4, 9.2
+    GREEN, RED, DIM, INK, GRID = (&quot;#2e9e5b&quot;, &quot;#d94040&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;,
+                                  &quot;#dfe4ea&quot;)
+    F = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&quot;
+         &quot;&#x27;Helvetica Neue&#x27;,Arial,sans-serif&quot;)
+    slot = PW / len(years)
+
+    def px(t):
+        return L + (t - years[0]) * slot + slot / 2
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+         f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;54&quot; font-size=&quot;38&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;What a miss looks like &amp;#8212; ECB panel, euro-area inflation, &#x27;
+         f&#x27;2000&amp;#8211;2025&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;112&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;Each bar is the &#x27;
+         f&#x27;range one forecaster published for that year&amp;#8217;s euro-area &#x27;
+         f&#x27;inflation &amp;#8212; the middle 80% of what they thought possible.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;142&quot; font-size=&quot;23&quot; fill=&quot;{DIM}&quot;&gt;The dot is what &#x27;
+         f&#x27;inflation actually did. Dot inside the bar = &#x27;
+         f&#x27;&lt;tspan fill=&quot;{GREEN}&quot; font-weight=&quot;700&quot;&gt;a hit&lt;/tspan&gt;. Dot outside &#x27;
+         f&#x27;= &lt;tspan fill=&quot;{RED}&quot; font-weight=&quot;700&quot;&gt;a miss&lt;/tspan&gt;. &#x27;
+         f&#x27;A year with no bar is a year they were not on the panel.&lt;/text&gt;&#x27;]
+
+    for k, (w, title) in enumerate(((best, &quot;the best of the panel&quot;),
+                                    (worst, &quot;the worst of the panel&quot;))):
+        t0 = TOP + k * (PH + GAPY)
+        rec = {r[&quot;year&quot;]: r for r in ex[w]}
+        hits = sum(r[&quot;hit&quot;] for r in ex[w])
+
+        def py(v, t0=t0):
+            return t0 + (HI - v) / (HI - LO) * PH
+
+        o.append(f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{t0 - 30}&quot; font-size=&quot;27&quot; &#x27;
+                 f&#x27;font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;Forecaster #{w} &#x27;
+                 f&#x27;&lt;tspan font-weight=&quot;400&quot; fill=&quot;{DIM}&quot;&gt;&amp;#8212; {title}: &#x27;
+                 f&#x27;inside its own range {hits} years out of &#x27;
+                 f&#x27;{len(ex[w])}&lt;/tspan&gt;&lt;/text&gt;&#x27;)
+        for g in (0, 2, 4, 6, 8):
+            o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{py(g):.1f}&quot; x2=&quot;{L + PW}&quot; &#x27;
+                     f&#x27;y2=&quot;{py(g):.1f}&quot; stroke=&quot;{GRID if g else &quot;#9aa4b2&quot;}&quot; &#x27;
+                     f&#x27;stroke-width=&quot;1&quot;/&gt;&#x27;)
+            o.append(f&#x27;&lt;text x=&quot;{L - 12}&quot; y=&quot;{py(g) + 7:.1f}&quot; font-size=&quot;19&quot; &#x27;
+                     f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{g}%&lt;/text&gt;&#x27;)
+        bw = slot * 0.42
+        for t in years:
+            r = rec.get(t)
+            o.append(f&#x27;&lt;text x=&quot;{px(t):.1f}&quot; y=&quot;{t0 + PH + 30}&quot; &#x27;
+                     f&#x27;font-size=&quot;15&quot; fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+                     f&#x27;{str(t)[2:]}&lt;/text&gt;&#x27;)
+            if not r:
+                continue
+            col = GREEN if r[&quot;hit&quot;] else RED
+            o.append(f&#x27;&lt;rect x=&quot;{px(t) - bw / 2:.1f}&quot; y=&quot;{py(r[&quot;hi&quot;]):.1f}&quot; &#x27;
+                     f&#x27;width=&quot;{bw:.1f}&quot; &#x27;
+                     f&#x27;height=&quot;{max(2.0, py(r[&quot;lo&quot;]) - py(r[&quot;hi&quot;])):.1f}&quot; &#x27;
+                     f&#x27;fill=&quot;{col}&quot; opacity=&quot;0.30&quot; rx=&quot;2&quot;/&gt;&#x27;)
+            o.append(f&#x27;&lt;rect x=&quot;{px(t) - bw / 2:.1f}&quot; y=&quot;{py(r[&quot;hi&quot;]):.1f}&quot; &#x27;
+                     f&#x27;width=&quot;{bw:.1f}&quot; &#x27;
+                     f&#x27;height=&quot;{max(2.0, py(r[&quot;lo&quot;]) - py(r[&quot;hi&quot;])):.1f}&quot; &#x27;
+                     f&#x27;fill=&quot;none&quot; stroke=&quot;{col}&quot; stroke-width=&quot;2&quot; rx=&quot;2&quot;/&gt;&#x27;)
+            o.append(f&#x27;&lt;circle cx=&quot;{px(t):.1f}&quot; cy=&quot;{py(r[&quot;actual&quot;]):.1f}&quot; &#x27;
+                     f&#x27;r=&quot;5.5&quot; fill=&quot;{col}&quot;/&gt;&#x27;)
+            if t == 2022:
+                o.append(f&#x27;&lt;text x=&quot;{px(t) - 14:.1f}&quot; &#x27;
+                         f&#x27;y=&quot;{py(r[&quot;actual&quot;]) + 6:.1f}&quot; font-size=&quot;19&quot; &#x27;
+                         f&#x27;font-weight=&quot;700&quot; fill=&quot;{RED}&quot; text-anchor=&quot;end&quot;&gt;&#x27;
+                         f&#x27;8.4% &amp;#8212; they said up to &#x27;
+                         f&#x27;{r[&quot;hi&quot;]:.1f}%&lt;/text&gt;&#x27;)
+
+    o += [f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 76}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;Both were &#x27;
+          f&#x27;wrong about 2022. The difference is that #{best} publishes ranges &#x27;
+          f&#x27;wide enough to be right the rest of the time.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 42}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;Data: ECB &#x27;
+          f&#x27;Survey of Professional Forecasters, individual responses, &#x27;
+          f&#x27;one-year-ahead (Q4 round of the year before), vs euro-area HICP.&#x27;
+          f&#x27;&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 16}&quot; font-size=&quot;18&quot; fill=&quot;{DIM}&quot;&gt;Forecasters &#x27;
+          f&#x27;are anonymous; the ECB publishes them only by number. &amp;#183; method &#x27;
+          f&#x27;and every number: &#x27;
+          f&#x27;namikakmandev.github.io/ecb-forecaster-skill.html&lt;/text&gt;&#x27;,
+          &#x27;&lt;/svg&gt;&#x27;]
+    svg = &quot;\n&quot;.join(o)
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/ecb-forecaster-ranges.svg&quot;
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;  wrote {path}&quot;)
+    render_png(svg, &quot;assets/linkedin/ecb-forecaster-ranges.png&quot;, W, H)
 
 
 if __name__ == &quot;__main__&quot;:
-    sys.exit(main())
-</code></pre>
+    sys.exit(main())</code></pre>
             </details>
         </div>
 
