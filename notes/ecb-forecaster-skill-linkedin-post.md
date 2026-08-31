@@ -57,92 +57,84 @@ forecasts, euro-area inflation 2000&ndash;2025.
 
 ## English
 
-I price for a living. Which means every year I build a plan on top of somebody
-else's inflation forecast.
+I work in pricing. Every plan I build sits on an inflation forecast.
 
-So it is worth knowing who that somebody is. Every quarter the ECB surveys about
-fifty banks, research institutes and forecasting houses across Europe. It does
-not just ask them for a number &mdash; it asks each one for a full probability
-distribution. Where do you think inflation lands, and how sure are you? Then it
-averages them into the consensus figure that ends up in everyone's slide deck.
-(These are outside institutions, not the ECB's own staff projections.)
+So it is worth knowing where that forecast comes from. Each quarter the ECB
+surveys around fifty banks and research institutes across Europe. It asks each
+one not for a number but for a probability distribution: where will inflation
+land, and how confident are you. Those answers become the consensus figure most
+of us quote.
 
-Then 2022. Euro-area inflation came in at 8.4% &mdash; the highest in the euro's
-history, and the year every cost line I work with moved at once.
+In 2022 euro-area inflation reached 8.4%, the highest in the euro's history.
+None of the fifty had it inside the range they had published.
 
-Not one of the fifty had that inside the range they had published.
-
-So I went back and checked all 26 years. The ECB publishes each forecaster
-separately, not just the average.
+The ECB publishes each forecaster separately, so I scored all 26 years.
 
 [ image 2 &mdash; the grid ]
 
-Green = inflation landed inside the range that forecaster published.
-Red = it didn't.
+Green: the outcome landed inside that forecaster's range. Red: it did not.
 
-2008. Then 2021, 2022, 2023. Nobody. The years I most needed a range were the
-years the range was worthless.
+Four columns are entirely red: 2008, 2021, 2022 and 2023. In those years the
+stated confidence carried no information.
 
 [ image 3 &mdash; best vs worst ]
 
-And the best of the 64? His ranges are twice as wide as the worst one's. Width
-alone explains 47% of the score.
+The forecasters are not interchangeable. But the best also publishes ranges
+twice as wide as the worst, and width alone explains 47% of the score. Roughly
+half of what looks like skill is a willingness to admit uncertainty.
 
-So half of being good at this is just admitting you don't know.
+Useful, but not the same as accuracy.
 
-It changed how I read a forecast. Now I ask two things instead of one: how often
-were you inside your range, and how wide did the range have to be.
+The practical point: score a forecast on two measures, not one. How often the
+outcome fell inside the stated range, and how wide that range had to be.
 
-1 of 64 ever cleared their own 80% bar.
+Only 1 of 64 met their own 80% standard.
 
-Every number and the code → namikakmandev.github.io/ecb-forecaster-skill.html
-Data: @European Central Bank Survey of Professional Forecasters, published openly.
+Method and code: namikakmandev.github.io/ecb-forecaster-skill.html
+Data: @European Central Bank Survey of Professional Forecasters.
 
 ---
 
 ## Türkçe
 
-Fiyatlama yapıyorum. Yani her yıl, başkasının enflasyon tahmininin üstüne plan
-kuruyorum.
+Fiyatlama alanında çalışıyorum. Kurduğum her plan bir enflasyon tahmininin
+üzerine oturuyor.
 
-O &ldquo;başkası&rdquo; kim, bilmekte fayda var. ECB her çeyrek Avrupa'daki elli
-kadar bankaya, araştırma kurumuna ve tahmin kuruluşuna anket yapıyor. Sadece bir
-sayı da istemiyor &mdash; her birinden tam bir olasılık dağılımı istiyor.
-Enflasyon sizce nereye gelir, ve ne kadar eminsiniz? Sonra hepsini herkesin
-sunumuna giren o tek konsensüs rakamına indiriyor. (Bunlar dışarıdaki kurumlar;
-ECB'nin kendi personel projeksiyonları değil.)
+Bu yüzden o tahminin nereden geldiğini bilmekte fayda var. ECB her çeyrek
+Avrupa'da elli kadar banka ve araştırma kurumuna anket yapıyor. Her birinden tek
+bir sayı değil, bir olasılık dağılımı istiyor: enflasyon nereye gelir, ve ne
+kadar eminsiniz. Bu cevaplar çoğumuzun alıntıladığı konsensüs rakamına
+dönüşüyor.
 
-Sonra 2022. Euro bölgesi enflasyonu %8,4 geldi &mdash; euronun tarihindeki en
-yüksek seviye, ve çalıştığım bütün maliyet kalemlerinin aynı anda oynadığı yıl.
+2022'de euro bölgesi enflasyonu %8,4'e ulaştı; euronun tarihindeki en yüksek
+seviye. Elli tahmincinin hiçbirinde bu, yayımladıkları aralığın içinde değildi.
 
-Elli tahminciden tek birinin bile yayımladığı aralığın içinde değildi.
-
-Ben de 26 yılın hepsine baktım. ECB ortalamayı değil, her tahminciyi ayrı ayrı
-yayımlıyor.
+ECB her tahminciyi ayrı ayrı da yayımlıyor, ben de 26 yılın tamamını puanladım.
 
 [ görsel 2 &mdash; ızgara ]
 
-Yeşil = enflasyon o tahmincinin açıkladığı aralığın içine düştü.
-Kırmızı = düşmedi.
+Yeşil: sonuç o tahmincinin aralığının içine düştü. Kırmızı: düşmedi.
 
-2008. Sonra 2021, 2022, 2023. Hiç kimse. Aralığa en çok ihtiyaç duyduğum
-yıllarda aralık işe yaramıyordu.
+Dört sütun tamamen kırmızı: 2008, 2021, 2022 ve 2023. Bu yıllarda beyan edilen
+güven aralığı hiçbir bilgi taşımıyordu.
 
 [ görsel 3 &mdash; en iyi ve en kötü ]
 
-Peki 64 kişinin en iyisi? Aralıkları en kötününkinin iki katı geniş. Skorun
-%47'sini tek başına genişlik açıklıyor.
+Tahminciler birbirinin yerine geçmiyor. Ama en iyisi aynı zamanda en kötünün iki
+katı geniş aralıklar yayımlıyor ve skorun %47'sini tek başına genişlik
+açıklıyor. Yetenek gibi görünen şeyin kabaca yarısı, belirsizliği kabul etme
+isteği.
 
-Yani bu işte iyi olmanın yarısı, bilmediğini kabul etmek.
+Değerli, ama isabet ile aynı şey değil.
 
-Bir tahmini okuma şeklimi değiştirdi. Artık tek soru değil iki soru soruyorum:
-kaç kez aralığın içinde kaldın, ve aralık bunun için ne kadar geniş olmak
-zorunda kaldı.
+Pratik sonuç: bir tahmini tek ölçüyle değil iki ölçüyle puanlayın. Sonuç kaç kez
+beyan edilen aralığın içinde kaldı, ve o aralık ne kadar geniş olmak zorunda
+kaldı.
 
-64 tahminciden yalnızca 1'i kendi %80 çıtasını tutturdu.
+64 tahminciden yalnızca 1'i kendi %80 standardını tutturdu.
 
-Bütün sayılar ve kod → namikakmandev.github.io/ecb-forecaster-skill.html
-Veri: @European Central Bank Survey of Professional Forecasters, açık kaynak.
+Yöntem ve kod: namikakmandev.github.io/ecb-forecaster-skill.html
+Veri: @European Central Bank Survey of Professional Forecasters.
 
 ---
 
