@@ -92,7 +92,7 @@ So I went back and scored all 26 years, one forecaster at a time.
 Four whole columns are red: 2008, 2021, 2022 and 2023. In those years nobody on
 the panel was inside their own range.
 
-And they were all wrong the same way. Every single one was <b>short</b>. 178
+⬇️ And they were all wrong the same way. Every single one was <b>short</b>. 178
 forecasts across those four years, 178 underestimates, zero overestimates.
 
 When this panel fails completely, it does not see costs coming.
@@ -159,7 +159,7 @@ Ben de 26 yılın hepsini, tahminci tahminci puanladım.
 Dört sütun tamamen kırmızı: 2008, 2021, 2022 ve 2023. O yıllarda panelde kendi
 aralığının içinde kalan tek bir kişi yok.
 
-Ve hepsi aynı yönde yanıldı. Hepsi <b>düşük</b> tahmin etti. O dört yılda 178
+⬇️ Ve hepsi aynı yönde yanıldı. Hepsi <b>düşük</b> tahmin etti. O dört yılda 178
 tahmin, 178 eksik tahmin, sıfır fazla tahmin.
 
 Bu panel tamamen şaşırdığında, maliyetlerin geldiğini göremiyor.

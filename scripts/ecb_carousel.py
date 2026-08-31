@@ -48,6 +48,11 @@ def build_html():
                  - min(x["skill"] for x in r["scores"])) * 100)
     r2 = round(r["width"]["r2"] * 100)
     zero = [y for y, v in sorted(r["year_difficulty"].items()) if v == 0]
+    md = r["miss_direction"]
+    pooled = md["pooled"]
+    misses = pooled["too_low"] + pooled["too_high"]
+    low_share = round(pooled["too_low"] / misses * 100)
+    assert md["zero_coverage_all_too_low"], "the one-way claim no longer holds"
     best, worst = r["scores"][0]["who"], r["scores"][-1]["who"]
     wide = r["width"]["by_forecaster"][best] / r["width"]["by_forecaster"][worst]
 
@@ -94,13 +99,21 @@ def build_html():
             <p class="lede">In each of those years, <b>not one</b> forecaster on
               the panel contained the outcome. The years a range was worth most
               are the years it carried no information.</p>
-            <p class="lede">Read it across the rows and they are not
-              interchangeable either: best to worst is
-              <b>{gap} percentage points</b>, far too wide to be luck.</p>''',
+            <p class="lede">And they were all wrong the same way.
+              <b>{md["zero_coverage_n"]} forecasts across those four years,
+              {md["zero_coverage_n"]} underestimates, zero overestimates.</b>
+              When this panel fails completely, it does not see costs
+              coming.</p>
+            <p class="note">Not a one-way record overall: across all 26 years
+              {low_share}% of misses were too low and {100 - low_share}% too
+              high. It is the total failures that are one-sided.</p>''',
 
         # 6 — the caveat
         f'''{svg("ecb-forecaster-ranges.svg")}
-            <p class="lede">The best forecaster publishes ranges
+            <p class="lede">Read it across the rows instead and they are not
+              interchangeable: best to worst is <b>{gap} percentage
+              points</b>, far too wide to be luck.</p>
+            <p class="lede">But the best forecaster publishes ranges
               <b>{wide:.1f}&times; wider</b> than the worst. Width alone explains
               <b>{r2}%</b> of the score.</p>
             <p class="lede">Half of looking good here is simply admitting you
