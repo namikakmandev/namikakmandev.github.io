@@ -56,6 +56,10 @@
   .method b{color:var(--ink)}
   footer{color:var(--ink3);font-size:12.5px;margin-top:8px}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:6px}
+  ul.lims{list-style:none;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+  ul.lims li{background:var(--card2);border:1px solid var(--line);border-radius:10px;
+             padding:10px 14px;font-size:13px;color:var(--ink2)}
+  ul.lims b{color:var(--ink)}
   @media(max-width:640px){ h1{font-size:23px} .tile .val{font-size:20px} }
 </style>
 </head>
@@ -130,6 +134,21 @@
     <div class="chart-title">Every SKU, every venue — with its own price history</div>
     <div class="chart-sub" id="snapdate"></div>
     <div class="tblwrap"><table id="snaptable"></table></div>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">How fast these prices climb</div>
+    <div class="chart-sub" id="inflsub"></div>
+    <div class="tblwrap"><table id="infltable"></table></div>
+    <div class="chart-sub" id="inflnotes" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="chart-title">What this can and cannot support</div>
+    <div class="chart-sub">Everything below is a limit on the panels above. Several are corrections to
+      figures this page published earlier and later had to withdraw; those are kept rather than quietly
+      edited out, because the direction they moved in is itself the most useful thing here.</div>
+    <ul class="lims" id="limitations"></ul>
   </div>
 
   <div class="card method" id="method"></div>
@@ -1178,6 +1197,87 @@ Promise.all([
         <td style="color:var(--ink3)">${esc(o.method)}</td></tr>`;
       }).join('') || '<tr><td colspan="10" style="color:var(--ink3)">nothing tracked in this market yet</td></tr>';
   }
+
+  // ---- how fast these prices climb --------------------------------------
+  // Computed here rather than typed in, so it cannot drift from the data. Same
+  // thresholds as scripts/pharma_cpi_check.py: at least five observations
+  // spanning two years, in the venue's own currency so no FX enters.
+  (function inflation(){
+    const yfr = d => +d.slice(0,4) + (+d.slice(5,7))/12 + (+d.slice(8,10))/365;
+    const g = {};
+    obs.filter(o => o.venue !== 'perfectpet')
+       .forEach(o => { (g[`${o.country}|${o.venue}|${o.sku}|${o.n}`] ??= []).push(o); });
+    const rows = [];
+    for(const [k, arr] of Object.entries(g)){
+      arr.sort((a,b) => a.d < b.d ? -1 : 1);
+      const span = yfr(arr.at(-1).d) - yfr(arr[0].d);
+      if(arr.length < 5 || span < 2 || arr[0].unit <= 0) continue;
+      rows.push({cc: k.split('|')[0], o: arr[0], last: arr.at(-1),
+                 rate: (Math.pow(arr.at(-1).unit / arr[0].unit, 1/span) - 1) * 100, span});
+    }
+    rows.sort((a, b) => b.rate - a.rate);
+    if(!rows.length) return;
+    const med = a => { const v=[...a].sort((x,y)=>x-y);
+      return v.length%2 ? v[(v.length-1)/2] : (v[v.length/2-1]+v[v.length/2])/2; };
+    // the same molecules at three US pharmacies, to show that the spread
+    // between SHOPS is wider than anything between countries
+    const usBy = {};
+    rows.filter(r => r.cc === 'US').forEach(r => { (usBy[r.o.venue] ??= []).push(r.rate); });
+    const shops = Object.entries(usBy).map(([v, a]) => ({v, n: a.length, m: med(a)}))
+                        .sort((a, b) => a.m - b.m);
+
+    document.getElementById('inflsub').innerHTML =
+      `${rows.length} series with at least five observations over two years or more, each in its own `
+      + 'venue and currency so no exchange rate enters. Median '
+      + `<b>${med(rows.map(r=>r.rate)).toFixed(1)}%/yr</b>. `
+      + (shops.length > 1
+         ? `<b>Which shop you track decides the answer more than which country.</b> Across `
+           + `${shops.length} US pharmacies the median annual rise runs from `
+           + `<b>${shops[0].m.toFixed(1)}%</b> at ${esc(venues[shops[0].v].name)} to `
+           + `<b>${shops.at(-1).m.toFixed(1)}%</b> at ${esc(venues[shops.at(-1).v].name)} — on the same `
+           + 'molecules, in the same country, over the same window.'
+         : '');
+
+    const line = r => `<tr><td><span class="cc">${r.cc}</span>${esc(venues[r.o.venue].name)}</td>
+      <td style="text-align:left">${esc(products[r.o.product].name)}${r.o.mg?` ${r.o.mg}mg`:''}${r.o.n>1?` ×${r.o.n}`:''}</td>
+      <td>${money(r.o.unit, r.o.cur, r.o.cur==='HUF'||r.o.cur==='TRY'?0:2)} <span style="color:var(--ink3)">${esc(r.o.d.slice(0,7))}</span></td>
+      <td>${money(r.last.unit, r.last.cur, r.last.cur==='HUF'||r.last.cur==='TRY'?0:2)}</td>
+      <td>${r.span.toFixed(1)}y</td>
+      <td style="color:${r.rate<0?'var(--down)':'var(--up)'};font-weight:600">${r.rate>0?'+':''}${r.rate.toFixed(1)}%</td></tr>`;
+    const falls = rows.filter(r => r.rate < 0);
+    document.getElementById('infltable').innerHTML =
+      '<tr><th>Venue</th><th style="text-align:left">SKU</th><th>From</th><th>To</th><th>Span</th><th>Per year</th></tr>'
+      + '<tr class="group"><td colspan="6">Steepest five</td></tr>' + rows.slice(0,5).map(line).join('')
+      + '<tr class="group"><td colspan="6">The long view — every series running five years or more</td></tr>'
+      + rows.filter(r => r.span >= 5).map(line).join('')
+      + (falls.length ? '<tr class="group"><td colspan="6">Every falling price in the panel</td></tr>'
+                        + falls.map(line).join('') : '');
+
+    document.getElementById('inflnotes').innerHTML =
+      'Unit prices in each venue\u2019s own currency, so these are nominal and uncorrected for local '
+      + 'inflation. Only the US and the Netherlands have a matched consumer index in this dataset; '
+      + 'measured country by country and window by window, Dutch drug prices run about <b>2.4\u00d7</b> '
+      + 'Dutch consumer inflation and US drug prices about <b>1.2\u00d7</b> US consumer inflation, and the '
+      + 'median across every matched series is <b>1.8\u00d7</b>. That last figure has been restated '
+      + 'downward three times as the panel widened \u2014 from \u201croughly triple\u201d, to 2.4\u00d7, '
+      + 'to 2.0\u00d7, to 1.8\u00d7 \u2014 each time by adding data rather than changing method, which is '
+      + 'the direction to expect when thin sampling gets thicker and a reason to treat what is left as '
+      + 'provisional. These series share venues and products, so they are nowhere near independent and '
+      + 'no significance test is quoted or should be inferred.';
+  })();
+
+  // ---- what this can and cannot support ---------------------------------
+  document.getElementById('limitations').innerHTML = [
+    ['Nothing here is a transaction.', 'Every figure is a price a shop published \u2014 an ask. It is not evidence that a dog was treated at it and says nothing about how many were. Coupons, autoship rates, vet-channel dispensing and negotiated prices are all invisible. Closing that gap needs a different source entirely: dispensing volumes, or a vet-channel price survey. No amount of further scraping reaches it.'],
+    ['The panel covers the markets where prices are visible, and visibility is set by law.', 'Nine European markets never opted in to prescription distance selling under Regulation (EU) 2019/6 Article 104, so no shop there can lawfully publish these prices. If prices behave differently where the vet holds the channel, this dataset cannot see it.'],
+    ['Half the markets rest on one shop.', 'Where two shops in a market quote the same SKU they differ by about 14% on the day, so a single-shop market carries at least that much unseen retailer variation. The Netherlands \u2014 four years, five products, one pharmacy \u2014 is the sharpest case, and it carries one of the two inflation figures.'],
+    ['Back-history is reconstructed, not recorded.', 'Historical points come from archived copies of the same product pages, parsed by the same extractors, and are flagged in the data. A coverage probe of all venues found 27 with product pages archived under URLs the live tracker does not follow, 14 archived with no product page ever captured, and 3 absent entirely. Germany falls in the middle group: cheapest in three ex-tax blocks, and no history obtainable at all.'],
+    ['Ten prices were removed as parse artifacts.', 'A declared SKU\u2019s page can still yield the wrong number on one snapshot \u2014 a badge, a shipping charge, a per-tablet figure on a page priced per pack. One Dutch venue served \u20ac2.95 across three strengths on one date; a US venue showed $99.00 between $369.99 and $389.99. Points more than 2.5\u00d7 from both neighbours, or from their series median, are dropped.'],
+    ['The US headline reversed twice.', 'The US looked cheapest on shelf prices, is dearest on every single tablet once each country\u2019s veterinary VAT comes out, and sits mid-table again where it sells the same pack size as Europe. The premium is a per-tablet retail phenomenon, not a uniform one.'],
+    ['Dosing was validated against each label, not assumed.', 'That check found two errors in an earlier version: Cytopoint treated as monthly when its label says every 4 to 8 weeks, and Apoquel\u2019s twice-daily induction fortnight omitted. Cytopoint is an interval throughout as a result, and Apoquel\u2019s first month runs about 47% above its maintenance rate.'],
+    ['Pack size cannot be held constant across brands.', 'Apoquel sells in 10s, 20s and 100s; Zenrelia and Numelvi in 30s and 90s. Each brand appears at its own cheapest pack, named, so a brand sold in 100s is flattered against one sold singly.'],
+    ['A claim about the missing countries was published before it was tested.', 'This page once said Croatia, Slovenia, Ireland, Greece and the Baltics were trade-login or price-on-request markets. Searched properly, most are a statutory prohibition instead; only Estonia and Malta match what was written. And Poland does publish prices \u2014 clinic shops list prescription products in open z\u0142oty, personal collection only. What Poland forbids is online dispensing.'],
+  ].map(([h, b]) => `<li><b>${h}</b> ${b}</li>`).join('');
 
   window.setCC = c => { cc = c; render(); };
   render();
