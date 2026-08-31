@@ -68,7 +68,12 @@
              box-shadow:0 0 0 1px rgba(255,255,255,.22)}
 
   /* ---- small-multiples country grid ---- */
-  #ctrygrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:10px;margin-top:4px}
+  #ctrygrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:10px;margin-top:4px;
+            align-items:start}
+  /* a marker so an open panel still looks like something you can close */
+  .gpanel>summary::after{content:'−';float:right;color:var(--ink3);font-size:14px;line-height:1;
+                         margin-left:8px}
+  .gpanel:not([open])>summary::after{content:'+'}
   .gpanel{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:10px 12px}
   .gpanel>summary{cursor:pointer;list-style:none;outline:none}
   .gpanel>summary::-webkit-details-marker{display:none}
@@ -169,6 +174,7 @@
   <div class="card f-only">
     <div class="chart-title">Every market, side by side</div>
     <div class="chart-sub" id="gridsub"></div>
+    <div class="btns" id="gridbtns" style="margin:10px 0 12px"></div>
     <div id="ctrygrid"></div>
     <div class="chart-sub" id="gridabsent" style="margin-top:14px"></div>
     <div class="chart-sub" id="gridnotes" style="margin-top:10px"></div>
@@ -1335,7 +1341,9 @@ Promise.all([
             + `${b.boxed ? `pack of ${b.o.n}` : 'sold by the tablet'}${vBadge(b.o.venue)}</span>`
             + `</div>`).join('');
         const r = VAT && VAT.rates && VAT.rates[p.country];
-        return `<details class="gpanel"><summary>`
+        // Open by default: the point of the grid is to read every market at once,
+        // and a wall of closed rows makes that a click each. They still collapse.
+        return `<details class="gpanel" open><summary>`
           + `<span class="ghead">${flagSVG(p.country)}<b>${esc(CCNAME[p.country]||p.country)}</b>`
           + `<span class="gcheap">${money(p.brands[0].v, 'USD', 2)}/day</span></span></summary>`
           + `<div class="gbars">${bars}`
@@ -1349,6 +1357,10 @@ Promise.all([
               : 'No VAT rate on file, so this panel still carries tax and is not comparable.'}</div>`
           + `</details>`;
       }).join('');
+
+      document.getElementById('gridbtns').innerHTML =
+        '<button class="btn" onclick="gridAll(true)">Expand all</button>'
+        + '<button class="btn" onclick="gridAll(false)">Collapse all</button>';
 
       // Markets with no price are not omitted: an absent market is a finding,
       // and a grid that simply lacks Poland invites the reader to assume we
@@ -1949,6 +1961,10 @@ Promise.all([
 
   window.setCC = c => { cc = c; render(); };
   window.setBasis = b => { basis = b; render(); };
+  // Toggles the panels in place rather than re-rendering: a re-render would
+  // rebuild them all open again and the button would appear to do nothing.
+  window.gridAll = open => document.querySelectorAll('#ctrygrid .gpanel')
+    .forEach(d => { d.open = open; });
   window.setView = v => {
     document.body.classList.toggle('app', v === 'app');
     document.getElementById('vt-find').classList.toggle('on', v !== 'app');
