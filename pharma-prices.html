@@ -102,7 +102,7 @@
   <div class="tiles a-only" id="tiles"></div>
 
   <div class="card f-only">
-    <div class="chart-title">The five brands, side by side</div>
+    <div class="chart-title" id="brandtitle">The daily tablets, side by side</div>
     <div class="btns" id="basisbtns" style="margin-bottom:10px"></div>
     <div class="chart-sub" id="brandsub"></div>
     <div id="brandbars"></div>
@@ -690,7 +690,15 @@ Promise.all([
     };
     // one comparable number per brand: the cheapest tracked listing of the
     // weight-matched SKU, at retail, converted only when it has to be
-    const brandNow = Object.entries(DOSE).map(([pid, dose], i) => {
+    // Cytopoint is deliberately NOT in this comparison. It is an injectable
+    // dosed every 4 to 8 weeks, not a daily tablet: there is no box a buyer
+    // weighs against a pack of pills, and drawing it as a bar invited exactly
+    // the comparison it cannot support. It is measured on its own terms in the
+    // appendix, where the question is how long a vial has to last to beat a
+    // tablet. Keyed on the form, not the brand, so a future injectable is
+    // handled the same way.
+    const brandNow = Object.entries(DOSE).filter(([, d]) => d.form !== 'inj')
+      .map(([pid, dose], i) => {
       const rows = co.filter(o => o.d === latestDate && o.product === pid
                     && o.form === dose.form && o.mg === dose.mg && o.venue !== 'perfectpet');
       if(!rows.length) return {pid, dose, i, missing: true};
@@ -725,104 +733,172 @@ Promise.all([
     });
 
     const SHELF = basis === 'shelf';
-    const val = b => SHELF ? (b.box ? b.box.v : null) : b.lo;
+    const YEAR  = basis === 'year';
+    // A YEAR of treatment, priced out of the box a buyer actually buys.
+    // The shelf view compares boxes lasting 10, 14, 20, 30 and 28-56 days, so
+    // it is not like for like at all - it is the comparison a shopper makes,
+    // not a fair one. This view holds the DAYS constant and lets pack size
+    // fall where it may, which is the same ranking as cost-per-day but in
+    // money a buyer recognises. It stays anchored to real packs rather than
+    // per-tablet quotes, so it answers the shelf question rather than
+    // replacing it.
+    const YEARDAYS = 365;
+    // Longest dosing interval = fewest vials = cheapest year, so it is the low end.
+    const yrLo = b => b.box ? b.box.v * YEARDAYS / b.boxDays : null;
+    const yrHi = b => (b.box && b.boxDaysMax) ? b.box.v * YEARDAYS / b.boxDaysMax : null;
+    const val   = b => SHELF ? (b.box ? b.box.v : null) : YEAR ? yrLo(b) : b.lo;
+    const valHi = b => SHELF ? null : YEAR ? yrHi(b) : b.hi;
+    const srcOf = b => (SHELF || YEAR) ? b.box.o : b.o;
+    const boxesPerYear = d => YEARDAYS / d;
     const shown = brandNow.filter(b => !b.missing && val(b) != null)
                           .sort((a, b) => val(a) - val(b));
     // the two orders, so the page can say where they disagree rather than
     // leaving the reader to notice
     const orderShelf = brandNow.filter(b => !b.missing && b.box)
       .sort((a,b)=>a.box.v-b.box.v).map(b=>b.pid);
-    const orderDay = brandNow.filter(b => !b.missing && b.box)
-      .sort((a,b)=>a.lo-b.lo).map(b=>b.pid);
-    const flipped = orderShelf.join() !== orderDay.join();
-    const cur2 = all ? 'USD' : (shown[0]?.o.cur || cur);
-    const dp2 = (cur2==='TRY'||cur2==='HUF') ? 0 : 2;
+    const orderYear = brandNow.filter(b => !b.missing && b.box)
+      .sort((a,b)=>yrLo(a)-yrLo(b)).map(b=>b.pid);
+    const flipped = orderShelf.join() !== orderYear.join();
+    const cur2 = all ? 'USD' : (shown[0] ? srcOf(shown[0]).cur : cur);
+    // A year runs to four figures, where two decimals are noise.
+    const dp2 = (cur2==='TRY'||cur2==='HUF'||YEAR) ? 0 : 2;
     const fmtDay = v => money(v, cur2, dp2);
 
     document.getElementById('basisbtns').innerHTML =
       `<button class="btn ${SHELF?'on':''}" onclick="setBasis('shelf')">What the box costs</button>`
-      + `<button class="btn ${SHELF?'':'on'}" onclick="setBasis('day')">What a day costs</button>`;
+      + `<button class="btn ${YEAR?'on':''}" onclick="setBasis('year')">What a year costs</button>`
+      + `<button class="btn ${(SHELF||YEAR)?'':'on'}" onclick="setBasis('day')">What a day costs</button>`;
 
-    document.getElementById('brandsub').innerHTML = SHELF
-      ? `<b>The price on the box</b>, cheapest pack of each brand${all ? ', in USD ex-VAT' : ` in ${esc(CCNAME[cc]||cc)}`}`
-        + ' — the comparison a buyer actually makes. Each bar says how long that box lasts a ~20 kg dog.'
-        + ' Shops that quote by the single tablet are excluded here: a per-tablet price is not a box.'
-        + ' The gaps under each bar compare <b>boxes</b>, not equal treatment periods \u2014 that is what the other view is for.'
+    const unitTxt = all ? ', in USD ex-VAT' : ` in ${esc(CCNAME[cc]||cc)}`;
+    document.getElementById('brandsub').innerHTML = (SHELF
+      ? `<b>The price on the box</b>, cheapest pack of each brand${unitTxt}`
+        + ' — the comparison a buyer actually makes, and deliberately not a fair one.'
+        + ' Each bar says how long that box lasts a ~20 kg dog: they run from 10 days to 30, so'
+        + ' <b>the boxes are not equivalent</b>. Shops quoting by the single tablet are excluded:'
+        + ' a per-tablet price is not a box.'
+      : YEAR
+      ? `<b>A full year of treatment</b> for a ~20 kg dog${unitTxt}, bought as the boxes each brand`
+        + ' actually sells. This is the box view with <b>the days equalised</b> — same 365 days for'
+        + ' every brand, pack size left to fall where it may — so it is the like-for-like the shelf'
+        + ' view cannot be. Boxes per year are left fractional on purpose; rounding to whole packs'
+        + ' would put pack size back into the comparison this view exists to take it out of.'
       : `Cost of one day of maintenance therapy for a ~20 kg dog, ${all
         ? '<b>converted to USD and stripped of each country\u2019s veterinary VAT</b>, cheapest tracked listing anywhere'
         : `cheapest tracked listing in <b>${esc(CCNAME[cc]||cc)}</b>, in local currency`}.
-       Each brand is dosed to <b>its own label</b>, not to a common assumption.`;
+       Each brand is dosed to <b>its own label</b>, not to a common assumption.`)
+      + ' <span style="color:var(--ink3)">Cytopoint is not here — it is an injectable dosed every'
+      + ' 4 to 8 weeks, with no box a buyer sets against a pack of pills. It is measured on its own'
+      + ' terms in the appendix.</span>';
 
     const benchmark = shown.find(b => b.pid === 'apoquel');
     const dayTxt = n => n >= 365 ? `${(n/365).toFixed(1)} years` : `${Math.round(n)} day${Math.round(n)===1?'':'s'}`;
-    document.getElementById('brandbars').innerHTML = brandBars(shown.map(b => ({
-      pid: b.pid,
-      name: products[b.pid].name,
-      color: PCOLOR[b.pid],
-      lo: SHELF ? b.box.v : b.lo,
-      hi: SHELF ? null : b.hi,
-      label: SHELF
-        ? `${fmtDay(b.box.v)}  ·  lasts ${b.boxDaysMax ? dayTxt(b.boxDaysMax)+'\u2013'+dayTxt(b.boxDays) : dayTxt(b.boxDays)}`
-        : (b.hi ? `${fmtDay(b.lo)}–${fmtDay(b.hi)}` : fmtDay(b.lo)),
-      sub: SHELF
-        ? `${b.dose.mg} mg · pack of ${b.box.o.n} · ${venues[b.box.o.venue].name}${all?` · ${b.box.o.country}`:''}`
-        : `${b.dose.mg} mg · ${venues[b.o.venue].name}${all?` · ${b.o.country}`:''} · pack of ${b.o.n}`,
-    })), benchmark
-      ? {pid: 'apoquel', lo: SHELF ? benchmark.box.v : benchmark.lo,
-         name: products.apoquel.name, short: 'Apoquel'}
-      : null);
+    // Boxes per year is fractional on purpose: rounding up to whole packs would
+    // bake each brand's pack size back into the comparison this view exists to
+    // strip out. The leftover tablets are real, and the note says so.
+    const boxTxt = n => `${n < 20 ? n.toFixed(1) : Math.round(n)} boxes a year`;
+    // scoped so the empty-market return below cannot skip the later cards
+    (() => {
+      if(!shown.length){
+        const why = (SHELF || YEAR)
+          ? `Every shop tracked in <b>${esc(CCNAME[cc]||cc)}</b> quotes by the single tablet, so there `
+            + 'is no box price to compare here. That is a real feature of this market, not a gap in the '
+            + 'data. <b>What a day costs</b> works, and is the right view for it.'
+          : `No weight-matched listing in <b>${esc(CCNAME[cc]||cc)}</b> on the latest tracked day.`;
+        document.getElementById('brandbars').innerHTML =
+          `<div class="chart-sub" style="padding:18px 0">${why}</div>`;
+        document.getElementById('brandtable').innerHTML = '';
+        document.getElementById('brandnotes').innerHTML = '';
+        return;
+      }
 
-    // The comparison column has to be on the SAME basis as the ranking above it,
-    // or a box-ranked leader gets measured against a per-day cheapest and the
-    // gaps come out signed the wrong way.
-    const cheapest = shown[0] ? val(shown[0]) : null;
-    const signed = v => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(0)}%`;
-    document.getElementById('brandtable').innerHTML =
-      '<tr><th>Brand</th><th>Dose used</th><th>Cheapest venue</th><th>Pack</th>'
-      + `<th>${SHELF ? 'Price on the box' : 'Cost per day'}</th><th>vs cheapest</th></tr>`
-      + brandNow.slice().sort((a,b)=>(a.missing?1:0)-(b.missing?1:0)
-                                   || ((val(a) ?? Infinity) - (val(b) ?? Infinity))).map(b => {
-        if(b.missing || val(b) == null) return `<tr><td>${esc(products[b.pid].name)}</td>
-          <td colspan="5" style="color:var(--ink3);text-align:left">not tracked ${all?'anywhere':'in this market'} at the weight-matched ${b.dose.mg} mg dose</td></tr>`;
-        const gap = v => (v == null || !cheapest) ? null : (v/cheapest - 1)*100;
-        // An interval ranked by its low end alone would claim a win it only has
-        // at one end of its own dosing window, so both ends are shown. Inside an
-        // interval the cheapest end prints as +0%, not as a dash, or the row
-        // reads "- to +100%". A box price has no such interval: the dosing
-        // window does not change what the box costs.
-        const rel = (!SHELF && b.hi)
-          ? `${signed(gap(b.lo))} to ${signed(gap(b.hi))}`
-          : (gap(val(b)) == null ? '—' : val(b) === cheapest ? '—' : signed(gap(val(b))));
-        const src = SHELF ? b.box.o : b.o;
-        return `<tr>
-          <td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PCOLOR[b.pid]};margin-right:7px"></span>${esc(products[b.pid].name)}</td>
-          <td>${b.dose.mg} mg ${FORM[b.dose.form]}${b.dose.unitsPerDayMax?' q4–8wk':'/day'}</td>
-          <td>${all?`<span class="cc">${src.country}</span>`:''}${esc(venues[src.venue].name)}</td>
-          <td>${src.n}</td>
-          <td>${SHELF ? fmtDay(b.box.v) : (b.hi?`${fmtDay(b.lo)}–${fmtDay(b.hi)}`:fmtDay(b.lo))}</td>
-          <td>${rel}</td></tr>`;
-      }).join('');
+      document.getElementById('brandbars').innerHTML = brandBars(shown.map(b => ({
+        pid: b.pid,
+        name: products[b.pid].name,
+        color: PCOLOR[b.pid],
+        lo: val(b),
+        hi: valHi(b),
+        label: SHELF
+          ? `${fmtDay(b.box.v)}  ·  lasts ${dayTxt(b.boxDays)}`
+          : YEAR
+          ? `${fmtDay(val(b))} a year  ·  ${boxTxt(boxesPerYear(b.boxDays))}`
+          : (b.hi ? `${fmtDay(b.lo)}–${fmtDay(b.hi)}` : fmtDay(b.lo)),
+        sub: (SHELF || YEAR)
+          ? `${b.dose.mg} mg · pack of ${b.box.o.n} · ${venues[b.box.o.venue].name}${all?` · ${b.box.o.country}`:''}`
+          : `${b.dose.mg} mg · ${venues[b.o.venue].name}${all?` · ${b.o.country}`:''} · pack of ${b.o.n}`,
+      })), benchmark
+        ? {pid: 'apoquel', lo: val(benchmark),
+           name: products.apoquel.name, short: 'Apoquel'}
+        : null);
 
-    document.getElementById('brandnotes').innerHTML =
-      (flipped
-        ? `<b>The two views disagree, and they disagree in every market tracked here.</b> The cheapest box is <b>${esc(products[orderShelf[0]].name)}</b>; the cheapest day is <b>${esc(products[orderDay[0]].name)}</b>. That is not a rounding difference \u2014 the cheapest box is very often the smallest box, so a shelf that looks affordable can be the dearest way to treat a dog for a year. The buttons above swap between the comparison a buyer actually makes and the one that decides what they spend. `
-        : '<b>On this market the two views agree</b>, which is unusual \u2014 the cheapest box is also the cheapest day. Elsewhere they part company, because the cheapest box is very often the smallest box. ') +
-      '<b>What is held constant, and what is not.</b> Dose is matched to each label — Apoquel and '
-      + 'Apoquel Chewable 16 mg once daily, Zenrelia 15 mg, Numelvi 21.6 mg, Cytopoint 40 mg every '
-      + '<b>4 to 8 weeks</b>, which is why Cytopoint is an interval and not a bar. Channel is retail; '
-      + 'clinic-administered pricing is excluded. <b>Pack size is not held constant and cannot be</b> — '
-      + 'Apoquel sells in 10s, 20s and 100s while Zenrelia and Numelvi sell in 30s and 90s, so each '
-      + 'brand is shown at its own cheapest pack and the pack is named. A brand in a large pack is '
-      + 'therefore flattered against one sold singly. <b>The box view drops per-tablet listings</b> — '
-      + 'several UK, US and Australian pharmacies quote by the tablet, and admitting those as "boxes" '
-      + 'would collapse the shelf view into a second copy of the per-day view. One vial of Cytopoint '
-      + 'is kept, because a vial is what a buyer takes home. '
-      + '<b>The dashed rule is Apoquel</b>, the incumbent, and each bar carries its gap to it. Apoquel has been the default prescription since 2013, so what a rival costs against it is the number that decides a switch; Cytopoint\u2019s gap is a range for the same reason its bar is. '
-      + 'Apoquel additionally needs <b>twice-daily dosing for 14 days</b> at the start, which Zenrelia '
-      + 'and Numelvi do not; that adds about 47% to its first month and is not in these figures. '
-      + '<b>Cytopoint is ordered by the cheap end of its own interval</b>, so where it leads it leads '
-      + 'only at the 8-week extreme; at the 4-week extreme it costs double and overlaps or beats every '
-      + 'tablet from the other side. Which end applies is a clinical question this data cannot answer.';
+      // The comparison column has to be on the SAME basis as the ranking above it,
+      // or a box-ranked leader gets measured against a per-day cheapest and the
+      // gaps come out signed the wrong way.
+      const cheapest = shown[0] ? val(shown[0]) : null;
+      const signed = v => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(0)}%`;
+      document.getElementById('brandtable').innerHTML =
+        '<tr><th>Brand</th><th>Dose used</th><th>Cheapest venue</th><th>Pack</th>'
+        + `<th>${SHELF ? 'Price on the box' : YEAR ? 'A year of treatment' : 'Cost per day'}</th>`
+        + '<th>vs cheapest</th></tr>'
+        + brandNow.slice().sort((a,b)=>(a.missing?1:0)-(b.missing?1:0)
+                                     || ((val(a) ?? Infinity) - (val(b) ?? Infinity))).map(b => {
+          if(b.missing || val(b) == null) return `<tr><td>${esc(products[b.pid].name)}</td>
+            <td colspan="5" style="color:var(--ink3);text-align:left">not tracked ${all?'anywhere':'in this market'} at the weight-matched ${b.dose.mg} mg dose</td></tr>`;
+          const gap = v => (v == null || !cheapest) ? null : (v/cheapest - 1)*100;
+          // An interval ranked by its low end alone would claim a win it only has
+          // at one end of its own dosing window, so both ends are shown. Inside an
+          // interval the cheapest end prints as +0%, not as a dash, or the row
+          // reads "- to +100%". A box price has no such interval: the dosing
+          // window does not change what the box costs.
+          const rel = valHi(b)
+            ? `${signed(gap(val(b)))} to ${signed(gap(valHi(b)))}`
+            : (gap(val(b)) == null ? '—' : val(b) === cheapest ? '—' : signed(gap(val(b))));
+          const src = srcOf(b);
+          return `<tr>
+            <td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PCOLOR[b.pid]};margin-right:7px"></span>${esc(products[b.pid].name)}</td>
+            <td>${b.dose.mg} mg ${FORM[b.dose.form]}${b.dose.unitsPerDayMax?' q4–8wk':'/day'}</td>
+            <td>${all?`<span class="cc">${src.country}</span>`:''}${esc(venues[src.venue].name)}</td>
+            <td>${src.n}</td>
+            <td>${valHi(b) ? `${fmtDay(val(b))}–${fmtDay(valHi(b))}` : fmtDay(val(b))}</td>
+            <td>${rel}</td></tr>`;
+        }).join('');
+
+      document.getElementById('brandnotes').innerHTML =
+        (flipped
+          ? `<b>The shelf and the year disagree, and they disagree in every market tracked here.</b> The cheapest box is <b>${esc(products[orderShelf[0]].name)}</b>; the cheapest year is <b>${esc(products[orderYear[0]].name)}</b>. That is not a rounding difference \u2014 the cheapest box is very often the smallest box, so a shelf that looks affordable can be the dearest way to treat a dog for a year. The buttons above swap between the comparison a buyer actually makes and the one that decides what they spend. `
+          : '<b>On this market the shelf and the year agree</b>, which is unusual \u2014 the cheapest box is also the cheapest year. Elsewhere they part company, because the cheapest box is very often the smallest box. ') +
+        '<b>Why there are three views, and why they can all differ.</b> The box view is what a buyer '
+        + 'sees and is <b>not</b> like for like: those boxes last anywhere from 10 days to 30. The year '
+        + 'view fixes exactly that \u2014 same 365 days for every brand, still bought as real boxes \u2014 '
+        + 'and it is the like-for-like answer. The day view asks a third thing: the cheapest way to buy '
+        + 'a single day <b>from any listing at all</b>, including shops that sell one tablet at a time. '
+        + 'So year and day can rank differently, and here they do \u2014 a shop quoting by the tablet can '
+        + 'beat every box per day while selling nothing a buyer would call a box. If you want one number '
+        + 'for which brand is cheaper, it is the year. '
+        + '<b>What is held constant, and what is not.</b> Dose is matched to each label — Apoquel and '
+        + 'Apoquel Chewable 16 mg once daily, Zenrelia 15 mg, Numelvi 21.6 mg. Channel is retail; '
+        + 'clinic-administered pricing is excluded. <b>Pack size is not held constant and cannot be</b> — '
+        + 'Apoquel sells in 10s, 20s and 100s while Zenrelia and Numelvi sell in 30s and 90s, so each '
+        + 'brand is shown at its own cheapest pack and the pack is named. In the box view a brand sold '
+        + 'in large packs is therefore flattered against one sold in small; the year view is there '
+        + 'precisely because that flattery is not a price difference. '
+        + '<b>Both box-based views drop per-tablet listings</b> — several UK, US and Australian '
+        + 'pharmacies quote by the tablet, and admitting those as "boxes" would collapse the shelf view '
+        + 'into a second copy of the per-day view. '
+        + '<b>Boxes per year are left fractional.</b> Rounding up to whole packs would bake pack size '
+        + 'back into the very comparison this view strips it out of. Real buyers cannot buy 36.5 boxes, '
+        + 'so a real year costs slightly more than shown, and more so for brands sold in large packs. '
+        + '<b>The dashed rule is Apoquel</b>, the incumbent, and each bar carries its gap to it. Apoquel '
+        + 'has been the default prescription since 2013, so what a rival costs against it is the number '
+        + 'that decides a switch. '
+        + 'Apoquel additionally needs <b>twice-daily dosing for 14 days</b> at the start, which Zenrelia '
+        + 'and Numelvi do not; that adds about 47% to its first month and is not in these figures. '
+        + '<b>Cytopoint is excluded from all three views.</b> It is an injectable dosed every 4 to 8 '
+        + 'weeks, so it has no shelf price comparable to a pack of tablets and no single cost per day — '
+        + 'only an interval whose width is a clinical question, not a pricing one. Putting it in a bar '
+        + 'chart beside daily tablets implied a like-for-like that does not exist. The appendix asks the '
+        + 'question that can be answered: how long a vial must last to beat a tablet.';
+    })();
+
     // ---- what Cytopoint has to do to be worth it ------------------------
     // Break-even = vial price / tablet cost per day = the number of days one
     // vial must cover to match that shelf. A ratio of two prices from the SAME
@@ -1063,7 +1139,8 @@ Promise.all([
       + '<li><b>Zenrelia undercuts Apoquel by about a third</b> at the same till, and Numelvi by about '
         + 'a tenth. The ordering never inverts in any shop stocking both.</li>'
       + '<li><b>The cheapest box is usually the smallest box.</b> Apoquel is at once the cheapest thing '
-        + 'on a Dutch shelf and the dearest way to treat a dog for a year.</li>'
+        + 'on the shelf and the dearest way to treat a dog for a year — about 94% more than Zenrelia '
+        + 'once both are priced over the same 365 days.</li>'
       + '<li><b>Which shop you track matters more than which country.</b> Three US pharmacies span '
         + '+2.0% to +11.1% a year on the same molecules.</li>'
       + '<li><b>Cytopoint cannot be ranked on price</b> \u2014 a vial must last 42 days to match a '
