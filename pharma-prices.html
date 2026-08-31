@@ -143,11 +143,11 @@
 // Fixed order, never cycled by rank - see COLOROF below, which pins a series to
 // a slot for the life of the page so filtering cannot repaint it.
 const RAWCOL = ['#3987E5','#D95926','#199E70','#C98500','#D55181','#008300','#9085E9','#E66767'];
-const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands', CZ:'Czechia', HU:'Hungary', IT:'Italy', ES:'Spain', FR:'France', PL:'Poland', RO:'Romania', SK:'Slovakia', BG:'Bulgaria', BE:'Belgium', PT:'Portugal'};
-const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł', RON:'lei'};
+const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands', CZ:'Czechia', HU:'Hungary', IT:'Italy', ES:'Spain', FR:'France', PL:'Poland', RO:'Romania', SK:'Slovakia', BG:'Bulgaria', BE:'Belgium', PT:'Portugal', SE:'Sweden', FI:'Finland', NO:'Norway', DK:'Denmark', AT:'Austria', CH:'Switzerland', IE:'Ireland', GR:'Greece', HR:'Croatia', SI:'Slovenia', MT:'Malta', CY:'Cyprus', LT:'Lithuania', LV:'Latvia', EE:'Estonia', LU:'Luxembourg'};
+const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł', RON:'lei', SEK:'kr'};
 const FORM = {tab:'tablet', chew:'chewable', inj:'vial'};
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; return (cur==='HUF'||cur==='CZK'||cur==='PLN'||cur==='RON' ? v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})+' '+SYM[cur] : SYM[cur]+v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})); };
+const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; return (cur==='HUF'||cur==='CZK'||cur==='PLN'||cur==='RON'||cur==='SEK' ? v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})+' '+SYM[cur] : SYM[cur]+v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})); };
 
 // A row's own price history as small bars, oldest to newest.
 // Bars grow from ZERO, never from the series minimum: a bar's length IS the
@@ -334,6 +334,43 @@ function lineChart(series, {height=210, yFmt=v=>v.toFixed(2)}={}){
 // Who owns what. Zoetis held this category alone - Apoquel from 2013, Cytopoint
 // from 2017 - until Elanco's Zenrelia and Merck's Numelvi arrived. Three of the
 // five SKUs on this page are one company's.
+// Why a market has no price here. Almost all of it reduces to one rule:
+// Regulation (EU) 2019/6 Art. 104(1) lets only NON-prescription veterinary
+// medicines be sold at a distance to the public. A Member State may opt in and
+// permit prescription distance sale - the Netherlands did - and whether a
+// country's prices are visible online turns almost entirely on that choice.
+// Researched country by country; "gate" separates a fact about the MARKET from
+// a failure of OUR scraper, which are not the same kind of absence at all.
+const NOPRICE = {
+  AT: {gate:'law', why:'Distance selling of prescription veterinary medicines is prohibited. §59(8) AMG bans mail order of Rx medicines outright, and the TAMG Fernabsatz-Verordnung in force 1 March 2025 bars Rx veterinary supply specifically. Dispensing runs through the vet\u2019s Hausapotheke.'},
+  CH: {gate:'law', why:'Stricter still: Art. 27 HMG prohibits mail order of medicines in principle, and internet trade in veterinary medicines is barred for every category except E (freely available). Swiss vets dispense directly under Selbstdispensation.'},
+  IE: {gate:'law', why:'Sellers must be on the Department of Agriculture\u2019s Internet Supply List, which admits only LR, CAM and POM(e) categories. These four products are POM, outside all of them. One Dublin shop lists Apoquel with no price and clinic-gated access.'},
+  GR: {gate:'law', why:'Distance selling covers non-prescription only (KYA 410185/2024); Art. 5 of Law 2538/1997 confines retail sale to licensed premises against a prescription. Greek shops list the products and suppress the price openly \u2014 one renders it as 0,00\u20ac with "contact us", another as "call the shop for the price".'},
+  HR: {gate:'law', why:'Only firms in the veterinary-pharmacy register may sell at a distance, and distance sale of antibiotics and other prescription medicines is prohibited. No Croatian shop listing these was found at all; Croatian-language searches surface Serbian shops, which are out of scope.'},
+  SI: {gate:'law', why:'JAZMP: online dispensing is possible only for products not subject to prescription. Slovenian pharmacy veterinary ranges are antiparasitics and dewormers. No .si listing for these products was found.'},
+  MT: {gate:'trade', why:'Legal but gated by trade. Agrimed lists the full range \u2014 Apoquel at three strengths, Cytopoint at four \u2014 and every page reads "Login/Register to see the price"; the site supplies licensed vets and pharmacies only, and dispenses at its own pharmacy against a prescription. Delivery charges are public, so the price hiding is deliberate policy rather than a broken page.'},
+  LT: {gate:'law', why:'The state food and veterinary service authorised distance selling of NON-prescription veterinary medicines only (Order B1-17, 11 January 2023). The shops carrying per-strength Apoquel pages are wholesalers. Lithuania does allow online prescription sale for HUMAN medicines \u2014 a different regime that does not extend to animals.'},
+  LV: {gate:'law', why:'The state medicines agency is explicit that only non-prescription medicines may be distributed online. The one shop with per-strength pages is a veterinary wholesaler and requires a login. Latvia\u2019s own price comparator returns zero offers nationally.'},
+  PL: {tried:3, gate:'law', why:'Poland implemented the non-prescription half of Art. 104 only, from 28 January 2022, and the chief veterinary inspectorate has issued an enforcement notice against marketplace listings of prescription products. Prices ARE published \u2014 clinic-attached web shops list prescription products in open z\u0142oty marked "personal collection only" \u2014 so what Poland lacks is online dispensing, not price transparency.'},
+  DK: {gate:'price', why:'Nothing to compete on. Prescription prices are identical at every Danish pharmacy, discounts are illegal, and the figure is reset centrally every fortnight and published by the medicines agency. No pharmacy merchandises a prescription veterinary product with a price; the largest online pharmacy calculates it after you upload the prescription and emails a payment link.'},
+  EE: {gate:'trade', why:'The one country here where the absence is commercial, not statutory. Estonia permits online prescription sale against an e-prescription, yet the largest veterinary supplier shows prices only to logged-in vets. A consumer-facing Estonian seller may exist that this search did not surface.'},
+  NO: {gate:'render', why:'Open market, veterinary medicines outside maximum-price regulation, and per-pharmacy prices are public enough that national comparison sites publish them. But the chains render price client-side and gate purchase behind BankID, so nothing reaches a search index. This is the one market where the price is probably obtainable and our method, not the market, is the obstacle.'},
+  CY: {gate:'unknown', why:'Not established. The 2006 veterinary medicines law was replaced in 2024 and the distance-selling article could not be read from here. No Cypriot domain listing these products surfaced, and no register of permitted distance sellers was found \u2014 suggestive, not proof. This one is honestly open.'},
+  LU: {gate:'unknown', why:'Unresolved and cheap to resolve. Luxembourg permits online sale of non-prescription medicines only, yet one licensed Luxembourg pharmacy carries an Apoquel product page. Whether it shows a price would decide the market, and a single page fetch would settle it.'},
+  FI: {tried:3, gate:'ours', why:'Finland publishes. Pharmacy product pages carry Apoquel per strength with euro prices, and Fimea\u2019s structure separates price visibility from purchasability \u2014 the price is shown, but a pharmacist adds the item to the basket by chat or phone because veterinary prescriptions are not in the online e-prescription flow. Our runner gets 404 from every one of those pages, on URLs search returns correctly, so this is a fetch problem at our end and not a Finnish one.'},
+  BE: {tried:3, gate:'ours', why:'Our failure, not the market\u2019s. Every indexed product URL at three Belgian pharmacies returns 404 because the shop software rotates product IDs; a link that resolves today is dead within weeks. Nothing here says Belgian retail hides prices.'},
+  PT: {tried:2, gate:'ours', why:'Our failure, not the market\u2019s. The pharmacy we found blocks datacenter addresses and the comparator returned minima its own product pages did not support. A residential connection might well succeed where ours did not.'},
+};
+
+const GATELABEL = {
+  law:     'distance sale of Rx vet medicines prohibited',
+  trade:   'listed, but price shown only to logged-in trade',
+  price:   'one national price, nothing to merchandise',
+  render:  'public, but never reaches a search index',
+  unknown: 'not established',
+  ours:    'our scraper, not the market',
+};
+
 const MAKER = {
   'apoquel':          {firm:'Zoetis', since:2013},
   'apoquel-chewable': {firm:'Zoetis', since:2013},
@@ -958,24 +995,14 @@ Promise.all([
       if(days > 1)                      return {g:'thin, one shop',           t:'var(--up)'};
       return {g:'a trace',                                                    t:'var(--up)'};
     };
-    // Markets we TRIED and got nothing from. Built from observations alone this
-    // table listed only the places that worked, so the failures vanished and the
-    // coverage read better than it is. A market that publishes no price is a
-    // finding about that market, not an empty row to leave out.
-    const EMPTY = {
-      PL: 'Prescription dispensing runs through the vet channel. Of the storefronts tracked, one refuses '
-        + 'cloud runners outright and the other serves a Spanish-language catalogue in euros, which would '
-        + 'attach Spanish prices to Poland; the price comparator quoted minima its own pages contradicted '
-        + 'and was retired.',
-      BE: 'Every indexed product URL at all three pharmacies returns 404 — the shop software rotates '
-        + 'product IDs, so a link that resolves today is dead within weeks.',
-      PT: 'Both candidates were dropped after live tests: the pharmacy blocks datacenter addresses, and '
-        + 'the comparator returned minima its own product pages did not support.',
-    };
-    const tried = Object.keys(EMPTY)
-      .filter(ccode => Object.values(venues).some(v => v.country === ccode) && !wk[ccode])
-      .map(ccode => ({cc: ccode, why: EMPTY[ccode],
-                      venues: Object.values(venues).filter(v => v.country === ccode).length}));
+    // Every market searched that yields nothing, whether or not we ever
+    // configured a venue for it. Ordered so the two kinds of absence do not get
+    // mixed: what the market withholds first, what our scraper missed last.
+    const ORDER = {law:0, price:1, trade:2, render:3, unknown:4, ours:5};
+    const tried = Object.keys(NOPRICE)
+      .filter(ccode => !wk[ccode])
+      .map(ccode => ({cc: ccode, ...NOPRICE[ccode]}))
+      .sort((a, b) => ORDER[a.gate] - ORDER[b.gate] || a.cc.localeCompare(b.cc));
 
     const wrows = Object.entries(wk).map(([ccode, w]) => {
       w.cc = ccode;
@@ -992,9 +1019,13 @@ Promise.all([
       + `here. Within that ceiling the markets differ enormously, and this is the difference: `
       + `<b>${oneShop} of ${wrows.length}</b> rest on a single shop, and only <b>${canCheck}</b> have two `
       + 'shops quoting the same SKU on the same day, which is the only internal check available. '
-      + (tried.length ? `<b>${tried.length} further markets are tracked and yield nothing at all</b>, and `
-        + 'they are listed at the foot of the table rather than left out — a coverage table that shows '
-        + 'only the markets that worked is not a coverage table.' : '');
+      + (tried.length ? `<b>A further ${tried.length} markets were searched and yield nothing</b>, and they `
+        + 'are listed at the foot of the table rather than left out — a coverage table that shows only '
+        + 'the markets that worked is not a coverage table. Almost all of them reduce to one rule: '
+        + '<b>Regulation (EU) 2019/6 Article 104</b> lets only <i>non-prescription</i> veterinary '
+        + 'medicines be sold at a distance to the public, and a Member State has to opt in to allow '
+        + 'prescription distance sale. Whether a country\u2019s prices are visible online turns almost '
+        + 'entirely on that one choice.' : '');
 
     document.getElementById('weighttable').innerHTML =
       '<tr><th>Market</th><th>Shops today</th><th>Products</th><th>Obs</th><th>Days</th>'
@@ -1007,12 +1038,12 @@ Promise.all([
                    : '<span style="color:var(--ink3)">not possible</span>'}</td>
         <td style="text-align:left;color:${r.grade.t}">${esc(r.grade.g)}</td></tr>`).join('')
       + (tried.length
-         ? '<tr class="group"><td colspan="8">Tracked, and publishing no price we can record</td></tr>'
+         ? '<tr class="group"><td colspan="8">Searched, and publishing no price we can record</td></tr>'
            + tried.map(t => `<tr>
              <td><span class="cc">${t.cc}</span>${esc(CCNAME[t.cc]||t.cc)}</td>
              <td>0</td><td>0 of 5</td><td>0</td><td>0</td>
-             <td><span style="color:var(--ink3)">—</span></td>
-             <td><span style="color:var(--ink3)">${t.venues} tried</span></td>
+             <td><span style="color:var(--ink3)">${t.tried ? t.tried + ' shops tried' : 'searched only'}</span></td>
+             <td style="color:${t.gate==='ours'?'var(--up)':t.gate==='unknown'?'var(--c4)':'var(--ink2)'}">${esc(GATELABEL[t.gate])}</td>
              <td style="text-align:left;color:var(--ink2)">${esc(t.why)}</td></tr>`).join('')
          : '');
 
@@ -1032,10 +1063,21 @@ Promise.all([
       + 'history and five products from <i>one</i> pharmacy, so the Dutch inflation figure is that shop\u2019s '
       + 'pricing policy as much as the country\u2019s. And several markets are a one-day, one-shop, '
       + 'one-product reading — real, published, verifiable, and not a market average by any stretch. '
-      + '<b>The empty rows are the honest part.</b> Poland is not absent because nobody looked — it is '
-      + 'absent because Polish retail does not publish these prices, which is a fact about how the drug '
-      + 'is sold there rather than a gap to be closed by trying harder. Belgium and Portugal are absent '
-      + 'for their own reasons, spelled out beside them. Read all three as findings, not as a to-do list.';
+      + '<b>The empty rows are the honest part, and they are not all the same kind of empty.</b> Most are '
+      + 'a legal fact: a country that never opted in to prescription distance selling has no shop that '
+      + 'could lawfully publish a price, so no amount of scraping would find one. Denmark is different '
+      + 'again — selling online is legal there, but every pharmacy charges the same state-set figure, so '
+      + 'nobody merchandises it. Only Belgium and Portugal are <b>our</b> failure rather than the '
+      + 'market\u2019s \u2014 as is Finland, which publishes euro prices on pharmacy pages that answer '
+      + 'our runner with a 404. Cyprus and Luxembourg are simply unresolved. '
+      + '<b>Sweden is new here, and it is the exception that shows the rule.</b> It deregulated its '
+      + 'pharmacies in 2009 and left veterinary medicines outside the reimbursement scheme, so pricing '
+      + 'is free and shops compete on it in the open. Even there only one of three candidate pharmacies '
+      + 'answers an automated request: the largest 403s datacenter addresses outright. '
+      + '<b>One correction worth naming.</b> This page previously said Polish retail does not publish '
+      + 'these prices. It does — clinic-attached shops list prescription products in open z\u0142oty, marked '
+      + 'personal collection only. What Poland forbids is online <i>dispensing</i>. Publication and '
+      + 'dispensing are separate things, and conflating them was wrong.';
     // ---------------------------------------------------------------------
 
     // tiles: cheapest latest unit price per product in this country

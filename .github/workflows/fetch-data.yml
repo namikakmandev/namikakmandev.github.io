@@ -26,17 +26,11 @@ jobs:
       - name: Fetch
         env:
           MODE: ${{ inputs.mode }}
-        run: |
-          pip install requests
-          python scripts/fetch_pharma_prices.py
+        run: python scripts/fetch.py ${{ inputs.only }}
       - name: Commit
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
           git add data/
-          git diff --cached --quiet || git commit -m "data: nordic + baltic venue validation [skip ci]"
-          for i in 1 2 3 4 5; do
-            git push && break
-            git pull --rebase origin "${GITHUB_REF_NAME}" || true
-            sleep $((i * 3))
-          done
+          git diff --cached --quiet || git commit -m "data: refresh via scripts/fetch.py [skip ci]"
+          git push
