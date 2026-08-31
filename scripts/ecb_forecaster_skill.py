@@ -297,7 +297,34 @@ def main():
     good = sorted((c for c in cov.values() if c >= BAND), reverse=True)
     print(f"  forecasters whose 80% ranges actually held 80% of the time: "
           f"{len(good)} of {len(cov)}")
-    print("  Skill in being honest about uncertainty is real, persistent, and")
+
+    # Whoever clears the bar deserves the same scrutiny as everyone else:
+    # a short record, a wide range, or an absence from the hard years all
+    # make the achievement cheaper than it looks.
+    dead_set = set(dead)
+    cleared = []
+    for w in sorted(cov, key=lambda k: -cov[k]):
+        if cov[w] < BAND:
+            continue
+        yrs = sorted(t for t, *_ in elig[w])
+        faced = sorted(dead_set & set(yrs))
+        narrower = sum(1 for o in width if width[o] < width[w])
+        cleared.append({"who": w, "coverage": round(cov[w], 4),
+                        "years": len(yrs), "first": yrs[0], "last": yrs[-1],
+                        "width": round(width[w], 3),
+                        "width_rank_narrowest": narrower + 1,
+                        "zero_years_faced": faced,
+                        "zero_years_missed": sorted(dead_set - set(yrs))})
+        print(f"\n  #{w}: inside {round(cov[w] * len(yrs))} of {len(yrs)} years "
+              f"({cov[w] * 100:.0f}%), {yrs[0]}-{yrs[-1]}")
+        print(f"    median range width {width[w]:.2f}pp against a panel median "
+              f"of {statistics.median(xs):.2f}pp")
+        print(f"    -> the {narrower + 1}th narrowest of {len(width)}; "
+              f"{'one of the widest on the panel' if narrower + 1 > len(width) * .75 else 'mid-pack on width'}")
+        print(f"    of the {len(dead_set)} years nobody was inside, it faced "
+              f"{faced or 'none'} and was off the panel for "
+              f"{sorted(dead_set - set(yrs)) or 'none'}")
+    print("\n  Skill in being honest about uncertainty is real, persistent, and")
     print("  almost universally insufficient.")
 
     # ------------------------------------------------------------------ export
@@ -333,6 +360,7 @@ def main():
                        "p": round(p_split, 4)},
         "luck_band": [round(luck[0], 4), round(luck[1], 4)],
         "above_bar": len(good),
+        "cleared_the_bar": cleared,
         "width": {"r_with_skill": round(r_w, 4),
                   "r2": round(r_w * r_w, 4),
                   "median_width_pp": round(statistics.median(xs), 3),
