@@ -27,10 +27,25 @@ on any series with four or more points and compares each point to the series
 MEDIAN, which two bad points cannot drag. That test is off for short series,
 where the median is not yet a stable idea of the price.
 
-Neither test can see an artifact that lasts long enough to become the median,
-and neither is a substitute for a real price falling by more than the factor -
-which is why the factor is 2.5 and not something tighter. Run with --purge to
-remove what it finds; without it the script only reports, on purpose.
+Both of those are TIME-SERIES tests, so both are blind to a bad reading that
+arrives with no history behind it. Diermedicatie's Numelvi listings showed the
+gap: on a single day the same SKU appeared at EUR 44.99 for 30 tablets and
+EUR 124.14 for 3, a per-tablet price 27x higher for the smaller pack. Nothing
+in the series could see it, because there was no series.
+
+So a third test is cross-sectional: on ONE day, at ONE venue, for ONE SKU, the
+pack sizes must agree on what a tablet costs. Real pack pricing runs the other
+way and runs small - buying more is 5-20% cheaper per unit, never 2.5x dearer -
+so a small pack at a large multiple of the big pack's unit price is a
+mis-parsed pack COUNT, not a price. ("3" where the page said "3 x 30" is the
+usual shape.) The dearer row is the one dropped: the pack count is what was
+misread, and the pack count is what the unit price divides by.
+
+Neither of the series tests can see an artifact that lasts long enough to
+become the median, and none of the three is a substitute for a real price
+falling by more than the factor - which is why the factor is 2.5 and not
+something tighter. Run with --purge to remove what it finds; without it the
+script only reports, on purpose.
 """
 
 import json
@@ -83,6 +98,30 @@ def find(observations):
                     "kind": "dip" if low else "spike", "idx": idx,
                 })
                 seen.add(idx)
+
+    # ---- cross-sectional: pack sizes must agree on the price of a tablet ----
+    # Grouped per DAY so a genuine repricing between days is never compared
+    # against a stale row from the other pack.
+    packs = defaultdict(list)
+    for i, o in enumerate(observations):
+        if o.get("price", 0) > 0 and o.get("unit"):
+            packs[(o["d"], o["venue"], o["sku"])].append((o["unit"], o.get("n"), i))
+
+    for (day, venue, sku), rows in packs.items():
+        if len(rows) < 2:
+            continue
+        base = min(r[0] for r in rows)
+        if base <= 0:
+            continue
+        for unit, n, idx in rows:
+            if idx in seen or unit < base * FACTOR:
+                continue
+            flagged.append({
+                "venue": venue, "sku": sku, "n": n, "d": day, "unit": unit,
+                "ref": f"pack unit {base:.3f}", "test": "packs", "kind": "spike",
+                "idx": idx,
+            })
+            seen.add(idx)
     return flagged
 
 
