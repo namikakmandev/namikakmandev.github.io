@@ -173,6 +173,13 @@ def fetch(url):
 JSON_EXTRAS = [
     {"venue_id": "petsdrugmart", "what": "shopify variants",
      "url": "https://petsdrugmart.ca/products/apoquel-tablet.js"},
+    # The tracker page was built to fetch USD rates from Frankfurter at view
+    # time; the artifact sandbox blocks that fetch, so cross-currency panels
+    # fall back to a committed rate file. This snapshot is that file's feed:
+    # the exact currency list the page asks for, from the same source.
+    {"venue_id": "_fx", "what": "frankfurter USD rates",
+     "url": ("https://api.frankfurter.app/latest?from=USD"
+             "&to=AUD,PLN,CZK,HUF,RON,SEK,BGN,DKK,NOK,CHF,JPY,CNY,BRL,CAD")},
 ]
 
 
