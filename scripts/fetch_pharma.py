@@ -34,6 +34,10 @@ NME_CLASSES = {"7", "8"}
 DRUGSFDA = "https://www.fda.gov/media/89850/download"
 EUROSTAT = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
             "rd_e_berdindr2?format=JSON&lang=EN&nace_r2=C21")
+# Money must be deflated before it is correlated with anything. Round 2 read
+# this id's title off FRED rather than trusting my label for it: "Gross domestic
+# product (implicit price deflator)", annual.
+DEFLATOR = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=A191RD3A086NBEA"
 
 
 def get(url, cap=CAP, timeout=240):
@@ -112,6 +116,28 @@ def berd_pharma():
                            "pharmaceutical products and preparations")}
 
 
+def us_deflator():
+    """US GDP implicit price deflator, annual, so the ratio can be put in
+    constant prices. Deflating pushes the ratio UP in later years, so the
+    current-price result is the conservative one — but the rule is deflate
+    first, and both versions belong on the page."""
+    rows = get(DEFLATOR, cap=1024 * 1024, timeout=90).decode().splitlines()
+    out = {}
+    for line in rows[1:]:
+        parts = line.split(",")
+        if len(parts) < 2:
+            continue
+        y, v = parts[0][:4], parts[1].strip()
+        try:
+            out[y] = float(v)
+        except ValueError:
+            continue
+    return {"by_year": out, "n": len(out), "source": DEFLATOR,
+            "series_id": "A191RD3A086NBEA",
+            "title": "Gross domestic product (implicit price deflator), annual",
+            "base": "index, 2017 = 100 as published by FRED"}
+
+
 def nsf_table_shape():
     """Is a US pharma R&D series extractable from NSF's tables with stdlib?
 
@@ -162,6 +188,11 @@ def main():
           f"-{b['time_available'][-1]}")
     print(f"  units: {b['unit_available']}")
     print(f"  geos ({len(b['geo_available'])}): {b['geo_available']}")
+
+    print("US GDP deflator")
+    doc["deflator"] = us_deflator()
+    dfl = doc["deflator"]["by_year"]
+    print(f"  {len(dfl)} years, {min(dfl)}-{max(dfl)}")
 
     print("NSF table shape")
     doc["nsf_probe"] = nsf_table_shape()
