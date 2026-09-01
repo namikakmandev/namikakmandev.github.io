@@ -222,6 +222,44 @@ def main():
         venues.append(out)
         time.sleep(2)   # one shop at a time, politely
 
+    # Petlove routes. The plain fetch gets 403 from a datacenter IP, which
+    # says nothing about what a real visitor sees. Two other doors are tried:
+    # a browser-complete header set (some walls gate on missing client hints),
+    # and the newest Wayback capture - the archive's crawler DID get in, and
+    # an archived page is a page read, good enough to write a parser against.
+    petlove_url = "https://www.petlove.com.br/apoquel-dermatologico-zoetis-para-caes/p"
+    print("petlove: browser-header retry:")
+    full = dict(UA)
+    full.update({
+        "Sec-Ch-Ua": '"Chromium";v="126", "Not.A/Brand";v="8"',
+        "Sec-Ch-Ua-Mobile": "?0", "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "cross-site", "Referer": "https://www.google.com/",
+        "Upgrade-Insecure-Requests": "1",
+    })
+    saved_ua = dict(UA); UA.clear(); UA.update(full)
+    petlove_live = fetch(petlove_url)
+    UA.clear(); UA.update(saved_ua)
+
+    print("petlove: newest wayback capture:")
+    petlove_wb = {"route": "wayback"}
+    try:
+        cdx = ("https://web.archive.org/cdx/search/cdx?url="
+               + urllib.parse.quote(petlove_url, safe="")
+               + "&output=json&filter=statuscode:200&collapse=timestamp:6&limit=30")
+        req = urllib.request.Request(cdx, headers={"User-Agent": saved_ua["User-Agent"]})
+        with urllib.request.urlopen(req, timeout=90) as r:
+            rows = json.loads(r.read(1_000_000))
+        ts_all = [row[rows[0].index("timestamp")] for row in rows[1:]] if rows else []
+        petlove_wb["captures"] = ts_all
+        if ts_all:
+            ts = ts_all[-1]
+            petlove_wb["newest"] = ts
+            petlove_wb["fetch"] = fetch(f"https://web.archive.org/web/{ts}id_/{petlove_url}")
+    except Exception as ex:
+        petlove_wb["error"] = f"{type(ex).__name__}: {ex}"
+        print("  wayback route failed:", ex)
+
     extras = []
     for x in JSON_EXTRAS:
         print(f"extra: {x['venue_id']} {x['what']}:")
@@ -239,6 +277,8 @@ def main():
                  "size (n) included, which snippets routinely omit."),
         "venues": venues,
         "extras": extras,
+        "petlove_routes": {"live_browser_headers": petlove_live,
+                           "wayback": petlove_wb},
     }
     with open(OUT, "w") as fh:
         json.dump(doc, fh, indent=1, ensure_ascii=False)
