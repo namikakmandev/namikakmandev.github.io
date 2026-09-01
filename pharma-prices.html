@@ -158,6 +158,16 @@
   /* Queued markets. Dashed, because a dashed border is the page's existing way
      of saying "not a measurement" - the same reason the benchmark rule is
      dashed - and nothing here has been measured. */
+  /* the card's three states, counted before the grid rather than after it */
+  #gridcounts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}
+  .gcount{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);
+          border:1px solid var(--line);border-radius:8px;padding:4px 10px}
+  .gcount b{color:var(--ink);font-size:13px}
+  .gc-on{border-color:rgba(43,182,115,.4)}
+  .gc-q{border-style:dashed}
+  .gcflags{display:inline-flex;gap:3px;margin-left:2px}
+  .gcflags .flag{width:15px;height:auto;border-radius:2px;opacity:.8;
+                 box-shadow:0 0 0 1px rgba(255,255,255,.2)}
   .gq{display:inline-flex;align-items:center;gap:5px;border:1px dashed var(--line);border-radius:8px;
       padding:3px 8px;margin:3px 5px 0 0;font-size:12px;cursor:help;color:var(--ink2)}
   .gq .flag{width:16px;height:auto;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.22);opacity:.75}
@@ -224,6 +234,7 @@
   <div class="card f-only">
     <div class="chart-title">Every market, side by side</div>
     <div class="chart-sub" id="gridsub"></div>
+    <div id="gridcounts"></div>
     <div class="btns" id="gridbtns" style="margin:10px 0 12px"></div>
     <div id="ctrygrid"></div>
     <div class="chart-sub" id="gridabsent" style="margin-top:14px"></div>
@@ -1631,6 +1642,18 @@ Promise.all([
           + 'above was added the same way: fetch the page first, read what it actually returns, then '
           + 'write a parser. Publishing from a guessed selector or a guessed pack size is how a wrong '
           + 'number reaches a chart. Hover for what was found and what is doubtful.</span>';
+      })();
+
+      (() => {
+        const qc = QUEUE.filter(q => !String(q.venue_id||'').startsWith('_') && !per[q.country]);
+        const qcc = [...new Set(qc.map(q => q.country))];
+        document.getElementById('gridcounts').innerHTML =
+          `<span class="gcount gc-on"><b>${nMarkets}</b> tracked</span>`
+          + (qcc.length
+             ? `<span class="gcount gc-q"><b>${qcc.length}</b> queued`
+               + `<span class="gcflags">${qcc.map(c => flagSVG(c)).join('')}</span></span>`
+             : '')
+          + `<span class="gcount gc-no"><b>${absent.length}</b> publish no price</span>`;
       })();
 
       document.getElementById('gridnotes').innerHTML =
