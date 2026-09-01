@@ -122,11 +122,22 @@ def parse_capture(t, ts, text):
         if not re.search(t["pack_proof"], text, re.I):
             return [], "pack proof missing in capture"
         p = round(float(price), 2)
-        return [{"d": day, "sku": t["sku"], "product": "apoquel", "form": "tab",
-                 "mg": t["mg"], "n": t["n"], "venue": t["venue"],
-                 "country": t["country"], "cur": t["cur"], "price": p,
-                 "unit": round(p / t["n"], 4), "method": "vtex-jsonld+wayback",
-                 "hist": True, "label": "20 comprimidos"}], None
+        o = {"d": day, "sku": t["sku"], "product": "apoquel", "form": "tab",
+             "mg": t["mg"], "n": t["n"], "venue": t["venue"],
+             "country": t["country"], "cur": t["cur"], "price": p,
+             "unit": round(p / t["n"], 4), "method": "vtex-jsonld+wayback",
+             "hist": True, "label": "20 comprimidos"}
+        # The capture's own compare-at price, where it carries one, with the
+        # same centavos normalisation the daily read uses. list > price on a
+        # given day is what makes a campaign a measurable episode rather than
+        # a guess about why the price moved.
+        lists = {round(float(x), 2)
+                 for x in re.findall(r'"[Ll]ist[Pp]rice"\s*:\s*([0-9]+(?:\.[0-9]+)?)', text)}
+        lists = {round(x / 100, 2) if x > 20 * p else x for x in lists}
+        lists = {x for x in lists if p < x < 5 * p}
+        if len(lists) == 1:
+            o["list"] = lists.pop()
+        return [o], None
     if t["adapter"] == "shopify-variants-js":
         try:
             j = json.loads(text)

@@ -20,11 +20,14 @@ jobs:
           python-version: "3.12"
       - name: Probe candidate retail venues (BR, CA, JP, CN)
         run: python scripts/probe_pricescraper_queue.py
+      - name: Backfill history with list prices (branch-only piggyback)
+        run: python scripts/backfill_pricescraper_history.py
+        continue-on-error: true
       - name: Commit the dump
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add data/_pricescraper-queue-probe.json
+          git add data/_pricescraper-queue-probe.json data/pricescraper-history.json
           git diff --cached --quiet || git commit -m "data: pricescraper queue probe [skip ci]"
           for i in 1 2 4 8; do
             git push origin HEAD && break

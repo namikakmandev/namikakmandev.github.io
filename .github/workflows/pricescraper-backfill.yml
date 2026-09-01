@@ -1,0 +1,33 @@
+name: Pricescraper history backfill
+
+# One-shot / occasional: rebuild data/pricescraper-history.json from Wayback
+# captures of the tracked product pages, including each capture's compare-at
+# (list) price where it carries one. Dispatch-only; the daily read handles
+# the ongoing series.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Backfill from the Wayback Machine
+        run: python scripts/backfill_pricescraper_history.py
+      - name: Commit the history
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add data/pricescraper-history.json
+          git diff --cached --quiet || git commit -m "data: pricescraper history backfill [skip ci]"
+          for i in 1 2 4 8; do
+            git push origin HEAD && break
+            sleep $i
+          done
