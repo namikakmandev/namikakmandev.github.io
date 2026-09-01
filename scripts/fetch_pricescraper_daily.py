@@ -117,9 +117,13 @@ def read_cobasi(today, basis):
                     # price, so the list is captured too: a fall in the shelf
                     # price and the start of a campaign look identical unless
                     # both series exist. VTEX embeds it as ListPrice.
+                    # VTEX writes ListPrice in reais in one blob and in
+                    # centavos in another; a centavos value is unmistakable
+                    # (100x the offer price), so normalise before filtering.
                     lists = {round(float(x), 2)
                              for x in re.findall(r'"[Ll]ist[Pp]rice"\s*:\s*([0-9]+(?:\.[0-9]+)?)', text)}
-                    lists = {x for x in lists if x > p}
+                    lists = {round(x / 100, 2) if x > 20 * p else x for x in lists}
+                    lists = {x for x in lists if p < x < 5 * p}
                     if len(lists) == 1:
                         o["list"] = lists.pop()
                     elif lists:
