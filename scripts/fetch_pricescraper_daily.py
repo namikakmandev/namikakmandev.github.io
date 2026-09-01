@@ -83,7 +83,7 @@ def product_jsonld(text):
     return None
 
 
-def read_cobasi(today):
+def read_cobasi(today, basis):
     obs, fails = [], []
     for s in COBASI_SKUS:
         why = None
@@ -107,12 +107,36 @@ def read_cobasi(today):
                            "pack size may have changed, refusing to publish")
                 else:
                     p = round(float(price), 2)
-                    obs.append({
+                    o = {
                         "d": today, "sku": s["sku"], "product": "apoquel",
                         "form": "tab", "mg": s["mg"], "n": s["n"],
                         "venue": "cobasi", "country": "BR", "cur": "BRL",
                         "price": p, "unit": round(p / s["n"], 4),
-                        "method": "vtex-jsonld", "label": "20 comprimidos"})
+                        "method": "vtex-jsonld", "label": "20 comprimidos"}
+                    # The JSON-LD price sits ~30% under a crossed-out list
+                    # price, so the list is captured too: a fall in the shelf
+                    # price and the start of a campaign look identical unless
+                    # both series exist. VTEX embeds it as ListPrice.
+                    # VTEX writes ListPrice in reais in one blob and in
+                    # centavos in another; a centavos value is unmistakable
+                    # (100x the offer price), so normalise before filtering.
+                    lists = {round(float(x), 2)
+                             for x in re.findall(r'"[Ll]ist[Pp]rice"\s*:\s*([0-9]+(?:\.[0-9]+)?)', text)}
+                    lists = {round(x / 100, 2) if x > 20 * p else x for x in lists}
+                    lists = {x for x in lists if p < x < 5 * p}
+                    if len(lists) == 1:
+                        o["list"] = lists.pop()
+                    elif lists:
+                        basis.append({"venue": "cobasi", "sku": s["sku"],
+                                      "ambiguous_list_prices": sorted(lists)})
+                    # Is the discounted price gated behind a subscription?
+                    # Record the page's own words around every mention.
+                    for kw in ("assinante", "assinatura"):
+                        for mm in list(re.finditer(kw, text, re.I))[:4]:
+                            basis.append({"venue": "cobasi", "sku": s["sku"], "kw": kw,
+                                          "context": re.sub(r"\s+", " ",
+                                              text[max(0, mm.start()-120):mm.end()+160])})
+                    obs.append(o)
         except Exception as ex:
             why = f"{type(ex).__name__}: {ex}"
         if why:
@@ -122,7 +146,7 @@ def read_cobasi(today):
     return obs, fails
 
 
-def read_petsdrugmart(today):
+def read_petsdrugmart(today, basis):
     obs, fails = [], []
     try:
         status, text = get(PDM_URL)
@@ -158,6 +182,19 @@ def read_petsdrugmart(today):
                        (str(v.get("title", "")).strip() for v in variants)):
                 fails.append({"venue": "petsdrugmart", "sku": PDM_MG[title][0],
                               "why": f"variant {title!r} missing from table"})
+        # A Canadian pharmacy price can hide a dispensing fee added at
+        # checkout, and tax is added by provincial convention. The variant
+        # table cannot say either; the product page's own words can.
+        try:
+            _, ptext = get("https://petsdrugmart.ca/products/apoquel-tablet")
+            for kw in ("dispensing", "fee", "GST", "HST", " tax", "per dose", "markup"):
+                for mm in list(re.finditer(re.escape(kw), ptext, re.I))[:3]:
+                    basis.append({"venue": "petsdrugmart", "kw": kw.strip(),
+                                  "context": re.sub(r"\s+", " ",
+                                      ptext[max(0, mm.start()-140):mm.end()+180])})
+        except Exception as ex:
+            basis.append({"venue": "petsdrugmart",
+                          "basis_probe_error": f"{type(ex).__name__}: {ex}"})
     except Exception as ex:
         fails.append({"venue": "petsdrugmart", "sku": "*",
                       "why": f"{type(ex).__name__}: {ex}"})
@@ -177,8 +214,14 @@ def main():
         with open(OUT) as fh:
             doc = json.load(fh)
 
-    obs_br, fail_br = read_cobasi(today)
-    obs_ca, fail_ca = read_petsdrugmart(today)
+    basis = []
+    obs_br, fail_br = read_cobasi(today, basis)
+    obs_ca, fail_ca = read_petsdrugmart(today, basis)
+    doc["basis"] = {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "note": ("Price-basis evidence from the pages themselves: list "
+                             "prices behind the campaign price, subscription wording, "
+                             "dispensing-fee and tax wording. Replaced every run."),
+                    "evidence": basis}
     new = obs_br + obs_ca
     fails = fail_br + fail_ca
 
