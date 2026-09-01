@@ -41,11 +41,15 @@ jobs:
       - name: Scrape prices
         run: python scripts/fetch_pharma_prices.py
 
+      - name: Publish the source list
+        run: python scripts/build_venue_sources.py
+
       - name: Commit if changed
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add data/pharma-prices.json data/_pharma-prices-report.json data/fx-usd.json
+          git add data/pharma-prices.json data/_pharma-prices-report.json data/fx-usd.json \
+                  data/venue-sources.json
           git diff --cached --quiet && { echo "no changes"; exit 0; }
           git commit -m "data: refresh pharma prices [skip ci]"
           for i in 1 2 3 4; do
