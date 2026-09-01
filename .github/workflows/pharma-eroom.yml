@@ -1,0 +1,31 @@
+name: Pharma Eroom data
+
+# Collects the two series behind Eroom's Law. The dev sandbox reaches neither
+# FDA nor Eurostat, so the fetch runs here and commits the result.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch FDA approvals and Eurostat BERD
+        run: python scripts/fetch_pharma.py
+      - name: Commit
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add data/pharma-eroom.json
+          git diff --cached --quiet || git commit -m "data: pharma Eroom series [skip ci]"
+          for i in 1 2 4 8; do
+            git push origin HEAD && break
+            sleep $i
+          done
