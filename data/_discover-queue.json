@@ -1,0 +1,64 @@
+{
+ "note": "Candidate venues for markets not yet tracked. NOTHING HERE IS A SOURCE YET. Every venue in the live roster was added the same way: run the scraper in MODE=discover against these URLs on a real runner, read the dumped page structures, write a parser against what the page actually returns, and only then promote it to fetch_pharma_prices.TARGETS. Publishing a price from a guessed selector or a guessed pack size is how a wrong number gets into a chart, and this file exists so that step cannot be skipped.",
+ "why_not_validated_here": "The sandbox this was assembled in blocks every retail domain at the egress proxy, so not one of these URLs could be fetched to check. They come from search-result evidence only: a title, a snippet, a price mentioned in text. That is enough to say a market probably publishes prices; it is not enough to publish one.",
+ "queue": [
+  {
+   "country": "BR", "currency": "BRL", "venue_id": "cobasi", "name": "Cobasi",
+   "platform_guess": "VTEX (product URLs end in /p, usually carry JSON-LD)",
+   "verdict": "LIKELY OPEN - prices appear in search snippets without a login",
+   "evidence": "Cobasi product pages for Apoquel 3.6 / 5.4 / 16 mg are indexed with prices quoted in the snippets (R$ 264,90 down to R$ 171,90 on a subscription discount). Brazil sells Apoquel under veterinary prescription but does not appear to hide the price behind it.",
+   "urls": [
+    {"product": "apoquel", "mg": 3.6, "n": 20, "url": "https://www.cobasi.com.br/apoquel-dermatologico-zoetis-para-cachorro-3-6-mg-3816434/p",
+     "n_source": "the page title says '20 comprimidos'"},
+    {"product": "apoquel", "mg": 5.4, "n": null, "url": "https://www.cobasi.com.br/apoquel-dermatologico-zoetis-para-cachorro-54mg-3816442/p"},
+    {"product": "apoquel", "mg": 16, "n": null, "url": "https://www.cobasi.com.br/-apoquel-dermatologico-zoetis-para-cachorro-3816450/p"}
+   ]
+  },
+  {
+   "country": "BR", "currency": "BRL", "venue_id": "petlove", "name": "Petlove",
+   "platform_guess": "unknown",
+   "verdict": "LIKELY OPEN",
+   "evidence": "Petlove carries an Apoquel brand page and a product page, both indexed.",
+   "urls": [
+    {"product": "apoquel", "mg": null, "n": null, "url": "https://www.petlove.com.br/apoquel-dermatologico-zoetis-para-caes/p"}
+   ]
+  },
+  {
+   "country": "CA", "currency": "CAD", "venue_id": "petsdrugmart", "name": "PetsDrugMart",
+   "platform_guess": "unknown",
+   "verdict": "LIKELY OPEN - a genuine domestic pharmacy",
+   "evidence": "Lists Apoquel in 3.6, 5.4 and 16 mg, tablet and chewable. States it dispenses only Health Canada approved medication and ships only within Canada against a valid Canadian prescription.",
+   "urls": [
+    {"product": "apoquel", "mg": null, "n": null, "url": "https://www.petsdrugmart.ca/en/Product/Apoquel-119005/4086"}
+   ]
+  },
+  {
+   "country": "CA", "currency": "CAD", "venue_id": "_excluded_export_pharmacies", "name": "cross-border mail-order pharmacies",
+   "verdict": "DO NOT USE",
+   "evidence": "A search for Canadian Apoquel prices returns mostly canadapharmacy.com, doctorsolve.com, medicationscanada.com, onlinepharmaciescanada.com and canadadrugsdirect.com. These are export pharmacies selling into the United States at prices set for that arbitrage, not Canadian domestic retail. Including them would produce a 'Canada' panel measuring the US market through a Canadian mailbox.",
+   "urls": []
+  },
+  {
+   "country": "JP", "currency": "JPY", "venue_id": "civet", "name": "Ci Vet (Ci Medical)",
+   "verdict": "PROBABLE TRADE GATE - needs a login check",
+   "evidence": "Apokiru (Apoquel) 3.6 / 5.4 / 16 mg pages exist and are indexed, but every Japanese seller found is addressed to veterinary professionals - PEPPYvet and PETMEDIC PRO both label themselves for veterinary-medical personnel only, and one states outright that veterinary pharmaceuticals are supplied only to veterinary and medical facilities. That is the same shape as Malta and Estonia: listed, but the price shown only to the trade. Whether Ci Vet shows a figure to a signed-out visitor could not be checked from here.",
+   "urls": [
+    {"product": "apoquel", "mg": 3.6, "n": null, "url": "https://www.ci-medical.com/vet/catalog_item/804Y2509"},
+    {"product": "apoquel", "mg": 5.4, "n": null, "url": "https://www.ci-medical.com/vet/catalog_item/804Y2510"},
+    {"product": "apoquel", "mg": 16, "n": null, "url": "https://www.ci-medical.com/vet/catalog_item/804Y2511"}
+   ]
+  },
+  {
+   "country": "JP", "currency": "JPY", "venue_id": "_excluded_personal_import", "name": "personal-import proxies",
+   "verdict": "DO NOT USE",
+   "evidence": "Sites such as idrugstore.jp sell to Japanese consumers by personal import rather than domestic dispensing. Their prices are a different market with different duties and no Japanese approval chain behind the transaction.",
+   "urls": []
+  },
+  {
+   "country": "CN", "currency": "CNY", "venue_id": "jd", "name": "JD.com pet health",
+   "verdict": "PRICES EXIST, SCRAPING DOUBTFUL",
+   "evidence": "Apoquel is on sale in China as Aibokeh in 3.6, 5.4 and 16 mg, and the chewable launched there too; Cytopoint is sold as Saituomin. A deals aggregator quotes about CNY 61 for 5.4 mg x 5. JD runs a brand page for it and requires a prescription upload for veterinary prescription drugs. No stable product URL was established, and JD and Tmall are aggressively bot-protected, so a GitHub runner will most likely get a challenge page rather than a price - which the scraper must be made to detect rather than parse.",
+   "urls": []
+  }
+ ]
+}

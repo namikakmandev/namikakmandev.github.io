@@ -10,7 +10,10 @@
    "HIGH": "veterinary-specific wording found in, or quoted from, the statute or the tax authority's own guidance",
    "MEDIUM": "no veterinary-specific wording found; rate follows by elimination or from a tariff-code reference"
   },
-  "not_for_history": "These are the rates in force on the asof date and apply ONLY to the latest snapshot. At least one panel country changed its veterinary rate inside the 2016-2026 observation window - Romania on 1 August 2025, documented in its row - and others are likely to have. Applying this file to a historical observation would therefore attribute a tax change to the shop as a price change. Any ex-tax time series needs a DATED rate schedule per country, which this file does not yet carry; until it does, the history charts stay tax-inclusive and in local currency, where a rate change is at least visible as the step it is."
+  "not_for_history": "These are the rates in force on the asof date and apply ONLY to the latest snapshot. At least one panel country changed its veterinary rate inside the 2016-2026 observation window - Romania on 1 August 2025, documented in its row - and others are likely to have. Applying this file to a historical observation would therefore attribute a tax change to the shop as a price change. Any ex-tax time series needs a DATED rate schedule per country, which this file does not yet carry; until it does, the history charts stay tax-inclusive and in local currency, where a rate change is at least visible as the step it is.",
+  "deliberately_absent": {
+   "BR": "Brazil is tracked but has no rate here on purpose. A Brazilian shelf price is tax-inclusive, but the stack is ICMS (state-set, and medicines sit under a substituicao tributaria regime that varies by state) plus PIS/COFINS, which for some medicine classes is zero-rated and for others is not. A single national number would be a guess, and a guess in this file silently moves every Brazilian figure. Until it is resolved against a state-level ruling the report shows Brazil tax-inclusive and says so."
+  }
  },
  "rates": {
   "GB": {
@@ -134,6 +137,31 @@
    "confidence": "HIGH",
    "law": "US retail prices are quoted before sales tax by universal convention, so the listed price is already the ex-tax price. Whether a state then taxes the sale varies - most states extend their prescription-drug exemption to animal prescriptions, New Jersey taxes pet prescriptions, New York depends on whether the seller is a vet or a pharmacy - but none of that is inside the number a US site displays",
    "source": "https://www.avma.org/resources-tools/animal-health-and-welfare/state-sales-tax-veterinary-services"
+  },
+  "JP": {
+   "rate": 0.1,
+   "basis": "standard",
+   "display": "inclusive",
+   "confidence": "HIGH",
+   "law": "Consumption Tax Act: veterinary medicines carry the 10% standard rate - the 8% reduced rate is confined to food, drink and some newspapers and does not extend to medicines. Since April 2021 total-price display (soukaku hyoji) is mandatory, so a Japanese shelf price is tax-inclusive by law rather than by convention",
+   "source": "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shohi/6303.htm"
+  },
+  "CN": {
+   "rate": 0.13,
+   "basis": "standard",
+   "display": "inclusive",
+   "confidence": "MEDIUM",
+   "law": "VAT on goods is 13% standard. Medicines are not in the 9% reduced band, which covers food, agricultural produce, utilities and transport",
+   "source": "https://www.chinatax.gov.cn/",
+   "flag": "small-scale taxpayers may account at a 3% collection rate, and some pharmaceutical sales use simplified methods, so an individual listing may embed less than 13%. Not verified against a veterinary-specific ruling"
+  },
+  "CA": {
+   "rate": 0.0,
+   "basis": "excluded from shelf price",
+   "display": "exclusive",
+   "confidence": "HIGH",
+   "law": "Canadian retail prices are quoted before GST/HST by universal convention, so a listed price is already the ex-tax price. What is then added varies by province (5% GST in Alberta up to 15% HST in the Atlantic provinces), and veterinary drugs are generally taxable rather than zero-rated - but none of that is inside the number a Canadian site displays",
+   "source": "https://www.canada.ca/en/revenue-agency/services/tax/businesses/topics/gst-hst-businesses/charge-collect-which-rate.html"
   }
  }
 }

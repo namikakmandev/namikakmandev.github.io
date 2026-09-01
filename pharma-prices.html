@@ -292,7 +292,7 @@
 // Fixed order, never cycled by rank - see COLOROF below, which pins a series to
 // a slot for the life of the page so filtering cannot repaint it.
 const RAWCOL = ['#3987E5','#D95926','#199E70','#C98500','#D55181','#008300','#9085E9','#E66767'];
-const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands', CZ:'Czechia', HU:'Hungary', IT:'Italy', ES:'Spain', FR:'France', PL:'Poland', RO:'Romania', SK:'Slovakia', BG:'Bulgaria', BE:'Belgium', PT:'Portugal', SE:'Sweden', FI:'Finland', NO:'Norway', DK:'Denmark', AT:'Austria', CH:'Switzerland', IE:'Ireland', GR:'Greece', HR:'Croatia', SI:'Slovenia', MT:'Malta', CY:'Cyprus', LT:'Lithuania', LV:'Latvia', EE:'Estonia', LU:'Luxembourg'};
+const CCNAME = {US:'United States', GB:'United Kingdom', TR:'Türkiye', AU:'Australia', DE:'Germany', NL:'Netherlands', CZ:'Czechia', HU:'Hungary', IT:'Italy', ES:'Spain', FR:'France', PL:'Poland', RO:'Romania', SK:'Slovakia', BG:'Bulgaria', BE:'Belgium', PT:'Portugal', SE:'Sweden', FI:'Finland', NO:'Norway', DK:'Denmark', AT:'Austria', CH:'Switzerland', IE:'Ireland', GR:'Greece', HR:'Croatia', SI:'Slovenia', MT:'Malta', CY:'Cyprus', LT:'Lithuania', LV:'Latvia', EE:'Estonia', LU:'Luxembourg', JP:'Japan', CN:'China', BR:'Brazil', CA:'Canada'};
 // ---- country flags -------------------------------------------------------
 // Drawn as inline SVG rather than emoji. Emoji flags are a regional-indicator
 // pair, and whether they render as a flag or as two letters is a property of
@@ -323,6 +323,21 @@ const nordic = (bg, cross, mid) =>
 
 const FLAG = {
   AT: () => h3('#ED2939','#fff','#ED2939'),
+  JP: () => F.r(0,0,24,16,'#fff') + `<circle cx="12" cy="8" r="4.6" fill="#BC002D"/>`,
+  CA: () => F.r(0,0,24,16,'#fff') + F.r(0,0,6,16,'#D80621') + F.r(18,0,6,16,'#D80621')
+          // a stem is what stops the eleven points reading as a starburst
+          + `<path d="M12 3.1 l.95 1.95 l1.85-.85 l-.65 2.1 l2.05-.3 l-1.45 1.55 l1.95 .95`
+            + ` l-1.95 .9 l.5 1.45 l-2.05-.4 l.15 1.1 l-.9 -.35 l0 2.35 h-.9 l0-2.35 l-.9 .35`
+            + ` l.15-1.1 l-2.05 .4 l.5-1.45 l-1.95-.9 l1.95-.95 l-1.45-1.55 l2.05 .3 l-.65-2.1`
+            + ` l1.85 .85 Z" fill="#D80621"/>`,
+  CN: () => F.r(0,0,24,16,'#EE1C25')
+          + `<path d="M4.6 2.2 l.85 2.6 l2.75 0 l-2.22 1.6 l.85 2.6 l-2.23-1.6 l-2.23 1.6 l.85-2.6 l-2.22-1.6 l2.75 0 Z" fill="#FFDE00"/>`
+          + [[9.6,1.9],[11.5,3.6],[11.5,6.1],[9.6,7.7]].map(([x,y]) =>
+              `<circle cx="${x}" cy="${y}" r=".78" fill="#FFDE00"/>`).join(''),
+  BR: () => F.r(0,0,24,16,'#009B3A')
+          + `<path d="M12 1.6 L22.2 8 L12 14.4 L1.8 8 Z" fill="#FEDF00"/>`
+          + `<circle cx="12" cy="8" r="3.5" fill="#002776"/>`
+          + `<path d="M8.6 6.9 a5.6 5.6 0 0 1 6.9 .5" stroke="#fff" stroke-width="1.05" fill="none"/>`,
   BE: () => v3('#2D2926','#FAE042','#ED2939'),
   BG: () => h3('#fff','#00966E','#D62612'),
   DE: () => h3('#1a1a1a','#DD0000','#FFCE00'),
@@ -456,7 +471,7 @@ const pulledTxt = data => {
 const disclose = (head, body) =>
   `<details class="disc"><summary>${head}</summary><div class="discb">${body}</div></details>`;
 
-const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł', RON:'lei', SEK:'kr'};
+const SYM = {USD:'$', GBP:'£', TRY:'₺', EUR:'€', AUD:'A$', CZK:'Kč', HUF:'Ft', PLN:'zł', RON:'lei', SEK:'kr', JPY:'\u00a5', CNY:'CN\u00a5', BRL:'R$', CAD:'C$'};
 
 // ---- how much we actually know about each shop ---------------------------
 // This grades OUR OBSERVATION RECORD and nothing else. It is not a rating of
@@ -503,7 +518,7 @@ const vBadge = key => {
 
 const FORM = {tab:'tablet', chew:'chewable', inj:'vial'};
 const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY')) dp=0; return (cur==='HUF'||cur==='CZK'||cur==='PLN'||cur==='RON'||cur==='SEK' ? v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})+' '+SYM[cur] : SYM[cur]+v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})); };
+const money = (v,cur,dp) => { if(dp==null && (cur==='HUF'||cur==='TRY'||cur==='JPY')) dp=0; return (cur==='HUF'||cur==='CZK'||cur==='PLN'||cur==='RON'||cur==='SEK' ? v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})+' '+SYM[cur] : SYM[cur]+v.toLocaleString('en-US',{minimumFractionDigits:dp??2,maximumFractionDigits:dp??2})); };
 
 // A row's own price history as small bars, oldest to newest.
 // Bars grow from ZERO, never from the series minimum: a bar's length IS the
@@ -756,6 +771,8 @@ function renderCostTable(data, fx, vat){
 
   const toUSD = {USD:1, GBP: fx? fx.GBPTRY/fx.USDTRY : null, TRY: fx? 1/fx.USDTRY : null,
                  EUR: fx? fx.EURTRY/fx.USDTRY : null, AUD: fx? fx.AUDUSD??null : null, SEK: fx? fx.SEKUSD??null : null,
+                 JPY: fx? fx.JPYUSD??null : null, CNY: fx? fx.CNYUSD??null : null, BRL: fx? fx.BRLUSD??null : null,
+                 CAD: fx? fx.CADUSD??null : null,
                  PLN: fx? fx.PLNUSD??null : null, CZK: fx? fx.CZKUSD??null : null,
                  HUF: fx? fx.HUFUSD??null : null, RON: fx? fx.RONUSD??null : null};
 
@@ -918,7 +935,7 @@ Promise.all([
   fetch('data/fx-usd.json').then(r=>r.ok?r.json():null).catch(()=>null)
     .then(f => (f && f.usd) ? {rates: Object.fromEntries(
         Object.entries(f.usd).map(([c, v]) => [c, 1 / v])), _asof: f.asof, _stored: true}
-      : fetch('https://api.frankfurter.app/latest?from=USD&to=AUD,PLN,CZK,HUF,RON,SEK,BGN,DKK,NOK,CHF')
+      : fetch('https://api.frankfurter.app/latest?from=USD&to=AUD,PLN,CZK,HUF,RON,SEK,BGN,DKK,NOK,CHF,JPY,CNY,BRL,CAD')
           .then(r=>r.ok?r.json():null).catch(()=>null)),
   fetch('data/venue-sources.json').then(r=>r.ok?r.json():null).catch(()=>null),
   fetch('data/vat-vet-medicines.json').then(r=>r.ok?r.json():null).catch(()=>null),
@@ -1019,6 +1036,7 @@ Promise.all([
     // that view converts to USD and strips each country's own veterinary VAT.
     const toUSD = FX ? {USD:1, GBP:FX.GBPTRY/FX.USDTRY, TRY:1/FX.USDTRY,
                         EUR:FX.EURTRY/FX.USDTRY, AUD:FX.AUDUSD??null, PLN:FX.PLNUSD??null, SEK:FX.SEKUSD??null,
+                        JPY:FX.JPYUSD??null, CNY:FX.CNYUSD??null, BRL:FX.BRLUSD??null, CAD:FX.CADUSD??null,
                         CZK:FX.CZKUSD??null, HUF:FX.HUFUSD??null, RON:FX.RONUSD??null} : null;
     const exTax = (country, v) => {
       const r = VAT && VAT.rates && VAT.rates[country];

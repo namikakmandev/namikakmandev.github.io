@@ -22,7 +22,8 @@ import pathlib
 import sys
 import urllib.request
 
-WANT = ["AUD", "PLN", "CZK", "HUF", "RON", "SEK", "BGN", "DKK", "NOK", "CHF", "EUR", "GBP"]
+WANT = ["AUD", "PLN", "CZK", "HUF", "RON", "SEK", "BGN", "DKK", "NOK", "CHF", "EUR", "GBP",
+        "JPY", "CNY", "BRL", "CAD"]
 URL = "https://api.frankfurter.app/latest?from=USD&to=" + ",".join(WANT)
 OUT = pathlib.Path(__file__).resolve().parent.parent / "data" / "fx-usd.json"
 
