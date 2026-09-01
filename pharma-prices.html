@@ -155,6 +155,13 @@
         border-radius:8px;padding:3px 8px;margin:3px 5px 0 0;font-size:12px;cursor:help}
   .gabs .flag{width:16px;height:auto;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.22)}
   .gabsg{color:var(--ink3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
+  /* Queued markets. Dashed, because a dashed border is the page's existing way
+     of saying "not a measurement" - the same reason the benchmark rule is
+     dashed - and nothing here has been measured. */
+  .gq{display:inline-flex;align-items:center;gap:5px;border:1px dashed var(--line);border-radius:8px;
+      padding:3px 8px;margin:3px 5px 0 0;font-size:12px;cursor:help;color:var(--ink2)}
+  .gq .flag{width:16px;height:auto;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.22);opacity:.75}
+  .gqn{color:var(--ink3);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
   .method{font-size:13px;color:var(--ink2)}
   .method b{color:var(--ink)}
   footer{color:var(--ink3);font-size:12.5px;margin-top:8px}
@@ -220,6 +227,7 @@
     <div class="btns" id="gridbtns" style="margin:10px 0 12px"></div>
     <div id="ctrygrid"></div>
     <div class="chart-sub" id="gridabsent" style="margin-top:14px"></div>
+    <div class="chart-sub" id="gridqueued" style="margin-top:12px"></div>
     <div class="chart-sub" id="gridnotes" style="margin-top:10px"></div>
     <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--c1);font-size:13px">
       What is held constant, and what is not</summary>
@@ -923,7 +931,7 @@ function renderCostTable(data, fx, vat){
     'Clinic-administered pricing (PerfectPet, RO) is excluded from these retail comparisons.';
 }
 
-let FX = null, VAT = null, CPI = [], SOURCES = {};
+let FX = null, VAT = null, CPI = [], SOURCES = {}, QUEUE = [];
 
 Promise.all([
   fetch('data/pharma-prices.json').then(r=>{ if(!r.ok) throw new Error('no data'); return r.json(); }),
@@ -938,11 +946,13 @@ Promise.all([
       : fetch('https://api.frankfurter.app/latest?from=USD&to=AUD,PLN,CZK,HUF,RON,SEK,BGN,DKK,NOK,CHF,JPY,CNY,BRL,CAD')
           .then(r=>r.ok?r.json():null).catch(()=>null)),
   fetch('data/venue-sources.json').then(r=>r.ok?r.json():null).catch(()=>null),
+  fetch('data/_discover-queue.json').then(r=>r.ok?r.json():null).catch(()=>null),
   fetch('data/vat-vet-medicines.json').then(r=>r.ok?r.json():null).catch(()=>null),
   fetch('data/vet-cpi-us.json').then(r=>r.ok?r.json():null).catch(()=>null),
   fetch('data/cpi-eu.json').then(r=>r.ok?r.json():null).catch(()=>null)
-]).then(([data, rates, aud, src, vat, uscpi, eucpi])=>{
+]).then(([data, rates, aud, src, queue, vat, uscpi, eucpi])=>{
   SOURCES = (src && src.venues) || {};
+  QUEUE = (queue && queue.queue) || [];
   const fx = rates && rates.fx ? {...rates.fx, _asof: rates.fxAsof} : null;
   if(fx && aud && aud.rates){ for(const [k,v] of Object.entries(aud.rates)) if(v>0) fx[k+'USD'] = 1/v; }
   FX = fx; VAT = vat;                   // the brand comparison below needs both
@@ -1592,6 +1602,37 @@ Promise.all([
       // The missing-market declarations stay in the open: they are statements
       // about what is NOT here, and folding those would be the quiet omission
       // the whole card is built to avoid. Only the methodology folds.
+      // A market can be in three states here, and only two of them were visible.
+      // A country that is neither tracked NOR established as absent - one asked
+      // for, researched, but not yet proven against a live page - simply did not
+      // appear, which reads as "never considered". This strip is that third
+      // state, and it deliberately does not borrow the look of a real panel:
+      // nothing in it is a measurement.
+      (() => {
+        const el = document.getElementById('gridqueued');
+        // Filter on the ENTRY, not on whether it has a URL yet. Requiring a URL
+        // hid China, whose entry records that prices exist but no stable product
+        // page was found - which is the single most useful thing to say about
+        // it. The only entries dropped are the recorded exclusions, which are
+        // decisions about what NOT to use rather than candidates.
+        const rows = QUEUE.filter(q => !String(q.venue_id||'').startsWith('_') && !per[q.country]);
+        if(!rows.length){ el.innerHTML = ''; return; }
+        const byC = {};
+        for(const q of rows) (byC[q.country] || (byC[q.country] = [])).push(q);
+        el.innerHTML =
+          `<b>${Object.keys(byC).length} markets are queued, not yet tracked.</b> `
+          + Object.entries(byC).map(([cc, qs]) =>
+              `<span class="gq" title="${esc(qs.map(q => q.name + ' — ' + q.verdict + '. ' + (q.evidence||'')).join('  |  '))}">`
+              + `${flagSVG(cc)}${esc(CCNAME[cc]||cc)}`
+              + `<span class="gqn">${qs.every(q => !(q.urls||[]).length)
+                    ? 'no target yet' : `${qs.length} candidate${qs.length>1?'s':''}`}</span></span>`).join('')
+          + ' <span style="color:var(--ink3)">Candidate shops found by research and recorded with their '
+          + 'evidence, but <b>not one price has been read from any of them</b>. Every venue in the grid '
+          + 'above was added the same way: fetch the page first, read what it actually returns, then '
+          + 'write a parser. Publishing from a guessed selector or a guessed pack size is how a wrong '
+          + 'number reaches a chart. Hover for what was found and what is doubtful.</span>';
+      })();
+
       document.getElementById('gridnotes').innerHTML =
         (unconverted.length
           ? `<b>${unconverted.length} tracked market${unconverted.length>1?'s are':' is'} missing from `
