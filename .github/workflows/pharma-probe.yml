@@ -20,23 +20,11 @@ jobs:
           python-version: "3.12"
       - name: Probe FDA, FRED and NSF access routes
         run: python scripts/probe_pharma.py
-      - name: Probe pricescraper candidate venues (BR, CA, JP, CN)
-        # Piggybacks on this workflow because only workflows on the default
-        # branch are dispatchable; the executed YAML still comes from the
-        # dispatched ref, so this step runs on the study branch only.
-        run: python scripts/probe_pricescraper_queue.py
-      - name: Daily read of the promoted venues (validation run)
-        run: python scripts/fetch_pricescraper_daily.py
-        continue-on-error: true
-      - name: Backfill one year of history from the Wayback Machine
-        run: python scripts/backfill_pricescraper_history.py
-        continue-on-error: true
       - name: Commit the dump
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add data/_pharma-probe.json data/_pricescraper-queue-probe.json \
-                  data/pricescraper-daily.json data/pricescraper-history.json
+          git add data/_pharma-probe.json
           git diff --cached --quiet || git commit -m "data: pharma access probe [skip ci]"
           for i in 1 2 4 8; do
             git push origin HEAD && break
