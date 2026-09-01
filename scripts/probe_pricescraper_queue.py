@@ -260,6 +260,38 @@ def main():
         petlove_wb["error"] = f"{type(ex).__name__}: {ex}"
         print("  wayback route failed:", ex)
 
+    # The ProductGroup gives nine variant prices but no strength or pack on
+    # any of them; the sku->label mapping lives somewhere in the page's own
+    # state. Dump the text neighbourhood of every sku id and of every
+    # "comprimido" mention from the newest capture, so the parser is written
+    # against the real mapping.
+    if petlove_wb.get("newest"):
+        try:
+            ts = petlove_wb["newest"]
+            req = urllib.request.Request(
+                f"https://web.archive.org/web/{ts}id_/{petlove_url}",
+                headers={"User-Agent": saved_ua["User-Agent"], "Accept-Encoding": "gzip"})
+            with urllib.request.urlopen(req, timeout=120) as r:
+                body = r.read(CAP + 1)
+            if body[:2] == b"\x1f\x8b":
+                body = gzip.GzipFile(fileobj=io.BytesIO(body)).read(CAP + 1)
+            text = body[:CAP].decode("utf-8", "replace")
+            wins = []
+            for sku in ("31153-1", "31153-2", "31153-3", "31027533093",
+                        "31027535010"):
+                for mm in list(re.finditer(re.escape(sku), text))[:2]:
+                    wins.append({"around": sku,
+                                 "text": re.sub(r"\s+", " ",
+                                     text[max(0, mm.start()-350):mm.end()+350])})
+            for mm in list(re.finditer(r"comprimido", text, re.I))[:8]:
+                wins.append({"around": "comprimido",
+                             "text": re.sub(r"\s+", " ",
+                                 text[max(0, mm.start()-250):mm.end()+250])})
+            petlove_wb["sku_context"] = wins
+            print(f"petlove: {len(wins)} sku/pack context windows dumped")
+        except Exception as ex:
+            petlove_wb["sku_context_error"] = f"{type(ex).__name__}: {ex}"
+
     extras = []
     for x in JSON_EXTRAS:
         print(f"extra: {x['venue_id']} {x['what']}:")
