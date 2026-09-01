@@ -8,8 +8,9 @@ the exact product URL, fetch the original bytes of each, and run the same
 parser the daily read uses. An archived capture that cannot prove price,
 currency and pack size yields a recorded refusal, never a guess.
 
-Captures are collapsed to one per month per URL — a year of monthly points is
-what the sparklines need, and it keeps the load on web.archive.org small.
+Captures are collapsed to one per day per URL, and every fetch retries with
+backoff: the first run lost two of three Cobasi SKUs to the archive's
+connection throttling, not to missing data.
 
 Run in GitHub Actions — the dev sandbox blocks web.archive.org too.
 """
@@ -18,7 +19,7 @@ import gzip, io, json, os, re, sys, time, urllib.error, urllib.parse, urllib.req
 OUT = "data/pricescraper-history.json"
 CAP = 2 * 1024 * 1024
 CDX = ("https://web.archive.org/cdx/search/cdx?url={url}&output=json"
-       "&from={frm}&to={to}&filter=statuscode:200&collapse=timestamp:6&limit=60")
+       "&from={frm}&to={to}&filter=statuscode:200&collapse=timestamp:8&limit=60")
 SNAP = "https://web.archive.org/web/{ts}id_/{url}"
 UA = {"User-Agent": "namikakmandev-data/1.0 (github actions; price history backfill)",
       "Accept-Encoding": "gzip"}
@@ -55,16 +56,26 @@ PDM_MG = {"3.6 mg": ("apoquel-tab-3.6", 3.6),
           "16 mg": ("apoquel-tab-16", 16)}
 
 
-def get(url, timeout=90):
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        body = r.read(CAP + 1)
-        if r.headers.get("Content-Encoding") == "gzip" or body[:2] == b"\x1f\x8b":
-            try:
-                body = gzip.GzipFile(fileobj=io.BytesIO(body)).read(CAP + 1)
-            except OSError:
-                pass
-        return r.status, body[:CAP].decode("utf-8", "replace")
+def get(url, timeout=90, tries=3):
+    """web.archive.org refuses connections when hit in bursts; a refusal is
+    throttling, not absence, so back off and try again before recording it."""
+    last = None
+    for i in range(tries):
+        if i:
+            time.sleep(8 * (2 ** (i - 1)))
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                body = r.read(CAP + 1)
+                if r.headers.get("Content-Encoding") == "gzip" or body[:2] == b"\x1f\x8b":
+                    try:
+                        body = gzip.GzipFile(fileobj=io.BytesIO(body)).read(CAP + 1)
+                    except OSError:
+                        pass
+                return r.status, body[:CAP].decode("utf-8", "replace")
+        except Exception as ex:
+            last = ex
+    raise last
 
 
 def product_jsonld(text):
@@ -181,7 +192,7 @@ def main():
                            "url": t["url"], "parsed": 0, "refused": []})
         entry = doc["log"][-1]
         for ts in ts_list:
-            time.sleep(2)   # be gentle with the archive
+            time.sleep(4)   # be gentle with the archive
             try:
                 status, text = get(SNAP.format(ts=ts, url=t["url"]))
             except Exception as ex:
