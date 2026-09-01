@@ -164,6 +164,46 @@ def fetch(url):
     return rec
 
 
+# Round 2: PetsDrugMart's page carries ONE JSON-LD offer (CAD 2.62 per
+# tablet) for a product sold in three strengths, so the strength that price
+# belongs to is not stated. The shop is Shopify (assets under /cdn/shop/),
+# and Shopify serves the variant table — id, title, price per variant — at
+# <product-url>.js. That table is the difference between "a Canadian price
+# exists" and "this price is the 5.4 mg tablet".
+JSON_EXTRAS = [
+    {"venue_id": "petsdrugmart", "what": "shopify variants",
+     "url": "https://petsdrugmart.ca/products/apoquel-tablet.js"},
+]
+
+
+def fetch_json(url):
+    rec = {"url": url}
+    t0 = time.time()
+    try:
+        req = urllib.request.Request(url, headers=UA)
+        with urllib.request.urlopen(req, timeout=60) as r:
+            body = r.read(CAP + 1)
+            rec["status"] = r.status
+            rec["content_type"] = r.headers.get("Content-Type", "")
+            if r.headers.get("Content-Encoding") == "gzip" or body[:2] == b"\x1f\x8b":
+                try:
+                    body = gzip.GzipFile(fileobj=io.BytesIO(body)).read(CAP + 1)
+                except OSError:
+                    pass
+            body = body[:CAP]
+            rec["bytes"] = len(body)
+        try:
+            rec["json"] = json.loads(body)
+        except Exception:
+            rec["head"] = body[:1500].decode("utf-8", "replace")
+    except Exception as ex:
+        rec["error"] = f"{type(ex).__name__}: {ex}"
+    rec["seconds"] = round(time.time() - t0, 1)
+    print(f"  {rec.get('status', '---'):>4} {rec.get('bytes', 0):>9,}b "
+          f"json={'yes' if 'json' in rec else 'no'} {url[:80]}")
+    return rec
+
+
 def main():
     venues = []
     for v in QUEUE:
@@ -174,6 +214,11 @@ def main():
             f["fetch"].pop("url", None)
         venues.append(out)
         time.sleep(2)   # one shop at a time, politely
+
+    extras = []
+    for x in JSON_EXTRAS:
+        print(f"extra: {x['venue_id']} {x['what']}:")
+        extras.append(dict(x, fetch=fetch_json(x["url"])))
 
     os.makedirs("data", exist_ok=True)
     doc = {
@@ -186,6 +231,7 @@ def main():
                  "and write a parser against what actually came back — pack "
                  "size (n) included, which snippets routinely omit."),
         "venues": venues,
+        "extras": extras,
     }
     with open(OUT, "w") as fh:
         json.dump(doc, fh, indent=1, ensure_ascii=False)
