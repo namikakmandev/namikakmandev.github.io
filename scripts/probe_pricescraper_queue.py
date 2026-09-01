@@ -289,6 +289,33 @@ def main():
                                  text[max(0, mm.start()-250):mm.end()+250])})
             petlove_wb["sku_context"] = wins
             print(f"petlove: {len(wins)} sku/pack context windows dumped")
+            # Pack proof hunt: any statement of tablets-per-box, anywhere in
+            # the capture, in the vocabulary Brazilian packaging uses.
+            packwins = []
+            for mm in list(re.finditer(
+                    r"(?:cont[eé]m|caixa|embalagem|cartela|com)\s+\d{1,3}\s*"
+                    r"(?:comprimidos?|cp\b|unidades?)|\d{1,3}\s*comprimidos?",
+                    text, re.I))[:12]:
+                packwins.append(re.sub(r"\s+", " ",
+                    text[max(0, mm.start()-150):mm.end()+150]))
+            petlove_wb["pack_windows"] = packwins
+            print(f"petlove: {len(packwins)} pack-pattern windows")
+            # And the box photo itself - the carton states its own count.
+            try:
+                img = ("https://www.petlove.com.br/images/products/179253/"
+                       "product/31153-1_1.jpg")
+                req2 = urllib.request.Request(
+                    f"https://web.archive.org/web/{ts}im_/{img}",
+                    headers={"User-Agent": saved_ua["User-Agent"]})
+                with urllib.request.urlopen(req2, timeout=120) as r2:
+                    blob = r2.read(3_000_000)
+                with open("data/_petlove-box-31153-1.jpg", "wb") as fh:
+                    fh.write(blob)
+                petlove_wb["box_image"] = {"file": "data/_petlove-box-31153-1.jpg",
+                                           "bytes": len(blob)}
+                print(f"petlove: box image saved, {len(blob):,} bytes")
+            except Exception as ex:
+                petlove_wb["box_image"] = {"error": f"{type(ex).__name__}: {ex}"}
         except Exception as ex:
             petlove_wb["sku_context_error"] = f"{type(ex).__name__}: {ex}"
 
