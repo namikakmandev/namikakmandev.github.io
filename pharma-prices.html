@@ -78,11 +78,12 @@
   /* the aggregate panel leads the grid, so it gets the accent border rather
      than a colour of its own - colour on this page means a brand */
   .gall{border-color:rgba(57,135,229,.45);background:rgba(57,135,229,.06)}
-  .gglobe{color:var(--c1);font-size:13px;line-height:1;flex:none}
+  .gglobe{color:var(--c1);font-size:13px;line-height:1;flex:none;align-self:center}
   .gpanel>summary{cursor:pointer;list-style:none;outline:none}
   .gpanel>summary::-webkit-details-marker{display:none}
-  .ghead{display:flex;align-items:center;gap:8px;font-size:13.5px}
-  .ghead .flag{width:20px;height:auto;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.22);flex:none}
+  .ghead{display:flex;align-items:baseline;gap:8px;font-size:13.5px}
+  .ghead .flag{width:20px;height:auto;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.22);
+               flex:none;align-self:center}
   /* the cheapest-brand figure is the panel's headline, so it sits right */
   .gcheap{margin-left:auto;color:var(--ink2);font-variant-numeric:tabular-nums;font-size:12.5px}
   .gbars{margin-top:9px;display:flex;flex-direction:column;gap:5px}
@@ -1369,8 +1370,11 @@ Promise.all([
           // Rounded before it is judged, so a reader is never shown a "+0%"
           // sitting next to two different numbers.
           const shown = +gap.toFixed(0);
+          // Naming the benchmark in every row overflowed the column and truncated
+          // to "+41% vs Zen...". The leader is labelled "cheapest here" directly
+          // above, so the bare percentage is unambiguous and fits.
           const pct = i === 0 ? 'cheapest here'
-                    : shown === 0 ? 'same' : `+${shown}% vs ${esc(products[p.brands[0].pid].name)}`;
+                    : shown === 0 ? 'same price' : `+${shown}%`;
           return `<div class="gbar"><span class="gname">${esc(products[b.pid].name)}</span>`
                + `<span class="gtrack"><span class="gfill" style="width:${w}%;background:${PCOLOR[b.pid]}"></span></span>`
                + `<span class="gval">${money(b.v, 'USD', 2)}<span class="gpct">${pct}</span></span></div>`;
@@ -1387,9 +1391,13 @@ Promise.all([
             + `<span class="gbrand">${esc(products[b.pid].name)}</span>`
             + `<span class="glocal">${money(b.o.unit, b.o.cur, (b.o.cur==='HUF'||b.o.cur==='TRY')?0:2)}`
             + `<span class="gper">/${FORM[DOSE[b.pid].form].slice(0,4)}</span></span>`
-            + `<span class="gshop">${p.country === 'ALL' ? `${flagSVG(b.o.country)} ` : ''}`
+            // On the aggregate panel the row has to say WHICH country the price
+            // came from. That was a flag, which read as decoration at this size
+            // next to a shop name; the country's name states it plainly and
+            // needs no decoding. Flags stay where they identify a whole panel.
+            + `<span class="gshop">${p.country === 'ALL' ? `${esc(CCNAME[b.o.country]||b.o.country)} · ` : ''}`
             + `${esc(venues[b.o.venue].name)} · `
-            + `${b.boxed ? `pack of ${b.o.n}` : 'sold by the tablet'}${vBadge(b.o.venue)}</span>`
+            + `${b.boxed ? `pack of ${b.o.n}` : `sold by the ${FORM[DOSE[b.pid].form]}`}${vBadge(b.o.venue)}</span>`
             + `</div>`).join('');
         const isAll = p.country === 'ALL';
         const r = VAT && VAT.rates && VAT.rates[p.country];
