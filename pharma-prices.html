@@ -17,6 +17,9 @@
     --c6:#008300; --c7:#9085E9; --c8:#E66767;
     /* Status, reserved: never a series colour. Price direction only. */
     --up:#D03B3B; --down:#0CA30C;
+    /* Freshness, also reserved: state of the DATA, never of a price. Kept
+       distinct from --down so a green dot never reads as "price fell". */
+    --live:#2BB673; --warn:#D98B00; --cold:#6B7A90;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:var(--bg);color:var(--ink);font:15px/1.55 "Segoe UI",system-ui,-apple-system,sans-serif;padding:32px 16px}
@@ -121,7 +124,24 @@
   .gsrc a{color:var(--c1);text-decoration:none;border-bottom:1px solid rgba(57,135,229,.35)}
   .gsrc a:hover{border-bottom-color:var(--c1)}
   .gsrcn{color:var(--ink3);font-size:10.5px;margin-top:6px}
+  .gmed{grid-column:2 / -1;color:var(--ink3);font-size:10.5px;margin-top:1px}
   .gwhen{color:var(--ink3)}
+  /* A freshness lamp. It reports a computed state, not a decoration: green only
+     when this market's prices come from the newest scrape AND that scrape is
+     recent. Everything else is amber or grey, and every state names itself in
+     the tooltip. */
+  .lamp{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;
+        vertical-align:1px;flex:none}
+  .lamp-live{background:var(--live);box-shadow:0 0 0 3px rgba(43,182,115,.18)}
+  .lamp-warn{background:var(--warn);box-shadow:0 0 0 3px rgba(217,139,0,.16)}
+  .lamp-cold{background:var(--cold)}
+  @media (prefers-reduced-motion: no-preference){
+    .lamp-live{animation:lampPulse 2.6s ease-in-out infinite}
+  }
+  @keyframes lampPulse{
+    0%,100%{box-shadow:0 0 0 3px rgba(43,182,115,.18)}
+    50%    {box-shadow:0 0 0 5px rgba(43,182,115,.05)}
+  }
   /* disclosure for long prose: the summary is the claim, the body the argument */
   .disc>summary{cursor:pointer;list-style:none;color:var(--ink2)}
   .disc>summary::-webkit-details-marker{display:none}
@@ -391,6 +411,34 @@ const flag = flagSVG;   // used where a chip would be too heavy
 // figure wants the pull time, not just the day the price is stamped with.
 // Rendered in the viewer's own timezone, with the UTC stamp on hover, because
 // "11:56" means nothing without saying where.
+// The freshness lamp's actual meaning, in one place so the panel light and the
+// page light can never disagree.
+//
+//   live  - these prices come from the newest scrape, and that scrape is recent
+//   warn  - newest scrape, but it is getting old: the daily job may have stopped
+//   cold  - this market did not return a price in the newest scrape, so what is
+//           shown is the last figure captured, not a current one
+//
+// Green is earned, not decorative: it asserts "this is current", and a page that
+// asserts that while quietly serving week-old numbers is worse than one with no
+// light at all. Days are counted from the viewer's own clock.
+const FRESH_DAYS = 2, STALE_DAYS = 8;
+const freshness = (readDate, latestDate) => {
+  if(!readDate || !latestDate) return null;
+  const age = (Date.now() - Date.parse(latestDate + 'T00:00:00Z')) / 86400000;
+  const ago = age < 1 ? 'today' : age < 2 ? 'yesterday' : `${Math.floor(age)} days ago`;
+  if(readDate !== latestDate)
+    return {k:'cold', t:`Last seen ${readDate}. This market returned no price in the newest `
+                       + `scrape (${latestDate}), so this is the last figure captured, not a current one.`};
+  if(age <= FRESH_DAYS)
+    return {k:'live', t:`Live — read in the newest scrape, ${ago}.`};
+  if(age <= STALE_DAYS)
+    return {k:'warn', t:`Read in the newest scrape, but that was ${ago}. The daily job may not be running.`};
+  return {k:'warn', t:`The newest scrape is ${ago}. These prices are stale — the daily job has `
+                     + 'almost certainly stopped.'};
+};
+const lamp = f => f ? `<span class="lamp lamp-${f.k}" title="${esc(f.t)}"></span>` : '';
+
 const pulledTxt = data => {
   const raw = data && data.meta && data.meta.updated;
   if(!raw) return '';
@@ -924,7 +972,7 @@ Promise.all([
   document.getElementById('banner').innerHTML = obs.length
     ? `<b>${obs.length}</b> observations · ${[...new Set(obs.map(o=>o.d))].length} day(s) ·
        ${countries.map(c=>`${c}: ${new Set(obs.filter(o=>o.country===c).map(o=>o.venue)).size} venues`).join(' · ')}
-       · latest ${esc(latestDate)}${pulledTxt(data)}`
+       · ${lamp(freshness(latestDate, latestDate))}latest ${esc(latestDate)}${pulledTxt(data)}`
     : '<b>No data yet.</b> Run the workflow once from the Actions tab.';
 
   // Pack size is part of the series identity for the same reason it is part of
@@ -1354,8 +1402,9 @@ Promise.all([
               + `${esc(products[c.brand] ? products[c.brand].name : c.brand)}`
               + `${c.exact ? '' : ' (site)'}</a>`).join(' \u00b7 ')
           + '</div>').join('');
+        const f = freshness(when, latestDate);
         return disclose(
-          `<span class="gwhen">Read ${esc(when)}</span> \u00b7 sources`,
+          `${lamp(f)}<span class="gwhen">Read ${esc(when)}</span> \u00b7 sources`,
           links + '<div class="gsrcn">Each link is the page that brand&rsquo;s price was read from. '
                 + 'A figure here is what the page published on the date shown \u2014 a published ask, '
                 + 'not a recorded sale. Shops change pages and prices without notice, so a link may '
@@ -1403,6 +1452,17 @@ Promise.all([
       // observations, so this panel can never disagree with the panels it
       // summarises.
       const nMarkets = panels.length;
+      // Per brand, the spread ACROSS markets - computed before the aggregate
+      // panel is added, so it describes real countries only. It exists to answer
+      // a question the aggregate panel invites: "is that an average?" It is not,
+      // and the honest way to say so is to show the typical market beside the
+      // cheapest one.
+      const acrossMarkets = {};
+      for(const q of panels) for(const b of q.brands)
+        (acrossMarkets[b.pid] || (acrossMarkets[b.pid] = [])).push(b.v);
+      const medianOf = xs => { const a = [...xs].sort((m,n)=>m-n);
+        return a.length % 2 ? a[(a.length-1)/2] : (a[a.length/2-1] + a[a.length/2]) / 2; };
+
       const bestAny = {};
       for(const q of panels) for(const b of q.brands)
         if(!bestAny[b.pid] || b.v < bestAny[b.pid].v) bestAny[b.pid] = b;
@@ -1458,6 +1518,10 @@ Promise.all([
             + `<span class="gshop">${p.country === 'ALL' ? `${esc(CCNAME[b.o.country]||b.o.country)} · ` : ''}`
             + `${esc(venues[b.o.venue].name)} · `
             + `${b.boxed ? `pack of ${b.o.n}` : `sold by the ${FORM[DOSE[b.pid].form]}`}${vBadge(b.o.venue)}</span>`
+            + (p.country === 'ALL' && (acrossMarkets[b.pid]||[]).length > 1
+               ? `<span class="gmed">cheapest of ${acrossMarkets[b.pid].length} markets · `
+                 + `typical market ${money(medianOf(acrossMarkets[b.pid]), 'USD', 2)}</span>`
+               : '')
             + `</div>`).join('');
         const isAll = p.country === 'ALL';
         const r = VAT && VAT.rates && VAT.rates[p.country];
@@ -1474,8 +1538,12 @@ Promise.all([
           + `${detail}</div>`
           + srcBlock(p)
           + `<div class="gvat">${isAll
-              ? 'Each brand is shown at its cheapest market, so a different country can appear on '
-                + 'every row. Each figure already has its own country\u2019s veterinary VAT removed.'
+              ? '<b>This is not an average.</b> Each bar is that brand&rsquo;s <b>cheapest market</b> \u2014 '
+                + 'a minimum, so a different country can appear on every row, and each row names the '
+                + 'typical market beside it for comparison. Averaging markets would need each '
+                + 'country&rsquo;s share of sales, which nobody publishes, and an unweighted mean '
+                + 'would treat T\u00fcrkiye and the United States as equals. Every figure already has '
+                + 'its own country&rsquo;s veterinary VAT removed.'
               : r ? (r.display === 'exclusive'
               ? 'Prices are quoted before tax in this market, so nothing was removed.'
               : `${(r.rate*100).toFixed(0)}% veterinary VAT removed${r.confidence === 'low' ? ' (rate uncertain)' : ''}.`)
