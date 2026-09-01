@@ -1,0 +1,37 @@
+name: Pricescraper daily read
+
+# Daily reads of the venues promoted from the pricescraper candidate queue
+# (Cobasi BR, PetsDrugMart CA). Appends to data/pricescraper-daily.json.
+# NOTE: GitHub only runs schedules from the default branch — the cron below
+# is dormant until this file reaches main. workflow_dispatch works from any
+# branch the file exists on once registered.
+
+on:
+  schedule:
+    - cron: "17 9 * * *"   # daily 09:17 UTC, offset from the top of the hour
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Read Cobasi and PetsDrugMart
+        run: python scripts/fetch_pricescraper_daily.py
+      - name: Commit the day's observations
+        if: always()
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add data/pricescraper-daily.json
+          git diff --cached --quiet || git commit -m "data: pricescraper daily read [skip ci]"
+          for i in 1 2 4 8; do
+            git push origin HEAD && break
+            sleep $i
+          done
