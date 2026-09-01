@@ -56,7 +56,7 @@ PDM_MG = {"3.6 mg": ("apoquel-tab-3.6", 3.6),
           "16 mg": ("apoquel-tab-16", 16)}
 
 
-def get(url, timeout=90, tries=3):
+def get(url, timeout=90, tries=4):
     """web.archive.org refuses connections when hit in bursts; a refusal is
     throttling, not absence, so back off and try again before recording it."""
     last = None
@@ -217,10 +217,24 @@ def main():
                 entry["parsed"] += 1
                 print(f"  {ts[:8]}: {', '.join(str(o['price']) for o in obs)}")
 
-    # one point per (day, venue, sku)
+    # A throttled archive is not an empty archive: one run replaced eight
+    # good observations with none because every CDX call happened to fail.
+    # The existing file's observations are merged in, so a bad day can only
+    # ever ADD detail (a fresh capture of the same day wins), never erase it.
+    if os.path.exists(OUT):
+        try:
+            for o in json.load(open(OUT)).get("observations", []):
+                k = (o["d"], o["venue"], o["sku"], o.get("n"))
+                if not any((x["d"], x["venue"], x["sku"], x.get("n")) == k
+                           for x in doc["observations"]):
+                    doc["observations"].append(o)
+        except Exception as ex:
+            print(f"note: could not merge existing {OUT}: {ex}")
+
+    # one point per (day, venue, sku, pack)
     seen = {}
     for o in doc["observations"]:
-        seen[(o["d"], o["venue"], o["sku"])] = o
+        seen[(o["d"], o["venue"], o["sku"], o.get("n"))] = o
     doc["observations"] = sorted(seen.values(),
                                  key=lambda o: (o["venue"], o["sku"] or "", o["d"]))
 
