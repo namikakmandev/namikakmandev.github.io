@@ -49,7 +49,26 @@ TARGETS = [
     {"venue": "petsdrugmart", "country": "CA", "cur": "CAD", "adapter": "unknown-legacy",
      "sku": None, "mg": None, "n": None, "pack_proof": None,
      "url": "https://www.petsdrugmart.ca/en/Product/Apoquel-119005/4086"},
+    # Petlove answers 403 to datacenter clients on every route, images
+    # included, so the archive is its ONLY read path. Every strength lives on
+    # one page as a ProductGroup variant whose `size` field names the
+    # strength; the pack (2 cartelas de 10 = 20 comprimidos) is stated by the
+    # 2025-09-13 capture's own Apresentação text and printed on the carton in
+    # the page's product photo (data/_petlove-box-31153-1_1.jpg). The window
+    # opens at 2016 - captures older than the Nuxt rebuild carry no
+    # ProductGroup and are recorded as refusals until a parser is written
+    # against what they actually hold.
+    {"venue": "petlove", "country": "BR", "cur": "BRL",
+     "adapter": "petlove-productgroup", "sku": None, "mg": None, "n": 20,
+     "pack_proof": r"cartelas?\s+com\s+10\s+comprimidos|\(20\s*comprimidos\)",
+     "from": "20160101",
+     "url": "https://www.petlove.com.br/apoquel-dermatologico-zoetis-para-caes/p"},
 ]
+
+# skus whose 20-tablet pack is proven by the 2025-09-13 capture and carton
+# photo; a capture that repeats the statement proves itself, one that omits
+# it may still publish THESE skus, labelled with where the proof lives
+PETLOVE_PROVEN_SKUS = {"31153-1": 3.6, "31153-2": 5.4, "31153-3": 16}
 
 PDM_MG = {"3.6 mg": ("apoquel-tab-3.6", 3.6),
           "5.4 mg": ("apoquel-tab-5.4", 5.4),
@@ -176,6 +195,45 @@ def parse_capture(t, ts, text):
                  "country": t["country"], "cur": t["cur"], "price": p,
                  "unit": p, "method": "shopify-jsonld+wayback", "hist": True,
                  "label": "per tablet, strength not stated in capture"}], None
+    if t["adapter"] == "petlove-productgroup":
+        pg = None
+        for m in re.finditer(
+                r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+                text, re.S | re.I):
+            try:
+                block = json.loads(m.group(1).strip())
+            except Exception:
+                continue
+            if isinstance(block, dict) and block.get("@type") == "ProductGroup":
+                pg = block
+                break
+        if not pg:
+            return [], "no ProductGroup in capture (pre-rebuild page; parser not written)"
+        proof_here = bool(re.search(t["pack_proof"], text, re.I))
+        out = []
+        for v in pg.get("hasVariant", []):
+            size = str(v.get("size", "")).strip()
+            sku = str(v.get("sku", "")).strip()
+            m2 = re.fullmatch(r"(\d+(?:,\d+)?)\s*mg", size)
+            if not m2:
+                continue          # bundles ("3 Unidades de...") and oddities
+            offer = v.get("offers") or {}
+            price, cur = offer.get("price"), offer.get("priceCurrency")
+            if not price or cur != t["cur"]:
+                continue
+            if not proof_here and sku not in PETLOVE_PROVEN_SKUS:
+                continue          # pack unproven for this sku, refuse it
+            mg = float(m2.group(1).replace(",", "."))
+            p = round(float(price), 2)
+            out.append({"d": day, "sku": f"apoquel-tab-{m2.group(1).replace(',', '.')}",
+                        "product": "apoquel", "form": "tab", "mg": mg, "n": 20,
+                        "venue": t["venue"], "country": t["country"],
+                        "cur": t["cur"], "price": p, "unit": round(p / 20, 4),
+                        "method": "petlove-jsonld+wayback", "hist": True,
+                        "label": "20 comprimidos"
+                                 + ("" if proof_here
+                                    else " (pack stated by the 2025-09-13 capture)")})
+        return (out, None) if out else ([], "ProductGroup present but no provable single-strength variant")
     # unknown-legacy: discover only, publish nothing
     head = re.sub(r"\s+", " ", text[:400])
     return [], f"legacy platform, parser not written; head: {head[:200]}"
@@ -194,7 +252,7 @@ def main():
 
     for t in TARGETS:
         name = f"{t['venue']}/{t['sku'] or t['adapter']}"
-        ts_list = captures(t["url"], frm, to)
+        ts_list = captures(t["url"], t.get("from", frm), to)
         if ts_list is None:
             doc["log"].append({"target": name, "cdx": "failed"})
             continue
