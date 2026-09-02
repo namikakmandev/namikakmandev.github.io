@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eroom&#8217;s Law stopped &mdash; Nam&#305;k Akman</title>
+  <meta name="description" content="Eroom&#8217;s Law says drug approvals per R&amp;D dollar halve every nine years. Retested on FDA submission records and Eurostat R&amp;D accounts for 2008-2021: the ratio is flat to rising and the law&#8217;s own rate is rejected in all five US specifications." />
+  <meta name="keywords" content="Eroom&#8217;s Law, pharmaceutical R&amp;D productivity, FDA new molecular entities, drug approvals, Scannell, reproducible analysis" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="Eroom&#8217;s Law stopped" />
+  <meta property="og:description" content="Drug research was said to halve in productivity every nine years. Since 2008 it has not fallen at all — and the swings are approvals, not spending." />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/pharma-eroom.png" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .fs-grid{display:grid;gap:18px}
+    .fs-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .fs-card h3{margin-top:0}
+    .fs-hero img{width:100%;height:auto;display:block;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+    .fs-hero .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    .fs-table-wrap{overflow-x:auto}
+    .fs-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .fs-table th,.fs-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .fs-table th[scope=row],.fs-table thead th:first-child{text-align:left}
+    .fs-table .note{text-align:left;white-space:normal;color:var(--text-dim)}
+    .fs-head{color:var(--accent-2);font-weight:600}
+    .fs-bad{color:var(--loss);font-weight:600}
+    .fs-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    @media(max-width:820px){.fs-layers{grid-template-columns:1fr}}
+    .fs-layers .n{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .fs-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block;font-size:.85rem}
+    .fs-links a{margin-right:14px}
+    .fs-code{margin-top:12px}
+    .fs-code summary{cursor:pointer;font-weight:600;color:var(--accent);padding:6px 0}
+    .fs-code pre{overflow:auto;max-height:520px;background:var(--surface-2);border:1px solid var(--border);
+      border-radius:8px;padding:14px;font-size:.78rem;line-height:1.5;margin:8px 0 0}
+    .fs-warn{border-left:3px solid var(--accent-2);padding-left:14px;color:var(--text-dim);font-size:.9rem}
+  </style>
+</head>
+
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container fs-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">Eroom&#8217;s Law stopped</h2>
+        </div>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          In 2012 four researchers published a chart that has shaped how the industry talks
+          about itself ever since.
+        </p>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          The number of new drugs approved per billion dollars of research, they showed, had
+          halved roughly every nine years since 1950. They called it <strong>Eroom&#8217;s
+          Law</strong> &mdash; Moore&#8217;s Law spelled backwards.
+        </p>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          Their series stops around 2010. It is still quoted today.
+        </p>
+
+        <p class="data-note">
+          So I rebuilt the ratio from the FDA&#8217;s own submission records and Eurostat&#8217;s
+          R&amp;D accounts for the years since. <strong>The decline did not continue.</strong>
+          Over 2008&ndash;2021 the ratio is flat to slightly rising, and the law&#8217;s
+          own rate sits outside the confidence interval in every US specification I can build.
+        </p>
+
+        <p class="data-note" style="font-size:.85rem;color:var(--text-dim)">
+          US only, 2008&ndash;2021, 14 annual observations. This tests whether the
+          published <em>rate</em> continued. It does not re-measure the paper&#8217;s own
+          1950&ndash;2010 window, which no open data reaches.
+        </p>
+
+        <div class="fs-card fs-hero">
+          <img src="assets/linkedin/pharma-eroom.png"
+               alt="Line chart, US 2008 to 2021, new molecular entities approved per billion constant dollars of US pharmaceutical business R and D. A dashed line shows Eroom&#8217;s Law halving every nine years from the 2008 value, falling to 0.17 by 2021. The solid line of actual values is flat to rising and ends at 0.55.">
+          <p class="cap">The dashed line is the published rate, drawn from the first year
+            observed &mdash; the claim is about a rate, so that is the only fair way to draw a
+            prediction the paper never made for these years. Regenerate with
+            <code>python3 scripts/pharma_eroom.py</code>.</p>
+        </div>
+
+        <div class="fs-layers">
+          <div class="fs-card">
+            <p class="n">1</p>
+            <h3>The rate is rejected</h3>
+            <p>Fitted slope <strong>+0.0207</strong> per year, 95% interval
+              [-0.0129, +0.0543]. Eroom&#8217;s Law implies
+              <strong>-0.0770</strong>. That is well outside the interval, and
+              the ratio is not falling at all.</p>
+          </div>
+          <div class="fs-card">
+            <p class="n">2</p>
+            <h3>Every way I build it</h3>
+            <p>Rejected in <strong>5 of 5</strong> US
+              specifications &mdash; current dollars, deflated, euro, PPS, constant-price PPS.
+              The answer does not move with the unit.</p>
+          </div>
+          <div class="fs-card">
+            <p class="n">3</p>
+            <h3>But it is an approvals story</h3>
+            <p>Real R&amp;D grows smoothly; approvals swing. The denominator accounts for only
+              <strong>10%</strong> of the
+              ratio&#8217;s movement. Calling this &ldquo;productivity&rdquo; without saying so
+              would overstate it.</p>
+          </div>
+        </div>
+
+        <div class="fs-card">
+          <h3>Year by year</h3>
+          <p>Approvals per billion dollars of US pharmaceutical business R&amp;D, in constant
+            prices, against what Eroom&#8217;s Law implies from the 2008 starting point.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>Year</th><th>New molecular entities</th><th>Per $bn (real)</th>
+                <th>Eroom implies</th><th class="note">Ratio</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">2008</th><td>25</td><td>0.46</td><td>0.46</td><td class="note">1.0&times;</td></tr>
+                <tr><th scope="row">2009</th><td>26</td><td>0.51</td><td>0.42</td><td class="note">1.2&times;</td></tr>
+                <tr><th scope="row">2010</th><td>21</td><td>0.38</td><td>0.39</td><td class="note">1.0&times;</td></tr>
+                <tr><th scope="row">2011</th><td>29</td><td>0.58</td><td>0.36</td><td class="note">1.6&times;</td></tr>
+                <tr><th scope="row">2012</th><td>38</td><td>0.74</td><td>0.34</td><td class="note">2.2&times;</td></tr>
+                <tr><th scope="row">2013</th><td>27</td><td>0.49</td><td>0.31</td><td class="note">1.6&times;</td></tr>
+                <tr><th scope="row">2014</th><td>41</td><td>0.70</td><td>0.29</td><td class="note">2.4&times;</td></tr>
+                <tr><th scope="row">2015</th><td>45</td><td>0.75</td><td>0.27</td><td class="note">2.8&times;</td></tr>
+                <tr class="fs-bad"><th scope="row">2016</th><td>22</td><td>0.33</td><td>0.25</td><td class="note">1.4&times;</td></tr>
+                <tr><th scope="row">2017</th><td>47</td><td>0.71</td><td>0.23</td><td class="note">3.1&times;</td></tr>
+                <tr><th scope="row">2018</th><td>60</td><td>0.82</td><td>0.21</td><td class="note">3.9&times;</td></tr>
+                <tr><th scope="row">2019</th><td>49</td><td>0.57</td><td>0.20</td><td class="note">2.9&times;</td></tr>
+                <tr><th scope="row">2020</th><td>54</td><td>0.62</td><td>0.18</td><td class="note">3.4&times;</td></tr>
+                <tr><th scope="row">2021</th><td>52</td><td>0.55</td><td>0.17</td><td class="note">3.3&times;</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="cap" style="font-size:.85rem;color:var(--text-dim);margin-top:8px">
+            2016 is the weakest year in the record and still sits above the law&#8217;s
+            trajectory. Levels are per billion dollars on the deflator&#8217;s own base year: the
+            fitted slope is invariant to that base, the levels are not.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Every other way of building it</h3>
+          <p>US rows are the evidence &mdash; US R&amp;D against US approvals. The other countries
+            pair <em>domestic</em> R&amp;D with <em>US</em> approvals, which is a weaker quantity,
+            so they are context and counted separately.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>Series</th><th>n</th><th>Window</th><th>Slope</th>
+                <th class="note">95% interval</th><th>Eroom&#8217;s rate</th></tr></thead>
+              <tbody>
+                <tr class="fs-head"><th scope="row">US &middot; current USD</th><td>14</td><td>2008&ndash;2021</td><td>+0.0044</td><td class="note">[-0.0292, +0.0380]</td><td><strong>rejected</strong></td></tr>
+                <tr class="fs-head"><th scope="row">US &middot; deflated</th><td>14</td><td>2008&ndash;2021</td><td>+0.0207</td><td class="note">[-0.0129, +0.0543]</td><td><strong>rejected</strong></td></tr>
+                <tr class="fs-head"><th scope="row">US &middot; current EUR</th><td>14</td><td>2008&ndash;2021</td><td>-0.0155</td><td class="note">[-0.0504, +0.0193]</td><td><strong>rejected</strong></td></tr>
+                <tr class="fs-head"><th scope="row">US &middot; PPS</th><td>14</td><td>2008&ndash;2021</td><td>+0.0196</td><td class="note">[-0.0135, +0.0526]</td><td><strong>rejected</strong></td></tr>
+                <tr class="fs-head"><th scope="row">US &middot; constant PPS</th><td>9</td><td>2008&ndash;2016</td><td>+0.0153</td><td class="note">[-0.0615, +0.0920]</td><td><strong>rejected</strong></td></tr>
+                <tr><th scope="row">JP &middot; PPS</th><td>18</td><td>2005&ndash;2022</td><td>+0.0482</td><td class="note">[+0.0266, +0.0699]</td><td><strong>rejected</strong></td></tr>
+                <tr><th scope="row">DE &middot; current EUR</th><td>16</td><td>2007&ndash;2023</td><td>+0.0343</td><td class="note">[+0.0107, +0.0578]</td><td><strong>rejected</strong></td></tr>
+                <tr><th scope="row">CH &middot; current EUR</th><td>7</td><td>2008&ndash;2023</td><td>-0.0014</td><td class="note">[-0.0223, +0.0196]</td><td><strong>rejected</strong></td></tr>
+                <tr><th scope="row">UK &middot; current EUR</th><td>12</td><td>2007&ndash;2018</td><td>+0.0887</td><td class="note">[+0.0411, +0.1363]</td><td><strong>rejected</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fs-warn"><strong>Rejected in 5 of 5 US
+            specifications, and in 4 of 4 other countries
+            too.</strong> Japan, Germany and the UK show the ratio significantly
+            <em>rising</em>. That is suggestive rather than evidential, for the pairing reason
+            above.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>The checks that decide whether this is real</h3>
+          <ul>
+            <li><strong>No methodology break.</strong> A survey redesign would show as one
+              implausible step. The median year-on-year change in US pharma R&amp;D is
+              7.98% with a MAD of 3.2%, and nothing is
+              flagged. No comparison here spans a redesign.</li>
+            <li><strong>The interval is conservative, not narrow.</strong> Annual data is
+              autocorrelated and a test that ignores that is fiction. Residual lag-1
+              autocorrelation is <strong>-0.28</strong> &mdash;
+              negative, so the effective sample is <em>larger</em> than the nominal one
+              (n<sub>eff</sub> 25 against n 14). Rejecting the rate is
+              safe.</li>
+            <li><strong>The ratio is mostly approvals.</strong> Variance of the year-on-year log
+              change is <strong>0.1295</strong> for approvals against
+              <strong>0.0043</strong> for real R&amp;D. Spending is the
+              smooth part.</li>
+            <li><strong>Money is deflated, and the deflator is named.</strong> US GDP implicit
+              price deflator, FRED <code>A191RD3A086NBEA</code>. Deflating pushes the ratio
+              <em>up</em> in later years, so the current-price version
+              (+0.0044) is the conservative one &mdash; and it rejects the rate too.</li>
+          </ul>
+        </div>
+
+        <div class="fs-card">
+          <h3>What this does not establish</h3>
+          <ul>
+            <li><strong>The paper is not re-measured.</strong> No pharma R&amp;D series reaches
+              back to 1950 through any route three probe rounds could find. This says the rate
+              did not continue; it cannot say the original was wrong.</li>
+            <li><strong>The denominator is R&amp;D performed in the country</strong>, not global
+              spend by its firms &mdash; which is what the paper used. A different object, and
+              the limitation travels with every number above.</li>
+            <li><strong>Fourteen annual points.</strong> A rate as large as halving every nine
+              years is detectable in fourteen. Nothing subtle is.</li>
+            <li><strong>Approvals are not value.</strong> A count of molecules says nothing about
+              whether they work better, cost less, or treat anything that mattered.</li>
+            <li><strong>Eurostat publishes no C21 aggregate for the EU</strong>, only member
+              states, so there is no EU-wide row.</li>
+          </ul>
+        </div>
+
+        <div class="fs-card">
+          <h3>What to do with this</h3>
+          <ul>
+            <li><strong>Stop quoting the nine-year halving as current.</strong> It describes
+              1950&ndash;2010. On the years since, in every US specification, it is rejected. If
+              it goes in a business case, date it.</li>
+            <li><strong>Watch approvals, not budgets.</strong> Spending is the smooth series,
+              growing steadily with almost no variance. Nine-tenths of the movement in the
+              productivity ratio is the approvals count, so that is the number worth
+              forecasting.</li>
+            <li><strong>Expect the volatility.</strong> The record swings from 22 approvals to 60
+              in consecutive years. A plan keyed to one year&#8217;s count is keyed to noise.</li>
+          </ul>
+          <p class="fs-warn"><strong>What would change this.</strong> A global R&amp;D spend
+            series &mdash; the object the paper actually used &mdash; reaching back before 2005.
+            If the ratio still falls once non-US spend is included, the conclusion narrows to
+            &ldquo;the US stopped declining&rdquo; rather than &ldquo;the law stopped&rdquo;.
+            That series is the missing piece, and it is not open.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Sources</h3>
+          <ul>
+            <li><strong>Approvals.</strong> FDA <em>Drugs@FDA</em> bulk archive,
+              <code>Submissions.txt</code>: original applications, status AP, submission class 7
+              (Type 1 &mdash; New Molecular Entity) or 8 (Type 1/4), counted by the year of
+              <code>SubmissionStatusDate</code>. 1,867 approvals, 1939&ndash;2026. Reproduces the
+              FDA&#8217;s own published novel-approval counts almost exactly (2015: 45 against
+              45; 2016: 22 against 22; 2023: 55 against 55).</li>
+            <li><strong>R&amp;D.</strong> Eurostat <code>rd_e_berdindr2</code>, business
+              enterprise R&amp;D expenditure, NACE C21 (basic pharmaceutical products and
+              preparations), unit MIO_NAC, geo US, 2008&ndash;2021.</li>
+            <li><strong>Deflator.</strong> FRED <code>A191RD3A086NBEA</code>, US gross domestic
+              product implicit price deflator, annual.</li>
+            <li><strong>Claim under test.</strong> Scannell, Blanckley, Boldon &amp; Warrington,
+              &ldquo;Diagnosing the decline in pharmaceutical R&amp;D efficiency&rdquo;,
+              <em>Nature Reviews Drug Discovery</em> 11, 191&ndash;200 (2012).</li>
+            <li><strong>Reproducibility.</strong> Every figure comes from
+              <code>data/pharma-eroom.json</code> and
+              <code>data/pharma-eroom-results.json</code>, written by the two scripts below.</li>
+          </ul>
+        </div>
+
+        <div class="fs-card fs-code">
+          <h3>The scripts, in full</h3>
+          <p>Nothing is elided. These are the files that produced every number and the chart on
+            this page, exactly as they run.</p>
+          <details>
+            <summary>fetch_pharma.py (211 lines)</summary>
+            <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Collect the two series behind Eroom&#x27;s Law -&gt; data/pharma-eroom.json
+
+Eroom&#x27;s Law (Scannell et al. 2012) says new drugs approved per billion USD of
+R&amp;D halves about every nine years. The paper&#x27;s window ends around 2010. Since
+then approvals have risen sharply while everyone kept citing the decline, so
+whether the law still holds is an open question rather than a settled one.
+
+It cannot be retested on the paper&#x27;s own 1950 baseline: three probe rounds
+established that no pharma R&amp;D spending series reaches back that far through
+any retrievable route (data/_pharma-probe.json, data/_pharma-spend-probe.json).
+The numerator goes back to 1939; the denominator starts in 2005. So the honest
+study is the modern window, and the page has to say so.
+
+  numerator    FDA new molecular entities per year, built from the Drugs@FDA
+               bulk archive: original applications, approved, submission class
+               7 (Type 1 - New Molecular Entity) or 8 (Type 1/4). Validated
+               against the FDA&#x27;s own published novel-approval counts.
+  denominator  business R&amp;D in pharmaceuticals. Eurostat BERD, NACE C21.
+  deflator     captured alongside, so the ratio can be put in constant prices.
+
+This run also reports the full geo and unit lists rather than assuming them,
+and dumps the structure of one NSF table, because a US R&amp;D series would make
+the denominator cover both regions that actually do the research.
+
+Stdlib only. Runs in GitHub Actions; this sandbox reaches none of these hosts.
+&quot;&quot;&quot;
+import collections, io, json, os, re, sys, time, urllib.request, zipfile
+
+OUT = &quot;data/pharma-eroom.json&quot;
+UA = {&quot;User-Agent&quot;: &quot;namikakmandev-data/1.0 (github actions)&quot;}
+CAP = 16 * 1024 * 1024
+NME_CLASSES = {&quot;7&quot;, &quot;8&quot;}
+DRUGSFDA = &quot;https://www.fda.gov/media/89850/download&quot;
+EUROSTAT = (&quot;https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/&quot;
+            &quot;rd_e_berdindr2?format=JSON&amp;lang=EN&amp;nace_r2=C21&quot;)
+# Money must be deflated before it is correlated with anything. Round 2 read
+# this id&#x27;s title off FRED rather than trusting my label for it: &quot;Gross domestic
+# product (implicit price deflator)&quot;, annual.
+DEFLATOR = &quot;https://fred.stlouisfed.org/graph/fredgraph.csv?id=A191RD3A086NBEA&quot;
+
+
+def get(url, cap=CAP, timeout=240):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        body = r.read(cap + 1)
+    if len(body) &gt; cap:
+        raise RuntimeError(f&quot;response exceeded {cap:,}b cap: {url}&quot;)
+    return body
+
+
+def nme_by_year():
+    &quot;&quot;&quot;FDA new molecular entities per year, from the primary submission records.&quot;&quot;&quot;
+    z = zipfile.ZipFile(io.BytesIO(get(DRUGSFDA)))
+    lines = z.read(&quot;Submissions.txt&quot;).decode(&quot;utf-8&quot;, &quot;replace&quot;).splitlines()
+    ix = {c: i for i, c in enumerate(lines[0].split(&quot;\t&quot;))}
+    per, dropped = collections.Counter(), 0
+    for line in lines[1:]:
+        f = line.split(&quot;\t&quot;)
+        if len(f) &lt; len(ix):
+            dropped += 1
+            continue
+        if (f[ix[&quot;SubmissionType&quot;]].strip().upper() != &quot;ORIG&quot;
+                or f[ix[&quot;SubmissionStatus&quot;]].strip().upper() != &quot;AP&quot;
+                or f[ix[&quot;SubmissionClassCodeID&quot;]].strip() not in NME_CLASSES):
+            continue
+        y = f[ix[&quot;SubmissionStatusDate&quot;]].strip()[:4]
+        if y.isdigit():
+            per[int(y)] += 1
+    return {&quot;by_year&quot;: {str(y): per[y] for y in sorted(per)},
+            &quot;n&quot;: sum(per.values()), &quot;malformed_rows_dropped&quot;: dropped,
+            &quot;source&quot;: DRUGSFDA,
+            &quot;definition&quot;: (&quot;original applications, status AP, submission class &quot;
+                           &quot;7 (Type 1 - New Molecular Entity) or 8 (Type 1/4), &quot;
+                           &quot;counted by the year of SubmissionStatusDate&quot;)}
+
+
+def _jsonstat(j):
+    &quot;&quot;&quot;JSON-stat 2.0 -&gt; [(dim tuple, value)]. Eurostat&#x27;s own layout, read from
+    the response rather than assumed: dimension order comes from j[&#x27;id&#x27;].&quot;&quot;&quot;
+    dims = j[&quot;id&quot;]
+    sizes = j[&quot;size&quot;]
+    cats = [list(j[&quot;dimension&quot;][d][&quot;category&quot;][&quot;index&quot;]) for d in dims]
+    labels = {d: j[&quot;dimension&quot;][d][&quot;category&quot;].get(&quot;label&quot;, {}) for d in dims}
+    out = []
+    for flat, v in j[&quot;value&quot;].items():
+        i = int(flat)
+        key = []
+        for axis in range(len(sizes) - 1, -1, -1):
+            key.append(cats[axis][i % sizes[axis]])
+            i //= sizes[axis]
+        out.append((tuple(reversed(key)), v))
+    return dims, cats, labels, out
+
+
+def berd_pharma():
+    &quot;&quot;&quot;Business R&amp;D in pharmaceuticals (NACE C21), every geo and unit offered.&quot;&quot;&quot;
+    j = json.loads(get(EUROSTAT, cap=8 * 1024 * 1024).decode(&quot;utf-8&quot;, &quot;replace&quot;))
+    dims, cats, labels, rows = _jsonstat(j)
+    di = {d: k for k, d in enumerate(dims)}
+    series = collections.defaultdict(dict)
+    for key, v in rows:
+        if v is None:
+            continue
+        series[(key[di[&quot;geo&quot;]], key[di[&quot;unit&quot;]])][key[di[&quot;time&quot;]]] = v
+    packed = {f&quot;{g}|{u}&quot;: dict(sorted(t.items())) for (g, u), t in series.items()}
+    return {&quot;dimensions&quot;: dims,
+            &quot;geo_available&quot;: cats[di[&quot;geo&quot;]],
+            &quot;unit_available&quot;: cats[di[&quot;unit&quot;]],
+            &quot;unit_labels&quot;: labels[&quot;unit&quot;],
+            &quot;time_available&quot;: cats[di[&quot;time&quot;]],
+            &quot;series&quot;: packed, &quot;n_series&quot;: len(packed),
+            &quot;source&quot;: EUROSTAT,
+            &quot;definition&quot;: (&quot;Eurostat rd_e_berdindr2, business enterprise R&amp;D &quot;
+                           &quot;expenditure, NACE C21 manufacture of basic &quot;
+                           &quot;pharmaceutical products and preparations&quot;)}
+
+
+def us_deflator():
+    &quot;&quot;&quot;US GDP implicit price deflator, annual, so the ratio can be put in
+    constant prices. Deflating pushes the ratio UP in later years, so the
+    current-price result is the conservative one — but the rule is deflate
+    first, and both versions belong on the page.&quot;&quot;&quot;
+    rows = get(DEFLATOR, cap=1024 * 1024, timeout=90).decode().splitlines()
+    out = {}
+    for line in rows[1:]:
+        parts = line.split(&quot;,&quot;)
+        if len(parts) &lt; 2:
+            continue
+        y, v = parts[0][:4], parts[1].strip()
+        try:
+            out[y] = float(v)
+        except ValueError:
+            continue
+    return {&quot;by_year&quot;: out, &quot;n&quot;: len(out), &quot;source&quot;: DEFLATOR,
+            &quot;series_id&quot;: &quot;A191RD3A086NBEA&quot;,
+            &quot;title&quot;: &quot;Gross domestic product (implicit price deflator), annual&quot;,
+            &quot;base&quot;: &quot;index, 2017 = 100 as published by FRED&quot;}
+
+
+def nsf_table_shape():
+    &quot;&quot;&quot;Is a US pharma R&amp;D series extractable from NSF&#x27;s tables with stdlib?
+
+    An xlsx is a zip of XML, so this needs no third-party reader. Reports the
+    sheet names and the first rows of the first sheet so a parser can be
+    written against what is there, not against what the page implies.
+    &quot;&quot;&quot;
+    url = (&quot;https://ncses.nsf.gov/pubs/nsf25354/assets/technical-tables/tables/&quot;
+           &quot;nsf25354-taba-001.xlsx&quot;)
+    rec = {&quot;url&quot;: url}
+    try:
+        z = zipfile.ZipFile(io.BytesIO(get(url, cap=8 * 1024 * 1024, timeout=120)))
+        rec[&quot;members&quot;] = [i.filename for i in z.infolist()][:24]
+        wb = z.read(&quot;xl/workbook.xml&quot;).decode(&quot;utf-8&quot;, &quot;replace&quot;)
+        rec[&quot;sheets&quot;] = re.findall(r&#x27;&lt;sheet name=&quot;([^&quot;]+)&quot;&#x27;, wb)
+        shared = []
+        if &quot;xl/sharedStrings.xml&quot; in [i.filename for i in z.infolist()]:
+            ss = z.read(&quot;xl/sharedStrings.xml&quot;).decode(&quot;utf-8&quot;, &quot;replace&quot;)
+            shared = re.findall(r&quot;&lt;t[^&gt;]*&gt;([^&lt;]*)&lt;/t&gt;&quot;, ss)
+        rec[&quot;n_shared_strings&quot;] = len(shared)
+        rec[&quot;first_strings&quot;] = shared[:40]
+        rec[&quot;mentions_pharma&quot;] = any(&quot;pharmac&quot; in s.lower() for s in shared)
+    except Exception as ex:
+        rec[&quot;error&quot;] = f&quot;{type(ex).__name__}: {ex}&quot;
+    return rec
+
+
+def main():
+    doc = {&quot;generated_by&quot;: &quot;scripts/fetch_pharma.py&quot;,
+           &quot;fetched_at&quot;: time.strftime(&quot;%Y-%m-%dT%H:%M:%SZ&quot;, time.gmtime()),
+           &quot;question&quot;: (&quot;Eroom&#x27;s Law says approvals per R&amp;D dollar halve every &quot;
+                        &quot;nine years. The paper stops around 2010. Did it &quot;
+                        &quot;continue?&quot;),
+           &quot;scope_note&quot;: (&quot;The paper&#x27;s 1950 baseline is not retestable: no &quot;
+                          &quot;pharma R&amp;D series reaches back that far through any &quot;
+                          &quot;retrievable route. Numerator from 1939, denominator &quot;
+                          &quot;from 2005.&quot;)}
+
+    print(&quot;FDA new molecular entities&quot;)
+    doc[&quot;nme&quot;] = nme_by_year()
+    print(f&quot;  {doc[&#x27;nme&#x27;][&#x27;n&#x27;]:,} approvals, &quot;
+          f&quot;{len(doc[&#x27;nme&#x27;][&#x27;by_year&#x27;])} years&quot;)
+
+    print(&quot;Eurostat BERD, NACE C21&quot;)
+    doc[&quot;berd&quot;] = berd_pharma()
+    b = doc[&quot;berd&quot;]
+    print(f&quot;  {b[&#x27;n_series&#x27;]} geo x unit series, time {b[&#x27;time_available&#x27;][0]}&quot;
+          f&quot;-{b[&#x27;time_available&#x27;][-1]}&quot;)
+    print(f&quot;  units: {b[&#x27;unit_available&#x27;]}&quot;)
+    print(f&quot;  geos ({len(b[&#x27;geo_available&#x27;])}): {b[&#x27;geo_available&#x27;]}&quot;)
+
+    print(&quot;US GDP deflator&quot;)
+    doc[&quot;deflator&quot;] = us_deflator()
+    dfl = doc[&quot;deflator&quot;][&quot;by_year&quot;]
+    print(f&quot;  {len(dfl)} years, {min(dfl)}-{max(dfl)}&quot;)
+
+    print(&quot;NSF table shape&quot;)
+    doc[&quot;nsf_probe&quot;] = nsf_table_shape()
+    print(f&quot;  sheets: {doc[&#x27;nsf_probe&#x27;].get(&#x27;sheets&#x27;)}  &quot;
+          f&quot;pharma mentioned: {doc[&#x27;nsf_probe&#x27;].get(&#x27;mentions_pharma&#x27;)}&quot;
+          f&quot;{&#x27;  ERR &#x27; + doc[&#x27;nsf_probe&#x27;][&#x27;error&#x27;] if doc[&#x27;nsf_probe&#x27;].get(&#x27;error&#x27;) else &#x27;&#x27;}&quot;)
+
+    os.makedirs(&quot;data&quot;, exist_ok=True)
+    with open(OUT, &quot;w&quot;) as fh:
+        json.dump(doc, fh, indent=1)
+    print(f&quot;\nwrote {OUT} ({os.path.getsize(OUT):,} bytes)&quot;)
+    return 0
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())</code></pre>
+          </details>
+          <details>
+            <summary>pharma_eroom.py (372 lines)</summary>
+            <pre><code>#!/usr/bin/env python3
+&quot;&quot;&quot;Did Eroom&#x27;s Law continue? -&gt; data/pharma-eroom-results.json
+
+Scannell et al. (2012, Nat Rev Drug Discov) found that new drugs approved per
+billion dollars of R&amp;D had halved roughly every nine years since 1950, and
+named it Eroom&#x27;s Law — Moore&#x27;s Law backwards. The paper&#x27;s series stops around
+2010. Approvals have risen sharply since, while the decline kept being cited.
+So: does the claimed rate still hold?
+
+WHAT THIS CANNOT DO. It cannot re-measure the paper&#x27;s own 1950-2010 window.
+Three probe rounds established that no pharma R&amp;D spending series reaches back
+that far through any retrievable route (data/_pharma-probe.json,
+data/_pharma-spend-probe.json). This tests whether the published RATE continues
+in the years since — a different and narrower question, and the page says so.
+
+  numerator    FDA new molecular entities per year, from the Drugs@FDA
+               submission records. Reproduces the FDA&#x27;s own published novel
+               approval counts almost exactly.
+  denominator  Eurostat BERD, NACE C21: business R&amp;D performed in the country.
+               NOT global spend by that country&#x27;s firms, which is what the
+               paper used. The limitation travels with every number here.
+  deflator     US GDP implicit price deflator.
+
+The headline is the deflated US series. Everything else is a robustness cut.
+
+Stdlib only, deterministic.
+
+  python3 scripts/pharma_eroom.py
+&quot;&quot;&quot;
+import json, math, os, statistics, sys
+
+SRC = &quot;data/pharma-eroom.json&quot;
+OUT = &quot;data/pharma-eroom-results.json&quot;
+EROOM_HALVING_YEARS = 9.0
+EROOM_SLOPE = math.log(0.5) / EROOM_HALVING_YEARS      # -0.0770 per year
+
+
+def hr(t):
+    print(f&quot;\n{&#x27;=&#x27; * 78}\n{t}\n{&#x27;=&#x27; * 78}&quot;)
+
+
+def fit(years, ratio):
+    &quot;&quot;&quot;Log-linear trend with a 95% interval, and what it means as a halving or
+    doubling time. Eroom is a claim about a rate, so the rate is the estimand.&quot;&quot;&quot;
+    xs = sorted(years)
+    ys = [math.log(ratio[y]) for y in xs]
+    n = len(xs)
+    mx, my = statistics.mean(xs), statistics.mean(ys)
+    sxx = sum((x - mx) ** 2 for x in xs)
+    b = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sxx
+    a = my - b * mx
+    res = [y - (a + b * x) for x, y in zip(xs, ys)]
+    s2 = sum(r * r for r in res) / (n - 2)
+    se = (s2 / sxx) ** .5
+    lo, hi = b - 1.96 * se, b + 1.96 * se
+    r1 = (statistics.correlation(res[:-1], res[1:]) if n &gt; 4 else 0.0)
+    return {&quot;n&quot;: n, &quot;first&quot;: xs[0], &quot;last&quot;: xs[-1],
+            &quot;slope&quot;: round(b, 5), &quot;se&quot;: round(se, 5),
+            &quot;ci&quot;: [round(lo, 5), round(hi, 5)],
+            &quot;annual_change_pct&quot;: round((math.exp(b) - 1) * 100, 2),
+            &quot;halving_years&quot;: (round(math.log(0.5) / b, 1) if b &lt; 0 else None),
+            &quot;doubling_years&quot;: (round(math.log(2) / b, 1) if b &gt; 0 else None),
+            &quot;eroom_slope&quot;: round(EROOM_SLOPE, 5),
+            &quot;eroom_inside_ci&quot;: bool(lo &lt;= EROOM_SLOPE &lt;= hi),
+            &quot;resid_lag1_autocorr&quot;: round(r1, 3)}
+
+
+def series(nme, rd, deflator=None):
+    &quot;&quot;&quot;NMEs per billion of R&amp;D. Deflated when a deflator is supplied.&quot;&quot;&quot;
+    out = {}
+    for y in sorted(set(nme) &amp; set(rd)):
+        spend = rd[y] / 1000.0                      # millions -&gt; billions
+        if deflator:
+            if str(y) not in deflator:
+                continue
+            spend = spend / (deflator[str(y)] / 100.0)
+        if spend &gt; 0:
+            out[y] = nme[y] / spend
+    return out
+
+
+def main():
+    doc = json.load(open(SRC))
+    nme = {int(k): v for k, v in doc[&quot;nme&quot;][&quot;by_year&quot;].items()}
+    S = doc[&quot;berd&quot;][&quot;series&quot;]
+    dfl = doc.get(&quot;deflator&quot;, {}).get(&quot;by_year&quot;)
+
+    hr(&quot;0. What is being tested&quot;)
+    print(&quot;  Eroom&#x27;s Law: approvals per R&amp;D dollar halve about every 9 years&quot;)
+    print(f&quot;  -&gt; a log-linear slope of {EROOM_SLOPE:+.4f} per year&quot;)
+    print(&quot;  The paper&#x27;s window ends around 2010. This asks only whether that&quot;)
+    print(&quot;  rate continued afterwards; it does not re-measure the paper itself.&quot;)
+    if not dfl:
+        print(&quot;\n  NO DEFLATOR IN THE DATA FILE — current prices only.&quot;)
+
+    us_nom = series(nme, {int(k): v for k, v in S[&quot;US|MIO_NAC&quot;].items()})
+    us_real = (series(nme, {int(k): v for k, v in S[&quot;US|MIO_NAC&quot;].items()}, dfl)
+               if dfl else None)
+
+    hr(&quot;1. The United States, the defensible pairing&quot;)
+    print(&quot;  US business R&amp;D in pharmaceuticals against US drug approvals.\n&quot;)
+    head = f&quot;    {&#x27;year&#x27;:&lt;6}{&#x27;NMEs&#x27;:&gt;6}{&#x27;R&amp;D $bn&#x27;:&gt;11}&quot;
+    if us_real:
+        head += f&quot;{&#x27;real $bn&#x27;:&gt;11}{&#x27;per real $bn&#x27;:&gt;14}&quot;
+    else:
+        head += f&quot;{&#x27;per $bn&#x27;:&gt;11}&quot;
+    print(head)
+    for y in sorted(us_nom):
+        rd_bn = S[&quot;US|MIO_NAC&quot;][str(y)] / 1000
+        line = f&quot;    {y:&lt;6}{nme[y]:&gt;6}{rd_bn:&gt;11.1f}&quot;
+        if us_real:
+            real = rd_bn / (dfl[str(y)] / 100.0)
+            line += f&quot;{real:&gt;11.1f}{us_real[y]:&gt;14.3f}&quot;
+        else:
+            line += f&quot;{us_nom[y]:&gt;11.3f}&quot;
+        print(line)
+
+    if not us_real:
+        print(&quot;\n  Headline falls back to current prices. Re-run once the &quot;
+              &quot;deflator is fetched.&quot;)
+    headline = fit(sorted(us_real or us_nom), us_real or us_nom)
+    hr(&quot;2. Does the Eroom rate still hold?&quot;)
+    label = &quot;deflated&quot; if us_real else &quot;current prices&quot;
+    print(f&quot;  {label}, {headline[&#x27;first&#x27;]}-{headline[&#x27;last&#x27;]}, &quot;
+          f&quot;n={headline[&#x27;n&#x27;]}\n&quot;)
+    print(f&quot;    fitted slope        {headline[&#x27;slope&#x27;]:+.4f} per year &quot;
+          f&quot;({headline[&#x27;annual_change_pct&#x27;]:+.1f}% a year)&quot;)
+    print(f&quot;    95% interval        {headline[&#x27;ci&#x27;][0]:+.4f} to &quot;
+          f&quot;{headline[&#x27;ci&#x27;][1]:+.4f}&quot;)
+    print(f&quot;    Eroom&#x27;s own rate    {headline[&#x27;eroom_slope&#x27;]:+.4f}  &quot;
+          f&quot;(halving every {EROOM_HALVING_YEARS:.0f} years)&quot;)
+    print(f&quot;    -&gt; Eroom&#x27;s rate is &quot;
+          f&quot;{&#x27;INSIDE the interval: not rejected&#x27; if headline[&#x27;eroom_inside_ci&#x27;] else &#x27;OUTSIDE the interval: REJECTED&#x27;}&quot;)
+    if headline[&quot;halving_years&quot;]:
+        print(f&quot;    the data&#x27;s own halving time: &quot;
+              f&quot;{headline[&#x27;halving_years&#x27;]} years&quot;)
+    else:
+        print(f&quot;    the ratio is not falling at all &quot;
+              f&quot;(doubling time {headline[&#x27;doubling_years&#x27;]} years)&quot;)
+
+    hr(&quot;3. Robustness: every other way of building it&quot;)
+    print(&quot;  US rows are the evidence: US R&amp;D against US approvals. The other&quot;)
+    print(&quot;  countries pair DOMESTIC R&amp;D with US approvals, which is a weaker&quot;)
+    print(&quot;  quantity, so they are listed as context and counted separately.\n&quot;)
+    print(f&quot;    {&#x27;series&#x27;:&lt;28}{&#x27;n&#x27;:&gt;4}  {&#x27;window&#x27;:&lt;12}{&#x27;slope&#x27;:&gt;9}&quot;
+          f&quot;{&#x27;95% interval&#x27;:&gt;22}  Eroom&quot;)
+    cuts = []
+    specs = [(&quot;US&quot;, &quot;MIO_NAC&quot;, &quot;current USD&quot;), (&quot;US&quot;, &quot;MIO_NAC&quot;, &quot;deflated&quot;),
+             (&quot;US&quot;, &quot;MIO_EUR&quot;, &quot;current EUR&quot;), (&quot;US&quot;, &quot;MIO_PPS&quot;, &quot;PPS&quot;),
+             (&quot;US&quot;, &quot;MIO_PPS_KP05&quot;, &quot;constant PPS&quot;),
+             (&quot;JP&quot;, &quot;MIO_PPS&quot;, &quot;PPS&quot;), (&quot;DE&quot;, &quot;MIO_EUR&quot;, &quot;current EUR&quot;),
+             (&quot;CH&quot;, &quot;MIO_EUR&quot;, &quot;current EUR&quot;), (&quot;UK&quot;, &quot;MIO_EUR&quot;, &quot;current EUR&quot;)]
+    for geo, unit, how in specs:
+        raw = S.get(f&quot;{geo}|{unit}&quot;)
+        if not raw:
+            continue
+        rd = {int(k): v for k, v in raw.items()}
+        if how == &quot;deflated&quot; and not dfl:
+            # A row labelled &quot;deflated&quot; that was not deflated is worse than a
+            # missing row: it looks like a robustness cut and is a duplicate.
+            print(f&quot;    {geo + &#x27; &#x27; + unit + &#x27; &#x27; + how:&lt;28}&quot;
+                  f&quot;  SKIPPED — no deflator in the data file&quot;)
+            continue
+        r = series(nme, rd, dfl if how == &quot;deflated&quot; else None)
+        if len(r) &lt; 6:
+            continue
+        f = fit(sorted(r), r)
+        f.update({&quot;geo&quot;: geo, &quot;unit&quot;: unit, &quot;basis&quot;: how})
+        cuts.append(f)
+        print(f&quot;    {geo + &#x27; &#x27; + unit + &#x27; &#x27; + how:&lt;28}{f[&#x27;n&#x27;]:&gt;4}  &quot;
+              f&quot;{str(f[&#x27;first&#x27;]) + &#x27;-&#x27; + str(f[&#x27;last&#x27;]):&lt;12}{f[&#x27;slope&#x27;]:&gt;+9.4f}&quot;
+              f&quot;{&#x27;[&#x27; + format(f[&#x27;ci&#x27;][0], &#x27;+.4f&#x27;) + &#x27;,&#x27; + format(f[&#x27;ci&#x27;][1], &#x27;+.4f&#x27;) + &#x27;]&#x27;:&gt;22}&quot;
+              f&quot;  {&#x27;not rejected&#x27; if f[&#x27;eroom_inside_ci&#x27;] else &#x27;REJECTED&#x27;}&quot;)
+    us_cuts = [c for c in cuts if c[&quot;geo&quot;] == &quot;US&quot;]
+    other = [c for c in cuts if c[&quot;geo&quot;] != &quot;US&quot;]
+    rejected = sum(1 for c in us_cuts if not c[&quot;eroom_inside_ci&quot;])
+    print(f&quot;\n  Eroom&#x27;s rate rejected in {rejected} of {len(us_cuts)} US &quot;
+          f&quot;specifications — the ones that are evidence.&quot;)
+    print(f&quot;  Also rejected in {sum(1 for c in other if not c[&#x27;eroom_inside_ci&#x27;])}&quot;
+          f&quot; of {len(other)} other countries, which is context, not proof.&quot;)
+
+    hr(&quot;4. The checks that decide whether this is real&quot;)
+    ser_h = us_real or us_nom
+    xs = sorted(ser_h)
+
+    # rule 3: a survey redesign would show as one implausible step
+    rdser = {int(k): v for k, v in S[&quot;US|MIO_NAC&quot;].items()}
+    ys_ = sorted(rdser)
+    steps = [(y, (rdser[y] / rdser[p] - 1) * 100) for p, y in zip(ys_, ys_[1:])]
+    med = statistics.median(abs(v) for _, v in steps)
+    mad = statistics.median(abs(abs(v) - med) for _, v in steps)
+    breaks = [(y, v) for y, v in steps if abs(abs(v) - med) &gt; 4 * mad]
+    print(f&quot;  methodology breaks: median year-on-year step {med:.1f}%, &quot;
+          f&quot;MAD {mad:.1f}%&quot;)
+    print(f&quot;    {&#x27;none flagged&#x27; if not breaks else &#x27;FLAGGED: &#x27; + str(breaks)}&quot;
+          f&quot; — no comparison here spans a survey redesign&quot;)
+
+    # rule 8: annual data is autocorrelated; a p-value that ignores that is fiction
+    r1 = headline[&quot;resid_lag1_autocorr&quot;]
+    n_eff = len(xs) * (1 - r1) / (1 + r1)
+    print(f&quot;\n  effective sample size: n={len(xs)}, residual lag-1 &quot;
+          f&quot;autocorrelation {r1:+.2f}, n_eff={n_eff:.0f}&quot;)
+    print(f&quot;    the autocorrelation is {&#x27;negative, so the ordinary interval is&#x27; if r1 &lt; 0 else &#x27;positive, so the interval is&#x27;}&quot;
+          f&quot; {&#x27;conservative and the rejection is safe&#x27; if r1 &lt; 0 else &#x27;TOO NARROW and must be widened&#x27;}&quot;)
+
+    # rule 7: which side of the ratio actually moves?
+    def dlog(seq):
+        k = sorted(seq)
+        return [math.log(seq[k[i + 1]] / seq[k[i]]) for i in range(len(k) - 1)]
+    den = {y: (rdser[y] / 1000) / ((dfl[str(y)] / 100) if dfl else 1) for y in xs}
+    dn, dd = dlog({y: nme[y] for y in xs}), dlog(den)
+    vn, vd = statistics.pvariance(dn), statistics.pvariance(dd)
+    cov = statistics.covariance(dn, dd)
+    share_den = (vd - cov) / (vn + vd - 2 * cov)
+    print(f&quot;\n  what actually moves the ratio&quot;)
+    print(f&quot;    variance of year-on-year log change, approvals  {vn:.4f}&quot;)
+    print(f&quot;    variance of year-on-year log change, real R&amp;D   {vd:.4f}&quot;)
+    print(f&quot;    the denominator accounts for {share_den * 100:.0f}% of the &quot;
+          f&quot;ratio&#x27;s movement&quot;)
+    print(f&quot;    -&gt; spending grows smoothly; the swings are approvals. This is&quot;)
+    print(f&quot;       an approvals story with a slow denominator, not a spending&quot;)
+    print(f&quot;       story, and the page has to say so.&quot;)
+    checks = {&quot;break_median_step_pct&quot;: round(med, 2),
+              &quot;break_mad_pct&quot;: round(mad, 2), &quot;breaks_flagged&quot;: breaks,
+              &quot;n&quot;: len(xs), &quot;resid_lag1_autocorr&quot;: r1,
+              &quot;n_eff&quot;: round(n_eff, 1),
+              &quot;interval_conservative&quot;: bool(r1 &lt; 0),
+              &quot;var_dlog_approvals&quot;: round(vn, 5),
+              &quot;var_dlog_real_rd&quot;: round(vd, 5),
+              &quot;denominator_share_of_movement&quot;: round(share_den, 4)}
+
+    hr(&quot;5. What this does not establish&quot;)
+    print(&quot;  - The denominator is R&amp;D PERFORMED in the country, not global&quot;)
+    print(&quot;    spend by its firms. The paper used the latter. Different object.&quot;)
+    print(&quot;  - Non-US rows pair domestic R&amp;D with US approvals, which is weak.&quot;)
+    print(&quot;    They are context; the US row is the evidence.&quot;)
+    print(&quot;  - 14 annual points. A rate this large is detectable in 14 years,&quot;)
+    print(&quot;    but nothing subtle is.&quot;)
+    print(&quot;  - The paper&#x27;s own era is not re-measured, so this cannot say the&quot;)
+    print(&quot;    original was wrong — only that the rate did not continue.&quot;)
+
+    out = {&quot;generated_by&quot;: &quot;scripts/pharma_eroom.py&quot;,
+           &quot;source_file&quot;: SRC,
+           &quot;fetched_at&quot;: doc.get(&quot;fetched_at&quot;),
+           &quot;question&quot;: (&quot;Eroom&#x27;s Law says approvals per R&amp;D dollar halve every &quot;
+                        &quot;nine years. Did that rate continue after the paper?&quot;),
+           &quot;eroom&quot;: {&quot;halving_years&quot;: EROOM_HALVING_YEARS,
+                     &quot;implied_slope&quot;: round(EROOM_SLOPE, 5),
+                     &quot;paper&quot;: (&quot;Scannell, Blanckley, Boldon &amp; Warrington (2012), &quot;
+                               &quot;Nature Reviews Drug Discovery 11, 191-200&quot;)},
+           &quot;headline&quot;: headline,
+           &quot;headline_basis&quot;: label,
+           &quot;us_series&quot;: {str(y): round(v, 4) for y, v in (us_real or us_nom).items()},
+           &quot;us_nominal&quot;: {str(y): round(v, 4) for y, v in us_nom.items()},
+           &quot;nme_by_year&quot;: doc[&quot;nme&quot;][&quot;by_year&quot;],
+           &quot;robustness&quot;: cuts, &quot;checks&quot;: checks,
+           &quot;n_us_specs&quot;: len(us_cuts), &quot;n_us_rejecting_eroom&quot;: rejected,
+           &quot;n_other_specs&quot;: len(other),
+           &quot;limitations&quot;: [
+               &quot;the ratio&#x27;s movement is almost entirely approvals, not &quot;
+               &quot;spending: real R&amp;D grows smoothly while approvals swing&quot;,
+               &quot;levels are per billion dollars on the deflator&#x27;s own base &quot;
+               &quot;year; the fitted slope is invariant to that base, the levels &quot;
+               &quot;are not&quot;,
+               &quot;denominator is R&amp;D performed in-country, not global spend by &quot;
+               &quot;the country&#x27;s firms, which is what the paper used&quot;,
+               &quot;non-US rows pair domestic R&amp;D with US FDA approvals&quot;,
+               &quot;14 annual observations in the headline series&quot;,
+               &quot;the paper&#x27;s own 1950-2010 window is not re-measured&quot;]}
+    os.makedirs(&quot;data&quot;, exist_ok=True)
+    with open(OUT, &quot;w&quot;) as fh:
+        json.dump(out, fh, indent=1)
+    print(f&quot;\n  wrote {OUT}&quot;)
+    chart(out)
+    return 0
+
+
+def chart(res):
+    &quot;&quot;&quot;What the law predicted, against what happened.
+
+    Anchored at the first observed year, because the claim is about a RATE:
+    from wherever you start, halve every nine years. That is the only fair way
+    to draw a prediction the paper never made for these years.
+    &quot;&quot;&quot;
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from fte_chart import render_png                                # noqa
+
+    ser = {int(k): v for k, v in res[&quot;us_series&quot;].items()}
+    yrs = sorted(ser)
+    y0, v0 = yrs[0], ser[yrs[0]]
+    pred = {y: v0 * (0.5 ** ((y - y0) / EROOM_HALVING_YEARS)) for y in yrs}
+    W, H, L, R, T, B = 1600, 1000, 118, 70, 250, 150
+    pw, ph = W - L - R, H - T - B
+    hi = max(max(ser.values()), v0) * 1.12
+    BLUE, RED, DIM, INK, GRID = &quot;#2f9bff&quot;, &quot;#d94040&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;, &quot;#dfe4ea&quot;
+    F = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&quot;
+         &quot;&#x27;Helvetica Neue&#x27;,Arial,sans-serif&quot;)
+
+    def px(y):
+        return L + (y - yrs[0]) / (yrs[-1] - yrs[0]) * pw
+
+    def py(v):
+        return T + (1 - v / hi) * ph
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+         f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;56&quot; font-size=&quot;37&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;The US, {yrs[0]}&amp;#8211;{yrs[-1]}: Eroom&amp;#8217;s Law said drug &#x27;
+         f&#x27;productivity halves every nine years&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;100&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;US new molecular &#x27;
+         f&#x27;entities approved per billion dollars of US pharmaceutical business &#x27;
+         f&#x27;R&amp;amp;D, in constant prices.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;132&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;The dashed line is &#x27;
+         f&#x27;that rate, drawn from the first year observed. The solid line is &#x27;
+         f&#x27;what actually happened.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;176&quot; font-size=&quot;25&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot;&gt;&#x27;
+         f&#x27;It did not continue: the ratio is flat to rising, and the &#x27;
+         f&#x27;law&amp;#8217;s own rate is rejected in every specification tested.&lt;/text&gt;&#x27;]
+    for i in range(5):
+        v = hi * i / 4
+        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{py(v):.1f}&quot; x2=&quot;{L + pw}&quot; &#x27;
+                 f&#x27;y2=&quot;{py(v):.1f}&quot; stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{L - 14}&quot; y=&quot;{py(v) + 7:.1f}&quot; font-size=&quot;20&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{v:.2f}&lt;/text&gt;&#x27;)
+    for y in yrs:
+        o.append(f&#x27;&lt;text x=&quot;{px(y):.1f}&quot; y=&quot;{T + ph + 34}&quot; font-size=&quot;19&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;{y}&lt;/text&gt;&#x27;)
+    d = &quot; &quot;.join(f&quot;{&#x27;M&#x27; if i == 0 else &#x27;L&#x27;}{px(y):.1f},{py(pred[y]):.1f}&quot;
+                 for i, y in enumerate(yrs))
+    o.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{RED}&quot; stroke-width=&quot;3.5&quot; &#x27;
+             f&#x27;stroke-dasharray=&quot;11 8&quot;/&gt;&#x27;)
+    d = &quot; &quot;.join(f&quot;{&#x27;M&#x27; if i == 0 else &#x27;L&#x27;}{px(y):.1f},{py(ser[y]):.1f}&quot;
+                 for i, y in enumerate(yrs))
+    o.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{BLUE}&quot; stroke-width=&quot;4.5&quot; &#x27;
+             f&#x27;stroke-linejoin=&quot;round&quot;/&gt;&#x27;)
+    for y in yrs:
+        o.append(f&#x27;&lt;circle cx=&quot;{px(y):.1f}&quot; cy=&quot;{py(ser[y]):.1f}&quot; r=&quot;8&quot; &#x27;
+                 f&#x27;fill=&quot;{BLUE}&quot; stroke=&quot;#fff&quot; stroke-width=&quot;3&quot;/&gt;&#x27;)
+    ylast = yrs[-1]
+    o += [f&#x27;&lt;text x=&quot;{px(ylast) - 6:.1f}&quot; y=&quot;{py(ser[ylast]) - 52:.1f}&quot; &#x27;
+          f&#x27;font-size=&quot;23&quot; font-weight=&quot;700&quot; fill=&quot;{BLUE}&quot; text-anchor=&quot;end&quot;&gt;&#x27;
+          f&#x27;actually {ser[ylast]:.2f}&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{px(ylast) - 12:.1f}&quot; y=&quot;{py(pred[ylast]) + 34:.1f}&quot; &#x27;
+          f&#x27;font-size=&quot;23&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot; text-anchor=&quot;end&quot;&gt;&#x27;
+          f&#x27;Eroom&amp;#8217;s Law predicts {pred[ylast]:.2f}&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 102}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;By &#x27;
+          f&#x27;{ylast} the law implies {pred[ylast]:.2f} approvals per billion. &#x27;
+          f&#x27;The figure was {ser[ylast]:.2f} &amp;#8212; more than &#x27;
+          f&#x27;{ser[ylast] / pred[ylast]:.0f} times higher.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 72}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;The swings &#x27;
+          f&#x27;are approvals, not spending: real R&amp;amp;D grows smoothly and &#x27;
+          f&#x27;accounts for only {res[&quot;checks&quot;][&quot;denominator_share_of_movement&quot;]*100:.0f}% &#x27;
+          f&#x27;of the ratio&amp;#8217;s movement.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 44}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;This tests &#x27;
+          f&#x27;only whether the published rate continued. The paper&amp;#8217;s own &#x27;
+          f&#x27;1950&amp;#8211;2010 window cannot be re-measured from open data.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 16}&quot; font-size=&quot;17&quot; fill=&quot;{DIM}&quot;&gt;Data: FDA &#x27;
+          f&#x27;Drugs@FDA submission records (new molecular entities) and Eurostat &#x27;
+          f&#x27;rd_e_berdindr2 NACE C21, deflated by the US GDP price index &#x27;
+          f&#x27;&amp;#183; namikakmandev.github.io/pharma-eroom.html&lt;/text&gt;&#x27;, &#x27;&lt;/svg&gt;&#x27;]
+    svg = &quot;\n&quot;.join(o)
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/pharma-eroom.svg&quot;
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;  wrote {path}&quot;)
+    render_png(svg, &quot;assets/linkedin/pharma-eroom.png&quot;, W, H)
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())</code></pre>
+          </details>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</body>
+</html>
