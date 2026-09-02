@@ -93,10 +93,12 @@
 
         <div class="fs-card fs-hero">
           <img src="assets/linkedin/pharma-eroom.png"
-               alt="Line chart, US 2008 to 2021, new molecular entities approved per billion constant dollars of US pharmaceutical business R and D. A dashed line shows Eroom&#8217;s Law halving every nine years from the 2008 value, falling to 0.17 by 2021. The solid line of actual values is flat to rising and ends at 0.55.">
-          <p class="cap">The dashed line is the published rate, drawn from the first year
-            observed &mdash; the claim is about a rate, so that is the only fair way to draw a
-            prediction the paper never made for these years. Regenerate with
+               alt="Line chart, US 2008 to 2021, new molecular entities approved per billion constant dollars of US pharmaceutical business R and D. A dashed line shows Eroom&#8217;s Law halving every nine years from the 2008 value, falling to 0.17 by 2021. The blue fitted trend through the actual values is flat to slightly rising, with the noisy yearly figures faint behind it.">
+          <p class="cap">Red dashed is the published rate, drawn from the first year observed
+            &mdash; the claim is about a rate, so that is the only fair way to draw a prediction
+            the paper never made for these years. Blue is the fitted trend, with the yearly
+            figures faint behind it: the individual years swing hard, and the flatness is the
+            finding rather than the noise. Regenerate with
             <code>python3 scripts/pharma_eroom.py</code>.</p>
         </div>
 
@@ -491,7 +493,7 @@ if __name__ == &quot;__main__&quot;:
     sys.exit(main())</code></pre>
           </details>
           <details>
-            <summary>pharma_eroom.py (372 lines)</summary>
+            <summary>pharma_eroom.py (381 lines)</summary>
             <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Did Eroom&#x27;s Law continue? -&gt; data/pharma-eroom-results.json
 
@@ -783,7 +785,7 @@ def chart(res):
     yrs = sorted(ser)
     y0, v0 = yrs[0], ser[yrs[0]]
     pred = {y: v0 * (0.5 ** ((y - y0) / EROOM_HALVING_YEARS)) for y in yrs}
-    W, H, L, R, T, B = 1600, 1000, 118, 70, 250, 150
+    W, H, L, R, T, B = 1600, 1060, 118, 70, 250, 210
     pw, ph = W - L - R, H - T - B
     hi = max(max(ser.values()), v0) * 1.12
     BLUE, RED, DIM, INK, GRID = &quot;#2f9bff&quot;, &quot;#d94040&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;, &quot;#dfe4ea&quot;
@@ -805,9 +807,9 @@ def chart(res):
          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;100&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;US new molecular &#x27;
          f&#x27;entities approved per billion dollars of US pharmaceutical business &#x27;
          f&#x27;R&amp;amp;D, in constant prices.&lt;/text&gt;&#x27;,
-         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;132&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;The dashed line is &#x27;
-         f&#x27;that rate, drawn from the first year observed. The solid line is &#x27;
-         f&#x27;what actually happened.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;132&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;Red dashed: where &#x27;
+         f&#x27;the ratio should be if the law still held. Blue: the trend through &#x27;
+         f&#x27;what actually happened, with the yearly figures behind it.&lt;/text&gt;&#x27;,
          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;176&quot; font-size=&quot;25&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot;&gt;&#x27;
          f&#x27;It did not continue: the ratio is flat to rising, and the &#x27;
          f&#x27;law&amp;#8217;s own rate is rejected in every specification tested.&lt;/text&gt;&#x27;]
@@ -824,17 +826,26 @@ def chart(res):
                  for i, y in enumerate(yrs))
     o.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{RED}&quot; stroke-width=&quot;3.5&quot; &#x27;
              f&#x27;stroke-dasharray=&quot;11 8&quot;/&gt;&#x27;)
+    # the yearly points, quietly: they are noisy and the noise is not the point
     d = &quot; &quot;.join(f&quot;{&#x27;M&#x27; if i == 0 else &#x27;L&#x27;}{px(y):.1f},{py(ser[y]):.1f}&quot;
                  for i, y in enumerate(yrs))
-    o.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{BLUE}&quot; stroke-width=&quot;4.5&quot; &#x27;
-             f&#x27;stroke-linejoin=&quot;round&quot;/&gt;&#x27;)
+    o.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{BLUE}&quot; stroke-width=&quot;2.5&quot; &#x27;
+             f&#x27;stroke-linejoin=&quot;round&quot; opacity=&quot;0.35&quot;/&gt;&#x27;)
     for y in yrs:
-        o.append(f&#x27;&lt;circle cx=&quot;{px(y):.1f}&quot; cy=&quot;{py(ser[y]):.1f}&quot; r=&quot;8&quot; &#x27;
-                 f&#x27;fill=&quot;{BLUE}&quot; stroke=&quot;#fff&quot; stroke-width=&quot;3&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;circle cx=&quot;{px(y):.1f}&quot; cy=&quot;{py(ser[y]):.1f}&quot; r=&quot;6&quot; &#x27;
+                 f&#x27;fill=&quot;{BLUE}&quot; opacity=&quot;0.45&quot;/&gt;&#x27;)
+    # the fitted trend, loudly: flat against falling is the whole comparison
+    b = res[&quot;headline&quot;][&quot;slope&quot;]
+    mx = sum(yrs) / len(yrs)
+    my = sum(math.log(ser[y]) for y in yrs) / len(yrs)
+    trend = {y: math.exp(my + b * (y - mx)) for y in yrs}
+    d = &quot; &quot;.join(f&quot;{&#x27;M&#x27; if i == 0 else &#x27;L&#x27;}{px(y):.1f},{py(trend[y]):.1f}&quot;
+                 for i, y in enumerate(yrs))
+    o.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{BLUE}&quot; stroke-width=&quot;5&quot;/&gt;&#x27;)
     ylast = yrs[-1]
-    o += [f&#x27;&lt;text x=&quot;{px(ylast) - 6:.1f}&quot; y=&quot;{py(ser[ylast]) - 52:.1f}&quot; &#x27;
+    o += [f&#x27;&lt;text x=&quot;{px(ylast) - 6:.1f}&quot; y=&quot;{py(trend[ylast]) - 30:.1f}&quot; &#x27;
           f&#x27;font-size=&quot;23&quot; font-weight=&quot;700&quot; fill=&quot;{BLUE}&quot; text-anchor=&quot;end&quot;&gt;&#x27;
-          f&#x27;actually {ser[ylast]:.2f}&lt;/text&gt;&#x27;,
+          f&#x27;the trend: flat&lt;/text&gt;&#x27;,
           f&#x27;&lt;text x=&quot;{px(ylast) - 12:.1f}&quot; y=&quot;{py(pred[ylast]) + 34:.1f}&quot; &#x27;
           f&#x27;font-size=&quot;23&quot; font-weight=&quot;700&quot; fill=&quot;{RED}&quot; text-anchor=&quot;end&quot;&gt;&#x27;
           f&#x27;Eroom&amp;#8217;s Law predicts {pred[ylast]:.2f}&lt;/text&gt;&#x27;,
