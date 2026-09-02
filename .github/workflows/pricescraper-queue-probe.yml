@@ -18,13 +18,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Which shops publish a compare-at price?
-        run: python scripts/probe_compare_at.py
+      - name: Probe candidate retail venues (BR, CA, JP, CN)
+        run: python scripts/probe_pricescraper_queue.py
       - name: Commit the dump
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add data/_compare-at-probe.json
+          git add data/_pricescraper-queue-probe.json
           git diff --cached --quiet || git commit -m "data: pricescraper queue probe [skip ci]"
           for i in 1 2 4 8; do
             git push origin HEAD && break
