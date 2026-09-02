@@ -124,6 +124,7 @@ def read_cobasi(today, basis):
                              for x in re.findall(r'"[Ll]ist[Pp]rice"\s*:\s*([0-9]+(?:\.[0-9]+)?)', text)}
                     lists = {round(x / 100, 2) if x > 20 * p else x for x in lists}
                     lists = {x for x in lists if p < x < 5 * p}
+                    o["list_seen"] = True
                     if len(lists) == 1:
                         o["list"] = lists.pop()
                     elif lists:
@@ -170,13 +171,24 @@ def read_petsdrugmart(today, basis):
                               "why": "variant marked unavailable"})
                 continue
             p = round(price / 100, 2)
-            obs.append({
+            # Shopify carries the shop's own compare-at price on every variant,
+            # which is the one field that makes a campaign measurable rather
+            # than inferred from a fall. Its ABSENCE is a reading too: null or
+            # 0 is the platform's way of saying "no crossed-out price today",
+            # so recording that turns "we cannot see" into "none was running".
+            cmp_raw = v.get("compare_at_price")
+            o = {
                 "d": today, "sku": sku, "product": "apoquel",
                 "form": "tab", "mg": mg, "n": 1,
                 "venue": "petsdrugmart", "country": "CA", "cur": "CAD",
                 "price": p, "unit": p,
-                "method": "shopify-variants", "label": "per tablet"})
-            print(f"  petsdrugmart {sku}: ok {p}")
+                "method": "shopify-variants", "label": "per tablet",
+                "list_seen": True}
+            if isinstance(cmp_raw, int) and cmp_raw > price:
+                o["list"] = round(cmp_raw / 100, 2)
+            obs.append(o)
+            print(f"  petsdrugmart {sku}: ok {p}"
+                  + (f" (list {o['list']})" if "list" in o else " (compare-at empty: no campaign)"))
         for title in PDM_MG:
             if not any(t == title for t in
                        (str(v.get("title", "")).strip() for v in variants)):

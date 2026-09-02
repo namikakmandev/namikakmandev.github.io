@@ -41,7 +41,13 @@ UA = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.
 SHAPES = [
     ("vtex-listprice",   r'"[Ll]ist[Pp]rice"\s*:\s*([0-9]+(?:\.[0-9]+)?)'),
     ("shopify-compare",  r'"compare_at_price"\s*:\s*"?([0-9]+(?:\.[0-9]+)?)"?'),
-    ("jsonld-listprice", r'"(?:listPrice|highPrice|priceSpecification)"\s*:\s*[^,}]{0,80}'),
+    ("jsonld-listprice", r'"listPrice"\s*:\s*"?([0-9]+(?:[.,][0-9]+)?)"?'),
+    # NOT a compare-at, and kept only so a false positive is visible as itself:
+    # an AggregateOffer range is the spread across a page's variants, and a
+    # UnitPriceSpecification is a per-unit rate. Both were read as campaigns by
+    # an earlier version of this probe.
+    ("notcompare-aggregate", r'"(?:lowPrice|highPrice)"\s*:\s*"?[0-9]'),
+    ("notcompare-unitprice", r'"@type"\s*:\s*"UnitPriceSpecification"'),
     ("woo-del-ins",      r'<del[^>]*>.{0,300}?</del>\s*<ins[^>]*>'),
     ("presta-regular",   r'class="[^"]*(?:regular-price|product-discount|old-price)[^"]*"'),
     ("struck-generic",   r'<(?:del|s)\b[^>]*>|text-decoration:\s*line-through'),
@@ -135,25 +141,42 @@ def main():
             print(f"{key:14}{p['product']:18}{p.get('status', p.get('error', ''))} "
                   f"{','.join((p.get('shapes') or {}).keys()) or '-'}", flush=True)
             time.sleep(PAUSE)
-        # A venue counts as ANSWERING only if a shape carrying a number matched;
-        # a bare <del> proves markup, not a price.
-        numeric = {"vtex-listprice", "shopify-compare", "jsonld-listprice"}
-        rec["has_numeric_compare_at"] = any(
-            set((p.get("shapes") or {}).keys()) & numeric
-            or any(x.get("compare_at_price") for x in (p.get("shopify_js") or {}).get("variants", []))
+        # Two different answers, and collapsing them was the mistake the first
+        # run made. FIELD means the shop publishes a compare-at slot at all, so
+        # a campaign here is measurable whenever one runs. DISCOUNT means that
+        # slot currently holds a number above the selling price. A shop with the
+        # field and an empty slot is evidence of NO campaign today, which is a
+        # reading; a shop without the field tells us nothing either way.
+        def variants(p):
+            return (p.get("shopify_js") or {}).get("variants", [])
+        rec["publishes_compare_at_field"] = any(
+            "vtex-listprice" in (p.get("shapes") or {})
+            or "shopify-compare" in (p.get("shapes") or {})
+            or "jsonld-listprice" in (p.get("shapes") or {})
+            or any("compare_at_price" in x for x in variants(p))
+            for p in rec["pages"])
+        rec["discount_running_now"] = any(
+            any(isinstance(x.get("compare_at_price"), (int, float))
+                and isinstance(x.get("price"), (int, float))
+                and x["compare_at_price"] > x["price"] for x in variants(p))
             for p in rec["pages"])
         doc["venues"][key] = rec
 
     doc["summary"] = {
         "venues_probed": len(doc["venues"]),
-        "with_numeric_compare_at": sorted(k for k, r in doc["venues"].items()
-                                          if r["has_numeric_compare_at"]),
+        "publishes_compare_at_field": sorted(k for k, r in doc["venues"].items()
+                                             if r["publishes_compare_at_field"]),
+        "discount_running_now": sorted(k for k, r in doc["venues"].items()
+                                       if r["discount_running_now"]),
         "unreachable": sorted(k for k, r in doc["venues"].items()
                               if all("error" in p for p in r["pages"]) and r["pages"]),
     }
     json.dump(doc, open(OUT, "w"), indent=1, ensure_ascii=False)
     print("\nwrote", OUT)
-    print("compare-at found at:", ", ".join(doc["summary"]["with_numeric_compare_at"]) or "none")
+    print("publishes a compare-at field:",
+          ", ".join(doc["summary"]["publishes_compare_at_field"]) or "none")
+    print("discount running right now:",
+          ", ".join(doc["summary"]["discount_running_now"]) or "none")
     return 0
 
 
