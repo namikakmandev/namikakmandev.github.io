@@ -289,7 +289,7 @@ def chart(res):
     yrs = sorted(ser)
     y0, v0 = yrs[0], ser[yrs[0]]
     pred = {y: v0 * (0.5 ** ((y - y0) / EROOM_HALVING_YEARS)) for y in yrs}
-    W, H, L, R, T, B = 1600, 1000, 118, 70, 250, 150
+    W, H, L, R, T, B = 1600, 1060, 118, 70, 250, 210
     pw, ph = W - L - R, H - T - B
     hi = max(max(ser.values()), v0) * 1.12
     BLUE, RED, DIM, INK, GRID = "#2f9bff", "#d94040", "#5b6472", "#1f2430", "#dfe4ea"
@@ -311,9 +311,9 @@ def chart(res):
          f'<text x="{L}" y="100" font-size="24" fill="{DIM}">US new molecular '
          f'entities approved per billion dollars of US pharmaceutical business '
          f'R&amp;D, in constant prices.</text>',
-         f'<text x="{L}" y="132" font-size="24" fill="{DIM}">The dashed line is '
-         f'that rate, drawn from the first year observed. The solid line is '
-         f'what actually happened.</text>',
+         f'<text x="{L}" y="132" font-size="24" fill="{DIM}">Red dashed: where '
+         f'the ratio should be if the law still held. Blue: the trend through '
+         f'what actually happened, with the yearly figures behind it.</text>',
          f'<text x="{L}" y="176" font-size="25" font-weight="700" fill="{RED}">'
          f'It did not continue: the ratio is flat to rising, and the '
          f'law&#8217;s own rate is rejected in every specification tested.</text>']
@@ -330,17 +330,26 @@ def chart(res):
                  for i, y in enumerate(yrs))
     o.append(f'<path d="{d}" fill="none" stroke="{RED}" stroke-width="3.5" '
              f'stroke-dasharray="11 8"/>')
+    # the yearly points, quietly: they are noisy and the noise is not the point
     d = " ".join(f"{'M' if i == 0 else 'L'}{px(y):.1f},{py(ser[y]):.1f}"
                  for i, y in enumerate(yrs))
-    o.append(f'<path d="{d}" fill="none" stroke="{BLUE}" stroke-width="4.5" '
-             f'stroke-linejoin="round"/>')
+    o.append(f'<path d="{d}" fill="none" stroke="{BLUE}" stroke-width="2.5" '
+             f'stroke-linejoin="round" opacity="0.35"/>')
     for y in yrs:
-        o.append(f'<circle cx="{px(y):.1f}" cy="{py(ser[y]):.1f}" r="8" '
-                 f'fill="{BLUE}" stroke="#fff" stroke-width="3"/>')
+        o.append(f'<circle cx="{px(y):.1f}" cy="{py(ser[y]):.1f}" r="6" '
+                 f'fill="{BLUE}" opacity="0.45"/>')
+    # the fitted trend, loudly: flat against falling is the whole comparison
+    b = res["headline"]["slope"]
+    mx = sum(yrs) / len(yrs)
+    my = sum(math.log(ser[y]) for y in yrs) / len(yrs)
+    trend = {y: math.exp(my + b * (y - mx)) for y in yrs}
+    d = " ".join(f"{'M' if i == 0 else 'L'}{px(y):.1f},{py(trend[y]):.1f}"
+                 for i, y in enumerate(yrs))
+    o.append(f'<path d="{d}" fill="none" stroke="{BLUE}" stroke-width="5"/>')
     ylast = yrs[-1]
-    o += [f'<text x="{px(ylast) - 6:.1f}" y="{py(ser[ylast]) - 52:.1f}" '
+    o += [f'<text x="{px(ylast) - 6:.1f}" y="{py(trend[ylast]) - 30:.1f}" '
           f'font-size="23" font-weight="700" fill="{BLUE}" text-anchor="end">'
-          f'actually {ser[ylast]:.2f}</text>',
+          f'the trend: flat</text>',
           f'<text x="{px(ylast) - 12:.1f}" y="{py(pred[ylast]) + 34:.1f}" '
           f'font-size="23" font-weight="700" fill="{RED}" text-anchor="end">'
           f'Eroom&#8217;s Law predicts {pred[ylast]:.2f}</text>',
