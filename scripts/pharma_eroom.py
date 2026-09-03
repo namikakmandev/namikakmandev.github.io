@@ -29,6 +29,9 @@ Stdlib only, deterministic.
 """
 import json, math, os, statistics, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fte_chart import render_png                                     # noqa: E402
+
 SRC = "data/pharma-eroom.json"
 OUT = "data/pharma-eroom-results.json"
 EROOM_HALVING_YEARS = 9.0
@@ -229,7 +232,45 @@ def main():
               "var_dlog_real_rd": round(vd, 5),
               "denominator_share_of_movement": round(share_den, 4)}
 
-    hr("5. What this does not establish")
+    hr("5. When did approvals actually rise, and was it AI?")
+    # The ratio stops in 2021 because the R&D series does. Approvals do not:
+    # they run to the fetch date, and the last year is partial, so it is
+    # excluded from every statistic rather than plotted as if it were whole.
+    cut_year = int(doc["fetched_at"][:4])
+    full = {y: v for y, v in sorted(nme.items()) if y < cut_year}
+    recent = {y: v for y, v in full.items() if y >= 2005}
+    print(f"  approvals run to {max(full)} ({cut_year} is partial at the "
+          f"{doc['fetched_at'][:10]} cut-off and is excluded)\n")
+
+    # a single level shift, chosen by fit rather than by eye
+    yy = sorted(recent)
+    best = None
+    for c in range(yy[0] + 4, yy[-1] - 3):
+        lo = [recent[y] for y in yy if y < c]
+        hi = [recent[y] for y in yy if y >= c]
+        g = statistics.mean(lo + hi)
+        ss = len(lo) * (statistics.mean(lo) - g) ** 2 + \
+             len(hi) * (statistics.mean(hi) - g) ** 2
+        if not best or ss > best[1]:
+            best = (c, ss, statistics.mean(lo), statistics.mean(hi))
+    shift_year, _, before, after = best
+    print(f"  best single level shift: {shift_year}")
+    print(f"    {yy[0]}-{shift_year - 1}  mean {before:.1f} approvals a year")
+    print(f"    {shift_year}-{yy[-1]}  mean {after:.1f} approvals a year")
+    print(f"    a step of {after - before:+.1f}, {after / before:.1f}x\n")
+    print("  AI-designed drug discovery produced its first clinical candidates")
+    print("  around 2020 and has almost no approvals yet. The step here is")
+    print(f"  complete by {shift_year}. Whatever raised approvals, it finished")
+    print("  before AI could have contributed — this study does not test what")
+    print("  did cause it, and does not claim to.")
+    shift = {"partial_year_excluded": cut_year,
+             "last_full_year": max(full),
+             "level_shift_year": shift_year,
+             "mean_before": round(before, 2), "mean_after": round(after, 2),
+             "ratio": round(after / before, 2),
+             "approvals_by_year": {str(y): v for y, v in recent.items()}}
+
+    hr("6. What this does not establish")
     print("  - The denominator is R&D PERFORMED in the country, not global")
     print("    spend by its firms. The paper used the latter. Different object.")
     print("  - Non-US rows pair domestic R&D with US approvals, which is weak.")
@@ -253,7 +294,7 @@ def main():
            "us_series": {str(y): round(v, 4) for y, v in (us_real or us_nom).items()},
            "us_nominal": {str(y): round(v, 4) for y, v in us_nom.items()},
            "nme_by_year": doc["nme"]["by_year"],
-           "robustness": cuts, "checks": checks,
+           "robustness": cuts, "checks": checks, "approvals_shift": shift,
            "n_us_specs": len(us_cuts), "n_us_rejecting_eroom": rejected,
            "n_other_specs": len(other),
            "limitations": [
@@ -272,7 +313,100 @@ def main():
         json.dump(out, fh, indent=1)
     print(f"\n  wrote {OUT}")
     chart(out)
+    chart_approvals(out)
     return 0
+
+
+def chart_approvals(res):
+    """Approvals alone, which run four years past the ratio.
+
+    The ratio chart stops in 2021 because the R&D series does. Approvals do
+    not, and the shape of them is the answer to the question the first chart
+    provokes: when did this rise, and could AI have done it?
+    """
+    sh = res["approvals_shift"]
+    ser = {int(k): v for k, v in sh["approvals_by_year"].items()}
+    yrs = sorted(ser)
+    cut = sh["level_shift_year"]
+    ratio_end = res["headline"]["last"]
+    W, H, L, R, T, B = 1600, 900, 118, 70, 240, 190
+    pw, ph = W - L - R, H - T - B
+    hi = max(ser.values()) * 1.18
+    BLUE, DIM, INK, GRID, WARM = ("#2f9bff", "#5b6472", "#1f2430", "#dfe4ea",
+                                  "#e2811f")
+    F = ("-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,"
+         "'Helvetica Neue',Arial,sans-serif")
+    slot = pw / len(yrs)
+    bw = slot * 0.62
+
+    def bx(y):
+        return L + (y - yrs[0]) * slot + (slot - bw) / 2
+
+    def by(v):
+        return T + (1 - v / hi) * ph
+
+    o = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
+         f'viewBox="0 0 {W} {H}" font-family="{F}">',
+         f'<rect width="{W}" height="{H}" fill="#fff"/>',
+         f'<text x="{L}" y="56" font-size="37" font-weight="700" fill="{INK}">'
+         f'The rise happened before AI could have caused it</text>',
+         f'<text x="{L}" y="100" font-size="24" fill="{DIM}">New molecular '
+         f'entities approved by the FDA each year. The step up is complete by '
+         f'{cut}; AI-designed molecules</text>',
+         f'<text x="{L}" y="132" font-size="24" fill="{DIM}">reached the clinic '
+         f'around 2020 and have almost no approvals yet. This does not test '
+         f'what did cause it.</text>',
+         f'<text x="{L}" y="180" font-size="25" font-weight="700" fill="{INK}">'
+         f'{yrs[0]}&#8211;{cut - 1}: {sh["mean_before"]:.0f} a year on average.'
+         f'   {cut}&#8211;{yrs[-1]}: {sh["mean_after"]:.0f}. '
+         f'<tspan fill="{WARM}">{sh["ratio"]:.1f}&#215; more.</tspan></text>']
+    for i in range(5):
+        v = hi * i / 4
+        o.append(f'<line x1="{L}" y1="{by(v):.1f}" x2="{L + pw}" '
+                 f'y2="{by(v):.1f}" stroke="{GRID}" stroke-width="1"/>')
+        o.append(f'<text x="{L - 14}" y="{by(v) + 7:.1f}" font-size="20" '
+                 f'fill="{DIM}" text-anchor="end">{v:.0f}</text>')
+    # means first: the bar value labels must sit on top of them, drawn so the step is a shape and not a sentence
+    for a, b_, m in ((yrs[0], cut - 1, sh["mean_before"]),
+                     (cut, yrs[-1], sh["mean_after"])):
+        o.append(f'<line x1="{bx(a):.1f}" y1="{by(m):.1f}" '
+                 f'x2="{bx(b_) + bw:.1f}" y2="{by(m):.1f}" stroke="{INK}" '
+                 f'stroke-width="3" stroke-dasharray="9 6"/>')
+    o.append(f'<line x1="{bx(cut) - (slot - bw) / 2:.1f}" y1="{T + 10}" '
+             f'x2="{bx(cut) - (slot - bw) / 2:.1f}" y2="{by(0):.1f}" '
+             f'stroke="{INK}" stroke-width="1.5" opacity="0.35"/>')
+    for y in yrs:
+        past = y > ratio_end
+        o.append(f'<rect x="{bx(y):.1f}" y="{by(ser[y]):.1f}" '
+                 f'width="{bw:.1f}" height="{by(0) - by(ser[y]):.1f}" '
+                 f'fill="{WARM if past else BLUE}" '
+                 f'opacity="{0.85 if past else 1}" rx="3"/>')
+        o.append(f'<text x="{bx(y) + bw / 2:.1f}" y="{by(ser[y]) - 10:.1f}" '
+                 f'font-size="18" fill="{DIM}" text-anchor="middle">'
+                 f'{ser[y]}</text>')
+        o.append(f'<text x="{bx(y) + bw / 2:.1f}" y="{by(0) + 32:.1f}" '
+                 f'font-size="17" fill="{DIM}" text-anchor="middle">'
+                 f'&#8217;{str(y)[2:]}</text>')
+    o += [f'<text x="{bx(ratio_end + 1):.1f}" y="{T + 4}" font-size="19" '
+          f'font-weight="700" fill="{WARM}">beyond the R&amp;D data</text>',
+          f'<text x="{L}" y="{H - 74}" font-size="22" fill="{INK}">The ratio '
+          f'chart stops in {ratio_end} because the R&amp;D series does. '
+          f'Approvals run to {yrs[-1]}; {sh["partial_year_excluded"]} is a '
+          f'part year at the data cut-off and is left out.</text>',
+          f'<text x="{L}" y="{H - 44}" font-size="22" fill="{INK}">The orange '
+          f'bars are years with approvals but no matching R&amp;D figure, so '
+          f'they cannot enter the productivity ratio.</text>',
+          f'<text x="{L}" y="{H - 16}" font-size="17" fill="{DIM}">Data: FDA '
+          f'Drugs@FDA submission records, original applications approved as '
+          f'submission class 7 or 8 &#183; '
+          f'namikakmandev.github.io/pharma-eroom.html</text>', '</svg>']
+    svg = "\n".join(o)
+    os.makedirs("assets/linkedin", exist_ok=True)
+    path = "assets/linkedin/pharma-approvals.svg"
+    with open(path, "w") as fh:
+        fh.write(svg)
+    print(f"  wrote {path}")
+    render_png(svg, "assets/linkedin/pharma-approvals.png", W, H)
 
 
 def chart(res):
@@ -282,14 +416,11 @@ def chart(res):
     from wherever you start, halve every nine years. That is the only fair way
     to draw a prediction the paper never made for these years.
     """
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from fte_chart import render_png                                # noqa
-
     ser = {int(k): v for k, v in res["us_series"].items()}
     yrs = sorted(ser)
     y0, v0 = yrs[0], ser[yrs[0]]
     pred = {y: v0 * (0.5 ** ((y - y0) / EROOM_HALVING_YEARS)) for y in yrs}
-    W, H, L, R, T, B = 1600, 1060, 118, 70, 250, 210
+    W, H, L, R, T, B = 1600, 1100, 118, 70, 250, 250
     pw, ph = W - L - R, H - T - B
     hi = max(max(ser.values()), v0) * 1.12
     BLUE, RED, DIM, INK, GRID = "#2f9bff", "#d94040", "#5b6472", "#1f2430", "#dfe4ea"
