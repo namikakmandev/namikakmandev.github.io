@@ -86,7 +86,8 @@
         </p>
 
         <p class="data-note" style="font-size:.85rem;color:var(--text-dim)">
-          US only, 2008&ndash;2021, 14 annual observations. This tests whether the
+          US only. The ratio runs 2008&ndash;2021, 14 annual observations, because the R&amp;D
+          series ends there; approvals alone run to 2025. This tests whether the
           published <em>rate</em> continued. It does not re-measure the paper&#8217;s own
           1950&ndash;2010 window, which no open data reaches.
         </p>
@@ -187,6 +188,35 @@
             too.</strong> Japan, Germany and the UK show the ratio significantly
             <em>rising</em>. That is suggestive rather than evidential, for the pairing reason
             above.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Was it AI?</h3>
+          <p>It is the first thing anyone asks, and the answer is no &mdash; on timing alone.</p>
+          <div class="fs-hero" style="margin:14px 0">
+            <img src="assets/linkedin/pharma-approvals.png?v=1"
+                 alt="Bar chart of FDA new molecular entity approvals per year, 2005 to 2025. Bars average 28 a year through 2016 then step up to about 50 a year from 2017 onward. Bars for 2022 to 2025 are orange, marking years with approvals but no matching R and D figure.">
+          </div>
+          <p>Approvals step up once, and the step is complete by <strong>2017</strong>:
+            <strong>28 a year</strong> on average through 2016,
+            <strong>50 a year</strong> from 2017 to
+            2025. That is 1.8&times; more, and the break year is
+            chosen by fit rather than by eye.</p>
+          <p class="fs-warn"><strong>AI-designed molecules reached the clinic around 2020 and have
+            almost no approvals yet.</strong> A cause cannot postdate its effect. Whatever raised
+            the approval count had finished doing so years before AI drug discovery existed at
+            any scale.</p>
+          <p><strong>What did cause it is not tested here, and this page does not guess.</strong>
+            The timing coincides with changes in how the FDA reviews drugs &mdash; the
+            breakthrough therapy pathway dates from 2012, and approvals shifted heavily toward
+            rare-disease and oncology products over the same stretch. Both are documented
+            elsewhere; neither is measured in this data. Treat the step as established and its
+            cause as open.</p>
+          <p class="cap" style="font-size:.85rem;color:var(--text-dim);margin-top:8px">
+            The orange bars are 2022&ndash;2025: years
+            with approvals but no matching R&amp;D figure, so they cannot enter the productivity
+            ratio. 2026 is a part year at the data cut-off and is
+            excluded from every figure here.</p>
         </div>
 
         <div class="fs-card">
@@ -493,7 +523,7 @@ if __name__ == &quot;__main__&quot;:
     sys.exit(main())</code></pre>
           </details>
           <details>
-            <summary>pharma_eroom.py (381 lines)</summary>
+            <summary>pharma_eroom.py (512 lines)</summary>
             <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Did Eroom&#x27;s Law continue? -&gt; data/pharma-eroom-results.json
 
@@ -524,6 +554,9 @@ Stdlib only, deterministic.
   python3 scripts/pharma_eroom.py
 &quot;&quot;&quot;
 import json, math, os, statistics, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fte_chart import render_png                                     # noqa: E402
 
 SRC = &quot;data/pharma-eroom.json&quot;
 OUT = &quot;data/pharma-eroom-results.json&quot;
@@ -725,7 +758,45 @@ def main():
               &quot;var_dlog_real_rd&quot;: round(vd, 5),
               &quot;denominator_share_of_movement&quot;: round(share_den, 4)}
 
-    hr(&quot;5. What this does not establish&quot;)
+    hr(&quot;5. When did approvals actually rise, and was it AI?&quot;)
+    # The ratio stops in 2021 because the R&amp;D series does. Approvals do not:
+    # they run to the fetch date, and the last year is partial, so it is
+    # excluded from every statistic rather than plotted as if it were whole.
+    cut_year = int(doc[&quot;fetched_at&quot;][:4])
+    full = {y: v for y, v in sorted(nme.items()) if y &lt; cut_year}
+    recent = {y: v for y, v in full.items() if y &gt;= 2005}
+    print(f&quot;  approvals run to {max(full)} ({cut_year} is partial at the &quot;
+          f&quot;{doc[&#x27;fetched_at&#x27;][:10]} cut-off and is excluded)\n&quot;)
+
+    # a single level shift, chosen by fit rather than by eye
+    yy = sorted(recent)
+    best = None
+    for c in range(yy[0] + 4, yy[-1] - 3):
+        lo = [recent[y] for y in yy if y &lt; c]
+        hi = [recent[y] for y in yy if y &gt;= c]
+        g = statistics.mean(lo + hi)
+        ss = len(lo) * (statistics.mean(lo) - g) ** 2 + \
+             len(hi) * (statistics.mean(hi) - g) ** 2
+        if not best or ss &gt; best[1]:
+            best = (c, ss, statistics.mean(lo), statistics.mean(hi))
+    shift_year, _, before, after = best
+    print(f&quot;  best single level shift: {shift_year}&quot;)
+    print(f&quot;    {yy[0]}-{shift_year - 1}  mean {before:.1f} approvals a year&quot;)
+    print(f&quot;    {shift_year}-{yy[-1]}  mean {after:.1f} approvals a year&quot;)
+    print(f&quot;    a step of {after - before:+.1f}, {after / before:.1f}x\n&quot;)
+    print(&quot;  AI-designed drug discovery produced its first clinical candidates&quot;)
+    print(&quot;  around 2020 and has almost no approvals yet. The step here is&quot;)
+    print(f&quot;  complete by {shift_year}. Whatever raised approvals, it finished&quot;)
+    print(&quot;  before AI could have contributed — this study does not test what&quot;)
+    print(&quot;  did cause it, and does not claim to.&quot;)
+    shift = {&quot;partial_year_excluded&quot;: cut_year,
+             &quot;last_full_year&quot;: max(full),
+             &quot;level_shift_year&quot;: shift_year,
+             &quot;mean_before&quot;: round(before, 2), &quot;mean_after&quot;: round(after, 2),
+             &quot;ratio&quot;: round(after / before, 2),
+             &quot;approvals_by_year&quot;: {str(y): v for y, v in recent.items()}}
+
+    hr(&quot;6. What this does not establish&quot;)
     print(&quot;  - The denominator is R&amp;D PERFORMED in the country, not global&quot;)
     print(&quot;    spend by its firms. The paper used the latter. Different object.&quot;)
     print(&quot;  - Non-US rows pair domestic R&amp;D with US approvals, which is weak.&quot;)
@@ -749,7 +820,7 @@ def main():
            &quot;us_series&quot;: {str(y): round(v, 4) for y, v in (us_real or us_nom).items()},
            &quot;us_nominal&quot;: {str(y): round(v, 4) for y, v in us_nom.items()},
            &quot;nme_by_year&quot;: doc[&quot;nme&quot;][&quot;by_year&quot;],
-           &quot;robustness&quot;: cuts, &quot;checks&quot;: checks,
+           &quot;robustness&quot;: cuts, &quot;checks&quot;: checks, &quot;approvals_shift&quot;: shift,
            &quot;n_us_specs&quot;: len(us_cuts), &quot;n_us_rejecting_eroom&quot;: rejected,
            &quot;n_other_specs&quot;: len(other),
            &quot;limitations&quot;: [
@@ -768,7 +839,100 @@ def main():
         json.dump(out, fh, indent=1)
     print(f&quot;\n  wrote {OUT}&quot;)
     chart(out)
+    chart_approvals(out)
     return 0
+
+
+def chart_approvals(res):
+    &quot;&quot;&quot;Approvals alone, which run four years past the ratio.
+
+    The ratio chart stops in 2021 because the R&amp;D series does. Approvals do
+    not, and the shape of them is the answer to the question the first chart
+    provokes: when did this rise, and could AI have done it?
+    &quot;&quot;&quot;
+    sh = res[&quot;approvals_shift&quot;]
+    ser = {int(k): v for k, v in sh[&quot;approvals_by_year&quot;].items()}
+    yrs = sorted(ser)
+    cut = sh[&quot;level_shift_year&quot;]
+    ratio_end = res[&quot;headline&quot;][&quot;last&quot;]
+    W, H, L, R, T, B = 1600, 900, 118, 70, 240, 190
+    pw, ph = W - L - R, H - T - B
+    hi = max(ser.values()) * 1.18
+    BLUE, DIM, INK, GRID, WARM = (&quot;#2f9bff&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;, &quot;#dfe4ea&quot;,
+                                  &quot;#e2811f&quot;)
+    F = (&quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&quot;
+         &quot;&#x27;Helvetica Neue&#x27;,Arial,sans-serif&quot;)
+    slot = pw / len(yrs)
+    bw = slot * 0.62
+
+    def bx(y):
+        return L + (y - yrs[0]) * slot + (slot - bw) / 2
+
+    def by(v):
+        return T + (1 - v / hi) * ph
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; &#x27;
+         f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;56&quot; font-size=&quot;37&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;The rise happened before AI could have caused it&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;100&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;New molecular &#x27;
+         f&#x27;entities approved by the FDA each year. The step up is complete by &#x27;
+         f&#x27;{cut}; AI-designed molecules&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;132&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;reached the clinic &#x27;
+         f&#x27;around 2020 and have almost no approvals yet. This does not test &#x27;
+         f&#x27;what did cause it.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;180&quot; font-size=&quot;25&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;{yrs[0]}&amp;#8211;{cut - 1}: {sh[&quot;mean_before&quot;]:.0f} a year on average.&#x27;
+         f&#x27;   {cut}&amp;#8211;{yrs[-1]}: {sh[&quot;mean_after&quot;]:.0f}. &#x27;
+         f&#x27;&lt;tspan fill=&quot;{WARM}&quot;&gt;{sh[&quot;ratio&quot;]:.1f}&amp;#215; more.&lt;/tspan&gt;&lt;/text&gt;&#x27;]
+    for i in range(5):
+        v = hi * i / 4
+        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{by(v):.1f}&quot; x2=&quot;{L + pw}&quot; &#x27;
+                 f&#x27;y2=&quot;{by(v):.1f}&quot; stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{L - 14}&quot; y=&quot;{by(v) + 7:.1f}&quot; font-size=&quot;20&quot; &#x27;
+                 f&#x27;fill=&quot;{DIM}&quot; text-anchor=&quot;end&quot;&gt;{v:.0f}&lt;/text&gt;&#x27;)
+    # means first: the bar value labels must sit on top of them, drawn so the step is a shape and not a sentence
+    for a, b_, m in ((yrs[0], cut - 1, sh[&quot;mean_before&quot;]),
+                     (cut, yrs[-1], sh[&quot;mean_after&quot;])):
+        o.append(f&#x27;&lt;line x1=&quot;{bx(a):.1f}&quot; y1=&quot;{by(m):.1f}&quot; &#x27;
+                 f&#x27;x2=&quot;{bx(b_) + bw:.1f}&quot; y2=&quot;{by(m):.1f}&quot; stroke=&quot;{INK}&quot; &#x27;
+                 f&#x27;stroke-width=&quot;3&quot; stroke-dasharray=&quot;9 6&quot;/&gt;&#x27;)
+    o.append(f&#x27;&lt;line x1=&quot;{bx(cut) - (slot - bw) / 2:.1f}&quot; y1=&quot;{T + 10}&quot; &#x27;
+             f&#x27;x2=&quot;{bx(cut) - (slot - bw) / 2:.1f}&quot; y2=&quot;{by(0):.1f}&quot; &#x27;
+             f&#x27;stroke=&quot;{INK}&quot; stroke-width=&quot;1.5&quot; opacity=&quot;0.35&quot;/&gt;&#x27;)
+    for y in yrs:
+        past = y &gt; ratio_end
+        o.append(f&#x27;&lt;rect x=&quot;{bx(y):.1f}&quot; y=&quot;{by(ser[y]):.1f}&quot; &#x27;
+                 f&#x27;width=&quot;{bw:.1f}&quot; height=&quot;{by(0) - by(ser[y]):.1f}&quot; &#x27;
+                 f&#x27;fill=&quot;{WARM if past else BLUE}&quot; &#x27;
+                 f&#x27;opacity=&quot;{0.85 if past else 1}&quot; rx=&quot;3&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{bx(y) + bw / 2:.1f}&quot; y=&quot;{by(ser[y]) - 10:.1f}&quot; &#x27;
+                 f&#x27;font-size=&quot;18&quot; fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+                 f&#x27;{ser[y]}&lt;/text&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{bx(y) + bw / 2:.1f}&quot; y=&quot;{by(0) + 32:.1f}&quot; &#x27;
+                 f&#x27;font-size=&quot;17&quot; fill=&quot;{DIM}&quot; text-anchor=&quot;middle&quot;&gt;&#x27;
+                 f&#x27;&amp;#8217;{str(y)[2:]}&lt;/text&gt;&#x27;)
+    o += [f&#x27;&lt;text x=&quot;{bx(ratio_end + 1):.1f}&quot; y=&quot;{T + 4}&quot; font-size=&quot;19&quot; &#x27;
+          f&#x27;font-weight=&quot;700&quot; fill=&quot;{WARM}&quot;&gt;beyond the R&amp;amp;D data&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 74}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;The ratio &#x27;
+          f&#x27;chart stops in {ratio_end} because the R&amp;amp;D series does. &#x27;
+          f&#x27;Approvals run to {yrs[-1]}; {sh[&quot;partial_year_excluded&quot;]} is a &#x27;
+          f&#x27;part year at the data cut-off and is left out.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 44}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;The orange &#x27;
+          f&#x27;bars are years with approvals but no matching R&amp;amp;D figure, so &#x27;
+          f&#x27;they cannot enter the productivity ratio.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 16}&quot; font-size=&quot;17&quot; fill=&quot;{DIM}&quot;&gt;Data: FDA &#x27;
+          f&#x27;Drugs@FDA submission records, original applications approved as &#x27;
+          f&#x27;submission class 7 or 8 &amp;#183; &#x27;
+          f&#x27;namikakmandev.github.io/pharma-eroom.html&lt;/text&gt;&#x27;, &#x27;&lt;/svg&gt;&#x27;]
+    svg = &quot;\n&quot;.join(o)
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/pharma-approvals.svg&quot;
+    with open(path, &quot;w&quot;) as fh:
+        fh.write(svg)
+    print(f&quot;  wrote {path}&quot;)
+    render_png(svg, &quot;assets/linkedin/pharma-approvals.png&quot;, W, H)
 
 
 def chart(res):
@@ -778,14 +942,11 @@ def chart(res):
     from wherever you start, halve every nine years. That is the only fair way
     to draw a prediction the paper never made for these years.
     &quot;&quot;&quot;
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from fte_chart import render_png                                # noqa
-
     ser = {int(k): v for k, v in res[&quot;us_series&quot;].items()}
     yrs = sorted(ser)
     y0, v0 = yrs[0], ser[yrs[0]]
     pred = {y: v0 * (0.5 ** ((y - y0) / EROOM_HALVING_YEARS)) for y in yrs}
-    W, H, L, R, T, B = 1600, 1060, 118, 70, 250, 210
+    W, H, L, R, T, B = 1600, 1100, 118, 70, 250, 250
     pw, ph = W - L - R, H - T - B
     hi = max(max(ser.values()), v0) * 1.12
     BLUE, RED, DIM, INK, GRID = &quot;#2f9bff&quot;, &quot;#d94040&quot;, &quot;#5b6472&quot;, &quot;#1f2430&quot;, &quot;#dfe4ea&quot;
