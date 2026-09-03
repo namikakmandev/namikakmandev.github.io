@@ -72,9 +72,9 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);
 <table>
 <thead><tr><th data-i="t1a">Bölge</th><th data-i="t1b">Pay (et)</th><th data-i="t1c">Payda (yem)</th><th data-i="t1d">Kaynak · Dönem</th></tr></thead>
 <tbody>
-<tr><td><b>ABD</b></td><td data-i="r1a">Kesimlik sığır ÜFE<br><span class="mono">WPU0131</span></td><td data-i="r1b">Mısır ÜFE<br><span class="mono">WPU012202</span></td><td data-i="r1c">FRED / BLS · 1971-01 → 2026-06 · <b>666 ay</b></td></tr>
-<tr><td><b>AB</b></td><td data-i="r2a">Genç boğa karkas R3<br>EUR/100 kg</td><td data-i="r2b">Yem tahılı (mısır)<br>EUR/ton</td><td data-i="r2c">Avrupa Komisyonu Agri-food Data Portal · 2015-11 → 2026-07 · <b>129 ay</b></td></tr>
-<tr><td><b>Türkiye</b></td><td data-i="r3a">Et ve et ürünleri Yİ-ÜFE<br><span class="mono">TP.TUFE1YI.T17</span></td><td data-i="r3b">Hazır hayvan yemleri Yİ-ÜFE<br><span class="mono">TP.TUFE1YI.T25</span></td><td data-i="r3c">TCMB EVDS / TÜİK · 2010-01 → 2026-06 · <b>198 ay</b></td></tr>
+<tr><td><b>ABD</b></td><td data-i="r1a">Kesimlik sığır ÜFE<br><span class="mono">WPU0131</span></td><td data-i="r1b">Mısır ÜFE<br><span class="mono">WPU012202</span></td><td data-i="r1c">FRED / BLS · 1971-01 → 2026-07 · <b>667 ay</b></td></tr>
+<tr><td><b>AB</b></td><td data-i="r2a">Genç boğa karkas R3<br>EUR/100 kg</td><td data-i="r2b">Yem tahılı (mısır)<br>EUR/ton</td><td data-i="r2c">Avrupa Komisyonu Agri-food Data Portal · 2015-11 → 2026-08 · <b>130 ay</b></td></tr>
+<tr><td><b>Türkiye</b></td><td data-i="r3a">Et ve et ürünleri Yİ-ÜFE<br><span class="mono">TP.TUFE1YI.T17</span></td><td data-i="r3b">Hazır hayvan yemleri Yİ-ÜFE<br><span class="mono">TP.TUFE1YI.T25</span></td><td data-i="r3c">TCMB EVDS / TÜİK · 2010-01 → 2026-08 · <b>200 ay</b></td></tr>
 <tr><td><b>İsrail</b></td><td data-i="r3il_a">Taze sığır eti ÜFE<br><span class="mono">CBS 190030</span></td><td data-i="r3il_b">Yem (fodder) girdi endeksi<br><span class="mono">CBS 260030</span></td><td data-i="r3il_c">İsrail CBS endeks API · 2005-01 → 2026-07 · <b>259 ay</b> · baz zincirlemeli</td></tr>
 </tbody></table>
 <p data-i="p1">Veri otomatik çekiliyor: GitHub Actions ayda bir kaynakları sorguluyor, sonucu <span class="mono">/data/*.json</span> olarak yazıyor. Sayfa, film ve raporlar aynı dosyayı okuyor — yani üç üründe de tek bir gerçeklik var. AB serisi haftalık kotasyonların aylık ortalamasıdır. <b>İsrail serisi baz zincirlemelidir:</b> CBS her endeksi dönem dönem yeni baza geçirir ve API her ayı o günkü bazla verir — ham seride 2013'te −%42, 2021'de −%48'lik sahte uçurumlar oluşur. Çekim kodu, CBS'nin yayımladığı zincirleme katsayılarıyla tüm tarihi en yeni baza taşır; zincirlenmiş serinin 2020 ortalaması iki tarafta da tam 100'dür (taban yılı sağlaması). <b>Çift seçimi sağlamlık testi:</b> TR'ye birebir paralel çift (CBS 180073 et işleme ÷ 180195 hazır hayvan yemleri, 2013→) ile ana çiftin (taze sığır eti ÷ yem girdisi) 162 ortak ayındaki korelasyon seviyede r&nbsp;=&nbsp;0,96, yıllık değişimde r&nbsp;=&nbsp;0,89; iki çift de dibi 2022-23 tahıl şokuna koyar ve İsrail'i panelin en sakin pazarı yapar (bant ×1,8 / ×1,7). Veri: <span class="mono">data/cattle-il-alt.json</span>.</p>
@@ -154,13 +154,13 @@ const T={
   t1a:'Region',t1b:'Numerator (meat)',t1c:'Denominator (feed)',t1d:'Source · Period',
   r1a:'Slaughter cattle PPI<br><span class="mono">WPU0131</span>',
   r1b:'Corn PPI<br><span class="mono">WPU012202</span>',
-  r1c:'FRED / BLS · 1971-01 → 2026-06 · <b>666 months</b>',
+  r1c:'FRED / BLS · 1971-01 → 2026-07 · <b>667 months</b>',
   r2a:'Young bull carcass R3<br>EUR/100 kg',
   r2b:'Feed grain (maize)<br>EUR/tonne',
-  r2c:'European Commission Agri-food Data Portal · 2015-11 → 2026-07 · <b>129 months</b>',
+  r2c:'European Commission Agri-food Data Portal · 2015-11 → 2026-08 · <b>130 months</b>',
   r3a:'Meat &amp; meat products PPI<br><span class="mono">TP.TUFE1YI.T17</span>',
   r3b:'Compound animal feed PPI<br><span class="mono">TP.TUFE1YI.T25</span>',
-  r3c:'CBRT EVDS / TurkStat · 2010-01 → 2026-06 · <b>198 months</b>',
+  r3c:'CBRT EVDS / TurkStat · 2010-01 → 2026-08 · <b>200 months</b>',
   r3il_a:'Fresh beef PPI<br><span class="mono">CBS 190030</span>',
   r3il_b:'Fodder input price index<br><span class="mono">CBS 260030</span>',
   r3il_c:'Israel CBS index API · 2005-01 → 2026-07 · <b>259 months</b> · chained across rebasings',
@@ -214,6 +214,26 @@ function setLang(l){
 }
 const btr=document.getElementById('btr'),ben=document.getElementById('ben');
 btr.onclick=()=>setLang('tr');ben.onclick=()=>setLang('en');
+
+/* Kaynak tablosundaki dönem ve ay sayısı veri dosyalarından okunur: aylık çekim
+   seriyi uzattığında tablo da uzar, elle güncelleme gerekmez. */
+const SRC={r1c:'cattle-us',r2c:'cattle-eu',r3c:'cattle-tr',r3il_c:'cattle-il'};
+const SRCK=Object.keys(SRC);
+Promise.all(SRCK.map(k=>fetch('data/'+SRC[k]+'.json').then(r=>r.json()).catch(()=>null)))
+  .then(list=>{
+    let touched=false;
+    SRCK.forEach((k,i)=>{
+      const j=list[i];
+      if(!j||!Array.isArray(j.rows)||j.rows.length<2)return;   // veri yoksa yazılı metin kalsın
+      const rows=j.rows, span=rows[0][0]+' → '+rows[rows.length-1][0], n=rows.length;
+      const fix=t=>t.replace(/\d{4}-\d{2} → \d{4}-\d{2}/,span)
+                    .replace(/<b>[\d.,]+ (ay|months)<\/b>/,(m,u)=>'<b>'+n+' '+u+'</b>');
+      orig[k]=fix(orig[k]);
+      if(T.en[k]!==undefined)T.en[k]=fix(T.en[k]);
+      touched=true;
+    });
+    if(touched)setLang(document.documentElement.lang==='en'?'en':'tr');
+  });
 </script>
 </body>
 </html>
