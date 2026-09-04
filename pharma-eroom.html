@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Eroom&#8217;s Law stopped &mdash; Nam&#305;k Akman</title>
-  <meta name="description" content="Eroom&#8217;s Law says drug approvals per R&amp;D dollar halve every nine years. Retested on FDA submission records and Eurostat R&amp;D accounts for 2008-2021: the ratio is flat to rising and the law&#8217;s own rate is rejected in all five US specifications." />
+  <meta name="description" content="Everyone in pharma knows drug research is getting harder; there is a famous chart for it. The FDA&#8217;s own records say the opposite: 28 new molecules a year through 2016, 50 since. Eroom&#8217;s Law retested on 2008-2021: the ratio is flat to rising and the nine-year halving is rejected in all five US specifications." />
   <meta name="keywords" content="Eroom&#8217;s Law, pharmaceutical R&amp;D productivity, FDA new molecular entities, drug approvals, Scannell, reproducible analysis" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
   <meta property="og:title" content="Eroom&#8217;s Law stopped" />
-  <meta property="og:description" content="Drug research was said to halve in productivity every nine years. Since 2008 it has not fallen at all — and the swings are approvals, not spending." />
+  <meta property="og:description" content="Pharma nearly doubled its output and is still quoting a chart that says it is in decline. 28 new drugs a year through 2016, 50 since — and the famous nine-year halving is rejected on the years since 2008." />
   <meta property="og:type" content="article" />
   <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/pharma-eroom.png?v=c5395c1d" />
   <link rel="stylesheet" href="css/style.css?v=30" />
@@ -64,37 +64,32 @@
         </div>
 
         <p class="data-note" style="font-size:1.05rem;line-height:1.65">
-          Moore&#8217;s Law says computing power doubles every two years. It is the most quoted
-          number in technology.
+          Ask anyone in pharma and they will tell you drug research is getting harder. Fewer new
+          medicines per dollar, every year. There is a famous chart for it.
         </p>
 
         <p class="data-note" style="font-size:1.05rem;line-height:1.65">
-          In 2012, four researchers went looking for the same thing in drug research. They found
-          its exact opposite.
+          <strong>The FDA&#8217;s own records say the opposite.</strong>
         </p>
 
         <p class="data-note" style="font-size:1.05rem;line-height:1.65">
-          Every nine years, the number of new drugs approved per billion dollars spent had
-          <strong>halved</strong>. Since 1950. Sixty years, no exceptions.
+          Through 2016 it approved <strong>28 new molecules a year</strong>. Since
+          2017, <strong>50</strong>. The industry nearly doubled its output.
         </p>
 
         <p class="data-note" style="font-size:1.05rem;line-height:1.65">
-          So they spelled Moore backwards and called it <strong>Eroom&#8217;s Law</strong>.
+          The famous chart was published in 2012. It showed new drugs per billion dollars of
+          research halving every nine years since 1950 &mdash; Moore&#8217;s Law backwards, so
+          they called it <strong>Eroom&#8217;s Law</strong>. Its data stops in 2010.
         </p>
 
         <p class="data-note" style="font-size:1.05rem;line-height:1.65">
-          The chart became the industry&#8217;s explanation for everything: why medicines cost
-          what they cost, why research budgets keep growing, why the pipeline never fills. It is
-          still on slides today.
-        </p>
-
-        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
-          Its data stops in 2010. Nobody checked whether it was still true.
+          It is still in the budget decks. It is still in the pricing arguments. Nobody re-ran it.
         </p>
 
         <p class="data-note">
-          So I rebuilt it from the FDA&#8217;s own submission records and Eurostat&#8217;s R&amp;D
-          accounts for the years since. <strong>The decline did not continue.</strong>
+          So I did, from the FDA&#8217;s own submission records and Eurostat&#8217;s R&amp;D
+          accounts. <strong>The decline did not continue.</strong>
           Over 2008&ndash;2021 the ratio is flat to slightly rising, and the law&#8217;s
           own rate sits outside the confidence interval in every US specification I can build.
         </p>
@@ -208,7 +203,7 @@
           <h3>Was it AI?</h3>
           <p>It is the first thing anyone asks, and the answer is no &mdash; on timing alone.</p>
           <div class="fs-hero" style="margin:14px 0">
-            <img src="assets/linkedin/pharma-approvals.png?v=a201c5f0"
+            <img src="assets/linkedin/pharma-approvals.png?v=c612f7b8"
                  alt="Bar chart of FDA new molecular entity approvals per year, 2005 to 2025. Bars average 28 a year through 2016 then step up to about 50 a year from 2017 onward. Bars for 2022 to 2025 are orange, marking years with approvals but no matching R and D figure.">
           </div>
           <p>Approvals step up once, and the step is complete by <strong>2017</strong>:
@@ -537,7 +532,7 @@ if __name__ == &quot;__main__&quot;:
     sys.exit(main())</code></pre>
           </details>
           <details>
-            <summary>pharma_eroom.py (512 lines)</summary>
+            <summary>pharma_eroom.py (513 lines)</summary>
             <pre><code>#!/usr/bin/env python3
 &quot;&quot;&quot;Did Eroom&#x27;s Law continue? -&gt; data/pharma-eroom-results.json
 
@@ -889,13 +884,14 @@ def chart_approvals(res):
          f&#x27;viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
          f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;56&quot; font-size=&quot;37&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
-         f&#x27;The rise happened before AI could have caused it&lt;/text&gt;&#x27;,
+         f&#x27;The US approves nearly twice as many new drugs a year as a decade &#x27;
+         f&#x27;ago&lt;/text&gt;&#x27;,
          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;100&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;New molecular &#x27;
-         f&#x27;entities approved by the FDA each year. The step up is complete by &#x27;
-         f&#x27;{cut}; AI-designed molecules&lt;/text&gt;&#x27;,
+         f&#x27;entities approved by the FDA each year. One step up, complete by &#x27;
+         f&#x27;{cut} &amp;#8212; before AI-designed molecules&lt;/text&gt;&#x27;,
          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;132&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;reached the clinic &#x27;
-         f&#x27;around 2020 and have almost no approvals yet. This does not test &#x27;
-         f&#x27;what did cause it.&lt;/text&gt;&#x27;,
+         f&#x27;around 2020, so AI cannot be the cause. What was is not tested &#x27;
+         f&#x27;here.&lt;/text&gt;&#x27;,
          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;180&quot; font-size=&quot;25&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
          f&#x27;{yrs[0]}&amp;#8211;{cut - 1}: {sh[&quot;mean_before&quot;]:.0f} a year on average.&#x27;
          f&#x27;   {cut}&amp;#8211;{yrs[-1]}: {sh[&quot;mean_after&quot;]:.0f}. &#x27;
