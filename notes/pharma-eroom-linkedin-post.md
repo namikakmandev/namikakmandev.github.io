@@ -35,66 +35,57 @@ Standalone images if you would rather post images than a document:
 
 ## English
 
-📊 &ldquo;Drug research gets worse every year.&rdquo; It is the most quoted
-number in pharma.
+The deck does the explaining. The body only has to hook and hand off.
 
-In 2012 a paper showed new drugs approved per billion dollars had halved every
-nine years since 1950. Moore&rsquo;s Law backwards &mdash; they called it
-Eroom&rsquo;s Law.
+📊 &ldquo;Drug research gets worse every year.&rdquo; The most quoted number in
+pharma.
 
-It is still on slides today. Its data stops in 2010.
+A 2012 paper showed new drugs approved per billion dollars had halved every nine
+years since 1950. Moore&rsquo;s Law backwards &mdash; Eroom&rsquo;s Law.
 
-📈 I rebuilt it from the FDA&rsquo;s own records. Since 2008 the ratio has
-not fallen at all. If the law still held, the US would be at
-0.17 new drugs per billion by 2021. It got 0.55.
+Its data stops in 2010. It is still on slides.
 
-🤖 Was it AI? No. Approvals stepped up once and the step was done by
-2017 &mdash; 28 a year before,
-50 after. AI-designed molecules reached the clinic around
-2020. A cause cannot come after its effect.
+📈 I rebuilt it from the FDA&rsquo;s own records. Since 2008 it has not
+fallen at all. The law says 0.17 new drugs per billion by 2021. It was
+0.55.
 
-⚠️ The honest catch: the ratio held up because approvals rose, not because
-spending fell. R&amp;D kept growing steadily. That is an approvals story, not an
-efficiency story.
+🤖 Was it AI? No. The step up finished in 2017. AI-designed
+molecules reached the clinic around 2020.
 
-✅ So if the nine-year halving goes into a business case, date it. It describes
-1950&ndash;2010.
+⚠️ The catch: approvals rose, spending did not fall. An approvals story,
+not an efficiency story.
+
+✅ If the nine-year halving goes in a business case, date it: 1950&ndash;2010.
 
 🔗 namikakmandev.github.io/pharma-eroom.html
-Data: FDA Drugs@FDA submission records &middot; Eurostat rd_e_berdindr2 NACE C21.
 
 ---
 
 ## Türkçe
 
-📊 &ldquo;İlaç araştırması her yıl daha da kötüleşiyor.&rdquo; İlaç sektöründe
-en çok alıntılanan rakam bu.
+📊 &ldquo;İlaç araştırması her yıl kötüleşiyor.&rdquo; Sektörde en çok
+alıntılanan rakam.
 
-2012&rsquo;de bir makale, harcanan her milyar dolar başına onaylanan yeni ilaç
-sayısının 1950&rsquo;den beri her dokuz yılda bir yarıya indiğini gösterdi.
-Moore Yasası&rsquo;nın tersi &mdash; adını Eroom Yasası koydular.
+2012 tarihli bir makale, milyar dolar başına onaylanan yeni ilaç sayısının
+1950&rsquo;den beri her dokuz yılda yarıya indiğini gösterdi. Moore
+Yasası&rsquo;nın tersi &mdash; Eroom Yasası.
 
-Hâlâ sunumlarda duruyor. Verisi 2010&rsquo;da bitiyor.
+Verisi 2010&rsquo;da bitiyor. Hâlâ sunumlarda.
 
-📈 FDA&rsquo;nın kendi kayıtlarından yeniden kurdum. 2008&rsquo;den bu yana
-oran hiç düşmemiş. Yasa hâlâ geçerli olsaydı ABD 2021&rsquo;de milyar dolar
-başına 0.17 yeni ilaçta olacaktı. 0.55 oldu.
+📈 FDA&rsquo;nın kendi kayıtlarından yeniden kurdum. 2008&rsquo;den beri hiç
+düşmemiş. Yasaya göre 2021&rsquo;de milyar dolar başına 0.17 olmalıydı.
+0.55 oldu.
 
-🤖 Sebep yapay zekâ mı? Hayır. Onaylar bir kez sıçradı ve sıçrama
-2017&rsquo;de tamamlandı &mdash; öncesinde yılda
-28, sonrasında 50. Yapay zekâ ile
-tasarlanan moleküller kliniğe 2020 civarında ulaştı. Sebep, sonucundan sonra
-gelemez.
+🤖 Sebep yapay zekâ mı? Hayır. Sıçrama 2017&rsquo;de bitti.
+Yapay zekâ molekülleri kliniğe 2020 civarında ulaştı.
 
-⚠️ Dürüst olmak gerekirse: oran, harcama düştüğü için değil, onaylar arttığı
-için korundu. Ar-Ge istikrarlı biçimde büyümeye devam etti. Yani bu bir verimlilik
-hikâyesi değil, onay hikâyesi.
+⚠️ İşin püf noktası: onaylar arttı, harcama düşmedi. Verimlilik hikâyesi
+değil, onay hikâyesi.
 
-✅ O yüzden dokuz yılda yarılanma bir iş gerekçesine girecekse, tarihini yazın:
-1950&ndash;2010. Sonraki yıllar için reddediliyor.
+✅ Dokuz yılda yarılanma bir iş gerekçesine girecekse tarihini yazın:
+1950&ndash;2010.
 
 🔗 namikakmandev.github.io/pharma-eroom.html
-Veri: FDA Drugs@FDA &middot; Eurostat rd_e_berdindr2 NACE C21.
 
 ---
 
