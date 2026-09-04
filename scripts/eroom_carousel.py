@@ -66,13 +66,14 @@ def build_html():
               <b>halved</b> every nine years. Since 1950.</p>
             <p class="lede">Moore&rsquo;s Law backwards, so they called it
               <b>Eroom&rsquo;s Law</b>.</p>
-            <p class="lede">It is in the budget decks. It is in the pricing
-              arguments.</p>
-            <p class="lede r"><b>Its data stops in 2010. Nobody re-ran
-              it.</b></p>''',
+            <p class="lede">Its data stops in 2010. Its own authors went back
+              and reported the trend had <b>broken</b>
+              (<i>Breaking Eroom&rsquo;s Law</i>, 2020).</p>
+            <p class="lede r"><b>It is still in the budget decks. The decks
+              never got the memo.</b></p>''',
 
         # 3 - so I did
-        f'''<h2>So I did</h2>
+        f'''<h2>So I re-ran it on open data</h2>
             {svg("pharma-eroom.svg")}''',
 
         # 4 - the two numbers, and the AI answer in one line
