@@ -51,46 +51,52 @@ def build_html():
     den = c["denominator_share_of_movement"] * 100
 
     slides = [
-        # 1 - the chart is the thumbnail, so it carries the hook
-        f'''<h1 class="tight">Pharma&rsquo;s most quoted number
-              <span class="r">stopped being true</span></h1>
-            {svg("pharma-eroom.svg")}''',
+        # 1 - lead with what is RIGHT. The doubling is the hook; the chart
+        # carries it, and the headline names the disconnect.
+        f'''<h1 class="tight">Pharma nearly doubled its output. It is still
+              quoting a chart that says <span class="r">it is in
+              decline.</span></h1>
+            {svg("pharma-approvals.svg")}''',
 
-        # 2 - the claim, in four beats
+        # 2 - the famous chart
         f'''<p class="kicker">Scannell et al., Nature Reviews Drug Discovery,
               2012</p>
-            <h2>Moore&rsquo;s Law, backwards</h2>
-            <p class="lede">Computing power doubles every two years.</p>
+            <h2>The famous chart</h2>
             <p class="lede">New drugs per billion dollars of research
               <b>halved</b> every nine years. Since 1950.</p>
-            <p class="lede">So they spelled Moore backwards:
+            <p class="lede">Moore&rsquo;s Law backwards, so they called it
               <b>Eroom&rsquo;s Law</b>.</p>
-            <p class="lede r"><b>Its data stops in 2010. It is still on
-              slides.</b></p>''',
+            <p class="lede">It is in the budget decks. It is in the pricing
+              arguments.</p>
+            <p class="lede r"><b>Its data stops in 2010. Nobody re-ran
+              it.</b></p>''',
 
-        # 3 - the verdict, as one number against another
+        # 3 - so I did
+        f'''<h2>So I did</h2>
+            {svg("pharma-eroom.svg")}''',
+
+        # 4 - the two numbers, and the AI answer in one line
         f'''<h2>By {yrs[-1]}, the law says</h2>
             <p class="big r">{pred_end:.2f}</p>
             <p class="lede">new drugs per billion dollars.</p>
             <h2 style="margin-top:.26in">It was</h2>
             <p class="big b">{ser[yrs[-1]]:.2f}</p>
-            <p class="lede"><b>{times:.0f} times higher.</b> Rebuilt from the
-              FDA&rsquo;s own submission records against Eurostat&rsquo;s R&amp;D
-              accounts, deflated. The law&rsquo;s rate falls outside the
-              confidence interval in <b>all {r["n_us_specs"]}</b> US
-              specifications.</p>''',
+            <p class="lede"><b>{times:.0f} times higher.</b> FDA submission
+              records against Eurostat R&amp;D accounts, deflated. The
+              law&rsquo;s rate is rejected in all {r["n_us_specs"]} US
+              specifications.</p>
+            <p class="lede"><b>Was it AI?</b> No. The jump finished in
+              {sh["level_shift_year"]}, before AI-designed molecules reached the
+              clinic. A cause cannot postdate its effect.</p>''',
 
-        # 4 - the question everyone asks, answered by the chart itself
-        f'''{svg("pharma-approvals.svg")}''',
-
-        # 5 - the catch, and the instruction
+        # 5 - the catch and the instruction
         f'''<h2>Two things before you quote it</h2>
-            <p class="lede"><b>1. It is an approvals story.</b> Spending grew
-              steadily throughout; approvals did the moving. The denominator is
-              only {den:.0f}% of the ratio&rsquo;s movement, so this is not
-              proof that research got more efficient.</p>
+            <p class="lede"><b>1. Research did not get cheaper. It produced
+              more.</b> Spending grew steadily; approvals did the moving. The
+              denominator is only {den:.0f}% of the ratio&rsquo;s movement.</p>
             <p class="lede"><b>2. Date the claim.</b> The nine-year halving
-              describes 1950&ndash;2010. On the years since, it is rejected.</p>
+              describes 1950&ndash;2010. The years since tell the opposite
+              story.</p>
             <p class="note">Method, every number and both scripts:<br>
               <b>namikakmandev.github.io/pharma-eroom.html</b><br>
               Data: FDA Drugs@FDA submission records; Eurostat rd_e_berdindr2

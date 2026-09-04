@@ -38,25 +38,27 @@ Standalone images if you would rather post images than a document:
 
 The deck does the explaining. The body only has to hook and hand off.
 
-📊 &ldquo;Drug research gets worse every year.&rdquo; The most quoted number in
-pharma.
+📊 Everyone in pharma knows drug research is getting harder. There is a famous
+chart for it: half as many new drugs per dollar, every nine years, since 1950.
 
-A 2012 paper showed new drugs approved per billion dollars had halved every nine
-years since 1950. Moore&rsquo;s Law backwards &mdash; Eroom&rsquo;s Law.
+📈 The FDA&rsquo;s own records say the opposite. Through
+2016 it approved 28 new molecules a
+year. Since 2017: 50. Output nearly
+doubled.
 
-Its data stops in 2010. It is still on slides.
+The chart&rsquo;s data stops in 2010. It is still in the budget decks.
 
-📈 I rebuilt it from the FDA&rsquo;s own records. Since 2008 it has not
-fallen at all. The law says 0.17 new drugs per billion by 2021. It was
-0.55.
+I re-ran it. If the law still held, the US would be at 0.17 new drugs per
+billion dollars by 2021. It was 0.55.
 
-🤖 Was it AI? No. The step up finished in 2017. AI-designed
-molecules reached the clinic around 2020.
+🤖 Was it AI? No. The jump finished in 2017, before
+AI-designed molecules reached the clinic.
 
-⚠️ The catch: approvals rose, spending did not fall. An approvals story,
-not an efficiency story.
+⚠️ Honest catch: spending did not fall. Approvals rose. This is not
+&ldquo;research got cheaper&rdquo;; it is &ldquo;research produced more.&rdquo;
 
-✅ If the nine-year halving goes in a business case, date it: 1950&ndash;2010.
+✅ If you quote the nine-year halving, date it: 1950&ndash;2010. The years since
+tell the opposite story.
 
 🔗 namikakmandev.github.io/pharma-eroom.html
 
@@ -64,27 +66,28 @@ not an efficiency story.
 
 ## Türkçe
 
-📊 &ldquo;İlaç araştırması her yıl kötüleşiyor.&rdquo; Sektörde en çok
-alıntılanan rakam.
+📊 İlaç sektöründe herkes araştırmanın zorlaştığını bilir. Bunun ünlü bir
+grafiği var: 1950&rsquo;den beri her dokuz yılda, dolar başına yarı yarıya daha
+az yeni ilaç.
 
-2012 tarihli bir makale, milyar dolar başına onaylanan yeni ilaç sayısının
-1950&rsquo;den beri her dokuz yılda yarıya indiğini gösterdi. Moore
-Yasası&rsquo;nın tersi &mdash; Eroom Yasası.
+📈 FDA&rsquo;nın kendi kayıtları tam tersini söylüyor.
+2016&rsquo;ya kadar yılda 28 yeni
+molekül onaylıyordu. 2017&rsquo;den beri:
+50. Üretim neredeyse ikiye katlandı.
 
-Verisi 2010&rsquo;da bitiyor. Hâlâ sunumlarda.
+Grafiğin verisi 2010&rsquo;da bitiyor. Hâlâ bütçe sunumlarında.
 
-📈 FDA&rsquo;nın kendi kayıtlarından yeniden kurdum. 2008&rsquo;den beri hiç
-düşmemiş. Yasaya göre 2021&rsquo;de milyar dolar başına 0.17 olmalıydı.
-0.55 oldu.
+Yeniden hesapladım. Yasa hâlâ geçerli olsaydı ABD 2021&rsquo;de milyar
+dolar başına 0.17 yeni ilaçta olacaktı. 0.55 oldu.
 
-🤖 Sebep yapay zekâ mı? Hayır. Sıçrama 2017&rsquo;de bitti.
-Yapay zekâ molekülleri kliniğe 2020 civarında ulaştı.
+🤖 Sebep yapay zekâ mı? Hayır. Sıçrama 2017&rsquo;de bitti,
+yapay zekâ molekülleri kliniğe ulaşmadan önce.
 
-⚠️ İşin püf noktası: onaylar arttı, harcama düşmedi. Verimlilik hikâyesi
-değil, onay hikâyesi.
+⚠️ Dürüst not: harcama düşmedi. Onaylar arttı. Bu &ldquo;araştırma
+ucuzladı&rdquo; değil, &ldquo;araştırma daha fazla üretti&rdquo; demek.
 
-✅ Dokuz yılda yarılanma bir iş gerekçesine girecekse tarihini yazın:
-1950&ndash;2010.
+✅ Dokuz yılda yarılanmayı alıntılıyorsanız tarihini yazın: 1950&ndash;2010.
+Sonraki yıllar tam tersini anlatıyor.
 
 🔗 namikakmandev.github.io/pharma-eroom.html
 

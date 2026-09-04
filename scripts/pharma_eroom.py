@@ -349,13 +349,14 @@ def chart_approvals(res):
          f'viewBox="0 0 {W} {H}" font-family="{F}">',
          f'<rect width="{W}" height="{H}" fill="#fff"/>',
          f'<text x="{L}" y="56" font-size="37" font-weight="700" fill="{INK}">'
-         f'The rise happened before AI could have caused it</text>',
+         f'The US approves nearly twice as many new drugs a year as a decade '
+         f'ago</text>',
          f'<text x="{L}" y="100" font-size="24" fill="{DIM}">New molecular '
-         f'entities approved by the FDA each year. The step up is complete by '
-         f'{cut}; AI-designed molecules</text>',
+         f'entities approved by the FDA each year. One step up, complete by '
+         f'{cut} &#8212; before AI-designed molecules</text>',
          f'<text x="{L}" y="132" font-size="24" fill="{DIM}">reached the clinic '
-         f'around 2020 and have almost no approvals yet. This does not test '
-         f'what did cause it.</text>',
+         f'around 2020, so AI cannot be the cause. What was is not tested '
+         f'here.</text>',
          f'<text x="{L}" y="180" font-size="25" font-weight="700" fill="{INK}">'
          f'{yrs[0]}&#8211;{cut - 1}: {sh["mean_before"]:.0f} a year on average.'
          f'   {cut}&#8211;{yrs[-1]}: {sh["mean_after"]:.0f}. '
