@@ -5,9 +5,10 @@
 **One file: `notes/pharma-eroom-carousel.pdf`.** Post it as a LinkedIn document,
 with the copy below as the body.
 
-Six portrait slides, 4:5, same page size as the other carousels here. Slide 1 is
-the ratio chart, so it is also the feed thumbnail and carries a headline of its
-own. Rebuild with `python3 scripts/eroom_carousel.py`.
+Five portrait slides, 4:5, same page size as the other carousels here. One idea
+each: the hook, the claim, the two numbers, the AI answer, the caveat. Slide 1
+is the ratio chart, so it is also the feed thumbnail and carries a headline of
+its own. Rebuild with `python3 scripts/eroom_carousel.py`.
 
 Standalone images if you would rather post images than a document:
 `assets/linkedin/pharma-eroom.png` (the ratio) and

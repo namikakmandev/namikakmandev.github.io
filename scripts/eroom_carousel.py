@@ -27,6 +27,7 @@ RES = os.path.join(ROOT, "data", "pharma-eroom-results.json")
 ART = os.path.join(ROOT, "assets", "linkedin")
 
 INK, DIM, RED, GREEN = "#1f2430", "#5b6472", "#d94040", "#2e9e5b"
+BLUE = "#2f9bff"
 RULE, PAPER = "#e3e8ee", "#ffffff"
 FONT = ("-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,"
         "'Helvetica Neue',Arial,sans-serif")
@@ -50,81 +51,52 @@ def build_html():
     den = c["denominator_share_of_movement"] * 100
 
     slides = [
-        # 1 - the chart leads: it is the thumbnail, so it carries a headline
+        # 1 - the chart is the thumbnail, so it carries the hook
         f'''<h1 class="tight">Pharma&rsquo;s most quoted number
               <span class="r">stopped being true</span></h1>
             {svg("pharma-eroom.svg")}''',
 
-        # 2 - what the claim is
+        # 2 - the claim, in four beats
         f'''<p class="kicker">Scannell et al., Nature Reviews Drug Discovery,
               2012</p>
             <h2>Moore&rsquo;s Law, backwards</h2>
-            <p class="lede">Moore&rsquo;s Law says computing power doubles every
-              two years. In 2012 four researchers went looking for the same
-              thing in drug research and found its exact opposite.</p>
-            <p class="lede">New drugs approved per billion dollars of research
-              had <b>halved every nine years since 1950</b>. Sixty years, no
-              exceptions. They spelled Moore backwards and called it
+            <p class="lede">Computing power doubles every two years.</p>
+            <p class="lede">New drugs per billion dollars of research
+              <b>halved</b> every nine years. Since 1950.</p>
+            <p class="lede">So they spelled Moore backwards:
               <b>Eroom&rsquo;s Law</b>.</p>
-            <p class="lede r"><b>Its data stops in 2010. It is still on slides
-              today.</b></p>''',
+            <p class="lede r"><b>Its data stops in 2010. It is still on
+              slides.</b></p>''',
 
-        # 3 - the test
-        f'''<h2>So I rebuilt it</h2>
-            <p class="lede">Approvals from the FDA&rsquo;s own submission
-              records &mdash; the count reproduces the FDA&rsquo;s published
-              figures almost exactly. Spending from Eurostat&rsquo;s R&amp;D
-              accounts, deflated.</p>
-            <div class="facts">
-              <div><b>{h["slope"]:+.3f}</b><span>fitted slope per year,
-                {h["first"]}&ndash;{h["last"]}</span></div>
-              <div><b>{h["eroom_slope"]:+.3f}</b><span>what Eroom&rsquo;s Law
-                implies</span></div>
-              <div><b>{r["n_us_specs"]} of {r["n_us_specs"]}</b><span>US
-                specifications reject it</span></div>
-            </div>
-            <p class="lede">By {yrs[-1]} the law implies <b>{pred_end:.2f}</b>
-              approvals per billion dollars. The figure was
-              <b>{ser[yrs[-1]]:.2f}</b> &mdash; more than {times:.0f} times
-              higher.</p>
-            <p class="note">This tests whether the published rate continued. The
-              paper&rsquo;s own 1950&ndash;2010 window cannot be re-measured:
-              no open R&amp;D series reaches back that far.</p>''',
+        # 3 - the verdict, as one number against another
+        f'''<h2>By {yrs[-1]}, the law says</h2>
+            <p class="big r">{pred_end:.2f}</p>
+            <p class="lede">new drugs per billion dollars.</p>
+            <h2 style="margin-top:.26in">It was</h2>
+            <p class="big b">{ser[yrs[-1]]:.2f}</p>
+            <p class="lede"><b>{times:.0f} times higher.</b> Rebuilt from the
+              FDA&rsquo;s own submission records against Eurostat&rsquo;s R&amp;D
+              accounts, deflated. The law&rsquo;s rate falls outside the
+              confidence interval in <b>all {r["n_us_specs"]}</b> US
+              specifications.</p>''',
 
-        # 4 - the question everyone asks
-        f'''<h2>Was it AI?</h2>
-            {svg("pharma-approvals.svg")}''',
+        # 4 - the question everyone asks, answered by the chart itself
+        f'''{svg("pharma-approvals.svg")}''',
 
-        # 5 - no, on timing
-        f'''<h2 class="r">No &mdash; on timing alone</h2>
-            <p class="lede">Approvals step up once, and the step is complete by
-              <b>{sh["level_shift_year"]}</b>: {sh["mean_before"]:.0f} a year
-              before, {sh["mean_after"]:.0f} after. The break year is chosen by
-              fit, not by eye.</p>
-            <p class="lede">AI-designed molecules reached the clinic around 2020
-              and have almost no approvals yet. <b>A cause cannot postdate its
-              effect.</b></p>
-            <p class="lede">What did cause it is not tested here and this deck
-              does not guess. The step is established; the cause stays
-              open.</p>''',
-
-        # 6 - the catch, and the instruction
-        f'''<h2>The honest catch</h2>
-            <p class="lede">The ratio held up because <b>approvals rose</b>, not
-              because spending fell. Real R&amp;D grew steadily throughout and
-              accounts for only <b>{den:.0f}%</b> of the ratio&rsquo;s
-              movement.</p>
-            <p class="lede">So this is an approvals story with a slow
-              denominator. Calling it a productivity story would overstate
-              it.</p>
-            <p class="big">Date the claim</p>
-            <p class="lede">If the nine-year halving goes into a business case,
-              say which years it describes: <b>1950&ndash;2010</b>. On the years
-              since, it is rejected.</p>
+        # 5 - the catch, and the instruction
+        f'''<h2>Two things before you quote it</h2>
+            <p class="lede"><b>1. It is an approvals story.</b> Spending grew
+              steadily throughout; approvals did the moving. The denominator is
+              only {den:.0f}% of the ratio&rsquo;s movement, so this is not
+              proof that research got more efficient.</p>
+            <p class="lede"><b>2. Date the claim.</b> The nine-year halving
+              describes 1950&ndash;2010. On the years since, it is rejected.</p>
             <p class="note">Method, every number and both scripts:<br>
               <b>namikakmandev.github.io/pharma-eroom.html</b><br>
               Data: FDA Drugs@FDA submission records; Eurostat rd_e_berdindr2
-              NACE C21; US GDP deflator.</p>''',
+              NACE C21; US GDP deflator. The paper&rsquo;s own 1950&ndash;2010
+              window is not re-measured &mdash; no open R&amp;D series reaches
+              back that far.</p>''',
     ]
 
     css = f"""
@@ -147,9 +119,9 @@ def build_html():
     .note {{ font-size: 10.5pt; line-height: 1.5; color: {DIM};
              margin: .2in 0 0; padding-top: .18in;
              border-top: 1px solid {RULE}; }}
-    .big {{ font-size: 40pt; font-weight: 700; margin: .1in 0 .12in;
-            letter-spacing: -.02em; }}
-    .r {{ color: {RED}; }}  .g {{ color: {GREEN}; }}
+    .big {{ font-size: 62pt; font-weight: 700; margin: .04in 0 .06in;
+            letter-spacing: -.03em; line-height: 1; }}
+    .r {{ color: {RED}; }}  .g {{ color: {GREEN}; }}  .b {{ color: {BLUE}; }}
     ol {{ font-size: 14pt; line-height: 1.5; margin: 0 0 .17in; padding-left: .26in; }}
     li {{ margin-bottom: .09in; }}
     .facts {{ display: flex; gap: .3in; margin: .1in 0 .24in; }}
