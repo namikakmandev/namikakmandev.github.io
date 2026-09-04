@@ -1,0 +1,2389 @@
+{
+ "probe": "second-label / repurposing data availability",
+ "generated_by": "scripts/probe_repurpose.py",
+ "fetched_at": "2026-09-04T13:18:48Z",
+ "cap_bytes": 25165824,
+ "note": "Discovery only. A 200 is not access: compare paired byte counts, and read column names from the heads before writing a parser.",
+ "nadac": {
+  "routes": [
+   {
+    "name": "medicaid/metastore-datasets",
+    "url": "https://data.medicaid.gov/api/1/metastore/schemas/dataset/items?show-reference-ids",
+    "note": "every dataset on the site; look for NADAC by title",
+    "status": 200,
+    "content_type": "application/json",
+    "declared_length": null,
+    "capped": false,
+    "bytes": 1165173,
+    "head": "[{\"@type\":\"dcat:Dataset\",\"title\":\"State Drug Utilization Data 1991\",\"identifier\":\"ae4d5347-5137-5f6c-b66c-3420fa0316d8\",\"description\":\"Drug utilization data are reported by states for covered outpatient drugs that are paid for by state Medicaid agencies since the start of the Medicaid Drug Rebate Program. The data includes state, drug name, National Drug Code, number of prescriptions and dollars reimbursed. Data descriptions are available on Medicaid.gov: https:\\/\\/www.medicaid.gov\\/medicaid\\/prescription-drugs\\/state-drug-utilization-data\\/state-drug-utilization-data-faq\\/index.html\",\"accessLevel\":\"public\",\"issued\":\"2015-06-11T17:19:41+00:00\",\"modified\":\"2026-04-03T13:53:37+00:00\",\"license\":\"https:\\/\\/www.usa.gov\\/publicdomain\\/label\\/1.0\\/\",\"publisher\":{\"identifier\":\"4f3cccad-4fcd-5411-9d07-c23ed9e20068\",\"data\":{\"@type\":\"org:Organization\",\"name\":\"data.medicaid.gov\"}},\"contactPoint\":{\"fn\":\"Medicaid.gov\",\"hasEmail\":\"mailto:Medicaid.gov@cms.hhs.gov\"},\"theme\":[{\"identifier\":\"8f59d3fa-be5b-55ad-b502-fd936cf74d50\",\"data\":\"State Drug Utilization\"}],\"keyword\":[{\"identifier\":\"c9059e86-abd7-5a06-ad68-ffec9dc8b72f\",\"data\":\"Medicaid Reimbursements\"},{\"identifier\":\"f4c56ef5-b619-5439-a61c-7f8c859fdde1\",\"data\":\"Drug Utilization\"},{\"identifier\":\"6a6f9f2b-b2e6-5fe5-8537-d7573b76105a\",\"data\":\"Pharmacy\"}],\"distribution\":[{\"identifier\":\"13d1f0b9-d8c1-5a73-92f7-fd249d8e4b2b\",\"data\":{\"@type\":\"dcat:Distribution\",\"format\":\"csv\",\"mediaType\":\"text\\/csv\",\"downloadURL\":\"https:\\/\\/download.medicaid.go",
+    "seconds": 0.2
+   },
+   {
+    "name": "medicaid/search-nadac",
+    "url": "https://data.medicaid.gov/api/1/search?fulltext=NADAC&page-size=50",
+    "note": "search API; should agree with the metastore listing",
+    "status": 200,
+    "content_type": "application/json",
+    "declared_length": null,
+    "capped": false,
+    "bytes": 51927,
+    "head": "{\"total\":\"16\",\"results\":{\"dkan_dataset\\/a217613c-12bc-5137-8b3a-ada0e4dad1ff\":{\"@type\":\"dcat:Dataset\",\"title\":\"NADAC Comparison\",\"identifier\":\"a217613c-12bc-5137-8b3a-ada0e4dad1ff\",\"description\":\"The NADAC Weekly Comparison identifies the drug products with current NADAC rates that are replaced with new NADAC rates.  Other changes (e.g. NDC additions and terminations) to the NADAC file are not reflected in this comparison.\\n\\nNote: Effective Date was not recorded in the dataset until 6\\/7\\/2017\",\"accessLevel\":\"public\",\"issued\":\"2015-08-19T22:29:45+00:00\",\"modified\":\"2026-09-01T12:11:01+00:00\",\"license\":\"https:\\/\\/www.usa.gov\\/government-works\",\"publisher\":{\"@type\":\"org:Organization\",\"name\":\"data.medicaid.gov\"},\"contactPoint\":{\"fn\":\"Medicaid.gov\",\"hasEmail\":\"mailto:Medicaid.gov@cms.hhs.gov\"},\"theme\":[\"Drug Pricing and Payment\"],\"keyword\":[\"National Average Drug Acquisition Cost (NADAC)\",\"Comparison\"],\"distribution\":[{\"@type\":\"dcat:Distribution\",\"format\":\"csv\",\"mediaType\":\"text\\/csv\",\"downloadURL\":\"https:\\/\\/download.medicaid.gov\\/data\\/nadac-comparison-09-02-2026.csv\",\"describedBy\":\"https:\\/\\/data.medicaid.gov\\/api\\/1\\/metastore\\/schemas\\/data-dictionary\\/items\\/71030135-eef9-46b2-9d13-e401008e0fc6\",\"describedByType\":\"application\\/vnd.tableschema+json\",\"%Ref:downloadURL\":[{\"identifier\":\"0b6e12fbbf7ab25a367728bf8d85bfff__1788264720__source\",\"data\":{\"filePath\":\"https:\\/\\/download.medicaid.gov\\/data\\/nadac-comparison-09-02-2026.csv\",\"identifier\":\"0b6e12fbbf7ab25a367728bf8d85bfff\"",
+    "seconds": 0.0
+   },
+   {
+    "name": "medicaid/nadac-csv-head",
+    "url": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost-09-02-2026.csv",
+    "note": "columns and a few rows of the newest NADAC file",
+    "status": 200,
+    "content_type": "application/octet-stream",
+    "declared_length": null,
+    "capped": true,
+    "bytes": 25165824,
+    "head": "NDC Description,NDC,NADAC Per Unit,Effective Date,Pricing Unit,Pharmacy Type Indicator,OTC,Explanation Code,Classification for Rate Setting,Corresponding Generic Drug NADAC Per Unit,Corresponding Generic Drug Effective Date,As of Date\n12HR NASAL DECONGEST ER 120 MG,24385005452,0.26341,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026\n12HR NASAL DECONGEST ER 120 MG,70000047501,0.26341,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026\n12HR NASAL DECONGEST ER 120 MG,70000065601,0.26341,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026\n24H NASAL ALLERGY 55 MCG SPRAY,46122038576,0.73372,12/17/2025,ML,C/I,Y,\"1, 5\",G,,,01/07/2026\n24HR ALLERGY(LEVOCETIRZN) 5 MG,70000036201,0.18760,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026\n24HR ALLERGY(LEVOCETIRZN) 5 MG,70000036202,0.18760,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026\n24HR ALLERGY-CONGST 180-240 MG,70000060701,0.86690,01/22/2025,EA,C/I,Y,4,G,,,01/07/2026\n3-DAY VAGINAL CREAM,51672206200,0.31362,12/17/2025,GM,C/I,Y,\"1, 5, 6\",G,,,01/07/2026\n8 HOUR ACETAMINOPHEN ER 650 MG,46122006271,0.06861,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026\n8HR ARTHRITIS PAIN ER 650 MG,00904756160,0.06861,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026\n8HR ARTHRITIS PAIN ER 650 MG,46122062978,0.06861,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026\nABACAVIR 300 MG TABLET,00378410591,0.62468,12/17/2025,EA,C/I,N,1,G,,,01/07/2026\nABACAVIR 300 MG TABLET,00904687404,0.62468,12/17/2025,EA,C/I,N,1,G,,,01/07/2026\nABACAVIR 300 MG TABLET,00904687406,0.62468,12/17/2025,EA,C/I,N,1,G,,,01/07/2026\nABACAVIR 300 MG TABLET,31722055760,0.62468,12/17/2025,EA,C/",
+    "seconds": 0.5
+   },
+   {
+    "name": "medicaid/datastore-unfiltered",
+    "url": "https://data.medicaid.gov/api/1/datastore/query/eb5b20dc-e620-5984-8e57-8e92abc667f4?limit=5&results=true&count=true",
+    "note": "does the datastore answer, and how many rows does it hold",
+    "status": 200,
+    "content_type": "application/json",
+    "declared_length": "3599",
+    "capped": false,
+    "bytes": 3599,
+    "head": "{\"results\":[{\"ndc_description\":\"12HR NASAL DECONGEST ER 120 MG\",\"ndc\":\"24385005452\",\"nadac_per_unit\":\"0.26341\",\"effective_date\":\"2025-12-17\",\"pricing_unit\":\"EA\",\"pharmacy_type_indicator\":\"C\\/I\",\"otc\":\"Y\",\"explanation_code\":\"1\",\"classification_for_rate_setting\":\"G\",\"corresponding_generic_drug_nadac_per_unit\":\"\",\"corresponding_generic_drug_effective_date\":null,\"as_of_date\":\"2026-01-07\"},{\"ndc_description\":\"12HR NASAL DECONGEST ER 120 MG\",\"ndc\":\"70000047501\",\"nadac_per_unit\":\"0.26341\",\"effective_date\":\"2025-12-17\",\"pricing_unit\":\"EA\",\"pharmacy_type_indicator\":\"C\\/I\",\"otc\":\"Y\",\"explanation_code\":\"1\",\"classification_for_rate_setting\":\"G\",\"corresponding_generic_drug_nadac_per_unit\":\"\",\"corresponding_generic_drug_effective_date\":null,\"as_of_date\":\"2026-01-07\"},{\"ndc_description\":\"12HR NASAL DECONGEST ER 120 MG\",\"ndc\":\"70000065601\",\"nadac_per_unit\":\"0.26341\",\"effective_date\":\"2025-12-17\",\"pricing_unit\":\"EA\",\"pharmacy_type_indicator\":\"C\\/I\",\"otc\":\"Y\",\"explanation_code\":\"1\",\"classification_for_rate_setting\":\"G\",\"corresponding_generic_drug_nadac_per_unit\":\"\",\"corresponding_generic_drug_effective_date\":null,\"as_of_date\":\"2026-01-07\"},{\"ndc_description\":\"24H NASAL ALLERGY 55 MCG SPRAY\",\"ndc\":\"46122038576\",\"nadac_per_unit\":\"0.73372\",\"effective_date\":\"2025-12-17\",\"pricing_unit\":\"ML\",\"pharmacy_type_indicator\":\"C\\/I\",\"otc\":\"Y\",\"explanation_code\":\"1, 5\",\"classification_for_rate_setting\":\"G\",\"corresponding_generic_drug_nadac_per_unit\":\"\",\"corresponding_generic_drug_effective_date\":null,\"as_of_d",
+    "seconds": 0.4
+   },
+   {
+    "name": "medicaid/datastore-filtered",
+    "url": "https://data.medicaid.gov/api/1/datastore/query/eb5b20dc-e620-5984-8e57-8e92abc667f4?limit=50&results=true&count=true&conditions%5B0%5D%5Bproperty%5D=ndc_description&conditions%5B0%5D%5Bvalue%5D=TADALAFIL%25&conditions%5B0%5D%5Boperator%5D=LIKE",
+    "note": "PAIRED with the previous route: a different count means the filter bites",
+    "status": 200,
+    "content_type": "application/json",
+    "declared_length": "20224",
+    "capped": false,
+    "bytes": 20224,
+    "head": "{\"results\":[{\"ndc_description\":\"TADALAFIL 10 MG TABLET\",\"ndc\":\"00480231056\",\"nadac_per_unit\":\"0.16560\",\"effective_date\":\"2025-12-17\",\"pricing_unit\":\"EA\",\"pharmacy_type_indicator\":\"C\\/I\",\"otc\":\"N\",\"explanation_code\":\"1\",\"classification_for_rate_setting\":\"G\",\"corresponding_generic_drug_nadac_per_unit\":\"\",\"corresponding_generic_drug_effective_date\":null,\"as_of_date\":\"2026-01-07\"},{\"ndc_description\":\"TADALAFIL 10 MG TABLET\",\"ndc\":\"13668056730\",\"nadac_per_unit\":\"0.16560\",\"effective_date\":\"2025-12-17\",\"pricing_unit\":\"EA\",\"pharmacy_type_indicator\":\"C\\/I\",\"otc\":\"N\",\"explanation_code\":\"1\",\"classification_for_rate_setting\":\"G\",\"corresponding_generic_drug_nadac_per_unit\":\"\",\"corresponding_generic_drug_effective_date\":null,\"as_of_date\":\"2026-01-07\"},{\"ndc_description\":\"TADALAFIL 10 MG TABLET\",\"ndc\":\"16714007601\",\"nadac_per_unit\":\"0.16560\",\"effective_date\":\"2025-12-17\",\"pricing_unit\":\"EA\",\"pharmacy_type_indicator\":\"C\\/I\",\"otc\":\"N\",\"explanation_code\":\"1\",\"classification_for_rate_setting\":\"G\",\"corresponding_generic_drug_nadac_per_unit\":\"\",\"corresponding_generic_drug_effective_date\":null,\"as_of_date\":\"2026-01-07\"},{\"ndc_description\":\"TADALAFIL 10 MG TABLET\",\"ndc\":\"16729037110\",\"nadac_per_unit\":\"0.16560\",\"effective_date\":\"2025-12-17\",\"pricing_unit\":\"EA\",\"pharmacy_type_indicator\":\"C\\/I\",\"otc\":\"N\",\"explanation_code\":\"1\",\"classification_for_rate_setting\":\"G\",\"corresponding_generic_drug_nadac_per_unit\":\"\",\"corresponding_generic_drug_effective_date\":null,\"as_of_date\":\"2026-01-07\"},{\"ndc_descriptio",
+    "seconds": 1.3
+   },
+   {
+    "name": "medicaid/datastore-sql",
+    "url": "https://data.medicaid.gov/api/1/datastore/sql?query=%5BSELECT%20%2A%20FROM%20eb5b20dc-e620-5984-8e57-8e92abc667f4%5D%5BWHERE%20ndc_description%20LIKE%20%22TADALAFIL%25%22%5D%5BLIMIT%2020%5D",
+    "note": "the SQL flavour of the same query",
+    "status": 400,
+    "error": "HTTP Error 400: Bad Request",
+    "head": "{\"message\":\"Invalid query string.\",\"status\":400,\"timestamp\":\"2026-09-04T09:18:51-04:00\"}",
+    "seconds": 0.1
+   }
+  ],
+  "n_datasets": 552,
+  "nadac_datasets": [
+   {
+    "identifier": "e3af839d-8175-5be0-b94e-4a302ed7a035",
+    "title": "First Time NADAC Rates",
+    "modified": "2026-08-24T14:16:01+00:00",
+    "distributions": [
+     {
+      "identifier": "5fbf2db5-9770-58e0-8295-3a3d8f48bdc5",
+      "downloadURL": "https://download.medicaid.gov/data/first-time-nadac-08242026.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "1fe73992-cbfd-5109-97bc-dee8b33fdcff",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2013",
+    "modified": "2021-08-23T18:00:05+00:00",
+    "distributions": [
+     {
+      "identifier": "ec171a2d-af9d-547a-bf36-3d826c08a3e5",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost.a4y5-998d.1fe73992-cbfd-5109-97bc-dee8b33fdcff.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "ba0c3734-8012-549a-8f50-2ff389d0e0ef",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2014",
+    "modified": "2021-08-23T17:58:02+00:00",
+    "distributions": [
+     {
+      "identifier": "1c662d74-b282-52b9-942f-75f8933f086f",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost.a4y5-998d.ba0c3734-8012-549a-8f50-2ff389d0e0ef.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "4d7af295-2132-55a8-b40c-d6630061f3e8",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2015",
+    "modified": "2021-08-23T17:58:12+00:00",
+    "distributions": [
+     {
+      "identifier": "97118166-eb0e-5845-92b6-93cf17375013",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost.a4y5-998d.4d7af295-2132-55a8-b40c-d6630061f3e8.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "7656fc17-f1b4-566b-9a2d-c4a4f2ac7ae1",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2016",
+    "modified": "2021-08-23T17:58:05+00:00",
+    "distributions": [
+     {
+      "identifier": "af054962-06c4-5d7c-858d-37a4c602e025",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost.a4y5-998d.7656fc17-f1b4-566b-9a2d-c4a4f2ac7ae1.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "1c5d0fc9-693a-534a-8240-4627d9362b0d",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2017",
+    "modified": "2021-08-23T17:58:06+00:00",
+    "distributions": [
+     {
+      "identifier": "23332798-021a-599f-8bba-298a580e7941",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost.a4y5-998d.1c5d0fc9-693a-534a-8240-4627d9362b0d.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "8de1b213-73c5-552b-b84e-ac795f34d056",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2018",
+    "modified": "2021-08-23T17:58:04+00:00",
+    "distributions": [
+     {
+      "identifier": "5e5e4e48-c4f0-5cd2-b315-1e92c0447bd0",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost.a4y5-998d.8de1b213-73c5-552b-b84e-ac795f34d056.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "76a1984a-6d69-5e4d-86c8-65eb31f0506d",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2019",
+    "modified": "2021-08-23T18:00:11+00:00",
+    "distributions": [
+     {
+      "identifier": "a2e7523b-d995-56f6-b161-2730e1f7f471",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost.a4y5-998d.76a1984a-6d69-5e4d-86c8-65eb31f0506d.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "c933dc16-7de9-52b6-8971-4b75992673e0",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2020",
+    "modified": "2021-08-23T17:59:01+00:00",
+    "distributions": [
+     {
+      "identifier": "72264015-7ce9-57d4-9cd7-eebf100ea5cb",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost.a4y5-998d.c933dc16-7de9-52b6-8971-4b75992673e0.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "d5eaf378-dcef-5779-83de-acdd8347d68e",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2021",
+    "modified": "2021-12-28T09:56:01+00:00",
+    "distributions": [
+     {
+      "identifier": "1266b3ce-6bd6-5bbe-a6d5-61796e8b0348",
+      "downloadURL": "https://download.medicaid.gov/data/national-average-drug-acquisition-cost-12-29-2021.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "dfa2ab14-06c2-457a-9e36-5cb6d80f8d93",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2022",
+    "modified": "2023-01-18T16:47:01+00:00",
+    "distributions": [
+     {
+      "identifier": "2c56ba1c-a423-5c89-94b9-c854fd45602e",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost-2022.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "4a00010a-132b-4e4d-a611-543c9521280f",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2023",
+    "modified": "2023-12-26T16:17:01+00:00",
+    "distributions": [
+     {
+      "identifier": "deff30b4-7846-57ac-8346-1ba87666d59f",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost-12-27-2023.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "99315a95-37ac-4eee-946a-3c523b4c481e",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2024",
+    "modified": "2024-12-23T21:05:00+00:00",
+    "distributions": [
+     {
+      "identifier": "b3b205f4-e788-5ec6-a342-d889111a6c2e",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost-12-25-2024.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "f38d0706-1239-442c-a3cc-40ef1b686ac0",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2025",
+    "modified": "2025-12-30T15:25:00+00:00",
+    "distributions": [
+     {
+      "identifier": "ae004d7f-5799-5de3-91ec-f1247f1a5452",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost-12-31-2025.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "fbb83258-11c7-47f5-8b18-5f8e79f7e704",
+    "title": "NADAC (National Average Drug Acquisition Cost) 2026",
+    "modified": "2026-09-01T12:11:01+00:00",
+    "distributions": [
+     {
+      "identifier": "eb5b20dc-e620-5984-8e57-8e92abc667f4",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost-09-02-2026.csv",
+      "format": "csv"
+     }
+    ]
+   },
+   {
+    "identifier": "a217613c-12bc-5137-8b3a-ada0e4dad1ff",
+    "title": "NADAC Comparison",
+    "modified": "2026-09-01T12:11:01+00:00",
+    "distributions": [
+     {
+      "identifier": "7657d572-ce7b-525f-b51d-03e7d715d23d",
+      "downloadURL": "https://download.medicaid.gov/data/nadac-comparison-09-02-2026.csv",
+      "format": "csv"
+     }
+    ]
+   }
+  ],
+  "n_nadac_datasets": 16,
+  "csv_target": {
+   "title": "NADAC (National Average Drug Acquisition Cost) 2026",
+   "identifier": "fbb83258-11c7-47f5-8b18-5f8e79f7e704",
+   "distribution": "eb5b20dc-e620-5984-8e57-8e92abc667f4",
+   "url": "https://download.medicaid.gov/data/nadac-national-average-drug-acquisition-cost-09-02-2026.csv"
+  },
+  "csv_header": [
+   "NDC Description",
+   "NDC",
+   "NADAC Per Unit",
+   "Effective Date",
+   "Pricing Unit",
+   "Pharmacy Type Indicator",
+   "OTC",
+   "Explanation Code",
+   "Classification for Rate Setting",
+   "Corresponding Generic Drug NADAC Per Unit",
+   "Corresponding Generic Drug Effective Date",
+   "As of Date"
+  ],
+  "csv_rows_in_cap": 290243,
+  "csv_sample": [
+   "12HR NASAL DECONGEST ER 120 MG,24385005452,0.26341,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026",
+   "12HR NASAL DECONGEST ER 120 MG,70000047501,0.26341,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026",
+   "12HR NASAL DECONGEST ER 120 MG,70000065601,0.26341,12/17/2025,EA,C/I,Y,1,G,,,01/07/2026"
+  ],
+  "csv_watch_hits": [
+   "CIALIS 10 MG TABLET,00002446330,53.68740,12/17/2025,EA,C/I,N,1,B,0.1656,12/17/2025,01/07/2026",
+   "CIALIS 20 MG TABLET,00002446430,53.71780,12/17/2025,EA,C/I,N,1,B,0.20848,12/17/2025,01/07/2026",
+   "CIALIS 5 MG TABLET,00002446230,9.23377,12/17/2025,EA,C/I,N,1,B,0.11092,12/17/2025,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,00591405094,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,27241017529,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,31722013631,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,51672423108,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,59651042011,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,60219265101,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,69238157401,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,70710171604,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,70954016810,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 10 MG/ML ORAL SUSP,72205005976,0.51481,12/17/2025,ML,C/I,N,\"1, 5\",G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,00093534301,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,00093534356,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,13668018801,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,13668018830,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,27241006903,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,27241006905,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,27241006910,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,31722071101,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,31722071105,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,31722071130,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,33342004307,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026",
+   "SILDENAFIL 100 MG TABLET,33342004311,0.13620,12/17/2025,EA,C/I,N,1,G,,,01/07/2026"
+  ],
+  "csv_watch_hit_count": 2132,
+  "csv_dates_seen": {
+   "01/21/2026": 113264,
+   "02/18/2026": 99914,
+   "12/17/2025": 58908,
+   "01/01/2026": 6412,
+   "01/02/2026": 1319,
+   "11/19/2025": 1036,
+   "07/23/2025": 981,
+   "06/18/2025": 754
+  }
+ },
+ "ndc_directory": {
+  "routes": [
+   {
+    "name": "fda/ndc-directory-zip",
+    "url": "https://www.accessdata.fda.gov/cder/ndctext.zip",
+    "note": "the whole directory; product.txt + package.txt",
+    "status": 200,
+    "content_type": "application/x-zip-compressed",
+    "declared_length": "10814748",
+    "capped": false,
+    "bytes": 10814748,
+    "head": "PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\ufffd $]\u0011=\ufffd\ufffd\ufffd\u0016@\u0000\u000eM\ufffd\u0001\u000b\u0000\u0000\u0000package.txt\u031dGs\ufffdD\u0010\ufffd\u03e2\ufffd\ufffd\ufffd\u0011(\u0004\ufffd\u00d1`r*2\\\\\ufffdU\u001c\ufffd\ufffd\u001fy[\ufffdN\ufffd\ufffd+i\u0196\u0001\ufffdW\ufffd\u066fv\u001fM\ufffd\ufffdI\ufffd\ufffd\ufffd\ufffd'?\u007f\ufffd\ufffd\u0017\ufffdT\ufffd\ufffd\ufffd'\u001fW\ufffd\ufffd\ufffd\u000f?\ufffd\ufffd\ufffd\ufffd\u001e>\ufffd\ue4c7j\ufffd?y\ufffd\ufffd\ufffd\u001f\ufffd\ufffd\ufffd\ufffd/\ufffd\ufffd\ufffd\ufffd\ufffd\u000f\u007f\ufffd\ufffd\u000f\u007f\ufffd\ufffd\ufffd/\ufffd\ufffd\ufffd\u000f\u007fz\ufffd\u001e\ufffd\ufffdd\ufffd\u0003\ufffd\ufffd\u01c7\ufffd>\ufffd\ufffd\ufffdO\u001e\u001e?\ufffd\ufffd\ufffd\u03ea\u001f?\ufffd\ufffd\ufffd\ufffd\u001f\u001e\ufffd\ufffd{\ufffd\r!\ufffd\ufffd\ufffd\ufffd\uac71}\ufffd\ufffdF\u05e3\u001f}m\ufffd\ufffd\ufffdm\u001ce\u0748\ufffdw}'[5vU\ufffd'\ufffd\ufffd\ufffd\ufffd[\ufffd|\ufffd\ufffd\ufffd\ufffd\ufffd#\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd~|x\ufffd\u03ff\u07d2o}\f\ufffd\ufffd}\ufffd\ufffdk\ufffd;o\ufffd\ufffd\ufffd[\ufffd\u06f7\ufffd\ufffdz\ufffd<}\ufffdRB\u0019\ufffdU\ufffd\ufffdo\ufffdo\ufffda4\ufffd)`4\ufffd\ufffdA\ufffd\ufffd\ufffdd\t\ufffd\ufffdKG+\ufffd\ufffd\ufffd\ufffd\ufffd\ufffdQI\ufffdh\ufffdU\ufffd\u0019L\ufffd\u0668k3H]\ufffd\ufffd\ufffd\ufffd\u0013VJ\u0019C\ufffd\ufffdbI\ufffd\ufffdu^\u007f\ufffd\ufffd\ufffd?}q\u000f\ufffd\ufffd3\ufffdfB~0\u0001j\ufffd \ufffdI%\ufffdub*\ufffdK\u0012\u0013r\ufffd\n\n%\ufffd\ufffd/\ufffd/c\ufffd.\ufffdP?\ufffdP\u0006!\u001e\ufffdn\u0007\ufffd\ufffd\ufffde\ufffdMm\ufffd\u0018\ufffd<\ufffd\ufffd\ufffd>4^\u000fm#\ufffd$g\ufffd\ufffd\ufffd\u0016\ufffd\u0005\u0013\ufffd\u0014+\ufffd\n\ufffd\ufffd\u000b/\ufffd5\ufffd\ufffd\ufffd\u0011F\ufffd\ufffdo]\u074e\ufffd\ufffd\ufffd\u001bd\ufffd6\ufffd\ufffd\ufffdIo\ufffd6\ufffd\f\ufffdJ\ufffd\ufffd*jfdA3\ufffd\ufffd_\ufffdTH-\ufffd\u0007\u064b\ufffd\u059d\ufffd\u0006\ufffd1\ufffd\u0011\ufffdX;\ufffd\u001b7xg\ufffd\ufffdU\ufffd\ufffdU\ufffd\ufffdS=&>V.\ufffd&\u000ej\ufffdU\ufffd<>+r\ufffd\ufffd\ufffd\ufffd\ufffd.\u001e\ufffdN\ufffd5\ufffd4\u0005\u0015\ufffd\ufffdl\u0015d1\u0539Y<U\ufffd\u0013\u0019s+-\ufffds+\ufffdE]\ufffdaT\ufffdQ\ufffd\ufffd\ufffdB7u\ufffd\u0007T\u0015\u0001Zdo\ufffd\ufffd\ufffd\u001f\ufffd\ufffdc\ufffdQ\u0792<Y\ufffd\ufffdPe\u0017C%\ufffdx\u001e_f1T\ufffd\ufffd\ufffd\u001e\ufffd\ufffd%-\r\ufffdU\ufffdw\u0202\ufffd\ufffdiK\ufffd\ufffd()\ufffd\ufffd\ufffdU\ufffd\bu.#\ufffd\u02a9\ufffd\ufffdU\u0005\ufffd\ufffdW\u0015\ufffdJ\ufffd`\ufffd'\ufffd$\ufffd\ufffd\ufffd\ufffdkJ\ufffd3\u0019\ufffd\ufffd\u0468l?\ufffd\n\ufffd\ufffdkF\ufffd\u001f\ufffd\ufffd\uf6e1\u0011\ufffd%\u001dZ\ufffdQ\ufffd\ufffd\ufffdc\ufffd\ufffdq\ufffd\ufffd\u000e\u06b9\ufffdJr\ufffd\ufffd \ufffd\ufffd\ufffd\ufffd?\ufffdK\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0000\ufffd\ufffd$\ufffd\ufffd\ufffdH\ufffd\ufffd\u03d4\ufffd\u0019\ufffd2\ufffdL\u000e\ufffd\ufffd\ufffds\ufffd\ufffd\r\r2\u0012\ufffd\ufffd\u0018\ufffd&\ufffd\ufffd:\u001a\t\u0017{\ufffd\ufffd\ufffd\b\ufffdc*\ufffdV-Q\u000e\ufffd\ufffdX37\ufffd\ufffdx.\ufffd\u0005\u0011\u0549x\u0018\ufffd\ufffd#<\ufffd\ufffd\ufffd\ufffd\ufffd=\ufffd\u0018\ufffd\ufffd\ufffd\ufffd]\ufffd\u0011H\ufffd\u000e\ufffdT@[\u001d\ufffd\ufffd\u0001\ufffdm\fCkTS%9[\u01e9E\ufffd\u0019Gm\ufffd\ufffd\ufffd\ufffd\u01292H4\ufffd\ufffd\ufffd2\ufffdQv\u000e\u0003\ufffd~\ufffd\ufffd\u0018P\ufffdt\ufffd\ufffdJ\ufffdX\ufffdA\u023e\ufffd\u0018B\u0671Jr\ufffdj\u0011+\ufffd\ufffd\u01da\ufffd\ufffddM\ufffdL\ufffd\ufffdD\ufffd\ufffdw\ufffdz\ufffd\ufffd\ufffd\ufffd\u001e\ufffd\ufffd\ufffde\ufffd5\ufffd\u0019\ufffd\ufffdH\ufffd\ufffd\ufffd\ufffd\ufffd\u007f\ufffduU\ufffd\ufffd\ufffdY\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\r\ufffdK]P\ufffd\u0001\ufffd\ufffd\u0005'\ufffd\ufffd\ufffd`\ufffd\u03c9\f>\ufffdv\ufffd\ufffd,\ufffd\ufffdc>/3\ufffd \ufffd\ufffd\u000b\ufffd\ufffd/\ufffddet\\!\ufffd\ufffdh\ufffd/\ufffd\"\ufffdxe\u001d\ufffdE\ufffd\ufffd\u0007\ufffd6\ufffd\u0015\ufffd\ufffd\u000fr\ufffdP\u0015\ufffd\ufffdX\ufffd\ufffd7\ufffd9\ufffd\ufffd\ufffd)<A\u001c\ufffd\u001c\ufffd\u0017D;\ufffd\ufffd\u007f\ufffdM\ufffdV@\ufffd\u001b\ufffd?<jY\ufffd\ufffd\ufffd\u001b\ufffd\ufffd\ufffdq\u001c\u0475&9[5\u001cW\u0015\ufffd\ufffd\ufffd\u00cf\ufffd~\ufffd\u9f77>\ufffd\ufffd\ufffdo\ufffd\ufffd\ufffd;\ufffd\ufffd?\ufffdA>\ufffd\ue9df\ufffd\ufffd8\ufffd\ufffd\u0507Jw\u001e\ufffdu\ufffdu%\u001c\ufffd1\ufffd=\ufffd\ufffd\ufffdB\u000e\ufffd|\n)\ufffdu\ufffdAX\ufffd$:L\ufffdd\u0015\ufffd\ufffd\ufffd\ufffd\u000e\u007f\ufffd@\ufffd\u001c\ufffd\u0701\n\ufffd\ufffdQ\ufffd'\u0003\u0015\f\ufffdK\ufffdS\ufffd/VQ\ufffdI\u0015\u0118\ufffd\u0007\ufffd\ufffd\ufffd\ufffd\u0015\fVH\ufffd\ufffd\ufffd6\u0002\ufffd\ufffd6\u0002\"n#\ufffd\ufffdb\ufffdF \ufffdJ\ufffdt\ufffd/VQ\ufffdA\u0015\u0004\u001f\ufffd\ufffd\ufffd\ufffd\ufffd`\ufffdBr\ufffdv\ufffd\u0724\ufffdvrY\ufffd\ufffd\ufffd(\ufffd\\\ufffd\u0019U\u0012c\"\ufffdb\u0015\ufffd\u001dTA\ufffd\ufffdi\u0012\u00b1+\ufffd\u0390/V\ufffdk\ufffdr\\Ku\ufffdZj\ufffd\ufffdo\ufffd\\I|\ufffd\u42d5\ufffdZ\ufffd\u001c\u05d2D{|^\u0016\ufffdy\ufffdX\u0019\ufffd\ufffd\ufffdq-I\ufffd\ufffd\u0017JB\ufffd$_\ufffd\f\ufffdR\u5e16$\ufffd\u32f6\ufffd/^jK\ufffdk\ufffdr\\K\u0012\ufffd\ufffd\ufffd\ufffd*\ufffd|\ufffd2\\Ku\ufffdZ&\ufffd\ufffdO\ufffd\t\ufffd\ufffd0\ufffd \ufffdI\ufffd\u0018\ufffdm4\r\ufffd\ufffdPG\ufffd`\ufffd\ufffd\u0003mth\ufffd\ufffd\ufffd#\ufffd8f\b\ufffdJr\ufffdj\ufffd*\ufffd\u0018\u0001\ufffd\ufffd\u001f\u007f\ufffd\ufffd\ufffd\ufffd\u007fb\u0565\u03f2g~9Z\u000ew\ufffd\ufffdNl|\ufffd\u0016\ufffdd\ufffd\ufffd\ufffd*\ufffd\u0760\ufffd\ufffd\u075e4\ufffd\ufffd-[\ufffd_\ufffd<Y\ufffd1+h\u000e",
+    "seconds": 0.3
+   },
+   {
+    "name": "openfda/ndc-tadalafil",
+    "url": "https://api.fda.gov/drug/ndc.json?search=generic_name:tadalafil&limit=100",
+    "note": "does openFDA carry application_number on NDC records",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "declared_length": "181549",
+    "capped": false,
+    "bytes": 181549,
+    "head": "{\n  \"meta\": {\n    \"disclaimer\": \"Do not rely on openFDA to make decisions regarding medical care. While we make every effort to ensure that data is accurate, you should assume all results are unvalidated. We may limit or otherwise restrict your access to the API in line with our Terms of Service.\",\n    \"terms\": \"https://open.fda.gov/terms/\",\n    \"license\": \"https://open.fda.gov/license/\",\n    \"last_updated\": \"2026-09-02\",\n    \"results\": {\n      \"skip\": 0,\n      \"limit\": 100,\n      \"total\": 304\n    }\n  },\n  \"results\": [\n    {\n      \"product_ndc\": \"71335-1884\",\n      \"generic_name\": \"Tadalafil\",\n      \"labeler_name\": \"Bryant Ranch Prepack\",\n      \"brand_name\": \"Tadalafil\",\n      \"active_ingredients\": [\n        {\n          \"name\": \"TADALAFIL\",\n          \"strength\": \"5 mg/1\"\n        }\n      ],\n      \"finished\": true,\n      \"packaging\": [\n        {\n          \"package_ndc\": \"71335-1884-1\",\n          \"description\": \"30 TABLET, FILM COATED in 1 BLISTER PACK (71335-1884-1)\",\n          \"marketing_start_date\": \"20210629\",\n          \"sample\": false\n        }\n      ],\n      \"listing_expiration_date\": \"20261231\",\n      \"openfda\": {\n        \"manufacturer_name\": [\n          \"Bryant Ranch Prepack\"\n        ],\n        \"rxcui\": [\n          \"403957\"\n        ],\n        \"spl_set_id\": [\n          \"6fd94914-0c9d-4268-8ed8-3c2690707a5d\"\n        ],\n        \"nui\": [\n          \"N0000175599\",\n          \"N0000020026\"\n        ],\n        \"pharm_class_epc\": [\n          \"Phosphodiesterase 5 Inhibitor [EPC]\"\n  ",
+    "seconds": 0.8
+   },
+   {
+    "name": "openfda/ndc-sildenafil",
+    "url": "https://api.fda.gov/drug/ndc.json?search=generic_name:sildenafil&limit=100",
+    "note": "PAIRED: different molecule, different byte count expected",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "declared_length": "179100",
+    "capped": false,
+    "bytes": 179100,
+    "head": "{\n  \"meta\": {\n    \"disclaimer\": \"Do not rely on openFDA to make decisions regarding medical care. While we make every effort to ensure that data is accurate, you should assume all results are unvalidated. We may limit or otherwise restrict your access to the API in line with our Terms of Service.\",\n    \"terms\": \"https://open.fda.gov/terms/\",\n    \"license\": \"https://open.fda.gov/license/\",\n    \"last_updated\": \"2026-09-02\",\n    \"results\": {\n      \"skip\": 0,\n      \"limit\": 100,\n      \"total\": 270\n    }\n  },\n  \"results\": [\n    {\n      \"product_ndc\": \"51655-468\",\n      \"generic_name\": \"Sildenafil\",\n      \"labeler_name\": \"Northwind Health Company, LLC\",\n      \"brand_name\": \"Sildenafil\",\n      \"active_ingredients\": [\n        {\n          \"name\": \"SILDENAFIL CITRATE\",\n          \"strength\": \"100 mg/1\"\n        }\n      ],\n      \"finished\": true,\n      \"packaging\": [\n        {\n          \"package_ndc\": \"51655-468-54\",\n          \"description\": \"15 TABLET, FILM COATED in 1 BOTTLE, PLASTIC (51655-468-54)\",\n          \"marketing_start_date\": \"20201106\",\n          \"sample\": false\n        },\n        {\n          \"package_ndc\": \"51655-468-87\",\n          \"description\": \"6 TABLET, FILM COATED in 1 BOTTLE, PLASTIC (51655-468-87)\",\n          \"marketing_start_date\": \"20201106\",\n          \"sample\": false\n        }\n      ],\n      \"listing_expiration_date\": \"20271231\",\n      \"openfda\": {\n        \"manufacturer_name\": [\n          \"Northwind Health Company, LLC\"\n        ],\n        \"rxcui\": [\n          \"314229",
+    "seconds": 0.7
+   }
+  ],
+  "members": [
+   {
+    "name": "package.txt",
+    "size": 30100750
+   },
+   {
+    "name": "product.txt",
+    "size": 40188702
+   }
+  ],
+  "product.txt": {
+   "header": [
+    "PRODUCTID",
+    "PRODUCTNDC",
+    "PRODUCTTYPENAME",
+    "PROPRIETARYNAME",
+    "PROPRIETARYNAMESUFFIX",
+    "NONPROPRIETARYNAME",
+    "DOSAGEFORMNAME",
+    "ROUTENAME",
+    "STARTMARKETINGDATE",
+    "ENDMARKETINGDATE",
+    "MARKETINGCATEGORYNAME",
+    "APPLICATIONNUMBER",
+    "LABELERNAME",
+    "SUBSTANCENAME",
+    "ACTIVE_NUMERATOR_STRENGTH",
+    "ACTIVE_INGRED_UNIT",
+    "PHARM_CLASSES",
+    "DEASCHEDULE",
+    "NDC_EXCLUDE_FLAG",
+    "LISTING_RECORD_CERTIFIED_THROUGH"
+   ],
+   "rows": 115981,
+   "sample": [
+    "0002-0152_a5dba1a3-f7f7-4b8d-b9f1-a09dcdc1b2fc\t0002-0152\tHUMAN PRESCRIPTION DRUG\tZepbound\t\ttirzepatide\tINJECTION, SOLUTION\tSUBCUTANEOUS\t20240328\t\tNDA\tNDA217806\tEli Lilly and Company\tTIRZEPATIDE\t2.5\tmg/.5mL\tG-Protein-linked Receptor Interactions [MoA], GLP-1 Receptor Agonist [EPC], Glucagon-like Peptide-1 (GLP-1) Agonists [MoA], Glucose-dependent Insulinotropic Polypeptide Receptor Agonist [EPC]\t\tN\t20271231",
+    "0002-0213_42527ae4-c593-4e13-8b77-c0511198c708\t0002-0213\tHUMAN OTC DRUG\tHumulin\tR\tInsulin human\tINJECTION, SOLUTION\tPARENTERAL\t19830627\t20261215\tBLA\tBLA018780\tEli Lilly and Company\tINSULIN HUMAN\t100\t[iU]/mL\tInsulin [CS], Insulin [EPC]\t\tN\t"
+   ]
+  },
+  "has_application_column": true,
+  "marketing_categories": {
+   "ANDA": 50582,
+   "OTC MONOGRAPH DRUG": 36010,
+   "UNAPPROVED HOMEOPATHIC": 13729,
+   "NDA": 7414,
+   "BLA": 4095,
+   "UNAPPROVED DRUG OTHER": 2238,
+   "NDA AUTHORIZED GENERIC": 1173,
+   "UNAPPROVED MEDICAL GAS": 289,
+   "OTC MONOGRAPH FINAL": 218,
+   "OTC MONOGRAPH NOT FINAL": 166,
+   "UNAPPROVED DRUG FOR USE IN DRUG SHORTAGE": 64,
+   "EMERGENCY USE AUTHORIZATION": 3
+  },
+  "watch": {
+   "TIRZEPATIDE": {
+    "n": 54,
+    "brands": [
+     "MOUNJARO",
+     "Mounjaro",
+     "ZEPBOUND",
+     "Zepbound"
+    ],
+    "applications": [
+     "NDA215866",
+     "NDA217806"
+    ],
+    "sample": [
+     {
+      "proprietary": "Zepbound",
+      "ndc": "0002-0152",
+      "application": "NDA217806",
+      "category": "NDA",
+      "strength": "2.5 mg/.5mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Zepbound",
+      "ndc": "0002-0243",
+      "application": "NDA217806",
+      "category": "NDA",
+      "strength": "5 mg/.5mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Mounjaro",
+      "ndc": "0002-1152",
+      "application": "NDA215866",
+      "category": "NDA",
+      "strength": "2.5 mg/.5mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Zepbound",
+      "ndc": "0002-1214",
+      "application": "NDA217806",
+      "category": "NDA",
+      "strength": "7.5 mg/.5mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Mounjaro",
+      "ndc": "0002-1243",
+      "application": "NDA215866",
+      "category": "NDA",
+      "strength": "5 mg/.5mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Zepbound",
+      "ndc": "0002-1340",
+      "application": "NDA217806",
+      "category": "NDA",
+      "strength": "10 mg/.5mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Eli Lilly and Company"
+     }
+    ]
+   },
+   "DULOXETINE": {
+    "n": 208,
+    "brands": [
+     "Cymbalta",
+     "DRIZALMA SPRINKLE",
+     "DULOXETINE",
+     "DULOXETINE HYDROCHLORIDE",
+     "Duloxetine",
+     "Duloxetine D/R",
+     "Duloxetine HCL",
+     "Duloxetine Hydrochloride",
+     "duloxetine"
+    ],
+    "applications": [
+     "ANDA090694",
+     "ANDA090723",
+     "ANDA090739",
+     "ANDA090745",
+     "ANDA090776",
+     "ANDA090778",
+     "ANDA202336",
+     "ANDA202949",
+     "ANDA203088",
+     "ANDA203197",
+     "ANDA204343",
+     "ANDA204815",
+     "ANDA206653",
+     "ANDA207219",
+     "ANDA208706",
+     "ANDA210599",
+     "NDA021427",
+     "NDA212516",
+     "NDA219131"
+    ],
+    "sample": [
+     {
+      "proprietary": "Cymbalta",
+      "ndc": "0002-3235",
+      "application": "NDA021427",
+      "category": "NDA",
+      "strength": "20 mg/1",
+      "form": "CAPSULE, DELAYED RELEASE",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Cymbalta",
+      "ndc": "0002-3240",
+      "application": "NDA021427",
+      "category": "NDA",
+      "strength": "30 mg/1",
+      "form": "CAPSULE, DELAYED RELEASE",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Cymbalta",
+      "ndc": "0002-3270",
+      "application": "NDA021427",
+      "category": "NDA",
+      "strength": "60 mg/1",
+      "form": "CAPSULE, DELAYED RELEASE",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Duloxetine",
+      "ndc": "0228-2890",
+      "application": "ANDA090776",
+      "category": "ANDA",
+      "strength": "20 mg/1",
+      "form": "CAPSULE, DELAYED RELEASE PELLETS",
+      "labeler": "Actavis Pharma, Inc."
+     },
+     {
+      "proprietary": "Duloxetine",
+      "ndc": "0228-2891",
+      "application": "ANDA090776",
+      "category": "ANDA",
+      "strength": "30 mg/1",
+      "form": "CAPSULE, DELAYED RELEASE PELLETS",
+      "labeler": "Actavis Pharma, Inc."
+     },
+     {
+      "proprietary": "Duloxetine",
+      "ndc": "0228-2892",
+      "application": "ANDA090776",
+      "category": "ANDA",
+      "strength": "60 mg/1",
+      "form": "CAPSULE, DELAYED RELEASE PELLETS",
+      "labeler": "Actavis Pharma, Inc."
+     }
+    ]
+   },
+   "TADALAFIL": {
+    "n": 251,
+    "brands": [
+     "ADCIRCA",
+     "ALYQ",
+     "Cialis",
+     "N/A",
+     "TADALAFIL",
+     "TADLIQ",
+     "Tadalafil",
+     "tadalafil"
+    ],
+    "applications": [
+     "ANDA204809",
+     "ANDA205885",
+     "ANDA206285",
+     "ANDA206286",
+     "ANDA206693",
+     "ANDA207244",
+     "ANDA207290",
+     "ANDA208824",
+     "ANDA208934",
+     "ANDA209167",
+     "ANDA209250",
+     "ANDA209654",
+     "ANDA209744",
+     "ANDA209907",
+     "ANDA209908",
+     "ANDA210069",
+     "ANDA210145",
+     "ANDA210255",
+     "ANDA210392",
+     "ANDA210420",
+     "ANDA210572",
+     "ANDA210608",
+     "ANDA210609",
+     "ANDA211298",
+     "ANDA211335",
+     "ANDA211839",
+     "ANDA212062",
+     "ANDA215556",
+     "ANDA215949",
+     "ANDA216932"
+    ],
+    "sample": [
+     {
+      "proprietary": "Cialis",
+      "ndc": "0002-4462",
+      "application": "NDA021368",
+      "category": "NDA",
+      "strength": "5 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Cialis",
+      "ndc": "0002-4463",
+      "application": "NDA021368",
+      "category": "NDA",
+      "strength": "10 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Cialis",
+      "ndc": "0002-4464",
+      "application": "NDA021368",
+      "category": "NDA",
+      "strength": "20 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Eli Lilly and Company"
+     },
+     {
+      "proprietary": "Tadalafil",
+      "ndc": "0480-2309",
+      "application": "ANDA205885",
+      "category": "ANDA",
+      "strength": "5 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Teva Pharmaceuticals, Inc."
+     },
+     {
+      "proprietary": "Tadalafil",
+      "ndc": "0480-2310",
+      "application": "ANDA205885",
+      "category": "ANDA",
+      "strength": "10 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Teva Pharmaceuticals, Inc."
+     },
+     {
+      "proprietary": "ALYQ",
+      "ndc": "0480-9277",
+      "application": "ANDA216932",
+      "category": "ANDA",
+      "strength": "20 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Teva Pharmaceuticals, Inc."
+     }
+    ]
+   },
+   "SILDENAFIL": {
+    "n": 234,
+    "brands": [
+     "Revatio",
+     "SILDENAFIL",
+     "SILDENAFIL CITRATE",
+     "Sildenafil",
+     "Sildenafil Citrate",
+     "Viagra",
+     "Vybrique",
+     "sildenafil",
+     "sildenafil CITRATE",
+     "sildenafil citrate"
+    ],
+    "applications": [
+     "ANDA077342",
+     "ANDA078380",
+     "ANDA091448",
+     "ANDA091479",
+     "ANDA201156",
+     "ANDA202023",
+     "ANDA202025",
+     "ANDA202255",
+     "ANDA202598",
+     "ANDA202659",
+     "ANDA202954",
+     "ANDA203623",
+     "ANDA203814",
+     "ANDA203962",
+     "ANDA203963",
+     "ANDA203988",
+     "ANDA204882",
+     "ANDA204883",
+     "ANDA206401",
+     "ANDA207178",
+     "ANDA208494",
+     "ANDA209302",
+     "ANDA210394",
+     "ANDA211092",
+     "ANDA211534",
+     "ANDA211638",
+     "ANDA212260",
+     "ANDA212440",
+     "ANDA212883",
+     "ANDA213014"
+    ],
+    "sample": [
+     {
+      "proprietary": "Revatio",
+      "ndc": "0069-4190",
+      "application": "NDA021845",
+      "category": "NDA",
+      "strength": "20 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "PFIZER LABORATORIES DIV PFIZER INC"
+     },
+     {
+      "proprietary": "Viagra",
+      "ndc": "0069-4200",
+      "application": "NDA020895",
+      "category": "NDA",
+      "strength": "25 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "PFIZER LABORATORIES DIV PFIZER INC"
+     },
+     {
+      "proprietary": "Viagra",
+      "ndc": "0069-4210",
+      "application": "NDA020895",
+      "category": "NDA",
+      "strength": "50 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "PFIZER LABORATORIES DIV PFIZER INC"
+     },
+     {
+      "proprietary": "Viagra",
+      "ndc": "0069-4220",
+      "application": "NDA020895",
+      "category": "NDA",
+      "strength": "100 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "PFIZER LABORATORIES DIV PFIZER INC"
+     },
+     {
+      "proprietary": "Sildenafil",
+      "ndc": "0093-5341",
+      "application": "ANDA077342",
+      "category": "ANDA",
+      "strength": "25 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Teva Pharmaceuticals USA, Inc."
+     },
+     {
+      "proprietary": "Sildenafil",
+      "ndc": "0093-5342",
+      "application": "ANDA077342",
+      "category": "ANDA",
+      "strength": "50 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Teva Pharmaceuticals USA, Inc."
+     }
+    ]
+   },
+   "FINASTERIDE": {
+    "n": 75,
+    "brands": [
+     "Finasteride",
+     "PROPECIA",
+     "PROSCAR"
+    ],
+    "applications": [
+     "ANDA076436",
+     "ANDA076437",
+     "ANDA076511",
+     "ANDA078341",
+     "ANDA090060",
+     "ANDA090061",
+     "ANDA090121",
+     "ANDA090508",
+     "ANDA091643",
+     "ANDA203687",
+     "ANDA204304",
+     "ANDA207750",
+     "NDA020180",
+     "NDA020788"
+    ],
+    "sample": [
+     {
+      "proprietary": "Finasteride",
+      "ndc": "0093-7355",
+      "application": "ANDA076511",
+      "category": "ANDA",
+      "strength": "5 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Teva Pharmaceuticals USA, Inc."
+     },
+     {
+      "proprietary": "Finasteride",
+      "ndc": "0615-8562",
+      "application": "ANDA076437",
+      "category": "ANDA",
+      "strength": "5 mg/1",
+      "form": "TABLET",
+      "labeler": "NCS HealthCare of KY, LLC dba Vangard Labs"
+     },
+     {
+      "proprietary": "Finasteride",
+      "ndc": "0904-6830",
+      "application": "ANDA090061",
+      "category": "ANDA",
+      "strength": "5 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Major Pharmaceuticals"
+     },
+     {
+      "proprietary": "Finasteride",
+      "ndc": "16729-089",
+      "application": "ANDA091643",
+      "category": "ANDA",
+      "strength": "1 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Accord Healthcare, Inc."
+     },
+     {
+      "proprietary": "Finasteride",
+      "ndc": "16729-090",
+      "application": "ANDA090121",
+      "category": "ANDA",
+      "strength": "5 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Accord Healthcare, Inc."
+     },
+     {
+      "proprietary": "Finasteride",
+      "ndc": "17856-0090",
+      "application": "ANDA090121",
+      "category": "ANDA",
+      "strength": "5 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Atlantic Biologicals Corps"
+     }
+    ]
+   },
+   "MINOXIDIL": {
+    "n": 269,
+    "brands": [
+     "5% MINOXIDIL HAIR REGROWTH SERUM With Biotin",
+     "5% MINOXIDIL SERUM",
+     "5% Minoxidil Foam",
+     "5% Minoxidil Hair Care Solution",
+     "5% Minoxidil Hair Regrowth Foam",
+     "5% Minoxidil Hair Regrowth Treatment",
+     "5% Minoxidil Sprays HAIR EGROWTH TREATMENT",
+     "5% Minoxidil Topical Solution",
+     "5% Minoxidil hair growth Serum",
+     "5% Minoxidil(For Men)",
+     "5%MINOXIDIL TOPICAL FOAM",
+     "5%Minoxidil Hair Growth Serum",
+     "5%Minoxidil Hair Growth Sprays Serum",
+     "5%Minoxidil Topical Aerosol(For Men)",
+     "BOSLEY Man 5 Minoxidil Topical Solution",
+     "BOSLEY Minoxidil Topical Solution 2 for Women",
+     "BOSLEY Minoxidil Topical Solution 5 (for men)",
+     "BOSLEY Woman 2 Minoxidil Topical Solution",
+     "Basic Care Hair Regrowth Treatment",
+     "Biotin"
+    ],
+    "applications": [
+     "505G(a)(3)",
+     "ANDA071344",
+     "ANDA071345",
+     "ANDA071826",
+     "ANDA071839",
+     "ANDA072708",
+     "ANDA072709",
+     "ANDA074588",
+     "ANDA075357",
+     "ANDA075438",
+     "ANDA075518",
+     "ANDA075598",
+     "ANDA076239",
+     "ANDA078176",
+     "ANDA091344",
+     "ANDA208092",
+     "ANDA209074",
+     "ANDA217998",
+     "ANDA218175",
+     "ANDA218616",
+     "M032",
+     "NDA019501",
+     "NDA020834",
+     "NDA021812"
+    ],
+    "sample": [
+     {
+      "proprietary": "good sense hair regrowth treatment",
+      "ndc": "0113-0294",
+      "application": "ANDA091344",
+      "category": "ANDA",
+      "strength": "5 g/100g",
+      "form": "AEROSOL, FOAM",
+      "labeler": "L. Perrigo Company"
+     },
+     {
+      "proprietary": "Good Sense Hair Regrowth Treatment",
+      "ndc": "0113-1032",
+      "application": "ANDA075598",
+      "category": "ANDA",
+      "strength": "5 g/100mL",
+      "form": "SOLUTION",
+      "labeler": "L. Perrigo Company"
+     },
+     {
+      "proprietary": "Good Sense Hair Regrowth Treatment",
+      "ndc": "0113-1129",
+      "application": "ANDA091344",
+      "category": "ANDA",
+      "strength": "50 mg/g",
+      "form": "AEROSOL, FOAM",
+      "labeler": "L. Perrigo Company"
+     },
+     {
+      "proprietary": "minoxidil",
+      "ndc": "0113-5129",
+      "application": "ANDA091344",
+      "category": "ANDA",
+      "strength": "50 mg/g",
+      "form": "AEROSOL, FOAM",
+      "labeler": "L. Perrigo Company"
+     },
+     {
+      "proprietary": "GOOD SENSE HAIR REGROWTH TREATMENT",
+      "ndc": "0113-6500",
+      "application": "ANDA075357",
+      "category": "ANDA",
+      "strength": "2 g/100mL",
+      "form": "SOLUTION",
+      "labeler": "L. Perrigo Company"
+     },
+     {
+      "proprietary": "GOOD SENSE HAIR REGROWTH TREATMENT",
+      "ndc": "0113-7080",
+      "application": "ANDA091344",
+      "category": "ANDA",
+      "strength": "5 g/100g",
+      "form": "AEROSOL, FOAM",
+      "labeler": "L. Perrigo Company"
+     }
+    ]
+   },
+   "BUPROPION": {
+    "n": 347,
+    "brands": [
+     "Aplenzin",
+     "BUPROPION HCl ER (XL)",
+     "BUPROPION HYDROCHLORIDE",
+     "BUPROPION HYDROCHLORIDE (SR)",
+     "BUPROPION HYDROCHLORIDE (XL)",
+     "BUPROPION HYDROCHLORIDE SR",
+     "BuPROPion Hydrochloride",
+     "Bupropion HCL",
+     "Bupropion HCL ER (XL)",
+     "Bupropion HCL ER(SR)",
+     "Bupropion Hydrobromide",
+     "Bupropion Hydrochloride",
+     "Bupropion Hydrochloride (XL)",
+     "Bupropion hydrochloride",
+     "Bupropion hydrochloride (XL)",
+     "Forfivo",
+     "WELLBUTRIN",
+     "buPropion Hydrochloride",
+     "bupropion",
+     "bupropion Hydrochloride"
+    ],
+    "applications": [
+     "ANDA075491",
+     "ANDA075584",
+     "ANDA075932",
+     "ANDA076143",
+     "ANDA076711",
+     "ANDA077285",
+     "ANDA077415",
+     "ANDA077715",
+     "ANDA078866",
+     "ANDA079094",
+     "ANDA079095",
+     "ANDA090325",
+     "ANDA090693",
+     "ANDA200695",
+     "ANDA201567",
+     "ANDA202304",
+     "ANDA203013",
+     "ANDA205794",
+     "ANDA206122",
+     "ANDA206556",
+     "ANDA206674",
+     "ANDA206975",
+     "ANDA207224",
+     "ANDA207389",
+     "ANDA207479",
+     "ANDA208606",
+     "ANDA208652",
+     "ANDA210015",
+     "ANDA210081",
+     "ANDA210497"
+    ],
+    "sample": [
+     {
+      "proprietary": "Bupropion Hydrochloride",
+      "ndc": "0115-5445",
+      "application": "ANDA076711",
+      "category": "ANDA",
+      "strength": "200 mg/1",
+      "form": "TABLET, FILM COATED, EXTENDED RELEASE",
+      "labeler": "Amneal Pharmaceuticals of New York LLC"
+     },
+     {
+      "proprietary": "Bupropion Hydrochloride",
+      "ndc": "0115-6811",
+      "application": "ANDA077415",
+      "category": "ANDA",
+      "strength": "150 mg/1",
+      "form": "TABLET, FILM COATED, EXTENDED RELEASE",
+      "labeler": "Amneal Pharmaceuticals of New York LLC"
+     },
+     {
+      "proprietary": "WELLBUTRIN",
+      "ndc": "0173-0135",
+      "application": "NDA020358",
+      "category": "NDA",
+      "strength": "150 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "GlaxoSmithKline LLC"
+     },
+     {
+      "proprietary": "WELLBUTRIN",
+      "ndc": "0173-0722",
+      "application": "NDA020358",
+      "category": "NDA",
+      "strength": "200 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "GlaxoSmithKline LLC"
+     },
+     {
+      "proprietary": "WELLBUTRIN",
+      "ndc": "0173-0947",
+      "application": "NDA020358",
+      "category": "NDA",
+      "strength": "100 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "GlaxoSmithKline LLC"
+     },
+     {
+      "proprietary": "WELLBUTRIN",
+      "ndc": "0187-0730",
+      "application": "NDA021515",
+      "category": "NDA",
+      "strength": "150 mg/1",
+      "form": "TABLET, EXTENDED RELEASE",
+      "labeler": "Bausch Health US LLC"
+     }
+    ]
+   },
+   "LIRAGLUTIDE": {
+    "n": 21,
+    "brands": [
+     "LIRAGLUTIDE",
+     "Liraglutide",
+     "Saxenda",
+     "Victoza",
+     "liraglutide"
+    ],
+    "applications": [
+     "ANDA214568",
+     "ANDA215245",
+     "ANDA215421",
+     "ANDA215503",
+     "ANDA217063",
+     "ANDA217234",
+     "ANDA217590",
+     "ANDA218115",
+     "NDA022341",
+     "NDA206321"
+    ],
+    "sample": [
+     {
+      "proprietary": "Liraglutide",
+      "ndc": "0143-9144",
+      "application": "ANDA215503",
+      "category": "ANDA",
+      "strength": "6 mg/mL",
+      "form": "INJECTION",
+      "labeler": "Hikma Pharmaceuticals USA Inc."
+     },
+     {
+      "proprietary": "Saxenda",
+      "ndc": "0169-2800",
+      "application": "NDA206321",
+      "category": "NDA",
+      "strength": "6 mg/mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Novo Nordisk Pharmaceutical Industries, LP"
+     },
+     {
+      "proprietary": "Victoza",
+      "ndc": "0169-4060",
+      "application": "NDA022341",
+      "category": "NDA",
+      "strength": "6 mg/mL",
+      "form": "INJECTION",
+      "labeler": "Novo Nordisk"
+     },
+     {
+      "proprietary": "Liraglutide",
+      "ndc": "0480-3667",
+      "application": "NDA022341",
+      "category": "NDA AUTHORIZED GENERIC",
+      "strength": "6 mg/mL",
+      "form": "INJECTION",
+      "labeler": "Teva Pharmaceuticals USA, Inc."
+     },
+     {
+      "proprietary": "Liraglutide",
+      "ndc": "0480-7250",
+      "application": "ANDA214568",
+      "category": "ANDA",
+      "strength": "6 mg/mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Teva Pharmaceuticals, Inc."
+     },
+     {
+      "proprietary": "Liraglutide",
+      "ndc": "14403-3400",
+      "application": "ANDA215503",
+      "category": "ANDA",
+      "strength": "18 mg/3mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Hybio Pharmaceutical Co., Ltd. (Pingshan Factory)"
+     }
+    ]
+   },
+   "SEMAGLUTIDE": {
+    "n": 24,
+    "brands": [
+     "OZEMPIC",
+     "Ozempic",
+     "RYBELSUS",
+     "WEGOVY"
+    ],
+    "applications": [
+     "NDA209637",
+     "NDA213051",
+     "NDA215256",
+     "NDA218316"
+    ],
+    "sample": [
+     {
+      "proprietary": "OZEMPIC",
+      "ndc": "0169-1704",
+      "application": "NDA213051",
+      "category": "NDA",
+      "strength": "4 mg/1",
+      "form": "TABLET",
+      "labeler": "Novo Nordisk Pharmaceutical Industries, LP"
+     },
+     {
+      "proprietary": "OZEMPIC",
+      "ndc": "0169-1709",
+      "application": "NDA213051",
+      "category": "NDA",
+      "strength": "9 mg/1",
+      "form": "TABLET",
+      "labeler": "Novo Nordisk Pharmaceutical Industries, LP"
+     },
+     {
+      "proprietary": "OZEMPIC",
+      "ndc": "0169-1715",
+      "application": "NDA213051",
+      "category": "NDA",
+      "strength": "1.5 mg/1",
+      "form": "TABLET",
+      "labeler": "Novo Nordisk Pharmaceutical Industries, LP"
+     },
+     {
+      "proprietary": "Ozempic",
+      "ndc": "0169-4130",
+      "application": "NDA209637",
+      "category": "NDA",
+      "strength": "1.34 mg/mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Novo Nordisk Pharmaceutical Industries, LP"
+     },
+     {
+      "proprietary": "Ozempic",
+      "ndc": "0169-4181",
+      "application": "NDA209637",
+      "category": "NDA",
+      "strength": ".68 mg/mL",
+      "form": "INJECTION, SOLUTION",
+      "labeler": "Novo Nordisk Pharmaceutical Industries, LP"
+     },
+     {
+      "proprietary": "RYBELSUS",
+      "ndc": "0169-4303",
+      "application": "NDA213051",
+      "category": "NDA",
+      "strength": "3 mg/1",
+      "form": "TABLET",
+      "labeler": "Novo Nordisk Pharmaceutical Industries, LP"
+     }
+    ]
+   },
+   "NALTREXONE": {
+    "n": 46,
+    "brands": [
+     "Contrave",
+     "NALTREXONE HYDROCHLORIDE",
+     "Naltrexone Hydrochloride"
+    ],
+    "applications": [
+     "ANDA075274",
+     "ANDA076264",
+     "ANDA090356",
+     "ANDA091205",
+     "ANDA207905",
+     "NDA200063"
+    ],
+    "sample": [
+     {
+      "proprietary": "NALTREXONE HYDROCHLORIDE",
+      "ndc": "0406-1170",
+      "application": "ANDA076264",
+      "category": "ANDA",
+      "strength": "50 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "SpecGx LLC"
+     },
+     {
+      "proprietary": "NALTREXONE HYDROCHLORIDE",
+      "ndc": "0615-8579",
+      "application": "ANDA090356",
+      "category": "ANDA",
+      "strength": "50 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "NCS HealthCare of KY, LLC dba Vangard Labs"
+     },
+     {
+      "proprietary": "NALTREXONE HYDROCHLORIDE",
+      "ndc": "0904-7036",
+      "application": "ANDA090356",
+      "category": "ANDA",
+      "strength": "50 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Major Pharmaceuticals"
+     },
+     {
+      "proprietary": "Naltrexone Hydrochloride",
+      "ndc": "16729-081",
+      "application": "ANDA091205",
+      "category": "ANDA",
+      "strength": "50 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Accord Healthcare, Inc."
+     },
+     {
+      "proprietary": "Naltrexone Hydrochloride",
+      "ndc": "23155-886",
+      "application": "ANDA207905",
+      "category": "ANDA",
+      "strength": "50 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "Heritage Pharmaceuticals Inc d/b/a Avet Pharmaceuticals Inc"
+     },
+     {
+      "proprietary": "Naltrexone Hydrochloride",
+      "ndc": "42291-632",
+      "application": "ANDA075274",
+      "category": "ANDA",
+      "strength": "50 mg/1",
+      "form": "TABLET, FILM COATED",
+      "labeler": "AvKARE"
+     }
+    ]
+   }
+  },
+  "package.txt": {
+   "header": [
+    "PRODUCTID",
+    "PRODUCTNDC",
+    "NDCPACKAGECODE",
+    "PACKAGEDESCRIPTION",
+    "STARTMARKETINGDATE",
+    "ENDMARKETINGDATE",
+    "NDC_EXCLUDE_FLAG",
+    "SAMPLE_PACKAGE"
+   ],
+   "rows": 217724,
+   "sample": [
+    "0002-0152_a5dba1a3-f7f7-4b8d-b9f1-a09dcdc1b2fc\t0002-0152\t0002-0152-01\t1 VIAL, SINGLE-DOSE in 1 CARTON (0002-0152-01)  / .5 mL in 1 VIAL, SINGLE-DOSE\t20240328\t\tN\tN",
+    "0002-0152_a5dba1a3-f7f7-4b8d-b9f1-a09dcdc1b2fc\t0002-0152\t0002-0152-04\t4 VIAL, SINGLE-DOSE in 1 CARTON (0002-0152-04)  / .5 mL in 1 VIAL, SINGLE-DOSE\t20240808\t\tN\tN"
+   ]
+  }
+ },
+ "part_d": {
+  "routes": [
+   {
+    "name": "cms/data.json",
+    "url": "https://data.cms.gov/data.json",
+    "note": "DCAT catalogue; find 'Part D Spending by Drug' by title",
+    "status": 200,
+    "content_type": "application/json",
+    "declared_length": null,
+    "capped": false,
+    "bytes": 3035588,
+    "head": "{\"@context\":\"https:\\/\\/project-open-data.cio.gov\\/v1.1\\/schema\\/catalog.jsonld\",\"@id\":\"https:\\/\\/data.cms.gov\\/data.json\",\"@type\":\"dcat:Catalog\",\"conformsTo\":\"https:\\/\\/project-open-data.cio.gov\\/v1.1\\/schema\",\"describedBy\":\"https:\\/\\/project-open-data.cio.gov\\/v1.1\\/schema\\/catalog.json\",\"dataset\":[{\"@type\":\"dcat:Dataset\",\"accessLevel\":\"public\",\"accessRights\":\"Open\",\"accrualPeriodicity\":\"R\\/P1Y\",\"bureauCode\":[\"009:38\"],\"contactPoint\":{\"@type\":\"vcard:Contact\",\"fn\":\"Shared Savings Program - CM\",\"hasEmail\":\"mailto:SharedSavingsProgram@cms.hhs.gov\"},\"describedBy\":\"https:\\/\\/data.cms.gov\\/resources\\/aco-participants-data-dictionary\",\"dataQuality\":true,\"description\":\"The Accountable Care Organization (ACO) Participants data presents overview information on ACO participants in the Medicare Shared Savings Program (Shared Savings Program), including their name, track status, number of years in the program, and contact information of key personnel.\",\"distribution\":[{\"@type\":\"dcat:Distribution\",\"format\":\"API\",\"accessURL\":\"https:\\/\\/data.cms.gov\\/data-api\\/v1\\/dataset\\/9767cb68-8ea9-4f0b-8179-9431abc89f11\\/data\",\"resourcesAPI\":\"https:\\/\\/data.cms.gov\\/data-api\\/v1\\/dataset-resources\\/9767cb68-8ea9-4f0b-8179-9431abc89f11\",\"description\":\"latest\",\"title\":\"Accountable Care Organization Participants : 2026-01-01\",\"modified\":\"2026-02-04\",\"temporal\":\"2026-01-01\\/2026-12-31\"},{\"@type\":\"dcat:Distribution\",\"downloadURL\":\"https:\\/\\/data.cms.gov\\/sites\\/default\\/files\\/2026-01\\/453bc69c-61a4-4030-8",
+    "seconds": 0.4
+   },
+   {
+    "name": "cms/part-d-api-adcirca",
+    "url": "https://data.cms.gov/data-api/v1/dataset/4ff7c618-4e40-483a-b390-c8a58c94fa15/data?filter[Brnd_Name]=Adcirca&size=10",
+    "note": "does the API filter by brand; column name is a guess to be corrected from the head",
+    "status": 200,
+    "content_type": "application/json",
+    "declared_length": "4721",
+    "capped": false,
+    "bytes": 4721,
+    "head": "[{\"Brnd_Name\":\"Adcirca\",\"Gnrc_Name\":\"Tadalafil\",\"Tot_Mftr\":\"1\",\"Mftr_Name\":\"Overall\",\"Year\":\"2025 (Q1-Q4)\",\"Tot_Benes\":\"497\",\"Tot_Clms\":\"4064\",\"Tot_Spndng\":\"18015271.62\",\"Avg_Spnd_Per_Bene\":\"36248.03\",\"Avg_Spnd_Per_Clm\":\"4432.89\",\"Drug_Uses\":\"\\u0022USES:  Tadalafil is used to treat high blood pressure in the lungs (pulmonary hypertension). It works by relaxing and widening the blood vessels in your lungs which allows the blood to flow more easily. Decreasing high blood pressure in the lungs allows your heart and lungs to work better and improves your ability to exercise. NOTE:   This is a summary and does not contain all possible information about this product.  For complete information about this product or your specific health needs, ask your healthcare professional.  Always seek the advice of your healthcare professional if you have any questions about this product or your medical condition.  This information is not intended as individual medical advice and does not substitute for the knowledge and judgment of your healthcare professional.  This information does not contain any assurances that this product is safe, effective or appropriate for you.\\u0022\"},{\"Brnd_Name\":\"Adcirca\",\"Gnrc_Name\":\"Tadalafil\",\"Tot_Mftr\":\"1\",\"Mftr_Name\":\"Eli Lilly \\u0026 Co.\",\"Year\":\"2025 (Q1-Q4)\",\"Tot_Benes\":\"497\",\"Tot_Clms\":\"4064\",\"Tot_Spndng\":\"18015271.62\",\"Avg_Spnd_Per_Bene\":\"36248.03\",\"Avg_Spnd_Per_Clm\":\"4432.89\",\"Drug_Uses\":\"\\u0022USES:  Tadalafil is used to treat high blood pressure in the ",
+    "seconds": 0.3
+   },
+   {
+    "name": "cms/part-d-api-unfiltered",
+    "url": "https://data.cms.gov/data-api/v1/dataset/4ff7c618-4e40-483a-b390-c8a58c94fa15/data?size=3",
+    "note": "PAIRED: what the columns are really called",
+    "status": 200,
+    "content_type": "application/json",
+    "declared_length": "909",
+    "capped": false,
+    "bytes": 909,
+    "head": "[{\"Brnd_Name\":\"1st Tier Unifine Pentips\",\"Gnrc_Name\":\"Pen Needle, Diabetic\",\"Tot_Mftr\":\"1\",\"Mftr_Name\":\"Overall\",\"Year\":\"2025 (Q1-Q4)\",\"Tot_Benes\":\"123\",\"Tot_Clms\":\"215\",\"Tot_Spndng\":\"6054.98\",\"Avg_Spnd_Per_Bene\":\"49.23\",\"Avg_Spnd_Per_Clm\":\"28.16\",\"Drug_Uses\":\"\\u0022Drug uses not available\\u0022\"},{\"Brnd_Name\":\"1st Tier Unifine Pentips\",\"Gnrc_Name\":\"Pen Needle, Diabetic\",\"Tot_Mftr\":\"1\",\"Mftr_Name\":\"Owen Mumford Us\",\"Year\":\"2025 (Q1-Q4)\",\"Tot_Benes\":\"123\",\"Tot_Clms\":\"215\",\"Tot_Spndng\":\"6054.98\",\"Avg_Spnd_Per_Bene\":\"49.23\",\"Avg_Spnd_Per_Clm\":\"28.16\",\"Drug_Uses\":\"\\u0022Drug uses not available\\u0022\"},{\"Brnd_Name\":\"1st Tier Unifine Pentips Plus\",\"Gnrc_Name\":\"Pen Needle, Diabetic\",\"Tot_Mftr\":\"1\",\"Mftr_Name\":\"Overall\",\"Year\":\"2025 (Q1-Q4)\",\"Tot_Benes\":\"187\",\"Tot_Clms\":\"472\",\"Tot_Spndng\":\"12467.82\",\"Avg_Spnd_Per_Bene\":\"66.67\",\"Avg_Spnd_Per_Clm\":\"26.41\",\"Drug_Uses\":\"\\u0022Drug uses not available\\u0022\"}]",
+    "seconds": 0.0
+   }
+  ],
+  "n_datasets": 159,
+  "part_d_datasets": [
+   {
+    "title": "Medicare Quarterly Part D Spending by Drug",
+    "modified": "2026-07-23",
+    "identifier": "https://data.cms.gov/data-api/v1/dataset/4ff7c618-4e40-483a-b390-c8a58c94fa15/data-viewer",
+    "distributions": [
+     {
+      "format": "API",
+      "mediaType": null,
+      "accessURL": "https://data.cms.gov/data-api/v1/dataset/4ff7c618-4e40-483a-b390-c8a58c94fa15/data",
+      "downloadURL": null
+     },
+     {
+      "format": "CSV",
+      "mediaType": "text/csv",
+      "accessURL": null,
+      "downloadURL": "https://data.cms.gov/sites/default/files/2026-07/QDD_PTD_RQ2603_P01_V10_DQT2601_20260708.csv"
+     },
+     {
+      "format": "API",
+      "mediaType": null,
+      "accessURL": "https://data.cms.gov/data-api/v1/dataset/43ed210a-bf5d-49ba-baa4-5713a5a5ded1/data",
+      "downloadURL": null
+     }
+    ]
+   },
+   {
+    "title": "Medicare Part D Spending by Drug",
+    "modified": "2026-06-25",
+    "identifier": "https://data.cms.gov/data-api/v1/dataset/7e0b4365-fd63-4a29-8f5e-e0ac9f66a81b/data-viewer",
+    "distributions": [
+     {
+      "format": "API",
+      "mediaType": null,
+      "accessURL": "https://data.cms.gov/data-api/v1/dataset/7e0b4365-fd63-4a29-8f5e-e0ac9f66a81b/data",
+      "downloadURL": null
+     },
+     {
+      "format": "CSV",
+      "mediaType": "text/csv",
+      "accessURL": null,
+      "downloadURL": "https://data.cms.gov/sites/default/files/2026-06/98218f98-166c-4723-8438-c344a4ef96a6/DSD_PTD_RY26_P04_V10_DY24_BGM.csv"
+     },
+     {
+      "format": "API",
+      "mediaType": null,
+      "accessURL": "https://data.cms.gov/data-api/v1/dataset/da5ff50b-e5da-42de-b68b-6cfac1f64f35/data",
+      "downloadURL": null
+     }
+    ]
+   }
+  ]
+ },
+ "second_labels": {
+  "route": {
+   "name": "fda/drugsfda-zip",
+   "url": "https://www.fda.gov/media/89850/download",
+   "note": "the archive the Eroom study already uses",
+   "status": 200,
+   "content_type": "application/zip",
+   "declared_length": "6077513",
+   "capped": false,
+   "bytes": 6077513,
+   "head": "PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\ufffds#]i\ufffd\ufffd\ufffd\ufffd\u0003\u0000\u0000d\u000b\u0000\u0000\u0016\u0000\u0000\u0000ActionTypes_Lookup.txt\ufffd\ufffdY\ufffd\ufffd8\u0014\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0007\u0515\ufffd,\ufffd\ufffd\u0018\ufffd\ufffd\ufffd\ufffdYzy\u001aQ\ufffdIYM0\u0003\ufffd\ufffd\ufffd\ufffd\ufffdB\u0016 \ufffdfPIQ\u0004\ufffd\ufffd\u000e6\ufffd>\u0018\u01d2\ufffd48e\ufffd\ufffd\ufffd\u0014\ufffdG\ufffdQ]\ufffd\u000f\ufffd:+\ufffdgU\ufffd\ufffdY\ufffd\ufffdH\ufffd\ufffd\ufffdO&\ufffd\u0252\t\u0011;\ufffd\ufffd>\ufffd\ufffd\u01e3\ufffd\ufffd\ufffd\ufffd[\ufffdQ\ufffd\u0498)k\ufffd\u0018\ufffdC\ufffdE\u0019\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd8\ufffdO\ufffd\ufffd\ufffdP\ufffd\ufffdw\ufffdv\u0002\ufffd]\u05c4\ufffd\ufffdi\ufffdG\ufffd\ufffdF\ufffdq\ufffd\u0012\ufffd\ufffdCv\bgY.\ufffd\ufffd\u00011!\ufffdY\ufffd\ufffd\ufffd\ufffd\f\"\"\ufffd\ufffd\ufffd\u0018I\u0018+\ufffde\ufffdk=\ufffd8\ufffd\ufffd\ufffdn<\ufffd7.f\ufffd\ufffd\u0012\ufffd\u001e\u0010y\ufffd\ufffd\u0003C_\ufffd|E\u0004Z\ufffd;Az$\ufffd\ufffd\ufffd\ufffdk\u0018\ufffdWDLj\ufffdG\ufffd\ufffd\u010a\ufffdr\u001f\u0172\ufffd\u0007:Y\ufffd\u000eoF\ufffd\ufffd\ufffdf\ufffd\ufffd.\ufffd\ufffd\ufffdc\u0007~di\ufffd\ufffdO\ufffd\ufffdx\ufffd\ufffd\ufffdi\ufffd\ufffd\ufffdz\u0005oRj\ufffdp\u0011P\u0007\u071f\ufffdr\u0017\ufffd,\ufffd\ufffd\u0015Y\ufffd\ufffda.\u000e\ufffd\ube21\tk\ufffd\ufffd\ufffd<QJ\ufffd\ufffd=\u00bb#\u0328\ufffd\ufffd\u001d\ufffd9a\u0000k:\ufffd4\ufffd\ufffdv<\ufffd9\ufffd[O0t\ufffd\u0003\ufffd\u0012P6%\ufffdz\ufffdQ \ufffd\u0013\u0010\ufffd\ufffd\ufffd2~m\ufffd~C\ufffdS\ufffd\u00000S\ufffd\ufffdu^\tx\u001b\u000f55\ufffdn\"\u0015jAF<e\ufffdG\u0012\ufffdR\ufffd\ufffd\ufffd)\u001a\ufffd8v\ufffd`/\ufffd\ufffd\ufffdd\ufffdnr\ufffdnr\ufffdnr\u0550\u0016\ufffdV\u0000\u0696\u001cv\ufffd\r\ufffd\f\u001dmC\ufffdW/\ufffd\u0001\ufffd(\ufffd\u0011A\ufffd\u04b4`\ufffdl\ufffd.\ufffd\ufffd\ufffd4P7\u0019\ufffd\ufffd\u000e\ufffd\ufffd\u0006\uad01\ufffd\ufffd@\ufffdb\ufffdn9P\ufffdj\ufffd.{\ufffd-}\r\ufffd\u0017&\u0017Y\u0399\ufffd \ufffd\ufffd\ufffd\ufffd.Q\ufffd\"<\ufffdE6\ufffd\ufffd\ufffd|R\ufffd\ufffd\ufffd\u0017\ufffd\u0207:Y6\ufffdk\u0010M\ufffdW\ufffd\ufffd\ufffd\ufffd>\ufffd\ufffd\ufffdl[u*t6{\ufffd'\u0017\ufffd\u0003\ufffd9\ufffd:3\ufffd\ufffd1~g\ufffd\ufffd7U\ufffd\ufffd\u000ek|s\ufffdw\ufffd\ufffd\u067c\u0017\ufffdD1O\ufffd<u\ufffd\r&\u0524\ufffdw\ufffd\u0016\uf896\ufffd\ufffd\u020f\ufffd\\\ud00eg\ufffd\ufffdu\ufffd\ufffd^\ufffd\ufffd\u0006\ufffd\u0010\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0006\ufffd\u0000\ufffd\ufffd\ufffd\u07c3\u01f9x\ufffd\"\u0011\ufffd\ufffdz\ufffd\ufffd\u0002\ufffd\ufffdB\ufffd\ufffdg\u001b\ufffd\ufffd\ufffd\ufffd\ufffd\ufffde\ufffd\u0483|\ufffd\ufffd~\ufffd\u0019\ufffd6\ufffd\u0004doi\ufffd\ufffd\ufffd\ufffd\ufffd8\ufffdDzI\ufffdKu_iZ\u007f\ufffd\ufffdw\ufffd\ufffd\ufffd]L\ufffd\ufffd\ufffd\ufffd\u0003\ufffd\ufffdW\ufffd\ufffd.\ufffd\ufffd\ufffd\u03f4\ufffd\ufffdzc\ufffdv\ufffd\u001a\ufffd+aZd,\ufffd{\ufffdvJh\ufffd\ufffdA`\ufffdi\u000bEy\ufffd\ufffd\ufffd\ufffd\ufffdV\u0003u\u0003\ufffd{\ufffd\ufffdx\ufffd\u5af8(`\ufffd\ufffd\ufffd \ufffd{\u0005\ufffd\ufffd\ufffd\ufffd\ufffda\u0007\ufffd\ufffd\ufffd5\ufffd\u061d\ufffdR+,G\ufffd\u001bj\ufffd\ufffd?=\ufffd\ufffd\u007f\ufffd\u0013\ufffd\ufffd\ufffdp\u0015T\ufffd\ufffd3Z\ufffd\ufffdR\ufffd\ufffd1l\ufffdy\ufffd|\ufffd\ufffd#\u001c|\ufffd\u0012\u02a09\ufffd\ufffd\ufffdB^X{\ufffdk\u001a\ufffd\ufffd\ufffdp\ufffd\ufffdU[\ufffd\u000fCZ\\\ufffd\ufffdDZX\ufffd\u001c\ufffdW\ufffd:\ufffd\ufffduk\ufffd\ufffd\ufffdA\ufffd\ufffd&\ufffd\ufffd\ufffdt\ufffdn\ufffd\ufffdY\ufffd~\ufffd)\ufffd\ufffd\u007f\u0000PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\ufffds#]\ufffd\u0001a'\u0006\ufffd\u0014\u0000\ufffdr\ufffd\u0000\u0013\u0000\u0000\u0000ApplicationDocs.txt\u053d[\ufffd]\ufffdq&\ufffd\\\r\ufffd\u007f 0\ufffd\ufffd.\ufffd\ufffd_\ufffd\u0018\f\ufffd\u0016<h\ufffd\ufffd6L\ufffd\ufffdc\ufffdbQV\ufffdY\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u0248\ufffdX{Ed\u001e\ufffdb\ufffde\u001br\ufffd\u001c\u0016\ufffd\ufffd\ufffd\ufffdD\ufffd\ufffd\ufffd\ufffd/\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd?\ufffd\ufffd\ufffd\ufffd~~}\ufffdo\ufffd\ufffd\ufffd\ufffdO\ufffd\ud87f\udffc\ufffd?\ufffd\ufffd\ufffd\ufffdy\ufffd\ufffd?\ufffd\ufffd\ufffd\ufffd>\ufffd\u001d\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffdo\ufffd\ufffd?\ufffd\u001f\ufffd\ufffd{\ufffdG\ufffd{\ufffd\ufffd\ufffd\u007f\ufffdO\ufffd\u001b\ufffd\ufffds\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\ufffd\u000f\ufffd\ufffd\ufffd\u0017\ufffd\u007f\ufffd\ufffd\ufffd\ufffdq\ufffd\ufffd\ufffd\ufffd\ufffd_\ufffd\ufffd\ufffd\u04ff\ufffd\u02ff\ufffd\ufffd\ufffd\ufffd\ufffdo\ufffd\ufffd\ufffd_\ufffd\u007f\ufffd\ufffd?}\ufffd\ufffd7\ufffd\ufffd\ufffd??}\ufffd\ufffd/\ufffdt\u007f\ufffd~\ufffd\ufffd\ufffd\ufffdc\ufffd\ufffdWc\ufffd7\ufffd\u07ffy\ufffd\u0014\ufffd\ufffdO8\ufffd\ufffd\ufffd\ufffd1\ufffd\ufffd\ufffd\ufffd~\ufffd\ufffd\ufffd\u007f\ufffd\u0006\ufffd\ufffd[W\ufffd\r\ufffds\ufffd\u0005\ufffd\ufffd\ufffdSx\u0006@\ufffd\u0001\b'\u0000\ufffd\u0004 |\ufffd\ufffd\ufffd\ufffd\ufffd\u0000\ufffd=\ufffd\ufffdl\u0000x\u0005\ufffd\ufffd\ufffd\ufffd\u0006@\ufffd\ufffd+\ufffd\ufffd\ufffd\ufffd\u0004$=\u0003\u0138\u0012\ufffdi\u000ez\u001f#\ufffd|\ufffd'\f\ufffd[\ufffd\ufffd\ufffd\ufffd!\ufffd1$\u007f\u0015\ufffd\ufffd\ufffd\ufffdm@8\ufffd_\ufffd\ufffd?\\6\u007f\u0010\ufffd\ufffd\ufffd\ufffdi\ufffd\ufffd\ufffd\ufffd\ufffd6\u007fy\ufffd\ufffd\ufffdw\ufffd\ufffd\u02f7\ufffd\u007f\ufffd\u03f7\ufffd\ufffd\ufffd/\ufffd4\ufffd\ufffd\ufffd\ufffd\ufffdp\u001b\ufffdH\ufffd\ufffd\ufffd>\ufffd\ufffdu\ufffd\ufffd\ufffd\ufffdOP\ufffd3PlK\ufffdEP\ufffd\ufffdc\ufffd\ufffdc\ufffd\u0013a\ufffd\ufffdw?\ufffd\ufffd\ufffd\ufffd\ufffdN(\ufffdb\u0233\u99ec\ufffdn\ufffd9\ufffd\ufffd\ufffd\ufffd!(`\ufffd! \u0006\u0016) \ufffdX\ufffd3\ufffd\ufffd\u0007\ufffdm\u0000\ufffd\ufffd\u001c",
+   "seconds": 0.1
+  },
+  "applications_header": [
+   "ApplNo",
+   "ApplType",
+   "ApplPublicNotes",
+   "SponsorName"
+  ],
+  "n_molecules_with_two_names": 779,
+  "n_molecules_total": 2975,
+  "watch": [
+   {
+    "molecule": "BUPROPION HYDROCHLORIDE",
+    "n_applications": 5,
+    "n_names": 5,
+    "first": "1985-12-30",
+    "applications": [
+     {
+      "appl": "018644",
+      "name": "WELLBUTRIN",
+      "approved": "1985-12-30",
+      "class": "7",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "100MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**",
+       "50MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**",
+       "75MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "020358",
+      "name": "WELLBUTRIN SR",
+      "approved": "1996-10-04",
+      "class": "12",
+      "forms": [
+       "TABLET, EXTENDED RELEASE;ORAL"
+      ],
+      "strengths": [
+       "100MG",
+       "150MG",
+       "200MG",
+       "50MG"
+      ],
+      "efficacy_supplements": 1
+     },
+     {
+      "appl": "020711",
+      "name": "ZYBAN",
+      "approved": "1997-05-14",
+      "class": "12",
+      "forms": [
+       "TABLET, EXTENDED RELEASE;ORAL"
+      ],
+      "strengths": [
+       "100MG",
+       "150MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**"
+      ],
+      "efficacy_supplements": 3
+     },
+     {
+      "appl": "021515",
+      "name": "WELLBUTRIN XL",
+      "approved": "2003-08-28",
+      "class": "12",
+      "forms": [
+       "TABLET, EXTENDED RELEASE;ORAL"
+      ],
+      "strengths": [
+       "150MG",
+       "300MG"
+      ],
+      "efficacy_supplements": 1
+     },
+     {
+      "appl": "022497",
+      "name": "FORFIVO XL",
+      "approved": "2011-11-10",
+      "class": "12",
+      "forms": [
+       "TABLET, EXTENDED RELEASE;ORAL"
+      ],
+      "strengths": [
+       "450MG"
+      ],
+      "efficacy_supplements": 0
+     }
+    ]
+   },
+   {
+    "molecule": "MINOXIDIL",
+    "n_applications": 4,
+    "n_names": 4,
+    "first": "1979-10-18",
+    "applications": [
+     {
+      "appl": "018154",
+      "name": "LONITEN",
+      "approved": "1979-10-18",
+      "class": "7",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "10MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**",
+       "2.5MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "019501",
+      "name": "ROGAINE (FOR MEN)",
+      "approved": "1988-08-17",
+      "class": "12",
+      "forms": [
+       "SOLUTION;TOPICAL"
+      ],
+      "strengths": [
+       "2%"
+      ],
+      "efficacy_supplements": 2
+     },
+     {
+      "appl": "020834",
+      "name": "ROGAINE EXTRA STRENGTH (FOR MEN)",
+      "approved": "1997-11-14",
+      "class": "12",
+      "forms": [
+       "SOLUTION;TOPICAL"
+      ],
+      "strengths": [
+       "5%"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "021812",
+      "name": "MEN'S ROGAINE",
+      "approved": "2006-01-20",
+      "class": "12",
+      "forms": [
+       "AEROSOL, FOAM;TOPICAL"
+      ],
+      "strengths": [
+       "5%"
+      ],
+      "efficacy_supplements": 1
+     }
+    ]
+   },
+   {
+    "molecule": "SILDENAFIL CITRATE",
+    "n_applications": 6,
+    "n_names": 4,
+    "first": "1998-03-27",
+    "applications": [
+     {
+      "appl": "020895",
+      "name": "VIAGRA",
+      "approved": "1998-03-27",
+      "class": "7",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "EQ 100MG BASE",
+       "EQ 25MG BASE",
+       "EQ 50MG BASE"
+      ],
+      "efficacy_supplements": 2
+     },
+     {
+      "appl": "021845",
+      "name": "REVATIO",
+      "approved": "2005-06-03",
+      "class": "15",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "EQ 20MG BASE"
+      ],
+      "efficacy_supplements": 4
+     },
+     {
+      "appl": "022473",
+      "name": "REVATIO",
+      "approved": "2009-11-18",
+      "class": "12",
+      "forms": [
+       "SOLUTION;INTRAVENOUS"
+      ],
+      "strengths": [
+       "EQ 10MG BASE/12.5ML (EQ 0.8MG BASE/ML)"
+      ],
+      "efficacy_supplements": 3
+     },
+     {
+      "appl": "203109",
+      "name": "REVATIO",
+      "approved": "2012-08-30",
+      "class": "12",
+      "forms": [
+       "FOR SUSPENSION;ORAL"
+      ],
+      "strengths": [
+       "EQ 10MG BASE/ML"
+      ],
+      "efficacy_supplements": 2
+     },
+     {
+      "appl": "214952",
+      "name": "LIQREV",
+      "approved": "2023-04-28",
+      "class": "15",
+      "forms": [
+       "SUSPENSION;ORAL"
+      ],
+      "strengths": [
+       "EQ 10MG BASE/ML"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "210858",
+      "name": "VYBRIQUE",
+      "approved": "2025-12-16",
+      "class": "12",
+      "forms": [
+       "FILM;ORAL"
+      ],
+      "strengths": [
+       "EQ 100MG BASE",
+       "EQ 25MG BASE",
+       "EQ 50MG BASE",
+       "EQ 75MG BASE"
+      ],
+      "efficacy_supplements": 0
+     }
+    ]
+   },
+   {
+    "molecule": "TADALAFIL",
+    "n_applications": 4,
+    "n_names": 4,
+    "first": "2003-11-21",
+    "applications": [
+     {
+      "appl": "021368",
+      "name": "CIALIS",
+      "approved": "2003-11-21",
+      "class": "7",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "10MG",
+       "2.5MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**",
+       "20MG",
+       "5MG"
+      ],
+      "efficacy_supplements": 5
+     },
+     {
+      "appl": "022332",
+      "name": "ADCIRCA",
+      "approved": "2009-05-22",
+      "class": "16",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "20MG"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "214522",
+      "name": "TADLIQ",
+      "approved": "2022-06-17",
+      "class": "15",
+      "forms": [
+       "SUSPENSION;ORAL"
+      ],
+      "strengths": [
+       "20MG/5ML"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "218527",
+      "name": "CHEWTADZY",
+      "approved": "2024-06-28",
+      "class": "12",
+      "forms": [
+       "TABLET, CHEWABLE;ORAL"
+      ],
+      "strengths": [
+       "10MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**",
+       "20MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**",
+       "5MG **Federal Register determination that product was not discontinued or withdrawn for safety or effectiveness reasons**"
+      ],
+      "efficacy_supplements": 0
+     }
+    ]
+   },
+   {
+    "molecule": "DULOXETINE HYDROCHLORIDE",
+    "n_applications": 6,
+    "n_names": 3,
+    "first": "2004-08-03",
+    "applications": [
+     {
+      "appl": "021427",
+      "name": "CYMBALTA",
+      "approved": "2004-08-03",
+      "class": "7",
+      "forms": [
+       "CAPSULE, DELAYED REL PELLETS;ORAL"
+      ],
+      "strengths": [
+       "EQ 20MG BASE",
+       "EQ 30MG BASE",
+       "EQ 60MG BASE"
+      ],
+      "efficacy_supplements": 7
+     },
+     {
+      "appl": "021733",
+      "name": "CYMBALTA",
+      "approved": "2004-09-03",
+      "class": "16",
+      "forms": [
+       "CAPSULE, DELAYED REL PELLETS; ORAL"
+      ],
+      "strengths": [
+       "EQ 20MG BASE",
+       "EQ 30MG BASE",
+       "EQ 60MG BASE"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "022148",
+      "name": "CYMBALTA",
+      "approved": "2008-06-13",
+      "class": "16",
+      "forms": [
+       "CAPSULE, DELAYED REL PELLETS; ORAL"
+      ],
+      "strengths": [
+       "EQ 20MG BASE",
+       "EQ 30MG BASE",
+       "EQ 60MG BASE"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "022516",
+      "name": "CYMBALTA",
+      "approved": "2010-11-04",
+      "class": "16",
+      "forms": [
+       "CAPSULE, DELAYED REL PELLETS; ORAL"
+      ],
+      "strengths": [
+       "EQ 20MG BASE",
+       "EQ 30MG BASE",
+       "EQ 60MG BASE"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "212516",
+      "name": "DRIZALMA SPRINKLE",
+      "approved": "2019-07-19",
+      "class": "15",
+      "forms": [
+       "CAPSULE, DELAYED REL PELLETS;ORAL"
+      ],
+      "strengths": [
+       "EQ 20MG BASE",
+       "EQ 30MG BASE",
+       "EQ 40MG BASE",
+       "EQ 60MG BASE"
+      ],
+      "efficacy_supplements": 1
+     },
+     {
+      "appl": "219131",
+      "name": "DULOXETINE HYDROCHLORIDE",
+      "approved": "2026-02-27",
+      "class": "15",
+      "forms": [
+       "CAPSULE, DELAYED REL PELLETS;ORAL"
+      ],
+      "strengths": [
+       "EQ 120MG BASE",
+       "EQ 80MG BASE",
+       "EQ 90MG BASE"
+      ],
+      "efficacy_supplements": 0
+     }
+    ]
+   },
+   {
+    "molecule": "SEMAGLUTIDE",
+    "n_applications": 5,
+    "n_names": 3,
+    "first": "2017-12-05",
+    "applications": [
+     {
+      "appl": "209637",
+      "name": "OZEMPIC",
+      "approved": "2017-12-05",
+      "class": "7",
+      "forms": [
+       "SOLUTION;SUBCUTANEOUS"
+      ],
+      "strengths": [
+       "0.25MG/0.5ML (0.25MG/0.5ML)",
+       "0.5MG/0.5ML (0.5MG/0.5ML)",
+       "1MG/0.5ML (1MG/0.5ML)",
+       "2MG/1.5ML (1.34MG/ML)",
+       "2MG/3ML (0.68MG/ML)",
+       "4MG/3ML (1.34MG/ML)"
+      ],
+      "efficacy_supplements": 3
+     },
+     {
+      "appl": "213051",
+      "name": "RYBELSUS",
+      "approved": "2019-09-20",
+      "class": "12",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "1.5MG",
+       "14MG",
+       "3MG",
+       "4MG",
+       "7MG",
+       "9MG"
+      ],
+      "efficacy_supplements": 2
+     },
+     {
+      "appl": "213182",
+      "name": "RYBELSUS",
+      "approved": "2020-01-16",
+      "class": "24",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "3MG",
+       "7MG"
+      ],
+      "efficacy_supplements": 0
+     },
+     {
+      "appl": "215256",
+      "name": "WEGOVY",
+      "approved": "2021-06-04",
+      "class": "22",
+      "forms": [
+       "SOLUTION;SUBCUTANEOUS"
+      ],
+      "strengths": [
+       "0.25MG/0.5ML (0.25MG/0.5ML)",
+       "0.5MG/0.5ML (0.5MG/0.5ML)",
+       "1.7MG/0.75ML (1.7MG/0.75ML)",
+       "1MG/0.5ML (1MG/0.5ML)",
+       "2.4MG/0.75ML (2.4MG/0.75ML)",
+       "7.2MG/0.75ML (7.2MG/0.75ML)"
+      ],
+      "efficacy_supplements": 7
+     },
+     {
+      "appl": "218316",
+      "name": "WEGOVY",
+      "approved": "2025-12-22",
+      "class": "12",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "1.5MG",
+       "25MG",
+       "4MG",
+       "9MG"
+      ],
+      "efficacy_supplements": 0
+     }
+    ]
+   },
+   {
+    "molecule": "FINASTERIDE",
+    "n_applications": 2,
+    "n_names": 2,
+    "first": "1992-06-19",
+    "applications": [
+     {
+      "appl": "020180",
+      "name": "PROSCAR",
+      "approved": "1992-06-19",
+      "class": "7",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "5MG"
+      ],
+      "efficacy_supplements": 3
+     },
+     {
+      "appl": "020788",
+      "name": "PROPECIA",
+      "approved": "1997-12-19",
+      "class": "12",
+      "forms": [
+       "TABLET;ORAL"
+      ],
+      "strengths": [
+       "1MG"
+      ],
+      "efficacy_supplements": 1
+     }
+    ]
+   },
+   {
+    "molecule": "LIRAGLUTIDE",
+    "n_applications": 2,
+    "n_names": 2,
+    "first": "2010-01-25",
+    "applications": [
+     {
+      "appl": "022341",
+      "name": "VICTOZA",
+      "approved": "2010-01-25",
+      "class": "7",
+      "forms": [
+       "SOLUTION;SUBCUTANEOUS"
+      ],
+      "strengths": [
+       "18MG/3ML (6MG/ML)"
+      ],
+      "efficacy_supplements": 6
+     },
+     {
+      "appl": "206321",
+      "name": "SAXENDA",
+      "approved": "2014-12-23",
+      "class": "22",
+      "forms": [
+       "SOLUTION;SUBCUTANEOUS"
+      ],
+      "strengths": [
+       "18MG/3ML (6MG/ML)"
+      ],
+      "efficacy_supplements": 4
+     }
+    ]
+   },
+   {
+    "molecule": "TIRZEPATIDE",
+    "n_applications": 2,
+    "n_names": 2,
+    "first": "2022-05-13",
+    "applications": [
+     {
+      "appl": "215866",
+      "name": "MOUNJARO (AUTOINJECTOR)",
+      "approved": "2022-05-13",
+      "class": "7",
+      "forms": [
+       "SOLUTION;SUBCUTANEOUS"
+      ],
+      "strengths": [
+       "10MG/0.5ML (10MG/0.5ML)",
+       "10MG/2.4ML (4.17MG/ML)",
+       "12.5MG/0.5ML (12.5MG/0.5ML)",
+       "15MG/0.5ML (15MG/0.5ML)",
+       "2.5MG/0.5ML (2.5MG/0.5ML)",
+       "20MG/2.4ML (8.33MG/ML)"
+      ],
+      "efficacy_supplements": 3
+     },
+     {
+      "appl": "217806",
+      "name": "ZEPBOUND (AUTOINJECTOR)",
+      "approved": "2023-11-08",
+      "class": "22",
+      "forms": [
+       "SOLUTION;SUBCUTANEOUS"
+      ],
+      "strengths": [
+       "10MG/0.5ML (10MG/0.5ML)",
+       "10MG/2.4ML (4.17MG/ML)",
+       "12.5MG/0.5ML (12.5MG/0.5ML)",
+       "15MG/0.5ML (15MG/0.5ML)",
+       "2.5MG/0.5ML (2.5MG/0.5ML)",
+       "20MG/2.4ML (8.33MG/ML)"
+      ],
+      "efficacy_supplements": 3
+     }
+    ]
+   }
+  ],
+  "top_by_names": [
+   {
+    "molecule": "AMINO ACIDS",
+    "n_names": 21,
+    "names": [
+     "AMINOSYN 3.5%",
+     "AMINOSYN 5%",
+     "AMINOSYN-RF 5.2%",
+     "FREAMINE 8.5%",
+     "HEPATAMINE 8%",
+     "NEPHRAMINE 5.4%"
+    ]
+   },
+   {
+    "molecule": "ESTRADIOL",
+    "n_names": 16,
+    "names": [
+     "ALORA",
+     "CLIMARA",
+     "ESCLIM",
+     "ESTRADERM",
+     "ESTRADIOL",
+     "ESTRING"
+    ]
+   },
+   {
+    "molecule": "METRONIDAZOLE",
+    "n_names": 16,
+    "names": [
+     "FLAGYL",
+     "FLAGYL I.V. RTU IN PLASTIC CONTAINER",
+     "METRO I.V.",
+     "METRONIDAZOLE"
+    ]
+   },
+   {
+    "molecule": "ETHINYL ESTRADIOL; LEVONORGESTREL",
+    "n_names": 15,
+    "names": [
+     "ALESSE",
+     "LEVLITE",
+     "NORDETTE-21",
+     "NORDETTE-28",
+     "PREVEN EMERGENCY CONTRACEPTIVE KIT",
+     "SEASONALE"
+    ]
+   },
+   {
+    "molecule": "ETHINYL ESTRADIOL; NORETHINDRONE",
+    "n_names": 15,
+    "names": [
+     "BREVICON 21-DAY",
+     "BREVICON 28-DAY",
+     "MODICON 21",
+     "MODICON 28",
+     "NORINYL 1+35 21-DAY",
+     "ORTHO-NOVUM 1/35-21"
+    ]
+   },
+   {
+    "molecule": "LIDOCAINE HYDROCHLORIDE",
+    "n_names": 15,
+    "names": [
+     "XYLOCAINE",
+     "XYLOCAINE 1.5% W/ DEXTROSE 7.5%",
+     "XYLOCAINE 4% PRESERVATIVE FREE",
+     "XYLOCAINE 5% W/ GLUCOSE 7.5%",
+     "XYLOCAINE DENTAL",
+     "XYLOCAINE PRESERVATIVE FREE"
+    ]
+   },
+   {
+    "molecule": "DEXTROSE; SODIUM CHLORIDE",
+    "n_names": 14,
+    "names": [
+     "DEXTROSE 10% AND SODIUM CHLORIDE 0.9% IN PLASTIC CONTAINER",
+     "DEXTROSE 2.5% AND SODIUM CHLORIDE 0.45% IN PLASTIC CONTAINER",
+     "DEXTROSE 5% AND SODIUM CHLORIDE 0.225% IN PLASTIC CONTAINER",
+     "DEXTROSE 5% AND SODIUM CHLORIDE 0.45% IN PLASTIC CONTAINER",
+     "DEXTROSE 5% IN SODIUM CHLORIDE 0.2% IN PLASTIC CONTAINER",
+     "DEXTROSE 5% IN SODIUM CHLORIDE 0.33% IN PLASTIC CONTAINER"
+    ]
+   },
+   {
+    "molecule": "HEPARIN SODIUM",
+    "n_names": 14,
+    "names": [
+     "HEPARIN LOCK FLUSH",
+     "HEPARIN SODIUM",
+     "LIQUAEMIN SODIUM",
+     "PANHEPRIN"
+    ]
+   },
+   {
+    "molecule": "TRIAMCINOLONE ACETONIDE",
+    "n_names": 14,
+    "names": [
+     "AZMACORT",
+     "KENALOG",
+     "KENALOG IN ORABASE",
+     "KENALOG-10",
+     "KENALOG-40",
+     "TRIAMCINOLONE ACETONIDE"
+    ]
+   },
+   {
+    "molecule": "IBUPROFEN",
+    "n_names": 13,
+    "names": [
+     "ADVIL",
+     "CHILDREN'S ADVIL",
+     "IBU",
+     "MOTRIN",
+     "NUPRIN"
+    ]
+   },
+   {
+    "molecule": "CHLORHEXIDINE GLUCONATE",
+    "n_names": 12,
+    "names": [
+     "CIDA-STAT",
+     "DYNA-HEX 2",
+     "DYNA-HEX 4",
+     "EXIDINE",
+     "HIBICLENS",
+     "HIBISTAT"
+    ]
+   },
+   {
+    "molecule": "ETHINYL ESTRADIOL; NORETHINDRONE ACETATE",
+    "n_names": 12,
+    "names": [
+     "ESTROSTEP 21",
+     "FEMHRT",
+     "LOESTRIN 21 1.5/30",
+     "LOESTRIN 21 1/20",
+     "LOESTRIN 24 FE",
+     "LOESTRIN FE 1.5/30"
+    ]
+   },
+   {
+    "molecule": "LEVOTHYROXINE SODIUM",
+    "n_names": 12,
+    "names": [
+     "EUTHYROX",
+     "LEVO-T",
+     "LEVOLET",
+     "LEVOXYL",
+     "SYNTHROID",
+     "THYRO-TABS"
+    ]
+   },
+   {
+    "molecule": "METHYLPHENIDATE HYDROCHLORIDE",
+    "n_names": 12,
+    "names": [
+     "CONCERTA",
+     "METADATE CD",
+     "METHYLIN",
+     "QUILLIVANT XR",
+     "RITALIN",
+     "RITALIN LA"
+    ]
+   },
+   {
+    "molecule": "NITROGLYCERIN",
+    "n_names": 12,
+    "names": [
+     "NITRO-BID",
+     "NITRO-DUR",
+     "NITROGLYCERIN",
+     "NITROGLYCERIN IN DEXTROSE 5%",
+     "NITROL",
+     "NITROLINGUAL"
+    ]
+   },
+   {
+    "molecule": "CLINDAMYCIN PHOSPHATE",
+    "n_names": 11,
+    "names": [
+     "CLEOCIN PHOSPHATE",
+     "CLEOCIN PHOSPHATE IN DEXTROSE 5% IN PLASTIC CONTAINER",
+     "CLEOCIN T",
+     "CLINDAMYCIN PHOSPHATE IN DEXTROSE 5%",
+     "CLINDAMYCIN PHOSPHATE IN DEXTROSE 5% IN PLASTIC CONTAINER"
+    ]
+   },
+   {
+    "molecule": "CLOTRIMAZOLE",
+    "n_names": 11,
+    "names": [
+     "GYNE-LOTRIMIN",
+     "LOTRIMIN",
+     "MYCELEX",
+     "MYCELEX-7"
+    ]
+   },
+   {
+    "molecule": "TESTOSTERONE",
+    "n_names": 11,
+    "names": [
+     "ANDRODERM",
+     "ANDROGEL",
+     "AXIRON",
+     "FORTESTA",
+     "STRIANT",
+     "TESTIM"
+    ]
+   },
+   {
+    "molecule": "DEXTROSE",
+    "n_names": 10,
+    "names": [
+     "DEXTROSE 10% IN PLASTIC CONTAINER",
+     "DEXTROSE 5% IN PLASTIC CONTAINER",
+     "DEXTROSE 50% IN PLASTIC CONTAINER",
+     "DEXTROSE 60% IN PLASTIC CONTAINER"
+    ]
+   },
+   {
+    "molecule": "EPINEPHRINE",
+    "n_names": 10,
+    "names": [
+     "ADRENALIN",
+     "AUVI-Q",
+     "BRONKAID MIST",
+     "EPIPEN",
+     "PRIMATENE MIST",
+     "SUS-PHRINE SULFITE FREE"
+    ]
+   },
+   {
+    "molecule": "LEVONORGESTREL",
+    "n_names": 10,
+    "names": [
+     "JADELLE",
+     "LEVONORGESTREL",
+     "MIRENA",
+     "NORPLANT",
+     "NORPLANT SYSTEM IN PLASTIC CONTAINER",
+     "PLAN B"
+    ]
+   },
+   {
+    "molecule": "MORPHINE SULFATE",
+    "n_names": 10,
+    "names": [
+     "DURAMORPH PF",
+     "KADIAN",
+     "MORPHINE SULFATE",
+     "MORPHINE SULFATE (AUTOINJECTOR)",
+     "MS CONTIN",
+     "ORAMORPH SR"
+    ]
+   },
+   {
+    "molecule": "SODIUM CHLORIDE",
+    "n_names": 10,
+    "names": [
+     "SODIUM CHLORIDE",
+     "SODIUM CHLORIDE 0.45% IN PLASTIC CONTAINER",
+     "SODIUM CHLORIDE 0.9% IN PLASTIC CONTAINER"
+    ]
+   },
+   {
+    "molecule": "SOMATROPIN",
+    "n_names": 10,
+    "names": [
+     "BIO-TROPIN",
+     "GENOTROPIN PRESERVATIVE FREE",
+     "HUMATROPE",
+     "NORDITROPIN",
+     "NUTROPIN",
+     "NUTROPIN AQ"
+    ]
+   },
+   {
+    "molecule": "SOYBEAN OIL",
+    "n_names": 10,
+    "names": [
+     "INTRALIPID 10%",
+     "INTRALIPID 20%",
+     "LIPOSYN III 10%",
+     "LIPOSYN III 20%",
+     "NUTRILIPID 10%",
+     "SOYACAL 10%"
+    ]
+   }
+  ],
+  "count_study": {
+   "n_nme_applications": 1862,
+   "n_nme_with_efficacy_supplement": 979,
+   "share": 0.526,
+   "efficacy_supplements_distribution": {
+    "0": 883,
+    "2": 183,
+    "1": 381,
+    "4": 73,
+    "5": 43,
+    "3": 132,
+    "6": 37,
+    "10": 55,
+    "9": 19,
+    "7": 27,
+    "8": 29
+   },
+   "n_new_indication_distinct_nda": 56,
+   "new_indication_nda_by_year": {
+    "1994": 1,
+    "1998": 1,
+    "2000": 1,
+    "2002": 1,
+    "2003": 2,
+    "2004": 3,
+    "2008": 2,
+    "2007": 1,
+    "2013": 2,
+    "2010": 1,
+    "2015": 3,
+    "2011": 2,
+    "2020": 6,
+    "2018": 3,
+    "2014": 3,
+    "2017": 3,
+    "2019": 1,
+    "2023": 3,
+    "2022": 3,
+    "2021": 3,
+    "2024": 3,
+    "2025": 7,
+    "2016": 1
+   },
+   "note": "efficacy supplements are counted from Submissions.txt class 2 SUPPL AP; the year of the FIRST efficacy supplement per NME is the next thing to compute"
+  }
+ }
+}
