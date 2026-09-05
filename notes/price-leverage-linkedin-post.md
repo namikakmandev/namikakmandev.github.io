@@ -6,9 +6,14 @@
 with the copy below as the body.
 
 Six portrait slides, 4:5, same page size as the other carousels here. One idea
-each: the hook on the regions chart, the famous number and why it is arithmetic,
-the arithmetic worked on three margins, the year-by-year chart, the two numbers,
-the two instructions. Slide 1 is the
+each: the hook on the regions chart, the famous number as a hero figure with the
+formula, the mechanism drawn on three margins, the year-by-year chart, the
+regions as tiles, the two instructions.
+
+LinkedIn does not accept HTML as a document (PDF, PPTX or DOCX only). The deck
+is also published as a web page, `notes/price-leverage-carousel.html` on the
+site, for a link in the comments:
+namikakmandev.github.io/notes/price-leverage-carousel.html Slide 1 is the
 feed thumbnail. Rebuild with `python3 scripts/price_leverage_carousel.py`.
 
 Standalone images if you would rather post images than a document:
