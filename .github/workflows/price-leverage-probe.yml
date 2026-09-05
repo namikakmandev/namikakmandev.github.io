@@ -1,0 +1,32 @@
+name: Price leverage data probe
+
+# Discovery only. The dev sandbox cannot reach the SEC or NYU Stern, so this
+# runs the probe where the network works and commits the dump. No fetch, no
+# build, no site changes.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Probe SEC XBRL frames, SEC bulk data sets and Damodaran margins
+        run: python scripts/probe_price_leverage.py
+      - name: Commit the dump
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add data/_price-leverage-probe.json
+          git diff --cached --quiet || git commit -m "data: price leverage access probe [skip ci]"
+          for i in 1 2 4 8; do
+            git push origin HEAD && break
+            sleep $i
+          done
