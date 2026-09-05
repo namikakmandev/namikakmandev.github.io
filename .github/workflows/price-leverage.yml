@@ -1,0 +1,35 @@
+name: Price leverage data
+
+# Collects Damodaran's industry margin tables, current and archived, for the
+# 1%-price-equals-11.1%-profit retest. The dev sandbox cannot reach NYU
+# Stern, so the fetch runs here and commits the result. xlrd is needed to
+# read the BIFF .xls files; the analysis script on the site stays stdlib.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install xlrd
+        run: pip install xlrd==2.0.1
+      - name: Fetch Damodaran margin tables, all regions and archives
+        run: python scripts/fetch_price_leverage.py
+      - name: Commit
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add data/price-leverage.json
+          git diff --cached --quiet || git commit -m "data: price leverage margins [skip ci]"
+          for i in 1 2 4 8; do
+            git push origin HEAD && break
+            sleep $i
+          done
