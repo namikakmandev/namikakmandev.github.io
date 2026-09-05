@@ -1,0 +1,67 @@
+name: Deploy MCP server
+
+# Tests mcp/ on every change, deploys it to Cloudflare Workers on main.
+# One-time setup: repo Settings > Secrets > Actions, add
+#   CLOUDFLARE_API_TOKEN   (Cloudflare dashboard > My Profile > API Tokens > "Edit Cloudflare Workers" template)
+#   CLOUDFLARE_ACCOUNT_ID  (Cloudflare dashboard > Workers & Pages > overview, right-hand column)
+
+on:
+  push:
+    branches: [main]
+    paths: ["mcp/**", ".github/workflows/deploy-mcp.yml"]
+  pull_request:
+    paths: ["mcp/**", ".github/workflows/deploy-mcp.yml"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Cloudflare secrets
+        id: cf
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=MCP deploy skipped::Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID under Settings > Secrets and variables > Actions, then re-run this workflow."
+          fi
+      - uses: actions/checkout@v4
+        if: steps.cf.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.cf.outputs.ready == 'true'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+        if: steps.cf.outputs.ready == 'true'
+        working-directory: mcp
+      - uses: cloudflare/wrangler-action@v3
+        if: steps.cf.outputs.ready == 'true'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: mcp
+          command: deploy

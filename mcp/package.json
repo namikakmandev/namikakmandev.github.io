@@ -1,0 +1,24 @@
+{
+  "name": "econ-mcp",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Remote MCP server over the economics datasets published at namikakmandev.github.io/data",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "test": "npm run build && node test/stats.test.mjs && node test/e2e.mjs && node test/analysis.e2e.mjs",
+    "dev": "wrangler dev",
+    "dev:node": "npm run build && node test/serve-node.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260905.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.129.0"
+  }
+}

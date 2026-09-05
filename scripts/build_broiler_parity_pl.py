@@ -82,6 +82,7 @@ def main():
     meta = {
         "metric": "broiler parity — chicken-meat price / feed price",
         "construction": "Eurostat sts_inppd_m PL: PPI C1012 / PPI C1091",
+        "columns": ["month", "parity", "meat_idx", "feed_idx"],
         "anchored": anchored,
         "anchor": ({"year": anchor_year, "kg_feed_per_kg_chicken":
                     round(anchor_value, 3),

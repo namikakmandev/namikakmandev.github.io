@@ -1,0 +1,15 @@
+{
+  // Cloudflare Worker config. Deploy with: npm run deploy  (needs `npx wrangler login` once)
+  "name": "econ-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    // Where the JSON datasets live. The Worker holds no data of its own.
+    "DATA_ORIGIN": "https://namikakmandev.github.io"
+    // Optional secrets (npx wrangler secret put NAME), never in this file:
+    //   MCP_API_KEYS   comma-separated bearer tokens; when set, every /mcp request must carry one
+    //   FRED_API_KEY   enables FRED catalogue search (fetch works without it)
+    //   EVDS_API_KEY   required for TCMB EVDS (Turkey) pulls
+  }
+}
