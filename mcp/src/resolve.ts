@@ -107,9 +107,13 @@ export function detectFrequency(dates: string[]): { frequency: Freq; period: num
   if (/^\d{4}-\d{2}$/.test(k)) return { frequency: "monthly", period: 12 };
   if (/^\d{4}-\d{2}-\d{2}$/.test(k)) {
     if (dates.length > 2) {
-      const a = Date.parse(dates[0]), b = Date.parse(dates[Math.min(dates.length - 1, 20)]);
-      const step = (b - a) / 86400000 / Math.min(dates.length - 1, 20);
+      const days = dates.slice(0, 40).map((d) => Date.parse(d) / 86400000);
+      const steps = days.slice(1).map((d, i) => d - days[i]).sort((a, b) => a - b);
+      const step = steps[Math.floor(steps.length / 2)];
       if (step > 5 && step < 9) return { frequency: "weekly", period: 52 };
+      if (step >= 28 && step <= 31) return { frequency: "monthly", period: 12 };
+      if (step >= 89 && step <= 92) return { frequency: "quarterly", period: 4 };
+      if (step >= 365) return { frequency: "annual", period: 1 };
     }
     return { frequency: "daily", period: 1 };
   }
@@ -132,6 +136,7 @@ export function futureDates(last: string, h: number, freq: Freq): string[] {
   } else {
     const step = freq === "weekly" ? 7 : 1;
     const t = Date.parse(last);
+    if (!Number.isFinite(t)) throw new DataError(`Cannot extend dates from '${last}'`);
     for (let i = 1; i <= h; i++) out.push(new Date(t + i * step * 86400000).toISOString().slice(0, 10));
   }
   return out;

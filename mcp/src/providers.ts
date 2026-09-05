@@ -97,6 +97,28 @@ export function normDate(raw: string): string | null {
   return null;
 }
 
+/**
+ * FRED and the World Bank date monthly, quarterly and annual observations as full
+ * days (2020-01-01). Collapse those to YYYY-MM, YYYY-Qn or YYYY so they align with
+ * Eurostat and the curated files, and so frequency detection sees the real cadence.
+ */
+export function collapseDates(s: Series): Series {
+  const keys = Object.keys(s).sort();
+  if (keys.length < 2 || !keys.every((k) => /^\d{4}-\d{2}-\d{2}$/.test(k))) return s;
+  const days = keys.map((k) => Date.parse(k) / 86400000);
+  const steps = days.slice(1).map((d, i) => d - days[i]);
+  const median = [...steps].sort((a, b) => a - b)[Math.floor(steps.length / 2)];
+  const firstOfMonth = keys.every((k) => k.endsWith("-01"));
+  let fmt: ((k: string) => string) | null = null;
+  if (firstOfMonth && median >= 28 && median <= 31) fmt = (k) => k.slice(0, 7);
+  else if (firstOfMonth && median >= 89 && median <= 92 && keys.every((k) => ["01", "04", "07", "10"].includes(k.slice(5, 7)))) fmt = (k) => `${k.slice(0, 4)}-Q${Math.floor(Number(k.slice(5, 7)) / 3) + 1}`;
+  else if (median >= 365 && median <= 366 && keys.every((k) => k.slice(5) === keys[0].slice(5))) fmt = (k) => k.slice(0, 4);
+  if (!fmt) return s;
+  const out: Series = {};
+  for (const k of keys) out[fmt(k)] = s[k];
+  return Object.keys(out).length === keys.length ? out : s;
+}
+
 function qs(params: Record<string, string>): string {
   return Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
 }
@@ -150,8 +172,8 @@ const fred: Provider = {
       if (d && v !== null) s[d] = v;
     }
     const notes = ["Units and seasonal adjustment are as published by FRED; check the series page for the exact definition.",
-      "Daily series come back daily. Use frequency=annual_mean or resample in the analysis tools when aligning with monthly data."];
-    return { provider: "fred", id, source: `FRED series ${header[1] ?? id}`, url, series: { [id]: s }, notes: params.note ? [...notes, params.note] : notes };
+      "Monthly, quarterly and annual series are keyed YYYY-MM, YYYY-Qn and YYYY so they align with other sources; daily series keep full dates."];
+    return { provider: "fred", id, source: `FRED series ${header[1] ?? id}`, url, series: { [id]: collapseDates(s) }, notes: params.note ? [...notes, params.note] : notes };
   },
   async search(query, env) {
     if (!env.FRED_API_KEY) return curatedSearch(fred.curated, query);

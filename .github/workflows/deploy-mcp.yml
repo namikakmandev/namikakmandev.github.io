@@ -35,15 +35,31 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - name: Check Cloudflare secrets
+        id: cf
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=MCP deploy skipped::Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID under Settings > Secrets and variables > Actions, then re-run this workflow."
+          fi
       - uses: actions/checkout@v4
+        if: steps.cf.outputs.ready == 'true'
       - uses: actions/setup-node@v4
+        if: steps.cf.outputs.ready == 'true'
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: mcp/package-lock.json
       - run: npm ci
+        if: steps.cf.outputs.ready == 'true'
         working-directory: mcp
       - uses: cloudflare/wrangler-action@v3
+        if: steps.cf.outputs.ready == 'true'
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

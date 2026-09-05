@@ -44,13 +44,13 @@ await check("list_providers reports key state", async () => {
 
 await check("FRED: keyless CSV parses, missing '.' dropped, search via API", async () => {
   const j = await call("fetch_external", { provider: "fred", id: "CPIAUCSL" });
-  assert.equal(j.first, "2019-11-01");
-  assert.equal(j.last, "2021-12-01");
+  assert.equal(j.first, "2019-11", "monthly FRED dates collapse to YYYY-MM");
+  assert.equal(j.last, "2021-12");
   assert.equal(j.n, 26);
   const s = await call("search_external", { provider: "fred", query: "consumer price index" });
   assert.equal(s.matches[0].id, "CPIAUCSL");
-  const yoy = await call("fetch_external", { provider: "fred", id: "CPIAUCSL", transform: "yoy", start: "2020-12-01" });
-  assert.equal(yoy.points[0][0], "2020-12-01");
+  const yoy = await call("fetch_external", { provider: "fred", id: "CPIAUCSL", transform: "yoy", start: "2020-12" });
+  assert.equal(yoy.points[0][0], "2020-12");
   assert.ok(Math.abs(yoy.points[0][1] - 1.39) < 0.05, `Dec 2020 yoy ${yoy.points[0][1]}`);
 });
 
@@ -215,7 +215,12 @@ await check("suggest_analysis: two I(1) series get cointegration first; one seri
 await check("provider ref inside an analysis tool", async () => {
   const j = await call("describe_stats", { series: { provider: "fred", id: "CPIAUCSL" } });
   assert.equal(j.n, 26);
-  assert.equal(j.frequency, "daily"); // FRED dates are YYYY-MM-DD even for monthly data
+  assert.equal(j.frequency, "monthly");
+  // FRED monthly keys now align with the curated monthly files
+  const cmp = await call("regress", { y: { provider: "fred", id: "CPIAUCSL", transform: "pct_change" }, x: [{ dataset: "us-prices", series: "cpi", transform: "pct_change" }] });
+  assert.ok(cmp.n >= 20, `aligned n=${cmp.n}`);
+  // The fixture holds hand-typed CPI values that differ slightly from the revised vintage in data/, so the slope is near 1, not exactly 1.
+  assert.ok(Math.abs(cmp.coefficients[1].coef - 1) < 0.2, `same series should regress with slope near 1, got ${cmp.coefficients[1].coef}`);
 });
 
 await client.close();
