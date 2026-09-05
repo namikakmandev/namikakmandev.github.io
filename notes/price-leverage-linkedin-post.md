@@ -5,9 +5,10 @@
 **One file: `notes/price-leverage-carousel.pdf`.** Post it as a LinkedIn document,
 with the copy below as the body.
 
-Five portrait slides, 4:5, same page size as the other carousels here. One idea
+Six portrait slides, 4:5, same page size as the other carousels here. One idea
 each: the hook on the regions chart, the famous number and why it is arithmetic,
-the year-by-year chart, the two numbers, the two instructions. Slide 1 is the
+the arithmetic worked on three margins, the year-by-year chart, the two numbers,
+the two instructions. Slide 1 is the
 feed thumbnail. Rebuild with `python3 scripts/price_leverage_carousel.py`.
 
 Standalone images if you would rather post images than a document:
@@ -56,7 +57,15 @@ archived year.
 
 🇯🇵 Japan 13.1%. 🇨🇳 China 15.7%.
 
-💊 Inside the US: pharma 3.4%, grocery retail 44%.
+💊 Inside the US it runs from pharma at 3.4% to grocery retail at
+44%. Same arithmetic, different margin:
+
+Grocer: revenue 100, costs 97.7, operating profit 2.29. Price +1%, same
+volume: revenue 101, costs 97.7, profit 3.29. That is +44%.
+Pharma: revenue 100, costs 70.5, profit 29.5. Price +1%: profit 30.5.
+That is +3.4%.
+
+Everyone gains the same one point of margin. Thin margin, huge leverage.
 
 ✅ Stop quoting 11.1. Put 1 &divide; your operating margin in the deck. In emerging
 markets the old number still works. In the US and Europe it flatters the price
@@ -84,7 +93,14 @@ arşivdeki her yıl.
 
 🇯🇵 Japonya %13.1. 🇨🇳 Çin %15.7.
 
-💊 ABD içinde: ilaç %3.4, gıda perakendesi %44.
+💊 ABD içinde ilaçta %3.4&rsquo;ten gıda perakendesinde %44&rsquo;e
+kadar. Aynı aritmetik, farklı marj:
+
+Market: ciro 100, maliyet 97.7, faaliyet kârı 2.29. Fiyat +%1, aynı hacim:
+ciro 101, maliyet 97.7, kâr 3.29. Yani +%44.
+İlaç: ciro 100, maliyet 70.5, kâr 29.5. Fiyat +%1: kâr 30.5. Yani +%3.4.
+
+Herkes aynı bir puan marjı kazanıyor. İnce marj, büyük kaldıraç.
 
 ✅ 11,1&rsquo;i alıntılamayı bırakın. Sunuma 1 &divide; kendi faaliyet kâr
 marjınızı yazın. Gelişmekte olan piyasalarda eski sayı hâlâ işe yarıyor. ABD ve

@@ -41,6 +41,25 @@ def svg(name):
     return s.replace("<svg ", '<svg class="chart" preserveAspectRatio="xMidYMid meet" ', 1)
 
 
+def worked_table(ex):
+    """Revenue 100, price +1%, volume held: the same one point of margin,
+    three very different profit gains. Figures from the results file."""
+    def col(m):
+        cost = 100 * (1 - m)
+        return cost, 100 * m, 101 - cost
+    head = "".join(f"<th>{n}</th>" for n, _, _ in ex)
+    rows = [("Operating margin", [f"{m:.1%}" for _, m, _ in ex]),
+            ("Revenue", ["100"] * 3),
+            ("Operating costs", [f"{col(m)[0]:.1f}" for _, m, _ in ex]),
+            ("Operating profit", [f"{col(m)[1]:.2f}" for _, m, _ in ex]),
+            ("Price +1%, same volume", ["101"] * 3),
+            ("Costs, unchanged", [f"{col(m)[0]:.1f}" for _, m, _ in ex]),
+            ("Operating profit", [f"{col(m)[2]:.2f}" for _, m, _ in ex]),
+            ("<b>Profit gain</b>", [f"<b>+{l:.1f}%</b>" for _, _, l in ex])]
+    body = "".join(f"<tr><th>{k}</th>{''.join(f'<td>{v}</td>' for v in vs)}</tr>" for k, vs in rows)
+    return f'<table class="w"><thead><tr><th></th>{head}</tr></thead><tbody>{body}</tbody></table>'
+
+
 def build_html():
     """The whole deck as one HTML document, one .s block per slide."""
     r = json.load(open(RES))
@@ -54,6 +73,9 @@ def build_html():
     pharma = next(w for w in iu["watch"] if w["industry"] == "Drugs (Pharmaceutical)")
     lo, hi = iu["lowest"], iu["highest"]
     claim = r["claim"]["price_leverage_pct"]
+    ex = [("Grocery (US)", hi["op_margin"], hi["leverage"]),
+          ("1992 sample", round(1 / claim, 3), claim),
+          ("Pharma (US)", pharma["op_margin"], pharma["leverage"])]
 
     slides = [
         # 1 - the hook, on the regions chart
@@ -74,11 +96,22 @@ def build_html():
             <p class="lede r"><b>So it is a fact about the margins of one sample of
               companies, 34 years ago. Nothing else.</b></p>''',
 
-        # 3 - so I recomputed it, on the series chart
+        # 3 - the arithmetic, worked, on three margins
+        f'''<h2>How one price point becomes 44% or 3%</h2>
+            <p class="lede">Raise price 1%, sell the same volume, change nothing
+              else. The extra revenue has no cost attached, so all of it lands in
+              operating profit. <b>Every business gains the same one point of
+              margin.</b> What differs is how big that point is next to the
+              profit it already had.</p>
+            {worked_table(ex)}
+            <p class="lede r"><b>Thin margin, huge leverage. Fat margin, small
+              leverage. The rule is one divided by the operating margin.</b></p>''',
+
+        # 4 - so I recomputed it, on the series chart
         f'''<h2>So I recomputed it, every year</h2>
             {svg("price-leverage-series.svg")}''',
 
-        # 4 - the two numbers
+        # 5 - the two numbers
         f'''<h2>The US today</h2>
             <p class="big b">{us["leverage"]:.1f}%</p>
             <p class="lede">operating profit per 1% of price. Below 11.1 in every
@@ -90,7 +123,7 @@ def build_html():
               {t["China"]["leverage"]:.1f}%. <b>The rule moved. The decks did
               not.</b></p>''',
 
-        # 5 - two things before you quote it
+        # 6 - two things before you quote it
         f'''<h2>Two things before you quote it</h2>
             <p class="lede"><b>1. It is a formula, not a constant.</b> Your number
               is one over your operating margin. Pharmaceuticals at
@@ -139,6 +172,14 @@ def build_html():
                    line-height: 1.35; margin-top: .04in; }}
     svg.chart {{ width: 100%; height: auto; max-height: 7.2in;
                  display: block; margin: 0 0 .2in; }}
+    table.w {{ border-collapse: collapse; width: 100%; table-layout: fixed;
+               font-size: 12pt; margin: .05in 0 .2in; }}
+    table.w th, table.w td {{ padding: 5pt 4pt; border-bottom: 1px solid {RULE};
+                              text-align: right; }}
+    table.w th:first-child {{ width: 38%; }}
+    table.w th:first-child {{ text-align: left; font-weight: 400; color: {DIM}; }}
+    table.w thead th {{ font-weight: 700; color: {INK}; }}
+    table.w tr:nth-child(4) td, table.w tr:nth-child(7) td {{ font-weight: 700; }}
     .num {{ position: absolute; right: 42pt; bottom: 24pt;
             font-size: 10pt; color: {DIM}; }}
     """
