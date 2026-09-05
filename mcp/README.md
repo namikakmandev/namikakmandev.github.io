@@ -80,6 +80,15 @@ npx wrangler login
 npm run deploy
 ```
 
+### Without a token: paste into the dashboard
+
+The same route the `assetix-ai` worker took. `dist-bundle/econ-mcp.js` is the whole server in one file (`npm run bundle` regenerates it).
+
+1. Cloudflare dashboard, Workers & Pages, Create, Create Worker, name it `econ-mcp`, Deploy the placeholder.
+2. Edit code, delete the placeholder, paste the contents of `dist-bundle/econ-mcp.js`, Deploy.
+3. Settings, Variables and Secrets: add `DATA_ORIGIN` = `https://namikakmandev.github.io` (plain text). Add `EVDS_API_KEY` as a secret if you want Turkish data.
+4. The endpoint is `https://econ-mcp.<your-subdomain>.workers.dev/mcp`. Open the root URL in a browser to see the server describe itself.
+
 Optional secrets, kept out of git:
 
 ```bash
