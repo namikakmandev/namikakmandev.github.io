@@ -10,6 +10,10 @@ export interface Env {
   DATA_ORIGIN: string;
   /** Optional comma-separated bearer tokens. Unset = open server. */
   MCP_API_KEYS?: string;
+  /** Optional. Enables FRED catalogue search; fetch works without it. */
+  FRED_API_KEY?: string;
+  /** Optional. Required for TCMB EVDS pulls. */
+  EVDS_API_KEY?: string;
 }
 
 const CORS = {
@@ -51,6 +55,7 @@ export default {
         endpoint: new URL("/mcp", url).href,
         data_origin: env.DATA_ORIGIN,
         auth: env.MCP_API_KEYS ? "bearer" : "none",
+        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY" },
         docs: "https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp",
       });
     }
@@ -61,7 +66,7 @@ export default {
       if (!authorized(request, env)) {
         return withCors(new Response("Unauthorized", { status: 401, headers: { "www-authenticate": "Bearer" } }));
       }
-      const server = buildServer(env.DATA_ORIGIN);
+      const server = buildServer(env.DATA_ORIGIN, { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY });
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,   // stateless
         enableJsonResponse: true,

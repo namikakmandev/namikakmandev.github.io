@@ -46,8 +46,8 @@ await client.connect(new StreamableHTTPClientTransport(new URL(base + "/mcp")));
 
 await check("tools are listed", async () => {
   const { tools } = await client.listTools();
-  const names = tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ["compare_series", "describe_dataset", "get_caveats", "get_dataset", "get_series", "list_datasets", "search_datasets"]);
+  const names = new Set(tools.map((t) => t.name));
+  for (const n of ["compare_series", "describe_dataset", "get_caveats", "get_dataset", "get_series", "list_datasets", "search_datasets"]) assert.ok(names.has(n), n);
 });
 
 await check("list_datasets returns the catalog", async () => {

@@ -9,9 +9,11 @@ import {
   asText, caveatsFor, datasetName, describeSeries, dig, extractSeries, loadCatalog, loadDataset, sourceFor,
 } from "./data.js";
 import { apply, clip, correlation, resample, round, toPoints, type Frequency, type Transform } from "./transform.js";
+import { registerAnalysis, registerProviders } from "./analysis.js";
+import type { ProviderEnv } from "./providers.js";
 
 export const SERVER_NAME = "econ-data";
-export const SERVER_VERSION = "0.1.0";
+export const SERVER_VERSION = "0.2.0";
 
 const RAW_LIMIT_BYTES = 200_000;
 
@@ -49,16 +51,19 @@ function summary(e: CatalogEntry) {
   };
 }
 
-export function buildServer(origin: string): McpServer {
+export function buildServer(origin: string, env: ProviderEnv = {}): McpServer {
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     {
       instructions:
-        "Economics datasets curated at namikakmandev.github.io: prices, parity indices, cattle and " +
-        "poultry margins, pharma value added, Big Mac PPP, vet costs, EU and Turkish series. " +
-        "Start with search_datasets or list_datasets, then describe_dataset to see series ids, " +
-        "then get_series. Always read get_caveats before presenting a number: several series carry " +
-        "survey breaks, index-not-quantity warnings, or unknown provenance.",
+        "Economics data and analysis. Two kinds of data: curated datasets at namikakmandev.github.io " +
+        "(list_datasets, search_datasets, describe_dataset, get_series) and live pulls from FRED, Eurostat, " +
+        "World Bank, ECB, OECD, Our World in Data and TCMB EVDS (list_providers, search_external, fetch_external). " +
+        "Analysis tools (describe_stats, test_stationarity, regress, granger_causality, cointegration, " +
+        "cross_correlation, hp_filter, decompose, forecast, structural_break, rolling) all take series references: " +
+        "{dataset, series}, {provider, id}, or {points}. Call suggest_analysis first when unsure which method fits; " +
+        "it checks integration order, seasonality and overlap and returns an ordered plan. Every result carries " +
+        "source and caveats: quote them next to the number.",
     },
   );
 
@@ -313,6 +318,9 @@ export function buildServer(origin: string): McpServer {
       return { contents: [{ uri: uri.href, mimeType: "application/json", text: JSON.stringify(body) }] };
     },
   );
+
+  registerProviders(server, env);
+  registerAnalysis(server, origin, env);
 
   return server;
 }
