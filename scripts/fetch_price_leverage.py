@@ -95,31 +95,54 @@ def pick(headers, *rules):
     return None, None
 
 
+def find_header(wb):
+    """The 'Industry Name' row, in whichever sheet and column it sits. Old
+    editions put the table on 'Sheet3' or start it in column B."""
+    order = sorted(wb.sheet_names(), key=lambda n: (n != "Industry Averages", n))
+    for name in order:
+        sh = wb.sheet_by_name(name)
+        for r in range(min(sh.nrows, 80)):
+            for c in range(min(sh.ncols, 3)):
+                v = str(sh.cell_value(r, c)).strip().lower()
+                if v.startswith("industry") or v in ("sector", "industry group"):
+                    return sh, r, c
+    return None, None, None
+
+
 def parse_workbook(body, full=True):
     wb = xlrd.open_workbook(file_contents=body)
-    name = "Industry Averages" if "Industry Averages" in wb.sheet_names() else wb.sheet_names()[-1]
-    sh = wb.sheet_by_name(name)
-    rows = [[sh.cell_value(r, c) for c in range(sh.ncols)] for r in range(sh.nrows)]
+    sh, hdr, c0 = find_header(wb)
+    if sh is None:
+        first = wb.sheet_by_index(0)
+        peek = [[str(first.cell_value(r, c))[:40] for c in range(min(first.ncols, 6))]
+                for r in range(min(first.nrows, 14))]
+        raise ValueError(f"no 'Industry Name' header in sheets {wb.sheet_names()}; first rows {peek}")
+    name = sh.name
+    rows = [[sh.cell_value(r, c) for c in range(c0, sh.ncols)] for r in range(sh.nrows)]
 
     date_updated = None
-    for r in rows[:12]:
-        if str(r[0]).strip().lower().startswith("date"):
-            date_updated = excel_date(r[1]) if len(r) > 1 else None
+    for r in [[sh.cell_value(r, c) for c in range(sh.ncols)] for r in range(min(sh.nrows, 12))]:
+        for i, v in enumerate(r[:3]):
+            if str(v).strip().lower().startswith("date"):
+                date_updated = excel_date(r[i + 1]) if len(r) > i + 1 else None
+                break
+        if date_updated:
             break
-
-    hdr = next((i for i, r in enumerate(rows[:60])
-                if str(r[0]).strip().lower().startswith("industry")), None)
-    if hdr is None:
-        raise ValueError(f"no 'Industry Name' header row in sheet {name!r}")
     headers = [str(h).strip() for h in rows[hdr]]
 
-    i_n, h_n = pick(headers, (("number of firms",), ()), (("firms",), ()))
+    i_n, h_n = pick(headers, (("number of firms",), ()), (("numebr of firms",), ()), (("firms",), ()))
     i_op, h_op = pick(headers,
                       (("pre-tax", "unadjusted", "operating margin"), ()),
                       (("pre-tax", "operating margin"), ("pre-stock", "lease", "r&d", "after-tax")),
-                      (("operating margin",), ("after-tax", "pre-stock", "lease", "r&d")),
-                      (("operating margin",), ("after-tax",)),
-                      (("operating margin",), ()))
+                      (("operating margin",), ("after-tax", "pre-stock", "lease", "r&d", "(1-t)")),
+                      (("operating margin",), ("(1-t)", "after-tax")))
+    op_kind = "pre-tax" if i_op is not None else None
+    i_tax, h_tax = pick(headers, (("tax rate",), ()), (("effective tax",), ()))
+    if i_op is None:
+        # only an after-tax operating margin: keep it, flagged, and back out
+        # pre-tax where the same row carries a tax rate
+        i_op, h_op = pick(headers, (("operating margin",), ()), (("ebit", "sales"), ("ebitda",)))
+        op_kind = "after-tax" if i_op is not None else None
     i_net, h_net = pick(headers, (("net margin",), ()))
     i_gross, h_gross = pick(headers, (("gross margin",), ()))
     i_ebitda, h_ebitda = pick(headers, (("ebitda/sales",), ()), (("ebitda",), ("sg&a", "r&d")))
@@ -132,22 +155,30 @@ def parse_workbook(body, full=True):
         label = str(r[0]).strip()
         if not label:
             continue
-        rec = {"n_firms": num(r[i_n]) if i_n is not None else None,
-               "op_margin": num(r[i_op]),
-               "net_margin": num(r[i_net]) if i_net is not None else None}
+        op = num(r[i_op]) if i_op < len(r) else None
+        rec = {"n_firms": num(r[i_n]) if i_n is not None and i_n < len(r) else None,
+               "op_margin": op,
+               "net_margin": num(r[i_net]) if i_net is not None and i_net < len(r) else None}
+        if op_kind == "after-tax":
+            rec["op_margin_after_tax"] = op
+            t = num(r[i_tax]) if i_tax is not None and i_tax < len(r) else None
+            rec["tax_rate"] = t
+            rec["op_margin"] = op / (1 - t) if (op is not None and t is not None and t < 1) else None
         if full:
-            rec.update(gross_margin=num(r[i_gross]) if i_gross is not None else None,
-                       ebitda_sales=num(r[i_ebitda]) if i_ebitda is not None else None,
-                       op_margin_pre_sbc=num(r[i_sbc]) if i_sbc is not None else None)
+            rec.update(gross_margin=num(r[i_gross]) if i_gross is not None and i_gross < len(r) else None,
+                       ebitda_sales=num(r[i_ebitda]) if i_ebitda is not None and i_ebitda < len(r) else None,
+                       op_margin_pre_sbc=num(r[i_sbc]) if i_sbc is not None and i_sbc < len(r) else None)
         low = label.lower()
         if low.startswith(("total", "grand total", "market", "all ")):
             totals[label] = rec
         else:
             rec["name"] = label
             industries.append(rec)
-    return {"sheet": name, "header_row": hdr + 1, "date_updated": date_updated,
-            "columns_used": {"n_firms": h_n, "op_margin": h_op, "net_margin": h_net,
-                             "gross_margin": h_gross, "ebitda_sales": h_ebitda,
+    return {"sheet": name, "header_row": hdr + 1, "header_col": c0 + 1, "date_updated": date_updated,
+            "header": headers,
+            "columns_used": {"n_firms": h_n, "op_margin": h_op, "op_margin_kind": op_kind,
+                             "tax_rate": h_tax if op_kind == "after-tax" else None,
+                             "net_margin": h_net, "gross_margin": h_gross, "ebitda_sales": h_ebitda,
                              "op_margin_pre_sbc": h_sbc},
             "n_industries": len(industries), "totals": totals, "industries": industries}
 
@@ -194,6 +225,9 @@ def main():
             e = edition(BASE + f"pc/archives/{stem}{yy}.xls", full=False)
             if e.get("status") == 200:
                 reg["archives"][yy] = e
+                if "parse_error" in e:
+                    print(f"  {yy}: PARSE ERROR {e['parse_error'][:300]}", flush=True)
+                    continue
                 tot = next(iter(e.get("totals", {}).items()), (None, {}))
                 print(f"  {yy}: {e.get('date_updated')} {e.get('n_industries')} ind, "
                       f"op col = {e.get('columns_used', {}).get('op_margin')!r}, "
