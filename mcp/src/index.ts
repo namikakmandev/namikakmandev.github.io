@@ -7,7 +7,8 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { buildServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
 
 export interface Env {
-  DATA_ORIGIN: string;
+  /** Where the curated datasets live. Defaults to the portfolio site when unset. */
+  DATA_ORIGIN?: string;
   /** Optional comma-separated bearer tokens. Unset = open server. */
   MCP_API_KEYS?: string;
   /** Optional. Enables FRED catalogue search; fetch works without it. */
@@ -41,9 +42,12 @@ function authorized(request: Request, env: Env): boolean {
   return !!m && keys.includes(m[1].trim());
 }
 
+const DEFAULT_ORIGIN = "https://namikakmandev.github.io";
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const origin = env.DATA_ORIGIN || DEFAULT_ORIGIN;
 
     if (request.method === "OPTIONS") return withCors(new Response(null, { status: 204 }));
 
@@ -53,7 +57,7 @@ export default {
         version: SERVER_VERSION,
         transport: "streamable-http",
         endpoint: new URL("/mcp", url).href,
-        data_origin: env.DATA_ORIGIN,
+        data_origin: origin,
         auth: env.MCP_API_KEYS ? "bearer" : "none",
         providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY" },
         docs: "https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp",
@@ -66,7 +70,7 @@ export default {
       if (!authorized(request, env)) {
         return withCors(new Response("Unauthorized", { status: 401, headers: { "www-authenticate": "Bearer" } }));
       }
-      const server = buildServer(env.DATA_ORIGIN, { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY });
+      const server = buildServer(origin, { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY });
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,   // stateless
         enableJsonResponse: true,
