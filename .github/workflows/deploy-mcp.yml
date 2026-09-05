@@ -1,0 +1,51 @@
+name: Deploy MCP server
+
+# Tests mcp/ on every change, deploys it to Cloudflare Workers on main.
+# One-time setup: repo Settings > Secrets > Actions, add
+#   CLOUDFLARE_API_TOKEN   (Cloudflare dashboard > My Profile > API Tokens > "Edit Cloudflare Workers" template)
+#   CLOUDFLARE_ACCOUNT_ID  (Cloudflare dashboard > Workers & Pages > overview, right-hand column)
+
+on:
+  push:
+    branches: [main]
+    paths: ["mcp/**", ".github/workflows/deploy-mcp.yml"]
+  pull_request:
+    paths: ["mcp/**", ".github/workflows/deploy-mcp.yml"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mcp/package-lock.json
+      - run: npm ci
+        working-directory: mcp
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: mcp
+          command: deploy
