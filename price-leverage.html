@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The 11% rule, retested &mdash; Nam&#305;k Akman</title>
+  <meta name="description" content="Every pricing deck says a 1% price improvement yields 11.1% more operating profit. That number is from 1992 and it is an identity: one over the operating margin. Recomputed on Damodaran&#8217;s industry tables for eight regions and every archived year: the US gives 7.8% today and has been below the rule in every edition since 2013; emerging markets give 11.0%." />
+  <meta name="keywords" content="price leverage, 1% price 11% profit, Marn Rosiello, Managing Price Gaining Profit, operating margin, pricing power, Damodaran industry margins, reproducible analysis" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <meta property="og:title" content="The 11% rule, retested" />
+  <meta property="og:description" content="A 1% price improvement yields 11.1% more operating profit, says every pricing deck since 1992. The US gives 7.8% today. Emerging markets give 11.0%. The rule moved; the decks did not." />
+  <meta property="og:type" content="article" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/price-leverage-regions.png?v=f0fa8c06" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .fs-grid{display:grid;gap:18px}
+    .fs-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px}
+    .fs-card h3{margin-top:0}
+    .fs-hero img{width:100%;height:auto;display:block;border-radius:var(--radius);border:1px solid var(--border);background:#fff}
+    .fs-hero .cap{font-size:.8rem;color:var(--text-dim);margin-top:8px}
+    .fs-table-wrap{overflow-x:auto}
+    .fs-table{border-collapse:collapse;width:100%;font-size:.9rem}
+    .fs-table th,.fs-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+    .fs-table th[scope=row],.fs-table thead th:first-child{text-align:left}
+    .fs-table .note{text-align:left;white-space:normal;color:var(--text-dim)}
+    .fs-head{color:var(--accent-2);font-weight:600}
+    .fs-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    @media(max-width:820px){.fs-layers{grid-template-columns:1fr}}
+    .fs-layers .n{font-size:1.6rem;font-weight:700;color:var(--accent)}
+    .fs-eq{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface-2);
+      border-radius:8px;padding:8px 12px;display:inline-block;font-size:.85rem}
+    .fs-code{margin-top:12px}
+    .fs-code summary{cursor:pointer;font-weight:600;color:var(--accent);padding:6px 0}
+    .fs-code pre{overflow:auto;max-height:520px;background:var(--surface-2);border:1px solid var(--border);
+      border-radius:8px;padding:14px;font-size:.78rem;line-height:1.5;margin:8px 0 0}
+    .fs-warn{border-left:3px solid var(--accent-2);padding-left:14px;color:var(--text-dim);font-size:.9rem}
+  </style>
+</head>
+
+<body class="tool-light">
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html" class="active">Projects</a></li>
+        <li><a href="projects.html#studies">Studies</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="tool-section">
+      <div class="container fs-grid">
+        <div class="tool-head">
+          <a href="projects.html" class="tool-back">&larr; Back to projects</a>
+          <h2 class="section-title">The 11% rule, retested</h2>
+        </div>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          Every pricing deck has the line. <strong>A 1% improvement in price yields an 11.1%
+          increase in operating profit.</strong> More than a cost cut, more than volume. I have
+          put it on slides myself.
+        </p>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          It comes from McKinsey&#8217;s Michael Marn and Robert Rosiello, in <em>Harvard Business
+          Review</em>, September 1992. Thirty-four years ago. And it is not an empirical finding:
+          it is arithmetic. If volume does not move, a 1% price rise drops straight to operating
+          profit, so the gain is revenue over operating profit &mdash; <strong>one over the
+          operating margin</strong>. An 11.1% gain is what a 9.0% margin produces. The number is a
+          fact about the margins of the companies they averaged, in 1992, and about nothing else.
+        </p>
+
+        <p class="data-note" style="font-size:1.05rem;line-height:1.65">
+          So the question is not whether the rule is true. It is <strong>whose margins, and
+          when</strong>. I recomputed the same identity on Aswath Damodaran&#8217;s industry margin
+          tables: every listed company he covers, eight regions, and every archived edition he
+          still serves.
+        </p>
+
+        <p class="data-note">
+          <strong>The US, the market the rule was built on, gives 7.8% today</strong>
+          (5,994 companies, operating margin 12.8%), and has been
+          below 11.1 in every edition of the consistent series, 2013&ndash;2026, and
+          lower still in the earlier, differently built editions. <strong>Emerging markets give
+          11.0%</strong>, and have sat within a point or two of the rule in
+          every edition since 2011. Japan and China are above it. Europe was on it until the
+          margins of the last few years took it below.
+        </p>
+
+        <p class="data-note" style="font-size:.85rem;color:var(--text-dim)">
+          Listed companies only, revenue-weighted within each region, one snapshot per year
+          (each January edition reflects the previous fiscal year). Only the price lever is
+          retested; the article&#8217;s volume, variable-cost and fixed-cost levers need a cost
+          split that public accounts do not give.
+        </p>
+
+        <div class="fs-card fs-hero">
+          <img src="assets/linkedin/price-leverage-regions.png?v=f0fa8c06"
+               alt="Horizontal bar chart, eight regions, the operating profit gained from a 1% price improvement in January 2026: China 15.7%, Japan 13.1%, emerging markets 11.0%, India 10.0%, global 9.5%, Europe 8.6%, US 7.8%, Australia, New Zealand and Canada 7.7%. A dashed vertical line marks the 1992 figure of 11.1%.">
+          <p class="cap">One over the aggregate operating margin, current edition. The dashed line is
+            the 1992 figure. Regions above it have thinner margins than the sample the rule was built
+            on, so a price point is worth more of their profit. Regenerate with
+            <code>python3 scripts/price_leverage.py</code>.</p>
+        </div>
+
+        <div class="fs-layers">
+          <div class="fs-card">
+            <p class="n">1</p>
+            <h3>The US is not on the rule</h3>
+            <p>7.8% today against 11.1. Under every definition the file offers
+              &mdash; pre-tax unadjusted 7.8%,
+              before stock compensation 7.0%, without
+              financials 7.6%, median industry
+              8.1% &mdash; the US is below it. Its margins widened;
+              the rule did not follow.</p>
+          </div>
+          <div class="fs-card">
+            <p class="n">2</p>
+            <h3>Emerging markets still live on it</h3>
+            <p>11.0% today, 27,360 companies. Across
+              15 editions since 2011 the figure has ranged
+              10.1&ndash;12.2, at or above 11.1 in 9 of them. The
+              34-year-old US number describes an emerging-market company almost exactly.</p>
+          </div>
+          <div class="fs-card">
+            <p class="n">3</p>
+            <h3>Inside the US it runs 2 to 44</h3>
+            <p>Tobacco at 44% margin
+              gets 2.3% from a price point.
+              Retail (Grocery and Food) at 2.3% gets
+              43.6%. Pharmaceuticals:
+              3.4%.
+              Only 29% of US industries are at or above the
+              rule. There is no company for which 11.1 is the right number by coincidence.</p>
+          </div>
+        </div>
+
+        <div class="fs-card fs-hero">
+          <img src="assets/linkedin/price-leverage-series.png?v=a514edfc"
+               alt="Line chart, 2013 to 2026, the operating profit gained from a 1% price improvement, one point per edition: the US below the dashed 11.1% line since 2013, ending at 7.8%; emerging markets hovering around the line since 2011, ending at 11.0%; Europe on or above the line until 2020, then falling to 8.6%.">
+          <p class="cap">The same identity on every archived edition. The line moves only because
+            operating margins do. Editions are labelled by publication year; no 2025 edition is
+            served. The US line starts where the current column and layout begin; the earlier editions
+            are a different regime, described under the checks.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Every region, current edition</h3>
+          <p class="data-note" style="margin-top:0">&ldquo;1% price&rdquo; is one over the
+            aggregate operating margin; &ldquo;median industry&rdquo; is the median of the same
+            identity across that region&#8217;s industries with at least
+            10 firms, financials excluded; &ldquo;ex-financials&rdquo;
+            uses Damodaran&#8217;s own aggregate without financial firms.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>Region</th><th>Firms</th><th>Op. margin</th><th>1% price &rarr;</th><th>Median industry</th><th>Ex-financials</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">China</th><td>6,307</td><td>6.4%</td><td class="fs-head"><strong>15.7%</strong></td><td>17.2%</td><td class="note">16.4%</td></tr>
+                <tr><th scope="row">Japan</th><td>3,965</td><td>7.6%</td><td class="fs-head"><strong>13.1%</strong></td><td>13.3%</td><td class="note">13.1%</td></tr>
+                <tr><th scope="row">Emerging markets</th><td>27,360</td><td>9.1%</td><td><strong>11.0%</strong></td><td>12.2%</td><td class="note">10.9%</td></tr>
+                <tr><th scope="row">India</th><td>5,170</td><td>10.0%</td><td><strong>10.0%</strong></td><td>9.7%</td><td class="note">8.9%</td></tr>
+                <tr><th scope="row">Global</th><td>48,156</td><td>10.6%</td><td><strong>9.5%</strong></td><td>9.5%</td><td class="note">9.3%</td></tr>
+                <tr><th scope="row">Europe</th><td>6,560</td><td>11.6%</td><td><strong>8.6%</strong></td><td>9.6%</td><td class="note">8.3%</td></tr>
+                <tr><th scope="row">US</th><td>5,994</td><td>12.8%</td><td><strong>7.8%</strong></td><td>8.1%</td><td class="note">7.6%</td></tr>
+                <tr><th scope="row">Australia, NZ &amp; Canada</th><td>4,278</td><td>13.0%</td><td><strong>7.7%</strong></td><td>9.8%</td><td class="note">7.6%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fs-warn">Rows in colour are at or above the 1992 figure. Data as of
+            2026-01-05.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Edition by edition</h3>
+          <p class="data-note" style="margin-top:0">Operating profit gained from a 1% price
+            improvement, one over the aggregate operating margin, by the year the edition was
+            published. Coloured cells are at or above 11.1.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>Edition</th><th>US</th><th>Europe</th><th>Emerging</th><th>Global</th><th>Japan</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">2011</th><td class="note">&mdash;</td><td>10.7</td><td>10.7</td><td>10.8</td><td class="fs-head">19.1</td></tr>
+                <tr><th scope="row">2012</th><td class="note">&mdash;</td><td class="fs-head">11.2</td><td class="fs-head">12.0</td><td class="fs-head">11.6</td><td class="fs-head">21.1</td></tr>
+                <tr><th scope="row">2013</th><td>9.5</td><td class="fs-head">11.8</td><td class="fs-head">12.0</td><td class="fs-head">11.6</td><td class="fs-head">18.8</td></tr>
+                <tr><th scope="row">2014</th><td>8.9</td><td class="fs-head">11.5</td><td class="fs-head">11.8</td><td>11.0</td><td class="fs-head">17.2</td></tr>
+                <tr><th scope="row">2015</th><td>9.4</td><td class="fs-head">12.1</td><td class="fs-head">12.1</td><td class="fs-head">11.5</td><td class="fs-head">15.9</td></tr>
+                <tr><th scope="row">2016</th><td>9.6</td><td class="fs-head">12.3</td><td class="fs-head">12.2</td><td class="fs-head">11.8</td><td class="fs-head">15.9</td></tr>
+                <tr><th scope="row">2017</th><td>9.4</td><td>11.1</td><td class="fs-head">11.3</td><td>10.9</td><td class="fs-head">14.8</td></tr>
+                <tr><th scope="row">2018</th><td>8.8</td><td>10.7</td><td>10.7</td><td>10.4</td><td class="fs-head">14.3</td></tr>
+                <tr><th scope="row">2019</th><td>9.3</td><td class="fs-head">11.3</td><td>10.7</td><td>10.8</td><td class="fs-head">15.1</td></tr>
+                <tr><th scope="row">2020</th><td>10.4</td><td class="fs-head">14.3</td><td class="fs-head">12.0</td><td class="fs-head">12.5</td><td class="fs-head">19.5</td></tr>
+                <tr><th scope="row">2021</th><td>8.5</td><td>10.1</td><td>10.1</td><td>9.8</td><td class="fs-head">14.6</td></tr>
+                <tr><th scope="row">2022</th><td>8.6</td><td>9.9</td><td>10.6</td><td>9.8</td><td class="fs-head">15.3</td></tr>
+                <tr><th scope="row">2023</th><td>8.7</td><td>8.6</td><td class="fs-head">12.2</td><td>10.0</td><td class="fs-head">14.2</td></tr>
+                <tr><th scope="row">2024</th><td>8.3</td><td>9.2</td><td class="fs-head">11.4</td><td>10.2</td><td class="fs-head">13.2</td></tr>
+                <tr><th scope="row">2026</th><td>7.8</td><td>8.6</td><td>11.0</td><td>9.5</td><td class="fs-head">13.1</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="fs-card">
+          <h3>By industry, US, current edition</h3>
+          <p class="data-note" style="margin-top:0">A selection a pricing reader will look for
+            first, sorted by what a price point is worth. The full list of
+            75 industries is in <code>data/price-leverage-results.json</code>.</p>
+          <div class="fs-table-wrap">
+            <table class="fs-table">
+              <thead><tr><th>Industry</th><th>Firms</th><th>Op. margin</th><th>1% price &rarr;</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Software (System &amp; Application)</th><td>309</td><td>33.0%</td><td><strong>3.0%</strong></td></tr>
+                <tr><th scope="row">Drugs (Pharmaceutical)</th><td>228</td><td>29.5%</td><td><strong>3.4%</strong></td></tr>
+                <tr><th scope="row">Utility (General)</th><td>14</td><td>23.5%</td><td><strong>4.3%</strong></td></tr>
+                <tr><th scope="row">Beverage (Soft)</th><td>27</td><td>20.5%</td><td><strong>4.9%</strong></td></tr>
+                <tr><th scope="row">Machinery</th><td>105</td><td>15.9%</td><td><strong>6.3%</strong></td></tr>
+                <tr><th scope="row">Healthcare Products</th><td>204</td><td>15.3%</td><td><strong>6.5%</strong></td></tr>
+                <tr><th scope="row">Chemical (Specialty)</th><td>59</td><td>12.2%</td><td><strong>8.2%</strong></td></tr>
+                <tr><th scope="row">Food Processing</th><td>78</td><td>10.6%</td><td><strong>9.4%</strong></td></tr>
+                <tr><th scope="row">Packaging &amp; Container</th><td>19</td><td>9.6%</td><td><strong>10.4%</strong></td></tr>
+                <tr><th scope="row">Drugs (Biotechnology)</th><td>496</td><td>9.0%</td><td class="fs-head"><strong>11.1%</strong></td></tr>
+                <tr><th scope="row">Transportation</th><td>19</td><td>7.6%</td><td class="fs-head"><strong>13.2%</strong></td></tr>
+                <tr><th scope="row">Retail (General)</th><td>23</td><td>6.8%</td><td class="fs-head"><strong>14.7%</strong></td></tr>
+                <tr><th scope="row">Farming/Agriculture</th><td>35</td><td>5.5%</td><td class="fs-head"><strong>18.4%</strong></td></tr>
+                <tr><th scope="row">Healthcare Support Services</th><td>104</td><td>3.0%</td><td class="fs-head"><strong>33.4%</strong></td></tr>
+                <tr><th scope="row">Auto &amp; Truck</th><td>33</td><td>2.3%</td><td class="fs-head"><strong>43.1%</strong></td></tr>
+                <tr><th scope="row">Retail (Grocery and Food)</th><td>15</td><td>2.3%</td><td class="fs-head"><strong>43.6%</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fs-warn">Excluded from the spread: 10 financial industries
+            (no revenue line comparable to the rest), 2 with
+            an aggregate margin under 1% or negative
+            (Coal &amp; Related Energy, Electronics (Consumer &amp; Office)), where the identity
+            gives a number with no meaning, and 7 with fewer than
+            10 firms.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>The checks that decide whether this is real</h3>
+          <ul>
+            <li><strong>The identity recovers the claim.</strong> 1 / 0.0901 = 11.1. The article&#8217;s
+              number is the reciprocal of a 9.0% operating margin, and every figure here is the
+              same reciprocal on a different sample.</li>
+            <li><strong>The US answer does not depend on the definition.</strong>
+              pre-tax unadjusted (headline) 7.8%, pre-stock-compensation 7.0%, without financials 7.6%, median industry 8.1%. All below 11.1.</li>
+            <li><strong>Aggregate against median.</strong> A revenue-weighted aggregate can be pulled by
+              a few giants. The gap between the aggregate and the median industry is under two points
+              in every region (US -0.3, Europe -1.0, Emerging markets -1.2, Global -0.0, Japan -0.1, Australia, NZ &amp; Canada -2.1, China -1.5, India +0.3),
+              so the ranking is not an artefact of weighting.</li>
+            <li><strong>Definition changes across editions are on the record.</strong> The operating
+              margin column is located by its header in each file and the header used is stored per
+              edition: Pre-tax Unadjusted Operating Margin for 2013&ndash;2026. No comparison on this page is drawn across a header change without
+              saying so.</li>
+            <li><strong>Steps that look like method, not economics.</strong> Year-on-year steps in the
+              US series beyond 3.5 median absolute deviations:
+              none.</li>
+            <li><strong>The earlier US editions are a different regime.</strong> Damodaran also serves 14 earlier US editions, 1998&ndash;2012, in an earlier layout with the operating margin read as EBIT/Sales, Pre-tax Operating Margin. On the same identity they give 4.4&ndash;8.5%, and the level moves by +3.6 points at the switch to the current layout (2012: 5.8%; 2013: 9.5%), more than any year-on-year change inside either regime. Whether that is a change of data source or of definition, the files do not say. They are kept apart: never on the same line, never compared end to end. Every one of them is also below 11.1.</li>
+          </ul>
+        </div>
+
+        <div class="fs-card">
+          <h3>What this does not establish</h3>
+          <ul>
+            <li><strong>The 1992 sample is not re-measured.</strong> The article averaged the income
+              statements of a large sample of companies; that sample is not published. This says what
+              the identity gives today, not that the 1992 figure was wrong for 1992.</li>
+            <li><strong>Only the price lever.</strong> The article&#8217;s other three levers (variable
+              cost 7.8%, volume 3.3%, fixed cost 2.3%) need a fixed/variable cost split. Public
+              accounts do not give one.</li>
+            <li><strong>Listed companies, revenue-weighted.</strong> Damodaran&#8217;s tables are built
+              from listed-company financials via Capital IQ and weighted by revenue within each
+              industry. Private firms and the typical small company are not in them.</li>
+            <li><strong>Volume held constant.</strong> The identity assumes the price change costs no
+              volume. A real price move does, and the elasticity is the whole job. This is the
+              upper bound, which is exactly how the 1992 figure is quoted.</li>
+            <li><strong>No separate T&uuml;rkiye table.</strong> T&uuml;rkiye sits inside the
+              emerging-markets aggregate. No regional file reaches back before 2011.</li>
+          </ul>
+        </div>
+
+        <div class="fs-card">
+          <h3>What to do with this</h3>
+          <ul>
+            <li><strong>Stop quoting 11.1 as a general number.</strong> It is one over your operating
+              margin. Put that in the deck instead: a business at 25% margin gets 4, at 5% margin
+              gets 20. The rule is a formula, not a constant, and the formula is one division.</li>
+            <li><strong>US and European business cases: expect less from a price point than the deck
+              says.</strong> The aggregate is 7.8% and 8.6%. A
+              pharmaceutical P&amp;L at 30% margin gets a third of the 1992 figure. The price lever is
+              still the strongest of the four; it is just not eleven.</li>
+            <li><strong>Emerging-market business cases: the old rule is the right one.</strong>
+              11.0% today, within two points of 11.1 in every edition since 2011.
+              For CEE, the Middle East and other emerging markets the 1992 figure is a fair default
+              when the specific margin is unknown.</li>
+          </ul>
+          <p class="fs-warn"><strong>What would change this.</strong> The January 2027 edition. If the
+            US aggregate margin falls back toward 9%, the US returns to the rule and the first
+            instruction weakens. If emerging-market margins widen past 10%, the third one does. Both
+            are one file each, and the scripts below will read them unchanged.</p>
+        </div>
+
+        <div class="fs-card">
+          <h3>Sources</h3>
+          <ul>
+            <li><strong>Claim under test.</strong> Michael V. Marn and Robert L. Rosiello,
+              &ldquo;Managing Price, Gaining Profit&rdquo;, <em>Harvard Business Review</em>,
+              September&ndash;October 1992: a 1% improvement in price yields an 11.1% increase in
+              operating profit, against 7.8% for variable cost, 3.3% for volume and 2.3% for fixed
+              cost.</li>
+            <li><strong>Margins, current.</strong> Aswath Damodaran, NYU Stern,
+              <code>pc/datasets/margin.xls</code> and the regional files
+              <code>marginEurope</code>, <code>marginemerg</code>, <code>marginGlobal</code>,
+              <code>marginJapan</code>, <code>marginRest</code>, <code>marginChina</code>,
+              <code>marginIndia</code>; sheet &ldquo;Industry Averages&rdquo;, column &ldquo;Pre-tax
+              Unadjusted Operating Margin&rdquo;, row &ldquo;Total Market&rdquo; (Europe: &ldquo;Grand
+              Total&rdquo;). Dated 2026-01-05.</li>
+            <li><strong>Margins, archived.</strong> The same publisher, <code>pc/archives/margin&lt;yy&gt;.xls</code>
+              and regional equivalents, every edition served: US 2013&ndash;2026,
+              Europe, emerging markets, global and Japan from 2011; US editions 1998&ndash;2012
+              held as a separate regime. The column read from each edition is recorded in
+              <code>data/price-leverage.json</code> under <code>columns_used</code>.</li>
+            <li><strong>Definition.</strong> Price leverage = 1 / operating margin, in percent of
+              operating profit per 1% of price, volume held. Industry spreads use industries with at
+              least 10 firms and a margin of at least
+              1%, financials excluded.</li>
+            <li><strong>Reproducibility.</strong> Every figure comes from
+              <code>data/price-leverage.json</code> and <code>data/price-leverage-results.json</code>,
+              written by the two scripts below. Data cut-off 2026-09-05.</li>
+          </ul>
+        </div>
+
+        <div class="fs-card fs-code">
+          <h3>The scripts, in full</h3>
+          <p>Nothing is elided. These are the files that produced every number and both charts on
+            this page, exactly as they run. The fetch needs <code>xlrd</code> to read Damodaran&#8217;s
+            BIFF files and runs in GitHub Actions; the analysis is standard-library Python.</p>
+          <details>
+            <summary>fetch_price_leverage.py (256 lines)</summary>
+            <pre>#!/usr/bin/env python3
+&quot;&quot;&quot;Collect Damodaran&#x27;s industry margin tables -&gt; data/price-leverage.json
+
+The claim under test is Marn &amp; Rosiello (Harvard Business Review, 1992): a
+1% improvement in price raises operating profit by 11.1%. That number is an
+identity — revenue over operating profit, so one over the operating margin of
+whatever sample you average. This fetch collects the margins the identity
+needs today: Damodaran&#x27;s industry averages for the US, Europe, emerging
+markets, Japan, China, India, Australia/NZ/Canada and the world, plus every
+archived edition he still serves (the US goes back to 1998).
+
+What the probe established (data/_margin-archive-probe.json):
+  - each file is BIFF .xls with a &#x27;Variables &amp; FAQ&#x27; sheet and an &#x27;Industry
+    Averages&#x27; sheet, header on the row that starts &#x27;Industry Name&#x27;;
+  - the column wanted is &#x27;Pre-tax Unadjusted Operating Margin&#x27; — operating
+    income before tax, after all operating costs, no lease or R&amp;D
+    capitalisation — which is the closest match to the article&#x27;s operating
+    profit. Older editions may name it differently, so the column is located
+    by header text per file and the header used is recorded per edition;
+  - the aggregate row is &#x27;Total Market&#x27; (Europe: &#x27;Grand Total&#x27;), a
+    revenue-weighted sum, which is the same construction as the article&#x27;s
+    &#x27;average income statement&#x27;;
+  - &#x27;Date updated:&#x27; in the first rows carries an Excel serial date.
+
+xlrd is needed to read BIFF and is installed by the workflow; the site&#x27;s
+analysis script stays stdlib-only. The dev sandbox cannot reach NYU Stern,
+so this runs in GitHub Actions and commits the result.
+&quot;&quot;&quot;
+import datetime, difflib, json, re, sys, time, urllib.error, urllib.request
+
+try:
+    import xlrd
+except ImportError:                              # pragma: no cover
+    sys.exit(&quot;xlrd is required: pip install xlrd==2.0.1&quot;)
+
+OUT = &quot;data/price-leverage.json&quot;
+BASE = &quot;https://pages.stern.nyu.edu/~adamodar/&quot;
+UA = {&quot;User-Agent&quot;: &quot;namikakmandev-data/1.0 (github actions; +https://namikakmandev.github.io)&quot;}
+CAP = 8 * 1024 * 1024
+
+REGIONS = {                                       # label -&gt; file stem
+    &quot;US&quot;: &quot;margin&quot;, &quot;Europe&quot;: &quot;marginEurope&quot;, &quot;Emerging markets&quot;: &quot;marginemerg&quot;,
+    &quot;Global&quot;: &quot;marginGlobal&quot;, &quot;Japan&quot;: &quot;marginJapan&quot;, &quot;Australia, NZ &amp; Canada&quot;: &quot;marginRest&quot;,
+    &quot;China&quot;: &quot;marginChina&quot;, &quot;India&quot;: &quot;marginIndia&quot;,
+}
+ARCHIVE_YY = [&quot;98&quot;, &quot;99&quot;] + [f&quot;{y:02d}&quot; for y in range(0, 26)]
+
+
+def get(url, timeout=120):
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        body = r.read(CAP + 1)
+    if len(body) &gt; CAP:
+        raise RuntimeError(f&quot;response exceeded {CAP:,}b cap: {url}&quot;)
+    return body
+
+
+def excel_date(v):
+    &quot;&quot;&quot;Excel serial -&gt; ISO date; anything else is returned as text.&quot;&quot;&quot;
+    try:
+        f = float(v)
+        if 20000 &lt; f &lt; 80000:
+            return (datetime.date(1899, 12, 30) + datetime.timedelta(days=int(f))).isoformat()
+    except (TypeError, ValueError):
+        pass
+    s = str(v).strip()
+    return s or None
+
+
+def num(v):
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).strip().replace(&quot;,&quot;, &quot;&quot;)
+    if not s or s.upper() in (&quot;NA&quot;, &quot;N/A&quot;, &quot;#DIV/0!&quot;, &quot;#N/A&quot;, &quot;-&quot;):
+        return None
+    if s.endswith(&quot;%&quot;):
+        try:
+            return float(s[:-1]) / 100.0
+        except ValueError:
+            return None
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def pick(headers, *rules):
+    &quot;&quot;&quot;First header matching a rule; a rule is (must_contain, must_not_contain).&quot;&quot;&quot;
+    low = [str(h).strip().lower().replace(&quot;\n&quot;, &quot; &quot;) for h in headers]
+    low = [re.sub(r&quot;\s+&quot;, &quot; &quot;, h) for h in low]
+    for must, must_not in rules:
+        for i, h in enumerate(low):
+            if all(m in h for m in must) and not any(n in h for n in must_not):
+                return i, headers[i]
+    return None, None
+
+
+def find_header(wb):
+    &quot;&quot;&quot;The &#x27;Industry Name&#x27; row, in whichever sheet and column it sits. Old
+    editions put the table on &#x27;Sheet3&#x27; or start it in column B.&quot;&quot;&quot;
+    order = sorted(wb.sheet_names(), key=lambda n: (n != &quot;Industry Averages&quot;, n))
+    for name in order:
+        sh = wb.sheet_by_name(name)
+        for r in range(min(sh.nrows, 80)):
+            for c in range(min(sh.ncols, 3)):
+                v = re.sub(r&quot;[^a-z ]&quot;, &quot;&quot;, str(sh.cell_value(r, c)).strip().lower())
+                # the files carry typos: &#x27;Induistry Name&#x27;, &#x27;Inudstry Name&#x27;
+                if (v.startswith(&quot;industry&quot;) or v in (&quot;sector&quot;, &quot;industry group&quot;)
+                        or difflib.SequenceMatcher(None, v, &quot;industry name&quot;).ratio() &gt;= 0.8):
+                    return sh, r, c
+    return None, None, None
+
+
+def parse_workbook(body, full=True):
+    wb = xlrd.open_workbook(file_contents=body)
+    sh, hdr, c0 = find_header(wb)
+    if sh is None:
+        first = wb.sheet_by_index(0)
+        peek = [[str(first.cell_value(r, c))[:40] for c in range(min(first.ncols, 6))]
+                for r in range(min(first.nrows, 14))]
+        raise ValueError(f&quot;no &#x27;Industry Name&#x27; header in sheets {wb.sheet_names()}; first rows {peek}&quot;)
+    name = sh.name
+    rows = [[sh.cell_value(r, c) for c in range(c0, sh.ncols)] for r in range(sh.nrows)]
+
+    date_updated = None
+    for r in [[sh.cell_value(r, c) for c in range(sh.ncols)] for r in range(min(sh.nrows, 12))]:
+        for i, v in enumerate(r[:3]):
+            if str(v).strip().lower().startswith(&quot;date&quot;):
+                date_updated = excel_date(r[i + 1]) if len(r) &gt; i + 1 else None
+                break
+        if date_updated:
+            break
+    headers = [str(h).strip() for h in rows[hdr]]
+
+    i_n, h_n = pick(headers, ((&quot;number of firms&quot;,), ()), ((&quot;numebr of firms&quot;,), ()), ((&quot;firms&quot;,), ()))
+    i_op, h_op = pick(headers,
+                      ((&quot;pre-tax&quot;, &quot;unadjusted&quot;, &quot;operating margin&quot;), ()),
+                      ((&quot;pre-tax&quot;, &quot;operating margin&quot;), (&quot;pre-stock&quot;, &quot;lease&quot;, &quot;r&amp;d&quot;, &quot;after-tax&quot;)),
+                      ((&quot;operating margin&quot;,), (&quot;after-tax&quot;, &quot;pre-stock&quot;, &quot;lease&quot;, &quot;r&amp;d&quot;, &quot;(1-t)&quot;)),
+                      ((&quot;operating margin&quot;,), (&quot;(1-t)&quot;, &quot;after-tax&quot;)),
+                      ((&quot;ebit/sales&quot;,), (&quot;ebitda&quot;,)))      # 1999-2012 editions: EBIT/Sales is the pre-tax margin
+    op_kind = &quot;pre-tax&quot; if i_op is not None else None
+    i_tax, h_tax = pick(headers, ((&quot;tax rate&quot;,), ()), ((&quot;effective tax&quot;,), ()))
+    if i_op is None:
+        # only an after-tax operating margin: keep it, flagged, and back out
+        # pre-tax where the same row carries a tax rate
+        i_op, h_op = pick(headers, ((&quot;operating margin&quot;,), ()), ((&quot;ebit&quot;, &quot;sales&quot;), (&quot;ebitda&quot;,)))
+        op_kind = &quot;after-tax&quot; if i_op is not None else None
+    i_net, h_net = pick(headers, ((&quot;net margin&quot;,), ()))
+    i_gross, h_gross = pick(headers, ((&quot;gross margin&quot;,), ()))
+    i_ebitda, h_ebitda = pick(headers, ((&quot;ebitda/sales&quot;,), ()), ((&quot;ebitda&quot;,), (&quot;sg&amp;a&quot;, &quot;r&amp;d&quot;)))
+    i_sbc, h_sbc = pick(headers, ((&quot;pre-stock&quot;,), ()))
+    if i_op is None:
+        raise ValueError(f&quot;no operating margin column among {headers}&quot;)
+
+    industries, totals = [], {}
+    for r in rows[hdr + 1:]:
+        label = str(r[0]).strip()
+        if not label:
+            continue
+        op = num(r[i_op]) if i_op &lt; len(r) else None
+        rec = {&quot;n_firms&quot;: num(r[i_n]) if i_n is not None and i_n &lt; len(r) else None,
+               &quot;op_margin&quot;: op,
+               &quot;net_margin&quot;: num(r[i_net]) if i_net is not None and i_net &lt; len(r) else None}
+        if op_kind == &quot;after-tax&quot;:
+            rec[&quot;op_margin_after_tax&quot;] = op
+            t = num(r[i_tax]) if i_tax is not None and i_tax &lt; len(r) else None
+            rec[&quot;tax_rate&quot;] = t
+            rec[&quot;op_margin&quot;] = op / (1 - t) if (op is not None and t is not None and t &lt; 1) else None
+        if full:
+            rec.update(gross_margin=num(r[i_gross]) if i_gross is not None and i_gross &lt; len(r) else None,
+                       ebitda_sales=num(r[i_ebitda]) if i_ebitda is not None and i_ebitda &lt; len(r) else None,
+                       op_margin_pre_sbc=num(r[i_sbc]) if i_sbc is not None and i_sbc &lt; len(r) else None)
+        low = label.lower()
+        if low.startswith((&quot;total&quot;, &quot;grand total&quot;, &quot;market&quot;, &quot;all &quot;)):
+            totals[label] = rec
+        else:
+            rec[&quot;name&quot;] = label
+            industries.append(rec)
+    i_ebit, _ = pick(headers, ((&quot;ebit&quot;,), (&quot;ebitda&quot;, &quot;sales&quot;, &quot;(1-t)&quot;, &quot;margin&quot;)))
+    i_sales, _ = pick(headers, ((&quot;sales&quot;,), (&quot;/&quot;, &quot;margin&quot;, &quot;ebit&quot;)))
+    if not totals and i_ebit is not None and i_sales is not None:
+        ebit = sum(num(r[i_ebit]) or 0 for r in rows[hdr + 1:] if i_ebit &lt; len(r) and str(r[0]).strip())
+        sales = sum(num(r[i_sales]) or 0 for r in rows[hdr + 1:] if i_sales &lt; len(r) and str(r[0]).strip())
+        if sales:
+            totals[&quot;Total Market (computed: sum EBIT / sum Sales)&quot;] = {
+                &quot;n_firms&quot;: sum(x[&quot;n_firms&quot;] or 0 for x in industries), &quot;op_margin&quot;: ebit / sales,
+                &quot;net_margin&quot;: None, &quot;computed_from&quot;: {&quot;ebit&quot;: ebit, &quot;sales&quot;: sales}}
+    return {&quot;sheet&quot;: name, &quot;header_row&quot;: hdr + 1, &quot;header_col&quot;: c0 + 1, &quot;date_updated&quot;: date_updated,
+            &quot;header&quot;: headers,
+            &quot;columns_used&quot;: {&quot;n_firms&quot;: h_n, &quot;op_margin&quot;: h_op, &quot;op_margin_kind&quot;: op_kind,
+                             &quot;tax_rate&quot;: h_tax if op_kind == &quot;after-tax&quot; else None,
+                             &quot;net_margin&quot;: h_net, &quot;gross_margin&quot;: h_gross, &quot;ebitda_sales&quot;: h_ebitda,
+                             &quot;op_margin_pre_sbc&quot;: h_sbc},
+            &quot;n_industries&quot;: len(industries), &quot;totals&quot;: totals, &quot;industries&quot;: industries}
+
+
+def edition(url, full):
+    try:
+        body = get(url)
+    except urllib.error.HTTPError as e:
+        return {&quot;url&quot;: url, &quot;status&quot;: e.code}
+    rec = {&quot;url&quot;: url, &quot;status&quot;: 200, &quot;bytes&quot;: len(body)}
+    try:
+        rec.update(parse_workbook(body, full=full))
+    except Exception as e:                       # noqa: BLE001 — record, keep going
+        rec[&quot;parse_error&quot;] = f&quot;{type(e).__name__}: {e}&quot;
+    return rec
+
+
+def main():
+    doc = {&quot;generated_by&quot;: &quot;scripts/fetch_price_leverage.py&quot;,
+           &quot;fetched_at&quot;: time.strftime(&quot;%Y-%m-%dT%H:%M:%SZ&quot;, time.gmtime()),
+           &quot;question&quot;: (&quot;Does a 1% price improvement still raise operating profit by 11.1% &quot;
+                        &quot;(Marn &amp; Rosiello, HBR 1992)? Price leverage = 1 / operating margin.&quot;),
+           &quot;source&quot;: {&quot;publisher&quot;: &quot;Aswath Damodaran, NYU Stern, damodaran.com&quot;,
+                      &quot;current&quot;: BASE + &quot;pc/datasets/&lt;stem&gt;.xls&quot;,
+                      &quot;archives&quot;: BASE + &quot;pc/archives/&lt;stem&gt;&lt;yy&gt;.xls&quot;,
+                      &quot;index&quot;: BASE + &quot;New_Home_Page/datacurrent.html&quot;,
+                      &quot;archive_index&quot;: BASE + &quot;New_Home_Page/dataarchived.html&quot;,
+                      &quot;note&quot;: (&quot;Damodaran computes industry averages from listed-company &quot;
+                               &quot;financials (Capital IQ), revenue-weighted within each industry; &quot;
+                               &quot;&#x27;Total Market&#x27; is the revenue-weighted aggregate of every firm.&quot;)},
+           &quot;definition&quot;: (&quot;op_margin is the column recorded in columns_used.op_margin for each &quot;
+                          &quot;edition — &#x27;Pre-tax Unadjusted Operating Margin&#x27; where the edition &quot;
+                          &quot;has it. Editions are labelled by the year in the file name; &quot;
+                          &quot;date_updated is read from the sheet.&quot;),
+           &quot;regions&quot;: {}}
+    for label, stem in REGIONS.items():
+        print(f&quot;== {label}&quot;, flush=True)
+        reg = {&quot;stem&quot;: stem, &quot;current&quot;: edition(BASE + f&quot;pc/datasets/{stem}.xls&quot;, full=True), &quot;archives&quot;: {}}
+        cur = reg[&quot;current&quot;]
+        print(f&quot;  current: {cur.get(&#x27;status&#x27;)} {cur.get(&#x27;date_updated&#x27;)} &quot;
+              f&quot;{cur.get(&#x27;n_industries&#x27;)} industries, op col = {cur.get(&#x27;columns_used&#x27;, {}).get(&#x27;op_margin&#x27;)!r}&quot;,
+              flush=True)
+        for yy in ARCHIVE_YY:
+            e = edition(BASE + f&quot;pc/archives/{stem}{yy}.xls&quot;, full=False)
+            if e.get(&quot;status&quot;) == 200:
+                reg[&quot;archives&quot;][yy] = e
+                if &quot;parse_error&quot; in e:
+                    print(f&quot;  {yy}: PARSE ERROR {e[&#x27;parse_error&#x27;][:300]}&quot;, flush=True)
+                    continue
+                tot = next(iter(e.get(&quot;totals&quot;, {}).items()), (None, {}))
+                print(f&quot;  {yy}: {e.get(&#x27;date_updated&#x27;)} {e.get(&#x27;n_industries&#x27;)} ind, &quot;
+                      f&quot;op col = {e.get(&#x27;columns_used&#x27;, {}).get(&#x27;op_margin&#x27;)!r}, &quot;
+                      f&quot;{tot[0]} op_margin={tot[1].get(&#x27;op_margin&#x27;)}&quot;, flush=True)
+            time.sleep(0.2)
+        doc[&quot;regions&quot;][label] = reg
+    with open(OUT, &quot;w&quot;, encoding=&quot;utf-8&quot;) as fh:
+        json.dump(doc, fh, indent=0, ensure_ascii=False)
+    print(f&quot;wrote {OUT}&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</pre>
+          </details>
+          <details>
+            <summary>price_leverage.py (483 lines)</summary>
+            <pre>#!/usr/bin/env python3
+&quot;&quot;&quot;Does 1% of price still buy 11.1% of operating profit?
+-&gt; data/price-leverage-results.json, assets/linkedin/price-leverage-*.{svg,png}
+
+The claim: Marn &amp; Rosiello, &quot;Managing Price, Gaining Profit&quot;, Harvard Business
+Review, September-October 1992. A 1% improvement in price, volume held, raises
+operating profit by 11.1%; the same 1% in variable cost gives 7.8%, in volume
+3.3%, in fixed cost 2.3%. The price figure is an identity:
+
+    price leverage = revenue / operating profit = 1 / operating margin
+
+so 11.1 is what an operating margin of 9.0% produces. It is a property of the
+sample the authors averaged in 1992, and of nothing else. This script computes
+the same identity on Damodaran&#x27;s industry margin tables: eight regions today,
+and every archived edition he still serves (the US back to 1998).
+
+Only the price lever is retested. The other three need a fixed/variable cost
+split that public accounts do not give.
+
+Stdlib only. Inputs come from data/price-leverage.json, written in GitHub
+Actions by scripts/fetch_price_leverage.py.
+&quot;&quot;&quot;
+import json, math, os, statistics, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fte_chart import render_png                                   # noqa: E402
+
+SRC = &quot;data/price-leverage.json&quot;
+OUT = &quot;data/price-leverage-results.json&quot;
+CLAIM = 11.1                          # % operating profit per 1% price, HBR 1992
+CLAIM_MARGIN = 1 / CLAIM              # the operating margin that implies: 9.0%
+MIN_FIRMS = 10                        # an &quot;industry&quot; of 3 firms is not an industry
+# Editions whose operating-margin column is one of these, from 2011 on, are one
+# regime. Earlier US editions use another layout and read &quot;EBIT/Sales&quot;, and the
+# level steps at the switch: a break, kept apart, never joined.
+SAME_REGIME = {&quot;Pre-tax Unadjusted Operating Margin&quot;, &quot;Pre-tax Operating Margin&quot;}
+REGIME_FROM = 2011                    # first edition in the current layout; 1998 is the old one too
+MIN_MARGIN = 0.01                     # below 1% the identity explodes; reported, not ranked
+FINANCIAL = (&quot;bank&quot;, &quot;brokerage&quot;, &quot;insurance&quot;, &quot;financial svcs&quot;, &quot;investments &amp; asset&quot;,
+             &quot;reinsurance&quot;, &quot;r.e.i.t&quot;)  # no revenue concept comparable to the rest
+
+# industries a pricing reader will look for first; matched on the file&#x27;s own names
+WATCH = [&quot;Drugs (Pharmaceutical)&quot;, &quot;Drugs (Biotechnology)&quot;, &quot;Healthcare Products&quot;,
+         &quot;Healthcare Support Services&quot;, &quot;Food Processing&quot;, &quot;Retail (Grocery and Food)&quot;,
+         &quot;Farming/Agriculture&quot;, &quot;Chemical (Specialty)&quot;, &quot;Auto &amp; Truck&quot;,
+         &quot;Software (System &amp; Application)&quot;, &quot;Machinery&quot;, &quot;Packaging &amp; Container&quot;,
+         &quot;Retail (General)&quot;, &quot;Transportation&quot;, &quot;Utility (General)&quot;, &quot;Beverage (Soft)&quot;]
+
+
+def hr(t):
+    print(f&quot;\n{&#x27;=&#x27; * 78}\n{t}\n{&#x27;=&#x27; * 78}&quot;)
+
+
+def total_row(ed, without_financials=False):
+    &quot;&quot;&quot;The aggregate row, by the labels the files actually use.&quot;&quot;&quot;
+    tot = ed.get(&quot;totals&quot;) or {}
+    if without_financials:
+        for k, v in tot.items():
+            if &quot;without&quot; in k.lower():
+                return k, v
+        return None, None
+    for k, v in tot.items():
+        kl = k.lower()
+        if kl.startswith((&quot;total market&quot;, &quot;grand total&quot;, &quot;market&quot;)) and &quot;without&quot; not in kl:
+            return k, v
+    return next(iter(tot.items()), (None, None))
+
+
+def lev(m):
+    return 1 / m if m and m &gt; 0 else None
+
+
+def is_financial(name):
+    return any(f in name.lower() for f in FINANCIAL)
+
+
+def industry_leverages(ed):
+    &quot;&quot;&quot;1/margin for every non-financial industry with a margin above the floor
+    and enough firms. Financials have no comparable revenue line; a margin
+    under 1% turns the identity into a number with no meaning.&quot;&quot;&quot;
+    xs = []
+    for r in ed.get(&quot;industries&quot;, []):
+        m, n = r.get(&quot;op_margin&quot;), r.get(&quot;n_firms&quot;) or 0
+        if m and m &gt;= MIN_MARGIN and n &gt;= MIN_FIRMS and not is_financial(r[&quot;name&quot;]):
+            xs.append((r[&quot;name&quot;], 1 / m, m, n))
+    return xs
+
+
+def industry_excluded(ed):
+    &quot;&quot;&quot;What the spread leaves out, by reason, so the exclusion is visible.&quot;&quot;&quot;
+    out = {&quot;financial&quot;: [], &quot;near_zero_or_negative_margin&quot;: [], &quot;too_few_firms&quot;: []}
+    for r in ed.get(&quot;industries&quot;, []):
+        m, n = r.get(&quot;op_margin&quot;), r.get(&quot;n_firms&quot;) or 0
+        if is_financial(r[&quot;name&quot;]):
+            out[&quot;financial&quot;].append(r[&quot;name&quot;])
+        elif m is None or m &lt; MIN_MARGIN:
+            out[&quot;near_zero_or_negative_margin&quot;].append(r[&quot;name&quot;])
+        elif n &lt; MIN_FIRMS:
+            out[&quot;too_few_firms&quot;].append(r[&quot;name&quot;])
+    return out
+
+
+def edition_year(yy, ed):
+    &quot;&quot;&quot;Editions are named by two-digit year; date_updated confirms it.&quot;&quot;&quot;
+    y = int(yy)
+    y += 1900 if y &gt;= 90 else 2000
+    d = ed.get(&quot;date_updated&quot;) or &quot;&quot;
+    if d[:4].isdigit() and abs(int(d[:4]) - y) &gt; 1:
+        print(f&quot;  note: edition {yy} carries date {d}; labelled {y} by file name&quot;)
+    return y
+
+
+def summarise(ed, label):
+    &quot;&quot;&quot;Everything the story needs from one edition.&quot;&quot;&quot;
+    k, tot = total_row(ed)
+    kx, totx = total_row(ed, without_financials=True)
+    inds = industry_leverages(ed)
+    ls = sorted(x[1] for x in inds)
+    rec = {&quot;label&quot;: label, &quot;date_updated&quot;: ed.get(&quot;date_updated&quot;),
+           &quot;op_margin_column&quot;: (ed.get(&quot;columns_used&quot;) or {}).get(&quot;op_margin&quot;),
+           &quot;total_label&quot;: k, &quot;n_firms&quot;: tot.get(&quot;n_firms&quot;) if tot else None,
+           &quot;op_margin&quot;: tot.get(&quot;op_margin&quot;) if tot else None,
+           &quot;leverage&quot;: lev(tot.get(&quot;op_margin&quot;)) if tot else None,
+           &quot;net_margin&quot;: tot.get(&quot;net_margin&quot;) if tot else None,
+           &quot;n_industries&quot;: len(inds),
+           &quot;industry_median_leverage&quot;: statistics.median(ls) if ls else None,
+           &quot;industry_q25_q75&quot;: [ls[len(ls) // 4], ls[(3 * len(ls)) // 4]] if len(ls) &gt;= 4 else None,
+           &quot;industry_min&quot;: min(inds, key=lambda x: x[1])[:2] if inds else None,
+           &quot;industry_max&quot;: max(inds, key=lambda x: x[1])[:2] if inds else None}
+    if totx:
+        rec[&quot;without_financials&quot;] = {&quot;label&quot;: kx, &quot;n_firms&quot;: totx.get(&quot;n_firms&quot;),
+                                     &quot;op_margin&quot;: totx.get(&quot;op_margin&quot;),
+                                     &quot;leverage&quot;: lev(totx.get(&quot;op_margin&quot;))}
+    if tot and tot.get(&quot;op_margin_pre_sbc&quot;):
+        rec[&quot;leverage_pre_stock_comp&quot;] = lev(tot[&quot;op_margin_pre_sbc&quot;])
+    return rec
+
+
+def mad_breaks(series, k=3.5):
+    &quot;&quot;&quot;Rule 3: year-on-year steps far outside the series&#x27; own typical step.&quot;&quot;&quot;
+    yrs = sorted(series)
+    d = {yrs[i]: series[yrs[i]] - series[yrs[i - 1]] for i in range(1, len(yrs))}
+    if len(d) &lt; 5:
+        return []
+    med = statistics.median(d.values())
+    mad = statistics.median(abs(v - med) for v in d.values()) or 1e-9
+    return [{&quot;year&quot;: y, &quot;step&quot;: round(v, 2), &quot;z&quot;: round((v - med) / (1.4826 * mad), 1)}
+            for y, v in d.items() if abs(v - med) / (1.4826 * mad) &gt; k]
+
+
+def main():
+    src = json.load(open(SRC))
+    regions = src[&quot;regions&quot;]
+    res = {&quot;generated_by&quot;: &quot;scripts/price_leverage.py&quot;, &quot;source_file&quot;: SRC,
+           &quot;fetched_at&quot;: src[&quot;fetched_at&quot;],
+           &quot;claim&quot;: {&quot;paper&quot;: &quot;Marn &amp; Rosiello, Managing Price, Gaining Profit, HBR Sep-Oct 1992&quot;,
+                     &quot;price_leverage_pct&quot;: CLAIM, &quot;implied_operating_margin&quot;: round(CLAIM_MARGIN, 4),
+                     &quot;other_levers_pct&quot;: {&quot;variable_cost&quot;: 7.8, &quot;volume&quot;: 3.3, &quot;fixed_cost&quot;: 2.3},
+                     &quot;identity&quot;: &quot;price leverage = revenue / operating profit = 1 / operating margin&quot;},
+           &quot;min_firms_per_industry&quot;: MIN_FIRMS}
+
+    # ---------------------------------------------------- 1. the number today
+    hr(&quot;1. What 1% of price buys today, by region (current edition)&quot;)
+    today = {}
+    for label, reg in regions.items():
+        cur = reg[&quot;current&quot;]
+        if cur.get(&quot;status&quot;) != 200 or &quot;parse_error&quot; in cur:
+            print(f&quot;  {label:26} UNAVAILABLE {cur.get(&#x27;status&#x27;)} {cur.get(&#x27;parse_error&#x27;, &#x27;&#x27;)}&quot;)
+            continue
+        s = summarise(cur, label)
+        today[label] = s
+        wf = s.get(&quot;without_financials&quot;, {}).get(&quot;leverage&quot;)
+        print(f&quot;  {label:26} {s[&#x27;n_firms&#x27;]:&gt;7.0f} firms  margin {s[&#x27;op_margin&#x27;]:6.1%}  &quot;
+              f&quot;1% price -&gt; {s[&#x27;leverage&#x27;]:5.1f}%   median industry {s[&#x27;industry_median_leverage&#x27;]:5.1f}%&quot;
+              f&quot;{&#x27;   ex-financials &#x27; + format(wf, &#x27;.1f&#x27;) + &#x27;%&#x27; if wf else &#x27;&#x27;}&quot;)
+    res[&quot;today&quot;] = today
+    print(f&quot;\n  1992 claim: {CLAIM}% (margin {CLAIM_MARGIN:.1%}).&quot;)
+    above = [k for k, v in today.items() if v[&quot;leverage&quot;] &gt;= CLAIM]
+    below = [k for k, v in today.items() if v[&quot;leverage&quot;] &lt; CLAIM]
+    print(f&quot;  at or above 11.1 today: {&#x27;, &#x27;.join(above) or &#x27;none&#x27;}&quot;)
+    print(f&quot;  below:                  {&#x27;, &#x27;.join(below) or &#x27;none&#x27;}&quot;)
+
+    # -------------------------------------------------- 2. the drift, by year
+    hr(&quot;2. The same number, every edition (aggregate and median industry)&quot;)
+    series, other_regime = {}, {}
+    for label, reg in regions.items():
+        pts = {}
+        for yy, ed in sorted(reg[&quot;archives&quot;].items(), key=lambda kv: edition_year(kv[0], kv[1])):
+            if ed.get(&quot;status&quot;) != 200 or &quot;parse_error&quot; in ed:
+                continue
+            y = edition_year(yy, ed)
+            s = summarise(ed, f&quot;{label} {y}&quot;)
+            if not s[&quot;leverage&quot;]:
+                continue
+            if s[&quot;op_margin_column&quot;] not in SAME_REGIME or y &lt; REGIME_FROM:
+                other_regime.setdefault(label, {})[y] = s
+                continue
+            pts[y] = s
+        cur = today.get(label)
+        if cur and cur[&quot;leverage&quot;]:
+            d = cur.get(&quot;date_updated&quot;) or &quot;&quot;
+            y = int(d[:4]) if d[:4].isdigit() else max(pts, default=2025) + 1
+            pts[y] = cur
+        if len(pts) &gt;= 3:
+            series[label] = pts
+            yrs = sorted(pts)
+            print(f&quot;\n  {label}: {len(yrs)} editions, {yrs[0]}-{yrs[-1]}&quot;)
+            cols = {pts[y][&quot;op_margin_column&quot;] for y in yrs}
+            if len(cols) &gt; 1:
+                print(f&quot;    operating-margin header varies across editions: {sorted(map(str, cols))}&quot;)
+            for y in yrs:
+                p = pts[y]
+                print(f&quot;    {y}: margin {p[&#x27;op_margin&#x27;]:6.1%}  leverage {p[&#x27;leverage&#x27;]:5.1f}%  &quot;
+                      f&quot;median industry {p[&#x27;industry_median_leverage&#x27;]:5.1f}%  &quot;
+                      f&quot;({p[&#x27;n_firms&#x27;]:.0f} firms, {p[&#x27;n_industries&#x27;]} industries)&quot;
+                      f&quot;{&#x27;&#x27; if p[&#x27;leverage&#x27;] &lt; CLAIM else &#x27;   &gt;= 11.1&#x27;}&quot;)
+    res[&quot;series&quot;] = {k: {str(y): {kk: vv for kk, vv in v[y].items() if kk not in (&#x27;industry_min&#x27;, &#x27;industry_max&#x27;)}
+                         for y in v} for k, v in series.items()}
+    # the other regime, reported beside the series but never joined to it
+    res[&quot;other_regime&quot;] = {}
+    for label, pts in other_regime.items():
+        yrs = sorted(pts)
+        main = series.get(label, {})
+        first_main = min(main) if main else None
+        step = (round(main[first_main][&quot;leverage&quot;] - pts[yrs[-1]][&quot;leverage&quot;], 1)
+                if first_main and yrs else None)
+        res[&quot;other_regime&quot;][label] = {
+            &quot;editions&quot;: {str(y): {&quot;op_margin&quot;: pts[y][&quot;op_margin&quot;], &quot;leverage&quot;: round(pts[y][&quot;leverage&quot;], 1),
+                                  &quot;column&quot;: pts[y][&quot;op_margin_column&quot;], &quot;n_firms&quot;: pts[y][&quot;n_firms&quot;]} for y in yrs},
+            &quot;columns&quot;: sorted({str(pts[y][&quot;op_margin_column&quot;]) for y in yrs}),
+            &quot;span&quot;: [yrs[0], yrs[-1]],
+            &quot;last_edition_leverage&quot;: round(pts[yrs[-1]][&quot;leverage&quot;], 1),
+            &quot;first_same_regime_edition&quot;: first_main,
+            &quot;first_same_regime_leverage&quot;: round(main[first_main][&quot;leverage&quot;], 1) if first_main else None,
+            &quot;step_at_switch&quot;: step,
+            &quot;note&quot;: (&quot;an earlier layout and a different column; the level moves at the &quot;
+                     &quot;switch by more than any year-on-year change inside either regime, so the &quot;
+                     &quot;two are never drawn on one line or compared end to end&quot;)}
+        print(f&quot;\n  {label}: {len(yrs)} earlier editions ({yrs[0]}-{yrs[-1]}) on {res[&#x27;other_regime&#x27;][label][&#x27;columns&#x27;]} &quot;
+              f&quot;kept apart: last of them {pts[yrs[-1]][&#x27;leverage&#x27;]:.1f}%, first same-regime edition &quot;
+              f&quot;{first_main}: {main[first_main][&#x27;leverage&#x27;]:.1f}% (step {step:+.1f})&quot;)
+        for y in yrs:
+            print(f&quot;    {y}: margin {pts[y][&#x27;op_margin&#x27;]:6.1%}  leverage {pts[y][&#x27;leverage&#x27;]:5.1f}%  ({pts[y][&#x27;op_margin_column&#x27;]})&quot;)
+
+    # when did the US last sit at 11.1?
+    us = series.get(&quot;US&quot;, {})
+    if us:
+        yrs = sorted(us)
+        at_or_above = [y for y in yrs if us[y][&quot;leverage&quot;] &gt;= CLAIM]
+        res[&quot;us_last_year_at_or_above_claim&quot;] = max(at_or_above) if at_or_above else None
+        res[&quot;us_first_year&quot;] = yrs[0]
+        res[&quot;us_range&quot;] = [round(min(us[y][&quot;leverage&quot;] for y in yrs), 1),
+                           round(max(us[y][&quot;leverage&quot;] for y in yrs), 1)]
+        print(f&quot;\n  US: last edition at or above {CLAIM}: {res[&#x27;us_last_year_at_or_above_claim&#x27;]}; &quot;
+              f&quot;range {res[&#x27;us_range&#x27;][0]}-{res[&#x27;us_range&#x27;][1]} over {yrs[0]}-{yrs[-1]}&quot;)
+
+    # -------------------------------------------- 3. the spread, by industry
+    hr(&quot;3. The spread across industries (current US edition)&quot;)
+    cur = regions[&quot;US&quot;][&quot;current&quot;]
+    inds = sorted(industry_leverages(cur), key=lambda x: x[1])
+    print(f&quot;  {len(inds)} US industries with &gt;= {MIN_FIRMS} firms, a margin &gt;= {MIN_MARGIN:.0%}, financials excluded&quot;)
+    print(f&quot;  lowest leverage : {inds[0][0]} margin {inds[0][2]:.1%} -&gt; {inds[0][1]:.1f}%&quot;)
+    print(f&quot;  highest leverage: {inds[-1][0]} margin {inds[-1][2]:.1%} -&gt; {inds[-1][1]:.1f}%&quot;)
+    ls = [x[1] for x in inds]
+    share_above = sum(1 for l in ls if l &gt;= CLAIM) / len(ls)
+    print(f&quot;  median industry {statistics.median(ls):.1f}%; {share_above:.0%} of industries at or above {CLAIM}&quot;)
+    watch = []
+    for w in WATCH:
+        hit = next((x for x in inds if x[0] == w), None)
+        if hit:
+            watch.append({&quot;industry&quot;: hit[0], &quot;leverage&quot;: round(hit[1], 1), &quot;op_margin&quot;: round(hit[2], 4),
+                          &quot;n_firms&quot;: int(hit[3])})
+    print(&quot;  named industries:&quot;)
+    for w in watch:
+        print(f&quot;    {w[&#x27;industry&#x27;]:34} margin {w[&#x27;op_margin&#x27;]:6.1%} -&gt; {w[&#x27;leverage&#x27;]:5.1f}%  ({w[&#x27;n_firms&#x27;]} firms)&quot;)
+    excl = industry_excluded(cur)
+    print(f&quot;  excluded from the spread: {sum(len(v) for v in excl.values())} &quot;
+          f&quot;({len(excl[&#x27;financial&#x27;])} financial, {len(excl[&#x27;near_zero_or_negative_margin&#x27;])} margin under &quot;
+          f&quot;{MIN_MARGIN:.0%} or negative: {excl[&#x27;near_zero_or_negative_margin&#x27;]}, {len(excl[&#x27;too_few_firms&#x27;])} too few firms)&quot;)
+    res[&quot;industries_us&quot;] = {&quot;n&quot;: len(inds), &quot;share_at_or_above_claim&quot;: round(share_above, 3),
+                            &quot;excluded&quot;: excl, &quot;min_margin&quot;: MIN_MARGIN,
+                            &quot;median&quot;: round(statistics.median(ls), 1),
+                            &quot;lowest&quot;: {&quot;industry&quot;: inds[0][0], &quot;leverage&quot;: round(inds[0][1], 1), &quot;op_margin&quot;: round(inds[0][2], 4)},
+                            &quot;highest&quot;: {&quot;industry&quot;: inds[-1][0], &quot;leverage&quot;: round(inds[-1][1], 1), &quot;op_margin&quot;: round(inds[-1][2], 4)},
+                            &quot;watch&quot;: watch,
+                            &quot;all&quot;: [{&quot;industry&quot;: n, &quot;leverage&quot;: round(l, 1), &quot;op_margin&quot;: round(m, 4), &quot;n_firms&quot;: int(f)}
+                                    for n, l, m, f in inds]}
+
+    # ------------------------------------------------------------ 4. checks
+    hr(&quot;4. Checks&quot;)
+    checks = {}
+    # (a) the claim is an identity: recompute it from its own margin
+    checks[&quot;identity_recovers_claim&quot;] = round(1 / CLAIM_MARGIN, 1) == CLAIM
+    print(f&quot;  1 / {CLAIM_MARGIN:.4f} = {1 / CLAIM_MARGIN:.1f}: the identity recovers the published 11.1&quot;)
+    # (b) definition sensitivity, US current: unadjusted vs pre-SBC vs ex-financials
+    s = today[&quot;US&quot;]
+    sens = {&quot;pre-tax unadjusted (headline)&quot;: s[&quot;leverage&quot;],
+            &quot;pre-stock-compensation&quot;: s.get(&quot;leverage_pre_stock_comp&quot;),
+            &quot;without financials&quot;: s.get(&quot;without_financials&quot;, {}).get(&quot;leverage&quot;),
+            &quot;median industry&quot;: s[&quot;industry_median_leverage&quot;]}
+    checks[&quot;us_definition_sensitivity&quot;] = {k: round(v, 1) for k, v in sens.items() if v}
+    print(&quot;  US today under each definition: &quot; + &quot;, &quot;.join(f&quot;{k} {v:.1f}%&quot; for k, v in sens.items() if v))
+    vals = [v for v in sens.values() if v]
+    checks[&quot;all_us_definitions_below_claim&quot;] = max(vals) &lt; CLAIM
+    print(f&quot;  every US definition below {CLAIM}: {checks[&#x27;all_us_definitions_below_claim&#x27;]}&quot;)
+    # (c) rule 3: steps in the US series that look like a method change, not economics
+    if us:
+        br = mad_breaks({y: us[y][&quot;leverage&quot;] for y in us})
+        checks[&quot;us_series_large_steps&quot;] = br
+        print(f&quot;  US series steps beyond 3.5 MAD: {br or &#x27;none&#x27;}&quot;)
+        cols = {}
+        for y in sorted(us):
+            cols.setdefault(us[y][&quot;op_margin_column&quot;], []).append(y)
+        checks[&quot;us_op_margin_headers_by_edition&quot;] = {str(k): [min(v), max(v)] for k, v in cols.items()}
+        print(f&quot;  header used, by edition span: {checks[&#x27;us_op_margin_headers_by_edition&#x27;]}&quot;)
+    # (d) the aggregate is revenue-weighted: how far is it from the median industry?
+    gaps = {k: round(v[&quot;leverage&quot;] - v[&quot;industry_median_leverage&quot;], 1) for k, v in today.items()}
+    checks[&quot;aggregate_minus_median_industry&quot;] = gaps
+    print(f&quot;  aggregate minus median-industry leverage, by region: {gaps}&quot;)
+    res[&quot;checks&quot;] = checks
+
+    # ---------------------------------------------------------- 5. verdict
+    hr(&quot;5. Verdict&quot;)
+    us_now = today[&quot;US&quot;][&quot;leverage&quot;]
+    em = today.get(&quot;Emerging markets&quot;, {}).get(&quot;leverage&quot;)
+    verdict = {&quot;us_today&quot;: round(us_now, 1), &quot;claim&quot;: CLAIM,
+               &quot;us_gap_pct_points&quot;: round(us_now - CLAIM, 1),
+               &quot;regions_at_or_above&quot;: above, &quot;regions_below&quot;: below,
+               &quot;closest_region&quot;: min(today, key=lambda k: abs(today[k][&quot;leverage&quot;] - CLAIM)),
+               &quot;emerging_today&quot;: round(em, 1) if em else None}
+    res[&quot;verdict&quot;] = verdict
+    print(f&quot;  The 1992 rule says {CLAIM}. The US aggregate today gives {us_now:.1f}. &quot;
+          f&quot;The region closest to the rule is {verdict[&#x27;closest_region&#x27;]} &quot;
+          f&quot;({today[verdict[&#x27;closest_region&#x27;]][&#x27;leverage&#x27;]:.1f}).&quot;)
+
+    with open(OUT, &quot;w&quot;) as fh:
+        json.dump(res, fh, indent=1)
+    print(f&quot;\nwrote {OUT}&quot;)
+    chart_regions(res)
+    chart_series(res)
+    return 0
+
+
+# ------------------------------------------------------------------ charts
+INK, DIM, MUTED, GRID, AXIS = &quot;#0b0b0b&quot;, &quot;#52514e&quot;, &quot;#898781&quot;, &quot;#e1e0d9&quot;, &quot;#c3c2b7&quot;
+BLUE, ORANGE, AQUA = &quot;#2a78d6&quot;, &quot;#eb6834&quot;, &quot;#1baf7a&quot;     # validated, slots 1-3
+F = &quot;-apple-system,BlinkMacSystemFont,&#x27;Segoe UI&#x27;,Roboto,&#x27;Helvetica Neue&#x27;,Arial,sans-serif&quot;
+
+
+def chart_regions(res):
+    &quot;&quot;&quot;One hue, sorted bars, the 1992 rule as a reference line. The job is
+    magnitude against a threshold, so no categorical colour.&quot;&quot;&quot;
+    t = res[&quot;today&quot;]
+    rows = sorted(t.values(), key=lambda s: -s[&quot;leverage&quot;])
+    W, H, L, R, T, B = 1600, 1000, 330, 400, 250, 150
+    pw, ph = W - L - R, H - T - B
+    hi = max(CLAIM, max(s[&quot;leverage&quot;] for s in rows)) * 1.12
+    slot = ph / len(rows)
+    bh = min(slot * 0.62, 44)
+
+    def px(v):
+        return L + v / hi * pw
+
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;56&quot; font-size=&quot;37&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;The 11% rule, recomputed for every region, January 2026&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;100&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;Operating profit gained from a 1% price &#x27;
+         f&#x27;improvement, volume unchanged. It is one over the operating margin,&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;132&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;so it is a fact about margins: revenue-weighted &#x27;
+         f&#x27;across every listed company Damodaran covers in each region.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;180&quot; font-size=&quot;25&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;Built on US companies in 1992. The US today: &#x27;
+         f&#x27;&lt;tspan fill=&quot;{BLUE}&quot;&gt;{t[&quot;US&quot;][&quot;leverage&quot;]:.1f}%&lt;/tspan&gt;. &#x27;
+         f&#x27;Nearest to 11.1 now: &lt;tspan fill=&quot;{BLUE}&quot;&gt;{res[&quot;verdict&quot;][&quot;closest_region&quot;].lower()}&lt;/tspan&gt;.&lt;/text&gt;&#x27;]
+    for i in range(0, int(hi) + 1, 2):
+        o.append(f&#x27;&lt;line x1=&quot;{px(i):.1f}&quot; y1=&quot;{T}&quot; x2=&quot;{px(i):.1f}&quot; y2=&quot;{T + ph}&quot; stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{px(i):.1f}&quot; y=&quot;{T + ph + 34}&quot; font-size=&quot;19&quot; fill=&quot;{MUTED}&quot; text-anchor=&quot;middle&quot;&gt;{i}%&lt;/text&gt;&#x27;)
+    for j, s in enumerate(rows):
+        y = T + j * slot + (slot - bh) / 2
+        o.append(f&#x27;&lt;text x=&quot;{L - 18}&quot; y=&quot;{y + bh / 2 + 8:.1f}&quot; font-size=&quot;23&quot; fill=&quot;{INK}&quot; text-anchor=&quot;end&quot;&gt;{s[&quot;label&quot;]}&lt;/text&gt;&#x27;)
+        o.append(f&#x27;&lt;rect x=&quot;{L}&quot; y=&quot;{y:.1f}&quot; width=&quot;{px(s[&quot;leverage&quot;]) - L:.1f}&quot; height=&quot;{bh:.1f}&quot; fill=&quot;{BLUE}&quot; rx=&quot;4&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{px(s[&quot;leverage&quot;]) + 12:.1f}&quot; y=&quot;{y + bh / 2 + 8:.1f}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot; font-weight=&quot;700&quot;&gt;&#x27;
+                 f&#x27;{s[&quot;leverage&quot;]:.1f}%&lt;/text&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{px(s[&quot;leverage&quot;]) + 92:.1f}&quot; y=&quot;{y + bh / 2 + 8:.1f}&quot; font-size=&quot;18&quot; fill=&quot;{MUTED}&quot;&gt;&#x27;
+                 f&#x27;margin {s[&quot;op_margin&quot;]:.1%} &amp;#183; {s[&quot;n_firms&quot;]:,.0f} firms&lt;/text&gt;&#x27;)
+    o += [f&#x27;&lt;line x1=&quot;{px(CLAIM):.1f}&quot; y1=&quot;{T - 14}&quot; x2=&quot;{px(CLAIM):.1f}&quot; y2=&quot;{T + ph}&quot; stroke=&quot;{INK}&quot; &#x27;
+          f&#x27;stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;10 7&quot;/&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{px(CLAIM) + 10:.1f}&quot; y=&quot;{T - 22}&quot; font-size=&quot;21&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+          f&#x27;HBR 1992: 11.1%&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 66}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;Above the line: thinner margins than the 1992 &#x27;
+          f&#x27;sample, so a price point is worth more of the profit. Below: less.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 36}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;Aggregates include loss-makers. The median US &#x27;
+          f&#x27;industry gives {t[&quot;US&quot;][&quot;industry_median_leverage&quot;]:.1f}%; the spread by industry is on the page.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 10}&quot; font-size=&quot;17&quot; fill=&quot;{MUTED}&quot;&gt;Data: Damodaran, NYU Stern, margin tables by &#x27;
+          f&#x27;region, Total Market row, pre-tax unadjusted operating margin, Jan 2026 &amp;#183; &#x27;
+          f&#x27;namikakmandev.github.io/price-leverage.html&lt;/text&gt;&#x27;, &#x27;&lt;/svg&gt;&#x27;]
+    svg = &quot;\n&quot;.join(o)
+    os.makedirs(&quot;assets/linkedin&quot;, exist_ok=True)
+    path = &quot;assets/linkedin/price-leverage-regions.svg&quot;
+    open(path, &quot;w&quot;).write(svg)
+    print(f&quot;  wrote {path}&quot;)
+    render_png(svg, &quot;assets/linkedin/price-leverage-regions.png&quot;, W, H)
+
+
+def chart_series(res):
+    &quot;&quot;&quot;Three lines against the 1992 line: the US since 1998, Europe and
+    emerging markets since their archives begin. Legend plus end labels.&quot;&quot;&quot;
+    ser = res[&quot;series&quot;]
+    keys = [k for k in (&quot;US&quot;, &quot;Emerging markets&quot;, &quot;Europe&quot;) if k in ser]
+    col = {&quot;US&quot;: BLUE, &quot;Emerging markets&quot;: AQUA, &quot;Europe&quot;: ORANGE}
+    pts = {k: {int(y): v[&quot;leverage&quot;] for y, v in ser[k].items()} for k in keys}
+    y0 = min(min(p) for p in pts.values())
+    y1 = max(max(p) for p in pts.values())
+    lo, hi = 4, max(CLAIM, max(max(p.values()) for p in pts.values())) * 1.12
+    W, H, L, R, T, B = 1600, 1000, 118, 260, 250, 150
+    pw, ph = W - L - R, H - T - B
+
+    def px(y):
+        return L + (y - y0) / (y1 - y0) * pw
+
+    def py(v):
+        return T + (1 - (v - lo) / (hi - lo)) * ph
+
+    us_last = res.get(&quot;us_last_year_at_or_above_claim&quot;)
+    o = [f&#x27;&lt;svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;{W}&quot; height=&quot;{H}&quot; viewBox=&quot;0 0 {W} {H}&quot; font-family=&quot;{F}&quot;&gt;&#x27;,
+         f&#x27;&lt;rect width=&quot;{W}&quot; height=&quot;{H}&quot; fill=&quot;#fff&quot;/&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;56&quot; font-size=&quot;37&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         f&#x27;The US left the 11% rule behind. Emerging markets still live on it.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;100&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;Operating profit gained from a 1% price &#x27;
+         f&#x27;improvement, one over the aggregate operating margin, one point per edition of&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;132&quot; font-size=&quot;24&quot; fill=&quot;{DIM}&quot;&gt;Damodaran&amp;#8217;s industry tables. Each January &#x27;
+         f&#x27;edition reflects the previous fiscal year. Dashed: the 1992 figure.&lt;/text&gt;&#x27;,
+         f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;180&quot; font-size=&quot;25&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+         + (f&#x27;US: last at or above 11.1 in &lt;tspan fill=&quot;{BLUE}&quot;&gt;{us_last}&lt;/tspan&gt;; &#x27; if us_last
+            else f&#x27;US: below 11.1 in every edition since &lt;tspan fill=&quot;{BLUE}&quot;&gt;{min(pts[&quot;US&quot;])}&lt;/tspan&gt;; &#x27;)
+         + f&#x27;{y1}: &lt;tspan fill=&quot;{BLUE}&quot;&gt;{pts[&quot;US&quot;][max(pts[&quot;US&quot;])]:.1f}%&lt;/tspan&gt;.&#x27;
+         + (f&#x27;   Emerging markets {max(pts[&quot;Emerging markets&quot;])}: &lt;tspan fill=&quot;{AQUA}&quot;&gt;{pts[&quot;Emerging markets&quot;][max(pts[&quot;Emerging markets&quot;])]:.1f}%&lt;/tspan&gt;.&#x27;
+            if &quot;Emerging markets&quot; in pts else &quot;&quot;) + &#x27;&lt;/text&gt;&#x27;]
+    for v in range(int(lo), int(hi) + 1, 2):
+        o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{py(v):.1f}&quot; x2=&quot;{L + pw}&quot; y2=&quot;{py(v):.1f}&quot; stroke=&quot;{GRID}&quot; stroke-width=&quot;1&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{L - 14}&quot; y=&quot;{py(v) + 7:.1f}&quot; font-size=&quot;20&quot; fill=&quot;{MUTED}&quot; text-anchor=&quot;end&quot;&gt;{v}%&lt;/text&gt;&#x27;)
+    for y in range(y0, y1 + 1):
+        if y % 2 == 0:
+            o.append(f&#x27;&lt;text x=&quot;{px(y):.1f}&quot; y=&quot;{T + ph + 34}&quot; font-size=&quot;19&quot; fill=&quot;{MUTED}&quot; text-anchor=&quot;middle&quot;&gt;{y}&lt;/text&gt;&#x27;)
+    o.append(f&#x27;&lt;line x1=&quot;{L}&quot; y1=&quot;{py(CLAIM):.1f}&quot; x2=&quot;{L + pw}&quot; y2=&quot;{py(CLAIM):.1f}&quot; stroke=&quot;{INK}&quot; &#x27;
+             f&#x27;stroke-width=&quot;2.5&quot; stroke-dasharray=&quot;10 7&quot;/&gt;&#x27;)
+    # the label sits where no line passes: the first year at which every series is &gt; 1.2 points from 11.1
+    free = next((y for y in range(y0, y1 + 1) if all(abs(p.get(y, 99) - CLAIM) &gt; 1.2 for p in pts.values())), y0)
+    o.append(f&#x27;&lt;text x=&quot;{px(free):.1f}&quot; y=&quot;{py(CLAIM) - 12:.1f}&quot; font-size=&quot;21&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;HBR 1992: 11.1%&lt;/text&gt;&#x27;)
+    # legend, top right of the plot
+    lx = L + pw - 300
+    for i, k in enumerate(keys):
+        ly = T + 18 + i * 32
+        o.append(f&#x27;&lt;line x1=&quot;{lx}&quot; y1=&quot;{ly}&quot; x2=&quot;{lx + 34}&quot; y2=&quot;{ly}&quot; stroke=&quot;{col[k]}&quot; stroke-width=&quot;4&quot;/&gt;&#x27;)
+        o.append(f&#x27;&lt;text x=&quot;{lx + 46}&quot; y=&quot;{ly + 7}&quot; font-size=&quot;21&quot; fill=&quot;{INK}&quot;&gt;{k}&lt;/text&gt;&#x27;)
+    for k in keys:
+        p = pts[k]
+        ys = sorted(p)
+        d = &quot; &quot;.join(f&quot;{&#x27;M&#x27; if i == 0 else &#x27;L&#x27;}{px(y):.1f},{py(p[y]):.1f}&quot; for i, y in enumerate(ys))
+        o.append(f&#x27;&lt;path d=&quot;{d}&quot; fill=&quot;none&quot; stroke=&quot;{col[k]}&quot; stroke-width=&quot;4&quot; stroke-linejoin=&quot;round&quot; stroke-linecap=&quot;round&quot;/&gt;&#x27;)
+        for y in ys:
+            o.append(f&#x27;&lt;circle cx=&quot;{px(y):.1f}&quot; cy=&quot;{py(p[y]):.1f}&quot; r=&quot;5&quot; fill=&quot;{col[k]}&quot; stroke=&quot;#fff&quot; stroke-width=&quot;2&quot;/&gt;&#x27;)
+        yl = ys[-1]
+        o.append(f&#x27;&lt;text x=&quot;{px(yl) + 14:.1f}&quot; y=&quot;{py(p[yl]) + 8:.1f}&quot; font-size=&quot;22&quot; font-weight=&quot;700&quot; fill=&quot;{INK}&quot;&gt;&#x27;
+                 f&#x27;{p[yl]:.1f}%&lt;/text&gt;&#x27;)
+    o += [f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 66}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;Same identity, same source, every year: the &#x27;
+          f&#x27;line moves only because operating margins do. US margins widened; emerging-market margins did not.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 36}&quot; font-size=&quot;22&quot; fill=&quot;{INK}&quot;&gt;Editions are labelled by publication year. &#x27;
+          f&#x27;No 2025 edition is served. Pre-2013 US editions: see the note on the page.&lt;/text&gt;&#x27;,
+          f&#x27;&lt;text x=&quot;{L}&quot; y=&quot;{H - 10}&quot; font-size=&quot;17&quot; fill=&quot;{MUTED}&quot;&gt;Data: Damodaran, NYU Stern, archived industry &#x27;
+          f&#x27;margin tables margin&amp;lt;yy&amp;gt;.xls, Total Market row, pre-tax operating margin as labelled in each edition &#x27;
+          f&#x27;&amp;#183; namikakmandev.github.io/price-leverage.html&lt;/text&gt;&#x27;, &#x27;&lt;/svg&gt;&#x27;]
+    svg = &quot;\n&quot;.join(o)
+    path = &quot;assets/linkedin/price-leverage-series.svg&quot;
+    open(path, &quot;w&quot;).write(svg)
+    print(f&quot;  wrote {path}&quot;)
+    render_png(svg, &quot;assets/linkedin/price-leverage-series.png&quot;, W, H)
+
+
+if __name__ == &quot;__main__&quot;:
+    sys.exit(main())
+</pre>
+          </details>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 Nam&#305;k Akman</p>
+    </div>
+  </footer>
+  <script src="js/main.js"></script>
+</body>
+</html>
