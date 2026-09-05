@@ -26,7 +26,7 @@ xlrd is needed to read BIFF and is installed by the workflow; the site's
 analysis script stays stdlib-only. The dev sandbox cannot reach NYU Stern,
 so this runs in GitHub Actions and commits the result.
 """
-import datetime, json, re, sys, time, urllib.error, urllib.request
+import datetime, difflib, json, re, sys, time, urllib.error, urllib.request
 
 try:
     import xlrd
@@ -103,8 +103,10 @@ def find_header(wb):
         sh = wb.sheet_by_name(name)
         for r in range(min(sh.nrows, 80)):
             for c in range(min(sh.ncols, 3)):
-                v = str(sh.cell_value(r, c)).strip().lower()
-                if v.startswith("industry") or v in ("sector", "industry group"):
+                v = re.sub(r"[^a-z ]", "", str(sh.cell_value(r, c)).strip().lower())
+                # the files carry typos: 'Induistry Name', 'Inudstry Name'
+                if (v.startswith("industry") or v in ("sector", "industry group")
+                        or difflib.SequenceMatcher(None, v, "industry name").ratio() >= 0.8):
                     return sh, r, c
     return None, None, None
 
@@ -135,7 +137,8 @@ def parse_workbook(body, full=True):
                       (("pre-tax", "unadjusted", "operating margin"), ()),
                       (("pre-tax", "operating margin"), ("pre-stock", "lease", "r&d", "after-tax")),
                       (("operating margin",), ("after-tax", "pre-stock", "lease", "r&d", "(1-t)")),
-                      (("operating margin",), ("(1-t)", "after-tax")))
+                      (("operating margin",), ("(1-t)", "after-tax")),
+                      (("ebit/sales",), ("ebitda",)))      # 1999-2012 editions: EBIT/Sales is the pre-tax margin
     op_kind = "pre-tax" if i_op is not None else None
     i_tax, h_tax = pick(headers, (("tax rate",), ()), (("effective tax",), ()))
     if i_op is None:
@@ -174,6 +177,15 @@ def parse_workbook(body, full=True):
         else:
             rec["name"] = label
             industries.append(rec)
+    i_ebit, _ = pick(headers, (("ebit",), ("ebitda", "sales", "(1-t)", "margin")))
+    i_sales, _ = pick(headers, (("sales",), ("/", "margin", "ebit")))
+    if not totals and i_ebit is not None and i_sales is not None:
+        ebit = sum(num(r[i_ebit]) or 0 for r in rows[hdr + 1:] if i_ebit < len(r) and str(r[0]).strip())
+        sales = sum(num(r[i_sales]) or 0 for r in rows[hdr + 1:] if i_sales < len(r) and str(r[0]).strip())
+        if sales:
+            totals["Total Market (computed: sum EBIT / sum Sales)"] = {
+                "n_firms": sum(x["n_firms"] or 0 for x in industries), "op_margin": ebit / sales,
+                "net_margin": None, "computed_from": {"ebit": ebit, "sales": sales}}
     return {"sheet": name, "header_row": hdr + 1, "header_col": c0 + 1, "date_updated": date_updated,
             "header": headers,
             "columns_used": {"n_firms": h_n, "op_margin": h_op, "op_margin_kind": op_kind,
