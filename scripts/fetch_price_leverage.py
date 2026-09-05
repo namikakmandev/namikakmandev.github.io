@@ -43,7 +43,7 @@ REGIONS = {                                       # label -> file stem
     "Global": "marginGlobal", "Japan": "marginJapan", "Australia, NZ & Canada": "marginRest",
     "China": "marginChina", "India": "marginIndia",
 }
-ARCHIVE_YY = ["98", "99"] + [f"{y:02d}" for y in range(0, 26)]
+ARCHIVE_YY = ["98", "99"] + [f"{y:02d}" for y in range(0, time.gmtime().tm_year % 100 + 1)]
 
 
 def get(url, timeout=120):
@@ -172,7 +172,8 @@ def parse_workbook(body, full=True):
                        ebitda_sales=num(r[i_ebitda]) if i_ebitda is not None and i_ebitda < len(r) else None,
                        op_margin_pre_sbc=num(r[i_sbc]) if i_sbc is not None and i_sbc < len(r) else None)
         low = label.lower()
-        if low.startswith(("total", "grand total", "market", "all ")):
+        if (low.startswith(("total", "grand total", "market", "all "))
+                or difflib.SequenceMatcher(None, low, "total market").ratio() >= 0.8):   # 'Tiotal Market'
             totals[label] = rec
         else:
             rec["name"] = label
@@ -200,6 +201,8 @@ def edition(url, full):
         body = get(url)
     except urllib.error.HTTPError as e:
         return {"url": url, "status": e.code}
+    except (urllib.error.URLError, OSError, RuntimeError) as e:
+        return {"url": url, "status": None, "error": f"{type(e).__name__}: {e}"}
     rec = {"url": url, "status": 200, "bytes": len(body)}
     try:
         rec.update(parse_workbook(body, full=full))

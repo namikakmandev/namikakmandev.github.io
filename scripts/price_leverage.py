@@ -20,7 +20,7 @@ split that public accounts do not give.
 Stdlib only. Inputs come from data/price-leverage.json, written in GitHub
 Actions by scripts/fetch_price_leverage.py.
 """
-import json, math, os, statistics, sys
+import difflib, json, math, os, statistics, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fte_chart import render_png                                   # noqa: E402
@@ -34,7 +34,7 @@ MIN_FIRMS = 10                        # an "industry" of 3 firms is not an indus
 # regime. Earlier US editions use another layout and read "EBIT/Sales", and the
 # level steps at the switch: a break, kept apart, never joined.
 SAME_REGIME = {"Pre-tax Unadjusted Operating Margin", "Pre-tax Operating Margin"}
-REGIME_FROM = 2011                    # first edition in the current layout; 1998 is the old one too
+REGIME_FROM = 2012                    # first edition (by publication year) in the current layout
 MIN_MARGIN = 0.01                     # below 1% the identity explodes; reported, not ranked
 FINANCIAL = ("bank", "brokerage", "insurance", "financial svcs", "investments & asset",
              "reinsurance", "r.e.i.t")  # no revenue concept comparable to the rest
@@ -51,19 +51,40 @@ def hr(t):
     print(f"\n{'=' * 78}\n{t}\n{'=' * 78}")
 
 
+def is_total_name(name):
+    n = name.strip().lower()
+    return (n.startswith(("total market", "grand total", "market"))
+            or difflib.SequenceMatcher(None, n, "total market").ratio() >= 0.8)
+
+
+def rescue_totals(ed):
+    """One edition spells its aggregate row 'Tiotal Market'; the fetch filed
+    it as an industry. Move any such row where it belongs, once."""
+    if ed.get("_rescued"):
+        return ed
+    keep, tot = [], dict(ed.get("totals") or {})
+    for r in ed.get("industries", []):
+        if is_total_name(r["name"]):
+            tot[r["name"]] = {k: v for k, v in r.items() if k != "name"}
+        else:
+            keep.append(r)
+    ed["industries"], ed["totals"], ed["_rescued"] = keep, tot, True
+    return ed
+
+
 def total_row(ed, without_financials=False):
-    """The aggregate row, by the labels the files actually use."""
-    tot = ed.get("totals") or {}
+    """The aggregate row, by the labels the files actually use. No fallback:
+    an edition without a plain aggregate row yields none."""
+    tot = rescue_totals(ed).get("totals") or {}
     if without_financials:
         for k, v in tot.items():
             if "without" in k.lower():
                 return k, v
         return None, None
     for k, v in tot.items():
-        kl = k.lower()
-        if kl.startswith(("total market", "grand total", "market")) and "without" not in kl:
+        if is_total_name(k) and "without" not in k.lower():
             return k, v
-    return next(iter(tot.items()), (None, None))
+    return None, None
 
 
 def lev(m):
@@ -101,19 +122,23 @@ def industry_excluded(ed):
 
 
 def edition_year(yy, ed):
-    """Editions are named by two-digit year; date_updated confirms it."""
+    """The year an edition was published. Archives named <yy> carry a 'Date
+    updated' of January <yy+1> wherever they carry one (margin13.xls is dated
+    2014-01-05), so the file name is the data year and the label here is the
+    publication year, read from the sheet when present."""
+    d = ed.get("date_updated") or ""
+    if d[:4].isdigit():
+        return int(d[:4])
     y = int(yy)
     y += 1900 if y >= 90 else 2000
-    d = ed.get("date_updated") or ""
-    if d[:4].isdigit() and abs(int(d[:4]) - y) > 1:
-        print(f"  note: edition {yy} carries date {d}; labelled {y} by file name")
-    return y
+    return y + 1
 
 
 def summarise(ed, label):
     """Everything the story needs from one edition."""
     k, tot = total_row(ed)
     kx, totx = total_row(ed, without_financials=True)
+    rescue_totals(ed)
     inds = industry_leverages(ed)
     ls = sorted(x[1] for x in inds)
     rec = {"label": label, "date_updated": ed.get("date_updated"),
@@ -182,15 +207,19 @@ def main():
 
     # -------------------------------------------------- 2. the drift, by year
     hr("2. The same number, every edition (aggregate and median industry)")
-    series, other_regime = {}, {}
+    series, other_regime, unusable = {}, {}, {}
     for label, reg in regions.items():
         pts = {}
         for yy, ed in sorted(reg["archives"].items(), key=lambda kv: edition_year(kv[0], kv[1])):
-            if ed.get("status") != 200 or "parse_error" in ed:
+            if ed.get("status") != 200:
                 continue
             y = edition_year(yy, ed)
+            if "parse_error" in ed:
+                unusable.setdefault(label, {})[y] = ed["parse_error"][:80]
+                continue
             s = summarise(ed, f"{label} {y}")
             if not s["leverage"]:
+                unusable.setdefault(label, {})[y] = "served, but no aggregate row and no EBIT/Sales columns to compute one"
                 continue
             if s["op_margin_column"] not in SAME_REGIME or y < REGIME_FROM:
                 other_regime.setdefault(label, {})[y] = s
@@ -216,6 +245,14 @@ def main():
                       f"{'' if p['leverage'] < CLAIM else '   >= 11.1'}")
     res["series"] = {k: {str(y): {kk: vv for kk, vv in v[y].items() if kk not in ('industry_min', 'industry_max')}
                          for y in v} for k, v in series.items()}
+    res["unusable_editions"] = {k: {str(y): v for y, v in d.items()} for k, d in unusable.items()}
+    hdr_spans = {}
+    for k, pts in series.items():
+        spans = {}
+        for y in sorted(pts):
+            spans.setdefault(str(pts[y]["op_margin_column"]), [y, y])[1] = y
+        hdr_spans[k] = spans
+    res["series_headers"] = hdr_spans
     # the other regime, reported beside the series but never joined to it
     res["other_regime"] = {}
     for label, pts in other_regime.items():
@@ -224,6 +261,10 @@ def main():
         first_main = min(main) if main else None
         step = (round(main[first_main]["leverage"] - pts[yrs[-1]]["leverage"], 1)
                 if first_main and yrs else None)
+        def max_step(d):
+            ys = sorted(d)
+            return round(max((abs(d[ys[i]]["leverage"] - d[ys[i - 1]]["leverage"]) for i in range(1, len(ys))), default=0), 1)
+        computed = [y for y in yrs if "computed" in str(pts[y]["total_label"]).lower()]
         res["other_regime"][label] = {
             "editions": {str(y): {"op_margin": pts[y]["op_margin"], "leverage": round(pts[y]["leverage"], 1),
                                   "column": pts[y]["op_margin_column"], "n_firms": pts[y]["n_firms"]} for y in yrs},
@@ -233,9 +274,14 @@ def main():
             "first_same_regime_edition": first_main,
             "first_same_regime_leverage": round(main[first_main]["leverage"], 1) if first_main else None,
             "step_at_switch": step,
-            "note": ("an earlier layout and a different column; the level moves at the "
-                     "switch by more than any year-on-year change inside either regime, so the "
-                     "two are never drawn on one line or compared end to end")}
+            "max_step_inside_old": max_step(pts), "max_step_inside_main": max_step(main) if main else None,
+            "n_served_total": len(pts) + sum(1 for y in unusable.get(label, {}) if y < (first_main or 9999)),
+            "unusable": {str(y): v for y, v in unusable.get(label, {}).items() if y < (first_main or 9999)},
+            "computed_aggregate_editions": computed,
+            "note": ("an earlier layout and a different column; the level moves at the switch by more "
+                     "than any year-on-year change inside the consistent series, and the earlier series "
+                     "itself swings harder than the consistent one, so the two are never drawn on one "
+                     "line or compared end to end")}
         print(f"\n  {label}: {len(yrs)} earlier editions ({yrs[0]}-{yrs[-1]}) on {res['other_regime'][label]['columns']} "
               f"kept apart: last of them {pts[yrs[-1]]['leverage']:.1f}%, first same-regime edition "
               f"{first_main}: {main[first_main]['leverage']:.1f}% (step {step:+.1f})")
@@ -370,7 +416,7 @@ def chart_regions(res):
          f'<text x="{L}" y="132" font-size="24" fill="{DIM}">so it is a fact about margins: revenue-weighted '
          f'across every listed company Damodaran covers in each region.</text>',
          f'<text x="{L}" y="180" font-size="25" font-weight="700" fill="{INK}">'
-         f'Built on US companies in 1992. The US today: '
+         f'Published in 1992. The US today: '
          f'<tspan fill="{BLUE}">{t["US"]["leverage"]:.1f}%</tspan>. '
          f'Nearest to 11.1 now: <tspan fill="{BLUE}">{res["verdict"]["closest_region"].lower()}</tspan>.</text>']
     for i in range(0, int(hi) + 1, 2):
@@ -426,7 +472,7 @@ def chart_series(res):
     o = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}" font-family="{F}">',
          f'<rect width="{W}" height="{H}" fill="#fff"/>',
          f'<text x="{L}" y="56" font-size="37" font-weight="700" fill="{INK}">'
-         f'The US left the 11% rule behind. Emerging markets still live on it.</text>',
+         f'The US is not on the 11% rule. Emerging markets are.</text>',
          f'<text x="{L}" y="100" font-size="24" fill="{DIM}">Operating profit gained from a 1% price '
          f'improvement, one over the aggregate operating margin, one point per edition of</text>',
          f'<text x="{L}" y="132" font-size="24" fill="{DIM}">Damodaran&#8217;s industry tables. Each January '
@@ -445,9 +491,9 @@ def chart_series(res):
             o.append(f'<text x="{px(y):.1f}" y="{T + ph + 34}" font-size="19" fill="{MUTED}" text-anchor="middle">{y}</text>')
     o.append(f'<line x1="{L}" y1="{py(CLAIM):.1f}" x2="{L + pw}" y2="{py(CLAIM):.1f}" stroke="{INK}" '
              f'stroke-width="2.5" stroke-dasharray="10 7"/>')
-    # the label sits where no line passes: the first year at which every series is > 1.2 points from 11.1
-    free = next((y for y in range(y0, y1 + 1) if all(abs(p.get(y, 99) - CLAIM) > 1.2 for p in pts.values())), y0)
-    o.append(f'<text x="{px(free):.1f}" y="{py(CLAIM) - 12:.1f}" font-size="21" font-weight="700" fill="{INK}">HBR 1992: 11.1%</text>')
+    # the label sits under the line at the right, where the US and Europe run far below it
+    o.append(f'<text x="{L + pw - 8:.1f}" y="{py(CLAIM) + 28:.1f}" font-size="21" font-weight="700" fill="{INK}" '
+             f'text-anchor="end">HBR 1992: 11.1%</text>')
     # legend, top right of the plot
     lx = L + pw - 300
     for i, k in enumerate(keys):
@@ -466,8 +512,8 @@ def chart_series(res):
                  f'{p[yl]:.1f}%</text>')
     o += [f'<text x="{L}" y="{H - 66}" font-size="22" fill="{INK}">Same identity, same source, every year: the '
           f'line moves only because operating margins do. US margins widened; emerging-market margins did not.</text>',
-          f'<text x="{L}" y="{H - 36}" font-size="22" fill="{INK}">Editions are labelled by publication year. '
-          f'No 2025 edition is served. Pre-2013 US editions: see the note on the page.</text>',
+          f'<text x="{L}" y="{H - 36}" font-size="22" fill="{INK}">Editions are labelled by the January they '
+          f'were published. Earlier US editions use another layout and are kept apart: see the page.</text>',
           f'<text x="{L}" y="{H - 10}" font-size="17" fill="{MUTED}">Data: Damodaran, NYU Stern, archived industry '
           f'margin tables margin&lt;yy&gt;.xls, Total Market row, pre-tax operating margin as labelled in each edition '
           f'&#183; namikakmandev.github.io/price-leverage.html</text>', '</svg>']
