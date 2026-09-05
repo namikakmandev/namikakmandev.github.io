@@ -46,8 +46,8 @@ Standalone images if you would rather post images than a document:
 
 The deck does the explaining. The body only has to hook and hand off.
 
-📊 Every pricing deck has the line: a 1% price improvement = 11.1% more
-operating profit. I&rsquo;ve put it on slides myself.
+📊 A number from 1992 still turns up in pricing decks: a 1% price improvement
+= 11.1% more operating profit. I&rsquo;ve used it myself.
 
 🗓️ It comes from Harvard Business Review, 1992. And it isn&rsquo;t a finding,
 it&rsquo;s arithmetic: one over the operating margin. 11.1 is what a 9% margin
@@ -82,8 +82,8 @@ lever.
 
 ## Türkçe
 
-📊 Her fiyatlandırma sunumunda o cümle var: fiyatta %1 iyileşme = faaliyet
-kârında %11,1 artış. Ben de slaytlara koydum.
+📊 1992&rsquo;den kalma bir sayı fiyatlandırma sunumlarında hâlâ dolaşıyor:
+fiyatta %1 iyileşme = faaliyet kârında %11,1 artış. Ben de kullandım.
 
 🗓️ Kaynağı Harvard Business Review, 1992. Ve bir bulgu değil, aritmetik:
 faaliyet kâr marjının tersi. %9 marj, 11,1 verir. Yani 34 yıl önceki bir
@@ -132,8 +132,8 @@ only the price lever is retested.
 
 ## If someone challenges it
 
-**"This is obvious, it's just 1/margin."** Yes, and that is the point. The deck
-quotes 11.1 as a constant. It is a formula, and the formula gives 7.8 for the
+**"This is obvious, it's just 1/margin."** Yes, and that is the point. Decks
+quote 11.1 as a constant. It is a formula, and the formula gives 7.8 for the
 US aggregate, 3.4 for pharma and 44 for grocery retail.
 
 **"Revenue-weighted aggregates are dominated by giants."** The median industry is

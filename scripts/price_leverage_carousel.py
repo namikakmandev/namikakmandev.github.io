@@ -113,9 +113,9 @@ def build_html(web=False):
     slides = [
         # 1 - the hook, on the regions chart
         f'''<p class="kicker">A pricing study on open data &#183; margins as of January 2026</p>
-            <h1 class="tight">Every pricing deck says 1% of price is worth 11% of
-              profit. <span class="r">That was true in 1992.</span> Here is
-              what it is worth now, by region.</h1>
+            <h1 class="tight">A 1992 number still turns up in pricing decks: 1% of
+              price is worth 11% of profit. <span class="r">Here is what it is
+              worth now,</span> by region.</h1>
             {svg("price-leverage-regions.svg")}''',
 
         # 2 - the famous number, as a hero figure and a formula
@@ -123,8 +123,8 @@ def build_html(web=False):
             <h2>The famous number</h2>
             <p class="hero">11.1%</p>
             <p class="lede">more operating profit from a <b>1% price improvement</b>,
-              volume held. More than volume, more than cost. It is on every
-              pricing slide, including mine.</p>
+              volume held. More than volume, more than cost. It still turns up in
+              pricing decks, and I have used it myself.</p>
             <div class="formula">
               <span class="f1">profit gain&nbsp;=</span>
               <span class="frac"><span>1</span><span>operating margin</span></span>
