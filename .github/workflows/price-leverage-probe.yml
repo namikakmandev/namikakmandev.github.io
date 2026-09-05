@@ -20,11 +20,13 @@ jobs:
           python-version: "3.12"
       - name: Probe SEC XBRL frames, SEC bulk data sets and Damodaran margins
         run: python scripts/probe_price_leverage.py
+      - name: Round 2 - Damodaran HTML edition, archives and .xls contents
+        run: python scripts/probe_margin_archive.py
       - name: Commit the dump
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
-          git add data/_price-leverage-probe.json
+          git add data/_price-leverage-probe.json data/_margin-archive-probe.json
           git diff --cached --quiet || git commit -m "data: price leverage access probe [skip ci]"
           for i in 1 2 4 8; do
             git push origin HEAD && break
