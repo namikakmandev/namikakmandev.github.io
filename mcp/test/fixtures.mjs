@@ -106,7 +106,7 @@ export function installFetchMock() {
     if (u.hostname === "data-api.ecb.europa.eu") return text(ECB_CSV, "text/csv");
     if (u.hostname === "sdmx.oecd.org") return text(OECD_CSV, "text/csv");
     if (u.hostname === "ourworldindata.org") return text(OWID_CSV, "text/csv");
-    if (u.hostname === "evds2.tcmb.gov.tr") return (init?.headers?.key ?? init?.headers?.get?.("key")) ? json(EVDS_JSON) : new Response("Unauthorized", { status: 401 });
+    if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.startsWith("/igmevdsms-dis/")) return (init?.headers?.key ?? init?.headers?.get?.("key")) ? json(EVDS_JSON) : new Response("Unauthorized", { status: 401 });
     return new Response("mock: unknown host " + u.hostname, { status: 502 });
   };
   return { calls, restore: () => { globalThis.fetch = real; } };

@@ -44,6 +44,10 @@ async function getText(url: string, headers: Record<string, string> = {}): Promi
   const res = await fetch(url, { headers: { "user-agent": "econ-mcp/0.2 (+https://namikakmandev.github.io)", ...headers } });
   if (!res.ok) throw new DataError(`Upstream ${res.status} from ${new URL(url).host}: ${(await res.text()).slice(0, 200)}`);
   const body = await res.text();
+  const head = body.trimStart().slice(0, 15).toLowerCase();
+  if (head.startsWith("<!doctype") || head.startsWith("<html")) {
+    throw new DataError(`${new URL(url).host} answered with a web page instead of data. For EVDS this usually means the key was rejected; check it at evds2.tcmb.gov.tr.`);
+  }
   textCache.set(url, { at: Date.now(), body });
   return body;
 }
@@ -503,8 +507,9 @@ const evds: Provider = {
     if (!env.EVDS_API_KEY) throw new DataError("EVDS needs EVDS_API_KEY on the server. Set it with: npx wrangler secret put EVDS_API_KEY");
     const start = params.start ?? "01-01-2000";
     const end = params.end ?? new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
-    const url = `https://evds2.tcmb.gov.tr/service/evds/series=${encodeURIComponent(id)}&startDate=${start}&endDate=${end}&type=json`;
-    const j = (await getJson(url, { key: env.EVDS_API_KEY })) as { items?: Array<Record<string, unknown>> };
+    // Same endpoint the evds Python package (0.4) uses; the older evds2 service path now serves the web app.
+    const url = `https://evds3.tcmb.gov.tr/igmevdsms-dis/series=${encodeURIComponent(id)}&startDate=${start}&endDate=${end}&type=json`;
+    const j = (await getJson(url, { key: env.EVDS_API_KEY, accept: "application/json" })) as { items?: Array<Record<string, unknown>> };
     const items = j.items ?? [];
     const series: Record<string, Series> = {};
     for (const it of items) {
