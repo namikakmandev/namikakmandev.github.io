@@ -19,6 +19,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 SCRIPTS = os.path.join(ROOT, "scripts")
 SKIP = {"_catalog.json", "_fetch-report.json"}
+# Files starting with "_" are probes and reports written by one-off scripts
+# (data/_pharma-probe.json, ...). They are working notes, not datasets.
+SKIP_PREFIX = "_"
 
 # Datasets that are not produced by any script — pulled by hand and committed.
 # They cannot self-refresh, so they carry an explicit as-of and a refresh note.
@@ -33,7 +36,8 @@ MANUAL = {
     },
 }
 
-DATE = re.compile(r"^\d{4}(-\d{2})?$")
+# YYYY, YYYY-MM, YYYY-MM-DD, and Eurostat's YYYY-Qn / YYYY-Sn
+DATE = re.compile(r"^\d{4}(-(\d{2}|Q\d|S\d))?(-\d{2})?$")
 
 
 def git_last_commit(path):
@@ -68,6 +72,16 @@ def describe(obj):
         return {"shape": type(obj).__name__, "series": None, "observations": None,
                 "coverage": None}
 
+    def table(t):
+        """columns + rows, first column is the date (the cattle price tables)."""
+        cols, rows = t.get("columns") or [], t.get("rows") or []
+        dates = [str(r[0]) for r in rows if r and DATE.match(str(r[0]))]
+        return {"series": max(len(cols) - 1, 0), "observations": len(rows),
+                "coverage": {"first": min(dates), "last": max(dates)} if dates else None}
+
+    if isinstance(obj.get("columns"), list) and isinstance(obj.get("rows"), list):
+        return {"shape": "table", **table(obj)}
+
     body = None
     for key in ("series", "shares", "regions", "countries", "groups", "molecules"):
         if isinstance(obj.get(key), (dict, list)):
@@ -82,7 +96,14 @@ def describe(obj):
 
     nseries, nobs, first, last = 0, 0, None, None
     for v in body.values():
-        if isinstance(v, dict):
+        if isinstance(v, dict) and isinstance(v.get("rows"), list):   # regions of tables
+            t = table(v)
+            nseries += t["series"]
+            nobs += t["observations"]
+            if t["coverage"]:
+                first = t["coverage"]["first"] if first is None else min(first, t["coverage"]["first"])
+                last = t["coverage"]["last"] if last is None else max(last, t["coverage"]["last"])
+        elif isinstance(v, dict):
             nseries += 1
             nobs += len(v)
             sp = span(v)
@@ -99,6 +120,27 @@ def describe(obj):
             "coverage": {"first": first, "last": last} if first else None}
 
 
+MAX_KEYS = 100
+
+
+def series_keys(obj):
+    """Top-level series names, so a search over the catalog can hit 'hicp' or 'TR'.
+
+    For the fetch.py shape that is the keys of "series"; for a table it is the
+    column names after the date; for regions/shares/countries it is the region
+    or country codes. Capped — the MCP server lists the full set on demand.
+    """
+    if not isinstance(obj, dict):
+        return []
+    if isinstance(obj.get("columns"), list):
+        return [str(c) for c in obj["columns"][1:]][:MAX_KEYS]
+    for key in ("series", "shares", "regions", "countries", "groups"):
+        body = obj.get(key)
+        if isinstance(body, dict):
+            return [str(k) for k in body][:MAX_KEYS]
+    return []
+
+
 def main():
     cfg = json.load(open(os.path.join(ROOT, "data-sources.json")))["sources"]
     by_out = {s["out"]: s for s in cfg}
@@ -106,7 +148,7 @@ def main():
     entries, unattributed = [], []
     for path in sorted(glob.glob(os.path.join(DATA, "*.json"))):
         base = os.path.basename(path)
-        if base in SKIP:
+        if base in SKIP or base.startswith(SKIP_PREFIX):
             continue
         rel = "data/" + base
         try:
@@ -117,6 +159,7 @@ def main():
 
         e = {"file": rel, "bytes": os.path.getsize(path)}
         e.update(describe(obj))
+        e["series_keys"] = series_keys(obj)
         e["last_commit"] = git_last_commit(rel)
 
         if rel in by_out:                                   # fetch.py, on the cron

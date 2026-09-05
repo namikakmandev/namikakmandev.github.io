@@ -27,6 +27,8 @@ jobs:
         env:
           MODE: ${{ inputs.mode }}
         run: python scripts/fetch.py ${{ inputs.only }}
+      - name: Rebuild catalog
+        run: python scripts/build_catalog.py
       - name: Commit
         run: |
           git config user.name "data-bot"
