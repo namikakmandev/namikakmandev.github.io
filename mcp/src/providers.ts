@@ -9,6 +9,7 @@
  * Everything else is open.
  */
 import { DataError, type Series } from "./data.js";
+import { clip } from "./transform.js";
 
 export interface ProviderEnv {
   FRED_API_KEY?: string;
@@ -790,7 +791,7 @@ const imf: Provider = {
   name: "imf",
   title: "IMF Data",
   coverage: "IMF datasets: World Economic Outlook (actuals and projections to five years ahead for 190+ countries), consumer prices, International Financial Statistics, balance of payments, fiscal and monetary series. Annual, quarterly, monthly.",
-  id_format: "'AGENCY/DATAFLOW/KEY' as in the IMF Data portal's API tab, e.g. IMF.RES/WEO/TUR.NGDP_RPCH.A (WEO: COUNTRY.INDICATOR.FREQ), IMF.STA/CPI/TUR.CPI._T.IX.M. Several countries with '+': TUR+USA+DEU. A '*' wildcards a dimension. params: start/end as YYYY or YYYY-M01, version (default latest).",
+  id_format: "'AGENCY/DATAFLOW/KEY' as in the IMF Data portal's API tab, e.g. IMF.RES/WEO/TUR.NGDP_RPCH.A (WEO: COUNTRY.INDICATOR.FREQ), IMF.STA/CPI/TUR.CPI._T.IX.M. Several countries with '+': TUR+USA+DEU. A '*' wildcards a dimension. params: start/end as YYYY or YYYY-MM, version (default latest).",
   needs_key: null,
   curated: [
     { id: "IMF.RES/WEO/TUR.NGDP_RPCH.A", title: "Türkiye real GDP growth, %, WEO actuals and projections" },
@@ -809,17 +810,17 @@ const imf: Provider = {
     if (!m) throw new DataError("IMF ids look like AGENCY/DATAFLOW/KEY, e.g. IMF.RES/WEO/TUR.NGDP_RPCH.A");
     const [, agency, flow, key] = m;
     const version = params.version || "+";
-    const filters: string[] = [];
-    if (params.start) filters.push(`ge:${params.start}`);
-    if (params.end) filters.push(`le:${params.end}`);
-    const q = filters.length ? `?c[TIME_PERIOD]=${encodeURIComponent(filters.join("+"))}` : "";
-    const url = `${IMF_BASE}data/dataflow/${encodeURIComponent(agency)}/${encodeURIComponent(flow)}/${encodeURIComponent(version)}/${key}${q}`;
+    // The API rejects c[TIME_PERIOD] filters on some flows with a 400, so the window is cut here.
+    const url = `${IMF_BASE}data/dataflow/${encodeURIComponent(agency)}/${encodeURIComponent(flow)}/${encodeURIComponent(version)}/${key}`;
     const csv = await getText(url, { accept: "text/csv" });
     // SDMX-CSV 2.0: STRUCTURE, STRUCTURE_ID, ACTION, <dimensions>, TIME_PERIOD, OBS_VALUE, <attributes>.
     const header = parseCsv(csv)[0] ?? [];
     const a = header.indexOf("ACTION"), t = header.indexOf("TIME_PERIOD");
     const keyCols = a >= 0 && t > a ? header.slice(a + 1, t) : undefined;
-    const { series, columns } = sdmxCsvSeries(csv, keyCols);
+    const parsed = sdmxCsvSeries(csv, keyCols);
+    const columns = parsed.columns;
+    const series: Record<string, Series> = {};
+    for (const [k, v] of Object.entries(parsed.series)) { const c = clip(v, params.start, params.end); if (Object.keys(c).length) series[k] = c; }
     if (!Object.keys(series).length) throw new DataError(`IMF returned no observations for ${id}. Columns: ${columns.slice(0, 10).join(", ")}. Check the key order for this dataflow with search_external.`);
     return { provider: "imf", id, source: `IMF Data ${agency} ${flow} ${key}`, url, series,
       notes: ["WEO series mix actuals and projections: values after the release's last actual year are IMF forecasts. Series keys are the dimension values joined with '.'."] };
