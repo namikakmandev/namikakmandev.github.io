@@ -614,12 +614,12 @@ const FAO_DOMAINS: Record<string, string> = {
 };
 
 async function faoGet(path: string): Promise<unknown> {
-  let last: unknown;
+  const errors: string[] = [];
   for (const h of FAO_HOSTS) {
     try { return await getJson(h + path, { accept: "application/json" }); }
-    catch (e) { last = e; }
+    catch (e) { errors.push(`${new URL(h).host}: ${e instanceof Error ? e.message : String(e)}`); }
   }
-  throw last instanceof Error ? last : new DataError("FAOSTAT unreachable");
+  throw new DataError(`FAOSTAT did not answer. ${errors.join(" | ")}`);
 }
 
 function faoList(v: string | undefined): string | undefined {

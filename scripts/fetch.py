@@ -12,7 +12,7 @@ Usage
         -> do not parse; dump what the source actually returns (columns, dimension
            names, category codes) so a parser can be written against reality
 
-Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation | evds | xlsx
+Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation | evds | xlsx | fao
 Every run writes data/_fetch-report.json recording what each source returned, so a
 silent zero is visible instead of looking like a real answer.
 """
@@ -505,6 +505,68 @@ def evds(entry):
     return dict(out)
 
 
+def fao(entry):
+    """FAOSTAT, keyless JSON. entry['domain'] (QCL, PP, TCL, ...), entry['areas']
+    {key: area_code}, entry['items'] {key: item_code}, entry['element'] code (or
+    'elements' {key: code}). Series keys: item key, prefixed 'area|' when several
+    areas, suffixed '|element' when several elements. Optional 'year' as '2000:2024'."""
+    hosts = ["https://faostatservices.fao.org/api/v1/en/", "https://fenixservices.fao.org/faostat/api/v1/en/"]
+    areas = entry.get("areas") or {"turkey": "223"}
+    items = entry["items"]
+    elements = entry.get("elements") or {"value": entry["element"]}
+    params = {"area": ",".join(areas.values()), "item": ",".join(items.values()),
+              "element": ",".join(elements.values()), "show_codes": "true", "show_unit": "true",
+              "show_flags": "false", "null_values": "false", "output_type": "objects"}
+    if entry.get("year"):
+        m = re.match(r"^(\d{4}):(\d{4})$", entry["year"])
+        params["year"] = ",".join(str(y) for y in range(int(m.group(1)), int(m.group(2)) + 1)) if m else entry["year"]
+    path = f"data/{entry['domain']}?" + urllib.parse.urlencode(params)
+    errors = []
+    for h in hosts:
+        try:
+            body = get(h + path).decode("utf-8", "replace")
+            raw = json.loads(body)
+            break
+        except urllib.error.HTTPError as ex:
+            errors.append(f"{h}: HTTP {ex.code} {ex.read().decode('utf-8', 'replace')[:300]}")
+        except Exception as ex:
+            errors.append(f"{h}: {type(ex).__name__}: {str(ex)[:300]}")
+    else:
+        raise RuntimeError("FAOSTAT unreachable: " + " | ".join(errors))
+    rows = raw.get("data") or []
+    if MODE == "discover":
+        return {"_discover": {"url": hosts[0] + path, "n_rows": len(rows), "sample": rows[:3],
+                              "keys": sorted({k for r in rows for k in r})}}
+    inv_area = {v: k for k, v in areas.items()}
+    inv_item = {v: k for k, v in items.items()}
+    inv_el = {v: k for k, v in elements.items()}
+    months = {f"70{m:02d}": f"{m:02d}" for m in range(1, 13)}
+    out = defaultdict(dict)
+    for r in rows:
+        a = inv_area.get(str(r.get("Area Code")))
+        it = inv_item.get(str(r.get("Item Code")))
+        el = inv_el.get(str(r.get("Element Code")))
+        if a is None or it is None or el is None:
+            continue
+        y = str(r.get("Year") or "")
+        if not re.match(r"^\d{4}$", y):
+            continue
+        mc = str(r.get("Months Code") or "")
+        if mc and mc not in months:
+            continue
+        t = f"{y}-{months[mc]}" if mc else y
+        key = it
+        if len(areas) > 1:
+            key = f"{a}|{key}"
+        if len(elements) > 1:
+            key = f"{key}|{el}"
+        try:
+            out[key][t] = float(r.get("Value"))
+        except (TypeError, ValueError):
+            continue
+    return dict(out)
+
+
 def xlsx(entry):
     """An Excel workbook with one code row and a date in the first column, such as
     the World Bank Pink Sheet. entry['url'], or entry['page'] + 'match' (a regex for
@@ -575,7 +637,7 @@ def xlsx(entry):
 
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
              "yahoo": yahoo, "yahoo_valuation": yahoo_valuation,
-             "geojson_filter": geojson_filter, "evds": evds, "xlsx": xlsx}
+             "geojson_filter": geojson_filter, "evds": evds, "xlsx": xlsx, "fao": fao}
 
 
 # ----------------------------------------------------------------- runner
