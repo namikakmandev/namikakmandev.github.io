@@ -11,7 +11,7 @@ installFetchMock();
 
 const stat = await startStatic();
 const origin = addr(stat);
-const worker = await startWorker(handler, { DATA_ORIGIN: origin, EVDS_API_KEY: "test-key", FRED_API_KEY: "fred-key" });
+const worker = await startWorker(handler, { DATA_ORIGIN: origin, EVDS_API_KEY: "test-key", FRED_API_KEY: "fred-key", FAOSTAT_USER: "fao@example.com", FAOSTAT_PASSWORD: "pw" });
 const base = addr(worker);
 
 let failures = 0;
@@ -49,6 +49,17 @@ await check("FAOSTAT: rows keyed by the varying dimension, search over definitio
   assert.deepEqual(tr.points, [["2021", 18036117], ["2022", 17024129]]);
   const s = await call("search_external", { provider: "fao", query: "cattle" });
   assert.ok(s.matches.some((m) => m.id === "QCL" && /866/.test(m.title)), JSON.stringify(s.matches).slice(0, 300));
+  // Without an account the fetch fails with the registration pointer and search falls back to the starter list.
+  const w2 = await startWorker(handler, { DATA_ORIGIN: origin });
+  const c2 = new Client({ name: "e2e-noacct", version: "0.0.0" });
+  await c2.connect(new StreamableHTTPClientTransport(new URL(addr(w2) + "/mcp")));
+  const bad = await c2.callTool({ name: "fetch_external", arguments: { provider: "fao", id: "QCL", params: { item: "866", element: "5111" } } });
+  assert.ok(bad.isError && /developer-portal/.test(bad.content[0].text), bad.content[0].text);
+  const s2 = JSON.parse((await c2.callTool({ name: "search_external", arguments: { provider: "fao", query: "cattle" } })).content[0].text);
+  assert.ok(s2.matches.length > 0 && s2.matches.every((m) => !/866:/.test(m.title)));
+  const info = JSON.parse((await c2.callTool({ name: "list_providers", arguments: {} })).content[0].text);
+  assert.match(info.providers.find((p) => p.provider === "fao").key_present, /^no/);
+  await c2.close(); w2.close();
 });
 
 await check("FRED: keyless CSV parses, missing '.' dropped, search via API", async () => {
