@@ -96,6 +96,22 @@ function archProbe(v: number[]): { statistic: number; p: number; lags: number } 
   try { return S.archLM(r, Math.min(5, Math.floor(r.length / 10))); } catch { return null; }
 }
 
+/**
+ * Which season the first observation falls in, for labelling seasonal factors.
+ * Handles 'YYYY-Qn', 'YYYY-MM', 'YYYY-MM-DD' and 'YYYY'; anything else starts at 0.
+ */
+function seasonOffset(first: string, period: number): number {
+  let m: RegExpMatchArray | null;
+  if ((m = /^\d{4}-Q([1-4])$/.exec(first))) return period === 4 ? Number(m[1]) - 1 : 0;
+  if ((m = /^\d{4}-(\d{2})(?:-\d{2})?$/.exec(first))) {
+    const month = Number(m[1]);
+    if (period === 12) return month - 1;
+    if (period === 4) return Math.floor((month - 1) / 3);
+    if (period === 2) return Math.floor((month - 1) / 6);
+  }
+  return 0;
+}
+
 function adfOut(a: S.AdfResult | null) {
   if (!a) return null;
   return { spec: a.spec, lags: a.lags, nobs: a.nobs, statistic: r3(a.statistic), critical: { "1%": r3(a.critical["1%"]), "5%": r3(a.critical["5%"]), "10%": r3(a.critical["10%"]) }, reject_unit_root_at: a.reject_unit_root_at };
@@ -457,11 +473,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       if (p < 2) return fail(`No seasonal period for ${f.frequency} data. Pass period explicitly.`);
       const d = S.decompose(v, p);
       const labels = p === 12 ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : p === 4 ? ["Q1", "Q2", "Q3", "Q4"] : Array.from({ length: p }, (_, i) => `s${i + 1}`);
-      const offset = p === 12 ? Number(dates[0].slice(5, 7)) - 1 : p === 4 ? Number(dates[0].slice(6, 7)) - 1 : 0;
+      const offset = seasonOffset(dates[0], p);
       return text({
         ...meta(r), n: v.length, period: p,
         seasonal_strength: r3(d.seasonal_strength), trend_strength: r3(d.trend_strength),
-        seasonal_factors: d.seasonal_factors.map((x, i) => ({ season: labels[(i + offset) % p], effect: r4(x) })),
+        seasonal_factors: d.seasonal_factors.map((x, i) => ({ season: labels[(((i + offset) % p) + p) % p], effect: r4(x) })),
         reading: d.seasonal_strength > 0.6 ? "Strong seasonality: compare year-on-year or seasonally adjust before month-on-month reading." : d.seasonal_strength > 0.3 ? "Moderate seasonality." : "Weak seasonality: month-on-month changes are usable.",
         trend: include_points ? pointsOut(dates, d.trend) : undefined,
         seasonal: include_points ? pointsOut(dates, d.seasonal) : undefined,
@@ -640,11 +656,13 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const Y = columns[0], X = dates.map((_, t) => [1, ...rx.map((__, j) => columns[j + 1][t])]);
       const names = ["const", ...rx.map((r) => r.label)];
       const olsFit = S.ols(Y, X);
-      const rows = quantiles.map((q) => { const f = S.quantileRegress(Y, X, q); return { quantile: q, coefficients: Object.fromEntries(names.map((nm, j) => [nm, r4(f.beta[j])])), iterations: f.iterations }; });
+      const qs = [...new Set(quantiles)].sort((a, b) => a - b);   // low tail first, whatever order was passed
+      const rows = qs.map((q) => { const f = S.quantileRegress(Y, X, q); return { quantile: q, coefficients: Object.fromEntries(names.map((nm, j) => [nm, r4(f.beta[j])])), iterations: f.iterations }; });
       const slopeSpread = rx.map((r, j) => { const b = rows.map((row) => row.coefficients[r.label] as number); return { x: r.label, low_quantile: b[0], high_quantile: b[b.length - 1], ols: r4(olsFit.beta[j + 1]), tail_asymmetry: r4((b[b.length - 1] ?? 0) - (b[0] ?? 0)) }; });
       return text({
         y: meta(ry), x: rx.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1],
         ols: Object.fromEntries(names.map((nm, j) => [nm, r4(olsFit.beta[j])])),
+        quantiles: qs,
         by_quantile: rows,
         slope_across_quantiles: slopeSpread,
         reading: slopeSpread.map((sp) => Math.abs(sp.tail_asymmetry ?? 0) > Math.abs((sp.ols ?? 0) * 0.5) ? `${sp.x}: the slope changes materially across the distribution of ${ry.label} (${sp.low_quantile} at the low tail vs ${sp.high_quantile} at the high tail), so one OLS number hides where the effect lives.` : `${sp.x}: slope roughly the same across quantiles; OLS is a fair summary.`).join(" "),
@@ -748,11 +766,13 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const withinRow = coefRow(res.estimate, effects === "pooled");
       const pooledRow = coefRow(res.pooled, true);
       const betweenRow = res.between ? coefRow(res.between, true) : null;
-      const comparison = x.map((nm) => {
+      const comparison = x.map((nm, j) => {
         const w = withinRow.find((r) => r.term === nm)?.coefficient ?? null;
         const p0 = pooledRow.find((r) => r.term === nm)?.coefficient ?? null;
         const b = betweenRow?.find((r) => r.term === nm)?.coefficient ?? null;
-        const flips = w !== null && p0 !== null && Math.sign(w) !== Math.sign(p0);
+        // Compare the unrounded estimates: a coefficient that rounds to 0 is not a sign change.
+        const wRaw = effects === "pooled" ? res.pooled.beta[j + 1] : res.estimate.beta[j];
+        const flips = wRaw * res.pooled.beta[j + 1] < 0;
         return { x: nm, within: w, pooled: p0, between: b, sign_flips_between_within_and_pooled: flips };
       });
       const flipped = comparison.filter((c) => c.sign_flips_between_within_and_pooled).map((c) => c.x);
@@ -766,11 +786,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         pooled: { coefficients: pooledRow, r2: r4(res.pooled.r2) },
         between: res.between ? { coefficients: betweenRow, r2: r4(res.between.r2), note: "One observation per country (its mean): pure cross-section, so it answers a different question." } : null,
         comparison_of_slopes: comparison,
-        f_test_unit_effects: res.f_unit_effects ? { F: r3(res.f_unit_effects.F), p: r4(res.f_unit_effects.p), df: [res.f_unit_effects.df1, res.f_unit_effects.df2], country_effects_matter: res.f_unit_effects.p < 0.05 } : null,
+        f_test_unit_effects: res.f_unit_effects ? { tests: effects === "unit_time" ? "country and year effects jointly, against pooled OLS" : "country effects, against pooled OLS", F: r3(res.f_unit_effects.F), p: r4(res.f_unit_effects.p), df: [res.f_unit_effects.df1, res.f_unit_effects.df2], effects_matter: res.f_unit_effects.p < 0.05 } : null,
         reading: [
           res.f_unit_effects && res.f_unit_effects.p < 0.05
-            ? "Country effects are significant: pooled OLS confounds differences between countries with the relation inside them, so read the within estimate."
-            : "No significant country effects: the pooled and within estimates answer nearly the same question here.",
+            ? `${effects === "unit_time" ? "Country and year effects are" : "Country effects are"} significant: pooled OLS confounds differences between countries with the relation inside them, so read the within estimate.`
+            : "No significant effects of that kind: the pooled and within estimates answer nearly the same question here.",
           flipped.length ? `Sign flips between pooled and within for ${flipped.join(", ")}: the cross-country pattern runs opposite to the within-country one, a Simpson's paradox in this panel. Say which one you mean.` : "",
           effects === "unit" ? "Year effects are not removed, so a global shock hitting every country in the same year still loads on the regressors; try effects=unit_time to net it out." : "",
           transform === "log" ? "Both sides in logs: coefficients read as elasticities." : "",

@@ -48,6 +48,15 @@ check("ADF: rejects for white noise, does not reject for a random walk", () => {
   close(S.adfCritical("c", 1e9)["5%"], -2.86, 0.01, "asymptotic 5% cv with constant");
 });
 
+check("ADF: an explicit lag longer than the sample fails with a usable message", () => {
+  const r = rng(13);
+  const short = Array.from({ length: 20 }, () => r.normal());
+  // Every candidate regression is empty here; the caller must be told why, not handed a TypeError.
+  assert.throws(() => S.adf(short, "c", 25), (e) => e instanceof Error && !(e instanceof TypeError) && /needs more observations/.test(e.message), "explicit over-long lag");
+  assert.throws(() => S.adf(short.slice(0, 8), "c"), /at least 12 observations/, "too short overall");
+  assert.equal(S.adf(short, "c", 2).lags, 2, "a lag the sample supports still runs");
+});
+
 check("Engle-Granger: cointegrated pair detected, independent random walks not", () => {
   const r = rng(11);
   const x = [0]; for (let i = 1; i < 400; i++) x.push(x[i - 1] + r.normal());
@@ -249,10 +258,16 @@ check("panel regression: within recovers the true slope where pooled OLS flips i
   assert.equal(p.units, G); assert.equal(p.periods, T); assert.ok(p.balanced);
   assert.ok(p.estimate.se[0] > 0 && p.estimate.p[0] < 0.01, "clustered se should still be significant");
 
+  assert.equal(p.f_unit_effects.df1, G - 1, "one-way restricts G-1 unit dummies");
+
   // A common year shock is absorbed by two-way effects
   const y2 = y.map((v, idx) => v + 4 * Math.sin(time[idx] / 2));
   const two = S.panelRegress(y2, X, unit, time, "unit_time");
   close(two.estimate.beta[0], 1.0, 0.08, "two-way slope with a global shock");
+  // Two-way absorbs the year dummies too, so the F test restricts (G-1)+(T-1), not G-1.
+  assert.equal(two.f_unit_effects.df1, (G - 1) + (T - 1), "two-way restriction count");
+  assert.equal(two.f_unit_effects.df2, two.estimate.df, "denominator df matches the within fit");
+  close(two.f_unit_effects.p, S.fUpperP(two.f_unit_effects.F, (G - 1) + (T - 1), two.f_unit_effects.df2), 1e-12, "p uses the same df");
 });
 
 check("VAR(1): recovers coefficients, Granger direction and decaying impulse responses", () => {
