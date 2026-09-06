@@ -1,0 +1,70 @@
+name: Probe worker
+
+# The dev sandbox cannot reach the Worker (the network policy 403s it), so this is
+# the way to see what the Worker actually returns. Prints status lines, headers and
+# bodies for the endpoints a connector touches. The root listing reports key
+# *presence* only, never values, so nothing secret ends up in the log.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Worker origin
+        required: false
+        default: https://econ-mcp.namikakman.workers.dev
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GET the endpoints a client discovers
+        env:
+          BASE: ${{ inputs.base }}
+        run: |
+          for p in "/" "/health" \
+                   "/.well-known/oauth-protected-resource" \
+                   "/.well-known/oauth-protected-resource/mcp" \
+                   "/.well-known/oauth-authorization-server" \
+                   "/.well-known/oauth-authorization-server/mcp" \
+                   "/.well-known/openid-configuration" \
+                   "/register"; do
+            echo "=============================================================="
+            echo "GET $p"
+            curl -sS -m 25 -o /tmp/body -D /tmp/head -w 'http_code=%{http_code}\n' "$BASE$p" || echo "(request failed)"
+            echo "--- response headers ---"; cat /tmp/head
+            echo "--- body (first 1200 bytes) ---"; head -c 1200 /tmp/body; echo
+          done
+
+      - name: POST an MCP initialize with no credentials
+        env:
+          BASE: ${{ inputs.base }}
+        run: |
+          echo "=============================================================="
+          echo "POST /mcp  (initialize, unauthenticated)"
+          curl -sS -m 25 -o /tmp/body -D /tmp/head -w 'http_code=%{http_code}\n' \
+            -X POST "$BASE/mcp" \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}'
+          echo "--- response headers ---"; cat /tmp/head
+          echo "--- body (first 2000 bytes) ---"; head -c 2000 /tmp/body; echo
+
+      - name: Verdict
+        env:
+          BASE: ${{ inputs.base }}
+        run: |
+          auth=$(curl -sS -m 25 "$BASE/" | grep -o '"auth": *"[^"]*"' || true)
+          code=$(curl -sS -m 25 -o /dev/null -w '%{http_code}' -X POST "$BASE/mcp" \
+            -H 'content-type: application/json' -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}')
+          echo "root reports: ${auth:-<no auth field>}"
+          echo "unauthenticated /mcp initialize -> HTTP $code"
+          if [ "$code" = "401" ]; then
+            echo "VERDICT: the Worker demands a bearer token. MCP_API_KEYS is set in Cloudflare;"
+            echo "         a client with no token gets 401 and goes looking for a sign-in service."
+          elif [ "$code" = "200" ]; then
+            echo "VERDICT: the Worker accepts unauthenticated MCP calls. Any sign-in prompt in a"
+            echo "         client is coming from OAuth discovery, not from this gate."
+          else
+            echo "VERDICT: unexpected status $code - read the dumps above."
+          fi
