@@ -532,7 +532,8 @@ const evds: Provider = {
     const hdr = { key: env.EVDS_API_KEY, accept: "application/json" };
     type Group = { DATAGROUP_CODE: string; DATAGROUP_NAME_ENG?: string; DATAGROUP_NAME?: string; FREQUENCY_STR?: string };
     type Serie = { SERIE_CODE: string; SERIE_NAME_ENG?: string; SERIE_NAME?: string; FREQUENCY_STR?: string; START_DATE?: string; END_DATE?: string };
-    const groups = (await getJson(`${base}datagroups/?mode=0&type=json`, hdr)) as Group[];
+    // EVDS insists on the code parameter being present, even when empty, for the full list.
+    const groups = (await getJson(`${base}datagroups/?mode=0&code=&type=json`, hdr)) as Group[];
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     const score = (s: string) => terms.reduce((n, t) => n + (s.toLowerCase().includes(t) ? 1 : 0), 0);
     const ranked = (Array.isArray(groups) ? groups : [])
@@ -583,7 +584,8 @@ const bis: Provider = {
     if (params.start) extra.startPeriod = params.start;
     if (params.end) extra.endPeriod = params.end;
     const url = `https://stats.bis.org/api/v2/data/dataflow/BIS/${encodeURIComponent(flow)}/1.0/${key}?${qs(extra)}`;
-    const { series, columns } = sdmxCsvSeries(await getText(url, { accept: "text/csv" }), ["KEY"]);
+    // BIS CSV carries no KEY column; key on the coded dimension columns instead.
+    const { series, columns } = sdmxCsvSeries(await getText(url, { accept: "text/csv" }));
     if (!Object.keys(series).length) throw new DataError(`BIS returned no observations for ${id}. Columns: ${columns.slice(0, 10).join(", ")}`);
     return { provider: "bis", id, source: `BIS Data Portal ${flow} ${key}`, url, series,
       notes: ["Series keys are the full SDMX keys. Property price indices are 2010=100; credit series are as labelled in the key (percent of GDP or currency)."] };

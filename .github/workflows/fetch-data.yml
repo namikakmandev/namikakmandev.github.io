@@ -37,4 +37,8 @@ jobs:
           git config user.email "actions@github.com"
           git add data/
           git diff --cached --quiet || git commit -m "data: refresh via scripts/fetch.py [skip ci]"
-          git push
+          # main may have moved while the fetch ran (a merge, another workflow): rebase, then push, a few times.
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${GITHUB_REF_NAME:-main}" && git push && break
+            echo "push attempt $i failed, retrying"; sleep $((i * 5))
+          done
