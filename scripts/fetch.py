@@ -512,11 +512,14 @@ def xlsx(entry):
     if MODE == "discover":
         return {"_discover": {"url": url, "sheets": wb.sheetnames, "n_rows": len(rows),
                               "first_rows": [list(r[:14]) for r in rows[:10]]}}
-    marker = entry.get("code_row_contains", "CRUDE_PETRO")
-    code_row = next((r for r in rows if any(str(c).strip() == marker for c in r if c is not None)), None)
+    marker = entry.get("code_row_contains", "CRUDE_PETRO").upper()
+    norm = lambda c: str(c).strip().upper()
+    code_row = next((r for r in rows if any(norm(c) == marker for c in r if c is not None)), None)
     if code_row is None:
-        raise RuntimeError(f"no row containing {marker!r} in sheet {ws.title}")
-    idx = {str(c).strip(): i for i, c in enumerate(code_row) if c is not None}
+        sample = [[c for c in r[:8]] for r in rows[:8]]
+        raise RuntimeError(f"no row containing {marker!r} in sheet {ws.title}; first rows: {sample}")
+    idx = {norm(c): i for i, c in enumerate(code_row) if c is not None}
+    entry = {**entry, "columns": {k: v.upper() for k, v in entry["columns"].items()}}
     missing = [c for c in entry["columns"].values() if c not in idx]
     if missing:
         print(f"[warn] {entry['name']}: columns not in code row: {missing}")
