@@ -19,7 +19,8 @@ export function startStatic(port = 0) {
     if (!file.startsWith(repoRoot) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
       res.writeHead(404); res.end("not found"); return;
     }
-    res.writeHead(200, { "content-type": file.endsWith(".json") ? "application/json" : "text/plain" });
+    const types = { ".json": "application/json", ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml" };
+    res.writeHead(200, { "content-type": types[path.extname(file)] ?? "text/plain" });
     fs.createReadStream(file).pipe(res);
   });
   return new Promise((resolve) => srv.listen(port, "127.0.0.1", () => resolve(srv)));

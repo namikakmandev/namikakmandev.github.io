@@ -95,6 +95,16 @@ WS_SPP:Q.TR.N.628,Q,TR,N,628,2024-Q2,1402.7,A
 WS_SPP:Q.TR.N.628,Q,TR,N,628,2024-Q3,1480.1,A
 `;
 
+const FAO_JSON = {
+  data: [
+    { "Domain Code": "QCL", Domain: "Crops and livestock products", "Area Code": "223", Area: "Türkiye", "Element Code": "5111", Element: "Stocks", "Item Code": "866", Item: "Cattle", "Year Code": "2021", Year: "2021", Unit: "An", Value: "18036117" },
+    { "Domain Code": "QCL", Domain: "Crops and livestock products", "Area Code": "223", Area: "Türkiye", "Element Code": "5111", Element: "Stocks", "Item Code": "866", Item: "Cattle", "Year Code": "2022", Year: "2022", Unit: "An", Value: "17024129" },
+    { "Domain Code": "QCL", Domain: "Crops and livestock products", "Area Code": "231", Area: "United States of America", "Element Code": "5111", Element: "Stocks", "Item Code": "866", Item: "Cattle", "Year Code": "2021", Year: "2021", Unit: "An", Value: "93790000" },
+    { "Domain Code": "QCL", Domain: "Crops and livestock products", "Area Code": "231", Area: "United States of America", "Element Code": "5111", Element: "Stocks", "Item Code": "866", Item: "Cattle", "Year Code": "2022", Year: "2022", Unit: "An", Value: "91902000" },
+  ],
+};
+const FAO_DEFS = { data: [{ code: "866", label: "Cattle" }, { code: "867", label: "Meat of cattle with the bone, fresh or chilled" }, { code: "15", label: "Wheat" }] };
+
 export function installFetchMock() {
   const real = globalThis.fetch;
   const calls = [];
@@ -113,6 +123,8 @@ export function installFetchMock() {
     if (u.hostname === "sdmx.oecd.org") return text(OECD_CSV, "text/csv");
     if (u.hostname === "ourworldindata.org") return text(OWID_CSV, "text/csv");
     if (u.hostname === "stats.bis.org") return text(BIS_CSV, "text/csv");
+    if (u.hostname === "faostatservices.fao.org") return u.pathname.includes("/definitions/") ? json(FAO_DEFS) : json(FAO_JSON);
+    if (u.hostname === "fenixservices.fao.org") return new Response("gone", { status: 404 });
     if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.includes("/datagroups/")) return json([{ DATAGROUP_CODE: "bie_fiyattufe", DATAGROUP_NAME_ENG: "Consumer Price Index (2025=100)" }, { DATAGROUP_CODE: "bie_kfe", DATAGROUP_NAME_ENG: "Residential Property Price Index" }]);
     if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.includes("/serieList/")) return json([{ SERIE_CODE: "TP.FG.J0X", SERIE_NAME_ENG: "CPI general index (2025=100)", FREQUENCY_STR: "MONTHLY", START_DATE: "01-01-2025" }]);
     if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.startsWith("/igmevdsms-dis/")) return (init?.headers?.key ?? init?.headers?.get?.("key")) ? json(EVDS_JSON) : new Response("Unauthorized", { status: 401 });

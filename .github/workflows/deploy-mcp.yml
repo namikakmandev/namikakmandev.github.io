@@ -1,12 +1,8 @@
-name: Deploy MCP server
+name: Test MCP server
 
-# Tests mcp/ on every change, deploys it to Cloudflare Workers on main.
-# One-time setup: repo Settings > Secrets and variables > Actions, add
-#   CLOUDFLARE_API_TOKEN   Cloudflare dashboard > My Profile > API Tokens > "Edit Cloudflare Workers" template
-# Optional:
-#   CLOUDFLARE_ACCOUNT_ID  only needed if the token can see more than one account
-#   EVDS_KEY               already present for the data workflows; forwarded to the Worker as EVDS_API_KEY
-#   FRED_API_KEY           enables FRED catalogue search in the Worker
+# Typechecks and tests mcp/ on every change. Deployment is not done here: the Worker is
+# connected to this repository through Cloudflare Workers Builds, which builds and deploys
+# every push to main that touches mcp/ (see mcp/README.md).
 
 on:
   push:
@@ -32,54 +28,3 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-
-  deploy:
-    needs: test
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check Cloudflare token
-        id: cf
-        env:
-          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          EVDS: ${{ secrets.EVDS_KEY }}
-          FRED: ${{ secrets.FRED_API_KEY }}
-        run: |
-          if [ -n "$TOKEN" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=MCP deploy skipped::Add CLOUDFLARE_API_TOKEN under Settings > Secrets and variables > Actions, then re-run this workflow."
-          fi
-          names=""
-          [ -n "$EVDS" ] && names="$names EVDS_API_KEY"
-          [ -n "$FRED" ] && names="$names FRED_API_KEY"
-          {
-            echo "worker_secrets<<EOF"
-            echo "$names" | tr ' ' '\n' | sed '/^$/d'
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-          echo "Worker secrets to upload: ${names:-none}"
-      - uses: actions/checkout@v4
-        if: steps.cf.outputs.ready == 'true'
-      - uses: actions/setup-node@v4
-        if: steps.cf.outputs.ready == 'true'
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: mcp/package-lock.json
-      - run: npm ci
-        if: steps.cf.outputs.ready == 'true'
-        working-directory: mcp
-      - name: Deploy
-        if: steps.cf.outputs.ready == 'true'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: mcp
-          command: deploy
-          secrets: ${{ steps.cf.outputs.worker_secrets }}
-        env:
-          EVDS_API_KEY: ${{ secrets.EVDS_KEY }}
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}

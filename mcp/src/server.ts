@@ -51,14 +51,16 @@ function summary(e: CatalogEntry) {
   };
 }
 
-export function buildServer(origin: string, env: ProviderEnv = {}): McpServer {
+/** `self` is this server's own public origin, used to point the chart page at /v1/series. */
+export function buildServer(origin: string, env: ProviderEnv = {}, self?: string): McpServer {
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     {
       instructions:
         "Economics data and analysis. Two kinds of data: curated datasets at namikakmandev.github.io " +
         "(list_datasets, search_datasets, describe_dataset, get_series) and live pulls from FRED, Eurostat, " +
-        "World Bank, ECB, OECD, Our World in Data, TCMB EVDS and BIS (list_providers, search_external, fetch_external). " +
+        "World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS and FAOSTAT (list_providers, search_external, fetch_external). " +
+        "To draw series, call plot: it returns a link to an interactive chart the user can open. " +
         "Analysis tools (describe_stats, test_stationarity with ADF and KPSS, regress, granger_causality, cointegration, " +
         "johansen, var_model with impulse responses, cross_correlation, hp_filter, decompose, forecast incl. ARIMA, " +
         "structural_break, rolling, deflate) all take series references: " +
@@ -321,7 +323,7 @@ export function buildServer(origin: string, env: ProviderEnv = {}): McpServer {
   );
 
   registerProviders(server, env);
-  registerAnalysis(server, origin, env);
+  registerAnalysis(server, origin, env, self);
 
   return server;
 }

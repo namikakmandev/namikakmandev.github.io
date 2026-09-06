@@ -39,7 +39,16 @@ await check("list_providers reports key state", async () => {
   const j = await call("list_providers", {});
   const evds = j.providers.find((p) => p.provider === "evds");
   assert.match(String(evds.key_present), /yes/);
-  assert.equal(j.providers.length, 8);
+  assert.equal(j.providers.length, 9);
+});
+
+await check("FAOSTAT: rows keyed by the varying dimension, search over definitions", async () => {
+  const j = await call("fetch_external", { provider: "fao", id: "QCL", params: { area: "223,231", item: "866", element: "5111" } });
+  assert.equal(j.series_count, 2);
+  const tr = await call("fetch_external", { provider: "fao", id: "QCL", params: { area: "223,231", item: "866", element: "5111" }, series: "Türkiye" });
+  assert.deepEqual(tr.points, [["2021", 18036117], ["2022", 17024129]]);
+  const s = await call("search_external", { provider: "fao", query: "cattle" });
+  assert.ok(s.matches.some((m) => m.id === "QCL" && /866/.test(m.title)), JSON.stringify(s.matches).slice(0, 300));
 });
 
 await check("FRED: keyless CSV parses, missing '.' dropped, search via API", async () => {
@@ -232,6 +241,32 @@ await check("BIS: SDMX CSV keyed by KEY, quarterly dates", async () => {
 await check("EVDS catalogue search walks datagroups and series", async () => {
   const s = await call("search_external", { provider: "evds", query: "consumer price index" });
   assert.ok(s.matches.some((m) => m.id === "TP.FG.J0X"), JSON.stringify(s.matches).slice(0, 200));
+});
+
+await check("plot resolves every series and links to chart.html with the spec in the fragment", async () => {
+  const j = await call("plot", { series: [{ ...CATTLE, start: "2015-01" }, { ...CORN, start: "2015-01" }], title: "Cattle vs corn", right_axis: [1] });
+  assert.ok(j.chart_url.startsWith(origin + "/chart.html#"), j.chart_url);
+  const spec = JSON.parse(Buffer.from(j.chart_url.split("#")[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+  assert.equal(spec.series.length, 2);
+  assert.deepEqual(spec.right, [1]);
+  assert.equal(spec.api, base);
+  assert.equal(j.series[0].first, "2015-01");
+  const bad = await client.callTool({ name: "plot", arguments: { series: [{ dataset: "us-prices", series: "nope" }] } });
+  assert.ok(bad.isError);
+});
+
+await check("GET /v1/series returns points for a spec, and errors per series", async () => {
+  const spec = { series: [{ ...CATTLE, start: "2020-01", end: "2020-03" }, { dataset: "us-prices", series: "nope" }] };
+  const r = await fetch(base + "/v1/series?s=" + encodeURIComponent(JSON.stringify(spec)));
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.series.length, 2);
+  assert.equal(j.series[0].n, 3);
+  assert.match(j.series[1].error, /No series 'nope'/);
+  const p = await fetch(base + "/v1/series", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(spec) });
+  assert.equal((await p.json()).series[0].points[0][0], "2020-01");
+  const badr = await fetch(base + "/v1/series?s=" + encodeURIComponent("{}"));
+  assert.equal(badr.status, 400);
 });
 
 await check("test_stationarity reports KPSS and a joint reading", async () => {

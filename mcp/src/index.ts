@@ -5,6 +5,7 @@
  */
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { buildServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
+import { handleSeriesRequest } from "./api.js";
 
 export interface Env {
   /** Where the curated datasets live. Defaults to the portfolio site when unset. */
@@ -59,18 +60,25 @@ export default {
         endpoint: new URL("/mcp", url).href,
         data_origin: origin,
         auth: env.MCP_API_KEYS ? "bearer" : "none",
-        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY", bis: "open" },
+        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY", bis: "open", fao: "open" },
+        http: { series: new URL("/v1/series?s=" + encodeURIComponent('{"series":[{"dataset":"us-prices","series":"cattle_ppi","start":"2020"}]}'), url).href, chart: origin + "/chart.html" },
         docs: "https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp",
       });
     }
 
     if (url.pathname === "/health") return json({ ok: true });
 
+    if (url.pathname === "/v1/series") {
+      if (!authorized(request, env)) return withCors(new Response("Unauthorized", { status: 401, headers: { "www-authenticate": "Bearer" } }));
+      const { status, body } = await handleSeriesRequest(request, origin, { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY });
+      return json(body, status);
+    }
+
     if (url.pathname === "/mcp") {
       if (!authorized(request, env)) {
         return withCors(new Response("Unauthorized", { status: 401, headers: { "www-authenticate": "Bearer" } }));
       }
-      const server = buildServer(origin, { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY });
+      const server = buildServer(origin, { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY }, url.origin);
       const transport = new WebStandardStreamableHTTPServerTransport({
         sessionIdGenerator: undefined,   // stateless
         enableJsonResponse: true,
@@ -80,6 +88,6 @@ export default {
       return withCors(res);
     }
 
-    return json({ error: "not found", try: ["/", "/mcp", "/health"] }, 404);
+    return json({ error: "not found", try: ["/", "/mcp", "/health", "/v1/series?s=..."] }, 404);
   },
 } satisfies ExportedHandler<Env>;
