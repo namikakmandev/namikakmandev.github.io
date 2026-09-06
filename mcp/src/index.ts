@@ -59,7 +59,7 @@ export default {
         endpoint: new URL("/mcp", url).href,
         data_origin: origin,
         auth: env.MCP_API_KEYS ? "bearer" : "none",
-        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY" },
+        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY", bis: "open" },
         docs: "https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp",
       });
     }

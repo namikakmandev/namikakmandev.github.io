@@ -148,5 +148,64 @@ check("descriptives: Ljung-Box and Jarque-Bera behave", () => {
   assert.ok(S.ljungBox(ar, 10).p < 1e-6);
 });
 
+
+check("KPSS: does not reject for white noise, rejects for a random walk", () => {
+  const r = rng(21);
+  const wn = Array.from({ length: 300 }, () => r.normal());
+  const rw = [0]; for (let i = 1; i < 300; i++) rw.push(rw[i - 1] + r.normal());
+  assert.equal(S.kpss(wn, "c").reject_stationarity_at, null, `wn stat ${S.kpss(wn, "c").statistic}`);
+  assert.ok(S.kpss(rw, "c").reject_stationarity_at !== null, `rw stat ${S.kpss(rw, "c").statistic}`);
+});
+
+check("symmetric eigen solver matches a known 2x2", () => {
+  const { values, vectors } = S.symEigen([[2, 1], [1, 2]]);
+  close(values[0], 3, 1e-9); close(values[1], 1, 1e-9);
+  close(Math.abs(vectors[0][0]), Math.SQRT1_2, 1e-6);
+});
+
+check("Johansen: rank 1 for a cointegrated triple, rank 0 for independent walks", () => {
+  const r = rng(31);
+  const n = 400;
+  const w1 = [0], w2 = [0]; for (let i = 1; i < n; i++) { w1.push(w1[i - 1] + r.normal()); w2.push(w2[i - 1] + r.normal()); }
+  // y3 = 2*w1 - w2 + stationary noise -> one cointegrating relation among (w1, w2, y3)
+  const y3 = w1.map((v, i) => 2 * v - w2[i] + 0.5 * r.normal());
+  const Y = w1.map((_, i) => [w1[i], w2[i], y3[i]]);
+  const j = S.johansen(Y, 1);
+  assert.equal(j.rank_at_5pct, 1, JSON.stringify(j.trace.map((t) => [t.r, +t.statistic.toFixed(1), t.critical["5%"]])));
+  const w3 = [0]; for (let i = 1; i < n; i++) w3.push(w3[i - 1] + r.normal());
+  const j0 = S.johansen(w1.map((_, i) => [w1[i], w2[i], w3[i]]), 1);
+  assert.equal(j0.rank_at_5pct, 0, JSON.stringify(j0.trace.map((t) => +t.statistic.toFixed(1))));
+});
+
+check("VAR(1): recovers coefficients, Granger direction and decaying impulse responses", () => {
+  const r = rng(41);
+  const n = 500;
+  const y = [[0, 0]];
+  for (let t = 1; t < n; t++) {
+    const [a, b] = y[t - 1];
+    y.push([0.5 * a + 0.3 * b + 0.5 * r.normal(), 0.4 * b + 0.5 * r.normal()]);
+  }
+  const m = S.varModel(y, 1, 10);
+  close(m.coef[0][1], 0.5, 0.1, "a on a"); close(m.coef[0][2], 0.3, 0.1, "a on b"); close(m.coef[1][1], 0, 0.1, "b on a");
+  const ba = m.granger.find((g) => g.cause === 1 && g.effect === 0), ab = m.granger.find((g) => g.cause === 0 && g.effect === 1);
+  assert.ok(ba.p < 0.001 && ab.p > 0.05, `b->a p=${ba.p}, a->b p=${ab.p}`);
+  assert.ok(Math.abs(m.irf[10][0][0]) < Math.abs(m.irf[0][0][0]), "own response decays");
+  assert.equal(S.varSelectLag(y, 4), 1);
+});
+
+check("ARIMA: MA(1) coefficient recovered and auto order picks d=1 for a random walk", () => {
+  const r = rng(51);
+  const n = 600, e = Array.from({ length: n }, () => r.normal());
+  const y = e.map((v, t) => 1 + v + (t ? 0.6 * e[t - 1] : 0));
+  const m = S.arima(y, 0, 0, 1, 3);
+  close(m.ma[0], 0.6, 0.1, "theta");
+  close(m.const, S.mean(y), 0.05, "const equals the sample mean for a pure MA");
+  const rw = [0]; for (let i = 1; i < 300; i++) rw.push(rw[i - 1] + r.normal());
+  const auto = S.autoArima(rw, 4);
+  assert.equal(auto.d, 1);
+  assert.equal(auto.forecast.length, 4);
+  assert.ok(Math.abs(auto.forecast[0] - rw[rw.length - 1]) < 3, "forecast continues from the last level");
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);

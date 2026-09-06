@@ -99,7 +99,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
     "list_providers",
     {
       title: "List live data providers",
-      description: "External sources the server can pull from on demand (FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS): coverage, id format, whether a key is configured, and starter ids.",
+      description: "External sources the server can pull from on demand (FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS): coverage, id format, whether a key is configured, and starter ids.",
       inputSchema: {},
       annotations: { readOnlyHint: true },
     },
@@ -110,9 +110,9 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
     "search_external",
     {
       title: "Search a live provider",
-      description: "Find series ids at a provider. FRED searches its full catalogue when FRED_API_KEY is set; World Bank searches all indicators; the others match against a curated starter list, so for those also try the provider's own website and pass the id to fetch_external.",
+      description: "Find series ids at a provider. FRED searches its full catalogue when FRED_API_KEY is set; World Bank searches all indicators; EVDS walks the TCMB catalogue when EVDS_API_KEY is set; the others match against a curated starter list, so for those also try the provider's own website and pass the id to fetch_external.",
       inputSchema: {
-        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds"]),
+        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis"]),
         query: z.string().min(1),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
@@ -128,9 +128,9 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
     "fetch_external",
     {
       title: "Fetch from a live provider",
-      description: "Pull a series from FRED, Eurostat, World Bank, ECB, OECD, Our World in Data or TCMB EVDS as [date, value] points, with the same window and transform options as get_series. When the id returns several series (countries, dimensions), the reply lists their keys; pick one with 'series'.",
+      description: "Pull a series from FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS or BIS as [date, value] points, with the same window and transform options as get_series. When the id returns several series (countries, dimensions), the reply lists their keys; pick one with 'series'.",
       inputSchema: {
-        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds"]),
+        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis"]),
         id: z.string(),
         params: z.record(z.string(), z.string()).optional().describe("Provider filters. Eurostat: dimension codes (geo, unit, ...). World Bank: country='TUR;USA' or 'all'. OWID: entities='Turkey;United States'. EVDS/ECB/OECD: start, end."),
         series: z.string().optional().describe("Which series key to return when the id yields several"),
@@ -206,8 +206,16 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       let first: S.AdfResult | null = null;
       try { first = S.adf(S.diff(v), spec === "ct" ? "c" : spec, lags ?? "auto"); } catch { /* short */ }
       const order = integrationOrder(level, first);
+      const kp = S.kpss(v, spec === "ct" ? "ct" : "c");
+      const kpssOut = { trend: kp.trend, lags: kp.lags, statistic: r3(kp.statistic), critical: kp.critical, reject_stationarity_at: kp.reject_stationarity_at,
+        null_hypothesis: "The series is stationary. Rejecting means a unit root." };
+      const adfSaysStationary = !!level.reject_unit_root_at, kpssSaysStationary = !kp.reject_stationarity_at;
+      const joint = adfSaysStationary && kpssSaysStationary ? "Both tests agree: stationary."
+        : !adfSaysStationary && !kpssSaysStationary ? "Both tests agree: unit root."
+        : adfSaysStationary ? "ADF rejects a unit root but KPSS rejects stationarity: borderline, often a near-unit-root or a structural break. Check structural_break."
+        : "Neither test rejects: the sample is too short or the series is too noisy to tell.";
       return text({
-        ...meta(r), n: v.length, levels: adfOut(level), first_difference: adfOut(first), integration_order: order,
+        ...meta(r), n: v.length, levels: adfOut(level), first_difference: adfOut(first), kpss: kpssOut, joint_reading: joint, integration_order: order,
         reading: order === "I(0)" ? "Stationary in levels: regress and correlate on levels."
           : order === "I(1)" ? "Unit root in levels, stationary after differencing. Use differences or growth rates for regression and correlation, or test for cointegration before regressing levels on levels."
           : order === "I(2) or worse" ? "Still non-stationary after one difference. Check for a trend break or take logs before differencing." : "Too short to say.",
@@ -426,12 +434,13 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       inputSchema: {
         series: REF,
         horizon: z.number().int().min(1).max(60).default(12),
-        method: z.enum(["auto", "holt_winters", "holt", "ar"]).default("auto"),
+        method: z.enum(["auto", "holt_winters", "holt", "ar", "arima"]).default("auto"),
         ar_order: z.number().int().min(1).max(12).default(2),
+        arima_order: z.tuple([z.number().int().min(0).max(5), z.number().int().min(0).max(2), z.number().int().min(0).max(3)]).optional().describe("[p, d, q] for method=arima; omitted = chosen by AIC with d from the ADF test"),
       },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, horizon, method, ar_order }) => {
+    wrap(async ({ series, horizon, method, ar_order, arima_order }) => {
       const r = await get(series);
       const { dates, v } = values(r.series);
       const f = detectFrequency(dates);
@@ -439,7 +448,14 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const seasonalOk = f.period > 1 && v.length >= 3 * f.period;
       const m = method === "auto" ? (seasonalOk ? "holt_winters" : "holt") : method;
       let forecast: number[], fitted: number[], sdv: number, detail: Record<string, unknown>;
-      if (m === "ar") {
+      if (m === "arima") {
+        const am = arima_order ? S.arima(v, arima_order[0], arima_order[1], arima_order[2], horizon) : S.autoArima(v, horizon);
+        forecast = am.forecast; sdv = am.resid_sd;
+        detail = { method: `ARIMA(${am.p},${am.d},${am.q})${arima_order ? "" : ", order by AIC"}`, const: r4(am.const), ar: am.ar.map(r4), ma: am.ma.map(r4), aic: r3(am.aic),
+          note: "Conditional sum of squares estimate; the MA polynomial is not constrained to be invertible. Compare with Holt-Winters before trusting a long horizon." };
+        // fitted on the differenced scale is not comparable to levels; report in-sample fit on differences only
+        fitted = v.map(() => NaN);
+      } else if (m === "ar") {
         const ar = S.arForecast(v, ar_order, horizon);
         forecast = ar.forecast; fitted = ar.fitted; sdv = ar.resid_sd;
         detail = { method: `AR(${ar_order})`, coefficients: ar.coef.map(r4), aic: r3(ar.aic) };
@@ -454,7 +470,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       return text({
         ...meta(r), n: v.length, frequency: f.frequency, last_actual: [dates[dates.length - 1], r4(v[v.length - 1])],
         ...detail,
-        in_sample: { mape_pct: r3(S.mean(ape) * 100), resid_sd: r4(sdv) },
+        in_sample: { mape_pct: ape.length ? r3(S.mean(ape) * 100) : null, resid_sd: r4(sdv) },
         forecast: future.map((d, i) => ({ date: d, value: r4(forecast[i]), lo95: r4(forecast[i] - 1.96 * sdv * Math.sqrt(i + 1)), hi95: r4(forecast[i] + 1.96 * sdv * Math.sqrt(i + 1)) })),
         caveat: "The band grows with the square root of the horizon from the residual spread. It ignores parameter uncertainty and regime change, so treat it as a floor on the real uncertainty.",
       });
@@ -520,6 +536,95 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
   );
 
   server.registerTool(
+    "johansen",
+    {
+      title: "Johansen cointegration (2 to 5 series)",
+      description: "Trace test for the number of cointegrating relations among several I(1) series, with an unrestricted constant. Returns the eigenvalues, trace statistics against MacKinnon-Haug-Michelis critical values, the rank at 5%, and the first cointegrating vector normalised on the first series. Use cointegration (Engle-Granger) for exactly two series when you want the residual series.",
+      inputSchema: { series: z.array(REF).min(2).max(5), lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the VECM") },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, lags }) => {
+      const rs = await Promise.all(series.map(get));
+      const { dates, columns } = align(rs.map((r) => r.series));
+      if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
+      const Y = dates.map((_, t) => columns.map((c) => c[t]));
+      const j = S.johansen(Y, lags);
+      return text({
+        series: rs.map(meta), n: j.nobs, first: dates[0], last: dates[dates.length - 1], lags,
+        eigenvalues: j.eigenvalues.map(r4),
+        trace_tests: j.trace.map((t) => ({ null_rank_at_most: t.r, statistic: r3(t.statistic), critical: t.critical, reject: t.reject })),
+        rank_at_5pct: j.rank_at_5pct,
+        cointegrating_vector: j.cointegrating_vector ? Object.fromEntries(rs.map((r, i) => [r.label, r4(j.cointegrating_vector![i])])) : null,
+        reading: j.rank_at_5pct === 0 ? "No cointegrating relation at 5%: model these in differences (VAR on growth rates)."
+          : `${j.rank_at_5pct} cointegrating relation${j.rank_at_5pct > 1 ? "s" : ""} at 5%: a levels relation exists; an error-correction model is appropriate. The vector shows the long-run weights, normalised so the first series has weight 1.`,
+        caveat: "Critical values assume no deterministic trend in the cointegrating relation and no breaks. Results are sensitive to the lag choice; try lags 1 to 4.",
+      });
+    }),
+  );
+
+  server.registerTool(
+    "var_model",
+    {
+      title: "Vector autoregression with impulse responses",
+      description: "Estimate a VAR(p) on 2 to 5 stationary series, lag order by AIC unless given. Returns coefficients, block Granger tests, orthogonalised impulse responses (Cholesky, in the order the series are given) and forecast error variance decomposition over the horizon. Pass growth rates or differences; the tool warns on non-stationary input.",
+      inputSchema: {
+        series: z.array(REF).min(2).max(5),
+        lags: z.number().int().min(1).max(12).optional().describe("Lag order; default chosen by AIC up to max_lags"),
+        max_lags: z.number().int().min(1).max(12).default(6),
+        horizon: z.number().int().min(1).max(40).default(12),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, lags, max_lags, horizon }) => {
+      const rs = await Promise.all(series.map(get));
+      const { dates, columns } = align(rs.map((r) => r.series));
+      if (dates.length < 40) return fail(`Only ${dates.length} shared dates; need 40 or more.`);
+      const Y = dates.map((_, t) => columns.map((c) => c[t]));
+      const p = lags ?? S.varSelectLag(Y, max_lags);
+      const m = S.varModel(Y, p, horizon);
+      const names = rs.map((r) => r.label);
+      const warnings: string[] = [];
+      columns.forEach((c, i) => { try { if (!S.adf(c, "c").reject_unit_root_at) warnings.push(`${names[i]} looks non-stationary; a VAR in levels can be spurious. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
+      const coefTable = m.coef.map((row, e) => {
+        const terms: Record<string, number | null> = { const: r4(row[0]) };
+        for (let l = 1; l <= p; l++) names.forEach((nm, j) => { terms[`${nm} (lag ${l})`] = r4(row[1 + (l - 1) * m.k + j]); });
+        return { equation: names[e], terms };
+      });
+      return text({
+        series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags: p, lag_selection: lags ? "given" : `AIC over 1..${max_lags}`,
+        aic: r3(m.aic), bic: r3(m.bic),
+        equations: coefTable,
+        granger_block_tests: m.granger.map((g) => ({ cause: names[g.cause], effect: names[g.effect], F: r3(g.F), p: r4(g.p), significant_5pct: g.p < 0.05 })),
+        impulse_responses: { ordering: names, note: "Response of row series to a one-standard-deviation orthogonalised shock in column series; ordering matters for contemporaneous effects.",
+          horizons: m.irf.map((h, i) => ({ h: i, response: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(names.map((sn, si) => [sn, r4(h[ri][si])]))])) })) },
+        variance_decomposition_at_horizon: Object.fromEntries(names.map((vn, vi) => [vn, Object.fromEntries(names.map((sn, si) => [sn, r3(m.fevd[horizon][vi][si])]))])),
+        warnings,
+      });
+    }),
+  );
+
+  server.registerTool(
+    "deflate",
+    {
+      title: "Real terms",
+      description: "Divide a nominal series by a price index to express it in constant prices of a base date (index rebased to 100 there). Aligns on shared dates; use frequency='annual_mean' on the monthly side when mixing frequencies.",
+      inputSchema: { nominal: REF, deflator: REF, base: z.string().optional().describe("Date whose prices to use; default = last shared date") },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ nominal, deflator, base }) => {
+      const rn = await get(nominal), rd = await get(deflator);
+      const { dates, columns } = align([rn.series, rd.series]);
+      if (!dates.length) return fail("No shared dates between the nominal series and the deflator.");
+      const b = base ?? dates[dates.length - 1];
+      const bi = dates.indexOf(b);
+      if (bi < 0) return fail(`Base ${b} is not a shared date (range ${dates[0]}..${dates[dates.length - 1]}).`);
+      const pb = columns[1][bi];
+      const real = columns[0].map((v, i) => (columns[1][i] ? (v * pb) / columns[1][i] : NaN));
+      return text({ nominal: meta(rn), deflator: meta(rd), base_date: b, n: dates.length, unit_hint: `${rn.label} at ${b} prices`, points: pointsOut(dates, real) });
+    }),
+  );
+
+  server.registerTool(
     "suggest_analysis",
     {
       title: "Suggest an analysis plan",
@@ -571,6 +676,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const stationaryArgs = (i: number) => ({ ...refOf(i), transform: facts[i].positive_only ? "pct_change" : "diff" });
         if (allI1) {
           pitfalls.push("All series are I(1): a levels regression or a levels correlation between them will look strong whether or not they are related. Test cointegration first.");
+          if (facts.length > 2) plan.push({ step: step++, tool: "johansen", why: `${facts.length} I(1) series: count the cointegrating relations before choosing levels or differences`, args: { series: facts.map((_, i) => refOf(i)) } });
           plan.push({ step: step++, tool: "cointegration", why: "Both I(1): find out if a long-run relation exists before regressing levels", args: { a: refOf(0), b: refOf(1) } });
           plan.push({ step: step++, tool: "cross_correlation", why: "On growth rates, find which one moves first and by how many periods", args: { a: stationaryArgs(0), b: stationaryArgs(1) } });
           plan.push({ step: step++, tool: "granger_causality", why: "On growth rates, test predictive precedence in both directions", args: { a: stationaryArgs(0), b: stationaryArgs(1), lags: facts[0].frequency === "monthly" ? 3 : 2 } });
@@ -585,6 +691,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           plan.push({ step: step++, tool: "granger_causality", why: "On stationary transforms, test precedence", args: { a: stationaryArgs(0), b: stationaryArgs(1) } });
           plan.push({ step: step++, tool: "regress", why: "Growth-on-growth regression with HAC errors", args: { y: stationaryArgs(0), x: facts.slice(1).map((_, j) => stationaryArgs(j + 1)) } });
         }
+        plan.push({ step: step++, tool: "var_model", why: "On stationary transforms, trace how a shock to one series propagates to the others and how much of each series' variance the others explain", args: { series: facts.map((_, i) => stationaryArgs(i)) } });
         plan.push({ step: step++, tool: "rolling", why: "Check whether the relationship is stable over time before quoting one number", args: { series: stationaryArgs(0), other: stationaryArgs(1), stat: "corr", window: facts[0].frequency === "monthly" ? 36 : 10 } });
         plan.push({ step: step++, tool: "structural_break", why: "Locate a regime change in the relation, then re-estimate on the stable sample", args: { y: stationaryArgs(0), x: stationaryArgs(1) } });
       }

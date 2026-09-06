@@ -38,8 +38,8 @@ await check("tool list includes providers and analysis", async () => {
 await check("list_providers reports key state", async () => {
   const j = await call("list_providers", {});
   const evds = j.providers.find((p) => p.provider === "evds");
-  assert.equal(evds.key_present, true);
-  assert.equal(j.providers.length, 7);
+  assert.match(String(evds.key_present), /yes/);
+  assert.equal(j.providers.length, 8);
 });
 
 await check("FRED: keyless CSV parses, missing '.' dropped, search via API", async () => {
@@ -221,6 +221,53 @@ await check("provider ref inside an analysis tool", async () => {
   assert.ok(cmp.n >= 20, `aligned n=${cmp.n}`);
   // The fixture holds hand-typed CPI values that differ slightly from the revised vintage in data/, so the slope is near 1, not exactly 1.
   assert.ok(Math.abs(cmp.coefficients[1].coef - 1) < 0.2, `same series should regress with slope near 1, got ${cmp.coefficients[1].coef}`);
+});
+
+
+await check("BIS: SDMX CSV keyed by KEY, quarterly dates", async () => {
+  const j = await call("fetch_external", { provider: "bis", id: "WS_SPP/Q.TR.N.628" });
+  assert.deepEqual(j.points[0], ["2024-Q1", 1315.4]);
+});
+
+await check("EVDS catalogue search walks datagroups and series", async () => {
+  const s = await call("search_external", { provider: "evds", query: "consumer price index" });
+  assert.ok(s.matches.some((m) => m.id === "TP.FG.J0X"), JSON.stringify(s.matches).slice(0, 200));
+});
+
+await check("test_stationarity reports KPSS and a joint reading", async () => {
+  const j = await call("test_stationarity", { series: { ...CPI, start: "1990-01" } });
+  assert.ok(j.kpss && typeof j.kpss.statistic === "number");
+  assert.match(j.joint_reading, /unit root|stationary|borderline|short/);
+});
+
+await check("johansen on cattle, corn and CPI logs returns trace tests and a rank", async () => {
+  const j = await call("johansen", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }, { ...CPI, transform: "log", start: "1990-01" }], lags: 2 });
+  assert.equal(j.trace_tests.length, 3);
+  assert.ok(j.rank_at_5pct >= 0 && j.rank_at_5pct <= 3);
+});
+
+await check("var_model on growth rates gives IRFs, FEVD and block Granger tests", async () => {
+  const j = await call("var_model", { series: [{ ...CORN, transform: "pct_change", start: "1995-01" }, { ...CATTLE, transform: "pct_change", start: "1995-01" }], horizon: 6 });
+  assert.ok(j.lags >= 1);
+  assert.equal(j.impulse_responses.horizons.length, 7);
+  assert.equal(j.granger_block_tests.length, 2);
+  assert.equal(j.warnings.length, 0, JSON.stringify(j.warnings));
+  const fevd = j.variance_decomposition_at_horizon;
+  const row = Object.values(fevd)[0];
+  assert.ok(Math.abs(Object.values(row).reduce((a, b) => a + b, 0) - 1) < 0.01);
+});
+
+await check("forecast method arima picks an order and returns dated points", async () => {
+  const j = await call("forecast", { series: { ...CPI, start: "2015-01" }, horizon: 4, method: "arima" });
+  assert.match(j.method, /^ARIMA\(\d,\d,\d\)/);
+  assert.equal(j.forecast.length, 4);
+});
+
+await check("deflate expresses cattle PPI in CPI terms of a base month", async () => {
+  const j = await call("deflate", { nominal: CATTLE, deflator: CPI, base: "2020-01" });
+  const b = j.points.find((p) => p[0] === "2020-01");
+  const raw = await call("get_series", { dataset: "us-prices", series: "cattle_ppi", start: "2020-01", end: "2020-01" });
+  assert.ok(Math.abs(b[1] - raw.points[0][1]) < 1e-3, "at the base date real equals nominal");
 });
 
 await client.close();

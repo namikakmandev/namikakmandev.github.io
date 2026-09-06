@@ -89,6 +89,12 @@ const EVDS_JSON = {
 
 const FRED_SEARCH = { seriess: [{ id: "CPIAUCSL", title: "Consumer Price Index for All Urban Consumers: All Items in U.S. City Average", frequency_short: "M", units_short: "Index 1982-1984=100", seasonal_adjustment_short: "SA", observation_start: "1947-01-01", observation_end: "2026-07-01" }] };
 
+const BIS_CSV = `KEY,FREQ,REF_AREA,VALUE,UNIT_MEASURE,TIME_PERIOD,OBS_VALUE,OBS_STATUS
+WS_SPP:Q.TR.N.628,Q,TR,N,628,2024-Q1,1315.4,A
+WS_SPP:Q.TR.N.628,Q,TR,N,628,2024-Q2,1402.7,A
+WS_SPP:Q.TR.N.628,Q,TR,N,628,2024-Q3,1480.1,A
+`;
+
 export function installFetchMock() {
   const real = globalThis.fetch;
   const calls = [];
@@ -106,6 +112,9 @@ export function installFetchMock() {
     if (u.hostname === "data-api.ecb.europa.eu") return text(ECB_CSV, "text/csv");
     if (u.hostname === "sdmx.oecd.org") return text(OECD_CSV, "text/csv");
     if (u.hostname === "ourworldindata.org") return text(OWID_CSV, "text/csv");
+    if (u.hostname === "stats.bis.org") return text(BIS_CSV, "text/csv");
+    if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.includes("/datagroups/")) return json([{ DATAGROUP_CODE: "bie_fiyattufe", DATAGROUP_NAME_ENG: "Consumer Price Index (2025=100)" }, { DATAGROUP_CODE: "bie_kfe", DATAGROUP_NAME_ENG: "Residential Property Price Index" }]);
+    if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.includes("/serieList/")) return json([{ SERIE_CODE: "TP.FG.J0X", SERIE_NAME_ENG: "CPI general index (2025=100)", FREQUENCY_STR: "MONTHLY", START_DATE: "01-01-2025" }]);
     if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.startsWith("/igmevdsms-dis/")) return (init?.headers?.key ?? init?.headers?.get?.("key")) ? json(EVDS_JSON) : new Response("Unauthorized", { status: 401 });
     return new Response("mock: unknown host " + u.hostname, { status: 502 });
   };

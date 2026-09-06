@@ -1463,6 +1463,441 @@
    "out": "data/pump-vs-oil.json",
    "source": "US city-average retail gasoline price (BLS APU000074714, USD/gallon) and WTI crude spot (MCOILWTICO, USD/barrel), monthly via FRED",
    "note": "Gasoline from 1976, WTI from 1986; both nominal USD - the shared-dollar trend is part of the story the checker tells."
+  },
+  {
+   "name": "tr-cpi-ppi",
+   "provider": "evds",
+   "series": {
+    "cpi_2003": "TP.FG.J0",
+    "ppi_2003": "TP.TUFE1YI.T1",
+    "cpi_yoy": "TP.FE.OKTG01"
+   },
+   "start": "01-01-2003",
+   "out": "data/tr-cpi-ppi.json",
+   "source": "TCMB EVDS: TÜİK CPI general index (TP.FG.J0, 2003=100), domestic PPI general (TP.TUFE1YI.T1, 2003=100), CPI annual change (TP.FE.OKTG01)",
+   "note": "2003=100 index series stop at 2026-01 with the 2026 rebase; the rebased codes are added as tr-cpi-2025 once confirmed in EVDS"
+  },
+  {
+   "name": "tr-rates",
+   "provider": "evds",
+   "series": {
+    "policy_rate": "TP.BISPOLFAIZ.TUR",
+    "deposit_3m": "TP.TRY.MT02",
+    "loan_housing": "TP.KTF12",
+    "loan_commercial": "TP.KTF17"
+   },
+   "frequency": 5,
+   "aggregation": "avg",
+   "start": "01-01-2010",
+   "out": "data/tr-rates.json",
+   "source": "TCMB EVDS: one-week repo policy rate, weighted average TRY deposit rate up to 3 months, housing and commercial loan rates; monthly averages of weekly data",
+   "note": "Percent per annum. Monthly average of weekly observations, so a mid-month decision shows as a partial move in that month"
+  },
+  {
+   "name": "tr-fx-monthly",
+   "provider": "evds",
+   "series": {
+    "usd_try": "TP.DK.USD.A",
+    "eur_try": "TP.DK.EUR.A"
+   },
+   "frequency": 5,
+   "aggregation": "avg",
+   "start": "01-01-2000",
+   "out": "data/tr-fx-monthly.json",
+   "source": "TCMB EVDS indicative buying rates, monthly averages of daily quotes",
+   "note": "TRY per unit of foreign currency. 2005 redenomination removed six zeros; EVDS serves the series on the new lira throughout"
+  },
+  {
+   "name": "tr-house-prices",
+   "provider": "evds",
+   "series": {
+    "turkey": "TP.KFE.TR",
+    "istanbul": "TP.KFE.TR10",
+    "ankara": "TP.KFE.TR51",
+    "izmir": "TP.KFE.TR31"
+   },
+   "start": "01-01-2010",
+   "out": "data/tr-house-prices.json",
+   "source": "TCMB Residential Property Price Index (KFE), 2023=100, monthly",
+   "note": "Nominal index; deflate with tr-cpi-ppi for real house prices"
+  },
+  {
+   "name": "wb-commodities",
+   "provider": "xlsx",
+   "page": "https://www.worldbank.org/en/research/commodity-markets",
+   "match": "https://thedocs\\.worldbank\\.org/[^\\\"' ]*CMO-Historical-Data-Monthly\\.xlsx",
+   "fallback_url": "https://thedocs.worldbank.org/en/doc/5d903e848db1d1b83e0ec8f744e55570-0350012021/related/CMO-Historical-Data-Monthly.xlsx",
+   "sheet": "Monthly Prices",
+   "code_row_contains": "CRUDE_PETRO",
+   "columns": {
+    "crude_brent": "CRUDE_BRENT",
+    "natgas_eur": "NGAS_EUR",
+    "coal_aus": "COAL_AUS",
+    "maize": "MAIZE",
+    "wheat_us_hrw": "WHEAT_US_HRW",
+    "soybeans": "SOYBEANS",
+    "soybean_meal": "SOYBEAN_MEAL",
+    "rice_thai": "RICE_05",
+    "sugar_world": "SUGAR_WLD",
+    "beef": "BEEF",
+    "chicken": "CHICKEN",
+    "palm_oil": "PALM_OIL",
+    "urea": "UREA_EE_BULK",
+    "dap": "DAP",
+    "potash": "POTASH",
+    "phosphate_rock": "PHOSROCK",
+    "aluminum": "ALUMINUM",
+    "copper": "COPPER",
+    "iron_ore": "IRON_ORE",
+    "nickel": "NICKEL",
+    "zinc": "ZINC",
+    "gold": "GOLD",
+    "silver": "SILVER",
+    "platinum": "PLATINUM"
+   },
+   "out": "data/wb-commodities.json",
+   "source": "World Bank Commodity Price Data (the Pink Sheet), monthly nominal US dollar prices",
+   "note": "Nominal USD. Units differ by commodity (USD/bbl, USD/mt, USD/kg, USD/troy oz); see the Pink Sheet header. Feed inputs (maize, soybean meal), fertilizers (urea, DAP, potash) and metals are the engineering and chemistry inputs"
+  },
+  {
+   "name": "us-sentiment",
+   "provider": "fred",
+   "series": {
+    "umich_sentiment": "UMCSENT",
+    "umich_inflation_1y": "MICH"
+   },
+   "out": "data/us-sentiment.json",
+   "source": "University of Michigan Surveys of Consumers via FRED: sentiment index (1966Q1=100) and median expected 1-year inflation",
+   "note": "Preliminary readings are revised at month end"
+  },
+  {
+   "name": "us-ip-sectors",
+   "provider": "fred",
+   "series": {
+    "manufacturing": "IPMAN",
+    "chemicals": "IPG325S",
+    "pharma": "IPG3254S",
+    "machinery": "IPG333S",
+    "computer_electronic": "IPG334S",
+    "electrical": "IPG335S"
+   },
+   "out": "data/us-ip-sectors.json",
+   "source": "Federal Reserve industrial production by NAICS industry via FRED, 2017=100, seasonally adjusted, monthly",
+   "note": "Chemicals 325, pharmaceuticals 3254, machinery 333, computer and electronic products 334, electrical equipment 335. Index levels, not output volumes"
+  },
+  {
+   "name": "us-ppi-sectors",
+   "provider": "fred",
+   "series": {
+    "chemicals": "PCU325325",
+    "pharma": "PCU32543254",
+    "machinery": "PCU333333",
+    "computer_electronic": "PCU334334",
+    "electrical": "PCU335335"
+   },
+   "out": "data/us-ppi-sectors.json",
+   "source": "BLS producer price indexes by NAICS industry via FRED, not seasonally adjusted, monthly",
+   "note": "Base periods differ by series (index = 100 at the series start). Ratios and growth rates only"
+  },
+  {
+   "name": "eu-gva-sectors",
+   "provider": "eurostat",
+   "dataset": "nama_10_a64",
+   "params": {
+    "unit": "CP_MEUR",
+    "na_item": "B1G",
+    "nace_r2": [
+     "C20",
+     "C26",
+     "C27",
+     "C28",
+     "C29"
+    ]
+   },
+   "group_dims": [
+    "geo",
+    "nace_r2"
+   ],
+   "out": "data/eu-gva-sectors.json",
+   "source": "Eurostat national accounts A*64, gross value added at current prices, million EUR: chemicals (C20), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
+   "note": "Current prices in EUR, so cross-country levels carry exchange-rate effects; pharma (C21) is in pharma-gva-eur"
+  },
+  {
+   "name": "chem-eng-exports",
+   "provider": "eurostat",
+   "api": "comext",
+   "dataset": "DS-045409",
+   "params": {
+    "freq": "A",
+    "flow": "2",
+    "partner": "WORLD",
+    "indicators": "VALUE_IN_EUROS",
+    "reporter": [
+     "DE",
+     "FR",
+     "IT",
+     "NL",
+     "BE",
+     "IE",
+     "ES",
+     "PL",
+     "AT",
+     "CZ",
+     "HU",
+     "SE"
+    ],
+    "product": [
+     "28",
+     "29",
+     "38",
+     "84",
+     "85",
+     "87",
+     "90"
+    ],
+    "time": [
+     "2010",
+     "2011",
+     "2012",
+     "2013",
+     "2014",
+     "2015",
+     "2016",
+     "2017",
+     "2018",
+     "2019",
+     "2020",
+     "2021",
+     "2022",
+     "2023",
+     "2024"
+    ]
+   },
+   "group_dims": [
+    "reporter",
+    "product"
+   ],
+   "out": "data/chem-eng-exports.json",
+   "source": "Eurostat Comext DS-045409, exports to world, EUR, by HS chapter: 28 inorganic chemicals, 29 organic chemicals, 38 miscellaneous chemical products, 84 machinery, 85 electrical machinery and electronics, 87 vehicles, 90 optical, measuring and medical instruments",
+   "note": "Customs values; intra-EU flows included in 'world'. Türkiye is not a Comext reporter"
+  },
+  {
+   "name": "eu-esi",
+   "provider": "eurostat",
+   "dataset": "ei_bssi_m_r2",
+   "params": {
+    "indic": [
+     "BS-ESI-I",
+     "BS-ICI-BAL",
+     "BS-CSMCI-BAL",
+     "BS-SCI-BAL"
+    ],
+    "s_adj": "SA",
+    "geo": [
+     "EU27_2020",
+     "DE",
+     "FR",
+     "IT",
+     "ES",
+     "NL",
+     "PL",
+     "BE",
+     "AT",
+     "SE",
+     "CZ",
+     "HU",
+     "RO",
+     "PT",
+     "IE",
+     "DK",
+     "FI",
+     "EL",
+     "TR"
+    ],
+    "sinceTimePeriod": "2000-01"
+   },
+   "group_dims": [
+    "geo",
+    "indic"
+   ],
+   "out": "data/eu-esi.json",
+   "source": "European Commission business and consumer surveys via Eurostat ei_bssi_m_r2, seasonally adjusted, monthly: economic sentiment indicator (long-run mean 100), industrial, consumer and services confidence balances",
+   "note": "ESI is an index around 100; the confidence indicators are percentage balances around zero. Türkiye is covered by the EC survey programme"
+  },
+  {
+   "name": "eu-hpi",
+   "provider": "eurostat",
+   "dataset": "prc_hpi_q",
+   "params": {
+    "purchase": "TOTAL",
+    "unit": "I15_Q",
+    "geo": [
+     "EU27_2020",
+     "DE",
+     "FR",
+     "IT",
+     "ES",
+     "NL",
+     "PL",
+     "BE",
+     "AT",
+     "SE",
+     "CZ",
+     "HU",
+     "RO",
+     "PT",
+     "IE",
+     "DK",
+     "FI",
+     "EL",
+     "TR"
+    ],
+    "sinceTimePeriod": "2005-Q1"
+   },
+   "group_dims": [
+    "geo"
+   ],
+   "out": "data/eu-hpi.json",
+   "source": "Eurostat house price index prc_hpi_q, all purchases, quarterly index 2015=100",
+   "note": "Nominal. Coverage starts later for some countries; Türkiye house prices are in tr-house-prices from TCMB"
+  },
+  {
+   "name": "eu-ipi-sectors",
+   "provider": "eurostat",
+   "dataset": "sts_inpr_m",
+   "params": {
+    "s_adj": "SCA",
+    "unit": "I21",
+    "nace_r2": [
+     "C",
+     "C20",
+     "C21",
+     "C26",
+     "C27",
+     "C28",
+     "C29"
+    ],
+    "geo": [
+     "EU27_2020",
+     "DE",
+     "FR",
+     "IT",
+     "ES",
+     "NL",
+     "PL",
+     "BE",
+     "AT",
+     "SE",
+     "CZ",
+     "HU",
+     "RO",
+     "PT",
+     "IE",
+     "DK",
+     "FI",
+     "EL",
+     "TR"
+    ],
+    "sinceTimePeriod": "2010-01"
+   },
+   "group_dims": [
+    "geo",
+    "nace_r2"
+   ],
+   "out": "data/eu-ipi-sectors.json",
+   "source": "Eurostat sts_inpr_m industrial production, seasonally and calendar adjusted, 2021=100, monthly: manufacturing (C), chemicals (C20), pharma (C21), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
+   "note": "Volume indices. Sector detail is missing for some smaller countries; empty combinations are dropped"
+  },
+  {
+   "name": "eu-ppi-sectors",
+   "provider": "eurostat",
+   "dataset": "sts_inppd_m",
+   "params": {
+    "indic_bt": "PRC_PRR_DOM",
+    "s_adj": "NSA",
+    "unit": "I21",
+    "nace_r2": [
+     "C20",
+     "C26",
+     "C27",
+     "C28",
+     "C29"
+    ],
+    "geo": [
+     "EU27_2020",
+     "DE",
+     "FR",
+     "IT",
+     "ES",
+     "NL",
+     "PL",
+     "BE",
+     "AT",
+     "SE",
+     "CZ",
+     "HU",
+     "RO",
+     "PT",
+     "IE",
+     "DK",
+     "FI",
+     "EL",
+     "TR"
+    ],
+    "sinceTimePeriod": "2010-01"
+   },
+   "group_dims": [
+    "geo",
+    "nace_r2"
+   ],
+   "out": "data/eu-ppi-sectors.json",
+   "source": "Eurostat sts_inppd_m domestic producer prices, unadjusted, 2021=100, monthly: chemicals (C20), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
+   "note": "Pharma (C21) and total manufacturing are in ppi-eu"
+  },
+  {
+   "name": "eu-berd-sectors",
+   "provider": "eurostat",
+   "dataset": "rd_e_berdindr2",
+   "params": {
+    "unit": "MIO_EUR",
+    "nace_r2": [
+     "C",
+     "C20",
+     "C21",
+     "C26",
+     "C27",
+     "C28"
+    ],
+    "geo": [
+     "EU27_2020",
+     "DE",
+     "FR",
+     "IT",
+     "ES",
+     "NL",
+     "PL",
+     "BE",
+     "AT",
+     "SE",
+     "CZ",
+     "HU",
+     "RO",
+     "PT",
+     "IE",
+     "DK",
+     "FI",
+     "EL",
+     "TR"
+    ],
+    "sinceTimePeriod": "2008"
+   },
+   "group_dims": [
+    "geo",
+    "nace_r2"
+   ],
+   "out": "data/eu-berd-sectors.json",
+   "source": "Eurostat rd_e_berdindr2 business enterprise R&D expenditure, million EUR, annual: manufacturing (C), chemicals (C20), pharma (C21), computer and electronic (C26), electrical equipment (C27), machinery (C28)",
+   "note": "Biennial for some countries; latest year is often provisional. Pharma BERD is the closest public proxy for biotech R&D"
   }
  ]
 }

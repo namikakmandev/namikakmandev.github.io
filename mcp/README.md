@@ -5,7 +5,7 @@ A remote [MCP](https://modelcontextprotocol.io) server for economics data and an
 Two kinds of data:
 
 - **Curated datasets** from this repo's `data/` directory, served by GitHub Pages and refreshed by the workflows in `.github/workflows/`. The server reads them live, so a refresh needs no redeploy. The index is `data/_catalog.json`, rebuilt on the same schedule.
-- **Live providers**: FRED, Eurostat, World Bank, ECB Data Portal, OECD, Our World in Data, and TCMB EVDS for Turkey. Pulled on demand, cached for ten minutes in the Worker, never stored.
+- **Live providers**: FRED, Eurostat, World Bank, ECB Data Portal, OECD, Our World in Data, BIS, and TCMB EVDS for Turkey (with catalogue search). Pulled on demand, cached for ten minutes in the Worker, never stored.
 
 Every answer carries the series' source and caveats. That is the point: a model asking for a number gets the survey break, the index-not-quantity warning, or the unknown provenance in the same reply.
 
@@ -44,14 +44,17 @@ Every answer carries the series' source and caveats. That is the point: a model 
 |---|---|
 | `suggest_analysis` | Inspects frequency, length, integration order, trend, seasonality and overlap, then returns an ordered plan of tool calls with reasons and the pitfalls the data carry. Call this first. |
 | `describe_stats` | Moments, quantiles, autocorrelations, Ljung-Box, Jarque-Bera, ADF on levels and differences, trend and seasonal strength. |
-| `test_stationarity` | Augmented Dickey-Fuller with MacKinnon critical values, lag length by AIC, integration order. |
+| `test_stationarity` | Augmented Dickey-Fuller with MacKinnon critical values plus KPSS, lag length by AIC, integration order and a joint reading. |
 | `regress` | OLS with Newey-West standard errors, R², Durbin-Watson, AIC/BIC, residual tests, optional distributed lags and trend. Warns when a levels regression looks spurious. Log both sides for elasticities. |
 | `granger_causality` | F-tests in both directions, with a non-stationarity warning. |
 | `cointegration` | Engle-Granger: long-run vector, residual unit-root test, equilibrium error. |
+| `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, rank and first cointegrating vector. |
+| `var_model` | VAR(p) with lag order by AIC, block Granger tests, orthogonalised impulse responses and variance decomposition. |
 | `cross_correlation` | Correlation by lead and lag with a significance band. |
 | `hp_filter` | Trend and cycle, lambda by frequency. |
 | `decompose` | Classical seasonal decomposition, factors per month or quarter, strength measures. |
-| `forecast` | Holt-Winters, Holt, or AR(p), with dated forecasts and an approximate band. |
+| `forecast` | Holt-Winters, Holt, AR(p), or ARIMA(p,d,q) with order by AIC, with dated forecasts and an approximate band. |
+| `deflate` | A nominal series in constant prices of a base date, using any price index as deflator. |
 | `structural_break` | Chow test at a date, or a sup-F scan to locate one. |
 | `rolling` | Rolling mean, standard deviation, or correlation. |
 
