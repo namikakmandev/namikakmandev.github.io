@@ -6,10 +6,10 @@
  */
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { DataError, type Series } from "./data.js";
+import { DataError, type Series, caveatsFor, datasetName, extractSeries, loadCatalog, loadDataset, sourceFor } from "./data.js";
 import { PROVIDERS, providerInfo, type ProviderEnv } from "./providers.js";
 import { SeriesRefSchema, align, detectFrequency, futureDates, resolve, type Resolved, type SeriesRef } from "./resolve.js";
-import { round, toPoints } from "./transform.js";
+import { apply, clip, round, toPoints, type Transform } from "./transform.js";
 import * as S from "./stats.js";
 import { SERVER_BUILD } from "./version.js";
 import { chartUrl, type PlotSpec } from "./api.js";
@@ -664,6 +664,105 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         scores: Array.from({ length: m }, (_, c) => ({ component: c + 1, points: pointsOut(dates.slice(-last_n), p.scores.slice(-last_n).map((row) => row[c])) })),
         reading: `The first component explains ${r3(p.explained[0] * 100)}% of the joint variance${p.explained[0] > 0.6 ? ": these series largely move together as one factor." : p.explained[0] > 0.4 ? ": a common factor exists but idiosyncratic moves matter." : ": no dominant common factor; the series mostly move on their own."} Loadings with the same sign mean the series rise together with the factor; a negative loading moves against it.`,
         caveat: "Series are standardised (unit variance), so each gets equal weight regardless of scale. Components are descriptive, not causal; sign is fixed so the largest loading is positive.",
+      });
+    }),
+  );
+
+  server.registerTool(
+    "panel_regress",
+    {
+      title: "Panel regression across countries (fixed effects)",
+      description: "Regression across many units and years at once, for datasets whose series keys are 'UNIT|INDICATOR' (asia-wdi, imf-weo). Reports the within (fixed-effects) estimate that uses only variation inside each country, the pooled estimate that also uses differences between countries, and the between estimate on country means, with standard errors clustered by country and an F test for whether country effects exist at all. Use it to ask whether a relation holds across economies rather than in one.",
+      inputSchema: {
+        dataset: z.string().describe("Dataset with 'UNIT|INDICATOR' keys, e.g. 'asia-wdi' or 'imf-weo'"),
+        y: z.string().describe("Indicator to explain, e.g. 'gdp_growth' or 'NGDP_RPCH'"),
+        x: z.array(z.string()).min(1).max(4).describe("Explanatory indicators, same naming"),
+        units: z.array(z.string()).max(60).optional().describe("Restrict to these units (country codes as used in the keys); default every unit that has all the indicators"),
+        effects: z.enum(["pooled", "unit", "unit_time"]).default("unit").describe("unit = country fixed effects; unit_time = country and year effects (removes global shocks); pooled = no effects"),
+        transform: z.enum(["none", "log", "diff", "yoy"]).default("none").describe("Applied to every series; log both sides gives elasticities"),
+        start: z.string().optional(), end: z.string().optional(),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ dataset, y, x, units, effects, transform, start, end }) => {
+      const [cat, body] = await Promise.all([loadCatalog(origin), loadDataset(origin, dataset)]);
+      const all = extractSeries(body);
+      const wanted = [y, ...x];
+      const indicators = new Set<string>();
+      const byUnit = new Map<string, Map<string, Series>>();
+      for (const [key, s] of all) {
+        const i = key.indexOf("|");
+        if (i < 0) continue;
+        const u = key.slice(0, i), ind = key.slice(i + 1);
+        indicators.add(ind);
+        if (!wanted.includes(ind)) continue;
+        if (units && !units.includes(u)) continue;
+        let m = byUnit.get(u);
+        if (!m) { m = new Map(); byUnit.set(u, m); }
+        m.set(ind, s);
+      }
+      if (!indicators.size) return fail(`${datasetName(dataset)} has no 'UNIT|INDICATOR' series keys, so it is not a panel. Use regress for a single-series dataset.`);
+      const missing = wanted.filter((w) => !indicators.has(w));
+      if (missing.length) return fail(`Not in ${datasetName(dataset)}: ${missing.join(", ")}. Indicators available: ${[...indicators].sort().join(", ")}`);
+
+      const yy: number[] = [], XX: number[][] = [], uIdx: number[] = [], tIdx: number[] = [];
+      const timeIndex = new Map<string, number>();
+      const usedUnits: string[] = [], skipped: string[] = [];
+      for (const [u, m] of [...byUnit.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+        if (wanted.some((w) => !m.has(w))) { skipped.push(u); continue; }
+        const cols = wanted.map((w) => apply(clip(m.get(w)!, start, end), transform as Transform));
+        const dates = Object.keys(cols[0]).filter((d) => cols.every((c) => d in c && Number.isFinite(c[d]))).sort();
+        if (dates.length < 3) { skipped.push(u); continue; }
+        const ui = usedUnits.length;
+        usedUnits.push(u);
+        for (const d of dates) {
+          if (!timeIndex.has(d)) timeIndex.set(d, timeIndex.size);
+          yy.push(cols[0][d]);
+          XX.push(cols.slice(1).map((c) => c[d]));
+          uIdx.push(ui); tIdx.push(timeIndex.get(d)!);
+        }
+      }
+      if (usedUnits.length < 2) return fail(`Only ${usedUnits.length} unit(s) have all of ${wanted.join(", ")} with 3 or more shared periods${skipped.length ? ` (skipped ${skipped.join(", ")})` : ""}.`);
+
+      let res: S.PanelResult;
+      try { res = S.panelRegress(yy, XX, uIdx, tIdx, effects); }
+      catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+
+      const coefRow = (fit: S.PanelFit, hasConst: boolean) => {
+        const names = hasConst ? ["const", ...x] : x;
+        return names.map((nm, j) => ({ term: nm, coefficient: r4(fit.beta[j]), se: r4(fit.se[j]), t: r3(fit.t[j]), p: r4(fit.p[j]), significant_5pct: fit.p[j] < 0.05 }));
+      };
+      const withinRow = coefRow(res.estimate, effects === "pooled");
+      const pooledRow = coefRow(res.pooled, true);
+      const betweenRow = res.between ? coefRow(res.between, true) : null;
+      const comparison = x.map((nm) => {
+        const w = withinRow.find((r) => r.term === nm)?.coefficient ?? null;
+        const p0 = pooledRow.find((r) => r.term === nm)?.coefficient ?? null;
+        const b = betweenRow?.find((r) => r.term === nm)?.coefficient ?? null;
+        const flips = w !== null && p0 !== null && Math.sign(w) !== Math.sign(p0);
+        return { x: nm, within: w, pooled: p0, between: b, sign_flips_between_within_and_pooled: flips };
+      });
+      const flipped = comparison.filter((c) => c.sign_flips_between_within_and_pooled).map((c) => c.x);
+      return text({
+        dataset: datasetName(dataset),
+        source: sourceFor(cat.datasets.find((d) => d.file === `data/${datasetName(dataset)}.json`), body),
+        caveats: caveatsFor(cat.datasets.find((d) => d.file === `data/${datasetName(dataset)}.json`), body),
+        y, x, transform, effects,
+        sample: { observations: res.nobs, units: res.units, unit_codes: usedUnits, periods: res.periods, balanced: res.balanced, skipped_units: skipped.length ? skipped : undefined },
+        estimate: { specification: effects === "pooled" ? "pooled OLS" : effects === "unit" ? "within (country fixed effects)" : "two-way within (country and year effects)", coefficients: withinRow, r2: r4(res.estimate.r2), df_residual: res.estimate.df },
+        pooled: { coefficients: pooledRow, r2: r4(res.pooled.r2) },
+        between: res.between ? { coefficients: betweenRow, r2: r4(res.between.r2), note: "One observation per country (its mean): pure cross-section, so it answers a different question." } : null,
+        comparison_of_slopes: comparison,
+        f_test_unit_effects: res.f_unit_effects ? { F: r3(res.f_unit_effects.F), p: r4(res.f_unit_effects.p), df: [res.f_unit_effects.df1, res.f_unit_effects.df2], country_effects_matter: res.f_unit_effects.p < 0.05 } : null,
+        reading: [
+          res.f_unit_effects && res.f_unit_effects.p < 0.05
+            ? "Country effects are significant: pooled OLS confounds differences between countries with the relation inside them, so read the within estimate."
+            : "No significant country effects: the pooled and within estimates answer nearly the same question here.",
+          flipped.length ? `Sign flips between pooled and within for ${flipped.join(", ")}: the cross-country pattern runs opposite to the within-country one, a Simpson's paradox in this panel. Say which one you mean.` : "",
+          effects === "unit" ? "Year effects are not removed, so a global shock hitting every country in the same year still loads on the regressors; try effects=unit_time to net it out." : "",
+          transform === "log" ? "Both sides in logs: coefficients read as elasticities." : "",
+        ].filter(Boolean).join(" "),
+        caveat: "Standard errors are clustered by country, which handles serial correlation within a country but needs a decent number of countries (roughly 20 or more) to be reliable; with few units treat the p-values as indicative. Fixed effects remove anything constant per country, so a slow-moving regressor loses most of its variation; two-way effects are removed by sequential demeaning, which is exact on a balanced panel and approximate otherwise. Nothing here identifies causality: reverse causality and omitted time-varying variables survive fixed effects.",
       });
     }),
   );

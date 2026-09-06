@@ -233,6 +233,28 @@ check("PCA: one common factor explains most variance and loads on every series",
   assert.equal(p.scores.length, n);
 });
 
+check("panel regression: within recovers the true slope where pooled OLS flips its sign", () => {
+  const r = rng(101);
+  const G = 10, T = 20;
+  const y = [], X = [], unit = [], time = [];
+  for (let i = 0; i < G; i++) for (let t = 0; t < T; t++) {
+    const x = 5 * i + 0.2 * t + 0.3 * r.normal();          // richer countries have higher x
+    y.push(-10 * i + 1.0 * x + 0.3 * r.normal());          // but a large negative country effect
+    X.push([x]); unit.push(i); time.push(t);
+  }
+  const p = S.panelRegress(y, X, unit, time, "unit");
+  close(p.estimate.beta[0], 1.0, 0.05, "within slope");
+  assert.ok(p.pooled.beta[1] < 0, `pooled slope ${p.pooled.beta[1]} should flip sign`);
+  assert.ok(p.f_unit_effects && p.f_unit_effects.p < 0.001, "country effects should be significant");
+  assert.equal(p.units, G); assert.equal(p.periods, T); assert.ok(p.balanced);
+  assert.ok(p.estimate.se[0] > 0 && p.estimate.p[0] < 0.01, "clustered se should still be significant");
+
+  // A common year shock is absorbed by two-way effects
+  const y2 = y.map((v, idx) => v + 4 * Math.sin(time[idx] / 2));
+  const two = S.panelRegress(y2, X, unit, time, "unit_time");
+  close(two.estimate.beta[0], 1.0, 0.08, "two-way slope with a global shock");
+});
+
 check("VAR(1): recovers coefficients, Granger direction and decaying impulse responses", () => {
   const r = rng(41);
   const n = 500;

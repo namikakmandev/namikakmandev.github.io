@@ -311,6 +311,17 @@ await check("volatility, quantile_regress and principal_components run on the pr
   assert.ok(p.scores[0].points.length === 6);
 });
 
+await check("panel_regress on asia-wdi: fixed effects across countries, and a helpful error for a bad indicator", async () => {
+  const j = await call("panel_regress", { dataset: "asia-wdi", y: "gdp_growth", x: ["gross_capital_formation_pct_gdp"], effects: "unit" });
+  assert.ok(j.sample.units >= 8, `only ${j.sample.units} units`);
+  assert.equal(j.estimate.coefficients.length, 1);
+  assert.ok(typeof j.estimate.coefficients[0].se === "number");
+  assert.ok(j.pooled.coefficients.length === 2, "pooled carries a constant");
+  assert.ok(j.reading.length > 20);
+  const bad = await callRaw("panel_regress", { dataset: "asia-wdi", y: "not_an_indicator", x: ["gdp_growth"] });
+  assert.ok(bad.isError && /Indicators available/.test(bad.content[0].text));
+});
+
 await check("vecm on cattle and corn logs reports adjustment and the current deviation, or a clear rank-0 message", async () => {
   const r = await callRaw("vecm", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2 });
   const t = r.content[0].text;

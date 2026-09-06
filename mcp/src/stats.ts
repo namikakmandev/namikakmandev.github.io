@@ -998,3 +998,110 @@ export function pca(Y: number[][]): PcaResult {
   const scores = Z.map((r) => loadings.map((l) => l.reduce((s, v, j) => s + v * r[j], 0)));
   return { k, nobs: T, eigenvalues: values, explained: values.map((v) => (total ? Math.max(v, 0) / total : 0)), loadings, scores, correlation: C };
 }
+
+
+// ---------------------------------------------------------------------------
+// Panel regression: pooled, one-way and two-way within (fixed effects), between,
+// with standard errors clustered by unit.
+
+export interface PanelFit {
+  beta: number[]; se: number[]; t: number[]; p: number[];
+  rss: number; r2: number; nobs: number; df: number;
+}
+
+export interface PanelResult {
+  nobs: number; units: number; periods: number; k: number; balanced: boolean;
+  effects: "pooled" | "unit" | "unit_time";
+  estimate: PanelFit;            // the requested specification
+  pooled: PanelFit;              // always, for comparison
+  between: PanelFit | null;      // regression on unit means, when there are enough units
+  f_unit_effects: { F: number; p: number; df1: number; df2: number } | null;
+  unit_means: Array<{ unit: number; n: number; y: number }>;
+}
+
+const groupMeans = (v: number[], g: number[]) => {
+  const acc = new Map<number, { s: number; n: number }>();
+  for (let i = 0; i < v.length; i++) { const e = acc.get(g[i]) ?? { s: 0, n: 0 }; e.s += v[i]; e.n++; acc.set(g[i], e); }
+  return acc;
+};
+
+const demean = (v: number[], g: number[]) => { const m = groupMeans(v, g); return v.map((x, i) => x - m.get(g[i])!.s / m.get(g[i])!.n); };
+
+/** Cluster-robust standard errors: sandwich summed over clusters, with the usual finite-sample correction. */
+function clusterSe(X: number[][], resid: number[], cluster: number[], dfResid: number): number[] | null {
+  const k = X[0].length, n = X.length;
+  const XtX = zeros(k, k);
+  for (const row of X) for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) XtX[a][b] += row[a] * row[b];
+  const inv = inverse(XtX);
+  if (!inv) return null;
+  const acc = new Map<number, number[]>();
+  for (let i = 0; i < n; i++) {
+    let a = acc.get(cluster[i]);
+    if (!a) { a = new Array<number>(k).fill(0); acc.set(cluster[i], a); }
+    for (let j = 0; j < k; j++) a[j] += X[i][j] * resid[i];
+  }
+  const meat = zeros(k, k);
+  for (const a of acc.values()) for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) meat[i][j] += a[i] * a[j];
+  const G = acc.size;
+  const corr = G > 1 ? (G / (G - 1)) * ((n - 1) / Math.max(dfResid, 1)) : 1;
+  const V = matmul(matmul(inv, meat), inv);
+  return V.map((_, i) => Math.sqrt(Math.max(V[i][i], 0) * corr));
+}
+
+function fitPanel(y: number[], X: number[][], cluster: number[], dfResid: number): PanelFit {
+  const fit = ols(y, X);
+  const se = clusterSe(X, fit.resid, cluster, dfResid) ?? fit.se;
+  const t = fit.beta.map((b, j) => (se[j] ? b / se[j] : NaN));
+  return { beta: fit.beta, se, t, p: t.map((v) => tTwoSidedP(v, Math.max(dfResid, 1))), rss: fit.rss, r2: fit.r2, nobs: fit.n, df: dfResid };
+}
+
+/**
+ * y on X across units and periods. X excludes the intercept: pooled adds one,
+ * the within estimators absorb it. Standard errors are clustered by unit throughout,
+ * which is what cross-country panels need (shocks are serially correlated within a country).
+ */
+export function panelRegress(y: number[], X: number[][], unit: number[], time: number[], effects: "pooled" | "unit" | "unit_time" = "unit"): PanelResult {
+  const n = y.length, k = X[0].length;
+  const units = new Set(unit), periods = new Set(time);
+  const G = units.size, Tn = periods.size;
+  if (G < 2) throw new Error(`Panel needs 2 or more units, got ${G}`);
+  if (n < k + G + 5) throw new Error(`Too few observations (${n}) for ${k} regressors across ${G} units`);
+  const cols = Array.from({ length: k }, (_, j) => X.map((r) => r[j]));
+
+  const pooledX = X.map((r) => [1, ...r]);
+  const pooled = fitPanel(y, pooledX, unit, n - k - 1);
+
+  let ey = y, eCols = cols, dfWithin = n - G - k;
+  if (effects !== "pooled") {
+    ey = demean(y, unit); eCols = cols.map((c) => demean(c, unit));
+    if (effects === "unit_time") {
+      // Sequential demeaning: exact two-way within on a balanced panel, approximate otherwise.
+      ey = demean(ey, time);
+      eCols = eCols.map((c) => demean(c, time));
+      dfWithin = n - G - Tn - k + 1;
+    }
+  }
+  const withinX = ey.map((_, i) => eCols.map((c) => c[i]));
+  const estimate = effects === "pooled" ? pooled : fitPanel(ey, withinX, unit, Math.max(dfWithin, 1));
+
+  // Between: one observation per unit, on unit means
+  let between: PanelFit | null = null;
+  if (G >= k + 3) {
+    const my = groupMeans(y, unit);
+    const mx = cols.map((c) => groupMeans(c, unit));
+    const keys = [...units];
+    const by = keys.map((u) => my.get(u)!.s / my.get(u)!.n);
+    const bX = keys.map((u) => [1, ...mx.map((m) => m.get(u)!.s / m.get(u)!.n)]);
+    try { between = fitPanel(by, bX, keys, G - k - 1); } catch { between = null; }
+  }
+
+  // F test for unit effects: pooled vs within residual sums of squares
+  let f: PanelResult["f_unit_effects"] = null;
+  if (effects !== "pooled" && dfWithin > 0) {
+    const df1 = G - 1, df2 = Math.max(dfWithin, 1);
+    const F = ((pooled.rss - estimate.rss) / df1) / (estimate.rss / df2);
+    if (Number.isFinite(F) && F > 0) f = { F, p: fUpperP(F, df1, df2), df1, df2 };
+  }
+  const perUnit = [...units].map((u) => { const m = groupMeans(y, unit).get(u)!; return { unit: u, n: m.n, y: m.s / m.n }; });
+  return { nobs: n, units: G, periods: Tn, k, balanced: n === G * Tn, effects, estimate, pooled, between, f_unit_effects: f, unit_means: perUnit };
+}

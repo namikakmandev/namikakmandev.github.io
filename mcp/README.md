@@ -70,6 +70,7 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `volatility` | ARCH-LM test and a GARCH(1,1) fit: persistence, unconditional and conditional volatility, one-step forecast. |
 | `quantile_regress` | Regression at several quantiles next to OLS, to see whether the relation differs in the tails. |
 | `principal_components` | Common factor across 2 to 8 series: explained variance, loadings, factor scores. |
+| `panel_regress` | Fixed-effects, pooled and between regressions across countries on `UNIT|INDICATOR` datasets, clustered standard errors, F test for country effects. |
 | `rolling` | Rolling mean, standard deviation, or correlation. |
 
 The numerics are in `src/stats.ts`, dependency-free so they run on the Worker. Critical values are MacKinnon (1991); p-values come from the t, F and chi-square distributions. `test/stats.test.mjs` checks each estimator against known answers on seeded data.
