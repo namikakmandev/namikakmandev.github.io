@@ -532,8 +532,8 @@ const evds: Provider = {
     const hdr = { key: env.EVDS_API_KEY, accept: "application/json" };
     type Group = { DATAGROUP_CODE: string; DATAGROUP_NAME_ENG?: string; DATAGROUP_NAME?: string; FREQUENCY_STR?: string };
     type Serie = { SERIE_CODE: string; SERIE_NAME_ENG?: string; SERIE_NAME?: string; FREQUENCY_STR?: string; START_DATE?: string; END_DATE?: string };
-    // EVDS insists on the code parameter being present, even when empty, for the full list.
-    const groups = (await getJson(`${base}datagroups/?mode=0&code=&type=json`, hdr)) as Group[];
+    // EVDS routes on the path: parameters follow the endpoint with no '?', as the data endpoint does.
+    const groups = (await getJson(`${base}datagroups/mode=0&code=&type=json`, hdr)) as Group[];
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     const score = (s: string) => terms.reduce((n, t) => n + (s.toLowerCase().includes(t) ? 1 : 0), 0);
     const ranked = (Array.isArray(groups) ? groups : [])
@@ -544,7 +544,7 @@ const evds: Provider = {
     const out: CuratedEntry[] = [];
     for (const { g } of ranked) {
       try {
-        const series = (await getJson(`${base}serieList/?type=json&code=${encodeURIComponent(g.DATAGROUP_CODE)}`, hdr)) as Serie[];
+        const series = (await getJson(`${base}serieList/type=json&code=${encodeURIComponent(g.DATAGROUP_CODE)}`, hdr)) as Serie[];
         for (const s of Array.isArray(series) ? series : []) {
           const name = s.SERIE_NAME_ENG || s.SERIE_NAME || "";
           out.push({ id: s.SERIE_CODE, title: `${name} [${g.DATAGROUP_NAME_ENG ?? g.DATAGROUP_CODE}]`, hint: [s.FREQUENCY_STR, s.START_DATE ? `${s.START_DATE}..${s.END_DATE ?? ""}` : ""].filter(Boolean).join(", ") });

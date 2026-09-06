@@ -32,13 +32,21 @@ jobs:
       - name: Rebuild catalog
         run: python scripts/build_catalog.py
       - name: Commit
+        if: ${{ inputs.mode != 'discover' }}
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"
           git add data/
-          git diff --cached --quiet || git commit -m "data: refresh via scripts/fetch.py [skip ci]"
-          # main may have moved while the fetch ran (a merge, another workflow): rebase, then push, a few times.
-          for i in 1 2 3 4; do
-            git pull --rebase origin "${GITHUB_REF_NAME:-main}" && git push && break
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "data: refresh via scripts/fetch.py [skip ci]"
+          # main may have moved while the fetch ran (a merge, another run): rebase onto it and push.
+          # On a conflict (two runs both rewrote the report or the catalog) this run's files win,
+          # since each refresh writes complete files.
+          branch="${GITHUB_REF_NAME:-main}"
+          for i in 1 2 3 4 5; do
+            git fetch origin "$branch"
+            if git rebase -X theirs "origin/$branch" && git push origin "HEAD:$branch"; then exit 0; fi
+            git rebase --abort 2>/dev/null || true
             echo "push attempt $i failed, retrying"; sleep $((i * 5))
           done
+          echo "could not push after 5 attempts"; exit 1
