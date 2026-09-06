@@ -194,6 +194,45 @@ check("VECM: recovers the long-run vector and puts the adjustment on the depende
   assert.throws(() => S.vecm(Y, 1, 2), /below the number of series/);
 });
 
+check("GARCH(1,1): recovers persistence on simulated data, ARCH-LM detects clustering", () => {
+  const r = rng(71);
+  const n = 1500;
+  const e = []; let h = 1;
+  for (let t = 0; t < n; t++) { h = 0.05 + 0.1 * (t ? e[t - 1] ** 2 : 1) + 0.85 * h; e.push(Math.sqrt(h) * r.normal()); }
+  const g = S.garch11(e);
+  assert.ok(g.arch_lm.p < 0.01, `ARCH-LM p ${g.arch_lm.p}`);
+  close(g.persistence, 0.95, 0.06, "persistence");
+  assert.ok(g.alpha > 0.03 && g.alpha < 0.2, `alpha ${g.alpha}`);
+  assert.equal(g.cond_variance.length, n);
+  const white = Array.from({ length: 400 }, () => r.normal());
+  assert.ok(S.archLM(white, 5).p > 0.05, "white noise should show no ARCH");
+});
+
+check("quantile regression: median slope near truth, tails differ under heteroskedastic noise", () => {
+  const r = rng(83);
+  const n = 800;
+  const x = Array.from({ length: n }, () => 5 + 2 * r.normal());
+  const y = x.map((v) => 1 + 2 * v + (0.5 + 0.4 * Math.abs(v - 5)) * r.normal());
+  const X = x.map((v) => [1, v]);
+  const med = S.quantileRegress(y, X, 0.5);
+  close(med.beta[1], 2, 0.15, "median slope");
+  close(med.beta[0], 1, 0.6, "median intercept");
+  const lo = S.quantileRegress(y, X, 0.1), hi = S.quantileRegress(y, X, 0.9);
+  assert.ok(lo.beta[0] < med.beta[0] && med.beta[0] < hi.beta[0], "intercepts ordered across quantiles");
+});
+
+check("PCA: one common factor explains most variance and loads on every series", () => {
+  const r = rng(97);
+  const n = 300;
+  const f = Array.from({ length: n }, () => r.normal());
+  const Y = f.map((v) => [v + 0.3 * r.normal(), 0.8 * v + 0.3 * r.normal(), -0.9 * v + 0.3 * r.normal()]);
+  const p = S.pca(Y);
+  assert.ok(p.explained[0] > 0.8, `first component ${p.explained[0]}`);
+  assert.ok(p.loadings[0].every((l) => Math.abs(l) > 0.4));
+  assert.ok(Math.sign(p.loadings[0][0]) !== Math.sign(p.loadings[0][2]), "third series loads with opposite sign");
+  assert.equal(p.scores.length, n);
+});
+
 check("VAR(1): recovers coefficients, Granger direction and decaying impulse responses", () => {
   const r = rng(41);
   const n = 500;

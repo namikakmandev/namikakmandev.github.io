@@ -301,6 +301,16 @@ await check("johansen on cattle, corn and CPI logs returns trace tests and a ran
   assert.ok(j.rank_at_5pct >= 0 && j.rank_at_5pct <= 3);
 });
 
+await check("volatility, quantile_regress and principal_components run on the price data", async () => {
+  const v = await call("volatility", { series: { ...CATTLE, transform: "pct_change", start: "1990-01" }, last_n: 12 });
+  assert.ok(typeof v.garch.persistence === "number" && v.conditional_sd.length === 12, JSON.stringify(v).slice(0, 200));
+  const q = await call("quantile_regress", { y: { ...CATTLE, transform: "yoy", start: "1990-01" }, x: [{ ...CORN, transform: "yoy", start: "1990-01" }] });
+  assert.equal(q.by_quantile.length, 5);
+  const p = await call("principal_components", { series: [{ ...CATTLE, transform: "yoy", start: "1990-01" }, { ...CORN, transform: "yoy", start: "1990-01" }, { ...CPI, transform: "yoy", start: "1990-01" }], last_n: 6 });
+  assert.equal(p.explained_variance.length, 3);
+  assert.ok(p.scores[0].points.length === 6);
+});
+
 await check("vecm on cattle and corn logs reports adjustment and the current deviation, or a clear rank-0 message", async () => {
   const r = await callRaw("vecm", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2 });
   const t = r.content[0].text;

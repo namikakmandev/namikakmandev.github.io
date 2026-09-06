@@ -567,6 +567,108 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
   );
 
   server.registerTool(
+    "volatility",
+    {
+      title: "GARCH(1,1) volatility",
+      description: "Engle's ARCH-LM test for volatility clustering, then a GARCH(1,1) fit by maximum likelihood on the demeaned series (pass returns or growth rates, not levels). Returns omega, alpha, beta, persistence, the unconditional volatility, the conditional volatility path (last observations) and a one-step-ahead forecast. Typical for exchange rates, equity indices, commodity returns and inflation surprises.",
+      inputSchema: {
+        series: REF,
+        last_n: z.number().int().min(1).max(600).default(60).describe("How many conditional-volatility points to return"),
+        annualise: z.boolean().default(true).describe("Also report volatility scaled to annual terms by the series frequency"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, last_n, annualise }) => {
+      const r = await get(series);
+      const { dates, v } = values(r.series);
+      let g: S.GarchResult;
+      try { g = S.garch11(v); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+      const { frequency, period } = detectFrequency(dates);
+      const perYear = frequency === "daily" ? 252 : frequency === "weekly" ? 52 : period;
+      const condSd = g.cond_variance.map(Math.sqrt);
+      const last = v[v.length - 1] - g.mean;
+      const hNext = g.omega + g.alpha * last * last + g.beta * g.cond_variance[g.cond_variance.length - 1];
+      const nonStationary = g.persistence >= 0.99;
+      const uncSd = Math.sqrt(g.unconditional_variance);
+      return text({
+        ...meta(r), n: g.nobs, first: dates[0], last: dates[dates.length - 1], frequency,
+        arch_lm: { statistic: r3(g.arch_lm.statistic), p: r4(g.arch_lm.p), lags: g.arch_lm.lags, clustering: g.arch_lm.p < 0.05 },
+        garch: { omega: r4(g.omega), alpha: r4(g.alpha), beta: r4(g.beta), persistence: r4(g.persistence), loglik: r3(g.loglik), aic: r3(g.aic), bic: r3(g.bic) },
+        unconditional_sd: r4(uncSd),
+        unconditional_sd_annualised: annualise && Number.isFinite(g.unconditional_variance) ? r4(Math.sqrt(g.unconditional_variance * perYear)) : null,
+        forecast_next_sd: r4(Math.sqrt(hNext)),
+        conditional_sd: pointsOut(dates.slice(-last_n), condSd.slice(-last_n)),
+        reading: [
+          g.arch_lm.p < 0.05 ? "Volatility clusters: calm and turbulent periods persist, so a constant-variance model understates risk in the turbulent ones." : "No significant ARCH effect: a constant variance is an adequate description; the GARCH parameters below carry little information.",
+          `Shock half-life: about ${r3(Math.log(0.5) / Math.log(Math.max(Math.min(g.persistence, 0.9999), 1e-6)))} periods (persistence ${r4(g.persistence)}).`,
+          nonStationary ? "Persistence at or above 0.99: variance is close to integrated (IGARCH); the unconditional level is not meaningful." : "",
+          `Current conditional volatility ${r4(condSd[condSd.length - 1])} vs unconditional ${r4(uncSd)}: ${condSd[condSd.length - 1] > uncSd ? "above" : "below"} normal.`,
+        ].filter(Boolean).join(" "),
+        caveat: "Gaussian likelihood; with fat tails the point estimates are consistent but the bands are too narrow. Demeaned series, no mean equation: put an AR term in first if returns are autocorrelated.",
+      });
+    }),
+  );
+
+  server.registerTool(
+    "quantile_regress",
+    {
+      title: "Quantile regression",
+      description: "Regression of y on x at several quantiles (default 0.1, 0.25, 0.5, 0.75, 0.9), next to OLS. Shows whether the relation differs in the tails: e.g. does feed cost matter more when cattle prices are already high. Median regression is also a robust alternative to OLS with outliers.",
+      inputSchema: {
+        y: REF, x: z.array(REF).min(1).max(4),
+        quantiles: z.array(z.number().min(0.02).max(0.98)).min(1).max(9).default([0.1, 0.25, 0.5, 0.75, 0.9]),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ y, x, quantiles }) => {
+      const ry = await get(y); const rx = await Promise.all(x.map(get));
+      const { dates, columns } = align([ry.series, ...rx.map((r) => r.series)]);
+      if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
+      const Y = columns[0], X = dates.map((_, t) => [1, ...rx.map((__, j) => columns[j + 1][t])]);
+      const names = ["const", ...rx.map((r) => r.label)];
+      const olsFit = S.ols(Y, X);
+      const rows = quantiles.map((q) => { const f = S.quantileRegress(Y, X, q); return { quantile: q, coefficients: Object.fromEntries(names.map((nm, j) => [nm, r4(f.beta[j])])), iterations: f.iterations }; });
+      const slopeSpread = rx.map((r, j) => { const b = rows.map((row) => row.coefficients[r.label] as number); return { x: r.label, low_quantile: b[0], high_quantile: b[b.length - 1], ols: r4(olsFit.beta[j + 1]), tail_asymmetry: r4((b[b.length - 1] ?? 0) - (b[0] ?? 0)) }; });
+      return text({
+        y: meta(ry), x: rx.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1],
+        ols: Object.fromEntries(names.map((nm, j) => [nm, r4(olsFit.beta[j])])),
+        by_quantile: rows,
+        slope_across_quantiles: slopeSpread,
+        reading: slopeSpread.map((sp) => Math.abs(sp.tail_asymmetry ?? 0) > Math.abs((sp.ols ?? 0) * 0.5) ? `${sp.x}: the slope changes materially across the distribution of ${ry.label} (${sp.low_quantile} at the low tail vs ${sp.high_quantile} at the high tail), so one OLS number hides where the effect lives.` : `${sp.x}: slope roughly the same across quantiles; OLS is a fair summary.`).join(" "),
+        caveat: "Coefficients by iteratively reweighted least squares (no standard errors); quantile paths that cross each other signal too few observations in the tails. Same stationarity cautions as regress.",
+      });
+    }),
+  );
+
+  server.registerTool(
+    "principal_components",
+    {
+      title: "Principal components (common factor)",
+      description: "Principal components of 2 to 8 standardised series: how much of their joint movement one common factor explains, each series' loading on it, and the factor score as a dated series. Use for a common inflation or activity factor across countries, or a commodity index from several prices. Pass stationary transforms (yoy, pct_change) unless the levels themselves are the object.",
+      inputSchema: { series: z.array(REF).min(2).max(8), components: z.number().int().min(1).max(4).default(2), last_n: z.number().int().min(1).max(600).default(60) },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, components, last_n }) => {
+      const rs = await Promise.all(series.map(get));
+      const { dates, columns } = align(rs.map((r) => r.series));
+      if (dates.length < rs.length + 10) return fail(`Only ${dates.length} shared dates for ${rs.length} series.`);
+      const Y = dates.map((_, t) => columns.map((c) => c[t]));
+      const p = S.pca(Y);
+      const m = Math.min(components, p.k);
+      const labels = rs.map((r) => r.label);
+      return text({
+        series: rs.map(meta), n: p.nobs, first: dates[0], last: dates[dates.length - 1],
+        explained_variance: p.explained.slice(0, p.k).map((e, i) => ({ component: i + 1, share: r4(e), cumulative: r4(p.explained.slice(0, i + 1).reduce((a, b) => a + b, 0)) })),
+        loadings: Array.from({ length: m }, (_, c) => ({ component: c + 1, loadings: Object.fromEntries(labels.map((l, j) => [l, r4(p.loadings[c][j])])) })),
+        correlation_matrix: Object.fromEntries(labels.map((l, i) => [l, Object.fromEntries(labels.map((l2, j) => [l2, r3(p.correlation[i][j])]))])),
+        scores: Array.from({ length: m }, (_, c) => ({ component: c + 1, points: pointsOut(dates.slice(-last_n), p.scores.slice(-last_n).map((row) => row[c])) })),
+        reading: `The first component explains ${r3(p.explained[0] * 100)}% of the joint variance${p.explained[0] > 0.6 ? ": these series largely move together as one factor." : p.explained[0] > 0.4 ? ": a common factor exists but idiosyncratic moves matter." : ": no dominant common factor; the series mostly move on their own."} Loadings with the same sign mean the series rise together with the factor; a negative loading moves against it.`,
+        caveat: "Series are standardised (unit variance), so each gets equal weight regardless of scale. Components are descriptive, not causal; sign is fixed so the largest loading is positive.",
+      });
+    }),
+  );
+
+  server.registerTool(
     "johansen",
     {
       title: "Johansen cointegration (2 to 5 series)",
