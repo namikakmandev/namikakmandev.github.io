@@ -58,9 +58,10 @@ export function buildServer(origin: string, env: ProviderEnv = {}): McpServer {
       instructions:
         "Economics data and analysis. Two kinds of data: curated datasets at namikakmandev.github.io " +
         "(list_datasets, search_datasets, describe_dataset, get_series) and live pulls from FRED, Eurostat, " +
-        "World Bank, ECB, OECD, Our World in Data and TCMB EVDS (list_providers, search_external, fetch_external). " +
-        "Analysis tools (describe_stats, test_stationarity, regress, granger_causality, cointegration, " +
-        "cross_correlation, hp_filter, decompose, forecast, structural_break, rolling) all take series references: " +
+        "World Bank, ECB, OECD, Our World in Data, TCMB EVDS and BIS (list_providers, search_external, fetch_external). " +
+        "Analysis tools (describe_stats, test_stationarity with ADF and KPSS, regress, granger_causality, cointegration, " +
+        "johansen, var_model with impulse responses, cross_correlation, hp_filter, decompose, forecast incl. ARIMA, " +
+        "structural_break, rolling, deflate) all take series references: " +
         "{dataset, series}, {provider, id}, or {points}. Call suggest_analysis first when unsure which method fits; " +
         "it checks integration order, seasonality and overlap and returns an ordered plan. Every result carries " +
         "source and caveats: quote them next to the number.",

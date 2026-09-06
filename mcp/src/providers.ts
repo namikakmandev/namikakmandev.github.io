@@ -525,7 +525,70 @@ const evds: Provider = {
     return { provider: "evds", id, source: `TCMB EVDS ${id}`, url: url.replace(/key=[^&]+/, ""), series,
       notes: ["EVDS dates are as published: monthly 'YYYY-MM', daily 'YYYY-MM-DD'. Index bases and units are on the series page in EVDS."] };
   },
-  async search(query) { return curatedSearch(evds.curated, query); },
+  async search(query, env) {
+    if (!env.EVDS_API_KEY) return curatedSearch(evds.curated, query);
+    // Walk the EVDS catalogue: all datagroups, then the series of the best-matching groups.
+    const base = "https://evds3.tcmb.gov.tr/igmevdsms-dis/";
+    const hdr = { key: env.EVDS_API_KEY, accept: "application/json" };
+    type Group = { DATAGROUP_CODE: string; DATAGROUP_NAME_ENG?: string; DATAGROUP_NAME?: string; FREQUENCY_STR?: string };
+    type Serie = { SERIE_CODE: string; SERIE_NAME_ENG?: string; SERIE_NAME?: string; FREQUENCY_STR?: string; START_DATE?: string; END_DATE?: string };
+    const groups = (await getJson(`${base}datagroups/?mode=0&type=json`, hdr)) as Group[];
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const score = (s: string) => terms.reduce((n, t) => n + (s.toLowerCase().includes(t) ? 1 : 0), 0);
+    const ranked = (Array.isArray(groups) ? groups : [])
+      .map((g) => ({ g, s: score(`${g.DATAGROUP_NAME_ENG ?? ""} ${g.DATAGROUP_NAME ?? ""} ${g.DATAGROUP_CODE}`) }))
+      .filter((x) => x.s > 0)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 4);
+    const out: CuratedEntry[] = [];
+    for (const { g } of ranked) {
+      try {
+        const series = (await getJson(`${base}serieList/?type=json&code=${encodeURIComponent(g.DATAGROUP_CODE)}`, hdr)) as Serie[];
+        for (const s of Array.isArray(series) ? series : []) {
+          const name = s.SERIE_NAME_ENG || s.SERIE_NAME || "";
+          out.push({ id: s.SERIE_CODE, title: `${name} [${g.DATAGROUP_NAME_ENG ?? g.DATAGROUP_CODE}]`, hint: [s.FREQUENCY_STR, s.START_DATE ? `${s.START_DATE}..${s.END_DATE ?? ""}` : ""].filter(Boolean).join(", ") });
+        }
+      } catch { /* one group failing should not hide the others */ }
+    }
+    const direct = out.filter((e) => score(`${e.id} ${e.title}`) > 0);
+    return (direct.length ? direct : out).slice(0, 60);
+  },
+};
+
+// ---------------------------------------------------------------------------
+// BIS Data Portal (SDMX CSV)
+
+const bis: Provider = {
+  name: "bis",
+  title: "BIS Data Portal",
+  coverage: "Bank for International Settlements: residential property prices, credit to households and firms, debt service ratios, effective exchange rates, policy rates. Most countries, quarterly or monthly.",
+  id_format: "'FLOW/KEY' as in the BIS portal, e.g. WS_SPP/Q.TR.N.628 (selected property prices, Türkiye, nominal, index 2010=100), WS_TC/Q.TR.H.A.M.770.A (credit to households, % of GDP), WS_CBPOL/M.TR (policy rate).",
+  needs_key: null,
+  curated: [
+    { id: "WS_SPP/Q.TR.N.628", title: "Türkiye residential property prices, nominal index 2010=100, quarterly" },
+    { id: "WS_SPP/Q.TR.R.628", title: "Türkiye residential property prices, real index, quarterly" },
+    { id: "WS_SPP/Q.DE.N.628", title: "Germany residential property prices, nominal, quarterly" },
+    { id: "WS_SPP/Q.US.N.628", title: "United States residential property prices, nominal, quarterly" },
+    { id: "WS_TC/Q.TR.H.A.M.770.A", title: "Türkiye credit to households, % of GDP, quarterly" },
+    { id: "WS_TC/Q.TR.N.A.M.770.A", title: "Türkiye credit to non-financial corporations, % of GDP, quarterly" },
+    { id: "WS_CBPOL/M.TR", title: "Türkiye central bank policy rate, monthly" },
+    { id: "WS_CBPOL/M.US", title: "US policy rate, monthly" },
+    { id: "WS_EER/M.N.B.TR", title: "Türkiye nominal effective exchange rate, broad basket, monthly" },
+    { id: "WS_EER/M.R.B.TR", title: "Türkiye real effective exchange rate, broad basket, monthly" },
+  ],
+  async fetch(id, params) {
+    const [flow, key] = id.includes("/") ? id.split("/", 2) : [id, ""];
+    if (!key) throw new DataError("BIS ids look like FLOW/KEY, e.g. WS_SPP/Q.TR.N.628");
+    const extra: Record<string, string> = { format: "csv" };
+    if (params.start) extra.startPeriod = params.start;
+    if (params.end) extra.endPeriod = params.end;
+    const url = `https://stats.bis.org/api/v2/data/dataflow/BIS/${encodeURIComponent(flow)}/1.0/${key}?${qs(extra)}`;
+    const { series, columns } = sdmxCsvSeries(await getText(url, { accept: "text/csv" }), ["KEY"]);
+    if (!Object.keys(series).length) throw new DataError(`BIS returned no observations for ${id}. Columns: ${columns.slice(0, 10).join(", ")}`);
+    return { provider: "bis", id, source: `BIS Data Portal ${flow} ${key}`, url, series,
+      notes: ["Series keys are the full SDMX keys. Property price indices are 2010=100; credit series are as labelled in the key (percent of GDP or currency)."] };
+  },
+  async search(query) { return curatedSearch(bis.curated, query); },
 };
 
 // ---------------------------------------------------------------------------
@@ -543,7 +606,7 @@ export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry
     .map((x) => x.e);
 }
 
-export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds };
+export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis };
 
 export function providerInfo(env: ProviderEnv) {
   return Object.values(PROVIDERS).map((p) => ({
@@ -552,7 +615,7 @@ export function providerInfo(env: ProviderEnv) {
     coverage: p.coverage,
     id_format: p.id_format,
     needs_key: p.needs_key,
-    key_present: p.name === "evds" ? !!env.EVDS_API_KEY : p.name === "fred" ? (env.FRED_API_KEY ? "yes (search enabled)" : "no (fetch works, search uses the starter list)") : "not needed",
+    key_present: p.name === "evds" ? (env.EVDS_API_KEY ? "yes (fetch and catalogue search enabled)" : "no") : p.name === "fred" ? (env.FRED_API_KEY ? "yes (search enabled)" : "no (fetch works, search uses the starter list)") : "not needed",
     starter_ids: p.curated.slice(0, 8).map((c) => `${c.id}: ${c.title}`),
   }));
 }

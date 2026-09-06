@@ -23,9 +23,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - run: pip install openpyxl
       - name: Fetch
         env:
           MODE: ${{ inputs.mode }}
+          EVDS_KEY: ${{ secrets.EVDS_KEY }}
         run: python scripts/fetch.py ${{ inputs.only }}
       - name: Rebuild catalog
         run: python scripts/build_catalog.py

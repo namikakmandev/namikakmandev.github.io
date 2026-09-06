@@ -12,7 +12,7 @@ Usage
         -> do not parse; dump what the source actually returns (columns, dimension
            names, category codes) so a parser can be written against reality
 
-Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation
+Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation | evds | xlsx
 Every run writes data/_fetch-report.json recording what each source returned, so a
 silent zero is visible instead of looking like a real answer.
 """
@@ -421,9 +421,126 @@ def geojson_filter(entry):
             "_missing": missing}
 
 
+
+def _evds_date(t):
+    """EVDS 'Tarih' -> YYYY, YYYY-MM or YYYY-MM-DD."""
+    m = re.match(r"^(\d{4})-(\d{1,2})$", t)
+    if m:
+        return f"{m.group(1)}-{int(m.group(2)):02d}"
+    m = re.match(r"^(\d{2})-(\d{2})-(\d{4})$", t)
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    if re.match(r"^\d{4}$", t):
+        return t
+    m = re.match(r"^(\d{4})-Q(\d)$", t)
+    if m:
+        return t
+    return None
+
+
+def evds(entry):
+    """TCMB EVDS (Central Bank of Türkiye). entry['series'] {key: code}.
+    Optional: 'start' (dd-mm-yyyy, default 01-01-1990); 'frequency' as EVDS codes
+    (1 daily, 3 weekly, 5 monthly, 6 quarterly, 8 annual); 'aggregation'
+    (avg|last|first|sum|max|min) applied to every series when resampling.
+    Needs EVDS_KEY in the environment. Uses the evds3 endpoint the evds
+    Python package targets; the older evds2 service path now serves the web app."""
+    key = os.environ.get("EVDS_KEY", "").strip()
+    if not key:
+        raise RuntimeError("EVDS_KEY not set")
+    codes = list(entry["series"].values())
+    params = {"series": "-".join(codes),
+              "startDate": entry.get("start", "01-01-1990"),
+              "endDate": time.strftime("%d-%m-%Y", time.gmtime()),
+              "type": "json"}
+    if entry.get("frequency"):
+        params["frequency"] = str(entry["frequency"])
+    if entry.get("aggregation"):
+        params["aggregationTypes"] = "-".join([entry["aggregation"]] * len(codes))
+    url = "https://evds3.tcmb.gov.tr/igmevdsms-dis/" + "&".join(f"{k}={v}" for k, v in params.items())
+    req = urllib.request.Request(url, headers={**UA, "key": key})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        raw = r.read().decode("utf-8", "replace")
+    if raw.lstrip().startswith("<"):
+        raise RuntimeError("EVDS returned HTML instead of JSON: key rejected or endpoint moved")
+    items = json.loads(raw).get("items", [])
+    if MODE == "discover":
+        return {"_discover": {"url": url, "n_items": len(items), "sample": items[:3],
+                              "keys": sorted({k for it in items for k in it})}}
+    out = defaultdict(dict)
+    for it in items:
+        t = _evds_date(str(it.get("Tarih", "")))
+        if not t:
+            continue
+        for k, code in entry["series"].items():
+            v = it.get(code.replace(".", "_"))
+            if v in (None, "", "null"):
+                continue
+            try:
+                out[k][t] = float(v)
+            except (TypeError, ValueError):
+                continue
+    return dict(out)
+
+
+def xlsx(entry):
+    """An Excel workbook with one code row and a date in the first column, such as
+    the World Bank Pink Sheet. entry['url'], or entry['page'] + 'match' (a regex for
+    the file link on a landing page, for files whose URL changes each release) with
+    optional 'fallback_url'. 'sheet' (name, default first), 'columns' {key: CODE},
+    'code_row_contains' (a cell that identifies the code row), 'date_re' (groups
+    joined with '-', default YYYYMmm)."""
+    import openpyxl  # installed in the workflow, not needed elsewhere
+    url = entry.get("url")
+    if not url:
+        try:
+            html = get(entry["page"]).decode("utf-8", "replace")
+            m = re.search(entry["match"], html)
+            if not m:
+                raise RuntimeError(f"no link matching {entry['match']} on {entry['page']}")
+            url = m.group(0)
+            if url.startswith("/"):
+                url = urllib.parse.urljoin(entry["page"], url)
+        except Exception as ex:
+            if not entry.get("fallback_url"):
+                raise
+            print(f"[warn] landing page failed ({type(ex).__name__}: {ex}); using fallback_url")
+            url = entry["fallback_url"]
+    wb = openpyxl.load_workbook(io.BytesIO(get(url)), read_only=True, data_only=True)
+    ws = wb[entry["sheet"]] if entry.get("sheet") else wb.worksheets[0]
+    rows = list(ws.iter_rows(values_only=True))
+    if MODE == "discover":
+        return {"_discover": {"url": url, "sheets": wb.sheetnames, "n_rows": len(rows),
+                              "first_rows": [list(r[:14]) for r in rows[:10]]}}
+    marker = entry.get("code_row_contains", "CRUDE_PETRO")
+    code_row = next((r for r in rows if any(str(c).strip() == marker for c in r if c is not None)), None)
+    if code_row is None:
+        raise RuntimeError(f"no row containing {marker!r} in sheet {ws.title}")
+    idx = {str(c).strip(): i for i, c in enumerate(code_row) if c is not None}
+    missing = [c for c in entry["columns"].values() if c not in idx]
+    if missing:
+        print(f"[warn] {entry['name']}: columns not in code row: {missing}")
+    date_re = re.compile(entry.get("date_re", r"^(\d{4})M(\d{2})$"))
+    out = defaultdict(dict)
+    for r in rows:
+        if not r or r[0] is None:
+            continue
+        m = date_re.match(str(r[0]).strip())
+        if not m:
+            continue
+        t = "-".join(m.groups())
+        for k, code in entry["columns"].items():
+            i = idx.get(code)
+            if i is None or i >= len(r):
+                continue
+            v = r[i]
+            if isinstance(v, (int, float)):
+                out[k][t] = float(v)
+    return dict(out)
+
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
              "yahoo": yahoo, "yahoo_valuation": yahoo_valuation,
-             "geojson_filter": geojson_filter}
+             "geojson_filter": geojson_filter, "evds": evds, "xlsx": xlsx}
 
 
 # ----------------------------------------------------------------- runner

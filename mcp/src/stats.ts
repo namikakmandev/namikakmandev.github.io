@@ -522,3 +522,316 @@ export function supF(y: number[], X: number[][], trim = 0.15): { best: ChowResul
   if (!best) throw new Error("No admissible break points");
   return { best, scan };
 }
+
+// ---------------------------------------------------------------------------
+// KPSS stationarity test (null: stationary)
+
+export interface KpssResult { trend: "c" | "ct"; lags: number; statistic: number; critical: { "10%": number; "5%": number; "2.5%": number; "1%": number }; reject_stationarity_at: "1%" | "2.5%" | "5%" | "10%" | null }
+
+/** Kwiatkowski-Phillips-Schmidt-Shin, Bartlett long-run variance, lag floor(4(T/100)^(1/4)). */
+export function kpss(y: number[], trend: "c" | "ct" = "c", lags?: number): KpssResult {
+  const n = y.length;
+  if (n < 12) throw new Error(`KPSS needs at least 12 observations, got ${n}`);
+  const X = y.map((_, t) => (trend === "ct" ? [1, t] : [1]));
+  const e = ols(y, X).resid;
+  const L = lags ?? Math.floor(4 * Math.pow(n / 100, 0.25));
+  let s2 = e.reduce((s, v) => s + v * v, 0) / n;
+  for (let l = 1; l <= L; l++) {
+    let g = 0;
+    for (let t = l; t < n; t++) g += e[t] * e[t - l];
+    s2 += 2 * (1 - l / (L + 1)) * (g / n);
+  }
+  let S = 0, num = 0;
+  for (let t = 0; t < n; t++) { S += e[t]; num += S * S; }
+  const stat = num / (n * n * s2);
+  const critical = trend === "ct"
+    ? { "10%": 0.119, "5%": 0.146, "2.5%": 0.176, "1%": 0.216 }
+    : { "10%": 0.347, "5%": 0.463, "2.5%": 0.574, "1%": 0.739 };
+  const reject = stat > critical["1%"] ? "1%" : stat > critical["2.5%"] ? "2.5%" : stat > critical["5%"] ? "5%" : stat > critical["10%"] ? "10%" : null;
+  return { trend, lags: L, statistic: stat, critical, reject_stationarity_at: reject };
+}
+
+// ---------------------------------------------------------------------------
+// Matrix helpers for the multivariate tools
+
+type Mat = number[][];
+const zeros = (r: number, c: number): Mat => Array.from({ length: r }, () => new Array<number>(c).fill(0));
+export function matmul(A: Mat, B: Mat): Mat {
+  const out = zeros(A.length, B[0].length);
+  for (let i = 0; i < A.length; i++) for (let k = 0; k < B.length; k++) { const a = A[i][k]; if (a === 0) continue; for (let j = 0; j < B[0].length; j++) out[i][j] += a * B[k][j]; }
+  return out;
+}
+export const transpose = (A: Mat): Mat => A[0].map((_, j) => A.map((r) => r[j]));
+/** Lower Cholesky factor of a symmetric positive definite matrix. */
+export function cholesky(A: Mat): Mat {
+  const n = A.length, L = zeros(n, n);
+  for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++) {
+    let s = A[i][j];
+    for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k];
+    if (i === j) { if (s <= 0) throw new Error("Matrix is not positive definite"); L[i][i] = Math.sqrt(s); } else L[i][j] = s / L[j][j];
+  }
+  return L;
+}
+/** Solve L X = B for lower-triangular L. */
+function forwardSolve(L: Mat, B: Mat): Mat {
+  const n = L.length, m = B[0].length, X = zeros(n, m);
+  for (let c = 0; c < m; c++) for (let i = 0; i < n; i++) { let s = B[i][c]; for (let k = 0; k < i; k++) s -= L[i][k] * X[k][c]; X[i][c] = s / L[i][i]; }
+  return X;
+}
+/** Eigen-decomposition of a symmetric matrix by cyclic Jacobi. Returns values descending and matching column vectors. */
+export function symEigen(A: Mat): { values: number[]; vectors: Mat } {
+  const n = A.length, M: Mat = A.map((r) => [...r]);
+  const V: Mat = A.map((_, i) => A.map((__, j) => (i === j ? 1 : 0)));
+  for (let sweep = 0; sweep < 100; sweep++) {
+    let off = 0;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += M[i][j] * M[i][j];
+    if (off < 1e-22) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+      if (Math.abs(M[p][q]) < 1e-300) continue;
+      const theta = (M[q][q] - M[p][p]) / (2 * M[p][q]);
+      const t = Math.sign(theta || 1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
+      const c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++) { const mkp = M[k][p], mkq = M[k][q]; M[k][p] = c * mkp - s * mkq; M[k][q] = s * mkp + c * mkq; }
+      for (let k = 0; k < n; k++) { const mpk = M[p][k], mqk = M[q][k]; M[p][k] = c * mpk - s * mqk; M[q][k] = s * mpk + c * mqk; }
+      for (let k = 0; k < n; k++) { const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; }
+    }
+  }
+  const order = M.map((_, i) => i).sort((a, b) => M[b][b] - M[a][a]);
+  return { values: order.map((i) => M[i][i]), vectors: V.map((row) => order.map((i) => row[i])) };
+}
+
+// ---------------------------------------------------------------------------
+// Johansen cointegration (trace test, unrestricted constant)
+
+export interface JohansenResult {
+  k: number; lags: number; nobs: number;
+  eigenvalues: number[];
+  trace: Array<{ r: number; statistic: number; critical: { "10%": number; "5%": number; "1%": number }; reject: boolean }>;
+  rank_at_5pct: number;
+  cointegrating_vector: number[] | null;
+}
+
+/** MacKinnon-Haug-Michelis trace critical values, constant in the VAR (statsmodels det_order=0), rows n-r = 1..5. */
+const JOHANSEN_TRACE_CV = [
+  [2.7055, 3.8415, 6.6349],
+  [13.4294, 15.4943, 19.9349],
+  [27.0669, 29.7961, 35.4628],
+  [44.4929, 47.8545, 54.6815],
+  [65.8202, 69.8189, 76.1631],
+];
+
+export function johansen(Y: number[][], lags = 1): JohansenResult {
+  // Y: rows = time, columns = variables
+  const T = Y.length, k = Y[0].length;
+  if (k < 2 || k > 5) throw new Error("Johansen here supports 2 to 5 series");
+  if (T < 10 * k + lags + 10) throw new Error(`Too few observations (${T}) for ${k} series with ${lags} lags`);
+  const dY = Y.slice(1).map((r, t) => r.map((v, j) => v - Y[t][j]));
+  const rows: number[][] = [], dyT: number[][] = [], lagY: number[][] = [];
+  for (let t = lags; t < dY.length; t++) {
+    const z = [1];
+    for (let l = 1; l <= lags; l++) z.push(...dY[t - l]);
+    rows.push(z); dyT.push(dY[t]); lagY.push(Y[t]); // Y[t] is y_{t-1} relative to dY[t] = y_{t+1}-y_t
+  }
+  const n = rows.length;
+  const residualsOn = (target: number[][]) => {
+    const out: number[][] = Array.from({ length: n }, () => new Array<number>(target[0].length).fill(0));
+    for (let j = 0; j < target[0].length; j++) {
+      const fit = ols(target.map((r) => r[j]), rows);
+      for (let t = 0; t < n; t++) out[t][j] = fit.resid[t];
+    }
+    return out;
+  };
+  const R0 = residualsOn(dyT), R1 = residualsOn(lagY);
+  const cross = (A: number[][], B: number[][]) => { const out = zeros(A[0].length, B[0].length); for (let t = 0; t < n; t++) for (let i = 0; i < A[0].length; i++) for (let j = 0; j < B[0].length; j++) out[i][j] += A[t][i] * B[t][j] / n; return out; };
+  const S00 = cross(R0, R0), S01 = cross(R0, R1), S10 = transpose(S01), S11 = cross(R1, R1);
+  const S00inv = inverse(S00);
+  if (!S00inv) throw new Error("Residual covariance is singular");
+  const L = cholesky(S11);
+  // M = L^-1 S10 S00^-1 S01 L^-T  (symmetric); eigenvalues are the canonical correlations squared
+  const A = matmul(matmul(S10, S00inv), S01);
+  const Linv = forwardSolve(L, A.map((_, i) => A.map((__, j) => (i === j ? 1 : 0))));
+  const M = matmul(matmul(Linv, A), transpose(Linv));
+  const { values, vectors } = symEigen(M);
+  const eig = values.map((v) => Math.min(Math.max(v, 0), 0.999999));
+  const trace = eig.map((_, r) => {
+    let s = 0;
+    for (let i = r; i < k; i++) s += Math.log(1 - eig[i]);
+    const stat = -n * s;
+    const cv = JOHANSEN_TRACE_CV[k - r - 1];
+    return { r, statistic: stat, critical: { "10%": cv[0], "5%": cv[1], "1%": cv[2] }, reject: stat > cv[1] };
+  });
+  let rank = 0;
+  for (const t of trace) { if (t.reject) rank = t.r + 1; else break; }
+  // First eigenvector back-transformed: beta = L^-T u
+  const u = vectors.map((row) => [row[0]]);
+  const beta = matmul(transpose(Linv), u).map((r) => r[0]);
+  const norm = beta[0] !== 0 ? beta.map((b) => b / beta[0]) : beta;
+  return { k, lags, nobs: n, eigenvalues: eig, trace, rank_at_5pct: rank, cointegrating_vector: rank > 0 ? norm : null };
+}
+
+// ---------------------------------------------------------------------------
+// VAR(p) with orthogonalised impulse responses and variance decomposition
+
+export interface VarResult {
+  p: number; k: number; nobs: number;
+  coef: number[][];              // k x (1 + k p): const, then A1..Ap column blocks
+  sigma: number[][];
+  aic: number; bic: number;
+  irf: number[][][];             // [h][response][shock], orthogonalised (Cholesky, variable order = input order)
+  fevd: number[][][];            // [h][variable][shock] shares
+  granger: Array<{ cause: number; effect: number; F: number; p: number }>;
+  fitted_last: number[];
+}
+
+export function varModel(Y: number[][], p: number, horizon = 12): VarResult {
+  const T = Y.length, k = Y[0].length;
+  if (T < k * p * 3 + 10) throw new Error(`Too few observations (${T}) for VAR(${p}) with ${k} variables`);
+  const X: number[][] = [], targets: number[][] = [];
+  for (let t = p; t < T; t++) {
+    const row = [1];
+    for (let l = 1; l <= p; l++) row.push(...Y[t - l]);
+    X.push(row); targets.push(Y[t]);
+  }
+  const n = X.length;
+  const fits = Array.from({ length: k }, (_, j) => ols(targets.map((r) => r[j]), X));
+  const coef = fits.map((f) => f.beta);
+  const resid = fits.map((f) => f.resid);
+  const sigma = zeros(k, k);
+  for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) { let s = 0; for (let t = 0; t < n; t++) s += resid[i][t] * resid[j][t]; sigma[i][j] = s / (n - X[0].length); }
+  const det = (() => { try { const L = cholesky(sigma); let d = 1; for (let i = 0; i < k; i++) d *= L[i][i] * L[i][i]; return d; } catch { return NaN; } })();
+  const nparam = k * X[0].length;
+  const aic = Math.log(det) + (2 * nparam) / n, bic = Math.log(det) + (Math.log(n) * nparam) / n;
+  // MA representation
+  const A = (l: number): Mat => coef.map((row) => row.slice(1 + (l - 1) * k, 1 + l * k));
+  const eye: Mat = Array.from({ length: k }, (_, i) => Array.from({ length: k }, (__, j) => (i === j ? 1 : 0)));
+  const Psi: Mat[] = [eye];
+  for (let s = 1; s <= horizon; s++) {
+    let acc = zeros(k, k);
+    for (let l = 1; l <= Math.min(s, p); l++) { const term = matmul(A(l), Psi[s - l]); acc = acc.map((r, i) => r.map((v, j) => v + term[i][j])); }
+    Psi.push(acc);
+  }
+  let P: Mat;
+  try { P = cholesky(sigma); } catch { P = sigma.map((r, i) => r.map((_, j) => (i === j ? Math.sqrt(Math.max(sigma[i][i], 0)) : 0))); }
+  const irf = Psi.map((Ps) => matmul(Ps, P));
+  const fevd: number[][][] = [];
+  const cum = zeros(k, k);
+  for (let h = 0; h <= horizon; h++) {
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) cum[i][j] += irf[h][i][j] * irf[h][i][j];
+    fevd.push(cum.map((row) => { const tot = row.reduce((a, b) => a + b, 0); return row.map((v) => (tot ? v / tot : 0)); }));
+  }
+  // Block Granger tests: does variable c help predict variable e beyond e's own lags and the other variables?
+  const granger: VarResult["granger"] = [];
+  for (let e = 0; e < k; e++) for (let c = 0; c < k; c++) {
+    if (c === e) continue;
+    const keep = X[0].map((_, idx) => idx === 0 || ((idx - 1) % k) !== c);
+    const Xr = X.map((row) => row.filter((_, idx) => keep[idx]));
+    const r = ols(targets.map((row) => row[e]), Xr);
+    const u = fits[e];
+    const F = ((r.rss - u.rss) / p) / (u.rss / (n - X[0].length));
+    granger.push({ cause: c, effect: e, F, p: fUpperP(F, p, n - X[0].length) });
+  }
+  return { p, k, nobs: n, coef, sigma, aic, bic, irf, fevd, granger, fitted_last: fits.map((f) => f.fitted[f.fitted.length - 1]) };
+}
+
+export function varSelectLag(Y: number[][], maxLag: number): number {
+  let best = 1, bestAic = Infinity;
+  for (let p = 1; p <= maxLag; p++) {
+    try { const m = varModel(Y, p, 1); if (m.aic < bestAic) { bestAic = m.aic; best = p; } } catch { break; }
+  }
+  return best;
+}
+
+// ---------------------------------------------------------------------------
+// ARIMA(p, d, q) by conditional sum of squares with Nelder-Mead
+
+function nelderMead(f: (x: number[]) => number, x0: number[], step = 0.1, iters = 2000): number[] {
+  const n = x0.length;
+  let simplex = [x0, ...x0.map((_, i) => x0.map((v, j) => (i === j ? v + step : v)))];
+  let vals = simplex.map(f);
+  for (let it = 0; it < iters; it++) {
+    const order = vals.map((_, i) => i).sort((a, b) => vals[a] - vals[b]);
+    simplex = order.map((i) => simplex[i]); vals = order.map((i) => vals[i]);
+    if (Math.abs(vals[n] - vals[0]) < 1e-10 * (1 + Math.abs(vals[0]))) break;
+    const centroid = x0.map((_, j) => simplex.slice(0, n).reduce((s, p) => s + p[j], 0) / n);
+    const worst = simplex[n];
+    const refl = centroid.map((c, j) => c + (c - worst[j]));
+    const fr = f(refl);
+    if (fr < vals[0]) {
+      const exp = centroid.map((c, j) => c + 2 * (c - worst[j]));
+      const fe = f(exp);
+      if (fe < fr) { simplex[n] = exp; vals[n] = fe; } else { simplex[n] = refl; vals[n] = fr; }
+    } else if (fr < vals[n - 1]) { simplex[n] = refl; vals[n] = fr; }
+    else {
+      const con = centroid.map((c, j) => c + 0.5 * (worst[j] - c));
+      const fc = f(con);
+      if (fc < vals[n]) { simplex[n] = con; vals[n] = fc; }
+      else { for (let i = 1; i <= n; i++) { simplex[i] = simplex[i].map((v, j) => simplex[0][j] + 0.5 * (v - simplex[0][j])); vals[i] = f(simplex[i]); } }
+    }
+  }
+  return simplex[vals.indexOf(Math.min(...vals))];
+}
+
+export interface ArimaResult { p: number; d: number; q: number; const: number; ar: number[]; ma: number[]; sse: number; aic: number; resid_sd: number; forecast: number[]; fitted: number[] }
+
+function armaCss(y: number[], p: number, q: number, theta: number[]): { sse: number; resid: number[]; fitted: number[] } {
+  const c = theta[0], phi = theta.slice(1, 1 + p), th = theta.slice(1 + p);
+  const n = y.length, e = new Array<number>(n).fill(0), fitted = new Array<number>(n).fill(NaN);
+  let sse = 0;
+  for (let t = Math.max(p, q); t < n; t++) {
+    let f = c;
+    for (let i = 0; i < p; i++) f += phi[i] * y[t - 1 - i];
+    for (let j = 0; j < q; j++) f += th[j] * e[t - 1 - j];
+    e[t] = y[t] - f; fitted[t] = f; sse += e[t] * e[t];
+  }
+  return { sse, resid: e, fitted };
+}
+
+export function arima(series: number[], p: number, d: number, q: number, h: number): ArimaResult {
+  let y = [...series];
+  const lastLevels: number[][] = [];
+  for (let i = 0; i < d; i++) { lastLevels.push([...y]); y = diff(y); }
+  const n = y.length;
+  if (n < 3 * (p + q) + 10) throw new Error(`Too few observations (${n}) for ARIMA(${p},${d},${q})`);
+  // Start from OLS AR fit, MA at zero
+  let x0: number[] = [mean(y), ...new Array<number>(p).fill(0), ...new Array<number>(q).fill(0)];
+  if (p > 0) { try { const ar = arForecast(y, p, 1); x0 = [ar.coef[0], ...ar.coef.slice(1), ...new Array<number>(q).fill(0)]; } catch { /* keep zeros */ } }
+  const obj = (th: number[]) => { const { sse } = armaCss(y, p, q, th); return Number.isFinite(sse) ? sse : 1e300; };
+  const theta = p + q > 0 ? nelderMead(obj, x0, 0.05) : x0;
+  const { sse, fitted } = armaCss(y, p, q, theta);
+  const eff = n - Math.max(p, q);
+  const kpar = 1 + p + q;
+  const aic = eff * Math.log(sse / eff) + 2 * kpar;
+  // Forecast on the differenced scale, then integrate
+  const c = theta[0], phi = theta.slice(1, 1 + p), th = theta.slice(1 + p);
+  const { resid } = armaCss(y, p, q, theta);
+  const hist = [...y], errs = [...resid];
+  const fc: number[] = [];
+  for (let i = 0; i < h; i++) {
+    let f = c;
+    for (let j = 0; j < p; j++) f += phi[j] * hist[hist.length - 1 - j];
+    for (let j = 0; j < q; j++) { const idx = errs.length - 1 - j; f += idx >= 0 && idx < resid.length + i ? th[j] * (idx < resid.length ? errs[idx] : 0) : 0; }
+    fc.push(f); hist.push(f); errs.push(0);
+  }
+  let level = fc;
+  for (let i = d - 1; i >= 0; i--) {
+    const last = lastLevels[i][lastLevels[i].length - 1];
+    let acc = last;
+    level = level.map((v) => (acc += v));
+  }
+  return { p, d, q, const: c, ar: phi, ma: th, sse, aic, resid_sd: Math.sqrt(sse / eff), forecast: level, fitted };
+}
+
+/** Pick (p, d, q) by AIC on a small grid; d from the ADF test unless given. */
+export function autoArima(series: number[], h: number, dFixed?: number, maxP = 3, maxQ = 2): ArimaResult {
+  let d = dFixed ?? 0;
+  if (dFixed === undefined) {
+    try { const a = adf(series, "c"); if (!a.reject_unit_root_at) { d = 1; const b = adf(diff(series), "c"); if (!b.reject_unit_root_at) d = 2; } } catch { d = 1; }
+  }
+  let best: ArimaResult | null = null;
+  for (let p = 0; p <= maxP; p++) for (let q = 0; q <= maxQ; q++) {
+    if (p === 0 && q === 0 && d === 0) continue;
+    try { const m = arima(series, p, d, q, h); if (!best || m.aic < best.aic) best = m; } catch { /* skip */ }
+  }
+  if (!best) throw new Error("No ARIMA order could be estimated");
+  return best;
+}
