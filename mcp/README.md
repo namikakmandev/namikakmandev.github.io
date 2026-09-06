@@ -71,33 +71,16 @@ If `MCP_API_KEYS` is set, add `--header "Authorization: Bearer <key>"` in Claude
 
 ## Deploy
 
-Pushes to `main` that touch `mcp/` deploy through `.github/workflows/deploy-mcp.yml` once `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` exist as repo secrets. By hand:
+The Worker is connected to this repository through Cloudflare Workers Builds: every push to `main` that touches `mcp/` builds and deploys it (root directory `mcp`, deploy command `npx wrangler deploy`). Nothing to run by hand.
 
-```bash
-cd mcp
-npm install
-npx wrangler login
-npm run deploy
-```
+Variables and secrets live in the Worker's settings in the Cloudflare dashboard and survive deploys (`keep_vars` in `wrangler.jsonc`):
 
-### Without a token: paste into the dashboard
+- `DATA_ORIGIN` (optional, defaults to the portfolio site)
+- `EVDS_API_KEY` for TCMB EVDS pulls
+- `FRED_API_KEY` for FRED catalogue search
+- `MCP_API_KEYS` comma-separated bearer tokens, when the server should not be open
 
-The same route the `assetix-ai` worker took. `dist-bundle/econ-mcp.js` is the whole server in one file (`npm run bundle` regenerates it).
-
-1. Cloudflare dashboard, Workers & Pages, Create, Create Worker, name it `econ-mcp`, Deploy the placeholder.
-2. Edit code, delete the placeholder, paste the contents of `dist-bundle/econ-mcp.js`, Deploy.
-3. Settings, Variables and Secrets: add `DATA_ORIGIN` = `https://namikakmandev.github.io` (plain text). Add `EVDS_API_KEY` as a secret if you want Turkish data.
-4. The endpoint is `https://econ-mcp.<your-subdomain>.workers.dev/mcp`. Open the root URL in a browser to see the server describe itself.
-
-Optional secrets, kept out of git:
-
-```bash
-npx wrangler secret put FRED_API_KEY    # FRED catalogue search
-npx wrangler secret put EVDS_API_KEY    # TCMB EVDS pulls
-npx wrangler secret put MCP_API_KEYS    # bearer tokens, comma-separated
-```
-
-The free Workers tier is enough: no storage, no Durable Objects. The heaviest call, a Holt-Winters grid search on 900 monthly points, is well under the CPU limit.
+Manual alternatives, should the git connection ever be off: `npm run deploy` after `npx wrangler login`, or paste `dist-bundle/econ-mcp.js` (regenerate with `npm run bundle`) into the Worker in the dashboard.
 
 ## Develop and test
 
