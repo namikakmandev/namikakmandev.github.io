@@ -825,7 +825,7 @@ const imf: Provider = {
     for (const [k, v] of Object.entries(parsed.series)) { const c = clip(v, params.start, params.end); if (Object.keys(c).length) series[k] = c; }
     if (!Object.keys(series).length) throw new DataError(`IMF returned no observations for ${id}. Columns: ${columns.slice(0, 10).join(", ")}. Check the key order for this dataflow with search_external.`);
     return { provider: "imf", id, source: `IMF Data ${agency} ${flow} ${key}`, url, series,
-      notes: ["WEO series mix actuals and projections: values after the release's last actual year are IMF forecasts. Series keys are the dimension values joined with '.'."] };
+      notes: [flow.toUpperCase().startsWith("WEO") ? "WEO series mix actuals and projections: values after the release's last actual year are IMF forecasts." : "IMF compilation of national data; units and base periods are in the dataflow's codelists.", "Series keys are the dimension values joined with '.'."] };
   },
   async search(query) {
     const out = curatedSearch(imf.curated, query);
