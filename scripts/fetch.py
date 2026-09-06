@@ -468,14 +468,12 @@ def evds(entry):
         # Also probe the catalogue endpoints, whose parameter rules are undocumented,
         # so the MCP server's search can be pointed at the variant that answers.
         base = "https://evds3.tcmb.gov.tr/igmevdsms-dis/"
+        # No '?' before the parameters: EVDS routes on the path, as the data endpoint does.
         probes = {
-            "categories": (base + "categories/?type=json", True),
-            "datagroups_mode0_code": (base + "datagroups/?mode=0&code=&type=json", True),
-            "datagroups_mode0_nocode": (base + "datagroups/?mode=0&type=json", True),
-            "datagroups_mode0_keyparam": (base + f"datagroups/?mode=0&code=&type=json&key={key}", False),
-            "datagroups_mode1_cat1": (base + "datagroups/?mode=1&code=1&type=json", True),
-            "datagroups_mode2_tufe": (base + "datagroups/?mode=2&code=bie_fiyattufe&type=json", True),
-            "serieList_tufe": (base + "serieList/?type=json&code=bie_fiyattufe", True),
+            "categories": (base + "categories/type=json", True),
+            "datagroups_all": (base + "datagroups/mode=0&code=&type=json", True),
+            "datagroups_tufe": (base + "datagroups/mode=2&code=bie_fiyattufe&type=json", True),
+            "serieList_tufe": (base + "serieList/type=json&code=bie_fiyattufe", True),
         }
         catalogue = {}
         for name, (purl, header) in probes.items():
