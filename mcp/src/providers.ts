@@ -791,7 +791,7 @@ const imf: Provider = {
   name: "imf",
   title: "IMF Data",
   coverage: "IMF datasets: World Economic Outlook (actuals and projections to five years ahead for 190+ countries), consumer prices, International Financial Statistics, balance of payments, fiscal and monetary series. Annual, quarterly, monthly.",
-  id_format: "'AGENCY/DATAFLOW/KEY' as in the IMF Data portal's API tab, e.g. IMF.RES/WEO/TUR.NGDP_RPCH.A (WEO: COUNTRY.INDICATOR.FREQ), IMF.STA/CPI/TUR.CPI._T.IX.M. Several countries with '+': TUR+USA+DEU. A '*' wildcards a dimension. params: start/end as YYYY or YYYY-MM, version (default latest).",
+  id_format: "'AGENCY/DATAFLOW/KEY' as in the IMF Data portal's API tab, e.g. IMF.RES/WEO/TUR.NGDP_RPCH.A (WEO: COUNTRY.INDICATOR.FREQ), IMF.STA/CPI/TUR.CPI._T.IX.Q (CPI: COUNTRY.INDEX_TYPE.COICOP.TRANSFORMATION.FREQ). Wildcard a dimension with '*' to list what exists, e.g. IMF.STA/CPI/TUR.*.*.*.*. Several countries with '+': TUR+USA+DEU. A '*' wildcards a dimension. params: start/end as YYYY or YYYY-MM, version (default latest).",
   needs_key: null,
   curated: [
     { id: "IMF.RES/WEO/TUR.NGDP_RPCH.A", title: "Türkiye real GDP growth, %, WEO actuals and projections" },
@@ -802,8 +802,10 @@ const imf: Provider = {
     { id: "IMF.RES/WEO/TUR.NGDPDPC.A", title: "Türkiye GDP per capita, current USD, WEO" },
     { id: "IMF.RES/WEO/TUR+USA+DEU+CHN.NGDP_RPCH.A", title: "Real GDP growth, four economies, WEO" },
     { id: "IMF.RES/WEO/WEOWORLD.NGDP_RPCH.A", title: "World real GDP growth, WEO" },
-    { id: "IMF.STA/CPI/TUR.CPI._T.IX.M", title: "Türkiye CPI index, all items, monthly (IMF CPI database)" },
-    { id: "IMF.STA/CPI/TUR+USA+DEU.CPI._T.IX.M", title: "CPI index, three economies, monthly" },
+    { id: "IMF.STA/CPI/TUR.CPI._T.IX.Q", title: "Türkiye CPI index, all items, quarterly (IMF CPI database; also .A)" },
+    { id: "IMF.STA/CPI/TUR.CPI._T.YOY_PCH_PA_PT.Q", title: "Türkiye CPI inflation, % year on year, quarterly" },
+    { id: "IMF.STA/CPI/TUR.HICP._T.IX.Q", title: "Türkiye HICP index, quarterly" },
+    { id: "IMF.STA/CPI/TUR+USA+DEU.CPI._T.YOY_PCH_PA_PT.A", title: "CPI inflation, three economies, annual" },
   ],
   async fetch(id, params) {
     const m = /^([^/]+)\/([^/]+)\/(.+)$/.exec(id.trim());
