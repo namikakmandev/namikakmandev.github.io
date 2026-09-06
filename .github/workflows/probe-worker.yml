@@ -1,25 +1,58 @@
 name: Probe worker
 
 # The dev sandbox cannot reach the Worker (the network policy 403s it), so this is
-# the way to see what the Worker actually returns. Prints status lines, headers and
-# bodies for the endpoints a connector touches. The root listing reports key
-# *presence* only, never values, so nothing secret ends up in the log.
+# the way to see what the Worker actually returns. Resolves the host first (a typo in
+# the subdomain looks exactly like a broken server from a client), then prints status
+# lines, headers and bodies for the endpoints a connector touches. The root listing
+# reports key *presence* only, never values, so nothing secret ends up in the log.
+#
+# The account subdomain is akmannamik83, so the endpoint is
+# https://econ-mcp.akmannamik83.workers.dev/mcp.
 
 on:
   workflow_dispatch:
     inputs:
-      base:
-        description: Worker origin
+      hosts:
+        description: Space-separated candidate hostnames to resolve
         required: false
-        default: https://econ-mcp.namikakman.workers.dev
+        default: econ-mcp.akmannamik83.workers.dev
+      base:
+        description: Worker origin to probe in depth (blank = the first candidate that resolves)
+        required: false
+        default: ""
 
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - name: Which candidate hostname actually resolves
+        id: find
+        env:
+          HOSTS: ${{ inputs.hosts }}
+          BASE: ${{ inputs.base }}
+        run: |
+          found=""
+          for h in $HOSTS; do
+            ip=$(dig +short "$h" | tail -1)
+            if [ -n "$ip" ]; then
+              code=$(curl -sS -m 20 -o /dev/null -w '%{http_code}' "https://$h/health" || echo 000)
+              echo "RESOLVES  $h -> $ip   GET /health -> HTTP $code"
+              [ -z "$found" ] && [ "$code" = "200" ] && found="https://$h"
+            else
+              echo "no DNS    $h"
+            fi
+          done
+          base="${BASE:-$found}"
+          if [ -z "$base" ]; then
+            echo "::error::None of the candidate hostnames resolve to a live Worker. Read the list above."
+            exit 1
+          fi
+          echo "Probing $base"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
       - name: GET the endpoints a client discovers
         env:
-          BASE: ${{ inputs.base }}
+          BASE: ${{ steps.find.outputs.base }}
         run: |
           for p in "/" "/health" \
                    "/.well-known/oauth-protected-resource" \
@@ -37,7 +70,7 @@ jobs:
 
       - name: POST an MCP initialize with no credentials
         env:
-          BASE: ${{ inputs.base }}
+          BASE: ${{ steps.find.outputs.base }}
         run: |
           echo "=============================================================="
           echo "POST /mcp  (initialize, unauthenticated)"
@@ -51,7 +84,7 @@ jobs:
 
       - name: Verdict
         env:
-          BASE: ${{ inputs.base }}
+          BASE: ${{ steps.find.outputs.base }}
         run: |
           auth=$(curl -sS -m 25 "$BASE/" | grep -o '"auth": *"[^"]*"' || true)
           code=$(curl -sS -m 25 -o /dev/null -w '%{http_code}' -X POST "$BASE/mcp" \
