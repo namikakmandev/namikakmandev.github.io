@@ -83,6 +83,19 @@ function profile(r: Resolved) {
   return { dates, v, n, frequency, period, summary: out, adfLevel, adfDiff, decomposition, trendFit };
 }
 
+/** ARCH-LM on the series' own returns (log differences when positive, plain differences otherwise). */
+function archProbe(v: number[]): { statistic: number; p: number; lags: number } | null {
+  if (v.length < 60) return null;
+  const pos = v.every((x) => x > 0);
+  const r: number[] = [];
+  for (let i = 1; i < v.length; i++) {
+    const x = pos ? Math.log(v[i] / v[i - 1]) * 100 : v[i] - v[i - 1];
+    if (Number.isFinite(x)) r.push(x);
+  }
+  if (r.length < 60) return null;
+  try { return S.archLM(r, Math.min(5, Math.floor(r.length / 10))); } catch { return null; }
+}
+
 function adfOut(a: S.AdfResult | null) {
   if (!a) return null;
   return { spec: a.spec, lags: a.lags, nobs: a.nobs, statistic: r3(a.statistic), critical: { "1%": r3(a.critical["1%"]), "5%": r3(a.critical["5%"]), "10%": r3(a.critical["10%"]) }, reject_unit_root_at: a.reject_unit_root_at };
@@ -906,7 +919,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "suggest_analysis",
     {
       title: "Suggest an analysis plan",
-      description: "Inspect one or more series (frequency, length, integration order, trend, seasonality, overlap) and return an ordered plan of tool calls with the reason for each, plus the pitfalls the data carry. Use it before choosing a method.",
+      description: "Inspect one or more series (frequency, length, integration order, trend, seasonality, volatility clustering, overlap) and return an ordered plan of tool calls with the reason for each, plus the pitfalls the data carry. Routes to the right member of the toolkit, including volatility for ARCH effects, principal_components for three or more series, quantile_regress for tail behaviour and panel_regress when the series come from a country panel. Use it before choosing a method.",
       inputSchema: { series: z.array(REF).min(1).max(4), question: z.string().optional().describe("What you want to know, e.g. 'does feed price drive cattle price?'") },
       annotations: { readOnlyHint: true },
     },
@@ -919,6 +932,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         trending: p.trendFit ? Math.abs(p.trendFit.t[1]) > 4 : false,
         seasonal_strength: p.decomposition ? r3(p.decomposition.seasonal_strength) : null,
         positive_only: p.v.every((x) => x > 0),
+        volatility_clustering_p: (() => { const a = archProbe(p.v); return a ? r4(a.p) : null; })(),
         caveats: rs[i].caveats,
       }));
       const plan: Array<{ step: number; tool: string; why: string; args?: Record<string, unknown> }> = [];
@@ -940,6 +954,12 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       }
       for (const [i, f] of facts.entries()) {
         plan.push({ step: step++, tool: "describe_stats", why: `Baseline for ${f.label}: distribution, autocorrelation, unit root`, args: { series: refOf(i) } });
+      }
+      for (const [i, f] of facts.entries()) {
+        if (f.volatility_clustering_p !== null && (f.volatility_clustering_p as number) < 0.05) {
+          pitfalls.push(`${f.label}: volatility clusters (ARCH-LM p ${f.volatility_clustering_p}), so a constant-variance model understates risk in turbulent stretches and forecast bands are too narrow there.`);
+          plan.push({ step: step++, tool: "volatility", why: `Model the changing variance of ${f.label}: persistence, current versus normal volatility, one-step forecast`, args: { series: { ...refOf(i), transform: f.positive_only ? "pct_change" : "diff" } } });
+        }
       }
       const single = facts.length === 1;
       if (single) {
@@ -970,9 +990,32 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           plan.push({ step: step++, tool: "granger_causality", why: "On stationary transforms, test precedence", args: { a: stationaryArgs(0), b: stationaryArgs(1) } });
           plan.push({ step: step++, tool: "regress", why: "Growth-on-growth regression with HAC errors", args: { y: stationaryArgs(0), x: facts.slice(1).map((_, j) => stationaryArgs(j + 1)) } });
         }
+        if (facts.length >= 3) {
+          plan.push({ step: step++, tool: "principal_components", why: `${facts.length} series: see whether one common factor drives most of their joint movement before modelling them one by one`, args: { series: facts.map((_, i) => stationaryArgs(i)) } });
+        }
+        if (facts[0].n >= 60) {
+          plan.push({ step: step++, tool: "quantile_regress", why: "Check whether the relation is the same in calm and extreme periods, not only on average", args: { y: stationaryArgs(0), x: [stationaryArgs(1)] } });
+        }
         plan.push({ step: step++, tool: "var_model", why: "On stationary transforms, trace how a shock to one series propagates to the others and how much of each series' variance the others explain", args: { series: facts.map((_, i) => stationaryArgs(i)) } });
         plan.push({ step: step++, tool: "rolling", why: "Check whether the relationship is stable over time before quoting one number", args: { series: stationaryArgs(0), other: stationaryArgs(1), stat: "corr", window: facts[0].frequency === "monthly" ? 36 : 10 } });
         plan.push({ step: step++, tool: "structural_break", why: "Locate a regime change in the relation, then re-estimate on the stable sample", args: { y: stationaryArgs(0), x: stationaryArgs(1) } });
+      }
+      // Series drawn from a country panel (keys 'UNIT|INDICATOR'): the same question can be
+      // asked of every country at once, which is a different and usually stronger test.
+      const panel = (() => {
+        const sets = series.map((r) => (r.dataset && r.series && r.series.includes("|") ? { ds: r.dataset, ind: r.series.slice(r.series.indexOf("|") + 1) } : null));
+        if (sets.some((x) => x === null)) return null;
+        const ds = new Set(sets.map((x) => x!.ds));
+        if (ds.size !== 1) return null;
+        const inds = [...new Set(sets.map((x) => x!.ind))];
+        return { dataset: [...ds][0], indicators: inds };
+      })();
+      if (panel) {
+        if (panel.indicators.length >= 2) {
+          plan.push({ step: step++, tool: "panel_regress", why: `These come from the ${panel.dataset} country panel: estimate the same relation across every country at once, with country fixed effects and errors clustered by country, instead of one country at a time`, args: { dataset: panel.dataset, y: panel.indicators[0], x: panel.indicators.slice(1), effects: "unit" } });
+        } else {
+          pitfalls.push(`All ${facts.length} series are '${panel.indicators[0]}' for different countries in ${panel.dataset}. Comparing two countries answers a narrower question than panel_regress across all of them.`);
+        }
       }
       return text({
         question: question ?? null,
