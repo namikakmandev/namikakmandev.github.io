@@ -105,5 +105,5 @@ Provider parsers are tested against canned replies in `test/fixtures.mjs` in the
 ## Later
 
 - Per-user login (OAuth 2.1 through Cloudflare's `workers-oauth-provider`) and Stripe metering. The bearer check in `src/index.ts` is the seam.
-- Johansen cointegration and VAR/VECM for more than two series, ARIMA with automatic order, KPSS as a complement to ADF.
-- IMF and BIS providers once their SDMX 3 endpoints settle.
+- Vector error-correction models and structural VAR identification beyond Cholesky ordering.
+- IMF provider once its SDMX 3 endpoint settles; EIA with a key.
