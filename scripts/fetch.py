@@ -12,7 +12,7 @@ Usage
         -> do not parse; dump what the source actually returns (columns, dimension
            names, category codes) so a parser can be written against reality
 
-Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation | evds | xlsx | fao
+Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation | evds | xlsx | fao | imf
 Every run writes data/_fetch-report.json recording what each source returned, so a
 silent zero is visible instead of looking like a real answer.
 """
@@ -581,6 +581,51 @@ def fao(entry):
     return dict(out)
 
 
+def imf(entry):
+    """IMF Data (SDMX 3.0, keyless). entry['agency'] (IMF.RES, IMF.STA), entry['dataflow']
+    (WEO, CPI, ...), entry['key'] as in the portal's API tab with '+' lists and '*' wildcards,
+    optional 'version' (default latest). Series keys join the dimension values that vary,
+    with '|'; entry['rename'] {dimension_value: key} relabels values (e.g. TUR -> TR)."""
+    version = entry.get("version", "+")
+    url = (f"https://api.imf.org/external/sdmx/3.0/data/dataflow/{entry['agency']}/"
+           f"{entry['dataflow']}/{urllib.parse.quote(version, safe='')}/{entry['key']}")
+    req = urllib.request.Request(url, headers={**UA, "Accept": "text/csv"})
+    try:
+        with urllib.request.urlopen(req, timeout=300) as r:
+            text = r.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as ex:
+        raise RuntimeError(f"IMF HTTP {ex.code}: {ex.read().decode('utf-8', 'replace')[:300]}")
+    rows = list(csv.reader(io.StringIO(text)))
+    if not rows:
+        raise RuntimeError("IMF returned an empty body")
+    header = rows[0]
+    if MODE == "discover":
+        return {"_discover": {"url": url, "columns": header, "n_rows": len(rows) - 1, "sample": rows[1:4]}}
+    try:
+        a, t, v = header.index("ACTION"), header.index("TIME_PERIOD"), header.index("OBS_VALUE")
+    except ValueError:
+        raise RuntimeError(f"unexpected IMF CSV columns: {header[:10]}")
+    dims = list(range(a + 1, t))
+    body = [r for r in rows[1:] if len(r) > v]
+    varying = [i for i in dims if len({r[i] for r in body}) > 1]
+    rename = entry.get("rename", {})
+    out = defaultdict(dict)
+    for r in body:
+        try:
+            val = float(r[v])
+        except ValueError:
+            continue
+        per = r[t].strip()
+        m = re.match(r"^(\d{4})-?(Q[1-4]|M\d{2})?$", per)
+        if not m:
+            continue
+        period = m.group(1) + (("-" + m.group(2)) if m.group(2) and m.group(2).startswith("Q") else
+                               ("-" + m.group(2)[1:]) if m.group(2) else "")
+        key = "|".join(rename.get(r[i], r[i]) for i in varying) or "value"
+        out[key][period] = val
+    return dict(out)
+
+
 def xlsx(entry):
     """An Excel workbook with one code row and a date in the first column, such as
     the World Bank Pink Sheet. entry['url'], or entry['page'] + 'match' (a regex for
@@ -651,7 +696,7 @@ def xlsx(entry):
 
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
              "yahoo": yahoo, "yahoo_valuation": yahoo_valuation,
-             "geojson_filter": geojson_filter, "evds": evds, "xlsx": xlsx, "fao": fao}
+             "geojson_filter": geojson_filter, "evds": evds, "xlsx": xlsx, "fao": fao, "imf": imf}
 
 
 # ----------------------------------------------------------------- runner
