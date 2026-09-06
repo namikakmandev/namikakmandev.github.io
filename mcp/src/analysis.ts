@@ -11,6 +11,7 @@ import { PROVIDERS, providerInfo, type ProviderEnv } from "./providers.js";
 import { SeriesRefSchema, align, detectFrequency, futureDates, resolve, type Resolved, type SeriesRef } from "./resolve.js";
 import { round, toPoints } from "./transform.js";
 import * as S from "./stats.js";
+import { SERVER_BUILD } from "./version.js";
 
 const r4 = (x: number) => (Number.isFinite(x) ? Math.round(x * 10000) / 10000 : null);
 const r3 = (x: number) => (Number.isFinite(x) ? Math.round(x * 1000) / 1000 : null);
@@ -103,7 +104,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
       inputSchema: {},
       annotations: { readOnlyHint: true },
     },
-    wrap(async () => text({ providers: providerInfo(env), how: "search_external to find an id, fetch_external to pull it, or pass {provider, id} straight into any analysis tool." })),
+    wrap(async () => text({ server_build: SERVER_BUILD, providers: providerInfo(env), how: "search_external to find an id, fetch_external to pull it, or pass {provider, id} straight into any analysis tool." })),
   );
 
   server.registerTool(
