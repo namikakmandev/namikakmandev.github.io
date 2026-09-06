@@ -16,7 +16,7 @@ Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation | evds | xlsx
 Every run writes data/_fetch-report.json recording what each source returned, so a
 silent zero is visible instead of looking like a real answer.
 """
-import calendar, csv, http.cookiejar, io, json, os, re, sys, time, urllib.parse, urllib.request
+import calendar, csv, http.cookiejar, io, json, os, re, sys, time, urllib.error, urllib.parse, urllib.request
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -465,8 +465,32 @@ def evds(entry):
         raise RuntimeError("EVDS returned HTML instead of JSON: key rejected or endpoint moved")
     items = json.loads(raw).get("items", [])
     if MODE == "discover":
+        # Also probe the catalogue endpoints, whose parameter rules are undocumented,
+        # so the MCP server's search can be pointed at the variant that answers.
+        base = "https://evds3.tcmb.gov.tr/igmevdsms-dis/"
+        probes = {
+            "categories": (base + "categories/?type=json", True),
+            "datagroups_mode0_code": (base + "datagroups/?mode=0&code=&type=json", True),
+            "datagroups_mode0_nocode": (base + "datagroups/?mode=0&type=json", True),
+            "datagroups_mode0_keyparam": (base + f"datagroups/?mode=0&code=&type=json&key={key}", False),
+            "datagroups_mode1_cat1": (base + "datagroups/?mode=1&code=1&type=json", True),
+            "datagroups_mode2_tufe": (base + "datagroups/?mode=2&code=bie_fiyattufe&type=json", True),
+            "serieList_tufe": (base + "serieList/?type=json&code=bie_fiyattufe", True),
+        }
+        catalogue = {}
+        for name, (purl, header) in probes.items():
+            try:
+                preq = urllib.request.Request(purl, headers={**UA, **({"key": key} if header else {})})
+                with urllib.request.urlopen(preq, timeout=60) as r:
+                    body = r.read().decode("utf-8", "replace")
+                catalogue[name] = {"status": 200, "head": body[:400]}
+            except urllib.error.HTTPError as ex:
+                catalogue[name] = {"status": ex.code, "head": ex.read().decode("utf-8", "replace")[:400]}
+            except Exception as ex:
+                catalogue[name] = {"error": f"{type(ex).__name__}: {ex}"}
         return {"_discover": {"url": url, "n_items": len(items), "sample": items[:3],
-                              "keys": sorted({k for it in items for k in it})}}
+                              "keys": sorted({k for it in items for k in it}),
+                              "catalogue": catalogue}}
     out = defaultdict(dict)
     for it in items:
         t = _evds_date(str(it.get("Tarih", "")))
@@ -512,17 +536,27 @@ def xlsx(entry):
     if MODE == "discover":
         return {"_discover": {"url": url, "sheets": wb.sheetnames, "n_rows": len(rows),
                               "first_rows": [list(r[:14]) for r in rows[:10]]}}
-    marker = entry.get("code_row_contains", "CRUDE_PETRO").upper()
-    norm = lambda c: str(c).strip().upper()
+    # The header row is found by one of its cells. Cells are matched after dropping
+    # footnote asterisks and stray spaces ('Coal, South African **'); a column that has
+    # no exact match falls back to the first header containing it ('Meat, beef' for 'beef').
+    norm = lambda c: re.sub(r"[\s*]+", " ", str(c)).strip().upper()
+    marker = norm(entry.get("code_row_contains", "Crude oil, average"))
     code_row = next((r for r in rows if any(norm(c) == marker for c in r if c is not None)), None)
     if code_row is None:
         sample = [[c for c in r[:8]] for r in rows[:8]]
         raise RuntimeError(f"no row containing {marker!r} in sheet {ws.title}; first rows: {sample}")
-    idx = {norm(c): i for i, c in enumerate(code_row) if c is not None}
-    entry = {**entry, "columns": {k: v.upper() for k, v in entry["columns"].items()}}
+    headers = [(norm(c), i) for i, c in enumerate(code_row) if c is not None]
+    idx = {}
+    for k, want in entry["columns"].items():
+        w = norm(want)
+        hit = next((i for h, i in headers if h == w), None)
+        if hit is None:
+            hit = next((i for h, i in headers if w in h), None)
+        if hit is not None:
+            idx[want] = hit
     missing = [c for c in entry["columns"].values() if c not in idx]
     if missing:
-        print(f"[warn] {entry['name']}: columns not in code row: {missing}")
+        print(f"[warn] {entry['name']}: columns not in header row: {missing}; headers: {[h for h, _ in headers]}")
     date_re = re.compile(entry.get("date_re", r"^(\d{4})M(\d{2})$"))
     out = defaultdict(dict)
     for r in rows:

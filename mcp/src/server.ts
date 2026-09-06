@@ -12,8 +12,8 @@ import { apply, clip, correlation, resample, round, toPoints, type Frequency, ty
 import { registerAnalysis, registerProviders } from "./analysis.js";
 import type { ProviderEnv } from "./providers.js";
 
-export const SERVER_NAME = "econ-data";
-export const SERVER_VERSION = "0.2.0";
+export { SERVER_NAME, SERVER_VERSION, SERVER_BUILD } from "./version.js";
+import { SERVER_NAME, SERVER_VERSION } from "./version.js";
 
 const RAW_LIMIT_BYTES = 200_000;
 
