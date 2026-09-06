@@ -609,6 +609,8 @@ export interface JohansenResult {
   trace: Array<{ r: number; statistic: number; critical: { "10%": number; "5%": number; "1%": number }; reject: boolean }>;
   rank_at_5pct: number;
   cointegrating_vector: number[] | null;
+  /** All k candidate vectors (columns, ordered by eigenvalue), each normalised on the first series. */
+  vectors: number[][];
 }
 
 /** MacKinnon-Haug-Michelis trace critical values, constant in the VAR (statsmodels det_order=0), rows n-r = 1..5. */
@@ -662,11 +664,55 @@ export function johansen(Y: number[][], lags = 1): JohansenResult {
   });
   let rank = 0;
   for (const t of trace) { if (t.reject) rank = t.r + 1; else break; }
-  // First eigenvector back-transformed: beta = L^-T u
-  const u = vectors.map((row) => [row[0]]);
-  const beta = matmul(transpose(Linv), u).map((r) => r[0]);
-  const norm = beta[0] !== 0 ? beta.map((b) => b / beta[0]) : beta;
-  return { k, lags, nobs: n, eigenvalues: eig, trace, rank_at_5pct: rank, cointegrating_vector: rank > 0 ? norm : null };
+  // Eigenvectors back-transformed: beta = L^-T u, each column normalised on the first series
+  const B = matmul(transpose(Linv), vectors);
+  const cols: number[][] = [];
+  for (let c = 0; c < k; c++) { const col = B.map((r) => r[c]); cols.push(col[0] !== 0 ? col.map((b) => b / col[0]) : col); }
+  const betaAll = cols[0].map((_, i) => cols.map((col) => col[i]));   // k x k
+  return { k, lags, nobs: n, eigenvalues: eig, trace, rank_at_5pct: rank, cointegrating_vector: rank > 0 ? cols[0] : null, vectors: betaAll };
+}
+
+// ---------------------------------------------------------------------------
+// Vector error-correction model: dy_t = c + alpha (beta' y_{t-1}) + sum Gamma_l dy_{t-l} + e_t
+
+export interface VecmResult {
+  k: number; lags: number; rank: number; nobs: number;
+  beta: number[][];          // k x r, each column normalised on the first series
+  alpha: number[][];         // k x r adjustment coefficients (row = equation)
+  alpha_t: number[][];
+  alpha_p: number[][];
+  gamma: number[][][];       // [lag][equation][variable] short-run coefficients
+  constant: number[];
+  r2: number[];
+  ect: number[][];           // error-correction terms beta' y_t for every t (rows = time, cols = r)
+  johansen: JohansenResult;
+}
+
+export function vecm(Y: number[][], lags = 1, rank?: number): VecmResult {
+  const j = johansen(Y, lags);
+  const k = j.k;
+  const r = rank ?? j.rank_at_5pct;
+  if (r < 1) throw new Error("No cointegrating relation at 5% (rank 0): estimate a VAR on differences instead, or pass rank explicitly.");
+  if (r >= k) throw new Error(`Rank must be below the number of series (${k}); rank ${k} means every series is stationary in levels.`);
+  const beta = Y[0].map((_, i) => j.vectors[i].slice(0, r));   // k x r
+  const ectAt = (y: number[]) => beta[0].map((_, c) => y.reduce((sum, v, i) => sum + v * beta[i][c], 0));
+  const dY = Y.slice(1).map((row, t) => row.map((v, i) => v - Y[t][i]));
+  const X: number[][] = [], targets: number[][] = [];
+  for (let t = lags; t < dY.length; t++) {
+    const z = [1, ...ectAt(Y[t])];          // Y[t] is y_{t-1} for dY[t]
+    for (let l = 1; l <= lags; l++) z.push(...dY[t - l]);
+    X.push(z); targets.push(dY[t]);
+  }
+  const alpha: number[][] = [], alpha_t: number[][] = [], alpha_p: number[][] = [], constant: number[] = [], r2: number[] = [];
+  const gamma: number[][][] = Array.from({ length: lags }, () => Array.from({ length: k }, () => new Array<number>(k).fill(0)));
+  for (let eq = 0; eq < k; eq++) {
+    const fit = ols(targets.map((row) => row[eq]), X);
+    constant.push(fit.beta[0]);
+    alpha.push(fit.beta.slice(1, 1 + r)); alpha_t.push(fit.t.slice(1, 1 + r)); alpha_p.push(fit.p.slice(1, 1 + r));
+    for (let l = 0; l < lags; l++) for (let v = 0; v < k; v++) gamma[l][eq][v] = fit.beta[1 + r + l * k + v];
+    r2.push(fit.r2);
+  }
+  return { k, lags, rank: r, nobs: X.length, beta, alpha, alpha_t, alpha_p, gamma, constant, r2, ect: Y.map(ectAt), johansen: j };
 }
 
 // ---------------------------------------------------------------------------

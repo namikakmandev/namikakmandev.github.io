@@ -301,6 +301,16 @@ await check("johansen on cattle, corn and CPI logs returns trace tests and a ran
   assert.ok(j.rank_at_5pct >= 0 && j.rank_at_5pct <= 3);
 });
 
+await check("vecm on cattle and corn logs reports adjustment and the current deviation, or a clear rank-0 message", async () => {
+  const r = await callRaw("vecm", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2 });
+  const t = r.content[0].text;
+  if (r.isError) assert.match(t, /rank 0|No cointegrating/);
+  else { const j = JSON.parse(t); assert.ok(j.relations.length >= 1 && typeof j.relations[0].ect_last === "number"); assert.ok(j.reading.length > 20); }
+  const forced = await call("vecm", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2, rank: 1 });
+  assert.equal(forced.rank, 1);
+  assert.equal(forced.relations[0].adjustment.length, 2);
+});
+
 await check("var_model on growth rates gives IRFs, FEVD and block Granger tests", async () => {
   const j = await call("var_model", { series: [{ ...CORN, transform: "pct_change", start: "1995-01" }, { ...CATTLE, transform: "pct_change", start: "1995-01" }], horizon: 6 });
   assert.ok(j.lags >= 1);
