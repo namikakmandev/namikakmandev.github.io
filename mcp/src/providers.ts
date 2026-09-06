@@ -633,12 +633,16 @@ async function faoAuth(env: ProviderEnv): Promise<string> {
     throw new DataError(`FAOSTAT now requires a free developer account. Register at ${FAO_PORTAL}, then set FAOSTAT_USER and FAOSTAT_PASSWORD on the server (Cloudflare dashboard, Worker settings, variables and secrets).`);
   }
   if (faoToken && Date.now() - faoToken.at < FAO_TOKEN_TTL_MS) return faoToken.token;
+  // FAO's edge rejects requests without a User-Agent with an HTML 403, so send the same one as the data calls.
   const res = await fetch(FAO_BASE + "auth/login", {
     method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "user-agent": "econ-mcp/0.4 (+https://namikakmandev.github.io)", origin: "https://www.fao.org", referer: "https://www.fao.org/faostat/en/" },
     body: qs({ username: env.FAOSTAT_USER, password: env.FAOSTAT_PASSWORD }),
   });
-  if (!res.ok) throw new DataError(`FAOSTAT login failed (${res.status}): check FAOSTAT_USER and FAOSTAT_PASSWORD. ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) {
+    const body = (await res.text()).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300);
+    throw new DataError(`FAOSTAT login failed (${res.status}). ${res.status === 400 || res.status === 401 ? "Check FAOSTAT_USER (try the account email) and FAOSTAT_PASSWORD." : "The FAOSTAT edge refused the request."} Reply: ${body}`);
+  }
   const j = (await res.json()) as { AuthenticationResult?: { AccessToken?: string } };
   const token = j?.AuthenticationResult?.AccessToken;
   if (!token) throw new DataError("FAOSTAT login answered without an access token; the login response shape may have changed.");
