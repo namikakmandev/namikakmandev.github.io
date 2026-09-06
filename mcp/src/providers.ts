@@ -707,19 +707,23 @@ const fao: Provider = {
     if (params.year) q.year = faoList(params.year)!;
     const path = `data/${domain}?${qs(q)}`;
     const j = (await faoGet(path, env)) as { data?: Record<string, string | number>[] };
-    const rows = Array.isArray(j?.data) ? j.data : [];
-    if (!rows.length) {
-      // Element codes moved in FAOSTAT's 2023 recoding, so a stale code is the usual cause.
-      // Re-run without the element filter and tell the caller which elements this item carries.
-      if (params.element && params.item) {
-        const { element: _e, ...rest } = q;
-        const probe = (await faoGet(`data/${domain}?${qs(rest)}`, env)) as { data?: Record<string, string | number>[] };
+    let rows = Array.isArray(j?.data) ? j.data : [];
+    let elementNote = "";
+    if (!rows.length && params.element && params.item) {
+      // The API answers nothing to some element filters even when the code is right; pull the
+      // item without the filter and keep the requested elements ourselves.
+      const { element: _e, ...rest } = q;
+      const probe = (await faoGet(`data/${domain}?${qs(rest)}`, env)) as { data?: Record<string, string | number>[] };
+      const all = Array.isArray(probe?.data) ? probe.data : [];
+      const want = new Set(faoList(params.element)!.split(","));
+      rows = all.filter((r) => want.has(String(r["Element Code"] ?? "")));
+      if (!rows.length) {
         const seen = new Map<string, string>();
-        for (const r of probe?.data ?? []) seen.set(String(r["Element Code"] ?? ""), String(r.Element ?? ""));
-        if (seen.size) throw new DataError(`FAOSTAT has no rows for element ${params.element} on item ${params.item} in ${domain}. Elements this item carries: ${[...seen].map(([c, l]) => `${c} ${l}`).join(", ")}. Pass one of those, or omit element to get them all.`);
-      }
-      throw new DataError(`FAOSTAT returned no rows for ${domain} with ${JSON.stringify(params)}. Check the codes with search_external.`);
+        for (const r of all) seen.set(String(r["Element Code"] ?? ""), String(r.Element ?? ""));
+        if (seen.size) throw new DataError(`FAOSTAT has no element ${params.element} for item ${params.item} in ${domain}. Elements this item carries: ${[...seen].map(([c, l]) => `${c} ${l}`).join(", ")}.`);
+      } else elementNote = "Element filtered server-side after an unfiltered pull; same numbers.";
     }
+    if (!rows.length) throw new DataError(`FAOSTAT returned no rows for ${domain} with ${JSON.stringify(params)}. Check the codes with search_external.`);
     const dimNames = ["Area", "Item", "Element"];
     const distinct = dimNames.map((d) => new Set(rows.map((r) => String(r[d] ?? ""))));
     const keyDims = dimNames.filter((_, i) => distinct[i].size > 1);
@@ -731,7 +735,7 @@ const fao: Provider = {
       const y = String(r.Year ?? r["Year Code"] ?? "").trim();
       if (!/^\d{4}$/.test(y)) continue;
       const mc = String(r["Months Code"] ?? "");
-      const date = FAO_MONTHS[mc] ? `${y}-${FAO_MONTHS[mc]}` : mc && !FAO_MONTHS[mc] ? "" : y;   // annual rows in a monthly domain are skipped
+      const date = FAO_MONTHS[mc] ? `${y}-${FAO_MONTHS[mc]}` : y;   // 7021 and the like mark annual values
       if (!date) continue;
       const key = keyDims.length ? keyDims.map((d) => String(r[d])).join("|") : `${r.Area}|${r.Item}|${r.Element}`;
       (series[key] ??= {})[date] = v;
@@ -741,7 +745,7 @@ const fao: Provider = {
     const src = `FAOSTAT ${domain} (${FAO_DOMAINS[domain]?.split(":")[0] ?? domain})`;
     return { provider: "fao", id: domain, source: src, url: FAO_BASE + "en/" + path, series,
       notes: [`Units: ${[...units].join(", ") || "as published"}. FAOSTAT figures are official, semi-official, estimated or imputed by country and year; the flags are on the FAOSTAT site.`,
-        keyDims.length ? `Series keys are ${keyDims.join("|")} labels.` : "Single series: area, item and element were all fixed."] };
+        keyDims.length ? `Series keys are ${keyDims.join("|")} labels.` : "Single series: area, item and element were all fixed.", ...(elementNote ? [elementNote] : [])] };
   },
   async search(query, env) {
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);

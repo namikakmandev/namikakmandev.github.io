@@ -539,10 +539,13 @@ def fao(entry):
     if entry.get("year"):
         m = re.match(r"^(\d{4}):(\d{4})$", entry["year"])
         params["year"] = ",".join(str(y) for y in range(int(m.group(1)), int(m.group(2)) + 1)) if m else entry["year"]
+    # The API answers nothing to some element filters even when the code is right, so the
+    # element is not sent; rows are kept by 'Element Code' below.
+    params.pop("element", None)
     url = f"https://faostatservices.fao.org/api/v1/en/data/{entry['domain']}?" + urllib.parse.urlencode(params)
     req = urllib.request.Request(url, headers={**UA, "Authorization": "Bearer " + _fao_token()})
     try:
-        with urllib.request.urlopen(req, timeout=180) as r:
+        with urllib.request.urlopen(req, timeout=300) as r:
             raw = json.loads(r.read().decode("utf-8", "replace"))
     except urllib.error.HTTPError as ex:
         raise RuntimeError(f"FAOSTAT HTTP {ex.code}: {ex.read().decode('utf-8', 'replace')[:300]}")
@@ -565,9 +568,7 @@ def fao(entry):
         if not re.match(r"^\d{4}$", y):
             continue
         mc = str(r.get("Months Code") or "")
-        if mc and mc not in months:
-            continue
-        t = f"{y}-{months[mc]}" if mc else y
+        t = f"{y}-{months[mc]}" if mc in months else y   # 7021 and the like mark annual values
         key = it
         if len(areas) > 1:
             key = f"{a}|{key}"
