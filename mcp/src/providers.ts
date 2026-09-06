@@ -708,7 +708,18 @@ const fao: Provider = {
     const path = `data/${domain}?${qs(q)}`;
     const j = (await faoGet(path, env)) as { data?: Record<string, string | number>[] };
     const rows = Array.isArray(j?.data) ? j.data : [];
-    if (!rows.length) throw new DataError(`FAOSTAT returned no rows for ${domain} with ${JSON.stringify(params)}. Check the codes with search_external.`);
+    if (!rows.length) {
+      // Element codes moved in FAOSTAT's 2023 recoding, so a stale code is the usual cause.
+      // Re-run without the element filter and tell the caller which elements this item carries.
+      if (params.element && params.item) {
+        const { element: _e, ...rest } = q;
+        const probe = (await faoGet(`data/${domain}?${qs(rest)}`, env)) as { data?: Record<string, string | number>[] };
+        const seen = new Map<string, string>();
+        for (const r of probe?.data ?? []) seen.set(String(r["Element Code"] ?? ""), String(r.Element ?? ""));
+        if (seen.size) throw new DataError(`FAOSTAT has no rows for element ${params.element} on item ${params.item} in ${domain}. Elements this item carries: ${[...seen].map(([c, l]) => `${c} ${l}`).join(", ")}. Pass one of those, or omit element to get them all.`);
+      }
+      throw new DataError(`FAOSTAT returned no rows for ${domain} with ${JSON.stringify(params)}. Check the codes with search_external.`);
+    }
     const dimNames = ["Area", "Item", "Element"];
     const distinct = dimNames.map((d) => new Set(rows.map((r) => String(r[d] ?? ""))));
     const keyDims = dimNames.filter((_, i) => distinct[i].size > 1);
@@ -739,20 +750,29 @@ const fao: Provider = {
     for (const [code, desc] of Object.entries(FAO_DOMAINS)) if (score(`${code} ${desc}`) > 0) out.push({ id: code, title: `domain ${code}: ${desc}` });
     for (const c of curatedSearch(fao.curated, query)) out.push(c);
     if (!env.FAOSTAT_API_TOKEN && !(env.FAOSTAT_USER && env.FAOSTAT_PASSWORD)) return out.slice(0, 60);   // no account: starter list only
-    type Def = { code: string; label: string };
-    const lists: [string, string, string][] = [["QCL", "item", "item"], ["PP", "item", "item"], ["QCL", "area", "area"], ["QCL", "element", "element"], ["TCL", "element", "element"]];
+    // Definition lists: the field names are not documented, so accept code/id and label/name.
+    type Def = Record<string, unknown>;
+    const pick = (d: Def, keys: string[]) => { for (const k of keys) { const v = d[k]; if (v !== undefined && v !== null && String(v) !== "") return String(v); } return ""; };
+    const lists: [string, string][] = [["QCL", "item"], ["PP", "item"], ["QCL", "area"], ["QCL", "element"], ["PP", "element"], ["TCL", "element"]];
     const seen = new Set<string>();
-    await Promise.all(lists.map(async ([domain, dim, param]) => {
+    const problems: string[] = [];
+    await Promise.all(lists.map(async ([domain, dim]) => {
       try {
         const j = (await faoGet(`definitions/domain/${domain}/${dim}`, env)) as { data?: Def[] };
-        for (const d of j?.data ?? []) {
-          const k = `${param}:${d.code}`;
-          if (seen.has(k) || score(`${d.code} ${d.label}`) === 0) continue;
+        const rows = Array.isArray(j?.data) ? j.data : [];
+        if (!rows.length) { problems.push(`${domain}/${dim}: empty list`); return; }
+        for (const d of rows) {
+          const code = pick(d, ["code", "Code", "id", "ID", "element_code", "item_code", "area_code"]);
+          const label = pick(d, ["label", "Label", "name", "Name", "description"]);
+          if (!code) continue;
+          const k = `${dim}:${code}`;
+          if (seen.has(k) || score(`${code} ${label}`) === 0) continue;
           seen.add(k);
-          out.push({ id: domain, title: `${param} ${d.code}: ${d.label}`, hint: `params {${param}:'${d.code}'} in ${domain}${dim === "item" ? " (also PP, TCL)" : ""}` });
+          out.push({ id: domain, title: `${dim} ${code}: ${label}`, hint: `params {${dim}:'${code}'} in ${domain}${dim === "item" ? " (also PP, TCL)" : ""}` });
         }
-      } catch { /* a definitions list failing should not hide the rest */ }
+      } catch (e) { problems.push(`${domain}/${dim}: ${e instanceof Error ? e.message.slice(0, 120) : String(e)}`); }
     }));
+    if (problems.length && out.length < 3) out.push({ id: "QCL", title: "definition lists could not be read", hint: problems.join(" | ") });
     return out.sort((a, b) => score(b.title) - score(a.title)).slice(0, 60);
   },
 };
