@@ -195,6 +195,32 @@ await check("decompose on meat CPI gives 12 factors and a reading", async () => 
   assert.ok(typeof j.seasonal_strength === "number");
 });
 
+await check("decompose labels seasons from the first date, whatever format it comes in", async () => {
+  // Quarterly data written as ISO month-ends, starting in Q2, with the peak on the first observation.
+  const season = [0, 5, 0, -5];                     // Q1, Q2, Q3, Q4
+  const iso = Array.from({ length: 40 }, (_, i) => {
+    const month = ((i + 1) % 4) * 3 + 1;            // i=0 -> April (Q2)
+    const year = 2015 + Math.floor((i + 1) / 4);
+    return [`${year}-${String(month).padStart(2, "0")}-01`, 100 + 0.5 * i + season[(i + 1) % 4]];
+  });
+  const j = await call("decompose", { series: { points: iso, label: "iso quarters" }, period: 4 });
+  assert.equal(j.seasonal_factors.length, 4);
+  assert.ok(j.seasonal_factors.every((f) => /^Q[1-4]$/.test(f.season)), JSON.stringify(j.seasonal_factors));
+  const peak = j.seasonal_factors.reduce((a, b) => (b.effect > a.effect ? b : a));
+  assert.equal(peak.season, "Q2", `peak labelled ${peak.season}`);
+  const trough = j.seasonal_factors.reduce((a, b) => (b.effect < a.effect ? b : a));
+  assert.equal(trough.season, "Q4", `trough labelled ${trough.season}`);
+  // 'YYYY-Qn' is the other quarterly spelling and must land on the same labels.
+  const qn = iso.map(([d, v], i) => [`${2015 + Math.floor((i + 1) / 4)}-Q${((i + 1) % 4) + 1}`, v]);
+  const q = await call("decompose", { series: { points: qn }, period: 4 });
+  assert.deepEqual(q.seasonal_factors.map((f) => f.season), j.seasonal_factors.map((f) => f.season));
+  // An annual date carries no season; labels must still be real, starting at the first one.
+  const ann = Array.from({ length: 40 }, (_, i) => [String(1980 + i), 100 + 0.5 * i + season[i % 4]]);
+  const a = await call("decompose", { series: { points: ann }, period: 4 });
+  assert.ok(a.seasonal_factors.every((f) => typeof f.season === "string"), JSON.stringify(a.seasonal_factors));
+  assert.equal(a.seasonal_factors[0].season, "Q1");
+});
+
 await check("forecast: auto picks Holt-Winters for monthly, dates continue, band widens", async () => {
   const j = await call("forecast", { series: { ...CPI, start: "2015-01" }, horizon: 6 });
   assert.match(j.method, /Holt-Winters/);
@@ -306,6 +332,14 @@ await check("volatility, quantile_regress and principal_components run on the pr
   assert.ok(typeof v.garch.persistence === "number" && v.conditional_sd.length === 12, JSON.stringify(v).slice(0, 200));
   const q = await call("quantile_regress", { y: { ...CATTLE, transform: "yoy", start: "1990-01" }, x: [{ ...CORN, transform: "yoy", start: "1990-01" }] });
   assert.equal(q.by_quantile.length, 5);
+  // Quantiles passed high-to-low must still report the low tail as the low tail.
+  const desc = await call("quantile_regress", { y: { ...CATTLE, transform: "yoy", start: "1990-01" }, x: [{ ...CORN, transform: "yoy", start: "1990-01" }], quantiles: [0.9, 0.5, 0.1, 0.9] });
+  assert.deepEqual(desc.quantiles, [0.1, 0.5, 0.9], "sorted and de-duplicated");
+  assert.deepEqual(desc.by_quantile.map((r) => r.quantile), [0.1, 0.5, 0.9]);
+  const sp = desc.slope_across_quantiles[0];
+  assert.equal(sp.low_quantile, desc.by_quantile[0].coefficients[sp.x], "low tail is q=0.1");
+  assert.equal(sp.high_quantile, desc.by_quantile[2].coefficients[sp.x], "high tail is q=0.9");
+  assert.ok(Math.abs(sp.tail_asymmetry - (sp.high_quantile - sp.low_quantile)) < 1e-6, "asymmetry signed high minus low");
   const p = await call("principal_components", { series: [{ ...CATTLE, transform: "yoy", start: "1990-01" }, { ...CORN, transform: "yoy", start: "1990-01" }, { ...CPI, transform: "yoy", start: "1990-01" }], last_n: 6 });
   assert.equal(p.explained_variance.length, 3);
   assert.ok(p.scores[0].points.length === 6);
@@ -318,8 +352,26 @@ await check("panel_regress on asia-wdi: fixed effects across countries, and a he
   assert.ok(typeof j.estimate.coefficients[0].se === "number");
   assert.ok(j.pooled.coefficients.length === 2, "pooled carries a constant");
   assert.ok(j.reading.length > 20);
+  assert.match(j.f_test_unit_effects.tests, /country effects/, "one-way names what it tests");
+  assert.equal(j.f_test_unit_effects.df[0], j.sample.units - 1);
+  assert.equal(typeof j.f_test_unit_effects.effects_matter, "boolean");
   const bad = await callRaw("panel_regress", { dataset: "asia-wdi", y: "not_an_indicator", x: ["gdp_growth"] });
   assert.ok(bad.isError && /Indicators available/.test(bad.content[0].text));
+
+  // GDP in billions gives a pooled slope of -3e-5: it rounds to 0.0000 for display, but it is
+  // the same sign as the within slope, so this is not a Simpson's paradox and must not be sold as one.
+  const tiny = await call("panel_regress", { dataset: "asia-wdi", y: "gdp_growth", x: ["gdp_usd_bn"], effects: "unit" });
+  const cmp = tiny.comparison_of_slopes[0];
+  assert.equal(cmp.pooled, 0, "pooled slope rounds to zero for display");
+  assert.ok(cmp.within < 0, `within ${cmp.within}`);
+  assert.equal(cmp.sign_flips_between_within_and_pooled, false, "rounded zero is not a sign change");
+  assert.ok(!/Simpson/.test(tiny.reading), tiny.reading);
+
+  // Two-way effects: the F test and the reading both have to say year effects are in there.
+  const two = await call("panel_regress", { dataset: "asia-wdi", y: "gdp_growth", x: ["gross_capital_formation_pct_gdp"], effects: "unit_time" });
+  assert.match(two.f_test_unit_effects.tests, /year/, "two-way names the year effects");
+  assert.equal(two.f_test_unit_effects.df[0], (two.sample.units - 1) + (two.sample.periods - 1));
+  if (two.f_test_unit_effects.effects_matter) assert.match(two.reading, /Country and year effects/);
 });
 
 await check("vecm on cattle and corn logs reports adjustment and the current deviation, or a clear rank-0 message", async () => {

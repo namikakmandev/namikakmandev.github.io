@@ -300,13 +300,17 @@ export function adf(y: number[], spec: AdfSpec = "c", lags: number | "auto" = "a
   const candidates = lags === "auto" ? Array.from({ length: maxLag + 1 }, (_, i) => i) : [lags];
   for (const p of candidates) {
     const { rows, target } = build(p);
-    if (rows.length <= rows[0].length + 2) continue;
+    if (!rows.length || rows.length <= rows[0].length + 2) continue;
     try {
       const fit = ols(target, rows);
       if (fit.aic < best.aic) best = { p, aic: fit.aic, fit };
     } catch { /* singular at this lag; skip */ }
   }
-  if (!best.fit) throw new Error("ADF regression could not be estimated");
+  if (!best.fit) {
+    throw new Error(lags === "auto"
+      ? `ADF regression could not be estimated on ${y.length} observations`
+      : `ADF with ${lags} lags needs more observations than the ${y.length} given; drop the lag or lengthen the sample`);
+  }
   const stat = best.fit.t[0];
   const critical = adfCritical(spec, best.fit.n);
   const reject = stat < critical["1%"] ? "1%" : stat < critical["5%"] ? "5%" : stat < critical["10%"] ? "10%" : null;
@@ -1098,7 +1102,9 @@ export function panelRegress(y: number[], X: number[][], unit: number[], time: n
   // F test for unit effects: pooled vs within residual sums of squares
   let f: PanelResult["f_unit_effects"] = null;
   if (effects !== "pooled" && dfWithin > 0) {
-    const df1 = G - 1, df2 = Math.max(dfWithin, 1);
+    // Against pooled, one-way absorbs G-1 dummies; two-way absorbs the time dummies as well.
+    const df1 = effects === "unit_time" ? (G - 1) + (Tn - 1) : G - 1;
+    const df2 = Math.max(dfWithin, 1);
     const F = ((pooled.rss - estimate.rss) / df1) / (estimate.rss / df2);
     if (Number.isFinite(F) && F > 0) f = { F, p: fUpperP(F, df1, df2), df1, df2 };
   }
