@@ -105,6 +105,15 @@ const FAO_JSON = {
 };
 const FAO_DEFS = { data: [{ code: "866", label: "Cattle" }, { code: "867", label: "Meat of cattle with the bone, fresh or chilled" }, { code: "15", label: "Wheat" }] };
 
+const IMF_CSV = `STRUCTURE,STRUCTURE_ID,ACTION,COUNTRY,INDICATOR,FREQUENCY,TIME_PERIOD,OBS_VALUE,SCALE,UNIT,LASTACTUALDATE,PUBLICATION_DATE
+dataflow,IMF.RES:WEO(6.0.0),I,TUR,NGDP_RPCH,A,2023,5.1,Units,Percent,2024,2025-04-22
+dataflow,IMF.RES:WEO(6.0.0),I,TUR,NGDP_RPCH,A,2024,3.2,Units,Percent,2024,2025-04-22
+dataflow,IMF.RES:WEO(6.0.0),I,TUR,NGDP_RPCH,A,2025,2.7,Units,Percent,2024,2025-04-22
+dataflow,IMF.RES:WEO(6.0.0),I,USA,NGDP_RPCH,A,2023,2.9,Units,Percent,2024,2025-04-22
+dataflow,IMF.RES:WEO(6.0.0),I,USA,NGDP_RPCH,A,2024,2.8,Units,Percent,2024,2025-04-22
+`;
+const IMF_FLOWS = { data: { dataflows: [{ id: "WEO", agencyID: "IMF.RES", version: "6.0.0", name: "World Economic Outlook (WEO)" }, { id: "CPI", agencyID: "IMF.STA", version: "4.0.0", name: "Consumer Price Index (CPI)" }] } };
+
 export function installFetchMock() {
   const real = globalThis.fetch;
   const calls = [];
@@ -123,6 +132,7 @@ export function installFetchMock() {
     if (u.hostname === "sdmx.oecd.org") return text(OECD_CSV, "text/csv");
     if (u.hostname === "ourworldindata.org") return text(OWID_CSV, "text/csv");
     if (u.hostname === "stats.bis.org") return text(BIS_CSV, "text/csv");
+    if (u.hostname === "api.imf.org") return u.pathname.includes("/structure/") ? json(IMF_FLOWS) : u.pathname.includes("/WEO/") ? text(IMF_CSV, "text/csv") : text("STRUCTURE,STRUCTURE_ID,ACTION,TIME_PERIOD,OBS_VALUE\n", "text/csv");
     if (u.hostname === "faostatservices.fao.org") {
       if (u.pathname.endsWith("/auth/login")) {
         const body = String(init?.body ?? "");

@@ -5,7 +5,7 @@ A remote [MCP](https://modelcontextprotocol.io) server for economics data and an
 Two kinds of data:
 
 - **Curated datasets** from this repo's `data/` directory, served by GitHub Pages and refreshed by the workflows in `.github/workflows/`. The server reads them live, so a refresh needs no redeploy. The index is `data/_catalog.json`, rebuilt on the same schedule.
-- **Live providers**: FRED, Eurostat, World Bank, ECB Data Portal, OECD, Our World in Data, BIS, FAOSTAT (with a free account), and TCMB EVDS for Turkey (with catalogue search). Pulled on demand, cached for ten minutes in the Worker, never stored.
+- **Live providers**: FRED, Eurostat, World Bank, ECB Data Portal, OECD, Our World in Data, BIS, IMF Data (WEO projections, CPI, IFS), FAOSTAT (with a free account), and TCMB EVDS for Turkey (with catalogue search). Pulled on demand, cached for ten minutes in the Worker, never stored.
 
 And one way to look at any of it: the `plot` tool returns a link to `chart.html` on the site, an interactive chart of up to eight series with hover values, log and rebase toggles, a right-hand axis, the sources and caveats, a table and CSV download. The link carries the series references, so it redraws from fresh data every time.
 

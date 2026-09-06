@@ -59,7 +59,7 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
       instructions:
         "Economics data and analysis. Two kinds of data: curated datasets at namikakmandev.github.io " +
         "(list_datasets, search_datasets, describe_dataset, get_series) and live pulls from FRED, Eurostat, " +
-        "World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS and FAOSTAT (list_providers, search_external, fetch_external). " +
+        "World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS, FAOSTAT and IMF (list_providers, search_external, fetch_external). " +
         "To draw series, call plot: it returns a link to an interactive chart the user can open. " +
         "Analysis tools (describe_stats, test_stationarity with ADF and KPSS, regress, granger_causality, cointegration, " +
         "johansen, var_model with impulse responses, cross_correlation, hp_filter, decompose, forecast incl. ARIMA, " +
