@@ -177,6 +177,23 @@ check("Johansen: rank 1 for a cointegrated triple, rank 0 for independent walks"
   assert.equal(j0.rank_at_5pct, 0, JSON.stringify(j0.trace.map((t) => +t.statistic.toFixed(1))));
 });
 
+check("VECM: recovers the long-run vector and puts the adjustment on the dependent series", () => {
+  const r = rng(53);
+  const n = 500;
+  const x = [0]; for (let i = 1; i < n; i++) x.push(x[i - 1] + r.normal());
+  // y = 2x + u, u AR(1) with 0.5 persistence: y adjusts toward 2x, x is a pure random walk (weakly exogenous)
+  const y = []; let u = 0;
+  for (let i = 0; i < n; i++) { u = 0.5 * u + r.normal(); y.push(2 * x[i] + u); }
+  const Y = y.map((v, i) => [v, x[i]]);
+  const m = S.vecm(Y, 1);
+  assert.equal(m.rank, 1);
+  close(m.beta[1][0], -2, 0.15, "beta on x");
+  assert.ok(m.alpha[0][0] < -0.2 && m.alpha_p[0][0] < 0.01, `alpha_y ${m.alpha[0][0]} p ${m.alpha_p[0][0]}`);
+  assert.ok(Math.abs(m.alpha[1][0]) < 0.15, `alpha_x ${m.alpha[1][0]} should be near zero`);
+  assert.equal(m.ect.length, n);
+  assert.throws(() => S.vecm(Y, 1, 2), /below the number of series/);
+});
+
 check("VAR(1): recovers coefficients, Granger direction and decaying impulse responses", () => {
   const r = rng(41);
   const n = 500;

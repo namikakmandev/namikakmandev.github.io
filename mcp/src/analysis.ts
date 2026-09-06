@@ -594,6 +594,52 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
   );
 
   server.registerTool(
+    "vecm",
+    {
+      title: "Vector error-correction model",
+      description: "For 2 to 5 cointegrated I(1) series: the long-run vectors (Johansen), the adjustment coefficients alpha with t-tests (which series does the correcting, and how fast), short-run lag coefficients, and the current error-correction term (how far the system is from its long-run relation right now). Rank defaults to the Johansen 5% result.",
+      inputSchema: {
+        series: z.array(REF).min(2).max(5),
+        lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the model"),
+        rank: z.number().int().min(1).max(4).optional().describe("Number of cointegrating relations; default from the Johansen trace test at 5%"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, lags, rank }) => {
+      const rs = await Promise.all(series.map(get));
+      const { dates, columns } = align(rs.map((r) => r.series));
+      if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
+      const Y = dates.map((_, t) => columns.map((c) => c[t]));
+      let m: S.VecmResult;
+      try { m = S.vecm(Y, lags, rank); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+      const labels = rs.map((r) => r.label);
+      const relations = m.beta[0].map((_, c) => ({
+        relation: c + 1,
+        long_run_vector: Object.fromEntries(labels.map((l, i) => [l, r4(m.beta[i][c])])),
+        equation: `${labels[0]} = ${labels.slice(1).map((l, i) => `${r4(-m.beta[i + 1][c])} × ${l}`).join(" + ")} + constant (normalised on ${labels[0]})`,
+        adjustment: labels.map((l, i) => ({ series: l, alpha: r4(m.alpha[i][c]), t: r3(m.alpha_t[i][c]), p: r4(m.alpha_p[i][c]), adjusts: m.alpha_p[i][c] < 0.05, share_corrected_per_period: r3(Math.abs(m.alpha[i][c])) })),
+        ect_last: r4(m.ect[m.ect.length - 1][c]),
+        ect_mean: r4(m.ect.reduce((a, row) => a + row[c], 0) / m.ect.length),
+      }));
+      const adjusters = relations[0].adjustment.filter((a) => a.adjusts).map((a) => a.series);
+      const half = labels.map((l, i) => ({ l, a: m.alpha[i][0], p: m.alpha_p[i][0] })).filter((x) => x.p < 0.05 && x.a < 0).map((x) => `${x.l}: ${r3(Math.log(0.5) / Math.log(1 - Math.min(Math.abs(x.a), 0.99)))} periods`);
+      return text({
+        series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags, rank: m.rank,
+        johansen: { rank_at_5pct: m.johansen.rank_at_5pct, trace: m.johansen.trace.map((t) => ({ null_rank_at_most: t.r, statistic: r3(t.statistic), critical_5pct: t.critical["5%"], reject: t.reject })) },
+        relations,
+        short_run: m.gamma.map((G, l) => ({ lag: l + 1, coefficients: Object.fromEntries(labels.map((eq, i) => [eq, Object.fromEntries(labels.map((v, j) => [v, r4(G[i][j])]))])) })),
+        r2_by_equation: Object.fromEntries(labels.map((l, i) => [l, r4(m.r2[i])])),
+        reading: [
+          adjusters.length ? `${adjusters.join(" and ")} respond${adjusters.length === 1 ? "s" : ""} to deviations from the long-run relation; the others are weakly exogenous (they drive, they do not adjust).` : "No series adjusts significantly: the relation is not being corrected in this sample, which weakens the cointegration case.",
+          half.length ? `Half-life of a deviation: ${half.join(", ")}.` : "",
+          `Deviation now (relation 1): ${relations[0].ect_last} against a sample mean of ${relations[0].ect_mean}; a value above the mean means ${labels[0]} sits above its long-run level given the others.`,
+        ].filter(Boolean).join(" "),
+        caveat: "Alpha t-tests use OLS standard errors equation by equation. The constant is unrestricted (enters the differences). Sensitive to the lag choice and to breaks in the relation; check structural_break on the error-correction term if the sample spans a regime change.",
+      });
+    }),
+  );
+
+  server.registerTool(
     "var_model",
     {
       title: "Vector autoregression with impulse responses",
@@ -709,6 +755,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           pitfalls.push("All series are I(1): a levels regression or a levels correlation between them will look strong whether or not they are related. Test cointegration first.");
           if (facts.length > 2) plan.push({ step: step++, tool: "johansen", why: `${facts.length} I(1) series: count the cointegrating relations before choosing levels or differences`, args: { series: facts.map((_, i) => refOf(i)) } });
           plan.push({ step: step++, tool: "cointegration", why: "Both I(1): find out if a long-run relation exists before regressing levels", args: { a: refOf(0), b: refOf(1) } });
+          plan.push({ step: step++, tool: "vecm", why: "If cointegrated: which series does the adjusting, how fast, and how far the system is from equilibrium now", args: { series: facts.map((_, i) => refOf(i)) } });
           plan.push({ step: step++, tool: "cross_correlation", why: "On growth rates, find which one moves first and by how many periods", args: { a: stationaryArgs(0), b: stationaryArgs(1) } });
           plan.push({ step: step++, tool: "granger_causality", why: "On growth rates, test predictive precedence in both directions", args: { a: stationaryArgs(0), b: stationaryArgs(1), lags: facts[0].frequency === "monthly" ? 3 : 2 } });
           plan.push({ step: step++, tool: "regress", why: "If cointegrated: levels regression (in logs for elasticities) is meaningful with HAC errors. If not: regress growth on growth.", args: { y: { ...refOf(0), transform: "log" }, x: [{ ...refOf(1), transform: "log" }] } });

@@ -59,6 +59,7 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `granger_causality` | F-tests in both directions, with a non-stationarity warning. |
 | `cointegration` | Engle-Granger: long-run vector, residual unit-root test, equilibrium error. |
 | `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, rank and first cointegrating vector. |
+| `vecm` | Vector error-correction model on cointegrated series: long-run vectors, adjustment coefficients with t-tests (who corrects, how fast, half-life), short-run lags, and the current deviation from equilibrium. |
 | `var_model` | VAR(p) with lag order by AIC, block Granger tests, orthogonalised impulse responses and variance decomposition. |
 | `cross_correlation` | Correlation by lead and lag with a significance band. |
 | `hp_filter` | Trend and cycle, lambda by frequency. |
@@ -116,5 +117,5 @@ Provider parsers are tested against canned replies in `test/fixtures.mjs` in the
 ## Later
 
 - Per-user login (OAuth 2.1 through Cloudflare's `workers-oauth-provider`) and Stripe metering. The bearer check in `src/index.ts` is the seam.
-- Vector error-correction models and structural VAR identification beyond Cholesky ordering.
+- Structural VAR identification beyond Cholesky ordering; restricted constants in the VECM.
 - IMF provider once its SDMX 3 endpoint settles; EIA and UN Comtrade with keys.

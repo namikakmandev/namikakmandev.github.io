@@ -62,7 +62,7 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
         "World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS, FAOSTAT and IMF (list_providers, search_external, fetch_external). " +
         "To draw series, call plot: it returns a link to an interactive chart the user can open. " +
         "Analysis tools (describe_stats, test_stationarity with ADF and KPSS, regress, granger_causality, cointegration, " +
-        "johansen, var_model with impulse responses, cross_correlation, hp_filter, decompose, forecast incl. ARIMA, " +
+        "johansen, vecm, var_model with impulse responses, cross_correlation, hp_filter, decompose, forecast incl. ARIMA, " +
         "structural_break, rolling, deflate) all take series references: " +
         "{dataset, series}, {provider, id}, or {points}. Call suggest_analysis first when unsure which method fits; " +
         "it checks integration order, seasonality and overlap and returns an ordered plan. Every result carries " +
