@@ -12,6 +12,7 @@ import { SeriesRefSchema, align, detectFrequency, futureDates, resolve, type Res
 import { round, toPoints } from "./transform.js";
 import * as S from "./stats.js";
 import { SERVER_BUILD } from "./version.js";
+import { chartUrl, type PlotSpec } from "./api.js";
 
 const r4 = (x: number) => (Number.isFinite(x) ? Math.round(x * 10000) / 10000 : null);
 const r3 = (x: number) => (Number.isFinite(x) ? Math.round(x * 1000) / 1000 : null);
@@ -100,7 +101,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
     "list_providers",
     {
       title: "List live data providers",
-      description: "External sources the server can pull from on demand (FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS): coverage, id format, whether a key is configured, and starter ids.",
+      description: "External sources the server can pull from on demand (FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS, FAOSTAT): coverage, id format, whether a key is configured, and starter ids.",
       inputSchema: {},
       annotations: { readOnlyHint: true },
     },
@@ -111,9 +112,9 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
     "search_external",
     {
       title: "Search a live provider",
-      description: "Find series ids at a provider. FRED searches its full catalogue when FRED_API_KEY is set; World Bank searches all indicators; EVDS walks the TCMB catalogue when EVDS_API_KEY is set; the others match against a curated starter list, so for those also try the provider's own website and pass the id to fetch_external.",
+      description: "Find series ids at a provider. FRED searches its full catalogue when FRED_API_KEY is set; World Bank searches all indicators; EVDS walks the TCMB catalogue when EVDS_API_KEY is set; FAOSTAT searches its item, area and element lists; the others match against a curated starter list, so for those also try the provider's own website and pass the id to fetch_external.",
       inputSchema: {
-        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis"]),
+        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao"]),
         query: z.string().min(1),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
@@ -129,11 +130,11 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
     "fetch_external",
     {
       title: "Fetch from a live provider",
-      description: "Pull a series from FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS or BIS as [date, value] points, with the same window and transform options as get_series. When the id returns several series (countries, dimensions), the reply lists their keys; pick one with 'series'.",
+      description: "Pull a series from FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS or FAOSTAT as [date, value] points, with the same window and transform options as get_series. When the id returns several series (countries, dimensions), the reply lists their keys; pick one with 'series'.",
       inputSchema: {
-        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis"]),
+        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao"]),
         id: z.string(),
-        params: z.record(z.string(), z.string()).optional().describe("Provider filters. Eurostat: dimension codes (geo, unit, ...). World Bank: country='TUR;USA' or 'all'. OWID: entities='Turkey;United States'. EVDS/ECB/OECD: start, end."),
+        params: z.record(z.string(), z.string()).optional().describe("Provider filters. Eurostat: dimension codes (geo, unit, ...). World Bank: country='TUR;USA' or 'all'. OWID: entities='Turkey;United States'. EVDS/ECB/OECD: start, end. FAOSTAT: area, item, element, year (codes; several separated by commas)."),
         series: z.string().optional().describe("Which series key to return when the id yields several"),
         start: z.string().optional(),
         end: z.string().optional(),
@@ -164,9 +165,38 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
   );
 }
 
-export function registerAnalysis(server: McpServer, origin: string, env: ProviderEnv) {
+export function registerAnalysis(server: McpServer, origin: string, env: ProviderEnv, self?: string) {
   const get = (ref: SeriesRef) => resolve(ref, origin, env);
   const REF = SeriesRefSchema.describe("Series reference: {dataset, series} for local data, {provider, id[, series, params]} for live data, or {points} for inline data. Optional start, end, frequency, transform.");
+
+  server.registerTool(
+    "plot",
+    {
+      title: "Plot series",
+      description: "Draw up to 8 series on one interactive chart and return its link. The page shows hover values, log and rebase-to-100 toggles, a right-hand axis for series on another scale, the sources and caveats, a data table and CSV download. Every series is resolved first, so a bad reference fails here rather than on the page. Give the user the chart_url.",
+      inputSchema: {
+        series: z.array(REF).min(1).max(8),
+        title: z.string().max(200).optional().describe("Chart title; default is built from the series labels"),
+        scale: z.enum(["linear", "log"]).default("linear"),
+        right_axis: z.array(z.number().int().min(0).max(7)).optional().describe("0-based indexes of series to draw on a right-hand axis, for series whose units differ"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, title, scale, right_axis }) => {
+      const rs = await Promise.all(series.map(get));
+      const spec: PlotSpec = { series, title, scale, right: right_axis?.length ? right_axis : undefined, api: self };
+      const url = chartUrl(origin, spec);
+      return text({
+        chart_url: url,
+        how: "Open chart_url in a browser. The link carries the series references, not the numbers, so it stays current when the data refreshes. Share it as is.",
+        series: rs.map((r) => {
+          const pts = toPoints(r.series);
+          return { label: r.label, transform: r.transform, n: pts.length, first: pts[0]?.[0], last: pts[pts.length - 1]?.[0], last_value: r4(pts[pts.length - 1]?.[1] ?? NaN), source: r.source, caveats: r.caveats };
+        }),
+        note: scale === "log" ? "Log scale: a straight line means constant growth; needs every value positive." : undefined,
+      });
+    }),
+  );
 
   server.registerTool(
     "describe_stats",

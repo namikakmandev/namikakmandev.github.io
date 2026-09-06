@@ -596,6 +596,124 @@ const bis: Provider = {
 };
 
 // ---------------------------------------------------------------------------
+// FAOSTAT (FAO). Keyless JSON API; a domain plus area/item/element codes.
+
+const FAO_HOSTS = ["https://faostatservices.fao.org/api/v1/en/", "https://fenixservices.fao.org/faostat/api/v1/en/"];
+
+const FAO_DOMAINS: Record<string, string> = {
+  QCL: "Crops and livestock products: production, area harvested, yield, stocks (elements 5510 production t, 5312 area ha, 5419 yield, 5111 stocks head, 5320 producing animals slaughtered)",
+  PP: "Producer prices (elements 5530 LCU/t, 5532 USD/t, 5539 index 2014-16=100)",
+  TCL: "Crops and livestock trade (elements 5610 import quantity t, 5622 import value 1000 USD, 5910 export quantity t, 5922 export value 1000 USD)",
+  FBS: "Food balances 2010 onward (elements 664 food supply kcal/cap/day, 5142 food t, 5301 domestic supply t, 511 population)",
+  RFN: "Fertilizers by nutrient (items 3102 N, 3103 P2O5, 3104 K2O; elements 5510 production, 5610 import qty, 5910 export qty, 5157 agricultural use t)",
+  RL: "Land use (items 6601 agricultural land, 6621 cropland, 6655 permanent meadows; element 5110 area 1000 ha)",
+  CP: "Consumer price indices, monthly (items 23013 food CPI, 23014 general CPI; element 6120 index 2015=100, 6122 food price inflation %)",
+  QV: "Value of agricultural production (elements 152 gross production value current USD 1000, 154 constant 2014-16 USD)",
+  EI: "Emissions intensities (element 723 kg CO2eq per kg product)",
+  OA: "Population and employment in agriculture (item 3010 population; elements 511 total, 561 rural)",
+};
+
+async function faoGet(path: string): Promise<unknown> {
+  let last: unknown;
+  for (const h of FAO_HOSTS) {
+    try { return await getJson(h + path, { accept: "application/json" }); }
+    catch (e) { last = e; }
+  }
+  throw last instanceof Error ? last : new DataError("FAOSTAT unreachable");
+}
+
+function faoList(v: string | undefined): string | undefined {
+  if (!v) return undefined;
+  // "2010:2024" -> "2010,2011,...,2024"; otherwise pass the comma list through.
+  const m = /^(\d{4}):(\d{4})$/.exec(v.trim());
+  if (!m) return v.replace(/\s+/g, "");
+  const out: string[] = [];
+  for (let y = Number(m[1]); y <= Number(m[2]); y++) out.push(String(y));
+  return out.join(",");
+}
+
+const FAO_MONTHS: Record<string, string> = { "7001": "01", "7002": "02", "7003": "03", "7004": "04", "7005": "05", "7006": "06", "7007": "07", "7008": "08", "7009": "09", "7010": "10", "7011": "11", "7012": "12" };
+
+const fao: Provider = {
+  name: "fao",
+  title: "FAOSTAT (FAO)",
+  coverage: "Agriculture and food for every country and region, annual from 1961 (monthly for food price indices): production, livestock stocks, producer prices, trade, food balances, fertilizers, land use, emissions.",
+  id_format: "A FAOSTAT domain code (QCL production and stocks, PP producer prices, TCL trade, FBS food balances, RFN fertilizers, RL land, CP consumer prices, QV production value) with params area, item, element as FAOSTAT codes, several separated by commas, and optional year '2010:2024'. Areas: 223 Türkiye, 231 USA, 79 Germany, 150 Netherlands, 21 Brazil, 351 China, 100 India, 5000 World, 5707 EU27. Items: 866 cattle, 1057 chickens, 976 sheep, 867 cattle meat, 1058 chicken meat, 882 raw cow milk, 1062 hen eggs, 15 wheat, 56 maize, 44 barley, 236 soybeans, 267 sunflower seed, 225 hazelnuts, 388 tomatoes, 157 sugar beet. search_external finds the rest.",
+  needs_key: null,
+  curated: [
+    { id: "QCL", title: "Türkiye cattle stocks, head", hint: "params {area:'223', item:'866', element:'5111'}" },
+    { id: "QCL", title: "Türkiye chicken meat production, tonnes", hint: "params {area:'223', item:'1058', element:'5510'}" },
+    { id: "QCL", title: "Türkiye wheat production, tonnes", hint: "params {area:'223', item:'15', element:'5510'}" },
+    { id: "QCL", title: "Türkiye raw cow milk production, tonnes", hint: "params {area:'223', item:'882', element:'5510'}" },
+    { id: "PP", title: "Türkiye cattle meat producer price, USD/t", hint: "params {area:'223', item:'867', element:'5532'}" },
+    { id: "PP", title: "Türkiye wheat producer price, USD/t", hint: "params {area:'223', item:'15', element:'5532'}" },
+    { id: "PP", title: "Türkiye raw milk producer price, LCU/t", hint: "params {area:'223', item:'882', element:'5530'}" },
+    { id: "TCL", title: "Türkiye soybean imports, tonnes", hint: "params {area:'223', item:'236', element:'5610'}" },
+    { id: "TCL", title: "Türkiye hazelnut exports, 1000 USD", hint: "params {area:'223', item:'225', element:'5922'}" },
+    { id: "RFN", title: "Türkiye nitrogen fertilizer agricultural use, tonnes N", hint: "params {area:'223', item:'3102', element:'5157'}" },
+    { id: "CP", title: "Türkiye food CPI, monthly, 2015=100", hint: "params {area:'223', item:'23013', element:'6120'}" },
+    { id: "FBS", title: "Türkiye food supply, kcal per capita per day", hint: "params {area:'223', item:'2901', element:'664'}" },
+    { id: "QCL", title: "World cattle stocks, head", hint: "params {area:'5000', item:'866', element:'5111'}" },
+  ],
+  async fetch(id, params) {
+    const domain = id.trim().toUpperCase();
+    if (!/^[A-Z]{2,4}$/.test(domain)) throw new DataError(`FAOSTAT ids are domain codes such as QCL, PP, TCL. Known: ${Object.keys(FAO_DOMAINS).join(", ")}`);
+    if (!params.item && !params.element) throw new DataError("FAOSTAT needs at least item or element in params, e.g. {area:'223', item:'866', element:'5111'}. Use search_external to find codes.");
+    const q: Record<string, string> = { area: faoList(params.area) ?? "223", show_codes: "true", show_unit: "true", show_flags: "false", null_values: "false", output_type: "objects" };
+    if (params.item) q.item = faoList(params.item)!;
+    if (params.element) q.element = faoList(params.element)!;
+    if (params.year) q.year = faoList(params.year)!;
+    const path = `data/${domain}?${qs(q)}`;
+    const j = (await faoGet(path)) as { data?: Record<string, string | number>[] };
+    const rows = Array.isArray(j?.data) ? j.data : [];
+    if (!rows.length) throw new DataError(`FAOSTAT returned no rows for ${domain} with ${JSON.stringify(params)}. Check the codes with search_external.`);
+    const dimNames = ["Area", "Item", "Element"];
+    const distinct = dimNames.map((d) => new Set(rows.map((r) => String(r[d] ?? ""))));
+    const keyDims = dimNames.filter((_, i) => distinct[i].size > 1);
+    const series: Record<string, Series> = {};
+    const units = new Set<string>();
+    for (const r of rows) {
+      const v = num(r.Value as string);
+      if (v === null) continue;
+      const y = String(r.Year ?? r["Year Code"] ?? "").trim();
+      if (!/^\d{4}$/.test(y)) continue;
+      const mc = String(r["Months Code"] ?? "");
+      const date = FAO_MONTHS[mc] ? `${y}-${FAO_MONTHS[mc]}` : mc && !FAO_MONTHS[mc] ? "" : y;   // annual rows in a monthly domain are skipped
+      if (!date) continue;
+      const key = keyDims.length ? keyDims.map((d) => String(r[d])).join("|") : `${r.Area}|${r.Item}|${r.Element}`;
+      (series[key] ??= {})[date] = v;
+      if (r.Unit) units.add(String(r.Unit));
+    }
+    if (!Object.keys(series).length) throw new DataError(`FAOSTAT rows for ${domain} carried no numeric values`);
+    const src = `FAOSTAT ${domain} (${FAO_DOMAINS[domain]?.split(":")[0] ?? domain})`;
+    return { provider: "fao", id: domain, source: src, url: FAO_HOSTS[0] + path, series,
+      notes: [`Units: ${[...units].join(", ") || "as published"}. FAOSTAT figures are official, semi-official, estimated or imputed by country and year; the flags are on the FAOSTAT site.`,
+        keyDims.length ? `Series keys are ${keyDims.join("|")} labels.` : "Single series: area, item and element were all fixed."] };
+  },
+  async search(query) {
+    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+    const score = (s: string) => terms.reduce((n, t) => n + (s.toLowerCase().includes(t) ? 1 : 0), 0);
+    const out: CuratedEntry[] = [];
+    for (const [code, desc] of Object.entries(FAO_DOMAINS)) if (score(`${code} ${desc}`) > 0) out.push({ id: code, title: `domain ${code}: ${desc}` });
+    type Def = { code: string; label: string };
+    const lists: [string, string, string][] = [["QCL", "item", "item"], ["PP", "item", "item"], ["QCL", "area", "area"], ["QCL", "element", "element"], ["TCL", "element", "element"]];
+    const seen = new Set<string>();
+    await Promise.all(lists.map(async ([domain, dim, param]) => {
+      try {
+        const j = (await faoGet(`definitions/domain/${domain}/${dim}`)) as { data?: Def[] };
+        for (const d of j?.data ?? []) {
+          const k = `${param}:${d.code}`;
+          if (seen.has(k) || score(`${d.code} ${d.label}`) === 0) continue;
+          seen.add(k);
+          out.push({ id: domain, title: `${param} ${d.code}: ${d.label}`, hint: `params {${param}:'${d.code}'} in ${domain}${dim === "item" ? " (also PP, TCL)" : ""}` });
+        }
+      } catch { /* a definitions list failing should not hide the rest */ }
+    }));
+    return out.sort((a, b) => score(b.title) - score(a.title)).slice(0, 60);
+  },
+};
+
+// ---------------------------------------------------------------------------
 
 export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry[] {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -610,7 +728,7 @@ export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry
     .map((x) => x.e);
 }
 
-export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis };
+export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao };
 
 export function providerInfo(env: ProviderEnv) {
   return Object.values(PROVIDERS).map((p) => ({

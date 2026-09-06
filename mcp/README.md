@@ -5,7 +5,9 @@ A remote [MCP](https://modelcontextprotocol.io) server for economics data and an
 Two kinds of data:
 
 - **Curated datasets** from this repo's `data/` directory, served by GitHub Pages and refreshed by the workflows in `.github/workflows/`. The server reads them live, so a refresh needs no redeploy. The index is `data/_catalog.json`, rebuilt on the same schedule.
-- **Live providers**: FRED, Eurostat, World Bank, ECB Data Portal, OECD, Our World in Data, BIS, and TCMB EVDS for Turkey (with catalogue search). Pulled on demand, cached for ten minutes in the Worker, never stored.
+- **Live providers**: FRED, Eurostat, World Bank, ECB Data Portal, OECD, Our World in Data, BIS, FAOSTAT, and TCMB EVDS for Turkey (with catalogue search). Pulled on demand, cached for ten minutes in the Worker, never stored.
+
+And one way to look at any of it: the `plot` tool returns a link to `chart.html` on the site, an interactive chart of up to eight series with hover values, log and rebase toggles, a right-hand axis, the sources and caveats, a table and CSV download. The link carries the series references, so it redraws from fresh data every time.
 
 Every answer carries the series' source and caveats. That is the point: a model asking for a number gets the survey break, the index-not-quantity warning, or the unknown provenance in the same reply.
 
@@ -28,8 +30,16 @@ Every answer carries the series' source and caveats. That is the point: a model 
 | Tool | What it does |
 |---|---|
 | `list_providers` | Coverage, id format, key status and starter ids per provider. |
-| `search_external` | Find ids. FRED searches its full catalogue when `FRED_API_KEY` is set, World Bank searches all indicators, the rest match a starter list. |
+| `search_external` | Find ids. FRED searches its full catalogue when `FRED_API_KEY` is set, World Bank searches all indicators, EVDS walks the TCMB catalogue, FAOSTAT searches its item, area and element lists; the rest match a starter list. |
 | `fetch_external` | Pull a series by provider and id. Multi-series replies (countries, dimensions) list their keys; pick one with `series`. |
+
+**Drawing**
+
+| Tool | What it does |
+|---|---|
+| `plot` | Resolves up to 8 series references and returns a `chart_url` on the site. Options: title, log scale, which series go on a right-hand axis. |
+
+The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`), a plain HTTP endpoint that resolves the same series references and returns points, sources and caveats. Anything that speaks HTTP can use it directly.
 
 **Analysis**. Each takes series references, so the same call works on a local dataset, a live pull, or numbers you paste in:
 
@@ -106,4 +116,4 @@ Provider parsers are tested against canned replies in `test/fixtures.mjs` in the
 
 - Per-user login (OAuth 2.1 through Cloudflare's `workers-oauth-provider`) and Stripe metering. The bearer check in `src/index.ts` is the seam.
 - Vector error-correction models and structural VAR identification beyond Cholesky ordering.
-- IMF provider once its SDMX 3 endpoint settles; EIA with a key.
+- IMF provider once its SDMX 3 endpoint settles; EIA and UN Comtrade with keys.
