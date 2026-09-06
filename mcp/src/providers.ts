@@ -4,13 +4,18 @@
  *
  * Nothing is stored. Responses are cached in the isolate for a few minutes.
  * Keys: FRED fetch is keyless (the CSV endpoint); FRED search needs
- * FRED_API_KEY. TCMB EVDS needs EVDS_API_KEY. Everything else is open.
+ * FRED_API_KEY. TCMB EVDS needs EVDS_API_KEY. FAOSTAT needs a free developer
+ * account (FAOSTAT_USER + FAOSTAT_PASSWORD, or a ready FAOSTAT_API_TOKEN).
+ * Everything else is open.
  */
 import { DataError, type Series } from "./data.js";
 
 export interface ProviderEnv {
   FRED_API_KEY?: string;
   EVDS_API_KEY?: string;
+  FAOSTAT_USER?: string;
+  FAOSTAT_PASSWORD?: string;
+  FAOSTAT_API_TOKEN?: string;
 }
 
 export interface FetchResult {
@@ -598,7 +603,8 @@ const bis: Provider = {
 // ---------------------------------------------------------------------------
 // FAOSTAT (FAO). Keyless JSON API; a domain plus area/item/element codes.
 
-const FAO_HOSTS = ["https://faostatservices.fao.org/api/v1/en/", "https://fenixservices.fao.org/faostat/api/v1/en/"];
+const FAO_BASE = "https://faostatservices.fao.org/api/v1/";
+const FAO_PORTAL = "https://www.fao.org/faostat/en/#developer-portal";
 
 const FAO_DOMAINS: Record<string, string> = {
   QCL: "Crops and livestock products: production, area harvested, yield, stocks (elements 5510 production t, 5312 area ha, 5419 yield, 5111 stocks head, 5320 producing animals slaughtered)",
@@ -613,13 +619,45 @@ const FAO_DOMAINS: Record<string, string> = {
   OA: "Population and employment in agriculture (item 3010 population; elements 511 total, 561 rural)",
 };
 
-async function faoGet(path: string): Promise<unknown> {
-  const errors: string[] = [];
-  for (const h of FAO_HOSTS) {
-    try { return await getJson(h + path, { accept: "application/json" }); }
-    catch (e) { errors.push(`${new URL(h).host}: ${e instanceof Error ? e.message : String(e)}`); }
+/**
+ * FAOSTAT requires a JWT since 2025: POST /auth/login (form-encoded username and
+ * password) returns {AuthenticationResult: {AccessToken}}, valid for an hour.
+ * The token is kept in the isolate and refreshed when it expires.
+ */
+let faoToken: { token: string; at: number } | null = null;
+const FAO_TOKEN_TTL_MS = 50 * 60 * 1000;
+
+async function faoAuth(env: ProviderEnv): Promise<string> {
+  if (env.FAOSTAT_API_TOKEN) return env.FAOSTAT_API_TOKEN;
+  if (!env.FAOSTAT_USER || !env.FAOSTAT_PASSWORD) {
+    throw new DataError(`FAOSTAT now requires a free developer account. Register at ${FAO_PORTAL}, then set FAOSTAT_USER and FAOSTAT_PASSWORD on the server (Cloudflare dashboard, Worker settings, variables and secrets).`);
   }
-  throw new DataError(`FAOSTAT did not answer. ${errors.join(" | ")}`);
+  if (faoToken && Date.now() - faoToken.at < FAO_TOKEN_TTL_MS) return faoToken.token;
+  const res = await fetch(FAO_BASE + "auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" },
+    body: qs({ username: env.FAOSTAT_USER, password: env.FAOSTAT_PASSWORD }),
+  });
+  if (!res.ok) throw new DataError(`FAOSTAT login failed (${res.status}): check FAOSTAT_USER and FAOSTAT_PASSWORD. ${(await res.text()).slice(0, 200)}`);
+  const j = (await res.json()) as { AuthenticationResult?: { AccessToken?: string } };
+  const token = j?.AuthenticationResult?.AccessToken;
+  if (!token) throw new DataError("FAOSTAT login answered without an access token; the login response shape may have changed.");
+  faoToken = { token, at: Date.now() };
+  return token;
+}
+
+async function faoGet(path: string, env: ProviderEnv): Promise<unknown> {
+  const token = await faoAuth(env);
+  try {
+    return await getJson(FAO_BASE + "en/" + path, { accept: "application/json", authorization: `Bearer ${token}` });
+  } catch (e) {
+    if (e instanceof DataError && /Upstream 401/.test(e.message)) {
+      faoToken = null;   // expired or revoked: one fresh login, then give up
+      const fresh = await faoAuth(env);
+      return await getJson(FAO_BASE + "en/" + path, { accept: "application/json", authorization: `Bearer ${fresh}` });
+    }
+    throw e;
+  }
 }
 
 function faoList(v: string | undefined): string | undefined {
@@ -639,7 +677,7 @@ const fao: Provider = {
   title: "FAOSTAT (FAO)",
   coverage: "Agriculture and food for every country and region, annual from 1961 (monthly for food price indices): production, livestock stocks, producer prices, trade, food balances, fertilizers, land use, emissions.",
   id_format: "A FAOSTAT domain code (QCL production and stocks, PP producer prices, TCL trade, FBS food balances, RFN fertilizers, RL land, CP consumer prices, QV production value) with params area, item, element as FAOSTAT codes, several separated by commas, and optional year '2010:2024'. Areas: 223 Türkiye, 231 USA, 79 Germany, 150 Netherlands, 21 Brazil, 351 China, 100 India, 5000 World, 5707 EU27. Items: 866 cattle, 1057 chickens, 976 sheep, 867 cattle meat, 1058 chicken meat, 882 raw cow milk, 1062 hen eggs, 15 wheat, 56 maize, 44 barley, 236 soybeans, 267 sunflower seed, 225 hazelnuts, 388 tomatoes, 157 sugar beet. search_external finds the rest.",
-  needs_key: null,
+  needs_key: "FAOSTAT_USER + FAOSTAT_PASSWORD (free account at www.fao.org/faostat/en/#developer-portal), or FAOSTAT_API_TOKEN",
   curated: [
     { id: "QCL", title: "Türkiye cattle stocks, head", hint: "params {area:'223', item:'866', element:'5111'}" },
     { id: "QCL", title: "Türkiye chicken meat production, tonnes", hint: "params {area:'223', item:'1058', element:'5510'}" },
@@ -655,7 +693,7 @@ const fao: Provider = {
     { id: "FBS", title: "Türkiye food supply, kcal per capita per day", hint: "params {area:'223', item:'2901', element:'664'}" },
     { id: "QCL", title: "World cattle stocks, head", hint: "params {area:'5000', item:'866', element:'5111'}" },
   ],
-  async fetch(id, params) {
+  async fetch(id, params, env) {
     const domain = id.trim().toUpperCase();
     if (!/^[A-Z]{2,4}$/.test(domain)) throw new DataError(`FAOSTAT ids are domain codes such as QCL, PP, TCL. Known: ${Object.keys(FAO_DOMAINS).join(", ")}`);
     if (!params.item && !params.element) throw new DataError("FAOSTAT needs at least item or element in params, e.g. {area:'223', item:'866', element:'5111'}. Use search_external to find codes.");
@@ -664,7 +702,7 @@ const fao: Provider = {
     if (params.element) q.element = faoList(params.element)!;
     if (params.year) q.year = faoList(params.year)!;
     const path = `data/${domain}?${qs(q)}`;
-    const j = (await faoGet(path)) as { data?: Record<string, string | number>[] };
+    const j = (await faoGet(path, env)) as { data?: Record<string, string | number>[] };
     const rows = Array.isArray(j?.data) ? j.data : [];
     if (!rows.length) throw new DataError(`FAOSTAT returned no rows for ${domain} with ${JSON.stringify(params)}. Check the codes with search_external.`);
     const dimNames = ["Area", "Item", "Element"];
@@ -686,21 +724,23 @@ const fao: Provider = {
     }
     if (!Object.keys(series).length) throw new DataError(`FAOSTAT rows for ${domain} carried no numeric values`);
     const src = `FAOSTAT ${domain} (${FAO_DOMAINS[domain]?.split(":")[0] ?? domain})`;
-    return { provider: "fao", id: domain, source: src, url: FAO_HOSTS[0] + path, series,
+    return { provider: "fao", id: domain, source: src, url: FAO_BASE + "en/" + path, series,
       notes: [`Units: ${[...units].join(", ") || "as published"}. FAOSTAT figures are official, semi-official, estimated or imputed by country and year; the flags are on the FAOSTAT site.`,
         keyDims.length ? `Series keys are ${keyDims.join("|")} labels.` : "Single series: area, item and element were all fixed."] };
   },
-  async search(query) {
+  async search(query, env) {
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     const score = (s: string) => terms.reduce((n, t) => n + (s.toLowerCase().includes(t) ? 1 : 0), 0);
     const out: CuratedEntry[] = [];
     for (const [code, desc] of Object.entries(FAO_DOMAINS)) if (score(`${code} ${desc}`) > 0) out.push({ id: code, title: `domain ${code}: ${desc}` });
+    for (const c of curatedSearch(fao.curated, query)) out.push(c);
+    if (!env.FAOSTAT_API_TOKEN && !(env.FAOSTAT_USER && env.FAOSTAT_PASSWORD)) return out.slice(0, 60);   // no account: starter list only
     type Def = { code: string; label: string };
     const lists: [string, string, string][] = [["QCL", "item", "item"], ["PP", "item", "item"], ["QCL", "area", "area"], ["QCL", "element", "element"], ["TCL", "element", "element"]];
     const seen = new Set<string>();
     await Promise.all(lists.map(async ([domain, dim, param]) => {
       try {
-        const j = (await faoGet(`definitions/domain/${domain}/${dim}`)) as { data?: Def[] };
+        const j = (await faoGet(`definitions/domain/${domain}/${dim}`, env)) as { data?: Def[] };
         for (const d of j?.data ?? []) {
           const k = `${param}:${d.code}`;
           if (seen.has(k) || score(`${d.code} ${d.label}`) === 0) continue;
@@ -737,7 +777,7 @@ export function providerInfo(env: ProviderEnv) {
     coverage: p.coverage,
     id_format: p.id_format,
     needs_key: p.needs_key,
-    key_present: p.name === "evds" ? (env.EVDS_API_KEY ? "yes (fetch and catalogue search enabled)" : "no") : p.name === "fred" ? (env.FRED_API_KEY ? "yes (search enabled)" : "no (fetch works, search uses the starter list)") : "not needed",
+    key_present: p.name === "evds" ? (env.EVDS_API_KEY ? "yes (fetch and catalogue search enabled)" : "no") : p.name === "fred" ? (env.FRED_API_KEY ? "yes (search enabled)" : "no (fetch works, search uses the starter list)") : p.name === "fao" ? (env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "yes" : "no (register at www.fao.org/faostat/en/#developer-portal and set FAOSTAT_USER and FAOSTAT_PASSWORD)") : "not needed",
     starter_ids: p.curated.slice(0, 8).map((c) => `${c.id}: ${c.title}`),
   }));
 }

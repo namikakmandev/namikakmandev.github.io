@@ -123,8 +123,15 @@ export function installFetchMock() {
     if (u.hostname === "sdmx.oecd.org") return text(OECD_CSV, "text/csv");
     if (u.hostname === "ourworldindata.org") return text(OWID_CSV, "text/csv");
     if (u.hostname === "stats.bis.org") return text(BIS_CSV, "text/csv");
-    if (u.hostname === "faostatservices.fao.org") return u.pathname.includes("/definitions/") ? json(FAO_DEFS) : json(FAO_JSON);
-    if (u.hostname === "fenixservices.fao.org") return new Response("gone", { status: 404 });
+    if (u.hostname === "faostatservices.fao.org") {
+      if (u.pathname.endsWith("/auth/login")) {
+        const body = String(init?.body ?? "");
+        return /username=fao%40example\.com&password=pw/.test(body) ? json({ AuthenticationResult: { AccessToken: "jwt-1", RefreshToken: "r" } }) : new Response(JSON.stringify({ message: "bad credentials" }), { status: 401 });
+      }
+      const auth = init?.headers?.authorization ?? init?.headers?.get?.("authorization") ?? "";
+      if (auth !== "Bearer jwt-1") return new Response(JSON.stringify({ message: "Missing Authorization Header" }), { status: 401 });
+      return u.pathname.includes("/definitions/") ? json(FAO_DEFS) : json(FAO_JSON);
+    }
     if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.includes("/datagroups/")) return json([{ DATAGROUP_CODE: "bie_fiyattufe", DATAGROUP_NAME_ENG: "Consumer Price Index (2025=100)" }, { DATAGROUP_CODE: "bie_kfe", DATAGROUP_NAME_ENG: "Residential Property Price Index" }]);
     if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.includes("/serieList/")) return json([{ SERIE_CODE: "TP.FG.J0X", SERIE_NAME_ENG: "CPI general index (2025=100)", FREQUENCY_STR: "MONTHLY", START_DATE: "01-01-2025" }]);
     if (u.hostname === "evds3.tcmb.gov.tr" && u.pathname.startsWith("/igmevdsms-dis/")) return (init?.headers?.key ?? init?.headers?.get?.("key")) ? json(EVDS_JSON) : new Response("Unauthorized", { status: 401 });

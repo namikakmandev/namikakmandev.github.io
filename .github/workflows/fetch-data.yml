@@ -28,6 +28,8 @@ jobs:
         env:
           MODE: ${{ inputs.mode }}
           EVDS_KEY: ${{ secrets.EVDS_KEY }}
+          FAOSTAT_USER: ${{ secrets.FAOSTAT_USER }}
+          FAOSTAT_PASSWORD: ${{ secrets.FAOSTAT_PASSWORD }}
         run: python scripts/fetch.py ${{ inputs.only }}
       - name: Rebuild catalog
         run: python scripts/build_catalog.py

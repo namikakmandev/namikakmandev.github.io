@@ -505,12 +505,31 @@ def evds(entry):
     return dict(out)
 
 
+def _fao_token():
+    """FAOSTAT needs a JWT since 2025: a free developer account, POST /auth/login."""
+    tok = os.environ.get("FAOSTAT_API_TOKEN", "").strip()
+    if tok:
+        return tok
+    user, pw = os.environ.get("FAOSTAT_USER", "").strip(), os.environ.get("FAOSTAT_PASSWORD", "").strip()
+    if not (user and pw):
+        raise RuntimeError("FAOSTAT needs FAOSTAT_USER and FAOSTAT_PASSWORD (free account at "
+                           "www.fao.org/faostat/en/#developer-portal) as repository secrets")
+    body = urllib.parse.urlencode({"username": user, "password": pw}).encode()
+    req = urllib.request.Request("https://faostatservices.fao.org/api/v1/auth/login", data=body,
+                                 headers={**UA, "Content-Type": "application/x-www-form-urlencoded"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        j = json.loads(r.read().decode("utf-8", "replace"))
+    tok = (j.get("AuthenticationResult") or {}).get("AccessToken")
+    if not tok:
+        raise RuntimeError("FAOSTAT login returned no AccessToken")
+    return tok
+
+
 def fao(entry):
-    """FAOSTAT, keyless JSON. entry['domain'] (QCL, PP, TCL, ...), entry['areas']
-    {key: area_code}, entry['items'] {key: item_code}, entry['element'] code (or
-    'elements' {key: code}). Series keys: item key, prefixed 'area|' when several
+    """FAOSTAT JSON API (developer account required). entry['domain'] (QCL, PP, TCL, ...),
+    entry['areas'] {key: area_code}, entry['items'] {key: item_code}, entry['element']
+    code (or 'elements' {key: code}). Series keys: item key, prefixed 'area|' when several
     areas, suffixed '|element' when several elements. Optional 'year' as '2000:2024'."""
-    hosts = ["https://faostatservices.fao.org/api/v1/en/", "https://fenixservices.fao.org/faostat/api/v1/en/"]
     areas = entry.get("areas") or {"turkey": "223"}
     items = entry["items"]
     elements = entry.get("elements") or {"value": entry["element"]}
@@ -520,22 +539,16 @@ def fao(entry):
     if entry.get("year"):
         m = re.match(r"^(\d{4}):(\d{4})$", entry["year"])
         params["year"] = ",".join(str(y) for y in range(int(m.group(1)), int(m.group(2)) + 1)) if m else entry["year"]
-    path = f"data/{entry['domain']}?" + urllib.parse.urlencode(params)
-    errors = []
-    for h in hosts:
-        try:
-            body = get(h + path).decode("utf-8", "replace")
-            raw = json.loads(body)
-            break
-        except urllib.error.HTTPError as ex:
-            errors.append(f"{h}: HTTP {ex.code} {ex.read().decode('utf-8', 'replace')[:300]}")
-        except Exception as ex:
-            errors.append(f"{h}: {type(ex).__name__}: {str(ex)[:300]}")
-    else:
-        raise RuntimeError("FAOSTAT unreachable: " + " | ".join(errors))
+    url = f"https://faostatservices.fao.org/api/v1/en/data/{entry['domain']}?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers={**UA, "Authorization": "Bearer " + _fao_token()})
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            raw = json.loads(r.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as ex:
+        raise RuntimeError(f"FAOSTAT HTTP {ex.code}: {ex.read().decode('utf-8', 'replace')[:300]}")
     rows = raw.get("data") or []
     if MODE == "discover":
-        return {"_discover": {"url": hosts[0] + path, "n_rows": len(rows), "sample": rows[:3],
+        return {"_discover": {"url": url, "n_rows": len(rows), "sample": rows[:3],
                               "keys": sorted({k for r in rows for k in r})}}
     inv_area = {v: k for k, v in areas.items()}
     inv_item = {v: k for k, v in items.items()}
