@@ -12,7 +12,7 @@ Usage
         -> do not parse; dump what the source actually returns (columns, dimension
            names, category codes) so a parser can be written against reality
 
-Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation | evds | xlsx | fao | imf
+Providers: fred | eurostat | owid | csv | yahoo | yahoo_valuation | evds | xlsx | fao | imf | worldbank
 Every run writes data/_fetch-report.json recording what each source returned, so a
 silent zero is visible instead of looking like a real answer.
 """
@@ -581,6 +581,36 @@ def fao(entry):
     return dict(out)
 
 
+def worldbank(entry):
+    """World Bank indicators API (keyless JSON). entry['countries'] {key: ISO3},
+    entry['indicators'] {key: WB code}, optional 'start' year and 'scale' {indicator_key:
+    multiplier}. Series keys are country|indicator."""
+    countries = entry["countries"]
+    inv = {v: k for k, v in countries.items()}
+    start = entry.get("start", 1960)
+    scale = entry.get("scale", {})
+    out = defaultdict(dict)
+    for ikey, code in entry["indicators"].items():
+        url = (f"https://api.worldbank.org/v2/country/{';'.join(countries.values())}/indicator/{code}"
+               f"?format=json&per_page=20000&date={start}:{time.gmtime().tm_year}")
+        try:
+            j = json.loads(get(url).decode("utf-8", "replace"))
+        except Exception as ex:
+            out[f"_error|{ikey}"] = {"error": f"{code}: {type(ex).__name__}: {ex}"}
+            continue
+        rows = j[1] if isinstance(j, list) and len(j) > 1 and j[1] else []
+        if MODE == "discover":
+            return {"_discover": {"url": url, "n_rows": len(rows), "sample": rows[:3]}}
+        for r in rows:
+            v = r.get("value")
+            iso = r.get("countryiso3code") or (r.get("country") or {}).get("id")
+            ckey = inv.get(iso)
+            if v is None or ckey is None:
+                continue
+            out[f"{ckey}|{ikey}"][str(r["date"])] = float(v) * scale.get(ikey, 1)
+    return dict(out)
+
+
 def imf(entry):
     """IMF Data (SDMX 3.0, keyless). entry['agency'] (IMF.RES, IMF.STA), entry['dataflow']
     (WEO, CPI, ...), entry['key'] as in the portal's API tab with '+' lists and '*' wildcards,
@@ -696,7 +726,7 @@ def xlsx(entry):
 
 PROVIDERS = {"fred": fred, "eurostat": eurostat, "owid": owid, "csv": csv_source,
              "yahoo": yahoo, "yahoo_valuation": yahoo_valuation,
-             "geojson_filter": geojson_filter, "evds": evds, "xlsx": xlsx, "fao": fao, "imf": imf}
+             "geojson_filter": geojson_filter, "evds": evds, "xlsx": xlsx, "fao": fao, "imf": imf, "worldbank": worldbank}
 
 
 # ----------------------------------------------------------------- runner

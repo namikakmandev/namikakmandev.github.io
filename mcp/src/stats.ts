@@ -881,3 +881,120 @@ export function autoArima(series: number[], h: number, dFixed?: number, maxP = 3
   if (!best) throw new Error("No ARIMA order could be estimated");
   return best;
 }
+
+
+// ---------------------------------------------------------------------------
+// GARCH(1,1) by maximum likelihood on demeaned series (Gaussian innovations)
+
+export interface GarchResult {
+  omega: number; alpha: number; beta: number;
+  persistence: number;
+  unconditional_variance: number;
+  loglik: number; aic: number; bic: number;
+  nobs: number;
+  cond_variance: number[];           // one per observation
+  arch_lm: { statistic: number; p: number; lags: number };   // Engle's test on the demeaned series before fitting
+  mean: number;
+}
+
+/** Engle's ARCH-LM test: regress e^2 on its own lags, T·R² ~ chi²(lags). */
+export function archLM(e: number[], lags = 5): { statistic: number; p: number; lags: number } {
+  const sq = e.map((v) => v * v);
+  const y: number[] = [], X: number[][] = [];
+  for (let t = lags; t < sq.length; t++) { y.push(sq[t]); const row = [1]; for (let l = 1; l <= lags; l++) row.push(sq[t - l]); X.push(row); }
+  const fit = ols(y, X);
+  const stat = y.length * fit.r2;
+  return { statistic: stat, p: chi2UpperP(stat, lags), lags };
+}
+
+export function garch11(series: number[]): GarchResult {
+  const n = series.length;
+  if (n < 60) throw new Error(`GARCH needs 60 or more observations, got ${n}`);
+  const mu = mean(series);
+  const e = series.map((v) => v - mu);
+  const v0 = variance(e, 0);
+  const lm = archLM(e, Math.min(5, Math.floor(n / 10)));
+  // Parameterise so omega > 0, 0 <= alpha, beta and alpha + beta < 1 without constraints.
+  const unpack = (x: number[]) => {
+    const a = 1 / (1 + Math.exp(-x[0])), b = 1 / (1 + Math.exp(-x[1]));
+    const alpha = 0.999 * a * (1 - b), beta = 0.999 * b;   // alpha + beta < 0.999
+    const omega = Math.exp(x[2]);
+    return { omega, alpha, beta };
+  };
+  const negll = (x: number[]) => {
+    const { omega, alpha, beta } = unpack(x);
+    let h = v0, ll = 0;
+    for (let t = 0; t < n; t++) {
+      if (t > 0) h = omega + alpha * e[t - 1] * e[t - 1] + beta * h;
+      if (!(h > 0) || !Number.isFinite(h)) return 1e12;
+      ll += -0.5 * (Math.log(2 * Math.PI) + Math.log(h) + (e[t] * e[t]) / h);
+    }
+    return -ll;
+  };
+  // Start at alpha 0.08, beta 0.85, omega = v0 * (1 - 0.93)
+  const x0 = [Math.log(0.08 / 0.92 / (1 - 0.85 / 0.999) / 0.999), Math.log(0.85 / (0.999 - 0.85)), Math.log(Math.max(v0 * 0.07, 1e-12))];
+  const best = nelderMead(negll, x0, 0.5, 4000);
+  const { omega, alpha, beta } = unpack(best);
+  const cond: number[] = [];
+  let h = v0;
+  for (let t = 0; t < n; t++) { if (t > 0) h = omega + alpha * e[t - 1] * e[t - 1] + beta * h; cond.push(h); }
+  const ll = -negll(best);
+  const k = 4;
+  return { omega, alpha, beta, persistence: alpha + beta, unconditional_variance: alpha + beta < 1 ? omega / (1 - alpha - beta) : NaN,
+    loglik: ll, aic: -2 * ll + 2 * k, bic: -2 * ll + k * Math.log(n), nobs: n, cond_variance: cond, arch_lm: lm, mean: mu };
+}
+
+// ---------------------------------------------------------------------------
+// Quantile regression by iteratively reweighted least squares (Schlossmacher)
+
+export function quantileRegress(y: number[], X: number[][], tau: number, iters = 200): { beta: number[]; objective: number; iterations: number } {
+  const n = y.length, k = X[0].length;
+  let beta = ols(y, X).beta;
+  const eps = 1e-6;
+  let it = 0, last = Infinity;
+  for (; it < iters; it++) {
+    const w = y.map((v, i) => { const r = v - X[i].reduce((s, x, j) => s + x * beta[j], 0); const a = r >= 0 ? tau : 1 - tau; return a / Math.max(Math.abs(r), eps); });
+    // Weighted least squares: (X'WX) b = X'Wy
+    const A: number[][] = Array.from({ length: k }, () => new Array<number>(k).fill(0));
+    const b: number[] = new Array<number>(k).fill(0);
+    for (let i = 0; i < n; i++) for (let a = 0; a < k; a++) { b[a] += w[i] * X[i][a] * y[i]; for (let c = 0; c < k; c++) A[a][c] += w[i] * X[i][a] * X[i][c]; }
+    const inv = inverse(A);
+    if (!inv) break;
+    const nb = inv.map((row) => row.reduce((s, v, j) => s + v * b[j], 0));
+    const obj = y.reduce((s, v, i) => { const r = v - X[i].reduce((q, x, j) => q + x * nb[j], 0); return s + (r >= 0 ? tau * r : (tau - 1) * r); }, 0);
+    const moved = nb.reduce((s, v, j) => s + Math.abs(v - beta[j]), 0);
+    beta = nb;
+    if (moved < 1e-8 || Math.abs(last - obj) < 1e-10) { last = obj; break; }
+    last = obj;
+  }
+  return { beta, objective: last, iterations: it };
+}
+
+// ---------------------------------------------------------------------------
+// Principal components on standardised series
+
+export interface PcaResult {
+  k: number; nobs: number;
+  eigenvalues: number[];
+  explained: number[];              // share of variance per component
+  loadings: number[][];             // [component][variable]
+  scores: number[][];               // [t][component]
+  correlation: number[][];
+}
+
+export function pca(Y: number[][]): PcaResult {
+  const T = Y.length, k = Y[0].length;
+  if (T < k + 5) throw new Error("Too few observations for the number of series");
+  const cols = Array.from({ length: k }, (_, j) => Y.map((r) => r[j]));
+  const mu = cols.map(mean), sdv = cols.map((c) => sd(c));
+  const Z = Y.map((r) => r.map((v, j) => (sdv[j] ? (v - mu[j]) / sdv[j] : 0)));
+  const C = zeros(k, k);
+  for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) { let sum = 0; for (let t = 0; t < T; t++) sum += Z[t][a] * Z[t][b]; C[a][b] = sum / (T - 1); }
+  const { values, vectors } = symEigen(C);
+  const total = values.reduce((s, v) => s + Math.max(v, 0), 0);
+  const loadings = values.map((_, c) => vectors.map((row) => row[c]));
+  // Sign convention: the largest absolute loading of each component is positive.
+  for (const l of loadings) { let m = 0; for (const v of l) if (Math.abs(v) > Math.abs(l[m]) ) m = l.indexOf(v); if (l[m] < 0) for (let j = 0; j < l.length; j++) l[j] = -l[j]; }
+  const scores = Z.map((r) => loadings.map((l) => l.reduce((s, v, j) => s + v * r[j], 0)));
+  return { k, nobs: T, eigenvalues: values, explained: values.map((v) => (total ? Math.max(v, 0) / total : 0)), loadings, scores, correlation: C };
+}

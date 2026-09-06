@@ -67,6 +67,9 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `forecast` | Holt-Winters, Holt, AR(p), or ARIMA(p,d,q) with order by AIC, with dated forecasts and an approximate band. |
 | `deflate` | A nominal series in constant prices of a base date, using any price index as deflator. |
 | `structural_break` | Chow test at a date, or a sup-F scan to locate one. |
+| `volatility` | ARCH-LM test and a GARCH(1,1) fit: persistence, unconditional and conditional volatility, one-step forecast. |
+| `quantile_regress` | Regression at several quantiles next to OLS, to see whether the relation differs in the tails. |
+| `principal_components` | Common factor across 2 to 8 series: explained variance, loadings, factor scores. |
 | `rolling` | Rolling mean, standard deviation, or correlation. |
 
 The numerics are in `src/stats.ts`, dependency-free so they run on the Worker. Critical values are MacKinnon (1991); p-values come from the t, F and chi-square distributions. `test/stats.test.mjs` checks each estimator against known answers on seeded data.
