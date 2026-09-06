@@ -521,15 +521,18 @@ def fao(entry):
         m = re.match(r"^(\d{4}):(\d{4})$", entry["year"])
         params["year"] = ",".join(str(y) for y in range(int(m.group(1)), int(m.group(2)) + 1)) if m else entry["year"]
     path = f"data/{entry['domain']}?" + urllib.parse.urlencode(params)
-    last = None
+    errors = []
     for h in hosts:
         try:
-            raw = json.loads(get(h + path).decode("utf-8", "replace"))
+            body = get(h + path).decode("utf-8", "replace")
+            raw = json.loads(body)
             break
+        except urllib.error.HTTPError as ex:
+            errors.append(f"{h}: HTTP {ex.code} {ex.read().decode('utf-8', 'replace')[:300]}")
         except Exception as ex:
-            last = ex
+            errors.append(f"{h}: {type(ex).__name__}: {str(ex)[:300]}")
     else:
-        raise RuntimeError(f"FAOSTAT unreachable on both hosts: {last}")
+        raise RuntimeError("FAOSTAT unreachable: " + " | ".join(errors))
     rows = raw.get("data") or []
     if MODE == "discover":
         return {"_discover": {"url": hosts[0] + path, "n_rows": len(rows), "sample": rows[:3],
