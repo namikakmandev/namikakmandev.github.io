@@ -39,7 +39,16 @@ await check("list_providers reports key state", async () => {
   const j = await call("list_providers", {});
   const evds = j.providers.find((p) => p.provider === "evds");
   assert.match(String(evds.key_present), /yes/);
-  assert.equal(j.providers.length, 9);
+  assert.equal(j.providers.length, 10);
+});
+
+await check("IMF: SDMX-CSV keyed by the dimension columns, dataflow search", async () => {
+  const j = await call("fetch_external", { provider: "imf", id: "IMF.RES/WEO/TUR+USA.NGDP_RPCH.A" });
+  assert.equal(j.series_count, 2);
+  const tr = await call("fetch_external", { provider: "imf", id: "IMF.RES/WEO/TUR+USA.NGDP_RPCH.A", series: "TUR.NGDP_RPCH.A" });
+  assert.deepEqual(tr.points, [["2023", 5.1], ["2024", 3.2], ["2025", 2.7]]);
+  const s = await call("search_external", { provider: "imf", query: "consumer price" });
+  assert.ok(s.matches.some((m) => /IMF.STA\/CPI/.test(m.id)), JSON.stringify(s.matches).slice(0, 300));
 });
 
 await check("FAOSTAT: rows keyed by the varying dimension, search over definitions", async () => {

@@ -782,6 +782,65 @@ const fao: Provider = {
 };
 
 // ---------------------------------------------------------------------------
+// IMF Data (SDMX 3.0, keyless). WEO projections, CPI, IFS, BOP, fiscal.
+
+const IMF_BASE = "https://api.imf.org/external/sdmx/3.0/";
+
+const imf: Provider = {
+  name: "imf",
+  title: "IMF Data",
+  coverage: "IMF datasets: World Economic Outlook (actuals and projections to five years ahead for 190+ countries), consumer prices, International Financial Statistics, balance of payments, fiscal and monetary series. Annual, quarterly, monthly.",
+  id_format: "'AGENCY/DATAFLOW/KEY' as in the IMF Data portal's API tab, e.g. IMF.RES/WEO/TUR.NGDP_RPCH.A (WEO: COUNTRY.INDICATOR.FREQ), IMF.STA/CPI/TUR.CPI._T.IX.M. Several countries with '+': TUR+USA+DEU. A '*' wildcards a dimension. params: start/end as YYYY or YYYY-M01, version (default latest).",
+  needs_key: null,
+  curated: [
+    { id: "IMF.RES/WEO/TUR.NGDP_RPCH.A", title: "Türkiye real GDP growth, %, WEO actuals and projections" },
+    { id: "IMF.RES/WEO/TUR.PCPIPCH.A", title: "Türkiye inflation, average consumer prices, %, WEO" },
+    { id: "IMF.RES/WEO/TUR.LUR.A", title: "Türkiye unemployment rate, %, WEO" },
+    { id: "IMF.RES/WEO/TUR.GGXWDG_NGDP.A", title: "Türkiye general government gross debt, % of GDP, WEO" },
+    { id: "IMF.RES/WEO/TUR.BCA_NGDPD.A", title: "Türkiye current account balance, % of GDP, WEO" },
+    { id: "IMF.RES/WEO/TUR.NGDPDPC.A", title: "Türkiye GDP per capita, current USD, WEO" },
+    { id: "IMF.RES/WEO/TUR+USA+DEU+CHN.NGDP_RPCH.A", title: "Real GDP growth, four economies, WEO" },
+    { id: "IMF.RES/WEO/WEOWORLD.NGDP_RPCH.A", title: "World real GDP growth, WEO" },
+    { id: "IMF.STA/CPI/TUR.CPI._T.IX.M", title: "Türkiye CPI index, all items, monthly (IMF CPI database)" },
+    { id: "IMF.STA/CPI/TUR+USA+DEU.CPI._T.IX.M", title: "CPI index, three economies, monthly" },
+  ],
+  async fetch(id, params) {
+    const m = /^([^/]+)\/([^/]+)\/(.+)$/.exec(id.trim());
+    if (!m) throw new DataError("IMF ids look like AGENCY/DATAFLOW/KEY, e.g. IMF.RES/WEO/TUR.NGDP_RPCH.A");
+    const [, agency, flow, key] = m;
+    const version = params.version || "+";
+    const filters: string[] = [];
+    if (params.start) filters.push(`ge:${params.start}`);
+    if (params.end) filters.push(`le:${params.end}`);
+    const q = filters.length ? `?c[TIME_PERIOD]=${encodeURIComponent(filters.join("+"))}` : "";
+    const url = `${IMF_BASE}data/dataflow/${encodeURIComponent(agency)}/${encodeURIComponent(flow)}/${encodeURIComponent(version)}/${key}${q}`;
+    const csv = await getText(url, { accept: "text/csv" });
+    // SDMX-CSV 2.0: STRUCTURE, STRUCTURE_ID, ACTION, <dimensions>, TIME_PERIOD, OBS_VALUE, <attributes>.
+    const header = parseCsv(csv)[0] ?? [];
+    const a = header.indexOf("ACTION"), t = header.indexOf("TIME_PERIOD");
+    const keyCols = a >= 0 && t > a ? header.slice(a + 1, t) : undefined;
+    const { series, columns } = sdmxCsvSeries(csv, keyCols);
+    if (!Object.keys(series).length) throw new DataError(`IMF returned no observations for ${id}. Columns: ${columns.slice(0, 10).join(", ")}. Check the key order for this dataflow with search_external.`);
+    return { provider: "imf", id, source: `IMF Data ${agency} ${flow} ${key}`, url, series,
+      notes: ["WEO series mix actuals and projections: values after the release's last actual year are IMF forecasts. Series keys are the dimension values joined with '.'."] };
+  },
+  async search(query) {
+    const out = curatedSearch(imf.curated, query);
+    // Dataflow catalogue: names and ids across the IMF's agencies.
+    try {
+      const j = (await getJson(`${IMF_BASE}structure/dataflow/*/*/*?detail=allstubs`, { accept: "application/json" })) as { data?: { dataflows?: { id?: string; name?: string; agencyID?: string; version?: string; names?: { en?: string } }[] } };
+      const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+      for (const d of j?.data?.dataflows ?? []) {
+        const name = d.name ?? d.names?.en ?? "";
+        const hay = `${d.id ?? ""} ${name}`.toLowerCase();
+        if (terms.some((tm) => hay.includes(tm))) out.push({ id: `${d.agencyID}/${d.id}/`, title: `dataflow ${d.agencyID}/${d.id} v${d.version}: ${name}`, hint: "Append the key: dimensions in the order the portal's API tab shows, '*' for any." });
+      }
+    } catch { /* catalogue unreachable: starter list only */ }
+    return out.slice(0, 60);
+  },
+};
+
+// ---------------------------------------------------------------------------
 
 export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry[] {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -796,7 +855,7 @@ export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry
     .map((x) => x.e);
 }
 
-export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao };
+export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao, imf };
 
 export function providerInfo(env: ProviderEnv) {
   return Object.values(PROVIDERS).map((p) => ({
