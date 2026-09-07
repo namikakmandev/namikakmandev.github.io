@@ -70,6 +70,7 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `deflate` | A nominal series in constant prices of a base date, using any price index as deflator. |
 | `structural_break` | Chow test at a date, or a sup-F scan to locate one. |
 | `volatility` | ARCH-LM test and a GARCH(1,1) fit: persistence, unconditional and conditional volatility, one-step forecast. |
+| `iv_regress` | Two-stage least squares when x is endogenous: 2SLS next to OLS with HAC errors, first-stage F for weak instruments, Wu-Hausman for endogeneity, Sargan for over-identification. |
 | `quantile_regress` | Regression at several quantiles next to OLS, to see whether the relation differs in the tails. |
 | `principal_components` | Common factor across 2 to 8 series: explained variance, loadings, factor scores. |
 | `panel_regress` | Fixed-effects, pooled and between regressions across countries on `UNIT|INDICATOR` datasets, clustered standard errors, F test for country effects. |

@@ -32,7 +32,7 @@ const callRaw = (name, args) => client.callTool({ name, arguments: args });
 await check("tool list includes providers and analysis", async () => {
   const { tools } = await client.listTools();
   const names = new Set(tools.map((t) => t.name));
-  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis", "forecast_evaluate", "local_projections"]) assert.ok(names.has(n), n);
+  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis", "forecast_evaluate", "local_projections", "iv_regress"]) assert.ok(names.has(n), n);
 });
 
 await check("list_providers reports key state", async () => {
@@ -462,6 +462,30 @@ await check("suggest_analysis routes to forecast_evaluate before forecast, and t
   const two = await call("suggest_analysis", { series: [CATTLE, CORN] });
   const t2 = two.plan.map((p) => p.tool);
   assert.ok(t2.indexOf("local_projections") > t2.indexOf("var_model"), t2.join(","));
+});
+
+await check("iv_regress: 2SLS next to OLS with first-stage, Wu-Hausman and Sargan, and clean errors", async () => {
+  // Cattle growth on corn growth, corn's own lag as the instrument: a timing instrument, fine for the plumbing.
+  const g = (ref) => ({ ...ref, transform: "pct_change", start: "1995-01" });
+  const corn = await call("get_series", { ...CORN, transform: "pct_change", start: "1994-12" });
+  const lagged = corn.points.slice(0, -1).map((p, i) => [corn.points[i + 1][0], p[1]]);
+  const j = await call("iv_regress", { y: g(CATTLE), x: [g(CORN)], instruments: [{ points: lagged, label: "corn lag" }] });
+  assert.equal(j.identification, "just identified");
+  assert.equal(j.coefficients.length, 2);
+  assert.ok(typeof j.coefficients[1].coef_2sls === "number" && typeof j.coefficients[1].coef_ols === "number");
+  assert.equal(j.first_stage.length, 1); assert.ok(typeof j.first_stage[0].F_excluded_instruments === "number");
+  assert.ok(typeof j.wu_hausman.p === "number"); assert.equal(j.sargan, null);
+  assert.equal(j.warnings.length, 0, JSON.stringify(j.warnings));
+  const over = await call("iv_regress", { y: g(CATTLE), x: [g(CORN)], instruments: [{ points: lagged, label: "corn lag" }, g(CPI)], exog: [{ ...CPI, transform: "yoy", start: "1995-01" }] });
+  assert.match(over.identification, /over-identified/);
+  assert.ok(over.sargan && over.sargan.df === 1);
+  assert.equal(over.coefficients.length, 3);
+  const under = await callRaw("iv_regress", { y: g(CATTLE), x: [g(CORN), g(CPI)], instruments: [{ points: lagged, label: "corn lag" }] });
+  assert.ok(under.isError && /Under-identified/.test(under.content[0].text), under.content[0].text);
+  const lev = await call("iv_regress", { y: { ...CATTLE, start: "1995-01" }, x: [{ ...CORN, start: "1995-01" }], instruments: [{ ...CPI, start: "1995-01" }] });
+  assert.ok(lev.warnings.length >= 1, "levels get the spurious warning");
+  const plan = await call("suggest_analysis", { series: [CATTLE, CORN], question: "does corn drive cattle prices?" });
+  assert.ok(plan.pitfalls.some((p) => /iv_regress/.test(p)), "causal question points at iv_regress");
 });
 
 await client.close();

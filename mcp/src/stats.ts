@@ -1227,3 +1227,70 @@ export function localProjections(y: number[], x: number[], H: number, p: number,
   const shockFit = ols(x0, X0);
   return { horizons, lags: p, shock_sd: shockFit.sigma, controls: controls.length };
 }
+
+// ---------------------------------------------------------------------------
+// Two-stage least squares (instrumental variables)
+
+export interface FirstStage { r2: number; F_excluded: number; F_p: number; df: [number, number]; partial_r2: number }
+export interface IvResult {
+  n: number; k: number; m: number; L: number;
+  beta: number[]; se: number[]; t: number[]; p: number[];
+  hac_se: number[]; hac_lag: number;
+  resid: number[]; sigma: number; r2: number;
+  first_stage: FirstStage[];
+  wu_hausman: { F: number; p: number; df: [number, number] };
+  sargan: { statistic: number; p: number; df: number } | null;
+  ols: OlsResult;
+}
+
+/**
+ * 2SLS of y on X = [1, endogenous (m columns), exogenous], instrumented by Z = [1, excluded
+ * instruments (L columns), the same exogenous]. Standard errors use the structural residuals
+ * y - X b, not the second-stage ones. First-stage F is the test of the excluded instruments
+ * only (the weak-instrument statistic); Wu-Hausman adds the first-stage residuals to OLS and
+ * tests them; Sargan tests over-identifying restrictions when L > m.
+ */
+export function twoSLS(y: number[], endog: number[][], instruments: number[][], exog: number[][] = [], hacLag?: number): IvResult {
+  const n = y.length, m = endog[0].length, L = instruments[0].length, kx = exog.length ? exog[0].length : 0;
+  if (L < m) throw new Error(`Under-identified: ${m} endogenous regressor(s) need at least ${m} excluded instrument(s), have ${L}`);
+  const X = y.map((_, t) => [1, ...endog[t], ...(kx ? exog[t] : [])]);
+  const Z = y.map((_, t) => [1, ...instruments[t], ...(kx ? exog[t] : [])]);
+  const Zr = y.map((_, t) => [1, ...(kx ? exog[t] : [])]);   // first stage without the excluded instruments
+  const k = X[0].length;
+  if (n <= Z[0].length + 2) throw new Error(`Too few observations (${n}) for ${Z[0].length} instruments`);
+  const Xhat = X.map((r) => [...r]);
+  const firstResid: number[][] = [];
+  const first_stage: FirstStage[] = [];
+  for (let j = 0; j < m; j++) {
+    const col = endog.map((r) => r[j]);
+    const u = ols(col, Z), r = ols(col, Zr);
+    for (let t = 0; t < n; t++) Xhat[t][1 + j] = u.fitted[t];
+    firstResid.push(u.resid);
+    const df1 = L, df2 = n - Z[0].length;
+    const F = ((r.rss - u.rss) / df1) / (u.rss / df2);
+    first_stage.push({ r2: u.r2, F_excluded: F, F_p: fUpperP(F, df1, df2), df: [df1, df2], partial_r2: r.rss ? (r.rss - u.rss) / r.rss : NaN });
+  }
+  const second = ols(y, Xhat);
+  const beta = second.beta;
+  const resid = y.map((v, t) => v - X[t].reduce((s, x, j) => s + x * beta[j], 0));
+  const rss = resid.reduce((s, e) => s + e * e, 0);
+  const df = n - k;
+  const sigma2 = rss / df;
+  const se = second.XtXinv.map((row, j) => Math.sqrt(Math.max(sigma2 * row[j], 0)));
+  const t = beta.map((b, j) => (se[j] ? b / se[j] : NaN));
+  const p = t.map((tv) => tTwoSidedP(tv, df));
+  const hac = neweyWest(Xhat, resid, second.XtXinv, hacLag);
+  const my = mean(y), tss = y.reduce((s, v) => s + (v - my) ** 2, 0);
+  // Wu-Hausman: do the first-stage residuals explain y once X is in?
+  const aug = ols(y, X.map((r, i) => [...r, ...firstResid.map((fr) => fr[i])]));
+  const plain = ols(y, X);
+  const whF = ((plain.rss - aug.rss) / m) / (aug.rss / (n - k - m));
+  const wu_hausman = { F: whF, p: fUpperP(whF, m, n - k - m), df: [m, n - k - m] as [number, number] };
+  let sargan: IvResult["sargan"] = null;
+  if (L > m) {
+    const s = ols(resid, Z);
+    const stat = n * s.r2;
+    sargan = { statistic: stat, p: chi2UpperP(stat, L - m), df: L - m };
+  }
+  return { n, k, m, L, beta, se, t, p, hac_se: hac.se, hac_lag: hac.lag, resid, sigma: Math.sqrt(sigma2), r2: tss ? 1 - rss / tss : NaN, first_stage, wu_hausman, sargan, ols: plain };
+}

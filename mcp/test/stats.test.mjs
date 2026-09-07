@@ -353,5 +353,33 @@ check("rolling-origin backtest: origins leave room for the horizon, errors line 
   assert.equal(S.errorMetrics([1, 2], [0, 5]).mape, null, "mape undefined when an actual is zero");
 });
 
+check("2SLS removes the endogeneity bias OLS carries, and the diagnostics say why", () => {
+  const r = rng(45);
+  const n = 600;
+  // x = 0.6 z1 + 0.4 z2 + u + v, y = 1 + 2 x + w + u: u is the confounder, z1 and z2 are clean instruments, w is exogenous
+  const z1 = [], z2 = [], w = [], x = [], y = [];
+  for (let i = 0; i < n; i++) {
+    const u = r.normal(), a = r.normal(), b = r.normal(), c = r.normal();
+    z1.push(a); z2.push(b); w.push(c);
+    const xi = 0.6 * a + 0.4 * b + u + 0.5 * r.normal();
+    x.push(xi); y.push(1 + 2 * xi + 0.7 * c + u + 0.3 * r.normal());
+  }
+  const iv = S.twoSLS(y, x.map((v) => [v]), z1.map((v, i) => [v, z2[i]]), w.map((v) => [v]));
+  close(iv.beta[1], 2, 0.1, "2SLS slope on x");
+  close(iv.beta[2], 0.7, 0.1, "exogenous slope");
+  assert.ok(iv.ols.beta[1] > 2.3, `OLS is biased up, got ${iv.ols.beta[1]}`);
+  assert.ok(iv.first_stage[0].F_excluded > 10 && iv.first_stage[0].F_p < 1e-6, "strong instruments");
+  assert.ok(iv.wu_hausman.p < 0.01, `Wu-Hausman should reject exogeneity, p ${iv.wu_hausman.p}`);
+  assert.ok(iv.sargan && iv.sargan.df === 1 && iv.sargan.p > 0.01, `valid instruments should pass Sargan, p ${iv.sargan?.p}`);
+  assert.ok(iv.se[1] > 0 && iv.hac_se[1] > 0 && Math.abs(iv.hac_se[1] / iv.se[1] - 1) < 0.5, "HAC se same order as plain se on iid data");
+  const just = S.twoSLS(y, x.map((v) => [v]), z1.map((v) => [v]));
+  assert.equal(just.sargan, null, "just-identified: no Sargan test");
+  close(just.beta[1], 2, 0.15, "just-identified slope");
+  assert.throws(() => S.twoSLS(y, x.map((v, i) => [v, w[i]]), z1.map((v) => [v])), /Under-identified/);
+  // A weak instrument is flagged by the first-stage F
+  const weak = S.twoSLS(y, x.map((v) => [v]), z1.map(() => [r.normal()]));
+  assert.ok(weak.first_stage[0].F_excluded < 10, `noise instrument F ${weak.first_stage[0].F_excluded}`);
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);

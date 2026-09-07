@@ -1086,10 +1086,74 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
   );
 
   server.registerTool(
+    "iv_regress",
+    {
+      title: "Instrumental variables (2SLS)",
+      description: "Two-stage least squares for when x is endogenous: it is set jointly with y, or a confounder moves both, so OLS is biased. Needs at least one instrument per endogenous regressor: a series that moves x but affects y only through x. Returns the 2SLS coefficients with plain and Newey-West errors next to OLS, the first-stage F of the excluded instruments (below 10 means weak instruments and unreliable estimates), the Wu-Hausman test of whether x is endogenous at all (if not, OLS is fine and more precise), and the Sargan over-identification test when there are more instruments than endogenous regressors. Typical: a supply shifter (weather, input cost) as the instrument for quantity in a demand equation, or a policy rate abroad for the domestic one.",
+      inputSchema: {
+        y: REF,
+        x: z.array(REF).min(1).max(2).describe("Endogenous regressors"),
+        instruments: z.array(REF).min(1).max(4).describe("Excluded instruments: move x, affect y only through x"),
+        exog: z.array(REF).max(4).optional().describe("Exogenous controls, in both stages"),
+        hac_lags: z.number().int().min(0).max(24).optional().describe("Newey-West bandwidth; default 4(n/100)^(2/9)"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ y, x, instruments, exog, hac_lags }) => {
+      const ry = await get(y);
+      const rx = await Promise.all(x.map(get)), rz = await Promise.all(instruments.map(get)), rw = await Promise.all((exog ?? []).map(get));
+      const { dates, columns } = align([ry.series, ...rx.map((r) => r.series), ...rz.map((r) => r.series), ...rw.map((r) => r.series)]);
+      if (dates.length < 20) return fail(`Only ${dates.length} shared dates across y, x, instruments and controls; need 20 or more.`);
+      const T = dates.length;
+      const col = (i: number) => columns[i];
+      const endog = Array.from({ length: T }, (_, t) => rx.map((_, j) => col(1 + j)[t]));
+      const inst = Array.from({ length: T }, (_, t) => rz.map((_, j) => col(1 + rx.length + j)[t]));
+      const ex = rw.length ? Array.from({ length: T }, (_, t) => rw.map((_, j) => col(1 + rx.length + rz.length + j)[t])) : [];
+      let iv: S.IvResult;
+      try { iv = S.twoSLS(col(0), endog, inst, ex, hac_lags); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+      const names = ["const", ...rx.map((r) => r.label), ...rw.map((r) => r.label)];
+      const table = names.map((term, j) => ({
+        term, coef_2sls: r4(iv.beta[j]), se: r4(iv.se[j]), t: r3(iv.t[j]), p: r4(iv.p[j]),
+        hac_se: r4(iv.hac_se[j]), hac_t: r3(iv.beta[j] / iv.hac_se[j]), hac_p: r4(S.tTwoSidedP(iv.beta[j] / iv.hac_se[j], iv.n - iv.k)),
+        coef_ols: r4(iv.ols.beta[j]), ols_se: r4(iv.ols.se[j]),
+      }));
+      const weak = iv.first_stage.map((f, j) => ({ endogenous: rx[j].label, F_excluded_instruments: r3(f.F_excluded), p: r4(f.F_p), df: f.df, r2: r4(f.r2), partial_r2: r4(f.partial_r2), weak: f.F_excluded < 10 }));
+      const anyWeak = weak.some((w) => w.weak);
+      const endogenous = iv.wu_hausman.p < 0.05;
+      const warnings: string[] = [];
+      const levels = ry.transform === "none" || ry.transform === "log" || ry.transform === "rebase";
+      if (levels && T >= 20) {
+        try {
+          const ay = S.adf(col(0), "c");
+          if (!ay.reject_unit_root_at && rx.some((_, j) => { try { return !S.adf(col(1 + j), "c").reject_unit_root_at; } catch { return false; } })) warnings.push("y and at least one x look non-stationary in levels; 2SLS on levels can be spurious like OLS. Use transform='pct_change' or 'diff', or establish cointegration first.");
+        } catch { /* skip */ }
+      }
+      const allLog = [ry, ...rx, ...rw].every((r) => r.transform === "log");
+      return text({
+        y: meta(ry), x: rx.map(meta), instruments: rz.map(meta), exog: rw.map(meta),
+        n: iv.n, first: dates[0], last: dates[T - 1], identification: iv.L === iv.m ? "just identified" : `over-identified (${iv.L} instruments for ${iv.m} endogenous regressor${iv.m > 1 ? "s" : ""})`,
+        coefficients: table,
+        r2: r4(iv.r2), sigma: r4(iv.sigma), hac_lags: iv.hac_lag,
+        first_stage: weak,
+        wu_hausman: { F: r3(iv.wu_hausman.F), p: r4(iv.wu_hausman.p), df: iv.wu_hausman.df, endogenous_at_5pct: endogenous, null_hypothesis: "x is exogenous: OLS and 2SLS estimate the same thing" },
+        sargan: iv.sargan ? { statistic: r3(iv.sargan.statistic), p: r4(iv.sargan.p), df: iv.sargan.df, instruments_valid_at_5pct: iv.sargan.p >= 0.05, null_hypothesis: "The over-identifying instruments are uncorrelated with the error" } : null,
+        elasticities: allLog ? "Both sides are in logs, so each coefficient is an elasticity." : undefined,
+        reading: [
+          anyWeak ? `Weak instruments: first-stage F ${weak.filter((w) => w.weak).map((w) => `${w.F_excluded_instruments} for ${w.endogenous}`).join(", ")} is below 10, so the 2SLS estimate is biased towards OLS and its standard errors understate the uncertainty. Find a stronger instrument before quoting the number.` : `Instruments are strong (first-stage F ${weak.map((w) => w.F_excluded_instruments).join(", ")}).`,
+          endogenous ? `Wu-Hausman rejects exogeneity (p ${r4(iv.wu_hausman.p)}): OLS is biased here, so the 2SLS coefficient on ${rx.map((r) => r.label).join(", ")} (${table.slice(1, 1 + rx.length).map((r) => r.coef_2sls).join(", ")}) is the one to quote, against ${table.slice(1, 1 + rx.length).map((r) => r.coef_ols).join(", ")} by OLS.` : `Wu-Hausman does not reject exogeneity (p ${r4(iv.wu_hausman.p)}): OLS and 2SLS agree within noise, and OLS is the more precise estimate.`,
+          iv.sargan ? (iv.sargan.p < 0.05 ? `Sargan rejects (p ${r4(iv.sargan.p)}): at least one instrument affects y directly, so the exclusion restriction fails and the estimate is not identified.` : `Sargan does not reject (p ${r4(iv.sargan.p)}): the over-identifying instruments are consistent with each other.`) : "Just identified: the exclusion restriction cannot be tested, it has to be argued.",
+        ].join(" "),
+        warnings,
+        caveat: "2SLS is consistent, not unbiased: in small samples it leans towards OLS, more so with weak instruments. The instrument must be relevant (testable, first-stage F) and excludable (only arguable: Sargan tests consistency among instruments, not validity). HAC errors use the structural residuals and the fitted regressors.",
+      });
+    }),
+  );
+
+  server.registerTool(
     "suggest_analysis",
     {
       title: "Suggest an analysis plan",
-      description: "Inspect one or more series (frequency, length, integration order, trend, seasonality, volatility clustering, overlap) and return an ordered plan of tool calls with the reason for each, plus the pitfalls the data carry. Routes to the right member of the toolkit, including forecast_evaluate before forecast, local_projections next to var_model, volatility for ARCH effects, principal_components for three or more series, quantile_regress for tail behaviour and panel_regress when the series come from a country panel. Use it before choosing a method.",
+      description: "Inspect one or more series (frequency, length, integration order, trend, seasonality, volatility clustering, overlap) and return an ordered plan of tool calls with the reason for each, plus the pitfalls the data carry. Routes to the right member of the toolkit, including forecast_evaluate before forecast, local_projections next to var_model, iv_regress when the question is causal and an instrument exists, volatility for ARCH effects, principal_components for three or more series, quantile_regress for tail behaviour and panel_regress when the series come from a country panel. Use it before choosing a method.",
       inputSchema: { series: z.array(REF).min(1).max(4), question: z.string().optional().describe("What you want to know, e.g. 'does feed price drive cattle price?'") },
       annotations: { readOnlyHint: true },
     },
@@ -1188,6 +1252,9 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         } else {
           pitfalls.push(`All ${facts.length} series are '${panel.indicators[0]}' for different countries in ${panel.dataset}. Comparing two countries answers a narrower question than panel_regress across all of them.`);
         }
+      }
+      if (!single && question && /\b(caus|effect of|impact of|drives?|driven|elasticit)/i.test(question)) {
+        pitfalls.push("The question is causal. regress, granger_causality and local_projections measure timing and association, not causation: a common driver (energy, exchange rate, demand) can produce all of them. If a series exists that moves the explanatory variable but reaches the outcome only through it (a supply shifter, a foreign policy rate, weather), iv_regress with it as the instrument is the test that separates the two.");
       }
       return text({
         question: question ?? null,
