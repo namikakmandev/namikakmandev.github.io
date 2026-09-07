@@ -48,6 +48,26 @@ PRODUCTS = {
     },
     "numelvi": {
         "words": ["numelvi"],
+        # the Numelvi hub draws its mark through CSS, so these are taken as-is
+        "direct": [
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/10/Logo.svg",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/12/Page-1.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/12/Image-e1764603029187.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/image-1-1.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2026/02/numelvi-dog-icon.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/4f2bc79b399debea828a92b91b6ff93d9f330cbf-e1785294957443.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/6623f2642cca1b1bae587ce6ff4a7bf4961615e3.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/731b0560649a53e9011746fe9af15c7b851834a3.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/f3f7b5f59bb1fc7ebb61c388de96b531291bf97c.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/dee8149206a331b339482fcbae360a8fc486a0cf.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/4b172a6b402de7c137926a610315264d259daa0e.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/6409c6cfea6256ec9bf5f283f8acf7c330a75d36.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/88048a6ad7656bb14cd066e08c99fc761c254207.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/a54e7473d6df980abb4f98dfcd85bdee607bca88.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/e778cf858beadb037b655129ab05b6a50134bc1c-e1763731914425.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/11/6821fc47721b1bdea59235fac701aa3bb45aced6.png",
+            "https://www.merck-animal-health-usa.com/wp-content/uploads/sites/120/2025/10/b254335c6226aba4eb6302081e3496fcecbfec76.png",
+        ],
         "pages": [
             "https://www.merck-animal-health-usa.com/hub/numelvi/about-numelvi/",
             "https://www.merck-animal-health-usa.com/hub/numelvi/",
@@ -126,6 +146,8 @@ def main():
     manifest = {"fetched": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "products": {}}
     for pid, spec in PRODUCTS.items():
         cands, seen = [], set()
+        for u in spec.get("direct", []):
+            seen.add(u); cands.append({"page": "direct", "url": u, "alt": "direct"})
         for page in spec["pages"]:
             try:
                 html = get(page)
@@ -150,7 +172,7 @@ def main():
             # og:image and anything else on the product's own domain with the name in it
             time.sleep(1)
         kept = []
-        for i, c in enumerate(cands[:12]):
+        for i, c in enumerate(cands[:30]):
             try:
                 data = c.pop("_data", None) or get(c["url"], binary=True)
             except Exception as e:
