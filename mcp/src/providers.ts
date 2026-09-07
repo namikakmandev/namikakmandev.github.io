@@ -1120,7 +1120,14 @@ const sec: Provider = {
     const tags = group ?? [what];
     if (tags.length > 20) throw new DataError(`At most 20 tags at once, got ${tags.length}.`);
 
-    const got = await Promise.all(tags.map(async (t) => ({ tag: t, res: await secConcept(cik, taxonomy, t, unit) })));
+    // The SEC asks for no more than ten requests a second and answers a burst with a
+    // block, so a whole statement goes out four tags at a time rather than all at once.
+    const got: Array<{ tag: string; res: Awaited<ReturnType<typeof secConcept>> }> = [];
+    for (let i = 0; i < tags.length; i += 4) {
+      if (i) await new Promise((r) => setTimeout(r, 500));
+      const batch = tags.slice(i, i + 4);
+      got.push(...await Promise.all(batch.map(async (t) => ({ tag: t, res: await secConcept(cik, taxonomy, t, unit) }))));
+    }
     const series: Record<string, Series> = {};
     const labels: string[] = [];
     for (const { tag, res } of got) {
@@ -1133,7 +1140,7 @@ const sec: Provider = {
         ? `${title} reports none of the ${what.replace("_", " ")} tags in ${unit} under ${taxonomy}. Banks and insurers use their own tags; try a single tag from the company's filing, or unit='USD'.`
         : `${title} has no ${taxonomy} tag '${what}' in ${unit}. Tag names are XBRL element names (Assets, Revenues, NetIncomeLoss); try a whole statement instead: '${who}:balance_sheet'.`);
     }
-    const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${taxonomy}/${tags[0]}.json`;
+    const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${taxonomy}/${(got.find((g) => g.res) ?? { tag: tags[0] }).tag}.json`;
     return {
       provider: "sec", id,
       source: `SEC EDGAR XBRL company facts: ${title} (CIK ${cik}), ${taxonomy}`,
