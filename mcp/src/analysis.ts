@@ -288,7 +288,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "regress",
     {
       title: "OLS regression",
-      description: "Regress y on one or more x series, aligned on shared dates. Newey-West robust standard errors, R², Durbin-Watson, AIC/BIC, residual tests, and a spurious-regression warning when levels are non-stationary. Set transform='log' on y and x for elasticities. Add lags of x for a distributed-lag model.",
+      description: "Regress y on one or more x series, aligned on shared dates. Newey-West robust standard errors, R², Durbin-Watson, AIC/BIC, residual tests, Breusch-Pagan for heteroskedasticity, VIF for collinearity, RESET for functional form, and a spurious-regression warning when levels are non-stationary. Set transform='log' on y and x for elasticities. Add lags of x for a distributed-lag model.",
       inputSchema: {
         y: REF,
         x: z.array(REF).min(1).max(8),
@@ -336,6 +336,15 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       }
       if (fit.dw < 1.2) warnings.push(`Durbin-Watson ${r3(fit.dw)}: strong positive residual autocorrelation. Use the HAC columns, not the plain se.`);
       const lb = S.ljungBox(fit.resid, Math.min(12, Math.floor(fit.n / 5)));
+      const bp = S.breuschPagan(rows, fit.resid);
+      const vifs = S.vif(rows);
+      const vifTable = names.slice(1).map((nm, j) => ({ term: nm, vif: Number.isFinite(vifs[j]) ? r3(vifs[j]) : null }));
+      let rs: { F: number; p: number; df: [number, number] } | null = null;
+      try { if (fit.n > fit.k + 6) rs = S.reset(yv, rows, fit.fitted); } catch { /* collinear with the powers */ }
+      if (bp.p < 0.05) warnings.push(`Breusch-Pagan p ${r4(bp.p)}: residual variance changes with the regressors (heteroskedasticity). The HAC columns are robust to it; the plain se are not.`);
+      const highVif = vifTable.filter((v) => v.vif !== null && (v.vif as number) > 10).map((v) => v.term);
+      if (highVif.length) warnings.push(`VIF above 10 for ${highVif.join(", ")}: these regressors move together, so their separate coefficients are poorly determined even if the fit is good. Drop one or combine them.`);
+      if (rs && rs.p < 0.05) warnings.push(`RESET p ${r4(rs.p)}: powers of the fitted values add explanatory power, so the linear form is misspecified (a curvature, a missing variable, or logs needed).`);
       const allLog = [ry, ...rx].every((r) => r.transform === "log");
       return text({
         y: meta(ry), x: rx.map(meta),
@@ -344,6 +353,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         r2: r4(fit.r2), adj_r2: r4(fit.adj_r2), sigma: r4(fit.sigma), F: fit.F !== null ? r3(fit.F) : null, F_p: fit.F_p !== null ? r4(fit.F_p) : null,
         aic: r3(fit.aic), bic: r3(fit.bic), durbin_watson: r3(fit.dw), hac_lags: hac.lag,
         residuals: { ljung_box_p: r4(lb.p), jarque_bera_p: r4(S.jarqueBera(fit.resid).p) },
+        diagnostics: {
+          breusch_pagan: { statistic: r3(bp.statistic), p: r4(bp.p), df: bp.df, heteroskedastic_at_5pct: bp.p < 0.05 },
+          vif: vifTable,
+          reset: rs ? { F: r3(rs.F), p: r4(rs.p), df: rs.df, misspecified_at_5pct: rs.p < 0.05 } : null,
+        },
         elasticities: allLog ? "Both sides are in logs, so each coefficient is an elasticity." : undefined,
         warnings,
       });
@@ -541,11 +555,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "structural_break",
     {
       title: "Structural break",
-      description: "Chow test at a given date, or a sup-F scan over the sample to locate the most likely break. Tests a shift in the mean of y, or in the relation y = a + b x when x is given.",
-      inputSchema: { y: REF, x: REF.optional(), date: z.string().optional().describe("Candidate break date; omit to scan") },
+      description: "Chow test at a given date, or a sup-F scan (Quandt-Andrews) over the sample to locate the most likely break, judged against Andrews' sup-F critical values so a data-chosen date gets an honest verdict. Set max_breaks above 1 for a sequential Bai-Perron style search that returns every significant break and the mean or relation inside each segment. Tests a shift in the mean of y, or in the relation y = a + b x when x is given.",
+      inputSchema: { y: REF, x: REF.optional(), date: z.string().optional().describe("Candidate break date; omit to scan"), max_breaks: z.number().int().min(1).max(5).default(1).describe("Above 1: sequential search for several breaks") },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ y, x, date }) => {
+    wrap(async ({ y, x, date, max_breaks }) => {
       const ry = await get(y);
       const rx = x ? await get(x) : null;
       const { dates, columns } = align(rx ? [ry.series, rx.series] : [ry.series]);
@@ -560,11 +574,26 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "Chow", break_date: dates[b], F: r3(c.F), p: r4(c.p), n_before: c.n1, n_after: c.n2,
           mean_before: r4(S.mean(before)), mean_after: r4(S.mean(after)), verdict: c.p < 0.05 ? "Break at this date (5%)" : "No evidence of a break at this date" });
       }
+      const k = X[0].length;
       const s = S.supF(yv, X);
       const top = [...s.scan].sort((p, q) => q.F - p.F).slice(0, 5).map((e) => ({ date: dates[e.index], F: r3(e.F) }));
+      const crit = S.supFCritical(k), rej = S.supFReject(s.best.F, k);
+      const segOut = (seg: S.BreakSegment) => ({ from: dates[seg.start], to: dates[seg.end], n: seg.n, mean_y: r4(seg.mean_y), ...(rx ? { intercept: r4(seg.beta[0]), slope: r4(seg.beta[1]) } : {}) });
+      let multiple: Record<string, unknown> | undefined;
+      if (max_breaks > 1) {
+        const seq = S.sequentialBreaks(yv, X, max_breaks);
+        multiple = { breaks: seq.breaks.map((b) => ({ date: dates[b.index], sup_F: r3(b.F), reject_at: b.reject_at })), segments: seq.segments.map(segOut), stopped: seq.stopped };
+      }
+      const single = S.sequentialBreaks(yv, X, 1);
       return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "sup-F scan (Quandt-Andrews), 15% trimming", most_likely_break: dates[s.best.break_index], sup_F: r3(s.best.F),
+        sup_F_critical: { "10%": r3(crit["10%"]), "5%": r3(crit["5%"]), "1%": r3(crit["1%"]) }, reject_no_break_at: rej,
         chow_p_at_that_date: r4(s.best.p), candidates: top,
-        caveat: "The sup-F statistic has its own critical values (Andrews 1993), higher than the F-distribution's: the Chow p-value at a data-chosen date overstates significance. Use the scan to locate, then confirm with a Chow test at a date you can justify." });
+        segments: rej && rej !== "10%" ? single.segments.map(segOut) : undefined,
+        multiple_breaks: multiple,
+        verdict: rej === null ? "No break: the largest F in the scan is below Andrews' 10% critical value, so the sample can be treated as one regime."
+          : rej === "10%" ? "Weak evidence of a break (10% only); do not split the sample on this alone."
+          : `Break at ${dates[s.best.break_index]} (sup-F ${r3(s.best.F)} beats the ${rej} critical value ${r3(crit[rej])}).${multiple ? ` Sequential search: ${(multiple.breaks as unknown[]).length} break(s), ${multiple.stopped}.` : " Set max_breaks above 1 to look for more."}`,
+        caveat: "Sup-F critical values are Andrews (1993) asymptotics with 15% trimming, simulated for this k; the plain Chow p-value at a data-chosen date overstates significance and is shown only for reference. The sequential search tests each segment on its own, so a break found late in the sequence has a weaker basis than the first. Breaks in the mean of a trending or non-stationary series are found everywhere; difference or detrend first." });
     }),
   );
 

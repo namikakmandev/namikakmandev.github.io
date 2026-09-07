@@ -55,7 +55,7 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `suggest_analysis` | Inspects frequency, length, integration order, trend, seasonality and overlap, then returns an ordered plan of tool calls with reasons and the pitfalls the data carry. Call this first. |
 | `describe_stats` | Moments, quantiles, autocorrelations, Ljung-Box, Jarque-Bera, ADF on levels and differences, trend and seasonal strength. |
 | `test_stationarity` | Augmented Dickey-Fuller with MacKinnon critical values plus KPSS, lag length by AIC, integration order and a joint reading. |
-| `regress` | OLS with Newey-West standard errors, R², Durbin-Watson, AIC/BIC, residual tests, optional distributed lags and trend. Warns when a levels regression looks spurious. Log both sides for elasticities. |
+| `regress` | OLS with Newey-West standard errors, R², Durbin-Watson, AIC/BIC, residual tests, Breusch-Pagan, VIF and RESET diagnostics, optional distributed lags and trend. Warns when a levels regression looks spurious. Log both sides for elasticities. |
 | `granger_causality` | F-tests in both directions, with a non-stationarity warning. |
 | `cointegration` | Engle-Granger: long-run vector, residual unit-root test, equilibrium error. |
 | `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, rank and first cointegrating vector. |
@@ -68,7 +68,7 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `forecast` | Holt-Winters, Holt, AR(p), or ARIMA(p,d,q) with order by AIC, with dated forecasts and an approximate band. |
 | `forecast_evaluate` | Rolling-origin backtest of naive, drift, seasonal naive, Holt, Holt-Winters, AR and ARIMA: RMSE, MAE, MAPE by horizon, skill against naive, Diebold-Mariano tests of the winner. Run it before `forecast`. |
 | `deflate` | A nominal series in constant prices of a base date, using any price index as deflator. |
-| `structural_break` | Chow test at a date, or a sup-F scan to locate one. |
+| `structural_break` | Chow test at a date, or a sup-F scan judged against Andrews critical values; `max_breaks` runs a sequential search for several breaks with the mean or relation per segment. |
 | `volatility` | ARCH-LM test and a GARCH(1,1) fit: persistence, unconditional and conditional volatility, one-step forecast. |
 | `iv_regress` | Two-stage least squares when x is endogenous: 2SLS next to OLS with HAC errors, first-stage F for weak instruments, Wu-Hausman for endogeneity, Sargan for over-identification. |
 | `quantile_regress` | Regression at several quantiles next to OLS, to see whether the relation differs in the tails. |
@@ -76,7 +76,7 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `panel_regress` | Fixed-effects, pooled and between regressions across countries on `UNIT|INDICATOR` datasets, clustered standard errors, F test for country effects. |
 | `rolling` | Rolling mean, standard deviation, or correlation. |
 
-The numerics are in `src/stats.ts`, dependency-free so they run on the Worker. Critical values are MacKinnon (1991); p-values come from the t, F and chi-square distributions. `test/stats.test.mjs` checks each estimator against known answers on seeded data.
+The numerics are in `src/stats.ts`, dependency-free so they run on the Worker. Critical values are MacKinnon (1991) for the unit-root tests and Andrews (1993) asymptotics for the sup-F test, the latter simulated from the Brownian bridge (see the comment in `stats.ts`); p-values come from the t, F and chi-square distributions. `test/stats.test.mjs` checks each estimator against known answers on seeded data.
 
 Resources: `econ://catalog` and `econ://dataset/{name}`.
 

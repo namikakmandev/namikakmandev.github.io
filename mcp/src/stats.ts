@@ -1294,3 +1294,101 @@ export function twoSLS(y: number[], endog: number[][], instruments: number[][], 
   }
   return { n, k, m, L, beta, se, t, p, hac_se: hac.se, hac_lag: hac.lag, resid, sigma: Math.sqrt(sigma2), r2: tss ? 1 - rss / tss : NaN, first_stage, wu_hausman, sargan, ols: plain };
 }
+
+// ---------------------------------------------------------------------------
+// Sup-F critical values and sequential multiple breaks
+
+/**
+ * Asymptotic critical values of the sup-Wald statistic (Andrews 1993) with 15% trimming,
+ * for k parameters allowed to break, simulated from the k-dimensional Brownian bridge
+ * (120,000 replications on a 2,000-point grid; k=1 agrees with Andrews 2003 to 0.05).
+ * The sup-F reported by supF is sup-Wald / k, so compare k * F with these.
+ */
+const SUP_WALD_15 = [
+  [7.15, 8.72, 12.23], [9.95, 11.69, 15.46], [12.26, 14.11, 18.18], [14.29, 16.23, 20.53], [16.24, 18.31, 22.65],
+];
+export function supFCritical(k: number): { "10%": number; "5%": number; "1%": number } {
+  const row = SUP_WALD_15[Math.min(Math.max(k, 1), SUP_WALD_15.length) - 1];
+  return { "10%": row[0] / k, "5%": row[1] / k, "1%": row[2] / k };
+}
+export function supFReject(F: number, k: number): "1%" | "5%" | "10%" | null {
+  const c = supFCritical(k);
+  return F > c["1%"] ? "1%" : F > c["5%"] ? "5%" : F > c["10%"] ? "10%" : null;
+}
+
+export interface BreakSegment { start: number; end: number; n: number; beta: number[]; mean_y: number }
+export interface SequentialBreaksResult { breaks: Array<{ index: number; F: number; reject_at: "1%" | "5%" | "10%" | null }>; segments: BreakSegment[]; k: number; stopped: string }
+
+/**
+ * Sequential break detection in the spirit of Bai-Perron: locate the sup-F break in the
+ * whole sample; if it clears the 5% Andrews critical value, split there and look for the
+ * largest significant sup-F inside any segment; repeat until maxBreaks or nothing
+ * significant. Each segment keeps at least `trim` of its own length on either side of a
+ * candidate, and at least k + 3 observations.
+ */
+export function sequentialBreaks(y: number[], X: number[][], maxBreaks: number, trim = 0.15): SequentialBreaksResult {
+  const k = X[0].length;
+  const breaks: SequentialBreaksResult["breaks"] = [];
+  let stopped = "reached max_breaks";
+  const bounds = () => [0, ...breaks.map((b) => b.index).sort((a, b) => a - b), y.length];
+  while (breaks.length < maxBreaks) {
+    const bs = bounds();
+    let best: { index: number; F: number } | null = null;
+    for (let s = 0; s + 1 < bs.length; s++) {
+      const lo = bs[s], hi = bs[s + 1];
+      if (hi - lo < 2 * (k + 3)) continue;
+      try {
+        const r = supF(y.slice(lo, hi), X.slice(lo, hi), trim);
+        if (supFReject(r.best.F, k) === null || supFReject(r.best.F, k) === "10%") continue;
+        if (!best || r.best.F > best.F) best = { index: lo + r.best.break_index, F: r.best.F };
+      } catch { /* segment too short */ }
+    }
+    if (!best) { stopped = breaks.length ? "no further break clears the 5% sup-F critical value" : "no break clears the 5% sup-F critical value"; break; }
+    breaks.push({ ...best, reject_at: supFReject(best.F, k) });
+  }
+  breaks.sort((a, b) => a.index - b.index);
+  const bs = bounds();
+  const segments: BreakSegment[] = [];
+  for (let s = 0; s + 1 < bs.length; s++) {
+    const ys = y.slice(bs[s], bs[s + 1]), Xs = X.slice(bs[s], bs[s + 1]);
+    let beta: number[];
+    try { beta = ols(ys, Xs).beta; } catch { beta = new Array<number>(k).fill(NaN); }
+    segments.push({ start: bs[s], end: bs[s + 1] - 1, n: ys.length, beta, mean_y: mean(ys) });
+  }
+  return { breaks, segments, k, stopped };
+}
+
+// ---------------------------------------------------------------------------
+// Regression diagnostics
+
+/** Breusch-Pagan (Koenker's studentised form): regress e² on X, n·R² ~ chi²(k-1). */
+export function breuschPagan(X: number[][], resid: number[]): { statistic: number; p: number; df: number } {
+  const e2 = resid.map((e) => e * e);
+  const df = X[0].length - 1;
+  if (df < 1) return { statistic: 0, p: 1, df: 0 };
+  const fit = ols(e2, X);
+  const stat = resid.length * fit.r2;
+  return { statistic: stat, p: chi2UpperP(stat, df), df };
+}
+
+/** Variance inflation factor of each non-constant column of X (column 0 is the constant). */
+export function vif(X: number[][]): number[] {
+  const k = X[0].length;
+  if (k <= 2) return new Array<number>(k - 1).fill(1);
+  return Array.from({ length: k - 1 }, (_, j) => {
+    const col = X.map((r) => r[1 + j]);
+    const others = X.map((r) => r.filter((_, c) => c !== 1 + j));
+    try { const f = ols(col, others); return f.r2 < 1 ? 1 / (1 - f.r2) : Infinity; } catch { return Infinity; }
+  });
+}
+
+/** Ramsey RESET: add fitted² and fitted³ to the regression; F test on the two. */
+export function reset(y: number[], X: number[][], fitted: number[]): { F: number; p: number; df: [number, number] } {
+  const scale = sd(fitted) || 1, m = mean(fitted);
+  const z = fitted.map((f) => (f - m) / scale);
+  const base = ols(y, X);
+  const aug = ols(y, X.map((r, i) => [...r, z[i] ** 2, z[i] ** 3]));
+  const df2 = y.length - X[0].length - 2;
+  const F = ((base.rss - aug.rss) / 2) / (aug.rss / df2);
+  return { F, p: fUpperP(F, 2, df2), df: [2, df2] };
+}

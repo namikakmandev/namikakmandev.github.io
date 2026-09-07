@@ -488,6 +488,35 @@ await check("iv_regress: 2SLS next to OLS with first-stage, Wu-Hausman and Sarga
   assert.ok(plan.pitfalls.some((p) => /iv_regress/.test(p)), "causal question points at iv_regress");
 });
 
+await check("structural_break judges the scan against sup-F critical values and finds several breaks on request", async () => {
+  const j = await call("structural_break", { y: { ...CATTLE, transform: "yoy", start: "1990-01" } });
+  assert.ok(j.sup_F_critical["5%"] > j.sup_F_critical["10%"] && j.sup_F_critical["1%"] > j.sup_F_critical["5%"]);
+  assert.ok(["1%", "5%", "10%", null].includes(j.reject_no_break_at));
+  assert.match(j.verdict, /break/i);
+  // A series with two obvious level shifts
+  const pts = Array.from({ length: 150 }, (_, i) => [`${1990 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`, Math.sin(i) * 0.3 + (i >= 50 ? 3 : 0) + (i >= 100 ? -4 : 0)]);
+  const m = await call("structural_break", { y: { points: pts, label: "steps" }, max_breaks: 4 });
+  assert.equal(m.multiple_breaks.breaks.length, 2, JSON.stringify(m.multiple_breaks));
+  assert.deepEqual(m.multiple_breaks.breaks.map((b) => b.date), ["1994-03", "1998-05"]);
+  assert.equal(m.multiple_breaks.segments.length, 3);
+  assert.ok(Math.abs(m.multiple_breaks.segments[1].mean_y - m.multiple_breaks.segments[0].mean_y - 3) < 0.3);
+  assert.match(m.verdict, /Sequential search: 2 break/);
+  const rel = await call("structural_break", { y: { ...CATTLE, transform: "pct_change", start: "1990-01" }, x: { ...CORN, transform: "pct_change", start: "1990-01" }, max_breaks: 2 });
+  assert.ok(rel.multiple_breaks.segments.every((sg) => "slope" in sg), "relation breaks report slopes per segment");
+});
+
+await check("regress reports Breusch-Pagan, VIF and RESET diagnostics", async () => {
+  const j = await call("regress", { y: { ...CATTLE, transform: "yoy", start: "1990-01" }, x: [{ ...CORN, transform: "yoy", start: "1990-01" }, { ...CPI, transform: "yoy", start: "1990-01" }] });
+  assert.ok(typeof j.diagnostics.breusch_pagan.p === "number" && j.diagnostics.breusch_pagan.df === 2);
+  assert.equal(j.diagnostics.vif.length, 2);
+  assert.ok(j.diagnostics.vif.every((v) => v.vif >= 1));
+  assert.ok(j.diagnostics.reset && typeof j.diagnostics.reset.p === "number");
+  // A regressor entered twice via lags of a smooth series should push VIF up and be warned about
+  const lagged = await call("regress", { y: { ...CATTLE, transform: "yoy", start: "1990-01" }, x: [{ ...CPI, start: "1990-01" }], x_lags: 2 });
+  assert.ok(lagged.diagnostics.vif.some((v) => v.vif > 10), JSON.stringify(lagged.diagnostics.vif));
+  assert.ok(lagged.warnings.some((w) => /VIF above 10/.test(w)), lagged.warnings.join(" | "));
+});
+
 await client.close();
 worker.close();
 stat.close();

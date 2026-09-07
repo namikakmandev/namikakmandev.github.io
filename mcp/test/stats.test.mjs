@@ -381,5 +381,45 @@ check("2SLS removes the endogeneity bias OLS carries, and the diagnostics say wh
   assert.ok(weak.first_stage[0].F_excluded < 10, `noise instrument F ${weak.first_stage[0].F_excluded}`);
 });
 
+check("sup-F critical values: white noise does not reject, a mean shift does and is located; sequential search finds two", () => {
+  close(S.supFCritical(1)["5%"], 8.72, 0.01, "k=1 5% is Andrews' value");
+  close(S.supFCritical(2)["5%"], 11.69 / 2, 0.01, "sup-F is sup-Wald / k");
+  const r = rng(52);
+  const n = 200, X = Array.from({ length: n }, () => [1]);
+  const wn = Array.from({ length: n }, () => r.normal());
+  const q = S.supF(wn, X);
+  assert.equal(S.supFReject(q.best.F, 1), null, `white noise sup-F ${q.best.F}`);
+  const shifted = wn.map((v, i) => v + (i >= 120 ? 1.5 : 0));
+  const s1 = S.supF(shifted, X);
+  assert.equal(S.supFReject(s1.best.F, 1), "1%");
+  assert.ok(Math.abs(s1.best.break_index - 120) <= 3, `located at ${s1.best.break_index}`);
+  const two = wn.map((v, i) => v + (i >= 70 ? 1.5 : 0) + (i >= 140 ? -2 : 0));
+  const seq = S.sequentialBreaks(two, X, 4);
+  assert.equal(seq.breaks.length, 2, `found ${seq.breaks.map((b) => b.index)} (${seq.stopped})`);
+  assert.ok(Math.abs(seq.breaks[0].index - 70) <= 3 && Math.abs(seq.breaks[1].index - 140) <= 3, `at ${seq.breaks.map((b) => b.index)}`);
+  assert.equal(seq.segments.length, 3);
+  close(seq.segments[1].mean_y - seq.segments[0].mean_y, 1.5, 0.4, "segment means differ by the shift");
+  assert.match(seq.stopped, /no further break/);
+  const none = S.sequentialBreaks(wn, X, 3);
+  assert.equal(none.breaks.length, 0); assert.equal(none.segments.length, 1);
+});
+
+check("regression diagnostics: Breusch-Pagan, VIF and RESET react to what they should", () => {
+  const r = rng(61);
+  const n = 400;
+  const x1 = Array.from({ length: n }, () => r.normal()), x2 = x1.map((v) => 0.95 * v + 0.3 * r.normal()), x3 = Array.from({ length: n }, () => r.normal());
+  const X = x1.map((v, i) => [1, v, x3[i]]);
+  const yHom = x1.map((v, i) => 1 + v + x3[i] + r.normal());
+  const yHet = x1.map((v, i) => 1 + v + x3[i] + Math.exp(0.8 * v) * r.normal());
+  assert.ok(S.breuschPagan(X, S.ols(yHom, X).resid).p > 0.05, "homoskedastic: no rejection");
+  assert.ok(S.breuschPagan(X, S.ols(yHet, X).resid).p < 0.01, "heteroskedastic: rejection");
+  const v = S.vif(x1.map((a, i) => [1, a, x2[i], x3[i]]));
+  assert.ok(v[0] > 5 && v[1] > 5 && v[2] < 2, `VIFs ${v}`);
+  assert.deepEqual(S.vif(X.map((row) => [row[0], row[1]])), [1], "one regressor: VIF 1");
+  const yQuad = x1.map((v, i) => 1 + v + 0.8 * v * v + 0.5 * r.normal());
+  assert.ok(S.reset(yQuad, X, S.ols(yQuad, X).fitted).p < 0.01, "missing square: RESET rejects");
+  assert.ok(S.reset(yHom, X, S.ols(yHom, X).fitted).p > 0.05, "correct linear form: RESET does not reject");
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);
