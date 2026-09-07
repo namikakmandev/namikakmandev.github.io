@@ -528,6 +528,27 @@ await check("regress reports Breusch-Pagan, VIF and RESET diagnostics", async ()
   assert.ok(lagged.warnings.some((w) => /VIF above 10/.test(w)), lagged.warnings.join(" | "));
 });
 
+await check("johansen and vecm with a restricted constant report the constant in the vector and a drift check", async () => {
+  const j = await call("johansen", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2, deterministic: "restricted_constant" });
+  assert.equal(j.deterministic, "restricted_constant");
+  assert.equal(j.trace_tests[0].critical["5%"], 20.2618);
+  assert.equal(j.drift_check.per_series.length, 2);
+  assert.ok(["constant", "restricted_constant"].includes(j.drift_check.suggested));
+  if (j.cointegrating_vector) assert.ok("constant" in j.cointegrating_vector);
+  const v = await call("vecm", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2, rank: 1, deterministic: "restricted_constant" });
+  assert.ok("constant" in v.relations[0].long_run_vector);
+  assert.match(v.caveat, /restricted to the cointegrating relation/);
+  // Two drift-free inline series: suggest_analysis picks the restricted constant
+  const n = 200, a = [0], b = [];
+  let seed = 9; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  for (let i = 1; i < n; i++) a.push(a[i - 1] + rnd());
+  for (let i = 0; i < n; i++) b.push(3 + a[i] + rnd() * 0.3);
+  const dt = (i) => `${1990 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`;
+  const plan = await call("suggest_analysis", { series: [{ points: a.map((v, i) => [dt(i), v]), label: "a" }, { points: b.map((v, i) => [dt(i), v]), label: "b" }] });
+  const jo = plan.plan.find((p) => p.tool === "vecm");
+  if (jo && plan.series.every((f) => f.integration_order === "I(1)")) assert.equal(jo.args.deterministic, plan.series.some((f) => f.trending) ? "constant" : "restricted_constant");
+});
+
 await client.close();
 worker.close();
 stat.close();

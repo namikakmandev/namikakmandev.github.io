@@ -656,16 +656,16 @@ export function symEigen(A: Mat): { values: number[]; vectors: Mat } {
 // Johansen cointegration (trace test, unrestricted constant)
 
 export interface JohansenResult {
-  k: number; lags: number; nobs: number;
+  k: number; lags: number; det: JohansenDet; nobs: number;
   eigenvalues: number[];
   trace: Array<{ r: number; statistic: number; critical: { "10%": number; "5%": number; "1%": number }; reject: boolean }>;
   rank_at_5pct: number;
   cointegrating_vector: number[] | null;
-  /** All k candidate vectors (columns, ordered by eigenvalue), each normalised on the first series. */
+  /** All k candidate vectors (columns, ordered by eigenvalue), each normalised on the first series; with a restricted constant the last row is the constant. */
   vectors: number[][];
 }
 
-/** MacKinnon-Haug-Michelis trace critical values, constant in the VAR (statsmodels det_order=0), rows n-r = 1..5. */
+/** MacKinnon-Haug-Michelis trace critical values, unrestricted constant (statsmodels det_order=0), rows n-r = 1..5. */
 const JOHANSEN_TRACE_CV = [
   [2.7055, 3.8415, 6.6349],
   [13.4294, 15.4943, 19.9349],
@@ -673,21 +673,43 @@ const JOHANSEN_TRACE_CV = [
   [44.4929, 47.8545, 54.6815],
   [65.8202, 69.8189, 76.1631],
 ];
+/**
+ * Trace critical values with the constant restricted to the cointegrating relation (no drift
+ * in the levels). 5% and 1% are MacKinnon-Haug-Michelis (1999); the 10% column is simulated
+ * from the asymptotic distribution (40,000 draws of tr(∫dB F'(∫FF')⁻¹∫F dB') with F = (B, 1),
+ * 1,000-point grid), a method that reproduces the table above to within 0.4.
+ */
+const JOHANSEN_TRACE_CV_RC = [
+  [7.59, 9.1645, 12.7607],
+  [17.76, 20.2618, 25.0781],
+  [32.14, 35.1928, 41.1950],
+  [50.29, 54.0790, 61.2669],
+  [72.20, 76.9728, 85.3364],
+];
+export type JohansenDet = "constant" | "restricted_constant";
 
-export function johansen(Y: number[][], lags = 1): JohansenResult {
+/**
+ * Johansen trace test. det = "constant": unrestricted constant in the VAR, right for series
+ * that drift (most price levels, logs of output). det = "restricted_constant": the constant
+ * enters the cointegrating relation only, right for series without drift (interest rates,
+ * ratios, real exchange rates); the vectors then carry an extra last element, the constant.
+ */
+export function johansen(Y: number[][], lags = 1, det: JohansenDet = "constant"): JohansenResult {
   // Y: rows = time, columns = variables
   const T = Y.length, k = Y[0].length;
   if (k < 2 || k > 5) throw new Error("Johansen here supports 2 to 5 series");
   if (T < 10 * k + lags + 10) throw new Error(`Too few observations (${T}) for ${k} series with ${lags} lags`);
+  const rc = det === "restricted_constant";
   const dY = Y.slice(1).map((r, t) => r.map((v, j) => v - Y[t][j]));
   const rows: number[][] = [], dyT: number[][] = [], lagY: number[][] = [];
   for (let t = lags; t < dY.length; t++) {
-    const z = [1];
+    const z = rc ? [] : [1];
     for (let l = 1; l <= lags; l++) z.push(...dY[t - l]);
-    rows.push(z); dyT.push(dY[t]); lagY.push(Y[t]); // Y[t] is y_{t-1} relative to dY[t] = y_{t+1}-y_t
+    rows.push(z); dyT.push(dY[t]); lagY.push(rc ? [...Y[t], 1] : Y[t]); // Y[t] is y_{t-1} relative to dY[t] = y_{t+1}-y_t
   }
   const n = rows.length;
   const residualsOn = (target: number[][]) => {
+    if (!rows[0].length) return target.map((r) => [...r]);
     const out: number[][] = Array.from({ length: n }, () => new Array<number>(target[0].length).fill(0));
     for (let j = 0; j < target[0].length; j++) {
       const fit = ols(target.map((r) => r[j]), rows);
@@ -706,12 +728,14 @@ export function johansen(Y: number[][], lags = 1): JohansenResult {
   const Linv = forwardSolve(L, A.map((_, i) => A.map((__, j) => (i === j ? 1 : 0))));
   const M = matmul(matmul(Linv, A), transpose(Linv));
   const { values, vectors } = symEigen(M);
-  const eig = values.map((v) => Math.min(Math.max(v, 0), 0.999999));
+  // With the restricted constant M is (k+1)x(k+1) of rank k: the k largest eigenvalues are the test's.
+  const eig = values.slice(0, k).map((v) => Math.min(Math.max(v, 0), 0.999999));
+  const table = rc ? JOHANSEN_TRACE_CV_RC : JOHANSEN_TRACE_CV;
   const trace = eig.map((_, r) => {
     let s = 0;
     for (let i = r; i < k; i++) s += Math.log(1 - eig[i]);
     const stat = -n * s;
-    const cv = JOHANSEN_TRACE_CV[k - r - 1];
+    const cv = table[k - r - 1];
     return { r, statistic: stat, critical: { "10%": cv[0], "5%": cv[1], "1%": cv[2] }, reject: stat > cv[1] };
   });
   let rank = 0;
@@ -720,16 +744,17 @@ export function johansen(Y: number[][], lags = 1): JohansenResult {
   const B = matmul(transpose(Linv), vectors);
   const cols: number[][] = [];
   for (let c = 0; c < k; c++) { const col = B.map((r) => r[c]); cols.push(col[0] !== 0 ? col.map((b) => b / col[0]) : col); }
-  const betaAll = cols[0].map((_, i) => cols.map((col) => col[i]));   // k x k
-  return { k, lags, nobs: n, eigenvalues: eig, trace, rank_at_5pct: rank, cointegrating_vector: rank > 0 ? cols[0] : null, vectors: betaAll };
+  const betaAll = cols[0].map((_, i) => cols.map((col) => col[i]));   // (k or k+1) x k
+  return { k, lags, det, nobs: n, eigenvalues: eig, trace, rank_at_5pct: rank, cointegrating_vector: rank > 0 ? cols[0] : null, vectors: betaAll };
 }
 
 // ---------------------------------------------------------------------------
 // Vector error-correction model: dy_t = c + alpha (beta' y_{t-1}) + sum Gamma_l dy_{t-l} + e_t
 
 export interface VecmResult {
-  k: number; lags: number; rank: number; nobs: number;
+  k: number; lags: number; rank: number; nobs: number; det: JohansenDet;
   beta: number[][];          // k x r, each column normalised on the first series
+  beta_constant: number[];   // r constants inside the relations (zero with an unrestricted constant)
   alpha: number[][];         // k x r adjustment coefficients (row = equation)
   alpha_t: number[][];
   alpha_p: number[][];
@@ -740,18 +765,21 @@ export interface VecmResult {
   johansen: JohansenResult;
 }
 
-export function vecm(Y: number[][], lags = 1, rank?: number): VecmResult {
-  const j = johansen(Y, lags);
+export function vecm(Y: number[][], lags = 1, rank?: number, det: JohansenDet = "constant"): VecmResult {
+  const j = johansen(Y, lags, det);
   const k = j.k;
+  const rc = det === "restricted_constant";
   const r = rank ?? j.rank_at_5pct;
   if (r < 1) throw new Error("No cointegrating relation at 5% (rank 0): estimate a VAR on differences instead, or pass rank explicitly.");
   if (r >= k) throw new Error(`Rank must be below the number of series (${k}); rank ${k} means every series is stationary in levels.`);
   const beta = Y[0].map((_, i) => j.vectors[i].slice(0, r));   // k x r
-  const ectAt = (y: number[]) => beta[0].map((_, c) => y.reduce((sum, v, i) => sum + v * beta[i][c], 0));
+  const beta_constant = rc ? j.vectors[k].slice(0, r) : new Array<number>(r).fill(0);
+  const ectAt = (y: number[]) => beta[0].map((_, c) => y.reduce((sum, v, i) => sum + v * beta[i][c], 0) + beta_constant[c]);
   const dY = Y.slice(1).map((row, t) => row.map((v, i) => v - Y[t][i]));
   const X: number[][] = [], targets: number[][] = [];
+  const off = rc ? 0 : 1;   // column of the first ECT
   for (let t = lags; t < dY.length; t++) {
-    const z = [1, ...ectAt(Y[t])];          // Y[t] is y_{t-1} for dY[t]
+    const z = [...(rc ? [] : [1]), ...ectAt(Y[t])];          // Y[t] is y_{t-1} for dY[t]
     for (let l = 1; l <= lags; l++) z.push(...dY[t - l]);
     X.push(z); targets.push(dY[t]);
   }
@@ -759,12 +787,19 @@ export function vecm(Y: number[][], lags = 1, rank?: number): VecmResult {
   const gamma: number[][][] = Array.from({ length: lags }, () => Array.from({ length: k }, () => new Array<number>(k).fill(0)));
   for (let eq = 0; eq < k; eq++) {
     const fit = ols(targets.map((row) => row[eq]), X);
-    constant.push(fit.beta[0]);
-    alpha.push(fit.beta.slice(1, 1 + r)); alpha_t.push(fit.t.slice(1, 1 + r)); alpha_p.push(fit.p.slice(1, 1 + r));
-    for (let l = 0; l < lags; l++) for (let v = 0; v < k; v++) gamma[l][eq][v] = fit.beta[1 + r + l * k + v];
+    constant.push(rc ? 0 : fit.beta[0]);
+    alpha.push(fit.beta.slice(off, off + r)); alpha_t.push(fit.t.slice(off, off + r)); alpha_p.push(fit.p.slice(off, off + r));
+    for (let l = 0; l < lags; l++) for (let v = 0; v < k; v++) gamma[l][eq][v] = fit.beta[off + r + l * k + v];
     r2.push(fit.r2);
   }
-  return { k, lags, rank: r, nobs: X.length, beta, alpha, alpha_t, alpha_p, gamma, constant, r2, ect: Y.map(ectAt), johansen: j };
+  return { k, lags, rank: r, nobs: X.length, det, beta, beta_constant, alpha, alpha_t, alpha_p, gamma, constant, r2, ect: Y.map(ectAt), johansen: j };
+}
+
+/** t-statistic of the mean of first differences: does the series drift? */
+export function driftT(y: number[]): number {
+  const d = diff(y);
+  if (d.length < 8) return NaN;
+  return (mean(d) / sd(d)) * Math.sqrt(d.length);
 }
 
 // ---------------------------------------------------------------------------

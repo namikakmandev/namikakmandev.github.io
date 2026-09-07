@@ -117,6 +117,17 @@ function adfOut(a: S.AdfResult | null) {
   return { spec: a.spec, lags: a.lags, nobs: a.nobs, statistic: r3(a.statistic), critical: { "1%": r3(a.critical["1%"]), "5%": r3(a.critical["5%"]), "10%": r3(a.critical["10%"]) }, reject_unit_root_at: a.reject_unit_root_at };
 }
 
+/** Which Johansen deterministic case the data support: series that drift need the unrestricted constant. */
+function driftCheck(labels: string[], columns: number[][], chosen: "constant" | "restricted_constant") {
+  const rows = labels.map((l, i) => { const t = S.driftT(columns[i]); return { series: l, drift_t: r3(t), drifts: Math.abs(t) > 2 }; });
+  const drifting = rows.filter((r) => r.drifts).map((r) => r.series);
+  const suggested = drifting.length ? "constant" : "restricted_constant";
+  const note = suggested === chosen ? "" : chosen === "constant"
+    ? "Drift check: none of the series has a significant drift, so deterministic='restricted_constant' is the better-specified test here (the unrestricted constant over-rejects on drift-free series)."
+    : `Drift check: ${drifting.join(", ")} drift${drifting.length === 1 ? "s" : ""} significantly, so deterministic='constant' fits the data better than the restricted constant.`;
+  return { per_series: rows, suggested, note };
+}
+
 function integrationOrder(level: S.AdfResult | null, first: S.AdfResult | null): "I(0)" | "I(1)" | "I(2) or worse" | "unknown" {
   if (!level) return "unknown";
   if (level.reject_unit_root_at) return "I(0)";
@@ -838,25 +849,28 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "johansen",
     {
       title: "Johansen cointegration (2 to 5 series)",
-      description: "Trace test for the number of cointegrating relations among several I(1) series, with an unrestricted constant. Returns the eigenvalues, trace statistics against MacKinnon-Haug-Michelis critical values, the rank at 5%, and the first cointegrating vector normalised on the first series. Use cointegration (Engle-Granger) for exactly two series when you want the residual series.",
-      inputSchema: { series: z.array(REF).min(2).max(5), lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the VECM") },
+      description: "Trace test for the number of cointegrating relations among several I(1) series. deterministic='constant' (default) puts an unrestricted constant in the VAR, right for series that drift (price levels, logs of output); 'restricted_constant' puts the constant inside the cointegrating relation only, right for series without drift (interest rates, ratios, real exchange rates) and then reports the constant as part of the vector. Returns the eigenvalues, trace statistics against MacKinnon-Haug-Michelis critical values for the chosen case, the rank at 5%, the first cointegrating vector normalised on the first series, and a drift check that says which case fits the data. Use cointegration (Engle-Granger) for exactly two series when you want the residual series.",
+      inputSchema: { series: z.array(REF).min(2).max(5), lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the VECM"), deterministic: z.enum(["constant", "restricted_constant"]).default("constant") },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, lags }) => {
+    wrap(async ({ series, lags, deterministic }) => {
       const rs = await Promise.all(series.map(get));
       const { dates, columns } = align(rs.map((r) => r.series));
       if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
-      const j = S.johansen(Y, lags);
+      const j = S.johansen(Y, lags, deterministic);
+      const drift = driftCheck(rs.map((r) => r.label), columns, deterministic);
+      const labels = [...rs.map((r) => r.label), ...(deterministic === "restricted_constant" ? ["constant"] : [])];
       return text({
-        series: rs.map(meta), n: j.nobs, first: dates[0], last: dates[dates.length - 1], lags,
+        series: rs.map(meta), n: j.nobs, first: dates[0], last: dates[dates.length - 1], lags, deterministic,
         eigenvalues: j.eigenvalues.map(r4),
         trace_tests: j.trace.map((t) => ({ null_rank_at_most: t.r, statistic: r3(t.statistic), critical: t.critical, reject: t.reject })),
         rank_at_5pct: j.rank_at_5pct,
-        cointegrating_vector: j.cointegrating_vector ? Object.fromEntries(rs.map((r, i) => [r.label, r4(j.cointegrating_vector![i])])) : null,
-        reading: j.rank_at_5pct === 0 ? "No cointegrating relation at 5%: model these in differences (VAR on growth rates)."
-          : `${j.rank_at_5pct} cointegrating relation${j.rank_at_5pct > 1 ? "s" : ""} at 5%: a levels relation exists; an error-correction model is appropriate. The vector shows the long-run weights, normalised so the first series has weight 1.`,
-        caveat: "Critical values assume no deterministic trend in the cointegrating relation and no breaks. Results are sensitive to the lag choice; try lags 1 to 4.",
+        cointegrating_vector: j.cointegrating_vector ? Object.fromEntries(labels.map((l, i) => [l, r4(j.cointegrating_vector![i])])) : null,
+        drift_check: drift,
+        reading: [j.rank_at_5pct === 0 ? "No cointegrating relation at 5%: model these in differences (VAR on growth rates)."
+          : `${j.rank_at_5pct} cointegrating relation${j.rank_at_5pct > 1 ? "s" : ""} at 5%: a levels relation exists; an error-correction model is appropriate. The vector shows the long-run weights, normalised so the first series has weight 1${deterministic === "restricted_constant" ? ", with the constant of the relation as its last element" : ""}.`, drift.note].filter(Boolean).join(" "),
+        caveat: "Critical values assume no linear trend inside the cointegrating relation and no breaks. Results are sensitive to the lag choice; try lags 1 to 4. The wrong deterministic case biases the rank: an unrestricted constant on drift-free series over-rejects, a restricted one on drifting series mis-specifies the trend.",
       });
     }),
   );
@@ -870,21 +884,24 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         series: z.array(REF).min(2).max(5),
         lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the model"),
         rank: z.number().int().min(1).max(4).optional().describe("Number of cointegrating relations; default from the Johansen trace test at 5%"),
+        deterministic: z.enum(["constant", "restricted_constant"]).default("constant").describe("constant: unrestricted, for drifting series; restricted_constant: inside the relation only, for drift-free series such as rates and ratios"),
       },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, lags, rank }) => {
+    wrap(async ({ series, lags, rank, deterministic }) => {
       const rs = await Promise.all(series.map(get));
       const { dates, columns } = align(rs.map((r) => r.series));
       if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
       let m: S.VecmResult;
-      try { m = S.vecm(Y, lags, rank); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+      try { m = S.vecm(Y, lags, rank, deterministic); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
       const labels = rs.map((r) => r.label);
+      const rc = deterministic === "restricted_constant";
+      const drift = driftCheck(labels, columns, deterministic);
       const relations = m.beta[0].map((_, c) => ({
         relation: c + 1,
-        long_run_vector: Object.fromEntries(labels.map((l, i) => [l, r4(m.beta[i][c])])),
-        equation: `${labels[0]} = ${labels.slice(1).map((l, i) => `${r4(-m.beta[i + 1][c])} × ${l}`).join(" + ")} + constant (normalised on ${labels[0]})`,
+        long_run_vector: Object.fromEntries([...labels.map((l, i) => [l, r4(m.beta[i][c])]), ...(rc ? [["constant", r4(m.beta_constant[c])]] : [])]),
+        equation: `${labels[0]} = ${labels.slice(1).map((l, i) => `${r4(-m.beta[i + 1][c])} × ${l}`).join(" + ")} ${rc ? `+ ${r4(-m.beta_constant[c])}` : "+ constant"} (normalised on ${labels[0]})`,
         adjustment: labels.map((l, i) => ({ series: l, alpha: r4(m.alpha[i][c]), t: r3(m.alpha_t[i][c]), p: r4(m.alpha_p[i][c]), adjusts: m.alpha_p[i][c] < 0.05, share_corrected_per_period: r3(Math.abs(m.alpha[i][c])) })),
         ect_last: r4(m.ect[m.ect.length - 1][c]),
         ect_mean: r4(m.ect.reduce((a, row) => a + row[c], 0) / m.ect.length),
@@ -892,7 +909,8 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const adjusters = relations[0].adjustment.filter((a) => a.adjusts).map((a) => a.series);
       const half = labels.map((l, i) => ({ l, a: m.alpha[i][0], p: m.alpha_p[i][0] })).filter((x) => x.p < 0.05 && x.a < 0).map((x) => `${x.l}: ${r3(Math.log(0.5) / Math.log(1 - Math.min(Math.abs(x.a), 0.99)))} periods`);
       return text({
-        series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags, rank: m.rank,
+        series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags, rank: m.rank, deterministic,
+        drift_check: drift,
         johansen: { rank_at_5pct: m.johansen.rank_at_5pct, trace: m.johansen.trace.map((t) => ({ null_rank_at_most: t.r, statistic: r3(t.statistic), critical_5pct: t.critical["5%"], reject: t.reject })) },
         relations,
         short_run: m.gamma.map((G, l) => ({ lag: l + 1, coefficients: Object.fromEntries(labels.map((eq, i) => [eq, Object.fromEntries(labels.map((v, j) => [v, r4(G[i][j])]))])) })),
@@ -901,8 +919,9 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           adjusters.length ? `${adjusters.join(" and ")} respond${adjusters.length === 1 ? "s" : ""} to deviations from the long-run relation; the others are weakly exogenous (they drive, they do not adjust).` : "No series adjusts significantly: the relation is not being corrected in this sample, which weakens the cointegration case.",
           half.length ? `Half-life of a deviation: ${half.join(", ")}.` : "",
           `Deviation now (relation 1): ${relations[0].ect_last} against a sample mean of ${relations[0].ect_mean}; a value above the mean means ${labels[0]} sits above its long-run level given the others.`,
+          drift.note,
         ].filter(Boolean).join(" "),
-        caveat: "Alpha t-tests use OLS standard errors equation by equation. The constant is unrestricted (enters the differences). Sensitive to the lag choice and to breaks in the relation; check structural_break on the error-correction term if the sample spans a regime change.",
+        caveat: `Alpha t-tests use OLS standard errors equation by equation. ${rc ? "The constant is restricted to the cointegrating relation, so the error-correction term is already centred and the differences carry no separate intercept." : "The constant is unrestricted (enters the differences), so the error-correction term has a non-zero mean; read the current deviation against the sample mean."} Sensitive to the lag choice and to breaks in the relation; check structural_break on the error-correction term if the sample spans a regime change.`,
       });
     }),
   );
@@ -1245,9 +1264,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const stationaryArgs = (i: number) => ({ ...refOf(i), transform: facts[i].positive_only ? "pct_change" : "diff" });
         if (allI1) {
           pitfalls.push("All series are I(1): a levels regression or a levels correlation between them will look strong whether or not they are related. Test cointegration first.");
-          if (facts.length > 2) plan.push({ step: step++, tool: "johansen", why: `${facts.length} I(1) series: count the cointegrating relations before choosing levels or differences`, args: { series: facts.map((_, i) => refOf(i)) } });
+          const det = facts.some((f) => f.trending) ? "constant" : "restricted_constant";
+          if (det === "restricted_constant") pitfalls.push("None of the series trends, so the Johansen constant belongs inside the cointegrating relation (deterministic='restricted_constant'); the default unrestricted constant over-rejects on drift-free series.");
+          if (facts.length > 2) plan.push({ step: step++, tool: "johansen", why: `${facts.length} I(1) series: count the cointegrating relations before choosing levels or differences`, args: { series: facts.map((_, i) => refOf(i)), deterministic: det } });
           plan.push({ step: step++, tool: "cointegration", why: "Both I(1): find out if a long-run relation exists before regressing levels", args: { a: refOf(0), b: refOf(1) } });
-          plan.push({ step: step++, tool: "vecm", why: "If cointegrated: which series does the adjusting, how fast, and how far the system is from equilibrium now", args: { series: facts.map((_, i) => refOf(i)) } });
+          plan.push({ step: step++, tool: "vecm", why: "If cointegrated: which series does the adjusting, how fast, and how far the system is from equilibrium now", args: { series: facts.map((_, i) => refOf(i)), deterministic: det } });
           plan.push({ step: step++, tool: "cross_correlation", why: "On growth rates, find which one moves first and by how many periods", args: { a: stationaryArgs(0), b: stationaryArgs(1) } });
           plan.push({ step: step++, tool: "granger_causality", why: "On growth rates, test predictive precedence in both directions", args: { a: stationaryArgs(0), b: stationaryArgs(1), lags: facts[0].frequency === "monthly" ? 3 : 2 } });
           plan.push({ step: step++, tool: "regress", why: "If cointegrated: levels regression (in logs for elasticities) is meaningful with HAC errors. If not: regress growth on growth.", args: { y: { ...refOf(0), transform: "log" }, x: [{ ...refOf(1), transform: "log" }] } });

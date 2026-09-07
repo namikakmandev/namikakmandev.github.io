@@ -58,8 +58,8 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `regress` | OLS with Newey-West standard errors, R², Durbin-Watson, AIC/BIC, residual tests, Breusch-Pagan, VIF and RESET diagnostics, optional distributed lags and trend. Warns when a levels regression looks spurious. Log both sides for elasticities. |
 | `granger_causality` | F-tests in both directions, with a non-stationarity warning. |
 | `cointegration` | Engle-Granger: long-run vector, residual unit-root test, equilibrium error. |
-| `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, rank and first cointegrating vector. |
-| `vecm` | Vector error-correction model on cointegrated series: long-run vectors, adjustment coefficients with t-tests (who corrects, how fast, half-life), short-run lags, and the current deviation from equilibrium. |
+| `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, unrestricted or restricted constant, rank, first cointegrating vector, and a drift check that says which case the data support. |
+| `vecm` | Vector error-correction model on cointegrated series: long-run vectors (with the constant inside the relation when restricted), adjustment coefficients with t-tests (who corrects, how fast, half-life), short-run lags, and the current deviation from equilibrium. |
 | `var_model` | VAR(p) with lag order by AIC, block Granger tests, orthogonalised impulse responses and variance decomposition. |
 | `local_projections` | Jordà impulse response of y to a shock in x: one regression per horizon with Newey-West bands, responses per unit and per one-sd shock, cumulative response. The check on `var_model`. |
 | `cross_correlation` | Correlation by lead and lag with a significance band. |
@@ -124,5 +124,5 @@ Provider parsers are tested against canned replies in `test/fixtures.mjs` in the
 ## Later
 
 - Per-user login (OAuth 2.1 through Cloudflare's `workers-oauth-provider`) and Stripe metering. The bearer check in `src/index.ts` is the seam.
-- Structural VAR identification beyond Cholesky ordering; restricted constants in the VECM.
+- Structural VAR identification beyond Cholesky ordering; a linear trend inside the cointegrating relation.
 - IMF provider once its SDMX 3 endpoint settles; EIA and UN Comtrade with keys.

@@ -439,5 +439,34 @@ check("regression diagnostics: Breusch-Pagan, VIF and RESET react to what they s
   assert.ok(S.reset(yHom, X, S.ols(yHom, X)).p > 0.05, "correct linear form: RESET does not reject");
 });
 
+check("Johansen with a restricted constant: rank on drift-free series, the constant recovered inside the relation", () => {
+  const r = rng(77);
+  const n = 500;
+  const x = [0]; for (let i = 1; i < n; i++) x.push(x[i - 1] + r.normal());
+  // y = 5 + 2x + u: no drift anywhere, a constant of 5 inside the relation
+  const y = []; let u = 0;
+  for (let i = 0; i < n; i++) { u = 0.4 * u + r.normal(); y.push(5 + 2 * x[i] + u); }
+  const Y = y.map((v, i) => [v, x[i]]);
+  const j = S.johansen(Y, 1, "restricted_constant");
+  assert.equal(j.det, "restricted_constant");
+  assert.equal(j.rank_at_5pct, 1, JSON.stringify(j.trace.map((t) => [t.r, +t.statistic.toFixed(1), t.critical["5%"]])));
+  assert.equal(j.cointegrating_vector.length, 3, "vector carries the constant");
+  close(j.cointegrating_vector[1], -2, 0.1, "slope"); close(j.cointegrating_vector[2], -5, 0.6, "constant in the relation");
+  assert.equal(j.trace[0].critical["5%"], 20.2618, "MHM restricted-constant critical value for n-r=2");
+  const m = S.vecm(Y, 1, undefined, "restricted_constant");
+  close(m.beta_constant[0], -5, 0.6, "VECM reports the relation's constant");
+  assert.ok(m.alpha[0][0] < -0.2 && m.alpha_p[0][0] < 0.01, `y adjusts: alpha ${m.alpha[0][0]}`);
+  assert.ok(Math.abs(m.alpha[1][0]) < 0.15, `x is weakly exogenous: alpha ${m.alpha[1][0]}`);
+  assert.deepEqual(m.constant, [0, 0], "no separate intercept in the differences");
+  close(S.mean(m.ect.map((row) => row[0])), 0, 0.5, "the error-correction term is centred");
+  // Two independent drift-free walks: rank 0 under the restricted constant
+  const w = [0]; for (let i = 1; i < n; i++) w.push(w[i - 1] + r.normal());
+  const j0 = S.johansen(x.map((v, i) => [v, w[i]]), 1, "restricted_constant");
+  assert.equal(j0.rank_at_5pct, 0, JSON.stringify(j0.trace.map((t) => +t.statistic.toFixed(1))));
+  // Drift check: a walk with drift has a large t, one without does not
+  const drifted = x.map((v, i) => v + 0.3 * i);
+  assert.ok(Math.abs(S.driftT(drifted)) > 4 && Math.abs(S.driftT(x)) < 2.5, `drift t ${S.driftT(drifted)} vs ${S.driftT(x)}`);
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);
