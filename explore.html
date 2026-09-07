@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explore the data — Namık Akman</title>
+  <meta name="description" content="Browse and chart 107 curated economics datasets: cattle and feed prices, inflation, house prices, herds, commodities and IMF projections. Filter by country and period. No account needed." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#2F9BFF" />
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <style>
+    .study { padding: 28px 0 72px; }
+    .study .container { max-width: 1120px; }
+    .study .back { color: var(--text-dim); font-size: .9rem; }
+    .study h1 { font-size: 1.7rem; line-height: 1.2; letter-spacing: -.01em; margin: 12px 0 6px; }
+    .study .lede { color: var(--text-dim); font-size: .97rem; margin-bottom: 20px; max-width: 62ch; }
+    h2.sec { font-size: 1.12rem; margin: 34px 0 4px; }
+    .sec-note { color: var(--text-dim); font-size: .88rem; margin-bottom: 12px; }
+
+    .filters { display: grid; grid-template-columns: 2fr 1.3fr 1.2fr; gap: 10px; margin-bottom: 12px; }
+    @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
+    .filters label { display: flex; flex-direction: column; gap: 5px; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
+    .filters input, .filters select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit;
+      font-size: .9rem; padding: 9px 11px; border-radius: 10px; width: 100%; text-transform: none; letter-spacing: 0; }
+    .filters .years { display: flex; gap: 6px; align-items: center; }
+    .filters .years select { flex: 1; }
+    .count { color: var(--text-dim); font-size: .8rem; font-variant-numeric: tabular-nums; }
+
+    .theme { border-bottom: 1px solid var(--border); }
+    .theme > summary { cursor: pointer; padding: 11px 2px; font-weight: 600; font-size: .95rem; list-style: none; display: flex; gap: 9px; align-items: baseline; }
+    .theme > summary::-webkit-details-marker { display: none; }
+    .theme > summary::before { content: "\25B8"; color: var(--accent); font-size: .7rem; }
+    .theme[open] > summary::before { content: "\25BE"; }
+    .theme .n { color: var(--text-dim); font-size: .78rem; font-weight: 400; margin-left: auto; font-variant-numeric: tabular-nums; }
+    .ds { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+    .row .what { flex: 1 1 250px; font-size: .92rem; }
+    .row .what small { display: block; color: var(--text-dim); font-size: .76rem; }
+    .row .meta { color: var(--text-dim); font-size: .76rem; font-variant-numeric: tabular-nums; }
+    .row button { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .8rem; font-weight: 600; padding: 6px 13px; border-radius: 8px; cursor: pointer; }
+    .row button[disabled] { opacity: .55; cursor: default; }
+    .empty { color: var(--text-dim); font-size: .9rem; padding: 16px 0; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 14px; }
+    @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 15px 16px 12px; display: flex; flex-direction: column; gap: 9px; }
+    .card h3 { font-size: 1rem; margin: 0; }
+    .card .note { color: var(--text-dim); font-size: .78rem; }
+    .card svg { width: 100%; height: auto; display: block; font-family: var(--font); }
+    .ctrl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .ctrl .lbl { color: var(--text-dim); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .seg button { background: transparent; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; padding: 5px 10px; cursor: pointer; }
+    .seg button + button { border-left: 1px solid var(--border); }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; font-weight: 600; }
+    .card select { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .78rem; padding: 4px 6px; border-radius: 7px; }
+    .picks { display: flex; flex-wrap: wrap; gap: 6px; max-height: 116px; overflow-y: auto; }
+    .pick { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font: inherit; font-size: .78rem;
+      padding: 4px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+    .pick i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .3; }
+    .pick[aria-pressed="true"] { color: var(--text); border-color: currentColor; }
+    .pick[aria-pressed="true"] i { opacity: 1; }
+    .pick b { font-weight: 600; }
+    .allnone { background: none; border: 0; color: var(--accent); font: inherit; font-size: .76rem; cursor: pointer; text-decoration: underline; padding: 2px 4px; }
+    .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: auto; padding-top: 2px; }
+    .card .foot a { color: var(--accent); font-size: .8rem; }
+    .card .foot .drop { background: none; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; cursor: pointer; text-decoration: underline; }
+    .asof { color: var(--text-dim); font-size: .74rem; font-variant-numeric: tabular-nums; }
+    .loading { color: var(--text-dim); padding: 30px 0; text-align: center; }
+    .err { background: rgba(229,72,77,.12); border: 1px solid var(--loss); border-radius: 10px; padding: 10px 14px; margin: 10px 0; font-size: .88rem; }
+    .footnote { color: var(--text-dim); font-size: .82rem; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 34px; }
+    .footnote a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="index.html">Namık<span> Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="data.html">Data</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="data.html" class="back">&larr; The data behind the studies</a>
+        <h1>Explore the data</h1>
+        <p class="lede">Every dataset behind the studies, charted in the browser. Pick a period, pick the countries or series you want, and the chart redraws. Nothing to install, no account, no sign-in.</p>
+
+        <div id="cards" class="cards"></div>
+        <p class="sec-note" id="hint">Loading the catalogue…</p>
+
+        <h2 class="sec">Find a dataset</h2>
+        <p class="sec-note">Search by subject, narrow by country, or by the years it has to cover.</p>
+        <div class="filters">
+          <label>Search<input id="q" type="search" placeholder="cattle, inflation, house prices, pharma…" /></label>
+          <label>Country<select id="country"></select></label>
+          <label>Covers<span class="years"><select id="from"></select><span class="count">to</span><select id="to"></select></span></label>
+        </div>
+        <span class="count" id="count"></span>
+        <div id="browse"></div>
+
+        <div class="footnote">
+          <p>Charts are drawn in your browser from the JSON files in
+          <a href="https://github.com/namikakmandev/namikakmandev.github.io/tree/main/data">this repository</a>, the same files the studies use.
+          Anything you open here can also be opened as a shareable <a href="chart.html">chart link</a>.
+          The full catalogue with sources and caveats is on the <a href="data.html">data page</a>.</p>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="js/main.js" defer></script>
+  <script>
+  (function () {
+    "use strict";
+    var COLORS = ["#2f9bff", "#19c37d", "#ff6500", "#e5484d", "#a78bfa", "#14b8a6"];
+    var FEATURED = [
+      { file: "cattle-parity", title: "Meat price against feed cost, four markets", pick: ["US.parity_idx", "EU.parity_idx", "TR.parity_idx", "IL.parity_idx"] },
+      { file: "tr-house-prices", title: "Turkish house prices", pick: ["turkey", "istanbul", "ankara", "izmir"] },
+      { file: "us-prices", title: "US cattle, corn and consumer prices", pick: ["cattle_ppi", "corn_ppi", "cpi"] },
+      { file: "wb-commodities", title: "World commodity prices", pick: ["crude_brent", "maize", "wheat_us_hrw", "urea"] },
+    ];
+    var NAMES = {"AE":"United Arab Emirates","AL":"Albania","AT":"Austria","AU":"Australia","BA":"Bosnia and Herzegovina","BD":"Bangladesh","BE":"Belgium","BG":"Bulgaria","BR":"Brazil","CA":"Canada","CH":"Switzerland","CN":"China","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","EE":"Estonia","EG":"Egypt","EL":"Greece","ES":"Spain","FI":"Finland","FR":"France","GB":"United Kingdom","HR":"Croatia","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IR":"Iran","IS":"Iceland","IT":"Italy","JP":"Japan","KR":"South Korea","KZ":"Kazakhstan","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MD":"Moldova","ME":"Montenegro","MK":"North Macedonia","MT":"Malta","MX":"Mexico","MY":"Malaysia","NG":"Nigeria","NL":"Netherlands","NO":"Norway","PH":"Philippines","PK":"Pakistan","PL":"Poland","PT":"Portugal","RO":"Romania","RS":"Serbia","RU":"Russia","SA":"Saudi Arabia","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","TH":"Thailand","TR":"Türkiye","UA":"Ukraine","UK":"United Kingdom","US":"United States","UZ":"Uzbekistan","VN":"Vietnam","ZA":"South Africa","EU":"European Union",
+      "ARE":"United Arab Emirates","ARG":"Argentina","AUS":"Australia","AZE":"Azerbaijan","BRA":"Brazil","CAN":"Canada","CHE":"Switzerland","CHL":"Chile","CHN":"China","COL":"Colombia","CZE":"Czechia","DNK":"Denmark","EGY":"Egypt","GBR":"United Kingdom","HKG":"Hong Kong","HUN":"Hungary","IDN":"Indonesia","IND":"India","ISR":"Israel","JPN":"Japan","KOR":"South Korea","MEX":"Mexico","MYS":"Malaysia","NOR":"Norway","NZL":"New Zealand","PAK":"Pakistan","PER":"Peru","POL":"Poland","ROU":"Romania","RUS":"Russia","SAU":"Saudi Arabia","SGP":"Singapore","SWE":"Sweden","THA":"Thailand","TUR":"Türkiye","TWN":"Taiwan","UKR":"Ukraine","URY":"Uruguay","USA":"United States","VNM":"Vietnam","ZAF":"South Africa",
+      "TRY":"Türkiye","USD":"United States","GBP":"United Kingdom","CHF":"Switzerland","SEK":"Sweden","NOK":"Norway","DKK":"Denmark","PLN":"Poland","CZK":"Czechia","HUF":"Hungary","RON":"Romania"};
+    var SUBJECTS = [
+      ["Livestock, meat and feed", /cattle|herd|meat|broiler|cowcalf|corn-parity|vet/],
+      ["Prices and inflation", /cpi|ppi|hicp|price|bigmac|ppp|inflation/],
+      ["Türkiye", /^tr-|cattle-tr/],
+      ["Economies, trade and forecasts", /gdp|gva|gni|weo|wdi|esi|lci|elec|gas|fx|sentiment|spf|hpi|export|comtrade|chem/],
+      ["Health and pharma", /pharma|glp1|peptide|stan|berd|eroom/],
+      ["Commodities, markets and climate", /commodit|market|climate|pump|oil|leverage/],
+    ];
+
+    var app = document.getElementById("browse"), cardsEl = document.getElementById("cards"),
+        hintEl = document.getElementById("hint"), countEl = document.getElementById("count"),
+        qEl = document.getElementById("q"), countryEl = document.getElementById("country"),
+        fromEl = document.getElementById("from"), toEl = document.getElementById("to");
+    var DS = [], opened = {};
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+    /* ---------- read any dataset shape, as the server does ---------- */
+    var DATE = /^\d{4}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
+    var META = ["source","source_url","source_file","fetched_by","fetched_at","config","note","generated_by","base","meta","unit","hicp_source","cpi_source","_readme","as_of","question","definition","scope_note","encoding","excludes","basis","dimension_order","window","log","runs","errors","updated","asof"];
+    var CONTAINER = ["series","shares","regions","countries","groups"];
+    function isObj(v) { return v && typeof v === "object" && !Array.isArray(v); }
+    function num(v) { return typeof v === "number" && isFinite(v); }
+    function isSeriesDict(v) {
+      if (!isObj(v)) return false;
+      var keys = Object.keys(v); if (!keys.length) return false;
+      var dated = 0, i;
+      for (i = 0; i < keys.length; i++) if (DATE.test(keys[i])) dated++;
+      if (dated < keys.length * 0.8) return false;
+      return keys.some(function (k) { return num(v[k]) || v[k] === null; });
+    }
+    function isDatedRecordDict(v) {
+      if (!isObj(v)) return false;
+      var keys = Object.keys(v);
+      return keys.length >= 2 && keys.every(function (k) { return DATE.test(k) && isObj(v[k]); });
+    }
+    function cleanSeries(v) {
+      var out = {};
+      Object.keys(v).sort().forEach(function (k) { if (DATE.test(k) && num(v[k])) out[k] = v[k]; });
+      return out;
+    }
+    function tableSeries(columns, rows, prefix, out) {
+      columns.forEach(function (col, i) {
+        if (i === 0 || typeof col !== "string") return;
+        var s = {};
+        rows.forEach(function (r) {
+          if (!Array.isArray(r) || r.length <= i) return;
+          var d = String(r[0]);
+          if (DATE.test(d) && num(r[i])) s[d] = r[i];
+        });
+        if (Object.keys(s).length) out[prefix ? prefix + "." + col : col] = s;
+      });
+    }
+    function walk(node, path, depth, out) {
+      if (depth > 5 || !isObj(node)) return;
+      if (Array.isArray(node.columns) && Array.isArray(node.rows)) { tableSeries(node.columns, node.rows, path, out); return; }
+      if (isSeriesDict(node)) { var s = cleanSeries(node); if (Object.keys(s).length) out[path] = s; return; }
+      if (isDatedRecordDict(node)) {
+        var fields = {}, recs = {};
+        Object.keys(node).forEach(function (d) { if (isObj(node[d])) { recs[d] = node[d]; Object.keys(node[d]).forEach(function (f) { fields[f] = 1; }); } });
+        Object.keys(fields).forEach(function (f) {
+          var s2 = {};
+          Object.keys(recs).sort().forEach(function (d) { if (num(recs[d][f])) s2[d] = recs[d][f]; });
+          if (Object.keys(s2).length) out[path ? path + "." + f : f] = s2;
+        });
+        return;
+      }
+      Object.keys(node).forEach(function (k) {
+        var v = node[k];
+        if (depth === 0 && META.indexOf(k) >= 0) return;
+        if (typeof v !== "object" || v === null) return;
+        var next = depth === 0 && CONTAINER.indexOf(k) >= 0 ? path : (path ? path + "." + k : k);
+        if (Array.isArray(v)) {
+          if (isObj(node.meta) && Array.isArray(node.meta.columns)) tableSeries(node.meta.columns, v, next, out);
+          return;
+        }
+        walk(v, next, depth + 1, out);
+      });
+    }
+    function extractSeries(body) { var out = {}; walk(body, "", 0, out); return out; }
+
+    /* ---------- chart ---------- */
+    function freqOf(d) { return /^\d{4}$/.test(d) ? "a" : /-Q/.test(d) ? "q" : /-S/.test(d) ? "s" : "m"; }
+    function nice(lo, hi) {
+      if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
+      var span = hi - lo, raw = span / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+      var step = (r >= 5 ? 10 : r >= 2.6 ? 5 : r >= 2 ? 2.5 : r >= 1 ? 2 : 1) * mag, t = [], v = Math.ceil(lo / step) * step;
+      for (; v <= hi + step * 1e-9; v += step) t.push(+v.toFixed(10));
+      return t;
+    }
+    function fmt(v) {
+      var a = Math.abs(v);
+      if (a >= 1e9) return (v / 1e9).toFixed(1) + "bn";
+      if (a >= 1e6) return (v / 1e6).toFixed(1) + "m";
+      if (a >= 1000) return v.toLocaleString("en-GB", { maximumFractionDigits: 0 });
+      if (a >= 10) return v.toLocaleString("en-GB", { maximumFractionDigits: 1 });
+      return v.toLocaleString("en-GB", { maximumFractionDigits: 2 });
+    }
+    function svgFor(title, freq, vis) {
+      var W = 660, H = 200, L = 50, R = 10, T = 10, B = 22, iw = W - L - R, ih = H - T - B;
+      if (!vis.length) return "<svg viewBox='0 0 " + W + " " + H + "'><text x='" + (W / 2) + "' y='" + (H / 2) + "' text-anchor='middle' font-size='13' fill='currentColor' fill-opacity='.55'>Nothing selected — pick a line below.</text></svg>";
+      var keys = {}, axis, idx = {};
+      vis.forEach(function (s) { s.d.forEach(function (d) { keys[d] = 1; }); });
+      axis = Object.keys(keys).sort();
+      axis.forEach(function (d, i) { idx[d] = i; });
+      var lo = Infinity, hi = -Infinity;
+      vis.forEach(function (s) { s.v.forEach(function (v) { if (v < lo) lo = v; if (v > hi) hi = v; }); });
+      var pad = (hi - lo) * 0.08 || Math.abs(hi) * 0.08 || 1; lo -= pad; hi += pad;
+      if (lo > 0 && lo < (hi - lo) * 0.15) lo = 0;
+      var ticks = nice(lo, hi);
+      var x = function (d) { return L + (idx[d] / Math.max(axis.length - 1, 1)) * iw; };
+      var y = function (v) { return T + (hi - v) / (hi - lo) * ih; };
+      var svg = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + esc(title) + "'>";
+      ticks.forEach(function (t) {
+        if (t < lo || t > hi) return;
+        svg += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + y(t).toFixed(1) + "' y2='" + y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".35" : ".13") + "'/>";
+        svg += "<text x='" + (L - 7) + "' y='" + (y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t)) + "</text>";
+      });
+      var y0 = +axis[0].slice(0, 4), y1 = +axis[axis.length - 1].slice(0, 4), span = y1 - y0;
+      var step = span > 60 ? 20 : span > 40 ? 10 : span > 20 ? 5 : span > 10 ? 3 : span > 4 ? 2 : 1;
+      for (var yy = Math.ceil(y0 / step) * step; yy <= y1; yy += step) {
+        var hit = null;
+        for (var i2 = 0; i2 < axis.length; i2++) if (+axis[i2].slice(0, 4) === yy) { hit = axis[i2]; break; }
+        if (!hit) continue;
+        svg += "<text x='" + x(hit).toFixed(1) + "' y='" + (H - 5) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + yy + "</text>";
+      }
+      vis.forEach(function (s, i) {
+        var d = "", col = COLORS[i % COLORS.length];
+        s.d.forEach(function (dt, k) { d += (k ? "L" : "M") + x(dt).toFixed(1) + " " + y(s.v[k]).toFixed(1); });
+        svg += "<path d='" + d + "' fill='none' stroke='" + col + "' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/>";
+        svg += "<circle cx='" + x(s.d[s.d.length - 1]).toFixed(1) + "' cy='" + y(s.v[s.v.length - 1]).toFixed(1) + "' r='3.2' fill='" + col + "'/>";
+      });
+      return svg + "</svg>";
+    }
+    function b64url(s) {
+      var bytes = new TextEncoder().encode(s), bin = "";
+      for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+
+    /* 'AT|CP00' reads as 'Austria · CP00'; a bare code as the country name. */
+    function label(name) {
+      var m = /^([A-Z]{2,3})(?:[|.](.+))?$/.exec(name);
+      if (m && NAMES[m[1]]) return NAMES[m[1]] + (m[2] ? " · " + m[2] : "");
+      return name;
+    }
+    function makeCard(card, prepend) {
+      var full = Object.keys(card.series).map(function (n) {
+        var dates = Object.keys(card.series[n]).sort();
+        return { n: n, d: dates, v: dates.map(function (d) { return card.series[n][d]; }) };
+      }).filter(function (s) { return s.d.length > 1; });
+      if (!full.length) return null;
+      full.sort(function (a, b) { return b.d.length - a.d.length; });
+      var freq = freqOf(full[0].d[0]);
+      var last = full.reduce(function (a, s) { var l = s.d[s.d.length - 1]; return l > a ? l : a; }, "");
+      var firstAll = full.reduce(function (a, s) { return s.d[0] < a ? s.d[0] : a; }, "9999");
+      var yF = +firstAll.slice(0, 4), yL = +last.slice(0, 4), spanY = yL - yF;
+      var presets = [{ k: 0, l: "All" }].concat([20, 10, 5, 3].filter(function (n) { return n < spanY; }).map(function (n) { return { k: n, l: n + "y" }; }));
+      var chosen = {};
+      (card.pick && card.pick.filter(function (n) { return card.series[n]; }).length ? card.pick : full.slice(0, 4).map(function (s) { return s.n; }))
+        .forEach(function (n) { if (card.series[n]) chosen[n] = true; });
+      var state = { preset: 0, from: yF, to: yL };
+
+      var el = document.createElement("div");
+      el.className = "card";
+      el.innerHTML = "<h3>" + esc(card.title) + "</h3>" +
+        "<p class='note'>" + esc(card.note || "") + "</p>" +
+        "<div class='ctrl'><span class='lbl'>Period</span><span class='seg js-seg'></span>" +
+        "<select class='js-from' aria-label='From year'></select><span class='asof'>to</span><select class='js-to' aria-label='To year'></select></div>" +
+        "<div class='js-fig'></div>" +
+        "<div class='ctrl'><span class='lbl'>Series</span>" + (full.length > 6 ? "<button class='allnone' data-all='1'>all</button><button class='allnone' data-all='0'>none</button>" : "") + "</div>" +
+        "<div class='picks js-picks'></div>" +
+        "<div class='foot'><a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a><span class='asof js-asof'></span></div>";
+      if (prepend && cardsEl.firstChild) cardsEl.insertBefore(el, cardsEl.firstChild); else cardsEl.appendChild(el);
+
+      var figEl = el.querySelector(".js-fig"), picksEl = el.querySelector(".js-picks"), segEl = el.querySelector(".js-seg"),
+          fromSel = el.querySelector(".js-from"), toSel = el.querySelector(".js-to"),
+          asofEl = el.querySelector(".js-asof"), linkEl = el.querySelector(".js-link");
+      for (var y = yF; y <= yL; y++) {
+        var o1 = document.createElement("option"); o1.value = o1.textContent = y; fromSel.appendChild(o1);
+        var o2 = document.createElement("option"); o2.value = o2.textContent = y; toSel.appendChild(o2);
+      }
+      fromSel.value = yF; toSel.value = yL;
+      presets.forEach(function (p) {
+        var b = document.createElement("button");
+        b.type = "button"; b.textContent = p.l;
+        b.addEventListener("click", function () { state.preset = p.k; state.to = yL; state.from = p.k ? Math.max(yF, yL - p.k) : yF; fromSel.value = state.from; toSel.value = state.to; draw(); });
+        segEl.appendChild(b);
+      });
+      fromSel.addEventListener("change", function () { state.from = +fromSel.value; if (state.from > state.to) { state.to = state.from; toSel.value = state.to; } state.preset = -1; draw(); });
+      toSel.addEventListener("change", function () { state.to = +toSel.value; if (state.to < state.from) { state.from = state.to; fromSel.value = state.from; } state.preset = -1; draw(); });
+      Array.prototype.forEach.call(el.querySelectorAll("[data-all]"), function (b) {
+        b.addEventListener("click", function () {
+          var on = b.getAttribute("data-all") === "1";
+          full.forEach(function (s) { if (on) chosen[s.n] = true; else delete chosen[s.n]; });
+          draw();
+        });
+      });
+      if (card.drop) {
+        var d = document.createElement("button");
+        d.className = "drop"; d.type = "button"; d.textContent = "remove";
+        d.addEventListener("click", function () { el.remove(); card.drop(); });
+        el.querySelector(".foot").appendChild(d);
+      }
+      function draw() {
+        var a = String(state.from), b = String(state.to + 1);
+        var win = full.map(function (s) {
+          var d = [], v = [];
+          s.d.forEach(function (dt, i) { if (dt >= a && dt < b) { d.push(dt); v.push(s.v[i]); } });
+          return { n: s.n, d: d, v: v };
+        }).filter(function (s) { return s.d.length > 1; });
+        var vis = win.filter(function (s) { return chosen[s.n]; });
+        figEl.innerHTML = svgFor(card.title, freq, vis);
+        Array.prototype.forEach.call(segEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(presets[i].k === state.preset)); });
+        picksEl.innerHTML = "";
+        win.slice().sort(function (p, q) { return (chosen[q.n] ? 1 : 0) - (chosen[p.n] ? 1 : 0); }).forEach(function (s) {
+          var on = !!chosen[s.n], i = vis.map(function (z) { return z.n; }).indexOf(s.n);
+          var b2 = document.createElement("button");
+          b2.type = "button"; b2.className = "pick"; b2.setAttribute("aria-pressed", String(on));
+          if (on && i >= 0) b2.style.color = COLORS[i % COLORS.length];
+          b2.innerHTML = "<i></i>" + esc(label(s.n)) + (on ? " <b>" + esc(fmt(s.v[s.v.length - 1])) + "</b>" : "");
+          b2.addEventListener("click", function () { if (chosen[s.n]) delete chosen[s.n]; else chosen[s.n] = true; draw(); });
+          picksEl.appendChild(b2);
+        });
+        asofEl.textContent = vis.length ? vis[0].d[0] + " to " + vis[0].d[vis[0].d.length - 1] : firstAll + " to " + last;
+        var spec = { title: card.title, series: vis.slice(0, 8).map(function (s) {
+          return { dataset: card.file, series: s.n, start: vis[0].d[0], end: vis[0].d[vis[0].d.length - 1] }; }) };
+        linkEl.href = spec.series.length ? "chart.html#" + b64url(JSON.stringify(spec)) : "chart.html";
+      }
+      draw();
+      return el;
+    }
+
+    /* ---------- catalogue ---------- */
+    function countriesOf(entry) {
+      var out = {}, keys = entry.series_keys || [];
+      keys.forEach(function (k) {
+        var head = String(k).split(/[|.]/)[0];
+        if (NAMES[head]) out[NAMES[head]] = 1;
+      });
+      var n = (entry.file || "").replace("data/", "").replace(".json", "");
+      if (/^tr-|-tr$/.test(n)) out["Türkiye"] = 1;
+      if (/^us-|-us$/.test(n)) out["United States"] = 1;
+      if (/^eu-|-eu$/.test(n)) out["European Union"] = 1;
+      if (/^pl-/.test(n)) out["Poland"] = 1;
+      if (/-il$/.test(n)) out["Israel"] = 1;
+      return Object.keys(out);
+    }
+    function subjectOf(name) {
+      for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i][1].test(name)) return SUBJECTS[i][0];
+      return "Other";
+    }
+    function pretty(name) {
+      return name.replace(/-/g, " ").replace(/\b([a-z])/g, function (m) { return m.toUpperCase(); })
+        .replace(/\bCpi\b/, "CPI").replace(/\bPpi\b/, "PPI").replace(/\bEu\b/, "EU").replace(/\bUs\b/, "US")
+        .replace(/\bTr\b/, "Türkiye").replace(/\bIl\b/, "Israel").replace(/\bPl\b/, "Poland").replace(/\bGdp\b/, "GDP")
+        .replace(/\bImf\b/, "IMF").replace(/\bWeo\b/, "WEO").replace(/\bWdi\b/, "WDI").replace(/\bWb\b/, "World Bank")
+        .replace(/\bHpi\b/, "house prices").replace(/\bEsi\b/, "sentiment").replace(/\bLci\b/, "labour cost")
+        .replace(/\bFx\b/, "exchange rates").replace(/\bGva\b/, "value added").replace(/\bPpp\b/, "price levels");
+    }
+    var rowEls = {}, subjEls = {};
+    function build(cat) {
+      DS = (cat.datasets || []).map(function (d) {
+        var name = (d.file || "").replace("data/", "").replace(".json", "");
+        var cov = d.coverage || {};
+        return { name: name, title: pretty(name), n: d.series || 0, obs: d.observations || 0,
+          f: +String(cov.first || "").slice(0, 4) || 0, t: +String(cov.last || "").slice(0, 4) || 0,
+          src: typeof d.source === "string" ? d.source : "", c: countriesOf(d), subj: subjectOf(name) };
+      }).filter(function (d) { return d.n > 0 && d.f; });
+
+      var counts = {};
+      DS.forEach(function (d) { d.c.forEach(function (c) { counts[c] = (counts[c] || 0) + 1; }); });
+      countryEl.innerHTML = "<option value=''>Any country</option>" + Object.keys(counts).sort().map(function (c) {
+        return "<option value='" + esc(c) + "'>" + esc(c) + " (" + counts[c] + ")</option>"; }).join("");
+      var minY = DS.reduce(function (a, d) { return Math.min(a, d.f); }, 9999);
+      var maxY = DS.reduce(function (a, d) { return Math.max(a, d.t); }, 0);
+      var opts = "";
+      for (var y = minY; y <= maxY; y++) opts += "<option value='" + y + "'>" + y + "</option>";
+      fromEl.innerHTML = opts; toEl.innerHTML = opts; fromEl.value = minY; toEl.value = maxY;
+
+      var order = SUBJECTS.map(function (s) { return s[0]; }).concat(["Other"]);
+      order.forEach(function (subj) {
+        var mine = DS.filter(function (d) { return d.subj === subj; });
+        if (!mine.length) return;
+        var det = document.createElement("details");
+        det.className = "theme";
+        det.innerHTML = "<summary>" + esc(subj) + "<span class='n'></span></summary>";
+        var list = document.createElement("div"); list.className = "ds";
+        mine.sort(function (a, b) { return a.title.localeCompare(b.title); }).forEach(function (d) {
+          var row = document.createElement("div");
+          row.className = "row";
+          row.innerHTML = "<span class='what'>" + esc(d.title) + "<small>" + esc(d.src ? d.src.slice(0, 110) : d.name) + "</small></span>" +
+            "<span class='meta'>" + d.f + "–" + d.t + " · " + d.n + " series</span>" +
+            "<button type='button' data-open='" + esc(d.name) + "'>Chart</button>";
+          list.appendChild(row); rowEls[d.name] = row;
+        });
+        det.appendChild(list); app.appendChild(det); subjEls[subj] = det;
+      });
+      var empty = document.createElement("p"); empty.className = "empty"; empty.hidden = true;
+      empty.textContent = "Nothing matches those filters. Widen the years or clear the country.";
+      app.appendChild(empty);
+
+      function apply() {
+        var term = qEl.value.trim().toLowerCase(), country = countryEl.value, a = +fromEl.value, b = +toEl.value, shown = 0;
+        order.forEach(function (subj) {
+          var det = subjEls[subj]; if (!det) return;
+          var vis = 0;
+          DS.filter(function (d) { return d.subj === subj; }).forEach(function (d) {
+            var hit = (!term || (d.name + " " + d.title + " " + d.src).toLowerCase().indexOf(term) >= 0) &&
+                      (!country || d.c.indexOf(country) >= 0) && (d.f <= b && d.t >= a);
+            rowEls[d.name].hidden = !hit; if (hit) vis++;
+          });
+          det.hidden = vis === 0;
+          det.open = vis > 0 && (!!term || !!country);
+          det.querySelector(".n").textContent = vis;
+          shown += vis;
+        });
+        empty.hidden = shown > 0;
+        countEl.textContent = shown === DS.length ? DS.length + " datasets" : shown + " of " + DS.length + " datasets match";
+      }
+      [qEl, countryEl, fromEl, toEl].forEach(function (e) { e.addEventListener("input", apply); e.addEventListener("change", apply); });
+      apply();
+    }
+
+    async function openDataset(name, btn, prepend, pick, title) {
+      if (opened[name]) return;
+      var label = btn ? btn.textContent : "";
+      if (btn) { btn.textContent = "Loading…"; btn.disabled = true; }
+      try {
+        var res = await fetch("data/" + name + ".json", { cache: "force-cache" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var body = await res.json();
+        var series = extractSeries(body);
+        if (!Object.keys(series).length) throw new Error("no series in this file");
+        var meta = DS.filter(function (d) { return d.name === name; })[0];
+        opened[name] = true;
+        makeCard({ file: name, title: title || (meta && meta.title) || name, note: (meta && meta.src) || ("Dataset " + name),
+          series: series, pick: pick, drop: function () { delete opened[name]; } }, prepend !== false);
+        if (btn) btn.scrollIntoView({ behavior: "smooth", block: "center" });
+      } catch (e) {
+        if (btn) { btn.textContent = "not available"; setTimeout(function () { btn.textContent = label; btn.disabled = false; }, 2500); }
+        return;
+      }
+      if (btn) { btn.textContent = label; btn.disabled = false; }
+    }
+
+    document.addEventListener("click", function (ev) {
+      if (!ev.target || typeof ev.target.closest !== "function") return;
+      var b = ev.target.closest("[data-open]");
+      if (b) openDataset(b.getAttribute("data-open"), b, true);
+    });
+
+    fetch("data/_catalog.json", { cache: "no-cache" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (cat) {
+        build(cat);
+        hintEl.textContent = "Charts you open from the list below appear here.";
+        return Promise.all(FEATURED.map(function (f) { return openDataset(f.file, null, false, f.pick, f.title); }));
+      })
+      .catch(function (e) {
+        hintEl.innerHTML = "<span class='err'>Could not load the catalogue: " + esc(e.message) + "</span>";
+      });
+  })();
+  </script>
+</body>
+</html>

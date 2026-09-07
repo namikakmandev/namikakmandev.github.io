@@ -1,2080 +1,2133 @@
 {
- "_readme": [
-  "Add a series by adding an entry here — no new script needed.",
-  "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
-  "Then:            python scripts/fetch.py NAME",
-  "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL) | yahoo (prices) | yahoo_valuation (multiples; Yahoo 429s Actions IPs — may fail)",
-  "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
- ],
- "sources": [
-  {
-   "name": "cattle-herd",
-   "provider": "owid",
-   "slug": "cattle-livestock-count-heads",
-   "entities": {
-    "United States": "US",
-    "European Union (27)": "EU",
-    "Turkey": "TR"
-   },
-   "out": "data/herd-cattle.json",
-   "source": "FAOSTAT cattle stocks (head), via Our World in Data",
-   "note": "annual; national totals, all cattle"
-  },
-  {
-   "name": "us-prices",
-   "provider": "fred",
-   "series": {
-    "cattle_ppi": "WPU0131",
-    "corn_ppi": "WPU012202",
-    "cpi": "CPIAUCSL"
-   },
-   "out": "data/us-prices.json",
-   "source": "BLS producer price indexes via FRED, plus CPI for deflating",
-   "note": "PPI levels are index numbers (1982=100) — ratios only, never quantities"
-  },
-  {
-   "name": "eu-vet-expenses",
-   "provider": "eurostat",
-   "dataset": "aact_eaa01",
-   "params": {
-    "am_item": "AM205000",
-    "unit": "MIO_EUR",
-    "geo": "EU27_2020"
-   },
-   "out": "data/eu-vet-expenses.json",
-   "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
-   "note": "ALL livestock, not cattle only — do not present as a per-cattle figure without saying so"
-  },
-  {
-   "name": "eu-hicp",
-   "provider": "fred",
-   "series": {
-    "hicp": "CP0000EZ19M086NEST"
-   },
-   "out": "data/eu-hicp.json",
-   "source": "Euro area HICP via FRED — deflator for any EUR money series"
-  },
-  {
-   "name": "us-cowcalf-costs",
-   "provider": "csv",
-   "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
-   "filters": {
-    "Region": "U.S. total"
-   },
-   "group_col": "Item",
-   "key_col": "Year",
-   "value_col": "Value",
-   "out": "data/us-cowcalf-costs.json",
-   "source": "USDA ERS commodity costs and returns, cow-calf",
-   "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
-  },
-  {
-   "name": "eu-herd-countries",
-   "provider": "owid",
-   "slug": "cattle-livestock-count-heads",
-   "entities": {
-    "France": "FR",
-    "Germany": "DE",
-    "Ireland": "IE",
-    "Spain": "ES",
-    "Italy": "IT",
-    "Poland": "PL",
-    "Netherlands": "NL",
-    "Romania": "RO",
-    "Belgium": "BE",
-    "Austria": "AT",
-    "Hungary": "HU",
-    "Czechia": "CZ",
-    "Portugal": "PT",
-    "United Kingdom": "UK"
-   },
-   "out": "data/herd-eu-countries.json",
-   "source": "FAOSTAT cattle stocks (head) by EU member state, via Our World in Data",
-   "note": "dairy and beef combined, same limitation as the aggregate"
-  },
-  {
-   "name": "eu-vet-countries",
-   "provider": "eurostat",
-   "dataset": "aact_eaa01",
-   "params": {
-    "am_item": "AM205000",
-    "unit": "MIO_EUR",
-    "geo": [
-     "FR",
-     "DE",
-     "IE",
-     "PL",
-     "ES",
-     "IT",
-     "NL",
-     "BE",
-     "AT",
-     "RO",
-     "HU",
-     "CZ",
-     "PT",
-     "UK"
-    ]
-   },
-   "out": "data/eu-vet-countries.json",
-   "source": "Eurostat EAA veterinary expenses by member state, million EUR, ALL livestock",
-   "note": "all livestock, not cattle only"
-  },
-  {
-   "name": "pharma-gva",
-   "provider": "eurostat",
-   "dataset": "nama_10_a64",
-   "params": {
-    "unit": "CP_MNAC",
-    "nace_r2": "C21",
-    "na_item": "B1G"
-   },
-   "out": "data/pharma-gva.json",
-   "source": "Eurostat national accounts A*64 — gross value added of NACE C21 (basic pharmaceutical products and preparations), current prices, million national currency",
-   "note": "NATIONAL CURRENCY on purpose — the pharma/GDP ratio must not carry exchange-rate noise. C21 is manufacturing only: it excludes pharma wholesale, retail pharmacy and R&D services."
-  },
-  {
-   "name": "gdp-total",
-   "provider": "eurostat",
-   "dataset": "nama_10_gdp",
-   "params": {
-    "unit": "CP_MNAC",
-    "na_item": "B1GQ"
-   },
-   "out": "data/gdp-total.json",
-   "source": "Eurostat national accounts — GDP at market prices, current prices, million national currency",
-   "note": "same vintage and currency basis as pharma-gva, so the ratio is internally consistent"
-  },
-  {
-   "name": "gva-total",
-   "provider": "eurostat",
-   "dataset": "nama_10_a64",
-   "params": {
-    "unit": "CP_MNAC",
-    "nace_r2": "TOTAL",
-    "na_item": "B1G"
-   },
-   "out": "data/gva-total.json",
-   "source": "Eurostat national accounts A*64 — total gross value added, current prices, million national currency",
-   "note": "the like-for-like denominator. GDP = GVA + taxes less subsidies on products, so pharma/GVA is the cleaner share; pharma/GDP is the more quotable one."
-  },
-  {
-   "name": "manuf-gva",
-   "provider": "eurostat",
-   "dataset": "nama_10_a64",
-   "params": {
-    "unit": "CP_MNAC",
-    "nace_r2": "C",
-    "na_item": "B1G"
-   },
-   "out": "data/manuf-gva.json",
-   "source": "Eurostat national accounts A*64 — total manufacturing (NACE C) gross value added, current prices, million national currency",
-   "note": "context denominator: pharma's share of manufacturing, not just of the whole economy"
-  },
-  {
-   "name": "gdp-eur",
-   "provider": "eurostat",
-   "dataset": "nama_10_gdp",
-   "params": {
-    "unit": "CP_MEUR",
-    "na_item": "B1GQ"
-   },
-   "out": "data/gdp-eur.json",
-   "source": "Eurostat national accounts — GDP at market prices, current prices, million EUR",
-   "note": "for comparing economy SIZE across countries only; never use for the share ratio"
-  },
-  {
-   "name": "pharma-gva-eur",
-   "provider": "eurostat",
-   "dataset": "nama_10_a64",
-   "params": {
-    "unit": "CP_MEUR",
-    "nace_r2": "C21",
-    "na_item": "B1G"
-   },
-   "out": "data/pharma-gva-eur.json",
-   "source": "Eurostat national accounts A*64 — NACE C21 gross value added, current prices, million EUR",
-   "note": "for comparing absolute pharma output across countries; the share ratio uses the MNAC pair"
-  },
-  {
-   "name": "stan-pharma",
-   "provider": "csv",
-   "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.AUS+AUT+BEL+CAN+CHE+CHL+COL+CRI+CZE+DEU+DNK+ESP+EST+FIN+FRA+GBR+GRC+HUN+IRL+ISL+ISR+ITA+JPN+KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT+SVK+SVN+SWE+TUR+USA.C21.B1G.V.XDC?format=csvfile&startPeriod=1990",
-   "group_col": "REF_AREA",
-   "key_col": "TIME_PERIOD",
-   "value_col": "OBS_VALUE",
-   "out": "data/stan-pharma.json",
-   "source": "OECD STAN — value added of ISIC C21 (pharmaceuticals), current prices, million national currency",
-   "note": "same industry definition as NACE C21, so shares are comparable with the Eurostat set; national currency so the ratio carries no FX noise"
-  },
-  {
-   "name": "stan-total",
-   "provider": "csv",
-   "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.._T.B1G.V.XDC?format=csvfile&startPeriod=1990",
-   "group_col": "REF_AREA",
-   "key_col": "TIME_PERIOD",
-   "value_col": "OBS_VALUE",
-   "out": "data/stan-total.json",
-   "source": "OECD STAN — total-economy value added, current prices, million national currency",
-   "note": "denominator for the STAN pharma share; same source and basis as stan-pharma so the ratio is internally consistent"
-  },
-  {
-   "name": "pharma-exports",
-   "provider": "eurostat",
-   "api": "comext",
-   "dataset": "DS-045409",
-   "params": {
-    "freq": "A",
-    "flow": "2",
-    "partner": "WORLD",
-    "indicators": "VALUE_IN_EUROS",
-    "reporter": [
-     "DK",
-     "IE",
-     "BE",
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "AT",
-     "SI",
-     "HU",
-     "PL"
-    ],
-    "product": [
-     "3002",
-     "3003",
-     "3004",
-     "2937",
-     "2941"
-    ],
-    "time": [
-     "2002",
-     "2003",
-     "2004",
-     "2005",
-     "2006",
-     "2007",
-     "2008",
-     "2009",
-     "2010",
-     "2011",
-     "2012",
-     "2013",
-     "2014",
-     "2015",
-     "2016",
-     "2017",
-     "2018",
-     "2019",
-     "2020",
-     "2021",
-     "2022",
-     "2023",
-     "2024"
-    ]
-   },
-   "group_dims": [
-    "reporter",
-    "product"
-   ],
-   "out": "data/pharma-exports.json",
-   "source": "Eurostat Comext DS-045409 — exports to world, EUR, by HS4: 3002 immunologicals/vaccines, 3003 bulk medicaments, 3004 dosage medicaments, 2937 hormones, 2941 antibiotics",
-   "note": "EXPORTS, not production — the product-mix proxy; say so wherever shown"
-  },
-  {
-   "name": "pharma-mirror",
-   "provider": "eurostat",
-   "api": "comext",
-   "dataset": "DS-045409",
-   "params": {
-    "freq": "A",
-    "flow": "1",
-    "reporter": "EU27_2020",
-    "indicators": "VALUE_IN_EUROS",
-    "partner": [
-     "US",
-     "CH",
-     "GB",
-     "CN",
-     "IN",
-     "JP",
-     "KR",
-     "IL",
-     "SG",
-     "CA"
-    ],
-    "product": [
-     "3002",
-     "3003",
-     "3004",
-     "2937",
-     "2941"
-    ],
-    "time": [
-     "2002",
-     "2003",
-     "2004",
-     "2005",
-     "2006",
-     "2007",
-     "2008",
-     "2009",
-     "2010",
-     "2011",
-     "2012",
-     "2013",
-     "2014",
-     "2015",
-     "2016",
-     "2017",
-     "2018",
-     "2019",
-     "2020",
-     "2021",
-     "2022",
-     "2023",
-     "2024"
-    ]
-   },
-   "group_dims": [
-    "partner",
-    "product"
-   ],
-   "out": "data/pharma-mirror.json",
-   "source": "Eurostat Comext DS-045409 — EU27 imports by partner and HS4, EUR: what non-EU producers ship into the EU",
-   "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
-  },
-  {
-   "name": "glp1-stocks",
-   "provider": "yahoo",
-   "interval": "1mo",
-   "start": "2005-01-01",
-   "series": {
-    "LLY": "LLY",
-    "NVO": "NVO",
-    "AMGN": "AMGN",
-    "PFE": "PFE",
-    "AZN": "AZN",
-    "RHHBY": "RHHBY",
-    "VKTX": "VKTX",
-    "GPCR": "GPCR",
-    "ALT": "ALT",
-    "ZLDPF": "ZLDPF",
-    "SPX": "^GSPC",
-    "XBI": "XBI"
-   },
-   "out": "data/glp1-stocks.json",
-   "source": "Yahoo Finance monthly adjusted closes, US listings/ADRs (USD); ^GSPC = S&P 500 index, XBI = SPDR biotech ETF benchmark",
-   "note": "Adjusted close = split- and dividend-adjusted (total return); index SPX is raw level. ADRs (NVO, AZN, RHHBY, ZLDPF) embed FX moves. Metsera (MTSR) excluded: acquired by Pfizer Nov 2025, delisted — survivorship caveat. Zealand only trades OTC in the US (ZLDPF, thin); primary listing is Copenhagen."
-  },
-  {
-   "name": "valuation-multiples",
-   "provider": "yahoo_valuation",
-   "tickers": [
-    "META",
-    "AMZN",
-    "AVGO",
-    "CRDO",
-    "RTX",
-    "CRWD",
-    "MU",
-    "NET",
-    "ALAB",
-    "BE",
-    "PLTR",
-    "CBRS",
-    "RBRK",
-    "RKLB",
-    "TEM",
-    "ASTS",
-    "EOSE"
-   ],
-   "out": "data/valuation-multiples.json",
-   "source": "Yahoo Finance quoteSummary — trailing/forward EPS and PE, consensus EPS by horizon, growth rates",
-   "note": "SNAPSHOT, not a time series: values are as-of the fetch date and are overwritten each run. Forward PE uses next-fiscal-year consensus EPS, so it moves with estimate revisions as well as price. PEG is computed as forward PE / expected EPS growth — Yahoo's own pegRatio field is unreliable. Loss-making companies have no meaningful PE: those cells are intentionally blank. SpaceX is private and has no multiples at all."
-  },
-  {
-   "name": "hs6-check",
-   "provider": "eurostat",
-   "api": "comext",
-   "dataset": "DS-045409",
-   "params": {
-    "freq": "A",
-    "flow": "2",
-    "reporter": [
-     "DE",
-     "IE",
-     "BE",
-     "NL",
-     "FR",
-     "IT",
-     "DK"
-    ],
-    "partner": "WORLD",
-    "indicators": "VALUE_IN_EUROS",
-    "product": [
-     "300431",
-     "300439",
-     "300490",
-     "300215",
-     "300212",
-     "300241",
-     "293719"
-    ],
-    "time": "2024"
-   },
-   "group_dims": [
-    "reporter",
-    "product"
-   ],
-   "out": "data/hs6-check.json",
-   "enabled": true,
-   "source": "HS6 detail by reporter — establishes where detailed codes are published vs suppressed"
-  },
-  {
-   "name": "pharma-dest",
-   "provider": "eurostat",
-   "api": "comext",
-   "dataset": "DS-045409",
-   "params": {
-    "freq": "A",
-    "flow": "2",
-    "reporter": [
-     "DK",
-     "IE",
-     "BE"
-    ],
-    "partner": [
-     "WORLD",
-     "US",
-     "CN",
-     "JP",
-     "GB",
-     "CH",
-     "CA",
-     "AU",
-     "BR",
-     "IN",
-     "KR",
-     "TR",
-     "RU",
-     "MX",
-     "SA",
-     "AE",
-     "DE",
-     "FR",
-     "NL",
-     "BE",
-     "IT",
-     "ES",
-     "PL",
-     "DK",
-     "IE",
-     "SE",
-     "NO"
-    ],
-    "indicators": "VALUE_IN_EUROS",
-    "product": [
-     "3002",
-     "3004",
-     "2937"
-    ],
-    "time": "2024"
-   },
-   "group_dims": [
-    "reporter",
-    "product",
-    "partner"
-   ],
-   "out": "data/pharma-dest.json",
-   "enabled": true,
-   "source": "Destination markets for the concentration leaders, by HS4 class, 2024"
-  },
-  {
-   "name": "pharma-hs6-trend",
-   "provider": "eurostat",
-   "api": "comext",
-   "dataset": "DS-045409",
-   "params": {
-    "freq": "A",
-    "flow": "2",
-    "reporter": [
-     "IE",
-     "BE",
-     "DK",
-     "DE",
-     "NL",
-     "IT",
-     "FR"
-    ],
-    "partner": "WORLD",
-    "indicators": "VALUE_IN_EUROS",
-    "product": [
-     "293719",
-     "300241",
-     "300215",
-     "300212",
-     "300490",
-     "300439",
-     "300431"
-    ],
-    "time": [
-     "2010",
-     "2011",
-     "2012",
-     "2013",
-     "2014",
-     "2015",
-     "2016",
-     "2017",
-     "2018",
-     "2019",
-     "2020",
-     "2021",
-     "2022",
-     "2023",
-     "2024"
-    ]
-   },
-   "group_dims": [
-    "reporter",
-    "product"
-   ],
-   "out": "data/pharma-hs6-trend.json",
-   "enabled": true,
-   "source": "Eurostat Comext DS-045409 — exports to world by HS6 therapeutic class, 2010-2024",
-   "note": "293719 polypeptide hormones (GLP-1/insulin-analogue class, bulk); 300241 human vaccines; 300215 immunological in doses (antibodies); 300212 antisera/blood fractions; 300431 insulin medicaments; 300439 other hormone medicaments; 300490 other medicaments"
-  },
-  {
-   "name": "peptide-flows",
-   "provider": "eurostat",
-   "api": "comext",
-   "dataset": "DS-045409",
-   "params": {
-    "freq": "A",
-    "reporter": [
-     "IE",
-     "DK",
-     "DE",
-     "BE",
-     "FR",
-     "IT"
-    ],
-    "partner": "WORLD",
-    "product": "293719",
-    "flow": [
-     "1",
-     "2"
-    ],
-    "indicators": [
-     "VALUE_IN_EUROS",
-     "QUANTITY_IN_100KG"
-    ],
-    "time": [
-     "2010",
-     "2011",
-     "2012",
-     "2013",
-     "2014",
-     "2015",
-     "2016",
-     "2017",
-     "2018",
-     "2019",
-     "2020",
-     "2021",
-     "2022",
-     "2023",
-     "2024"
-    ]
-   },
-   "group_dims": [
-    "reporter",
-    "flow",
-    "indicators"
-   ],
-   "out": "data/peptide-flows.json",
-   "enabled": true,
-   "source": "Comext — HS 2937.19 imports (flow 1) and exports (flow 2), value and quantity",
-   "note": "net exports test: re-export shows as large imports; domestic production does not"
-  },
-  {
-   "name": "peptide-dest",
-   "provider": "eurostat",
-   "api": "comext",
-   "dataset": "DS-045409",
-   "params": {
-    "freq": "A",
-    "flow": "2",
-    "reporter": "IE",
-    "product": "293719",
-    "indicators": "VALUE_IN_EUROS",
-    "partner": [
-     "WORLD",
-     "US",
-     "CH",
-     "DE",
-     "BE",
-     "NL",
-     "GB",
-     "JP",
-     "CN",
-     "DK",
-     "FR",
-     "SG",
-     "BR",
-     "CA"
-    ],
-    "time": [
-     "2018",
-     "2024"
-    ]
-   },
-   "group_dims": [
-    "partner"
-   ],
-   "out": "data/peptide-dest.json",
-   "enabled": true,
-   "source": "Comext — where Ireland's bulk peptide hormone exports go"
-  },
-  {
-   "name": "gni-gdp",
-   "provider": "eurostat",
-   "dataset": "nasa_10_nf_tr",
-   "params": {
-    "unit": "CP_MNAC",
-    "na_item": "B5G",
-    "sector": "S1",
-    "geo": [
-     "IE",
-     "DK",
-     "CH",
-     "BE",
-     "NL",
-     "DE",
-     "LU",
-     "FR",
-     "IT",
-     "AT",
-     "HU",
-     "SI"
-    ]
-   },
-   "out": "data/gni-gdp.json",
-   "enabled": true,
-   "source": "Eurostat nasa_10_nf_tr — gross national income (B5G), total economy",
-   "note": "GNI minus GDP is net primary income from abroad: negative where foreign-owned profits are repatriated out, positive where a country's firms earn abroad",
-   "group_dims": [
-    "geo",
-    "direct"
-   ]
-  },
-  {
-   "name": "fx-eur",
-   "provider": "eurostat",
-   "dataset": "ert_bil_eur_a",
-   "params": {
-    "unit": "NAC",
-    "statinfo": "AVG",
-    "currency": [
-     "USD",
-     "JPY",
-     "KRW",
-     "CAD",
-     "MXN",
-     "AUD",
-     "GBP",
-     "ILS",
-     "TRY",
-     "CHF",
-     "DKK",
-     "SEK",
-     "NOK",
-     "PLN",
-     "HUF",
-     "CZK",
-     "RON",
-     "BGN",
-     "ISK"
-    ]
-   },
-   "group_dims": [
-    "currency"
-   ],
-   "out": "data/fx-eur.json",
-   "enabled": true,
-   "source": "Eurostat ert_bil_eur_a — annual average exchange rates, national currency per euro",
-   "note": "used only to express absolute pharma value added in a common currency; every share ratio stays in national currency"
-  },
-  {
-   "name": "vet-cpi-eu",
-   "provider": "eurostat",
-   "dataset": "prc_hicp_midx",
-   "params": {
-    "unit": "I15",
-    "coicop": [
-     "CP00",
-     "CP0934",
-     "CP0935"
-    ],
-    "geo": [
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "BE",
-     "AT",
-     "IE",
-     "PL",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "DK",
-     "SE",
-     "FI",
-     "EA20",
-     "TR",
-     "EL",
-     "SK",
-     "SI",
-     "HR",
-     "BG",
-     "LT",
-     "LV",
-     "EE",
-     "LU",
-     "NO"
-    ]
-   },
-   "group_dims": [
-    "geo",
-    "coicop"
-   ],
-   "out": "data/vet-cpi-eu.json",
-   "enabled": true,
-   "source": "Eurostat HICP monthly index (2015=100): CP00 all-items, CP0934 pets and related products, CP0935 veterinary and other services for pets",
-   "note": "CONSUMER prices — pet vet services paid by households, not farm animal health costs. Confirmed by 2026-08 fetch: TR publishes CP00 only (no CP0934/CP0935 — a TR vet series needs TÜİK/EVDS); IE CP0935 stops at 2023-12; all other geos current. Base years differ per country (earliest obs 1996-01 FR, 2016-12 for late joiners) — index everything to a common month before comparing."
-  },
-  {
-   "name": "ppi-eu",
-   "provider": "eurostat",
-   "dataset": "sts_inppd_m",
-   "params": {
-    "indic_bt": "PRC_PRR_DOM",
-    "s_adj": "NSA",
-    "unit": "I21",
-    "nace_r2": [
-     "C21",
-     "C",
-     "D"
-    ],
-    "geo": [
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "BE",
-     "AT",
-     "PL",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "DK",
-     "SE",
-     "FI",
-     "EL",
-     "SK",
-     "SI",
-     "HR",
-     "BG",
-     "LT",
-     "LV",
-     "EE",
-     "NO",
-     "IE",
-     "LU",
-     "TR"
-    ],
-    "sinceTimePeriod": "2015-01"
-   },
-   "group_dims": [
-    "geo",
-    "nace_r2"
-   ],
-   "out": "data/ppi-eu.json",
-   "enabled": true,
-   "source": "Eurostat sts_inppd_m — domestic producer prices, monthly, 2021=100, unadjusted: pharma manufacturing (C21), total manufacturing (C), energy supply (D)",
-   "note": "Feeds the cost-escalation tool. C21 coverage varies by country — missing combos declared in the tool, never guessed. Türkiye included (confirmed by value-level probe 2026-08: full series 2015-01 onward)."
-  },
-  {
-   "name": "lci-eu",
-   "provider": "eurostat",
-   "dataset": "lc_lci_r2_q",
-   "params": {
-    "unit": "I20",
-    "s_adj": "SCA",
-    "lcstruct": "D1_D4_MD5",
-    "nace_r2": "B-E",
-    "geo": [
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "BE",
-     "AT",
-     "PL",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "DK",
-     "SE",
-     "FI",
-     "EL",
-     "SK",
-     "SI",
-     "HR",
-     "BG",
-     "LT",
-     "LV",
-     "EE",
-     "NO",
-     "IE",
-     "LU",
-     "TR"
-    ],
-    "sinceTimePeriod": "2015"
-   },
-   "group_dims": [
-    "geo",
-    "nace_r2"
-   ],
-   "out": "data/lci-eu.json",
-   "enabled": true,
-   "source": "Eurostat lc_lci_r2_q — labour cost index, industry (B-E), quarterly, 2020=100, seasonally and calendar adjusted, total labour cost",
-   "note": "Feeds the cost-escalation tool. SCA chosen so arbitrary quarter-to-quarter windows are not distorted by bonus seasonality — stated on the tool."
-  },
-  {
-   "name": "fx-eur-m",
-   "provider": "eurostat",
-   "dataset": "ert_bil_eur_m",
-   "params": {
-    "statinfo": "AVG",
-    "unit": "NAC",
-    "currency": [
-     "USD",
-     "PLN",
-     "HUF",
-     "CZK",
-     "TRY",
-     "RON",
-     "SEK",
-     "DKK",
-     "NOK",
-     "CHF",
-     "GBP"
-    ],
-    "sinceTimePeriod": "2015-01"
-   },
-   "group_dims": [
-    "currency"
-   ],
-   "out": "data/fx-eur-m.json",
-   "enabled": true,
-   "source": "Eurostat ert_bil_eur_m — monthly average exchange rates, national currency per euro",
-   "note": "Feeds the cost-escalation tool. BGN not published monthly (currency-board peg to EUR) — noted in the tool."
-  },
-  {
-   "name": "food-cpi-eu",
-   "provider": "eurostat",
-   "dataset": "prc_hicp_midx",
-   "params": {
-    "unit": "I15",
-    "coicop": [
-     "CP00",
-     "CP011",
-     "CP0111",
-     "CP0112",
-     "CP0113",
-     "CP0114",
-     "CP0115",
-     "CP0116",
-     "CP0117",
-     "CP0118",
-     "CP0121",
-     "CP0122"
-    ],
-    "geo": [
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "BE",
-     "AT",
-     "PL",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "DK",
-     "SE",
-     "FI",
-     "TR",
-     "EL",
-     "SK",
-     "SI",
-     "HR",
-     "BG",
-     "LT",
-     "LV",
-     "EE",
-     "NO",
-     "IE",
-     "LU"
-    ],
-    "sinceTimePeriod": "2016-12"
-   },
-   "group_dims": [
-    "geo",
-    "coicop"
-   ],
-   "out": "data/food-cpi-eu.json",
-   "enabled": true,
-   "source": "Eurostat HICP monthly index (2015=100), all food classes CP0111-CP0122 plus CP011 food and CP00 all items, since Dec 2016",
-   "note": "Feeds the Food Basket Explorer. Ratio metric (class ÷ CP011) computed client-side; sinceTimePeriod trims payload for page load."
-  },
-  {
-   "name": "meat-cpi-eu",
-   "provider": "eurostat",
-   "dataset": "prc_hicp_midx",
-   "params": {
-    "unit": "I15",
-    "coicop": [
-     "CP00",
-     "CP011",
-     "CP0112"
-    ],
-    "geo": [
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "BE",
-     "AT",
-     "PL",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "DK",
-     "SE",
-     "FI",
-     "EA20",
-     "TR",
-     "EL",
-     "SK",
-     "SI",
-     "HR",
-     "BG",
-     "LT",
-     "LV",
-     "EE",
-     "NO",
-     "IE",
-     "LU"
-    ]
-   },
-   "group_dims": [
-    "geo",
-    "coicop"
-   ],
-   "out": "data/meat-cpi-eu.json",
-   "enabled": true,
-   "source": "Eurostat HICP monthly index (2015=100): CP00 all items, CP011 food, CP0112 meat",
-   "note": "CP0112 'Meat' (COICOP 01.1.2) includes fresh/frozen/processed meat and poultry. TR class-level coverage to be confirmed by the fetch report."
-  },
-  {
-   "name": "meat-cpi-us",
-   "provider": "fred",
-   "series": {
-    "meat_pfe_nsa": "CUUR0000SAF112",
-    "meats_poultry_fish_nsa": "CUUR0000SAF1121",
-    "food_home_nsa": "CUUR0000SAF11",
-    "cpi_nsa": "CPIAUCNS"
-   },
-   "out": "data/meat-cpi-us.json",
-   "enabled": true,
-   "source": "BLS CPI via FRED, NSA, US city average: SAF112 meats/poultry/fish/eggs, SAF1121 meats/poultry/fish, SAF11 food at home, all items",
-   "note": "US basket differs from EU CP0112 (includes fish; SAF112 also eggs) — the closer candidate that resolves wins, and the basket difference is stated wherever shown. Per-series 404s tolerated."
-  },
-  {
-   "name": "vet-cpi-us",
-   "provider": "fred",
-   "series": {
-    "pet_svcs_nsa": "CUUR0000SS62031",
-    "cpi_nsa": "CPIAUCNS"
-   },
-   "out": "data/vet-cpi-us.json",
-   "enabled": true,
-   "source": "BLS CPI via FRED: pet services including veterinary (SS62031, 1997-12→) and all-items — US city average, not seasonally adjusted",
-   "note": "CONSUMER prices, same object as vet-cpi-eu: EU CP0935 is 'veterinary and OTHER services for pets', so the like-for-like US series is pet services INCLUDING veterinary, not veterinarian services alone (BLS SS62032 exists but is not mirrored on FRED — both CUUR/CUSR ids 404). NSA throughout so the vet/headline ratio is like-for-like."
-  },
-  {
-   "name": "elec-eu",
-   "provider": "eurostat",
-   "dataset": "nrg_pc_205",
-   "params": {
-    "siec": "E7000",
-    "nrg_cons": "MWH500-1999",
-    "unit": "KWH",
-    "tax": "X_VAT",
-    "currency": "NAC",
-    "geo": [
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "BE",
-     "AT",
-     "PL",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "DK",
-     "SE",
-     "FI",
-     "EL",
-     "SK",
-     "SI",
-     "HR",
-     "BG",
-     "LT",
-     "LV",
-     "EE",
-     "NO",
-     "IE",
-     "LU",
-     "TR"
-    ]
-   },
-   "group_dims": [
-    "geo"
-   ],
-   "out": "data/elec-eu.json",
-   "enabled": true,
-   "source": "Eurostat nrg_pc_205 — electricity, non-household band IC (500–1 999 MWh), excl. recoverable taxes, national currency per kWh, semi-annual",
-   "note": "Escalation tool: mid-size industrial benchmark band, published since 2007. NAC on purpose — FX is its own factor."
-  },
-  {
-   "name": "gas-eu",
-   "provider": "eurostat",
-   "dataset": "nrg_pc_203",
-   "params": {
-    "siec": "G3000",
-    "nrg_cons": "GJ10000-99999",
-    "unit": "GJ_GCV",
-    "tax": "X_VAT",
-    "currency": "NAC",
-    "geo": [
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "BE",
-     "AT",
-     "PL",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "DK",
-     "SE",
-     "FI",
-     "EL",
-     "SK",
-     "SI",
-     "HR",
-     "BG",
-     "LT",
-     "LV",
-     "EE",
-     "NO",
-     "IE",
-     "LU",
-     "TR"
-    ]
-   },
-   "group_dims": [
-    "geo"
-   ],
-   "out": "data/gas-eu.json",
-   "enabled": true,
-   "source": "Eurostat nrg_pc_203 — natural gas, non-household band I3 (10 000–99 999 GJ), excl. recoverable taxes, national currency per GJ, semi-annual",
-   "note": "Escalation tool: mid-size industrial benchmark band. Countries without gas networks legitimately absent."
-  },
-  {
-   "name": "europe-map",
-   "provider": "geojson_filter",
-   "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
-   "prop": "ISO_A2_EH",
-   "keep": [
-    "AL",
-    "AT",
-    "BA",
-    "BE",
-    "BG",
-    "BY",
-    "CH",
-    "CY",
-    "CZ",
-    "DE",
-    "DK",
-    "EE",
-    "ES",
-    "FI",
-    "FR",
-    "GB",
-    "HR",
-    "HU",
-    "IE",
-    "IS",
-    "IT",
-    "LT",
-    "LU",
-    "LV",
-    "MD",
-    "ME",
-    "MK",
-    "MT",
-    "NL",
-    "NO",
-    "PL",
-    "PT",
-    "RO",
-    "RS",
-    "SE",
-    "SI",
-    "SK",
-    "TR",
-    "UA",
-    "GR"
-   ],
-   "precision": 2,
-   "out": "data/europe-map.json",
-   "enabled": true,
-   "source": "Natural Earth 110m admin-0 countries (public domain), filtered to Europe, coordinates rounded",
-   "note": "Selector map for the escalation dashboard. ISO_A2_EH property (plain ISO_A2 is -99 for FR/NO in NE). GR→EL translated client-side."
-  },
-  {
-   "name": "cpi-eu",
-   "provider": "eurostat",
-   "dataset": "prc_hicp_minr",
-   "params": {
-    "unit": "I15",
-    "coicop18": "TOTAL",
-    "geo": [
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "BE",
-     "AT",
-     "PL",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "DK",
-     "SE",
-     "FI",
-     "EL",
-     "SK",
-     "SI",
-     "HR",
-     "BG",
-     "LT",
-     "LV",
-     "EE",
-     "NO",
-     "IE",
-     "LU",
-     "TR"
-    ],
-    "sinceTimePeriod": "2015-01"
-   },
-   "group_dims": [
-    "geo",
-    "coicop18"
-   ],
-   "out": "data/cpi-eu.json",
-   "enabled": true,
-   "source": "Eurostat prc_hicp_minr — HICP all items (ECOICOP2), monthly index, 2015=100",
-   "note": "Feeds the cost-escalation tool's CPI factor. Successor of prc_hicp_midx, which was archived at 2025-12 with the 2026 rebase (ECOICOP2, coicop18 dimension, all-items code TOTAL). meat-cpi-eu kept as the frozen pre-rebase file for the meat post and basket explorer."
-  },
-  {
-   "name": "eu-ppp",
-   "provider": "eurostat",
-   "dataset": "prc_ppp_ind",
-   "params": {
-    "na_item": [
-     "PLI_EU27_2020",
-     "PPP_EU27_2020"
-    ],
-    "ppp_cat": [
-     "GDP",
-     "A01",
-     "E011",
-     "A0101",
-     "A01010102",
-     "A0106",
-     "A010603",
-     "A0107",
-     "A0111",
-     "A0112",
-     "P0201"
-    ]
-   },
-   "group_dims": [
-    "geo",
-    "na_item",
-    "ppp_cat"
-   ],
-   "out": "data/eu-ppp.json",
-   "source": "Eurostat purchasing power parities and price level indices (prc_ppp_ind)",
-   "note": "Codes pinned from MODE=discover run 2026-08-19. All 55 geos kept (incl. EU/EA aggregates, UK, US, JP, TR, Western Balkans). No veterinary/pharma category exists in this dataset — lowest health detail is A0106/A010603. COICOP 2018 rebase: category-level series may be short or broken around 2021/22 — check spans before charting."
-  },
-  {
-   "name": "eu-vet-sbs",
-   "provider": "eurostat",
-   "dataset": "sbs_na_1a_se_r2",
-   "params": {
-    "nace_r2": "M75",
-    "indic_sb": [
-     "V11110",
-     "V12110",
-     "V12150",
-     "V16110",
-     "V91100"
-    ]
-   },
-   "group_dims": [
-    "geo",
-    "indic_sb"
-   ],
-   "out": "data/eu-vet-sbs.json",
-   "source": "Eurostat SBS annual detailed enterprise statistics for services, veterinary activities (NACE M75)",
-   "note": "Codes pinned from discover 2026-08-20: V11110 enterprises, V12110 turnover (M EUR), V12150 value added (M EUR), V16110 persons employed, V91100 turnover per person employed (k EUR). 39 geos. Legacy SBS series — check the fetched span; 2021+ lives in the successor EBS dataset (separate hunt)."
-  },
-  {
-   "name": "eu-vet-weight",
-   "provider": "eurostat",
-   "dataset": "prc_hicp_inw",
-   "params": {
-    "coicop": [
-     "CP0934",
-     "CP0935"
-    ]
-   },
-   "group_dims": [
-    "geo",
-    "coicop"
-   ],
-   "out": "data/eu-vet-weight.json",
-   "source": "Eurostat HICP item weights — share of veterinary and pet services in each country's consumption basket",
-   "note": "HICP item weights, per-mille of total basket: CP0934 pets and related products, CP0935 veterinary and other services for pets. Dataset serves no 2026 (checked in discover — ECOICOP2 rebase); weights for 2026+ need the successor dataset once Eurostat publishes it."
-  },
-  {
-   "name": "bigmac-usd",
-   "provider": "csv",
-   "url": "https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv",
-   "group_col": "iso_a3",
-   "key_col": "date",
-   "value_col": "dollar_price",
-   "out": "data/bigmac-usd.json",
-   "source": "The Economist Big Mac index (open data, github.com/TheEconomist/big-mac-data) — Big Mac price converted to USD at market rates",
-   "note": "Semi-annual (Jan+Jul), 2000->today; a one-item price level, current within ~6 months — the timeliness complement to Eurostat PPP (annual, ~18-month lag). One burger is not a consumption basket."
-  },
-  {
-   "name": "bigmac-eur",
-   "provider": "csv",
-   "url": "https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv",
-   "group_col": "iso_a3",
-   "key_col": "date",
-   "value_col": "EUR_raw",
-   "out": "data/bigmac-eur.json",
-   "source": "The Economist Big Mac index — raw valuation vs the euro (0 = burger costs the same as in the euro area; +0.10 = 10% dearer)",
-   "note": "Same file as bigmac-usd, euro-relative column; fractions, not percent."
-  },
-  {
-   "name": "bigmac-src-eur",
-   "provider": "csv",
-   "url": "https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/source-data/big-mac-source-data-v2.csv",
-   "filters": {
-    "currency_code": "EUR"
-   },
-   "group_col": "iso_a3",
-   "key_col": "date",
-   "value_col": "local_price",
-   "out": "data/bigmac-src-eur.json",
-   "source": "The Economist Big Mac index SOURCE data — euro-denominated prices: individual euro members (from 2011-07) plus the EUZ weighted average, in EUR",
-   "note": "Member prices are The Economist's collected source prices, not headline index rows; parity vs the euro area = member price / EUZ price - 1, computed per edition on the page."
-  },
-  {
-   "name": "pl-ppi-probe",
-   "provider": "eurostat",
-   "dataset": "sts_inppd_m",
-   "params": {
-    "geo": "PL",
-    "sinceTimePeriod": "2025-01"
-   },
-   "out": "data/_pl-ppi-probe.json",
-   "source": "PROBE: Eurostat industrial producer prices, domestic market — which NACE codes does Poland actually report? (notes/broiler-parity-poland.md)",
-   "note": "Discovery helper for the broiler parity build; run with MODE=discover. Tiny time window on purpose so the monthly full fetch stays cheap if it sweeps this."
-  },
-  {
-   "name": "pl-anchor-out-probe",
-   "provider": "eurostat",
-   "dataset": "apri_ap_anouta",
-   "params": {
-    "geo": "PL"
-   },
-   "out": "data/_pl-anchor-out-probe.json",
-   "source": "PROBE: Eurostat annual absolute selling prices of animal products — live-chicken price, Poland (parity anchor numerator)",
-   "note": "MODE=discover first; dataset id itself is a best guess — a 404 here is an answer, not a failure."
-  },
-  {
-   "name": "pl-anchor-in-probe",
-   "provider": "eurostat",
-   "dataset": "apri_ap_ina",
-   "params": {
-    "geo": "PL"
-   },
-   "out": "data/_pl-anchor-in-probe.json",
-   "source": "PROBE: Eurostat annual absolute purchase prices of the means of production — broiler feed price, Poland (parity anchor denominator)",
-   "note": "MODE=discover first; dataset id itself is a best guess — a 404 here is an answer, not a failure."
-  },
-  {
-   "name": "pl-broiler-ppi",
-   "provider": "eurostat",
-   "dataset": "sts_inppd_m",
-   "params": {
-    "freq": "M",
-    "indic_bt": "PRC_PRR_DOM",
-    "s_adj": "NSA",
-    "unit": "I21",
-    "nace_r2": [
-     "C1012",
-     "C1091"
-    ],
-    "geo": "PL",
-    "sinceTimePeriod": "2010-01"
-   },
-   "group_dims": [
-    "nace_r2"
-   ],
-   "out": "data/pl-broiler-ppi.json",
-   "source": "Eurostat sts_inppd_m: Poland domestic producer price index, processing & preserving of poultry meat (C1012) and prepared feeds for farm animals (C1091)",
-   "note": "The Polish leg of the broiler parity — same NACE pair as the TR series (TÜİK C10.12/C10.91). Codes confirmed by the 2026-08 probe (data/_pl-parity-probe.json)."
-  },
-  {
-   "name": "pl-anchor-chicken",
-   "provider": "eurostat",
-   "dataset": "apri_ap_anouta",
-   "params": {
-    "prod_ani": "11510000",
-    "currency": "NAC",
-    "geo": "PL"
-   },
-   "out": "data/pl-anchor-chicken.json",
-   "source": "Eurostat annual selling prices: chickens (live, 1st choice), Poland, PLN per 100 kg LIVE weight",
-   "note": "Parity anchor numerator. LIVE weight — the builder converts to carcass-equivalent with a disclosed yield before anchoring, because the TR anchor (TEPGE) is per kg meat."
-  },
-  {
-   "name": "pl-anchor-feed",
-   "provider": "eurostat",
-   "dataset": "apri_ap_ina",
-   "params": {
-    "prod_inp": "20624502",
-    "currency": "NAC",
-    "geo": "PL"
-   },
-   "out": "data/pl-anchor-feed.json",
-   "source": "Eurostat annual purchase prices: complete feed for broiler production (in bulk), Poland, PLN per 100 kg",
-   "note": "Parity anchor denominator. Product code confirmed by the 2026-08 probe."
-  },
-  {
-   "name": "popular-markets",
-   "provider": "yahoo",
-   "interval": "1mo",
-   "start": "2014-09-01",
-   "series": {
-    "BTC": "BTC-USD",
-    "NASDAQ": "^IXIC",
-    "SP500": "^GSPC",
-    "GOLD": "GC=F"
-   },
-   "out": "data/popular-markets.json",
-   "source": "Yahoo Finance monthly closes: Bitcoin (BTC-USD), Nasdaq Composite (^IXIC), S&P 500 (^GSPC), COMEX gold front-month (GC=F)",
-   "note": "Start 2014-09 = first month Yahoo has BTC-USD. Indices/futures pay no dividends; BTC has none - closes are comparable for co-movement, not total return."
-  },
-  {
-   "name": "climate-co2",
-   "provider": "owid",
-   "slug": "co2-long-term-concentration",
-   "entities": {
-    "World": "co2_ppm"
-   },
-   "out": "data/climate-co2.json",
-   "source": "Atmospheric CO2 concentration (ppm), long-term - Our World in Data grapher co2-long-term-concentration",
-   "note": "Annual. Run MODE=discover first if the slug or entity name has drifted."
-  },
-  {
-   "name": "climate-temp",
-   "provider": "owid",
-   "slug": "temperature-anomaly",
-   "entities": {
-    "Global": "anomaly_c",
-    "World": "anomaly_c_world"
-   },
-   "out": "data/climate-temp.json",
-   "source": "Global mean temperature anomaly (deg C vs 1861-1890) - Our World in Data grapher temperature-anomaly",
-   "note": "Annual. Grapher entity may be 'Global' or 'World' depending on vintage - both mapped; keep whichever returns data."
-  },
-  {
-   "name": "pump-vs-oil",
-   "provider": "fred",
-   "series": {
-    "gasoline_usd_gal": "APU000074714",
-    "wti_usd_bbl": "MCOILWTICO"
-   },
-   "out": "data/pump-vs-oil.json",
-   "source": "US city-average retail gasoline price (BLS APU000074714, USD/gallon) and WTI crude spot (MCOILWTICO, USD/barrel), monthly via FRED",
-   "note": "Gasoline from 1976, WTI from 1986; both nominal USD - the shared-dollar trend is part of the story the checker tells."
-  },
-  {
-   "name": "tr-cpi-ppi",
-   "provider": "evds",
-   "series": {
-    "cpi": "TP.TUKFIY2025.GENEL",
-    "cpi_food": "TP.TUKFIY2025.01",
-    "cpi_core_b": "TP.FE25.OKTG03",
-    "cpi_core_c": "TP.FE25.OKTG04",
-    "cpi_services": "TP.FE25.OKTG23",
-    "cpi_rent": "TP.FE25.OKTG24",
-    "cpi_2003": "TP.FG.J0",
-    "ppi_2003": "TP.TUFE1YI.T1",
-    "cpi_yoy": "TP.FE.OKTG01"
-   },
-   "start": "01-01-2003",
-   "out": "data/tr-cpi-ppi.json",
-   "source": "TCMB EVDS, TÜİK price indices: CPI general, food, core B and C, services and rent on the 2025=100 base (TP.TUKFIY2025.*, TP.FE25.*), back-cast to 2005; CPI general (TP.FG.J0) and domestic PPI (TP.TUFE1YI.T1) on the 2003=100 base; CPI annual change (TP.FE.OKTG01)",
-   "note": "Use 'cpi' (2025=100, from 2005-01) as the deflator. The 2003=100 CPI stops at 2026-01 with the 2026 rebase; the PPI is still published on the 2003 base. Core B excludes unprocessed food, energy, alcohol, tobacco and gold; core C also excludes all food"
-  },
-  {
-   "name": "tr-rates",
-   "provider": "evds",
-   "series": {
-    "policy_rate": "TP.BISPOLFAIZ.TUR",
-    "deposit_3m": "TP.TRY.MT02",
-    "loan_housing": "TP.KTF12",
-    "loan_commercial": "TP.KTF17"
-   },
-   "frequency": 5,
-   "aggregation": "avg",
-   "start": "01-01-2010",
-   "out": "data/tr-rates.json",
-   "source": "TCMB EVDS: one-week repo policy rate, weighted average TRY deposit rate up to 3 months, housing and commercial loan rates; monthly averages of weekly data",
-   "note": "Percent per annum. Monthly average of weekly observations, so a mid-month decision shows as a partial move in that month"
-  },
-  {
-   "name": "fao-livestock",
-   "provider": "fao",
-   "domain": "QCL",
-   "areas": {
-    "TR": "223",
-    "US": "231",
-    "DE": "79",
-    "FR": "68",
-    "PL": "173",
-    "NL": "150",
-    "BR": "21",
-    "WORLD": "5000"
-   },
-   "items": {
-    "cattle_stock": "866",
-    "sheep_stock": "976",
-    "chickens_stock": "1057",
-    "cattle_meat": "867",
-    "chicken_meat": "1058",
-    "cow_milk": "882",
-    "hen_eggs": "1062"
-   },
-   "elements": {
-    "stock": "5111",
-    "stock_1000": "5112",
-    "production": "5510"
-   },
-   "year": "1990:2026",
-   "out": "data/fao-livestock.json",
-   "source": "FAOSTAT QCL: livestock stocks (head) and production of meat, milk and eggs (tonnes), annual",
-   "note": "Series keys are area|item|element: stocks are head (element 'stock', for the *_stock items), production is tonnes (element 'production', for meat, milk and eggs). FAO figures are official, estimated or imputed by country and year; flags are on the FAOSTAT site"
-  },
-  {
-   "name": "fao-producer-prices",
-   "provider": "fao",
-   "domain": "PP",
-   "areas": {
-    "TR": "223",
-    "US": "231",
-    "DE": "79",
-    "FR": "68",
-    "PL": "173",
-    "BR": "21"
-   },
-   "items": {
-    "cattle_meat": "867",
-    "chicken_meat": "1058",
-    "cow_milk": "882",
-    "hen_eggs": "1062",
-    "wheat": "15",
-    "maize": "56",
-    "barley": "44",
-    "soybeans": "236",
-    "sunflower_seed": "267",
-    "hazelnuts": "225",
-    "tomatoes": "388",
-    "sugar_beet": "157"
-   },
-   "element": "5532",
-   "year": "1991:2026",
-   "out": "data/fao-producer-prices.json",
-   "source": "FAOSTAT PP: annual producer prices in USD per tonne, farm gate",
-   "note": "USD/tonne converted by FAO at annual average exchange rates, so a lira devaluation shows as a price fall in USD while local prices rise. Series keys are area|item"
-  },
-  {
-   "name": "imf-weo",
-   "provider": "imf",
-   "agency": "IMF.RES",
-   "dataflow": "WEO",
-   "key": "TUR+USA+DEU+FRA+GBR+ITA+ESP+POL+NLD+CHN+IND+JPN+KOR+IDN+VNM+THA+MYS+PHL+PAK+BGD+BRA+MEX+RUS+SAU+ARE+EGY+ZAF+NGA+AUS+CAN+WEOWORLD.NGDP_RPCH+PCPIPCH+PCPIEPCH+LUR+GGXWDG_NGDP+GGXCNL_NGDP+BCA_NGDPD+NGDPDPC+NGDPD+NID_NGDP+NGSD_NGDP.A",
-   "rename": {
-    "TUR": "TR",
-    "USA": "US",
-    "DEU": "DE",
-    "FRA": "FR",
-    "GBR": "GB",
-    "ITA": "IT",
-    "ESP": "ES",
-    "POL": "PL",
-    "NLD": "NL",
-    "CHN": "CN",
-    "IND": "IN",
-    "BRA": "BR",
-    "RUS": "RU",
-    "SAU": "SA",
-    "EGY": "EG",
-    "WEOWORLD": "WORLD",
-    "JPN": "JP",
-    "KOR": "KR",
-    "IDN": "ID",
-    "VNM": "VN",
-    "THA": "TH",
-    "MYS": "MY",
-    "PHL": "PH",
-    "PAK": "PK",
-    "BGD": "BD",
-    "MEX": "MX",
-    "ARE": "AE",
-    "ZAF": "ZA",
-    "NGA": "NG",
-    "AUS": "AU",
-    "CAN": "CA"
-   },
-   "out": "data/imf-weo.json",
-   "source": "IMF World Economic Outlook via the IMF Data API (latest release), 30 economies plus World: real GDP growth (NGDP_RPCH), inflation average and end-period (PCPIPCH, PCPIEPCH), unemployment (LUR), government gross debt and net lending % GDP (GGXWDG_NGDP, GGXCNL_NGDP), current account % GDP (BCA_NGDPD), GDP per capita and GDP in USD (NGDPDPC, NGDPD), investment and saving % GDP (NID_NGDP, NGSD_NGDP)",
-   "note": "Series keys are country|indicator. Actuals through the release's last actual year, IMF projections after it (usually five years ahead); the two are not distinguished in the file, so treat the last five or six years as forecasts. Percent for rates, USD billions for NGDPD, USD for NGDPDPC"
-  },
-  {
-   "name": "asia-wdi",
-   "provider": "worldbank",
-   "countries": {
-    "CN": "CHN",
-    "IN": "IND",
-    "JP": "JPN",
-    "KR": "KOR",
-    "ID": "IDN",
-    "VN": "VNM",
-    "TH": "THA",
-    "MY": "MYS",
-    "PH": "PHL",
-    "PK": "PAK",
-    "BD": "BGD",
-    "SG": "SGP",
-    "TW": "TWN",
-    "KZ": "KAZ",
-    "UZ": "UZB",
-    "IR": "IRN",
-    "SA": "SAU",
-    "AE": "ARE",
-    "IL": "ISR",
-    "TR": "TUR"
-   },
-   "indicators": {
-    "gdp_growth": "NY.GDP.MKTP.KD.ZG",
-    "gdp_pc_ppp": "NY.GDP.PCAP.PP.KD",
-    "gdp_usd_bn": "NY.GDP.MKTP.CD",
-    "inflation": "FP.CPI.TOTL.ZG",
-    "unemployment": "SL.UEM.TOTL.ZS",
-    "population_m": "SP.POP.TOTL",
-    "exports_pct_gdp": "NE.EXP.GNFS.ZS",
-    "manufacturing_pct_gdp": "NV.IND.MANF.ZS",
-    "agriculture_pct_gdp": "NV.AGR.TOTL.ZS",
-    "fdi_inflow_pct_gdp": "BX.KLT.DINV.WD.GD.ZS",
-    "gross_capital_formation_pct_gdp": "NE.GDI.TOTL.ZS",
-    "urban_pct": "SP.URB.TOTL.IN.ZS",
-    "energy_use_pc": "EG.USE.PCAP.KG.OE",
-    "rd_pct_gdp": "GB.XPD.RSDV.GD.ZS",
-    "hightech_exports_pct": "TX.VAL.TECH.ZS"
-   },
-   "scale": {
-    "gdp_usd_bn": 1e-09,
-    "population_m": 1e-06
-   },
-   "start": 1980,
-   "out": "data/asia-wdi.json",
-   "source": "World Bank World Development Indicators via the World Bank API, annual, 20 Asian and Middle Eastern economies plus Türkiye: growth, GDP per capita PPP (constant 2021 international $), GDP in USD billions, CPI inflation, unemployment (ILO modelled), population in millions, exports, manufacturing and agriculture value added as % of GDP, FDI inflows % of GDP, gross capital formation % of GDP, urban share, energy use per capita, R&D % of GDP, high-tech exports % of manufactured exports",
-   "note": "Series keys are country|indicator. WDI revises history and lags one to two years; the latest year for a country is often missing for slow indicators (energy, R&D). Taiwan is not a World Bank member and returns nothing for most indicators"
-  },
-  {
-   "name": "tr-fx-monthly",
-   "provider": "evds",
-   "series": {
-    "usd_try": "TP.DK.USD.A",
-    "eur_try": "TP.DK.EUR.A"
-   },
-   "frequency": 5,
-   "aggregation": "avg",
-   "start": "01-01-2000",
-   "out": "data/tr-fx-monthly.json",
-   "source": "TCMB EVDS indicative buying rates, monthly averages of daily quotes",
-   "note": "TRY per unit of foreign currency. 2005 redenomination removed six zeros; EVDS serves the series on the new lira throughout"
-  },
-  {
-   "name": "tr-house-prices",
-   "provider": "evds",
-   "series": {
-    "turkey": "TP.KFE.TR",
-    "istanbul": "TP.KFE.TR10",
-    "ankara": "TP.KFE.TR51",
-    "izmir": "TP.KFE.TR31"
-   },
-   "start": "01-01-2010",
-   "out": "data/tr-house-prices.json",
-   "source": "TCMB Residential Property Price Index (KFE), 2023=100, monthly",
-   "note": "Nominal index; deflate with tr-cpi-ppi for real house prices"
-  },
-  {
-   "name": "wb-commodities",
-   "provider": "xlsx",
-   "page": "https://www.worldbank.org/en/research/commodity-markets",
-   "match": "https://thedocs\\.worldbank\\.org/[^\\\"' ]*CMO-Historical-Data-Monthly\\.xlsx",
-   "fallback_url": "https://thedocs.worldbank.org/en/doc/5d903e848db1d1b83e0ec8f744e55570-0350012021/related/CMO-Historical-Data-Monthly.xlsx",
-   "sheet": "Monthly Prices",
-   "code_row_contains": "Crude oil, average",
-   "columns": {
-    "crude_brent": "Crude oil, Brent",
-    "natgas_eur": "Natural gas, Europe",
-    "coal_aus": "Coal, Australian",
-    "maize": "Maize",
-    "wheat_us_hrw": "Wheat, US HRW",
-    "soybeans": "Soybeans",
-    "soybean_meal": "Soybean meal",
-    "rice_thai": "Rice, Thai 5%",
-    "sugar_world": "Sugar, world",
-    "beef": "Beef",
-    "chicken": "Chicken",
-    "lamb": "Lamb",
-    "fish_meal": "Fish meal",
-    "barley": "Barley",
-    "sorghum": "Sorghum",
-    "cocoa": "Cocoa",
-    "coffee_arabica": "Coffee, Arabica",
-    "cotton_a": "Cotton, A index",
-    "rubber_tsr20": "Rubber, TSR20",
-    "natgas_us": "Natural gas, US",
-    "palm_oil": "Palm oil",
-    "urea": "Urea",
-    "dap": "DAP",
-    "tsp": "TSP",
-    "potash": "Potassium chloride",
-    "phosphate_rock": "Phosphate rock",
-    "aluminum": "Aluminum",
-    "copper": "Copper",
-    "iron_ore": "Iron ore",
-    "lead": "Lead",
-    "tin": "Tin",
-    "nickel": "Nickel",
-    "zinc": "Zinc",
-    "gold": "Gold",
-    "silver": "Silver",
-    "platinum": "Platinum"
-   },
-   "out": "data/wb-commodities.json",
-   "source": "World Bank Commodity Price Data (the Pink Sheet), monthly nominal US dollar prices",
-   "note": "Nominal USD. Units differ by commodity (USD/bbl, USD/mt, USD/kg, USD/troy oz); see the Pink Sheet header. Feed inputs (maize, soybean meal), fertilizers (urea, DAP, potash) and metals are the engineering and chemistry inputs"
-  },
-  {
-   "name": "us-sentiment",
-   "provider": "fred",
-   "series": {
-    "umich_sentiment": "UMCSENT",
-    "umich_inflation_1y": "MICH"
-   },
-   "out": "data/us-sentiment.json",
-   "source": "University of Michigan Surveys of Consumers via FRED: sentiment index (1966Q1=100) and median expected 1-year inflation",
-   "note": "Preliminary readings are revised at month end"
-  },
-  {
-   "name": "us-ip-sectors",
-   "provider": "fred",
-   "series": {
-    "manufacturing": "IPMAN",
-    "chemicals": "IPG325S",
-    "pharma": "IPG3254S",
-    "machinery": "IPG333S",
-    "computer_electronic": "IPG334S",
-    "electrical": "IPG335S"
-   },
-   "out": "data/us-ip-sectors.json",
-   "source": "Federal Reserve industrial production by NAICS industry via FRED, 2017=100, seasonally adjusted, monthly",
-   "note": "Chemicals 325, pharmaceuticals 3254, machinery 333, computer and electronic products 334, electrical equipment 335. Index levels, not output volumes"
-  },
-  {
-   "name": "us-ppi-sectors",
-   "provider": "fred",
-   "series": {
-    "chemicals": "PCU325325",
-    "pharma": "PCU32543254",
-    "machinery": "PCU333333",
-    "computer_electronic": "PCU334334",
-    "electrical": "PCU335335"
-   },
-   "out": "data/us-ppi-sectors.json",
-   "source": "BLS producer price indexes by NAICS industry via FRED, not seasonally adjusted, monthly",
-   "note": "Base periods differ by series (index = 100 at the series start). Ratios and growth rates only"
-  },
-  {
-   "name": "eu-gva-sectors",
-   "provider": "eurostat",
-   "dataset": "nama_10_a64",
-   "params": {
-    "unit": "CP_MEUR",
-    "na_item": "B1G",
-    "nace_r2": [
-     "C20",
-     "C26",
-     "C27",
-     "C28",
-     "C29"
-    ]
-   },
-   "group_dims": [
-    "geo",
-    "nace_r2"
-   ],
-   "out": "data/eu-gva-sectors.json",
-   "source": "Eurostat national accounts A*64, gross value added at current prices, million EUR: chemicals (C20), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
-   "note": "Current prices in EUR, so cross-country levels carry exchange-rate effects; pharma (C21) is in pharma-gva-eur"
-  },
-  {
-   "name": "chem-eng-exports",
-   "provider": "eurostat",
-   "api": "comext",
-   "dataset": "DS-045409",
-   "params": {
-    "freq": "A",
-    "flow": "2",
-    "partner": "WORLD",
-    "indicators": "VALUE_IN_EUROS",
-    "reporter": [
-     "DE",
-     "FR",
-     "IT",
-     "NL",
-     "BE",
-     "IE",
-     "ES",
-     "PL",
-     "AT",
-     "CZ",
-     "HU",
-     "SE"
-    ],
-    "product": [
-     "28",
-     "29",
-     "38",
-     "84",
-     "85",
-     "87",
-     "90"
-    ],
-    "time": [
-     "2010",
-     "2011",
-     "2012",
-     "2013",
-     "2014",
-     "2015",
-     "2016",
-     "2017",
-     "2018",
-     "2019",
-     "2020",
-     "2021",
-     "2022",
-     "2023",
-     "2024"
-    ]
-   },
-   "group_dims": [
-    "reporter",
-    "product"
-   ],
-   "out": "data/chem-eng-exports.json",
-   "source": "Eurostat Comext DS-045409, exports to world, EUR, by HS chapter: 28 inorganic chemicals, 29 organic chemicals, 38 miscellaneous chemical products, 84 machinery, 85 electrical machinery and electronics, 87 vehicles, 90 optical, measuring and medical instruments",
-   "note": "Customs values; intra-EU flows included in 'world'. Türkiye is not a Comext reporter"
-  },
-  {
-   "name": "eu-esi",
-   "provider": "eurostat",
-   "dataset": "ei_bssi_m_r2",
-   "params": {
-    "indic": [
-     "BS-ESI-I",
-     "BS-ICI-BAL",
-     "BS-CSMCI-BAL",
-     "BS-SCI-BAL"
-    ],
-    "s_adj": "SA",
-    "geo": [
-     "EU27_2020",
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "PL",
-     "BE",
-     "AT",
-     "SE",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "IE",
-     "DK",
-     "FI",
-     "EL",
-     "TR"
-    ],
-    "sinceTimePeriod": "2000-01"
-   },
-   "group_dims": [
-    "geo",
-    "indic"
-   ],
-   "out": "data/eu-esi.json",
-   "source": "European Commission business and consumer surveys via Eurostat ei_bssi_m_r2, seasonally adjusted, monthly: economic sentiment indicator (long-run mean 100), industrial, consumer and services confidence balances",
-   "note": "ESI is an index around 100; the confidence indicators are percentage balances around zero. Türkiye is covered by the EC survey programme"
-  },
-  {
-   "name": "eu-hpi",
-   "provider": "eurostat",
-   "dataset": "prc_hpi_q",
-   "params": {
-    "purchase": "TOTAL",
-    "unit": "I15_Q",
-    "geo": [
-     "EU27_2020",
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "PL",
-     "BE",
-     "AT",
-     "SE",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "IE",
-     "DK",
-     "FI",
-     "EL",
-     "TR"
-    ],
-    "sinceTimePeriod": "2005-Q1"
-   },
-   "group_dims": [
-    "geo"
-   ],
-   "out": "data/eu-hpi.json",
-   "source": "Eurostat house price index prc_hpi_q, all purchases, quarterly index 2015=100",
-   "note": "Nominal. Coverage starts later for some countries; Türkiye house prices are in tr-house-prices from TCMB"
-  },
-  {
-   "name": "eu-ipi-sectors",
-   "provider": "eurostat",
-   "dataset": "sts_inpr_m",
-   "params": {
-    "s_adj": "SCA",
-    "unit": "I21",
-    "nace_r2": [
-     "C",
-     "C20",
-     "C21",
-     "C26",
-     "C27",
-     "C28",
-     "C29"
-    ],
-    "geo": [
-     "EU27_2020",
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "PL",
-     "BE",
-     "AT",
-     "SE",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "IE",
-     "DK",
-     "FI",
-     "EL",
-     "TR"
-    ],
-    "sinceTimePeriod": "2010-01"
-   },
-   "group_dims": [
-    "geo",
-    "nace_r2"
-   ],
-   "out": "data/eu-ipi-sectors.json",
-   "source": "Eurostat sts_inpr_m industrial production, seasonally and calendar adjusted, 2021=100, monthly: manufacturing (C), chemicals (C20), pharma (C21), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
-   "note": "Volume indices. Sector detail is missing for some smaller countries; empty combinations are dropped"
-  },
-  {
-   "name": "eu-ppi-sectors",
-   "provider": "eurostat",
-   "dataset": "sts_inppd_m",
-   "params": {
-    "indic_bt": "PRC_PRR_DOM",
-    "s_adj": "NSA",
-    "unit": "I21",
-    "nace_r2": [
-     "C20",
-     "C26",
-     "C27",
-     "C28",
-     "C29"
-    ],
-    "geo": [
-     "EU27_2020",
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "PL",
-     "BE",
-     "AT",
-     "SE",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "IE",
-     "DK",
-     "FI",
-     "EL",
-     "TR"
-    ],
-    "sinceTimePeriod": "2010-01"
-   },
-   "group_dims": [
-    "geo",
-    "nace_r2"
-   ],
-   "out": "data/eu-ppi-sectors.json",
-   "source": "Eurostat sts_inppd_m domestic producer prices, unadjusted, 2021=100, monthly: chemicals (C20), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
-   "note": "Pharma (C21) and total manufacturing are in ppi-eu"
-  },
-  {
-   "name": "eu-berd-sectors",
-   "provider": "eurostat",
-   "dataset": "rd_e_berdindr2",
-   "params": {
-    "unit": "MIO_EUR",
-    "nace_r2": [
-     "C",
-     "C20",
-     "C21",
-     "C26",
-     "C27",
-     "C28"
-    ],
-    "geo": [
-     "EU27_2020",
-     "DE",
-     "FR",
-     "IT",
-     "ES",
-     "NL",
-     "PL",
-     "BE",
-     "AT",
-     "SE",
-     "CZ",
-     "HU",
-     "RO",
-     "PT",
-     "IE",
-     "DK",
-     "FI",
-     "EL",
-     "TR"
-    ],
-    "sinceTimePeriod": "2008"
-   },
-   "group_dims": [
-    "geo",
-    "nace_r2"
-   ],
-   "out": "data/eu-berd-sectors.json",
-   "source": "Eurostat rd_e_berdindr2 business enterprise R&D expenditure, million EUR, annual: manufacturing (C), chemicals (C20), pharma (C21), computer and electronic (C26), electrical equipment (C27), machinery (C28)",
-   "note": "Biennial for some countries; latest year is often provisional. Pharma BERD is the closest public proxy for biotech R&D"
-  }
- ]
+  "_readme": [
+    "Add a series by adding an entry here — no new script needed.",
+    "Run one source:  MODE=discover python scripts/fetch.py NAME   (dump real structure first)",
+    "Then:            python scripts/fetch.py NAME",
+    "Providers: fred (any FRED id) | eurostat (any dataset+params) | owid (any grapher slug) | csv (any URL) | yahoo (prices) | yahoo_valuation (multiples; Yahoo 429s Actions IPs — may fail)",
+    "Everything runs in GitHub Actions — the dev sandbox cannot reach these hosts."
+  ],
+  "sources": [
+    {
+      "name": "cattle-herd",
+      "provider": "owid",
+      "slug": "cattle-livestock-count-heads",
+      "entities": {
+        "United States": "US",
+        "European Union (27)": "EU",
+        "Turkey": "TR"
+      },
+      "out": "data/herd-cattle.json",
+      "source": "FAOSTAT cattle stocks (head), via Our World in Data",
+      "note": "annual; national totals, all cattle"
+    },
+    {
+      "name": "us-prices",
+      "provider": "fred",
+      "series": {
+        "cattle_ppi": "WPU0131",
+        "corn_ppi": "WPU012202",
+        "cpi": "CPIAUCSL"
+      },
+      "out": "data/us-prices.json",
+      "source": "BLS producer price indexes via FRED, plus CPI for deflating",
+      "note": "PPI levels are index numbers (1982=100) — ratios only, never quantities"
+    },
+    {
+      "name": "eu-vet-expenses",
+      "provider": "eurostat",
+      "dataset": "aact_eaa01",
+      "params": {
+        "am_item": "AM205000",
+        "unit": "MIO_EUR",
+        "geo": "EU27_2020"
+      },
+      "out": "data/eu-vet-expenses.json",
+      "source": "Eurostat Economic Accounts for Agriculture, veterinary expenses",
+      "note": "ALL livestock, not cattle only — do not present as a per-cattle figure without saying so"
+    },
+    {
+      "name": "eu-hicp",
+      "provider": "fred",
+      "series": {
+        "hicp": "CP0000EZ19M086NEST"
+      },
+      "out": "data/eu-hicp.json",
+      "source": "Euro area HICP via FRED — deflator for any EUR money series"
+    },
+    {
+      "name": "us-cowcalf-costs",
+      "provider": "csv",
+      "url": "https://www.ers.usda.gov/media/4982/cow-calf.csv?v=13135",
+      "filters": {
+        "Region": "U.S. total"
+      },
+      "group_col": "Item",
+      "key_col": "Year",
+      "value_col": "Value",
+      "out": "data/us-cowcalf-costs.json",
+      "source": "USDA ERS commodity costs and returns, cow-calf",
+      "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break"
+    },
+    {
+      "name": "eu-herd-countries",
+      "provider": "owid",
+      "slug": "cattle-livestock-count-heads",
+      "entities": {
+        "France": "FR",
+        "Germany": "DE",
+        "Ireland": "IE",
+        "Spain": "ES",
+        "Italy": "IT",
+        "Poland": "PL",
+        "Netherlands": "NL",
+        "Romania": "RO",
+        "Belgium": "BE",
+        "Austria": "AT",
+        "Hungary": "HU",
+        "Czechia": "CZ",
+        "Portugal": "PT",
+        "United Kingdom": "UK"
+      },
+      "out": "data/herd-eu-countries.json",
+      "source": "FAOSTAT cattle stocks (head) by EU member state, via Our World in Data",
+      "note": "dairy and beef combined, same limitation as the aggregate"
+    },
+    {
+      "name": "eu-vet-countries",
+      "provider": "eurostat",
+      "dataset": "aact_eaa01",
+      "params": {
+        "am_item": "AM205000",
+        "unit": "MIO_EUR",
+        "geo": [
+          "FR",
+          "DE",
+          "IE",
+          "PL",
+          "ES",
+          "IT",
+          "NL",
+          "BE",
+          "AT",
+          "RO",
+          "HU",
+          "CZ",
+          "PT",
+          "UK"
+        ]
+      },
+      "out": "data/eu-vet-countries.json",
+      "source": "Eurostat EAA veterinary expenses by member state, million EUR, ALL livestock",
+      "note": "all livestock, not cattle only"
+    },
+    {
+      "name": "pharma-gva",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MNAC",
+        "nace_r2": "C21",
+        "na_item": "B1G"
+      },
+      "out": "data/pharma-gva.json",
+      "source": "Eurostat national accounts A*64 — gross value added of NACE C21 (basic pharmaceutical products and preparations), current prices, million national currency",
+      "note": "NATIONAL CURRENCY on purpose — the pharma/GDP ratio must not carry exchange-rate noise. C21 is manufacturing only: it excludes pharma wholesale, retail pharmacy and R&D services."
+    },
+    {
+      "name": "gdp-total",
+      "provider": "eurostat",
+      "dataset": "nama_10_gdp",
+      "params": {
+        "unit": "CP_MNAC",
+        "na_item": "B1GQ"
+      },
+      "out": "data/gdp-total.json",
+      "source": "Eurostat national accounts — GDP at market prices, current prices, million national currency",
+      "note": "same vintage and currency basis as pharma-gva, so the ratio is internally consistent"
+    },
+    {
+      "name": "gva-total",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MNAC",
+        "nace_r2": "TOTAL",
+        "na_item": "B1G"
+      },
+      "out": "data/gva-total.json",
+      "source": "Eurostat national accounts A*64 — total gross value added, current prices, million national currency",
+      "note": "the like-for-like denominator. GDP = GVA + taxes less subsidies on products, so pharma/GVA is the cleaner share; pharma/GDP is the more quotable one."
+    },
+    {
+      "name": "manuf-gva",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MNAC",
+        "nace_r2": "C",
+        "na_item": "B1G"
+      },
+      "out": "data/manuf-gva.json",
+      "source": "Eurostat national accounts A*64 — total manufacturing (NACE C) gross value added, current prices, million national currency",
+      "note": "context denominator: pharma's share of manufacturing, not just of the whole economy"
+    },
+    {
+      "name": "gdp-eur",
+      "provider": "eurostat",
+      "dataset": "nama_10_gdp",
+      "params": {
+        "unit": "CP_MEUR",
+        "na_item": "B1GQ"
+      },
+      "out": "data/gdp-eur.json",
+      "source": "Eurostat national accounts — GDP at market prices, current prices, million EUR",
+      "note": "for comparing economy SIZE across countries only; never use for the share ratio"
+    },
+    {
+      "name": "pharma-gva-eur",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MEUR",
+        "nace_r2": "C21",
+        "na_item": "B1G"
+      },
+      "out": "data/pharma-gva-eur.json",
+      "source": "Eurostat national accounts A*64 — NACE C21 gross value added, current prices, million EUR",
+      "note": "for comparing absolute pharma output across countries; the share ratio uses the MNAC pair"
+    },
+    {
+      "name": "stan-pharma",
+      "provider": "csv",
+      "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.AUS+AUT+BEL+CAN+CHE+CHL+COL+CRI+CZE+DEU+DNK+ESP+EST+FIN+FRA+GBR+GRC+HUN+IRL+ISL+ISR+ITA+JPN+KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT+SVK+SVN+SWE+TUR+USA.C21.B1G.V.XDC?format=csvfile&startPeriod=1990",
+      "group_col": "REF_AREA",
+      "key_col": "TIME_PERIOD",
+      "value_col": "OBS_VALUE",
+      "out": "data/stan-pharma.json",
+      "source": "OECD STAN — value added of ISIC C21 (pharmaceuticals), current prices, million national currency",
+      "note": "same industry definition as NACE C21, so shares are comparable with the Eurostat set; national currency so the ratio carries no FX noise"
+    },
+    {
+      "name": "stan-total",
+      "provider": "csv",
+      "url": "https://sdmx.oecd.org/public/rest/data/OECD.STI.PIE,DSD_STAN@DF_STAN_2025,1.0/A.._T.B1G.V.XDC?format=csvfile&startPeriod=1990",
+      "group_col": "REF_AREA",
+      "key_col": "TIME_PERIOD",
+      "value_col": "OBS_VALUE",
+      "out": "data/stan-total.json",
+      "source": "OECD STAN — total-economy value added, current prices, million national currency",
+      "note": "denominator for the STAN pharma share; same source and basis as stan-pharma so the ratio is internally consistent"
+    },
+    {
+      "name": "pharma-exports",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "partner": "WORLD",
+        "indicators": "VALUE_IN_EUROS",
+        "reporter": [
+          "DK",
+          "IE",
+          "BE",
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "AT",
+          "SI",
+          "HU",
+          "PL"
+        ],
+        "product": [
+          "3002",
+          "3003",
+          "3004",
+          "2937",
+          "2941"
+        ],
+        "time": [
+          "2002",
+          "2003",
+          "2004",
+          "2005",
+          "2006",
+          "2007",
+          "2008",
+          "2009",
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "reporter",
+        "product"
+      ],
+      "out": "data/pharma-exports.json",
+      "source": "Eurostat Comext DS-045409 — exports to world, EUR, by HS4: 3002 immunologicals/vaccines, 3003 bulk medicaments, 3004 dosage medicaments, 2937 hormones, 2941 antibiotics",
+      "note": "EXPORTS, not production — the product-mix proxy; say so wherever shown"
+    },
+    {
+      "name": "pharma-mirror",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "1",
+        "reporter": "EU27_2020",
+        "indicators": "VALUE_IN_EUROS",
+        "partner": [
+          "US",
+          "CH",
+          "GB",
+          "CN",
+          "IN",
+          "JP",
+          "KR",
+          "IL",
+          "SG",
+          "CA"
+        ],
+        "product": [
+          "3002",
+          "3003",
+          "3004",
+          "2937",
+          "2941"
+        ],
+        "time": [
+          "2002",
+          "2003",
+          "2004",
+          "2005",
+          "2006",
+          "2007",
+          "2008",
+          "2009",
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "partner",
+        "product"
+      ],
+      "out": "data/pharma-mirror.json",
+      "source": "Eurostat Comext DS-045409 — EU27 imports by partner and HS4, EUR: what non-EU producers ship into the EU",
+      "note": "MIRROR data: reveals a country's export mix to the EU only, not its global mix or production"
+    },
+    {
+      "name": "glp1-stocks",
+      "provider": "yahoo",
+      "interval": "1mo",
+      "start": "2005-01-01",
+      "series": {
+        "LLY": "LLY",
+        "NVO": "NVO",
+        "AMGN": "AMGN",
+        "PFE": "PFE",
+        "AZN": "AZN",
+        "RHHBY": "RHHBY",
+        "VKTX": "VKTX",
+        "GPCR": "GPCR",
+        "ALT": "ALT",
+        "ZLDPF": "ZLDPF",
+        "SPX": "^GSPC",
+        "XBI": "XBI"
+      },
+      "out": "data/glp1-stocks.json",
+      "source": "Yahoo Finance monthly adjusted closes, US listings/ADRs (USD); ^GSPC = S&P 500 index, XBI = SPDR biotech ETF benchmark",
+      "note": "Adjusted close = split- and dividend-adjusted (total return); index SPX is raw level. ADRs (NVO, AZN, RHHBY, ZLDPF) embed FX moves. Metsera (MTSR) excluded: acquired by Pfizer Nov 2025, delisted — survivorship caveat. Zealand only trades OTC in the US (ZLDPF, thin); primary listing is Copenhagen."
+    },
+    {
+      "name": "valuation-multiples",
+      "provider": "yahoo_valuation",
+      "tickers": [
+        "META",
+        "AMZN",
+        "AVGO",
+        "CRDO",
+        "RTX",
+        "CRWD",
+        "MU",
+        "NET",
+        "ALAB",
+        "BE",
+        "PLTR",
+        "CBRS",
+        "RBRK",
+        "RKLB",
+        "TEM",
+        "ASTS",
+        "EOSE"
+      ],
+      "out": "data/valuation-multiples.json",
+      "source": "Yahoo Finance quoteSummary — trailing/forward EPS and PE, consensus EPS by horizon, growth rates",
+      "note": "SNAPSHOT, not a time series: values are as-of the fetch date and are overwritten each run. Forward PE uses next-fiscal-year consensus EPS, so it moves with estimate revisions as well as price. PEG is computed as forward PE / expected EPS growth — Yahoo's own pegRatio field is unreliable. Loss-making companies have no meaningful PE: those cells are intentionally blank. SpaceX is private and has no multiples at all."
+    },
+    {
+      "name": "hs6-check",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": [
+          "DE",
+          "IE",
+          "BE",
+          "NL",
+          "FR",
+          "IT",
+          "DK"
+        ],
+        "partner": "WORLD",
+        "indicators": "VALUE_IN_EUROS",
+        "product": [
+          "300431",
+          "300439",
+          "300490",
+          "300215",
+          "300212",
+          "300241",
+          "293719"
+        ],
+        "time": "2024"
+      },
+      "group_dims": [
+        "reporter",
+        "product"
+      ],
+      "out": "data/hs6-check.json",
+      "enabled": true,
+      "source": "HS6 detail by reporter — establishes where detailed codes are published vs suppressed"
+    },
+    {
+      "name": "pharma-dest",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": [
+          "DK",
+          "IE",
+          "BE"
+        ],
+        "partner": [
+          "WORLD",
+          "US",
+          "CN",
+          "JP",
+          "GB",
+          "CH",
+          "CA",
+          "AU",
+          "BR",
+          "IN",
+          "KR",
+          "TR",
+          "RU",
+          "MX",
+          "SA",
+          "AE",
+          "DE",
+          "FR",
+          "NL",
+          "BE",
+          "IT",
+          "ES",
+          "PL",
+          "DK",
+          "IE",
+          "SE",
+          "NO"
+        ],
+        "indicators": "VALUE_IN_EUROS",
+        "product": [
+          "3002",
+          "3004",
+          "2937"
+        ],
+        "time": "2024"
+      },
+      "group_dims": [
+        "reporter",
+        "product",
+        "partner"
+      ],
+      "out": "data/pharma-dest.json",
+      "enabled": true,
+      "source": "Destination markets for the concentration leaders, by HS4 class, 2024"
+    },
+    {
+      "name": "pharma-hs6-trend",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": [
+          "IE",
+          "BE",
+          "DK",
+          "DE",
+          "NL",
+          "IT",
+          "FR"
+        ],
+        "partner": "WORLD",
+        "indicators": "VALUE_IN_EUROS",
+        "product": [
+          "293719",
+          "300241",
+          "300215",
+          "300212",
+          "300490",
+          "300439",
+          "300431"
+        ],
+        "time": [
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "reporter",
+        "product"
+      ],
+      "out": "data/pharma-hs6-trend.json",
+      "enabled": true,
+      "source": "Eurostat Comext DS-045409 — exports to world by HS6 therapeutic class, 2010-2024",
+      "note": "293719 polypeptide hormones (GLP-1/insulin-analogue class, bulk); 300241 human vaccines; 300215 immunological in doses (antibodies); 300212 antisera/blood fractions; 300431 insulin medicaments; 300439 other hormone medicaments; 300490 other medicaments"
+    },
+    {
+      "name": "peptide-flows",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "reporter": [
+          "IE",
+          "DK",
+          "DE",
+          "BE",
+          "FR",
+          "IT"
+        ],
+        "partner": "WORLD",
+        "product": "293719",
+        "flow": [
+          "1",
+          "2"
+        ],
+        "indicators": [
+          "VALUE_IN_EUROS",
+          "QUANTITY_IN_100KG"
+        ],
+        "time": [
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "reporter",
+        "flow",
+        "indicators"
+      ],
+      "out": "data/peptide-flows.json",
+      "enabled": true,
+      "source": "Comext — HS 2937.19 imports (flow 1) and exports (flow 2), value and quantity",
+      "note": "net exports test: re-export shows as large imports; domestic production does not"
+    },
+    {
+      "name": "peptide-dest",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "reporter": "IE",
+        "product": "293719",
+        "indicators": "VALUE_IN_EUROS",
+        "partner": [
+          "WORLD",
+          "US",
+          "CH",
+          "DE",
+          "BE",
+          "NL",
+          "GB",
+          "JP",
+          "CN",
+          "DK",
+          "FR",
+          "SG",
+          "BR",
+          "CA"
+        ],
+        "time": [
+          "2018",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "partner"
+      ],
+      "out": "data/peptide-dest.json",
+      "enabled": true,
+      "source": "Comext — where Ireland's bulk peptide hormone exports go"
+    },
+    {
+      "name": "gni-gdp",
+      "provider": "eurostat",
+      "dataset": "nasa_10_nf_tr",
+      "params": {
+        "unit": "CP_MNAC",
+        "na_item": "B5G",
+        "sector": "S1",
+        "geo": [
+          "IE",
+          "DK",
+          "CH",
+          "BE",
+          "NL",
+          "DE",
+          "LU",
+          "FR",
+          "IT",
+          "AT",
+          "HU",
+          "SI"
+        ]
+      },
+      "out": "data/gni-gdp.json",
+      "enabled": true,
+      "source": "Eurostat nasa_10_nf_tr — gross national income (B5G), total economy",
+      "note": "GNI minus GDP is net primary income from abroad: negative where foreign-owned profits are repatriated out, positive where a country's firms earn abroad",
+      "group_dims": [
+        "geo",
+        "direct"
+      ]
+    },
+    {
+      "name": "fx-eur",
+      "provider": "eurostat",
+      "dataset": "ert_bil_eur_a",
+      "params": {
+        "unit": "NAC",
+        "statinfo": "AVG",
+        "currency": [
+          "USD",
+          "JPY",
+          "KRW",
+          "CAD",
+          "MXN",
+          "AUD",
+          "GBP",
+          "ILS",
+          "TRY",
+          "CHF",
+          "DKK",
+          "SEK",
+          "NOK",
+          "PLN",
+          "HUF",
+          "CZK",
+          "RON",
+          "BGN",
+          "ISK"
+        ]
+      },
+      "group_dims": [
+        "currency"
+      ],
+      "out": "data/fx-eur.json",
+      "enabled": true,
+      "source": "Eurostat ert_bil_eur_a — annual average exchange rates, national currency per euro",
+      "note": "used only to express absolute pharma value added in a common currency; every share ratio stays in national currency"
+    },
+    {
+      "name": "vet-cpi-eu",
+      "provider": "eurostat",
+      "dataset": "prc_hicp_midx",
+      "params": {
+        "unit": "I15",
+        "coicop": [
+          "CP00",
+          "CP0934",
+          "CP0935"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "IE",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EA20",
+          "TR",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "LU",
+          "NO"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "coicop"
+      ],
+      "out": "data/vet-cpi-eu.json",
+      "enabled": true,
+      "source": "Eurostat HICP monthly index (2015=100): CP00 all-items, CP0934 pets and related products, CP0935 veterinary and other services for pets",
+      "note": "CONSUMER prices — pet vet services paid by households, not farm animal health costs. Confirmed by 2026-08 fetch: TR publishes CP00 only (no CP0934/CP0935 — a TR vet series needs TÜİK/EVDS); IE CP0935 stops at 2023-12; all other geos current. Base years differ per country (earliest obs 1996-01 FR, 2016-12 for late joiners) — index everything to a common month before comparing."
+    },
+    {
+      "name": "ppi-eu",
+      "provider": "eurostat",
+      "dataset": "sts_inppd_m",
+      "params": {
+        "indic_bt": "PRC_PRR_DOM",
+        "s_adj": "NSA",
+        "unit": "I21",
+        "nace_r2": [
+          "C21",
+          "C",
+          "D"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU",
+          "TR"
+        ],
+        "sinceTimePeriod": "2015-01"
+      },
+      "group_dims": [
+        "geo",
+        "nace_r2"
+      ],
+      "out": "data/ppi-eu.json",
+      "enabled": true,
+      "source": "Eurostat sts_inppd_m — domestic producer prices, monthly, 2021=100, unadjusted: pharma manufacturing (C21), total manufacturing (C), energy supply (D)",
+      "note": "Feeds the cost-escalation tool. C21 coverage varies by country — missing combos declared in the tool, never guessed. Türkiye included (confirmed by value-level probe 2026-08: full series 2015-01 onward)."
+    },
+    {
+      "name": "lci-eu",
+      "provider": "eurostat",
+      "dataset": "lc_lci_r2_q",
+      "params": {
+        "unit": "I20",
+        "s_adj": "SCA",
+        "lcstruct": "D1_D4_MD5",
+        "nace_r2": "B-E",
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU",
+          "TR"
+        ],
+        "sinceTimePeriod": "2015"
+      },
+      "group_dims": [
+        "geo",
+        "nace_r2"
+      ],
+      "out": "data/lci-eu.json",
+      "enabled": true,
+      "source": "Eurostat lc_lci_r2_q — labour cost index, industry (B-E), quarterly, 2020=100, seasonally and calendar adjusted, total labour cost",
+      "note": "Feeds the cost-escalation tool. SCA chosen so arbitrary quarter-to-quarter windows are not distorted by bonus seasonality — stated on the tool."
+    },
+    {
+      "name": "fx-eur-m",
+      "provider": "eurostat",
+      "dataset": "ert_bil_eur_m",
+      "params": {
+        "statinfo": "AVG",
+        "unit": "NAC",
+        "currency": [
+          "USD",
+          "PLN",
+          "HUF",
+          "CZK",
+          "TRY",
+          "RON",
+          "SEK",
+          "DKK",
+          "NOK",
+          "CHF",
+          "GBP"
+        ],
+        "sinceTimePeriod": "2015-01"
+      },
+      "group_dims": [
+        "currency"
+      ],
+      "out": "data/fx-eur-m.json",
+      "enabled": true,
+      "source": "Eurostat ert_bil_eur_m — monthly average exchange rates, national currency per euro",
+      "note": "Feeds the cost-escalation tool. BGN not published monthly (currency-board peg to EUR) — noted in the tool."
+    },
+    {
+      "name": "food-cpi-eu",
+      "provider": "eurostat",
+      "dataset": "prc_hicp_midx",
+      "params": {
+        "unit": "I15",
+        "coicop": [
+          "CP00",
+          "CP011",
+          "CP0111",
+          "CP0112",
+          "CP0113",
+          "CP0114",
+          "CP0115",
+          "CP0116",
+          "CP0117",
+          "CP0118",
+          "CP0121",
+          "CP0122"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "TR",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU"
+        ],
+        "sinceTimePeriod": "2016-12"
+      },
+      "group_dims": [
+        "geo",
+        "coicop"
+      ],
+      "out": "data/food-cpi-eu.json",
+      "enabled": true,
+      "source": "Eurostat HICP monthly index (2015=100), all food classes CP0111-CP0122 plus CP011 food and CP00 all items, since Dec 2016",
+      "note": "Feeds the Food Basket Explorer. Ratio metric (class ÷ CP011) computed client-side; sinceTimePeriod trims payload for page load."
+    },
+    {
+      "name": "meat-cpi-eu",
+      "provider": "eurostat",
+      "dataset": "prc_hicp_midx",
+      "params": {
+        "unit": "I15",
+        "coicop": [
+          "CP00",
+          "CP011",
+          "CP0112"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EA20",
+          "TR",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "coicop"
+      ],
+      "out": "data/meat-cpi-eu.json",
+      "enabled": true,
+      "source": "Eurostat HICP monthly index (2015=100): CP00 all items, CP011 food, CP0112 meat",
+      "note": "CP0112 'Meat' (COICOP 01.1.2) includes fresh/frozen/processed meat and poultry. TR class-level coverage to be confirmed by the fetch report."
+    },
+    {
+      "name": "meat-cpi-us",
+      "provider": "fred",
+      "series": {
+        "meat_pfe_nsa": "CUUR0000SAF112",
+        "meats_poultry_fish_nsa": "CUUR0000SAF1121",
+        "food_home_nsa": "CUUR0000SAF11",
+        "cpi_nsa": "CPIAUCNS"
+      },
+      "out": "data/meat-cpi-us.json",
+      "enabled": true,
+      "source": "BLS CPI via FRED, NSA, US city average: SAF112 meats/poultry/fish/eggs, SAF1121 meats/poultry/fish, SAF11 food at home, all items",
+      "note": "US basket differs from EU CP0112 (includes fish; SAF112 also eggs) — the closer candidate that resolves wins, and the basket difference is stated wherever shown. Per-series 404s tolerated."
+    },
+    {
+      "name": "vet-cpi-us",
+      "provider": "fred",
+      "series": {
+        "pet_svcs_nsa": "CUUR0000SS62031",
+        "cpi_nsa": "CPIAUCNS"
+      },
+      "out": "data/vet-cpi-us.json",
+      "enabled": true,
+      "source": "BLS CPI via FRED: pet services including veterinary (SS62031, 1997-12→) and all-items — US city average, not seasonally adjusted",
+      "note": "CONSUMER prices, same object as vet-cpi-eu: EU CP0935 is 'veterinary and OTHER services for pets', so the like-for-like US series is pet services INCLUDING veterinary, not veterinarian services alone (BLS SS62032 exists but is not mirrored on FRED — both CUUR/CUSR ids 404). NSA throughout so the vet/headline ratio is like-for-like."
+    },
+    {
+      "name": "elec-eu",
+      "provider": "eurostat",
+      "dataset": "nrg_pc_205",
+      "params": {
+        "siec": "E7000",
+        "nrg_cons": "MWH500-1999",
+        "unit": "KWH",
+        "tax": "X_VAT",
+        "currency": "NAC",
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU",
+          "TR"
+        ]
+      },
+      "group_dims": [
+        "geo"
+      ],
+      "out": "data/elec-eu.json",
+      "enabled": true,
+      "source": "Eurostat nrg_pc_205 — electricity, non-household band IC (500–1 999 MWh), excl. recoverable taxes, national currency per kWh, semi-annual",
+      "note": "Escalation tool: mid-size industrial benchmark band, published since 2007. NAC on purpose — FX is its own factor."
+    },
+    {
+      "name": "gas-eu",
+      "provider": "eurostat",
+      "dataset": "nrg_pc_203",
+      "params": {
+        "siec": "G3000",
+        "nrg_cons": "GJ10000-99999",
+        "unit": "GJ_GCV",
+        "tax": "X_VAT",
+        "currency": "NAC",
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU",
+          "TR"
+        ]
+      },
+      "group_dims": [
+        "geo"
+      ],
+      "out": "data/gas-eu.json",
+      "enabled": true,
+      "source": "Eurostat nrg_pc_203 — natural gas, non-household band I3 (10 000–99 999 GJ), excl. recoverable taxes, national currency per GJ, semi-annual",
+      "note": "Escalation tool: mid-size industrial benchmark band. Countries without gas networks legitimately absent."
+    },
+    {
+      "name": "europe-map",
+      "provider": "geojson_filter",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson",
+      "prop": "ISO_A2_EH",
+      "keep": [
+        "AL",
+        "AT",
+        "BA",
+        "BE",
+        "BG",
+        "BY",
+        "CH",
+        "CY",
+        "CZ",
+        "DE",
+        "DK",
+        "EE",
+        "ES",
+        "FI",
+        "FR",
+        "GB",
+        "HR",
+        "HU",
+        "IE",
+        "IS",
+        "IT",
+        "LT",
+        "LU",
+        "LV",
+        "MD",
+        "ME",
+        "MK",
+        "MT",
+        "NL",
+        "NO",
+        "PL",
+        "PT",
+        "RO",
+        "RS",
+        "SE",
+        "SI",
+        "SK",
+        "TR",
+        "UA",
+        "GR"
+      ],
+      "precision": 2,
+      "out": "data/europe-map.json",
+      "enabled": true,
+      "source": "Natural Earth 110m admin-0 countries (public domain), filtered to Europe, coordinates rounded",
+      "note": "Selector map for the escalation dashboard. ISO_A2_EH property (plain ISO_A2 is -99 for FR/NO in NE). GR→EL translated client-side."
+    },
+    {
+      "name": "cpi-eu",
+      "provider": "eurostat",
+      "dataset": "prc_hicp_minr",
+      "params": {
+        "unit": "I15",
+        "coicop18": "TOTAL",
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU",
+          "TR"
+        ],
+        "sinceTimePeriod": "2015-01"
+      },
+      "group_dims": [
+        "geo",
+        "coicop18"
+      ],
+      "out": "data/cpi-eu.json",
+      "enabled": true,
+      "source": "Eurostat prc_hicp_minr — HICP all items (ECOICOP2), monthly index, 2015=100",
+      "note": "Feeds the cost-escalation tool's CPI factor. Successor of prc_hicp_midx, which was archived at 2025-12 with the 2026 rebase (ECOICOP2, coicop18 dimension, all-items code TOTAL). meat-cpi-eu kept as the frozen pre-rebase file for the meat post and basket explorer."
+    },
+    {
+      "name": "eu-ppp",
+      "provider": "eurostat",
+      "dataset": "prc_ppp_ind",
+      "params": {
+        "na_item": [
+          "PLI_EU27_2020",
+          "PPP_EU27_2020"
+        ],
+        "ppp_cat": [
+          "GDP",
+          "A01",
+          "E011",
+          "A0101",
+          "A01010102",
+          "A0106",
+          "A010603",
+          "A0107",
+          "A0111",
+          "A0112",
+          "P0201"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "na_item",
+        "ppp_cat"
+      ],
+      "out": "data/eu-ppp.json",
+      "source": "Eurostat purchasing power parities and price level indices (prc_ppp_ind)",
+      "note": "Codes pinned from MODE=discover run 2026-08-19. All 55 geos kept (incl. EU/EA aggregates, UK, US, JP, TR, Western Balkans). No veterinary/pharma category exists in this dataset — lowest health detail is A0106/A010603. COICOP 2018 rebase: category-level series may be short or broken around 2021/22 — check spans before charting."
+    },
+    {
+      "name": "eu-vet-sbs",
+      "provider": "eurostat",
+      "dataset": "sbs_na_1a_se_r2",
+      "params": {
+        "nace_r2": "M75",
+        "indic_sb": [
+          "V11110",
+          "V12110",
+          "V12150",
+          "V16110",
+          "V91100"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "indic_sb"
+      ],
+      "out": "data/eu-vet-sbs.json",
+      "source": "Eurostat SBS annual detailed enterprise statistics for services, veterinary activities (NACE M75)",
+      "note": "Codes pinned from discover 2026-08-20: V11110 enterprises, V12110 turnover (M EUR), V12150 value added (M EUR), V16110 persons employed, V91100 turnover per person employed (k EUR). 39 geos. Legacy SBS series — check the fetched span; 2021+ lives in the successor EBS dataset (separate hunt)."
+    },
+    {
+      "name": "eu-vet-weight",
+      "provider": "eurostat",
+      "dataset": "prc_hicp_inw",
+      "params": {
+        "coicop": [
+          "CP0934",
+          "CP0935"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "coicop"
+      ],
+      "out": "data/eu-vet-weight.json",
+      "source": "Eurostat HICP item weights — share of veterinary and pet services in each country's consumption basket",
+      "note": "HICP item weights, per-mille of total basket: CP0934 pets and related products, CP0935 veterinary and other services for pets. Dataset serves no 2026 (checked in discover — ECOICOP2 rebase); weights for 2026+ need the successor dataset once Eurostat publishes it."
+    },
+    {
+      "name": "bigmac-usd",
+      "provider": "csv",
+      "url": "https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv",
+      "group_col": "iso_a3",
+      "key_col": "date",
+      "value_col": "dollar_price",
+      "out": "data/bigmac-usd.json",
+      "source": "The Economist Big Mac index (open data, github.com/TheEconomist/big-mac-data) — Big Mac price converted to USD at market rates",
+      "note": "Semi-annual (Jan+Jul), 2000->today; a one-item price level, current within ~6 months — the timeliness complement to Eurostat PPP (annual, ~18-month lag). One burger is not a consumption basket."
+    },
+    {
+      "name": "bigmac-eur",
+      "provider": "csv",
+      "url": "https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/output-data/big-mac-full-index.csv",
+      "group_col": "iso_a3",
+      "key_col": "date",
+      "value_col": "EUR_raw",
+      "out": "data/bigmac-eur.json",
+      "source": "The Economist Big Mac index — raw valuation vs the euro (0 = burger costs the same as in the euro area; +0.10 = 10% dearer)",
+      "note": "Same file as bigmac-usd, euro-relative column; fractions, not percent."
+    },
+    {
+      "name": "bigmac-src-eur",
+      "provider": "csv",
+      "url": "https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/source-data/big-mac-source-data-v2.csv",
+      "filters": {
+        "currency_code": "EUR"
+      },
+      "group_col": "iso_a3",
+      "key_col": "date",
+      "value_col": "local_price",
+      "out": "data/bigmac-src-eur.json",
+      "source": "The Economist Big Mac index SOURCE data — euro-denominated prices: individual euro members (from 2011-07) plus the EUZ weighted average, in EUR",
+      "note": "Member prices are The Economist's collected source prices, not headline index rows; parity vs the euro area = member price / EUZ price - 1, computed per edition on the page."
+    },
+    {
+      "name": "pl-ppi-probe",
+      "provider": "eurostat",
+      "dataset": "sts_inppd_m",
+      "params": {
+        "geo": "PL",
+        "sinceTimePeriod": "2025-01"
+      },
+      "out": "data/_pl-ppi-probe.json",
+      "source": "PROBE: Eurostat industrial producer prices, domestic market — which NACE codes does Poland actually report? (notes/broiler-parity-poland.md)",
+      "note": "Discovery helper for the broiler parity build; run with MODE=discover. Tiny time window on purpose so the monthly full fetch stays cheap if it sweeps this."
+    },
+    {
+      "name": "pl-anchor-out-probe",
+      "provider": "eurostat",
+      "dataset": "apri_ap_anouta",
+      "params": {
+        "geo": "PL"
+      },
+      "out": "data/_pl-anchor-out-probe.json",
+      "source": "PROBE: Eurostat annual absolute selling prices of animal products — live-chicken price, Poland (parity anchor numerator)",
+      "note": "MODE=discover first; dataset id itself is a best guess — a 404 here is an answer, not a failure."
+    },
+    {
+      "name": "pl-anchor-in-probe",
+      "provider": "eurostat",
+      "dataset": "apri_ap_ina",
+      "params": {
+        "geo": "PL"
+      },
+      "out": "data/_pl-anchor-in-probe.json",
+      "source": "PROBE: Eurostat annual absolute purchase prices of the means of production — broiler feed price, Poland (parity anchor denominator)",
+      "note": "MODE=discover first; dataset id itself is a best guess — a 404 here is an answer, not a failure."
+    },
+    {
+      "name": "pl-broiler-ppi",
+      "provider": "eurostat",
+      "dataset": "sts_inppd_m",
+      "params": {
+        "freq": "M",
+        "indic_bt": "PRC_PRR_DOM",
+        "s_adj": "NSA",
+        "unit": "I21",
+        "nace_r2": [
+          "C1012",
+          "C1091"
+        ],
+        "geo": "PL",
+        "sinceTimePeriod": "2010-01"
+      },
+      "group_dims": [
+        "nace_r2"
+      ],
+      "out": "data/pl-broiler-ppi.json",
+      "source": "Eurostat sts_inppd_m: Poland domestic producer price index, processing & preserving of poultry meat (C1012) and prepared feeds for farm animals (C1091)",
+      "note": "The Polish leg of the broiler parity — same NACE pair as the TR series (TÜİK C10.12/C10.91). Codes confirmed by the 2026-08 probe (data/_pl-parity-probe.json)."
+    },
+    {
+      "name": "pl-anchor-chicken",
+      "provider": "eurostat",
+      "dataset": "apri_ap_anouta",
+      "params": {
+        "prod_ani": "11510000",
+        "currency": "NAC",
+        "geo": "PL"
+      },
+      "out": "data/pl-anchor-chicken.json",
+      "source": "Eurostat annual selling prices: chickens (live, 1st choice), Poland, PLN per 100 kg LIVE weight",
+      "note": "Parity anchor numerator. LIVE weight — the builder converts to carcass-equivalent with a disclosed yield before anchoring, because the TR anchor (TEPGE) is per kg meat."
+    },
+    {
+      "name": "pl-anchor-feed",
+      "provider": "eurostat",
+      "dataset": "apri_ap_ina",
+      "params": {
+        "prod_inp": "20624502",
+        "currency": "NAC",
+        "geo": "PL"
+      },
+      "out": "data/pl-anchor-feed.json",
+      "source": "Eurostat annual purchase prices: complete feed for broiler production (in bulk), Poland, PLN per 100 kg",
+      "note": "Parity anchor denominator. Product code confirmed by the 2026-08 probe."
+    },
+    {
+      "name": "popular-markets",
+      "provider": "yahoo",
+      "interval": "1mo",
+      "start": "2014-09-01",
+      "series": {
+        "BTC": "BTC-USD",
+        "NASDAQ": "^IXIC",
+        "SP500": "^GSPC",
+        "GOLD": "GC=F"
+      },
+      "out": "data/popular-markets.json",
+      "source": "Yahoo Finance monthly closes: Bitcoin (BTC-USD), Nasdaq Composite (^IXIC), S&P 500 (^GSPC), COMEX gold front-month (GC=F)",
+      "note": "Start 2014-09 = first month Yahoo has BTC-USD. Indices/futures pay no dividends; BTC has none - closes are comparable for co-movement, not total return."
+    },
+    {
+      "name": "climate-co2",
+      "provider": "owid",
+      "slug": "co2-long-term-concentration",
+      "entities": {
+        "World": "co2_ppm"
+      },
+      "out": "data/climate-co2.json",
+      "source": "Atmospheric CO2 concentration (ppm), long-term - Our World in Data grapher co2-long-term-concentration",
+      "note": "Annual. Run MODE=discover first if the slug or entity name has drifted."
+    },
+    {
+      "name": "climate-temp",
+      "provider": "owid",
+      "slug": "temperature-anomaly",
+      "entities": {
+        "Global": "anomaly_c",
+        "World": "anomaly_c_world"
+      },
+      "out": "data/climate-temp.json",
+      "source": "Global mean temperature anomaly (deg C vs 1861-1890) - Our World in Data grapher temperature-anomaly",
+      "note": "Annual. Grapher entity may be 'Global' or 'World' depending on vintage - both mapped; keep whichever returns data."
+    },
+    {
+      "name": "pump-vs-oil",
+      "provider": "fred",
+      "series": {
+        "gasoline_usd_gal": "APU000074714",
+        "wti_usd_bbl": "MCOILWTICO"
+      },
+      "out": "data/pump-vs-oil.json",
+      "source": "US city-average retail gasoline price (BLS APU000074714, USD/gallon) and WTI crude spot (MCOILWTICO, USD/barrel), monthly via FRED",
+      "note": "Gasoline from 1976, WTI from 1986; both nominal USD - the shared-dollar trend is part of the story the checker tells."
+    },
+    {
+      "name": "tr-cpi-ppi",
+      "provider": "evds",
+      "series": {
+        "cpi": "TP.TUKFIY2025.GENEL",
+        "cpi_food": "TP.TUKFIY2025.01",
+        "cpi_core_b": "TP.FE25.OKTG03",
+        "cpi_core_c": "TP.FE25.OKTG04",
+        "cpi_services": "TP.FE25.OKTG23",
+        "cpi_rent": "TP.FE25.OKTG24",
+        "cpi_2003": "TP.FG.J0",
+        "ppi_2003": "TP.TUFE1YI.T1",
+        "cpi_yoy": "TP.FE.OKTG01"
+      },
+      "start": "01-01-2003",
+      "out": "data/tr-cpi-ppi.json",
+      "source": "TCMB EVDS, TÜİK price indices: CPI general, food, core B and C, services and rent on the 2025=100 base (TP.TUKFIY2025.*, TP.FE25.*), back-cast to 2005; CPI general (TP.FG.J0) and domestic PPI (TP.TUFE1YI.T1) on the 2003=100 base; CPI annual change (TP.FE.OKTG01)",
+      "note": "Use 'cpi' (2025=100, from 2005-01) as the deflator. The 2003=100 CPI stops at 2026-01 with the 2026 rebase; the PPI is still published on the 2003 base. Core B excludes unprocessed food, energy, alcohol, tobacco and gold; core C also excludes all food"
+    },
+    {
+      "name": "tr-rates",
+      "provider": "evds",
+      "series": {
+        "policy_rate": "TP.BISPOLFAIZ.TUR",
+        "deposit_3m": "TP.TRY.MT02",
+        "loan_housing": "TP.KTF12",
+        "loan_commercial": "TP.KTF17"
+      },
+      "frequency": 5,
+      "aggregation": "avg",
+      "start": "01-01-2010",
+      "out": "data/tr-rates.json",
+      "source": "TCMB EVDS: one-week repo policy rate, weighted average TRY deposit rate up to 3 months, housing and commercial loan rates; monthly averages of weekly data",
+      "note": "Percent per annum. Monthly average of weekly observations, so a mid-month decision shows as a partial move in that month"
+    },
+    {
+      "name": "fao-livestock",
+      "provider": "fao",
+      "domain": "QCL",
+      "areas": {
+        "TR": "223",
+        "US": "231",
+        "DE": "79",
+        "FR": "68",
+        "PL": "173",
+        "NL": "150",
+        "BR": "21",
+        "WORLD": "5000"
+      },
+      "items": {
+        "cattle_stock": "866",
+        "sheep_stock": "976",
+        "chickens_stock": "1057",
+        "cattle_meat": "867",
+        "chicken_meat": "1058",
+        "cow_milk": "882",
+        "hen_eggs": "1062"
+      },
+      "elements": {
+        "stock": "5111",
+        "stock_1000": "5112",
+        "production": "5510"
+      },
+      "year": "1990:2026",
+      "out": "data/fao-livestock.json",
+      "source": "FAOSTAT QCL: livestock stocks (head) and production of meat, milk and eggs (tonnes), annual",
+      "note": "Series keys are area|item|element: stocks are head (element 'stock', for the *_stock items), production is tonnes (element 'production', for meat, milk and eggs). FAO figures are official, estimated or imputed by country and year; flags are on the FAOSTAT site"
+    },
+    {
+      "name": "fao-producer-prices",
+      "provider": "fao",
+      "domain": "PP",
+      "areas": {
+        "TR": "223",
+        "US": "231",
+        "DE": "79",
+        "FR": "68",
+        "PL": "173",
+        "BR": "21"
+      },
+      "items": {
+        "cattle_meat": "867",
+        "chicken_meat": "1058",
+        "cow_milk": "882",
+        "hen_eggs": "1062",
+        "wheat": "15",
+        "maize": "56",
+        "barley": "44",
+        "soybeans": "236",
+        "sunflower_seed": "267",
+        "hazelnuts": "225",
+        "tomatoes": "388",
+        "sugar_beet": "157"
+      },
+      "element": "5532",
+      "year": "1991:2026",
+      "out": "data/fao-producer-prices.json",
+      "source": "FAOSTAT PP: annual producer prices in USD per tonne, farm gate",
+      "note": "USD/tonne converted by FAO at annual average exchange rates, so a lira devaluation shows as a price fall in USD while local prices rise. Series keys are area|item"
+    },
+    {
+      "name": "imf-weo",
+      "provider": "imf",
+      "agency": "IMF.RES",
+      "dataflow": "WEO",
+      "key": "TUR+USA+DEU+FRA+GBR+ITA+ESP+POL+NLD+CHN+IND+JPN+KOR+IDN+VNM+THA+MYS+PHL+PAK+BGD+BRA+MEX+RUS+SAU+ARE+EGY+ZAF+NGA+AUS+CAN+WEOWORLD.NGDP_RPCH+PCPIPCH+PCPIEPCH+LUR+GGXWDG_NGDP+GGXCNL_NGDP+BCA_NGDPD+NGDPDPC+NGDPD+NID_NGDP+NGSD_NGDP.A",
+      "rename": {
+        "TUR": "TR",
+        "USA": "US",
+        "DEU": "DE",
+        "FRA": "FR",
+        "GBR": "GB",
+        "ITA": "IT",
+        "ESP": "ES",
+        "POL": "PL",
+        "NLD": "NL",
+        "CHN": "CN",
+        "IND": "IN",
+        "BRA": "BR",
+        "RUS": "RU",
+        "SAU": "SA",
+        "EGY": "EG",
+        "WEOWORLD": "WORLD",
+        "JPN": "JP",
+        "KOR": "KR",
+        "IDN": "ID",
+        "VNM": "VN",
+        "THA": "TH",
+        "MYS": "MY",
+        "PHL": "PH",
+        "PAK": "PK",
+        "BGD": "BD",
+        "MEX": "MX",
+        "ARE": "AE",
+        "ZAF": "ZA",
+        "NGA": "NG",
+        "AUS": "AU",
+        "CAN": "CA"
+      },
+      "out": "data/imf-weo.json",
+      "source": "IMF World Economic Outlook via the IMF Data API (latest release), 30 economies plus World: real GDP growth (NGDP_RPCH), inflation average and end-period (PCPIPCH, PCPIEPCH), unemployment (LUR), government gross debt and net lending % GDP (GGXWDG_NGDP, GGXCNL_NGDP), current account % GDP (BCA_NGDPD), GDP per capita and GDP in USD (NGDPDPC, NGDPD), investment and saving % GDP (NID_NGDP, NGSD_NGDP)",
+      "note": "Series keys are country|indicator. Actuals through the release's last actual year, IMF projections after it (usually five years ahead); the two are not distinguished in the file, so treat the last five or six years as forecasts. Percent for rates, USD billions for NGDPD, USD for NGDPDPC"
+    },
+    {
+      "name": "asia-wdi",
+      "provider": "worldbank",
+      "countries": {
+        "CN": "CHN",
+        "IN": "IND",
+        "JP": "JPN",
+        "KR": "KOR",
+        "ID": "IDN",
+        "VN": "VNM",
+        "TH": "THA",
+        "MY": "MYS",
+        "PH": "PHL",
+        "PK": "PAK",
+        "BD": "BGD",
+        "SG": "SGP",
+        "TW": "TWN",
+        "KZ": "KAZ",
+        "UZ": "UZB",
+        "IR": "IRN",
+        "SA": "SAU",
+        "AE": "ARE",
+        "IL": "ISR",
+        "TR": "TUR"
+      },
+      "indicators": {
+        "gdp_growth": "NY.GDP.MKTP.KD.ZG",
+        "gdp_pc_ppp": "NY.GDP.PCAP.PP.KD",
+        "gdp_usd_bn": "NY.GDP.MKTP.CD",
+        "inflation": "FP.CPI.TOTL.ZG",
+        "unemployment": "SL.UEM.TOTL.ZS",
+        "population_m": "SP.POP.TOTL",
+        "exports_pct_gdp": "NE.EXP.GNFS.ZS",
+        "manufacturing_pct_gdp": "NV.IND.MANF.ZS",
+        "agriculture_pct_gdp": "NV.AGR.TOTL.ZS",
+        "fdi_inflow_pct_gdp": "BX.KLT.DINV.WD.GD.ZS",
+        "gross_capital_formation_pct_gdp": "NE.GDI.TOTL.ZS",
+        "urban_pct": "SP.URB.TOTL.IN.ZS",
+        "energy_use_pc": "EG.USE.PCAP.KG.OE",
+        "rd_pct_gdp": "GB.XPD.RSDV.GD.ZS",
+        "hightech_exports_pct": "TX.VAL.TECH.ZS"
+      },
+      "scale": {
+        "gdp_usd_bn": 1e-09,
+        "population_m": 1e-06
+      },
+      "start": 1980,
+      "out": "data/asia-wdi.json",
+      "source": "World Bank World Development Indicators via the World Bank API, annual, 20 Asian and Middle Eastern economies plus Türkiye: growth, GDP per capita PPP (constant 2021 international $), GDP in USD billions, CPI inflation, unemployment (ILO modelled), population in millions, exports, manufacturing and agriculture value added as % of GDP, FDI inflows % of GDP, gross capital formation % of GDP, urban share, energy use per capita, R&D % of GDP, high-tech exports % of manufactured exports",
+      "note": "Series keys are country|indicator. WDI revises history and lags one to two years; the latest year for a country is often missing for slow indicators (energy, R&D). Taiwan is not a World Bank member and returns nothing for most indicators"
+    },
+    {
+      "name": "tr-fx-monthly",
+      "provider": "evds",
+      "series": {
+        "usd_try": "TP.DK.USD.A",
+        "eur_try": "TP.DK.EUR.A"
+      },
+      "frequency": 5,
+      "aggregation": "avg",
+      "start": "01-01-2000",
+      "out": "data/tr-fx-monthly.json",
+      "source": "TCMB EVDS indicative buying rates, monthly averages of daily quotes",
+      "note": "TRY per unit of foreign currency. 2005 redenomination removed six zeros; EVDS serves the series on the new lira throughout"
+    },
+    {
+      "name": "tr-house-prices",
+      "provider": "evds",
+      "series": {
+        "turkey": "TP.KFE.TR",
+        "istanbul": "TP.KFE.TR10",
+        "ankara": "TP.KFE.TR51",
+        "izmir": "TP.KFE.TR31"
+      },
+      "start": "01-01-2010",
+      "out": "data/tr-house-prices.json",
+      "source": "TCMB Residential Property Price Index (KFE), 2023=100, monthly",
+      "note": "Nominal index; deflate with tr-cpi-ppi for real house prices"
+    },
+    {
+      "name": "wb-commodities",
+      "provider": "xlsx",
+      "page": "https://www.worldbank.org/en/research/commodity-markets",
+      "match": "https://thedocs\\.worldbank\\.org/[^\\\"' ]*CMO-Historical-Data-Monthly\\.xlsx",
+      "fallback_url": "https://thedocs.worldbank.org/en/doc/5d903e848db1d1b83e0ec8f744e55570-0350012021/related/CMO-Historical-Data-Monthly.xlsx",
+      "sheet": "Monthly Prices",
+      "code_row_contains": "Crude oil, average",
+      "columns": {
+        "crude_brent": "Crude oil, Brent",
+        "natgas_eur": "Natural gas, Europe",
+        "coal_aus": "Coal, Australian",
+        "maize": "Maize",
+        "wheat_us_hrw": "Wheat, US HRW",
+        "soybeans": "Soybeans",
+        "soybean_meal": "Soybean meal",
+        "rice_thai": "Rice, Thai 5%",
+        "sugar_world": "Sugar, world",
+        "beef": "Beef",
+        "chicken": "Chicken",
+        "lamb": "Lamb",
+        "fish_meal": "Fish meal",
+        "barley": "Barley",
+        "sorghum": "Sorghum",
+        "cocoa": "Cocoa",
+        "coffee_arabica": "Coffee, Arabica",
+        "cotton_a": "Cotton, A index",
+        "rubber_tsr20": "Rubber, TSR20",
+        "natgas_us": "Natural gas, US",
+        "palm_oil": "Palm oil",
+        "urea": "Urea",
+        "dap": "DAP",
+        "tsp": "TSP",
+        "potash": "Potassium chloride",
+        "phosphate_rock": "Phosphate rock",
+        "aluminum": "Aluminum",
+        "copper": "Copper",
+        "iron_ore": "Iron ore",
+        "lead": "Lead",
+        "tin": "Tin",
+        "nickel": "Nickel",
+        "zinc": "Zinc",
+        "gold": "Gold",
+        "silver": "Silver",
+        "platinum": "Platinum"
+      },
+      "out": "data/wb-commodities.json",
+      "source": "World Bank Commodity Price Data (the Pink Sheet), monthly nominal US dollar prices",
+      "note": "Nominal USD. Units differ by commodity (USD/bbl, USD/mt, USD/kg, USD/troy oz); see the Pink Sheet header. Feed inputs (maize, soybean meal), fertilizers (urea, DAP, potash) and metals are the engineering and chemistry inputs"
+    },
+    {
+      "name": "us-sentiment",
+      "provider": "fred",
+      "series": {
+        "umich_sentiment": "UMCSENT",
+        "umich_inflation_1y": "MICH"
+      },
+      "out": "data/us-sentiment.json",
+      "source": "University of Michigan Surveys of Consumers via FRED: sentiment index (1966Q1=100) and median expected 1-year inflation",
+      "note": "Preliminary readings are revised at month end"
+    },
+    {
+      "name": "us-ip-sectors",
+      "provider": "fred",
+      "series": {
+        "manufacturing": "IPMAN",
+        "chemicals": "IPG325S",
+        "pharma": "IPG3254S",
+        "machinery": "IPG333S",
+        "computer_electronic": "IPG334S",
+        "electrical": "IPG335S"
+      },
+      "out": "data/us-ip-sectors.json",
+      "source": "Federal Reserve industrial production by NAICS industry via FRED, 2017=100, seasonally adjusted, monthly",
+      "note": "Chemicals 325, pharmaceuticals 3254, machinery 333, computer and electronic products 334, electrical equipment 335. Index levels, not output volumes"
+    },
+    {
+      "name": "us-ppi-sectors",
+      "provider": "fred",
+      "series": {
+        "chemicals": "PCU325325",
+        "pharma": "PCU32543254",
+        "machinery": "PCU333333",
+        "computer_electronic": "PCU334334",
+        "electrical": "PCU335335"
+      },
+      "out": "data/us-ppi-sectors.json",
+      "source": "BLS producer price indexes by NAICS industry via FRED, not seasonally adjusted, monthly",
+      "note": "Base periods differ by series (index = 100 at the series start). Ratios and growth rates only"
+    },
+    {
+      "name": "eu-gva-sectors",
+      "provider": "eurostat",
+      "dataset": "nama_10_a64",
+      "params": {
+        "unit": "CP_MEUR",
+        "na_item": "B1G",
+        "nace_r2": [
+          "C20",
+          "C26",
+          "C27",
+          "C28",
+          "C29"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "nace_r2"
+      ],
+      "out": "data/eu-gva-sectors.json",
+      "source": "Eurostat national accounts A*64, gross value added at current prices, million EUR: chemicals (C20), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
+      "note": "Current prices in EUR, so cross-country levels carry exchange-rate effects; pharma (C21) is in pharma-gva-eur"
+    },
+    {
+      "name": "chem-eng-exports",
+      "provider": "eurostat",
+      "api": "comext",
+      "dataset": "DS-045409",
+      "params": {
+        "freq": "A",
+        "flow": "2",
+        "partner": "WORLD",
+        "indicators": "VALUE_IN_EUROS",
+        "reporter": [
+          "DE",
+          "FR",
+          "IT",
+          "NL",
+          "BE",
+          "IE",
+          "ES",
+          "PL",
+          "AT",
+          "CZ",
+          "HU",
+          "SE"
+        ],
+        "product": [
+          "28",
+          "29",
+          "38",
+          "84",
+          "85",
+          "87",
+          "90"
+        ],
+        "time": [
+          "2010",
+          "2011",
+          "2012",
+          "2013",
+          "2014",
+          "2015",
+          "2016",
+          "2017",
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023",
+          "2024"
+        ]
+      },
+      "group_dims": [
+        "reporter",
+        "product"
+      ],
+      "out": "data/chem-eng-exports.json",
+      "source": "Eurostat Comext DS-045409, exports to world, EUR, by HS chapter: 28 inorganic chemicals, 29 organic chemicals, 38 miscellaneous chemical products, 84 machinery, 85 electrical machinery and electronics, 87 vehicles, 90 optical, measuring and medical instruments",
+      "note": "Customs values; intra-EU flows included in 'world'. Türkiye is not a Comext reporter"
+    },
+    {
+      "name": "eu-esi",
+      "provider": "eurostat",
+      "dataset": "ei_bssi_m_r2",
+      "params": {
+        "indic": [
+          "BS-ESI-I",
+          "BS-ICI-BAL",
+          "BS-CSMCI-BAL",
+          "BS-SCI-BAL"
+        ],
+        "s_adj": "SA",
+        "geo": [
+          "EU27_2020",
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "PL",
+          "BE",
+          "AT",
+          "SE",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "IE",
+          "DK",
+          "FI",
+          "EL",
+          "TR"
+        ],
+        "sinceTimePeriod": "2000-01"
+      },
+      "group_dims": [
+        "geo",
+        "indic"
+      ],
+      "out": "data/eu-esi.json",
+      "source": "European Commission business and consumer surveys via Eurostat ei_bssi_m_r2, seasonally adjusted, monthly: economic sentiment indicator (long-run mean 100), industrial, consumer and services confidence balances",
+      "note": "ESI is an index around 100; the confidence indicators are percentage balances around zero. Türkiye is covered by the EC survey programme"
+    },
+    {
+      "name": "eu-hpi",
+      "provider": "eurostat",
+      "dataset": "prc_hpi_q",
+      "params": {
+        "purchase": "TOTAL",
+        "unit": "I15_Q",
+        "geo": [
+          "EU27_2020",
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "PL",
+          "BE",
+          "AT",
+          "SE",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "IE",
+          "DK",
+          "FI",
+          "EL",
+          "TR"
+        ],
+        "sinceTimePeriod": "2005-Q1"
+      },
+      "group_dims": [
+        "geo"
+      ],
+      "out": "data/eu-hpi.json",
+      "source": "Eurostat house price index prc_hpi_q, all purchases, quarterly index 2015=100",
+      "note": "Nominal. Coverage starts later for some countries; Türkiye house prices are in tr-house-prices from TCMB"
+    },
+    {
+      "name": "eu-ipi-sectors",
+      "provider": "eurostat",
+      "dataset": "sts_inpr_m",
+      "params": {
+        "s_adj": "SCA",
+        "unit": "I21",
+        "nace_r2": [
+          "C",
+          "C20",
+          "C21",
+          "C26",
+          "C27",
+          "C28",
+          "C29"
+        ],
+        "geo": [
+          "EU27_2020",
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "PL",
+          "BE",
+          "AT",
+          "SE",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "IE",
+          "DK",
+          "FI",
+          "EL",
+          "TR"
+        ],
+        "sinceTimePeriod": "2010-01"
+      },
+      "group_dims": [
+        "geo",
+        "nace_r2"
+      ],
+      "out": "data/eu-ipi-sectors.json",
+      "source": "Eurostat sts_inpr_m industrial production, seasonally and calendar adjusted, 2021=100, monthly: manufacturing (C), chemicals (C20), pharma (C21), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
+      "note": "Volume indices. Sector detail is missing for some smaller countries; empty combinations are dropped"
+    },
+    {
+      "name": "eu-ppi-sectors",
+      "provider": "eurostat",
+      "dataset": "sts_inppd_m",
+      "params": {
+        "indic_bt": "PRC_PRR_DOM",
+        "s_adj": "NSA",
+        "unit": "I21",
+        "nace_r2": [
+          "C20",
+          "C26",
+          "C27",
+          "C28",
+          "C29"
+        ],
+        "geo": [
+          "EU27_2020",
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "PL",
+          "BE",
+          "AT",
+          "SE",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "IE",
+          "DK",
+          "FI",
+          "EL",
+          "TR"
+        ],
+        "sinceTimePeriod": "2010-01"
+      },
+      "group_dims": [
+        "geo",
+        "nace_r2"
+      ],
+      "out": "data/eu-ppi-sectors.json",
+      "source": "Eurostat sts_inppd_m domestic producer prices, unadjusted, 2021=100, monthly: chemicals (C20), computer and electronic (C26), electrical equipment (C27), machinery (C28), motor vehicles (C29)",
+      "note": "Pharma (C21) and total manufacturing are in ppi-eu"
+    },
+    {
+      "name": "eu-berd-sectors",
+      "provider": "eurostat",
+      "dataset": "rd_e_berdindr2",
+      "params": {
+        "unit": "MIO_EUR",
+        "nace_r2": [
+          "C",
+          "C20",
+          "C21",
+          "C26",
+          "C27",
+          "C28"
+        ],
+        "geo": [
+          "EU27_2020",
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "PL",
+          "BE",
+          "AT",
+          "SE",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "IE",
+          "DK",
+          "FI",
+          "EL",
+          "TR"
+        ],
+        "sinceTimePeriod": "2008"
+      },
+      "group_dims": [
+        "geo",
+        "nace_r2"
+      ],
+      "out": "data/eu-berd-sectors.json",
+      "source": "Eurostat rd_e_berdindr2 business enterprise R&D expenditure, million EUR, annual: manufacturing (C), chemicals (C20), pharma (C21), computer and electronic (C26), electrical equipment (C27), machinery (C28)",
+      "note": "Biennial for some countries; latest year is often provisional. Pharma BERD is the closest public proxy for biotech R&D"
+    },
+    {
+      "name": "population",
+      "provider": "worldbank",
+      "countries": {
+        "EU": "EUU",
+        "TR": "TUR",
+        "US": "USA",
+        "DE": "DEU",
+        "FR": "FRA",
+        "IT": "ITA",
+        "ES": "ESP",
+        "PL": "POL",
+        "NL": "NLD",
+        "BE": "BEL",
+        "AT": "AUT",
+        "CZ": "CZE",
+        "HU": "HUN",
+        "IE": "IRL",
+        "PT": "PRT",
+        "RO": "ROU",
+        "DK": "DNK",
+        "FI": "FIN",
+        "SE": "SWE",
+        "NO": "NOR",
+        "CH": "CHE",
+        "GB": "GBR",
+        "EL": "GRC",
+        "BG": "BGR",
+        "HR": "HRV",
+        "EE": "EST",
+        "LV": "LVA",
+        "LT": "LTU",
+        "LU": "LUX",
+        "SK": "SVK",
+        "SI": "SVN",
+        "IL": "ISR",
+        "BR": "BRA",
+        "AR": "ARG",
+        "AU": "AUS",
+        "IN": "IND",
+        "CN": "CHN",
+        "UA": "UKR",
+        "RU": "RUS",
+        "CA": "CAN"
+      },
+      "indicators": {
+        "population": "SP.POP.TOTL"
+      },
+      "start": 1960,
+      "out": "data/population.json",
+      "source": "World Bank SP.POP.TOTL, total population, annual, via the World Bank API",
+      "note": "Series keys are country|population. Mid-year estimates; the World Bank revises history after each census round. EU is the EU27 aggregate. Used to put counts and totals on a per-person basis."
+    }
+  ]
 }
