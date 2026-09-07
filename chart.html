@@ -174,12 +174,15 @@
           s.i = i; s.color = COLORS[i % COLORS.length]; s.right = !!right[i];
           s.pts = (s.points || []).map(function (p) { return { d: p[0], t: toT(p[0]), v: p[1] }; }).filter(function (p) { return isFinite(p.t) && p.v != null; });
           if (XNUM) s.pts.sort(function (a, b) { return a.t - b.t; });
+          // Typical spacing, used to stop a series answering the hover far outside its own coverage.
+          var gaps = []; for (var g = 1; g < s.pts.length; g++) gaps.push(s.pts[g].t - s.pts[g - 1].t); gaps.sort(function (a, b) { return a - b; });
+          s.step = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
           return s;
         });
         BANDS = (spec.bands || []).map(function (b) {
           var si = b.series || 0, owner = DATA[si];
           return { label: b.label || "band", si: si, color: owner ? owner.color : COLORS[0],
-            pts: (b.points || []).map(function (p) { return { d: String(p[0]), t: toT(String(p[0])), lo: +p[1], hi: +p[2] }; }).filter(function (p) { return isFinite(p.t) && isFinite(p.lo) && isFinite(p.hi); }).sort(function (a, b) { return a.t - b.t; }) };
+            pts: (b.points || []).map(function (p) { return { d: String(p[0]), t: toT(String(p[0])), lo: p[1] == null ? NaN : +p[1], hi: p[2] == null ? NaN : +p[2] }; }).filter(function (p) { return isFinite(p.t) && isFinite(p.lo) && isFinite(p.hi); }).sort(function (a, b) { return a.t - b.t; }) };
         }).filter(function (b) { return b.pts.length && DATA[b.si]; });
         if (!spec.title) document.getElementById("title").textContent = DATA.map(function (s) { return s.label; }).join(" · ");
         build();
@@ -224,12 +227,13 @@
       draw();
     }
 
+    function inWindow(p) { return (!state.from || p.d >= state.from) && (!state.to || p.d.slice(0, state.to.length) <= state.to); }
     function visible() {
       return DATA.filter(function (s) { return !s.error && !state.hidden[s.i]; }).map(function (s) {
-        var pts = s.pts.filter(function (p) { return (!state.from || p.d >= state.from) && (!state.to || p.d.slice(0, state.to.length) <= state.to); });
+        var pts = s.pts.filter(inWindow);
         if (state.rebase && pts.length) { var b = pts[0].v; pts = b ? pts.map(function (p) { return { d: p.d, t: p.t, v: p.v / b * 100 }; }) : []; }
         var bands = state.rebase ? [] : BANDS.filter(function (b) { return b.si === s.i; }).map(function (b) {
-          return { b: b, pts: b.pts.filter(function (p) { return (!state.from || p.d >= state.from) && (!state.to || p.d.slice(0, state.to.length) <= state.to); }) };
+          return { b: b, pts: b.pts.filter(inWindow) };
         }).filter(function (x) { return x.pts.length; });
         return { s: s, pts: pts, right: state.rebase ? false : s.right, bands: bands };
       }).filter(function (x) { return x.pts.length; });
@@ -344,9 +348,9 @@
         vis.forEach(function (x) {
           var near = null, nd = Infinity;
           x.pts.forEach(function (p) { var d = Math.abs(p.t - t); if (d < nd) { nd = d; near = p; } });
-          // A series only reports when the cursor is within a step of one of its points, so a
-          // forecast drawn beyond the data does not answer for dates it does not cover.
-          if (near && x.pts.length > 1) { var gaps = []; for (var i = 1; i < x.pts.length; i++) gaps.push(x.pts[i].t - x.pts[i - 1].t); gaps.sort(function (a, b) { return a - b; }); if (nd > 1.5 * gaps[Math.floor(gaps.length / 2)]) near = null; }
+          // Outside its own coverage a series stays quiet (a forecast drawn beyond the data must not
+          // answer for earlier dates); inside it the nearest point is reported, gaps included.
+          if (near && x.s.step) { var first = x.pts[0].t, last = x.pts[x.pts.length - 1].t; if (t < first - 0.75 * x.s.step || t > last + 0.75 * x.s.step) near = null; }
           if (near) { rows += "<div class='r'><span style='color:" + x.s.color + "'>●</span> " + esc(x.s.label) + " <b>" + fmt(near.v) + "</b></div>"; if (nd < bestD) { bestD = nd; bestT = near; } }
           x.bands.forEach(function (bd) {
             var nb = null, nbd = Infinity;

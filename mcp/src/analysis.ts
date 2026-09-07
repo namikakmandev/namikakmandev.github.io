@@ -558,10 +558,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const ape = v.map((x, i) => (Number.isFinite(fitted[i]) && x !== 0 ? Math.abs((x - fitted[i]) / x) : NaN)).filter(Number.isFinite);
       const fc = future.map((d, i) => ({ date: d, value: r4(forecast[i]), lo95: r4(forecast[i] - 1.96 * sdv * Math.sqrt(i + 1)), hi95: r4(forecast[i] + 1.96 * sdv * Math.sqrt(i + 1)) }));
       const lastD = dates[dates.length - 1], lastV = r4(v[v.length - 1]) as number;
-      // The chart joins the forecast to the last actual; the band starts at zero width there.
+      // The chart joins the forecast to the last actual; the band starts at zero width there. Only finite rows go into the link.
+      const finite = fc.filter((p) => p.value !== null && p.lo95 !== null && p.hi95 !== null);
       const chartSpec: PlotSpec = {
-        series: [series, { points: [[lastD, lastV], ...fc.map((p) => [p.date, p.value as number] as [string, number])], label: `${r.label}, forecast` }],
-        bands: [{ series: 1, label: "95% band", points: [[lastD, lastV, lastV], ...fc.map((p) => [p.date, p.lo95 as number, p.hi95 as number] as [string, number, number])] }],
+        series: [series, { points: [[lastD, lastV], ...finite.map((p) => [p.date, p.value as number] as [string, number])], label: `${r.label}, forecast` }],
+        bands: [{ series: 1, label: "95% band", points: [[lastD, lastV, lastV], ...finite.map((p) => [p.date, p.lo95 as number, p.hi95 as number] as [string, number, number])] }],
         title: `${r.label}: ${String(detail.method)} forecast, ${horizon} ahead`, api: self,
       };
       return text({
@@ -1137,12 +1138,13 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const peak = rows.reduce((a, b) => (Math.abs(b.response ?? 0) > Math.abs(a.response ?? 0) ? b : a), rows[0]);
       const impact = rows[0];
       const hx = (h: number) => String(h).padStart(2, "0");
+      const finiteRows = rows.filter((r) => r.response !== null && r.lo95 !== null && r.hi95 !== null && r.cumulative !== null);
       const chartSpec: PlotSpec = {
         series: [
-          { points: rows.map((r) => [hx(r.h), r.response as number]), label: `response of ${ry.label} to a unit shock in ${rx.label}` },
-          { points: rows.map((r) => [hx(r.h), r.cumulative as number]), label: "cumulative response" },
+          { points: finiteRows.map((r) => [hx(r.h), r.response as number]), label: `response of ${ry.label} to a unit shock in ${rx.label}` },
+          { points: finiteRows.map((r) => [hx(r.h), r.cumulative as number]), label: "cumulative response" },
         ],
-        bands: [{ series: 0, label: "95% band", points: rows.map((r) => [hx(r.h), r.lo95 as number, r.hi95 as number]) }],
+        bands: [{ series: 0, label: "95% band", points: finiteRows.map((r) => [hx(r.h), r.lo95 as number, r.hi95 as number]) }],
         xaxis: "number", title: `Local projections: ${ry.label} after a shock to ${rx.label}`, api: self,
       };
       return text({
@@ -1243,6 +1245,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         label: rs[i].label, n: p.n, frequency: p.frequency, first: p.dates[0], last: p.dates[p.n - 1],
         integration_order: integrationOrder(p.adfLevel, p.adfDiff),
         trending: p.trendFit ? Math.abs(p.trendFit.t[1]) > 4 : false,
+        drifts: Math.abs(S.driftT(p.v)) > 2,
         seasonal_strength: p.decomposition ? r3(p.decomposition.seasonal_strength) : null,
         positive_only: p.v.every((x) => x > 0),
         volatility_clustering_p: (() => { const a = archProbe(p.v); return a ? r4(a.p) : null; })(),
@@ -1288,8 +1291,9 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const stationaryArgs = (i: number) => ({ ...refOf(i), transform: facts[i].positive_only ? "pct_change" : "diff" });
         if (allI1) {
           pitfalls.push("All series are I(1): a levels regression or a levels correlation between them will look strong whether or not they are related. Test cointegration first.");
-          const det = facts.some((f) => f.trending) ? "constant" : "restricted_constant";
-          if (det === "restricted_constant") pitfalls.push("None of the series trends, so the Johansen constant belongs inside the cointegrating relation (deterministic='restricted_constant'); the default unrestricted constant over-rejects on drift-free series.");
+          // Drift, not a levels trend fit: a trend regression on a random walk is spurious and reads "trending" most of the time.
+          const det = facts.some((f) => f.drifts) ? "constant" : "restricted_constant";
+          if (det === "restricted_constant") pitfalls.push("None of the series drifts (mean first difference not significant), so the Johansen constant belongs inside the cointegrating relation (deterministic='restricted_constant'); the default unrestricted constant over-rejects on drift-free series.");
           if (facts.length > 2) plan.push({ step: step++, tool: "johansen", why: `${facts.length} I(1) series: count the cointegrating relations before choosing levels or differences`, args: { series: facts.map((_, i) => refOf(i)), deterministic: det } });
           plan.push({ step: step++, tool: "cointegration", why: "Both I(1): find out if a long-run relation exists before regressing levels", args: { a: refOf(0), b: refOf(1) } });
           plan.push({ step: step++, tool: "vecm", why: "If cointegrated: which series does the adjusting, how fast, and how far the system is from equilibrium now", args: { series: facts.map((_, i) => refOf(i)), deterministic: det } });

@@ -578,8 +578,14 @@ await check("johansen and vecm with a restricted constant report the constant in
   for (let i = 0; i < n; i++) b.push(3 + a[i] + rnd() * 0.3);
   const dt = (i) => `${1990 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`;
   const plan = await call("suggest_analysis", { series: [{ points: a.map((v, i) => [dt(i), v]), label: "a" }, { points: b.map((v, i) => [dt(i), v]), label: "b" }] });
+  assert.ok(plan.series.every((f) => f.integration_order === "I(1)"), JSON.stringify(plan.series.map((f) => f.integration_order)));
   const jo = plan.plan.find((p) => p.tool === "vecm");
-  if (jo && plan.series.every((f) => f.integration_order === "I(1)")) assert.equal(jo.args.deterministic, plan.series.some((f) => f.trending) ? "constant" : "restricted_constant");
+  assert.equal(jo.args.deterministic, "restricted_constant", "drift-free walks get the restricted constant");
+  assert.ok(plan.pitfalls.some((p) => /restricted_constant/.test(p)));
+  // The same walks with a drift added: the unrestricted constant
+  const plan2 = await call("suggest_analysis", { series: [{ points: a.map((v, i) => [dt(i), v + 0.5 * i]), label: "a" }, { points: b.map((v, i) => [dt(i), v + 0.5 * i]), label: "b" }] });
+  const jo2 = plan2.plan.find((p) => p.tool === "vecm");
+  if (jo2) assert.equal(jo2.args.deterministic, "constant", "drifting walks get the unrestricted constant");
 });
 
 await client.close();
