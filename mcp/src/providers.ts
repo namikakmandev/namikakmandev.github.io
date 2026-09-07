@@ -845,6 +845,140 @@ const imf: Provider = {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Open-Meteo historical weather (ERA5 reanalysis, keyless)
+
+/** Grain and livestock regions, one representative grid point each. */
+const WEATHER_PLACES: Record<string, { lat: number; lon: number; title: string }> = {
+  "us-corn-belt": { lat: 41.6, lon: -93.6, title: "US Corn Belt (Des Moines, Iowa)" },
+  "us-plains-wheat": { lat: 37.7, lon: -97.3, title: "US winter wheat plains (Wichita, Kansas)" },
+  "us-texas-cattle": { lat: 35.2, lon: -101.8, title: "Texas panhandle cattle feeding (Amarillo)" },
+  "tr-konya": { lat: 37.87, lon: 32.49, title: "Türkiye central Anatolia grain (Konya)" },
+  "tr-thrace": { lat: 41.68, lon: 26.56, title: "Türkiye Thrace grain (Edirne)" },
+  "tr-cukurova": { lat: 37.0, lon: 35.32, title: "Türkiye Çukurova (Adana)" },
+  "tr-erzurum": { lat: 39.9, lon: 41.27, title: "Türkiye eastern grazing (Erzurum)" },
+  "eu-beauce": { lat: 47.9, lon: 1.9, title: "French grain belt (Orléans)" },
+  "eu-north-germany": { lat: 52.37, lon: 9.73, title: "North German plain (Hannover)" },
+  "eu-poland": { lat: 52.4, lon: 16.93, title: "Polish grain belt (Poznań)" },
+  "eu-spain-duero": { lat: 41.65, lon: -4.72, title: "Spanish Duero basin (Valladolid)" },
+  "ua-steppe": { lat: 48.5, lon: 32.26, title: "Ukrainian steppe (Kropyvnytskyi)" },
+  "ru-volga": { lat: 51.53, lon: 46.03, title: "Russian Volga grain (Saratov)" },
+  "ar-pampas": { lat: -32.95, lon: -60.65, title: "Argentine pampas (Rosario)" },
+  "br-mato-grosso": { lat: -12.55, lon: -55.72, title: "Brazilian soy belt (Sorriso)" },
+  "au-wheat-belt": { lat: -31.48, lon: 118.28, title: "Australian wheat belt (Merredin)" },
+  "in-punjab": { lat: 30.9, lon: 75.85, title: "Indian Punjab (Ludhiana)" },
+  "cn-north-plain": { lat: 34.75, lon: 113.62, title: "North China plain (Zhengzhou)" },
+};
+
+/** Variables that accumulate over a period are summed; everything else is averaged. */
+function weatherAggregation(v: string): "sum" | "mean" {
+  return /_sum$|precipitation|rain|snowfall|hours/.test(v) ? "sum" : "mean";
+}
+
+function weatherPoint(token: string): { key: string; lat: number; lon: number; title: string } {
+  const t = token.trim();
+  const place = WEATHER_PLACES[t.toLowerCase()];
+  if (place) return { key: t.toLowerCase(), lat: place.lat, lon: place.lon, title: place.title };
+  const m = /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/.exec(t);
+  if (!m) {
+    throw new DataError(`Unknown weather location '${t}'. Use a named region (${Object.keys(WEATHER_PLACES).slice(0, 6).join(", ")}, …) or 'lat,lon' such as '39.93,32.86'.`);
+  }
+  const lat = Number(m[1]), lon = Number(m[2]);
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) throw new DataError(`Latitude must be -90..90 and longitude -180..180, got '${t}'.`);
+  return { key: `${lat},${lon}`, lat, lon, title: `${lat}, ${lon}` };
+}
+
+/** 'YYYY', 'YYYY-MM' or 'YYYY-MM-DD' -> a full ISO date at the start or end of the period. */
+function weatherDay(raw: string | undefined, fallback: string, end: boolean): string {
+  const v = (raw ?? "").trim();
+  if (!v) return fallback;
+  if (/^\d{4}$/.test(v)) return end ? `${v}-12-31` : `${v}-01-01`;
+  if (/^\d{4}-\d{2}$/.test(v)) {
+    if (!end) return `${v}-01`;
+    const [y, m] = v.split("-").map(Number);
+    return `${v}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, "0")}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  throw new DataError(`Weather dates must be YYYY, YYYY-MM or YYYY-MM-DD, got '${v}'.`);
+}
+
+const weather: Provider = {
+  name: "weather",
+  title: "Open-Meteo historical weather (ERA5 reanalysis)",
+  coverage: "Daily temperature, rainfall, evapotranspiration and wind anywhere on land from 1940 to about five days ago, aggregated to months or years. Named grain and livestock regions, or any latitude and longitude.",
+  id_format: "A named region, several joined with '+', or 'lat,lon': e.g. 'us-corn-belt', 'tr-konya+ua-steppe', '39.93,32.86'. params: daily (comma-separated variables, default temperature_2m_mean,precipitation_sum), aggregate (monthly, annual or daily; default monthly), start and end as YYYY, YYYY-MM or YYYY-MM-DD.",
+  needs_key: null,
+  curated: Object.entries(WEATHER_PLACES).map(([id, p]) => ({ id, title: p.title, hint: `Grid point ${p.lat}, ${p.lon}. Variables: temperature_2m_mean, temperature_2m_max, temperature_2m_min, precipitation_sum, rain_sum, snowfall_sum, et0_fao_evapotranspiration, windspeed_10m_max, shortwave_radiation_sum.` })),
+  async fetch(id, params) {
+    const tokens = id.split("+").map((t) => t.trim()).filter(Boolean);
+    if (!tokens.length) throw new DataError("Give at least one weather location.");
+    if (tokens.length > 8) throw new DataError(`At most 8 locations at once, got ${tokens.length}.`);
+    const points = tokens.map(weatherPoint);
+    const vars = (params.daily ?? "temperature_2m_mean,precipitation_sum").split(",").map((v) => v.trim()).filter(Boolean);
+    if (!vars.length) throw new DataError("Give at least one daily variable, e.g. daily='temperature_2m_mean,precipitation_sum'.");
+    const aggregate = (params.aggregate ?? "monthly").toLowerCase();
+    if (!["monthly", "annual", "daily"].includes(aggregate)) throw new DataError(`aggregate must be monthly, annual or daily, got '${aggregate}'.`);
+    const start = weatherDay(params.start, "1990-01-01", false);
+    // ERA5 lands about five days behind; ask for a week ago so the request never runs past the archive.
+    const end = weatherDay(params.end, new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10), true);
+    if (start > end) throw new DataError(`start ${start} is after end ${end}.`);
+
+    const url = `https://archive-api.open-meteo.com/v1/archive?${qs({
+      latitude: points.map((p) => p.lat).join(","),
+      longitude: points.map((p) => p.lon).join(","),
+      start_date: start, end_date: end,
+      daily: vars.join(","), timezone: "UTC",
+    })}`;
+    const raw = await getJson(url);
+    const blocks = (Array.isArray(raw) ? raw : [raw]) as Array<{ daily?: Record<string, Array<number | null> | string[]>; daily_units?: Record<string, string>; error?: boolean; reason?: string }>;
+    if (blocks[0] && blocks[0].error) throw new DataError(`Open-Meteo: ${blocks[0].reason ?? "request rejected"}`);
+    if (blocks.length !== points.length) throw new DataError(`Open-Meteo returned ${blocks.length} locations for ${points.length} requested.`);
+
+    const series: Record<string, Series> = {};
+    const units: string[] = [];
+    blocks.forEach((block, bi) => {
+      const daily = block.daily;
+      if (!daily || !Array.isArray(daily.time)) throw new DataError(`Open-Meteo returned no daily block for ${points[bi].key}.`);
+      const days = daily.time as string[];
+      for (const v of vars) {
+        const values = daily[v] as Array<number | null> | undefined;
+        if (!values) continue;
+        const unit = block.daily_units?.[v];
+        if (unit && !units.includes(`${v} in ${unit}`)) units.push(`${v} in ${unit}`);
+        const how = weatherAggregation(v);
+        const bucket = new Map<string, { sum: number; n: number }>();
+        days.forEach((day, i) => {
+          const value = values[i];
+          if (value === null || value === undefined || !Number.isFinite(value)) return;
+          const key = aggregate === "daily" ? day : aggregate === "annual" ? day.slice(0, 4) : day.slice(0, 7);
+          const b = bucket.get(key) ?? { sum: 0, n: 0 };
+          b.sum += value; b.n += 1; bucket.set(key, b);
+        });
+        const out: Series = {};
+        for (const [key, b] of bucket) out[key] = how === "sum" ? Math.round(b.sum * 1000) / 1000 : Math.round((b.sum / b.n) * 1000) / 1000;
+        series[`${points[bi].key}.${v}`] = out;
+      }
+    });
+    if (!Object.keys(series).length) throw new DataError(`Open-Meteo returned nothing for ${vars.join(", ")}. Check the variable names against open-meteo.com/en/docs/historical-weather-api.`);
+
+    return {
+      provider: "weather", id,
+      source: `Open-Meteo ERA5 reanalysis: ${points.map((p) => p.title).join("; ")}`,
+      url, series,
+      notes: [
+        "Series keys are 'location.variable'.",
+        aggregate === "daily" ? "Daily values as published." : `Daily values aggregated to ${aggregate === "annual" ? "years" : "months"}: totals for rainfall and other accumulating variables, averages for the rest.`,
+        units.length ? `Units: ${units.join(", ")}.` : "",
+        "ERA5 is a reanalysis on a roughly 25 km grid, not a station reading: one point stands for its region and local extremes are smoothed away. Rainfall is less reliable than temperature.",
+        "The archive lags real time by about five days.",
+      ].filter(Boolean),
+    };
+  },
+  async search(query) {
+    return curatedSearch(weather.curated, query);
+  },
+};
+
 export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry[] {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   return list
@@ -858,7 +992,7 @@ export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry
     .map((x) => x.e);
 }
 
-export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao, imf };
+export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao, imf, weather };
 
 export function providerInfo(env: ProviderEnv) {
   return Object.values(PROVIDERS).map((p) => ({
