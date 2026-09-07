@@ -64,6 +64,16 @@
     .allnone { background: none; border: 0; color: var(--accent); font: inherit; font-size: .76rem; cursor: pointer; text-decoration: underline; padding: 2px 4px; }
     .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: auto; padding-top: 2px; }
     .card .foot a { color: var(--accent); font-size: .8rem; }
+    .card .foot .act { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .78rem; font-weight: 600; padding: 5px 12px; border-radius: 7px; cursor: pointer; }
+    .card .foot .act[disabled] { opacity: .55; cursor: default; }
+    .pred { border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 10px 10px 0; padding: 11px 14px; font-size: .86rem; line-height: 1.5; }
+    .pred h4 { margin: 0 0 6px; font-size: .9rem; }
+    .pred table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
+    .pred th, .pred td { text-align: right; padding: 4px 7px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .pred th:first-child, .pred td:first-child { text-align: left; }
+    .pred th { color: var(--text-dim); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
+    .pred tr.win td { color: var(--text); font-weight: 600; }
+    .pred .why { color: var(--text-dim); margin-top: 7px; }
     .card .foot .drop { background: none; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; cursor: pointer; text-decoration: underline; }
     .asof { color: var(--text-dim); font-size: .74rem; font-variant-numeric: tabular-nums; }
     .loading { color: var(--text-dim); padding: 30px 0; text-align: center; }
@@ -122,6 +132,7 @@
   (function () {
     "use strict";
     var COLORS = ["#2f9bff", "#19c37d", "#ff6500", "#e5484d", "#a78bfa", "#14b8a6"];
+    var API = "https://econ-mcp.akmannamik83.workers.dev";
     var FEATURED = [
       { file: "cattle-parity", title: "Meat price against feed cost, four markets", pick: ["US.parity_idx", "EU.parity_idx", "TR.parity_idx", "IL.parity_idx"] },
       { file: "tr-house-prices", title: "Turkish house prices", pick: ["turkey", "istanbul", "ankara", "izmir"] },
@@ -302,12 +313,54 @@
         "<div class='js-fig'></div>" +
         "<div class='ctrl'><span class='lbl'>Series</span>" + (full.length > 6 ? "<button class='allnone' data-all='1'>all</button><button class='allnone' data-all='0'>none</button>" : "") + "</div>" +
         "<div class='picks js-picks'></div>" +
-        "<div class='foot'><a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a><span class='asof js-asof'></span></div>";
+        "<div class='js-pred'></div>" +
+        "<div class='foot'><button type='button' class='act js-predict'>Predict</button>" +
+        "<a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a><span class='asof js-asof'></span></div>";
       if (prepend && cardsEl.firstChild) cardsEl.insertBefore(el, cardsEl.firstChild); else cardsEl.appendChild(el);
 
       var figEl = el.querySelector(".js-fig"), picksEl = el.querySelector(".js-picks"), segEl = el.querySelector(".js-seg"),
           fromSel = el.querySelector(".js-from"), toSel = el.querySelector(".js-to"),
-          asofEl = el.querySelector(".js-asof"), linkEl = el.querySelector(".js-link");
+          asofEl = el.querySelector(".js-asof"), linkEl = el.querySelector(".js-link"),
+          predEl = el.querySelector(".js-pred"), predBtn = el.querySelector(".js-predict");
+      var forecastLine = null;
+
+      /* Ask the server which method suits this series, then forecast with it.
+         No account and no model: /v1/analyze runs the same code the tools use. */
+      predBtn.addEventListener("click", async function () {
+        var vis = full.filter(function (s) { return chosen[s.n]; });
+        if (!vis.length) { predEl.innerHTML = "<div class='pred'>Pick one line first, then press Predict.</div>"; return; }
+        var target = vis[0];
+        predBtn.disabled = true; predBtn.textContent = "Testing methods…";
+        predEl.innerHTML = "<div class='pred'>Re-fitting each method at a run of past dates and scoring what actually happened. This takes a few seconds.</div>";
+        try {
+          var res = await fetch(API + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ tool: "predict", args: { series: { dataset: card.file, series: target.n }, horizon: 12, origins: 10 } }) });
+          var j = await res.json();
+          if (!res.ok || !j.result) throw new Error(j.error || ("HTTP " + res.status));
+          var r = j.result;
+          var rows = r.methods.map(function (m) {
+            return "<tr" + (m.recommended ? " class='win'" : "") + "><td>" + esc(m.what_it_does) + "</td><td>" + esc(fmt(m.typical_error)) +
+              "</td><td>" + (m.better_than_no_change === null ? "—" : Math.round(m.better_than_no_change * 100) + "%") + "</td></tr>";
+          }).join("");
+          predEl.innerHTML = "<div class='pred'><h4>" + esc(label(target.n)) + ": " + esc(r.recommendation.what_it_does) + "</h4>" +
+            "<div>" + esc(r.reading) + "</div>" +
+            "<table><thead><tr><th>Method</th><th>Typical error</th><th>Better than no change</th></tr></thead><tbody>" + rows + "</tbody></table>" +
+            "<div class='why'>" + esc(r.recommendation.why) + "</div>" +
+            "<div class='why'>" + esc(r.caveat) + "</div></div>";
+          forecastLine = { n: target.n + " — forecast", d: [target.d[target.d.length - 1]].concat(r.forecast.map(function (p) { return p.date; })),
+            v: [target.v[target.v.length - 1]].concat(r.forecast.map(function (p) { return p.value; })) };
+          var yEnd = +String(forecastLine.d[forecastLine.d.length - 1]).slice(0, 4);
+          if (yEnd > +toSel.value) {
+            var o = document.createElement("option"); o.value = o.textContent = yEnd; toSel.appendChild(o);
+            toSel.value = yEnd; state.to = yEnd;
+          }
+          chosen[forecastLine.n] = true;
+          draw();
+        } catch (e) {
+          predEl.innerHTML = "<div class='pred'>Could not run the test: " + esc(e.message) + "</div>";
+        }
+        predBtn.disabled = false; predBtn.textContent = "Predict";
+      });
       for (var y = yF; y <= yL; y++) {
         var o1 = document.createElement("option"); o1.value = o1.textContent = y; fromSel.appendChild(o1);
         var o2 = document.createElement("option"); o2.value = o2.textContent = y; toSel.appendChild(o2);
@@ -336,7 +389,8 @@
       }
       function draw() {
         var a = String(state.from), b = String(state.to + 1);
-        var win = full.map(function (s) {
+        var source = forecastLine ? full.concat([forecastLine]) : full;
+        var win = source.map(function (s) {
           var d = [], v = [];
           s.d.forEach(function (dt, i) { if (dt >= a && dt < b) { d.push(dt); v.push(s.v[i]); } });
           return { n: s.n, d: d, v: v };
