@@ -12,7 +12,7 @@ is a matter of editing one JSON file.
 ## Install
 
 ```bash
-pip install pdfplumber openpyxl      # reportlab too, if you want to run the tests
+pip install pdfplumber openpyxl      # reportlab and playwright too, for the tests
 ```
 
 ## Use
@@ -92,11 +92,66 @@ Copy `rules/garanti-bbva.json`, edit the patterns against that bank's
 banks can be parsed separately into the same `out/` and reported together;
 `parse` de-duplicates identical charges that appear in overlapping statements.
 
+## Şifreli sayfa (tarayıcıda)
+
+If you would rather not touch the command line, `harcama-sifreli.html` at the
+repository root is the same tool as a password-locked web page — the same
+`*-sifreli` pattern as the other protected reports here, but read/write.
+
+Open it at `https://namikakmandev.github.io/harcama-sifreli.html`. On first
+visit you set a password (anything you like — short is fine); after that the
+page asks for it before showing anything.
+
+- **Your data never leaves the browser.** Transactions and budget are encrypted
+  with AES-256-GCM (PBKDF2-SHA256, 250 000 iterations) under your password and
+  kept in that browser's `localStorage`. Nothing is uploaded, and nothing is
+  written to this repository.
+- **Import** statement PDFs by drag-and-drop (parsed in the page via pdf.js),
+  a `transactions.csv` from the CLI, or one transaction at a time by hand.
+- **Budget** is a category × month grid; the "Aylık" box fills every month at
+  once.
+- **Özet** shows the same figures as the CLI report: budget vs actual scoped to
+  the overlapping months, spend by category and month, top merchants,
+  outstanding instalments, and the uncategorised list. Categories can be
+  reassigned inline from the İşlemler tab.
+- **Backups** export as an encrypted file that only opens with the same
+  password, so you can move the vault to another browser or machine.
+
+Caveats worth knowing:
+
+- The password protects the **vault**, not the page. The page itself is public
+  — anyone can open it, but they see a lock screen and ciphertext.
+- **Lose the password and the data is gone.** There is no recovery. Take an
+  encrypted backup.
+- `localStorage` is per-browser and per-device. Clearing site data wipes the
+  vault; use a backup.
+- PDF reading needs pdf.js from cdnjs, so that one feature needs a network. If
+  it cannot load, the page says so and the CLI → CSV route still works.
+- The page is deliberately **not linked from the site navigation**. It is
+  reachable only if you know the URL.
+
+The page and the CLI share one set of rules. After editing anything in
+`rules/`, run:
+
+```bash
+python3 scripts/build_expense_page.py
+```
+
+which injects the current rules into the page. `tests/test_page.py` asserts
+that the page's parser and the CLI's parser return identical results on the
+same fixture, so the two cannot drift apart unnoticed.
+
 ## Tests
 
 ```bash
-python3 tests/test_expense_control.py     # 71 checks, ~2 s
+python3 tests/test_expense_control.py     # 77 checks on the CLI, ~2 s
+python3 tests/test_page.py                # 50 checks driving the page in Chromium
 ```
+
+The browser test needs `pip install playwright`. It serves the repository over
+http, drives `harcama-sifreli.html`, and verifies the crypto round-trip, that
+a wrong password is rejected, and that nothing readable is left in
+`localStorage`.
 
 Everything is synthetic: a text fixture, a statement PDF generated with
 reportlab, and a budget workbook generated with openpyxl. The tests never need

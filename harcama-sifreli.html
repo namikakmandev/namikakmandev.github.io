@@ -1,0 +1,792 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Harcama Kontrolü — şifreli</title>
+<style>
+:root{--bg:#EEF2F8;--fg:#1A2438;--mut:#5D6B85;--line:#DCE3EE;--card:#fff;--acc:#1F6FD0;
+  --ok:#2F7D4F;--watch:#B07510;--over:#D23B3B;--soft:#F7F9FC}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:14.5px/1.55 'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif}
+button{font:inherit;cursor:pointer;border:none;border-radius:8px;padding:9px 14px;
+  background:var(--acc);color:#fff;font-weight:600}
+button:hover{background:#2F9BFF}
+button.ghost{background:#fff;color:var(--fg);border:1px solid var(--line);font-weight:500}
+button.ghost:hover{background:var(--soft)}
+button.danger{background:#fff;color:var(--over);border:1px solid #F0C9C9;font-weight:500}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  background:#fff;color:var(--fg)}
+input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---- lock ---- */
+#lock{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+#lock[hidden],#app[hidden]{display:none}
+#lock .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:34px 36px;max-width:430px;width:100%;box-shadow:0 8px 30px rgba(20,40,80,.10);text-align:center}
+#lock .lockicon{font-size:34px}
+#lock h1{font-size:18px;margin:12px 0 4px}
+#lock p{color:var(--mut);font-size:13.5px;margin:6px 0 18px}
+#lock input{width:100%;text-align:center;font-family:ui-monospace,Consolas,monospace;margin-bottom:8px}
+#lock button{width:100%;margin-top:6px}
+.err{color:var(--over);font-size:13px;min-height:18px;margin-top:10px}
+.foot{color:#8A93A6;font-size:11px;margin-top:16px;line-height:1.5}
+
+/* ---- app ---- */
+#app{max-width:1080px;margin:0 auto;padding:22px 18px 60px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+header h1{font-size:19px;margin:0;flex:1}
+.tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:4px;margin-bottom:20px;overflow-x:auto}
+.tabs button{background:none;color:var(--mut);font-weight:500;white-space:nowrap;padding:8px 14px}
+.tabs button:hover{background:var(--soft);color:var(--fg)}
+.tabs button[aria-selected=true]{background:var(--acc);color:#fff;font-weight:600}
+section[hidden]{display:none}
+h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);
+  margin:26px 0 9px;font-weight:600}
+h2:first-child{margin-top:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.kpi b{display:block;font-size:20px;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi span{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+.wrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+  position:sticky;top:0;background:var(--card)}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td.neg{color:var(--ok)}
+td.meter{min-width:120px}
+td.meter span{display:block;height:7px;border-radius:4px;background:var(--ok);max-width:100%}
+td.meter em{font-style:normal;font-size:11px;color:var(--mut)}
+tr.s-watch td.meter span{background:var(--watch)}
+tr.s-over td.meter span{background:var(--over)}
+tr.s-over td:first-child,tr.s-unbudgeted td:first-child{font-weight:600}
+.badge{font-size:11px;padding:2px 7px;border-radius:20px;background:var(--soft);
+  border:1px solid var(--line);color:var(--mut)}
+.badge.ok{color:var(--ok);border-color:#CBE5D6}
+.badge.watch{color:var(--watch);border-color:#EFDCB4}
+.badge.over,.badge.unbudgeted{color:var(--over);border-color:#F0C9C9}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{color:var(--mut);font-size:12.5px;margin:8px 0}
+.drop{border:2px dashed var(--line);border-radius:12px;background:var(--card);
+  padding:30px 20px;text-align:center;color:var(--mut)}
+.drop.on{border-color:var(--acc);background:#F2F8FF;color:var(--acc)}
+.log{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;padding:12px;max-height:240px;overflow:auto;
+  white-space:pre-wrap;margin-top:12px}
+.log .bad{color:var(--over)}
+.log .good{color:var(--ok)}
+.saved{font-size:12px;color:var(--mut)}
+td select,td input{padding:4px 6px;font-size:13px;border-radius:6px}
+.card-box{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:16px 18px}
+.card-box+.card-box{margin-top:12px}
+.card-box h3{margin:0 0 6px;font-size:14px}
+.card-box p{margin:0 0 12px;color:var(--mut);font-size:12.5px}
+@media(max-width:640px){#app{padding:16px 12px 50px}header h1{font-size:17px}}
+</style></head><body>
+
+<div id="lock"><div class="card">
+  <div class="lockicon">&#128274;</div>
+  <h1 id="lockTitle">Harcama Kontrolü</h1>
+  <p id="lockText">Kasayı açmak için şifrenizi girin.</p>
+  <input id="pw" type="password" placeholder="Şifre" autocomplete="current-password" autofocus>
+  <input id="pw2" type="password" placeholder="Şifre (tekrar)" autocomplete="new-password" hidden>
+  <button id="lockBtn">Aç</button>
+  <div class="err" id="lockErr"></div>
+  <div class="foot">Verileriniz yalnızca bu tarayıcıda, AES-256 ile şifreli saklanır.
+    Hiçbir yere gönderilmez ve depoya yazılmaz. Şifrenizi kaybederseniz veri geri alınamaz.</div>
+</div></div>
+
+<div id="app" hidden>
+  <header>
+    <h1>Harcama Kontrolü</h1>
+    <span class="saved" id="savedAt"></span>
+    <button class="ghost" id="lockNow">Kilitle</button>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="ozet" aria-selected="true">Özet</button>
+    <button role="tab" data-tab="islemler" aria-selected="false">İşlemler</button>
+    <button role="tab" data-tab="butce" aria-selected="false">Bütçe</button>
+    <button role="tab" data-tab="ekle" aria-selected="false">İçe aktar</button>
+    <button role="tab" data-tab="ayarlar" aria-selected="false">Ayarlar</button>
+  </div>
+
+  <section id="tab-ozet"></section>
+
+  <section id="tab-islemler" hidden>
+    <div class="row" style="margin-bottom:12px">
+      <input id="filterText" placeholder="Ara (işyeri, açıklama)" style="flex:1;min-width:180px">
+      <select id="filterCat"><option value="">Tüm kategoriler</option></select>
+      <button class="ghost" id="exportCsv">CSV indir</button>
+    </div>
+    <div class="wrap"><table id="txnTable"><thead><tr>
+      <th>Tarih</th><th>Açıklama</th><th>Kategori</th><th class="n">Tutar</th>
+      <th>Taksit</th><th>Kaynak</th><th></th></tr></thead><tbody></tbody></table></div>
+    <p class="note" id="txnCount"></p>
+  </section>
+
+  <section id="tab-butce" hidden>
+    <h2>Aylık bütçe</h2>
+    <p class="note">Soldaki “Aylık” kutusuna yazdığınız tutar tüm aylara uygulanır; tek bir ayı
+      değiştirmek isterseniz o ayın kutusunu düzenleyin. Boş bırakılan kategori bütçesiz sayılır.</p>
+    <div class="wrap"><table id="budgetTable"></table></div>
+    <div class="row" style="margin-top:12px">
+      <input id="newCat" placeholder="Yeni kategori adı">
+      <button class="ghost" id="addCat">Kategori ekle</button>
+    </div>
+  </section>
+
+  <section id="tab-ekle" hidden>
+    <h2>Ekstre PDF</h2>
+    <div class="drop" id="drop">
+      Ekstre PDF’lerini buraya sürükleyin veya <button class="ghost" id="pickPdf">dosya seçin</button>
+      <div style="margin-top:10px"><input id="pdfPw" type="password" placeholder="PDF şifresi (varsa)"></div>
+    </div>
+    <input type="file" id="pdfInput" accept="application/pdf" multiple hidden>
+    <p class="note" id="pdfNote"></p>
+
+    <h2>CSV</h2>
+    <p class="note">Komut satırı aracının ürettiği <code>transactions.csv</code> ya da
+      <code>tarih, açıklama, tutar</code> sütunlu herhangi bir CSV.</p>
+    <div class="row">
+      <button class="ghost" id="pickCsv">CSV seç</button>
+      <input type="file" id="csvInput" accept=".csv,text/csv" hidden>
+    </div>
+
+    <h2>Tek işlem</h2>
+    <div class="card-box"><div class="row">
+      <input id="mDate" type="date" style="min-width:150px">
+      <input id="mDesc" placeholder="Açıklama / işyeri" style="flex:1;min-width:170px">
+      <input id="mAmount" type="number" step="0.01" placeholder="Tutar" style="width:130px">
+      <select id="mCat"></select>
+      <button id="addManual">Ekle</button>
+    </div>
+    <p class="note" style="margin:10px 0 0">İade veya kart ödemesi için tutarı eksi girin.</p></div>
+
+    <div class="log" id="log" hidden></div>
+  </section>
+
+  <section id="tab-ayarlar" hidden>
+    <div class="card-box">
+      <h3>Şifre değiştir</h3>
+      <p>Kasa yeni şifreyle yeniden şifrelenir.</p>
+      <div class="row">
+        <input id="npw" type="password" placeholder="Yeni şifre" autocomplete="new-password">
+        <input id="npw2" type="password" placeholder="Yeni şifre (tekrar)" autocomplete="new-password">
+        <button id="changePw">Değiştir</button>
+      </div>
+      <div class="err" id="pwErr"></div>
+    </div>
+    <div class="card-box">
+      <h3>Yedek</h3>
+      <p>Yedek dosyası da şifrelidir; başka bir tarayıcıda aynı şifreyle açılır.</p>
+      <div class="row">
+        <button class="ghost" id="exportVault">Şifreli yedek indir</button>
+        <button class="ghost" id="pickVault">Yedekten geri yükle</button>
+        <input type="file" id="vaultInput" accept=".json,application/json" hidden>
+      </div>
+    </div>
+    <div class="card-box">
+      <h3>Kasayı sil</h3>
+      <p>Bu tarayıcıdaki tüm işlem ve bütçe verisini kalıcı olarak siler.</p>
+      <button class="danger" id="wipe">Tüm veriyi sil</button>
+    </div>
+  </section>
+</div>
+
+<script id="rules-statement" type="application/json">{"issuer":"Garanti BBVA","decimal_style":"tr","default_currency":"TRY","header":{"statement_date":["Hesap\\s*Kesim\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})","Ekstre\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})"],"due_date":["Son\\s*[ÖO]deme\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})"],"card_number":["(\\d{4}[\\s*]*\\*{4}[\\s*]*\\*{4}[\\s*]*\\d{4})","(\\d{4}\\s*\\*+\\s*\\d{4})","Kart\\s*(?:No|Numaras[ıi])[^0-9]{0,20}([0-9*\\s]{12,25})"],"card_holder":["Kart\\s*Sahibi[^\\S\\n]{0,10}([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ.]*(?:[^\\S\\n]+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ.]*){0,4})"],"period_total":["D[öo]nem\\s*Bor[çc]u[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})","Toplam\\s*Bor[çc][^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"],"minimum_payment":["Asgari\\s*[ÖO]deme(?:\\s*Tutar[ıi])?[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"],"credit_limit":["(?:Toplam\\s*)?(?:Kart\\s*)?Limit(?:i)?[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"],"available_limit":["Kullan[ıi]labilir\\s*Limit[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"]},"transaction":["^(?P<date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+(?:(?P<post_date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+)?(?P<description>\\S.*?)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?(?:\\s+(?P<bonus>[\\d.]*\\d,\\d{2}))?\\s*(?P<trailing>[-+])?$","^(?P<date>\\d{2}[./-]\\d{2})\\s+(?P<description>\\S.*?)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?\\s*(?P<trailing>[-+])?$"],"installment":"(?:TAKS[İI]T\\s*)?(?P<paid>\\d{1,2})\\s*[/-]\\s*(?P<total>\\d{1,2})\\s*$","skip_lines":["Devreden\\s*Bakiye","^Toplam","Ara\\s*Toplam","Genel\\s*Toplam","Sayfa\\s*\\d","Hesap\\s*Kesim","Son\\s*[ÖO]deme","Asgari\\s*[ÖO]deme","D[öo]nem\\s*Bor[çc]u","Kullan[ıi]labilir\\s*Limit","Faiz\\s*Oran","Nakit\\s*Avans\\s*Faiz","^\\s*$"],"credit_markers":["[İI]ADE","ALACAK","[ÖO]DEME","V[İI]RMAN","PUAN\\s*KULLAN","BONUS\\s*KULLAN","IPTAL","[İI]PTAL"],"transaction_amount_last":["^(?P<date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+(?:(?P<post_date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+)?(?P<description>\\S.*)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?\\s*(?P<trailing>[-+])?$"]}</script>
+<script id="rules-categories" type="application/json">{"fallback":"Diger","rules":[{"category":"Kart Odemesi","patterns":["ODEME","ÖDEME","VIRMAN","V[İI]RMAN","TAHS[İI]LAT","ALACAK"]},{"category":"Faiz & Ucret","patterns":["FA[İI]Z","GEC[İI]KME","KDV","BSMV","A[İI]DAT","[ÜU]CRET","KOM[İI]SYON","EKSTRE [ÜU]CRET"]},{"category":"Market","patterns":["M[İI]GROS","CARREFOUR","A101","A-101","B[İI]M ","^B[İI]M","[ŞS]OK MARKET","MACROCENTER","METRO GROSMARKET","TARIM KRED[İI]","HAKMAR","ONUR MARKET","MARKET"]},{"category":"Yakit","patterns":["SHELL","OPET","PETROL OF[İI]S[İI]","^BP ","TOTAL ENERG","AYTEM[İI]Z","ALPET","LUKOIL","AKARYAKIT","PETROL"]},{"category":"Ulasim","patterns":["HGS","OGS","[İI]ETT","[İI]STANBULKART","METRO","UBER","B[İI]TAKS[İI]","MART[İI]","OTOPARK","PARK","THY","TURK[İI]SH A[İI]RL","PEGASUS","AJET","TCDD","OBILET","ENUYGUN"]},{"category":"Yeme-Icme","patterns":["YEMEKSEPET[İI]","GET[İI]R","TRENDYOL GO","M[İI]GROS YEMEK","STARBUCKS","KAHVE","COFFEE","CAFE","KAFE","RESTAURANT","RESTORAN","LOKANTA","P[İI]DE","BURGER","DOM[İI]NO","P[İI]ZZA","MCDONALD","SIMIT SARAY"]},{"category":"Online Alisveris","patterns":["TRENDYOL","HEPS[İI]BURADA","AMAZON","N11","[ÇC][İI][ÇC]EKSEPET[İI]","GITTIGID","MORHIPO","DEFACTO","LC WAIK","ZARA","H&M","BOYNER","KOTON","MAV[İI]","FLO","DECATHLON"]},{"category":"Abonelik","patterns":["NETFLIX","SPOTIFY","YOUTUBE","DISNEY","APPLE\\.COM","ITUNES","GOOGLE","AMAZON PRIME","BLU TV","EXXEN","GAIN","OPENAI","ANTHROPIC","CLAUDE","MICROSOFT","ADOBE","DROPBOX","ICLOUD","PLAYSTATION","STEAM"]},{"category":"Telekom","patterns":["TURKCELL","VODAFONE","T[ÜU]RK TELEKOM","SUPERONL[İI]NE","T[ÜU]RKNET","MILLENICOM","D-SMART","DIGITURK","TIVIBU"]},{"category":"Fatura & Enerji","patterns":["ELEKTR[İI]K","DOGAL ?GAZ","DO[ĞG]AL ?GAZ","[İI]GDA[ŞS]","BA[ŞS]KENTGAZ","SU [İI][ŞS]LER","[İI]SK[İI]","ASK[İI]","BEDA[ŞS]","AYEDA[ŞS]","ENERJ[İI]SA","CK BOGAZICI","FATURA"]},{"category":"Saglik","patterns":["ECZANE","HASTANE","T[İI]P MERKEZ","POL[İI]KL[İI]N[İI]K","D[İI][ŞS] ","LABORATUV","MEDICAL","OPT[İI]K","GOZLUK"]},{"category":"Sigorta","patterns":["S[İI]GORTA","ALLIANZ","AXA","ANADOLU S[İI]G","AKS[İI]GORTA","MAPFRE","BUPA","KASKO","DASK","BES","EMEKL[İI]L[İI]K"]},{"category":"Ev & Yapi","patterns":["IKEA","KO[ÇC]TA[ŞS]","BAUHAUS","TEKZEN","ENGL[İI]SH HOME","MADAME COCO","KARACA","BANYO","MOB[İI]LYA","YAPI MARKET"]},{"category":"Elektronik","patterns":["MEDIAMARKT","MED[İI]A MARKT","TEKNOSA","VATAN B[İI]LG","APPLE STORE","SAMSUNG","ARCEL[İI]K","VESTEL","BE[ŞS]TEL"]},{"category":"Egitim","patterns":["OKUL","[ÜU]N[İI]VERS[İI]TE","KURS","UDEMY","COURSERA","KIRTAS[İI]YE","K[İI]TAP","D&R","[İI]DEFIX"]},{"category":"Seyahat & Konak","patterns":["OTEL","HOTEL","BOOKING","AIRBNB","TRIVAGO","TATIL","ETSTUR","JOLLY","SETUR"]},{"category":"Kisisel Bakim","patterns":["GRAT[İI]S","WATSONS","ROSSMANN","SEPHORA","KUAF[ÖO]R","BERBER","SPOR SALON","MACF[İI]T","FITNESS","GYM"]},{"category":"Nakit Avans","patterns":["NAK[İI]T AVANS","ATM","PARA [ÇC]EKME"]},{"category":"Vergi & Resmi","patterns":["VERG[İI]","GIB","E-DEVLET","N[ÜU]FUS","TAPU","TRAF[İI]K CEZA","MTV","BELED[İI]YE"]}]}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+"use strict";
+/* ------------------------------------------------------------------ crypto */
+const ENC = new TextEncoder(), DEC = new TextDecoder(), ITER = 250000;
+const KEY_STORE = 'harcama-vault-v1';
+const b64e = buf => { let s = ''; const a = new Uint8Array(buf);
+  for (let i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s); };
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+async function keyFrom(pw, salt, iter) {
+  const km = await crypto.subtle.importKey('raw', ENC.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' },
+    km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function seal(obj, pw) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await keyFrom(pw, salt, ITER);
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, ENC.encode(JSON.stringify(obj)));
+  return { v: 1, iter: ITER, salt: b64e(salt), iv: b64e(iv), ct: b64e(ct) };
+}
+async function unseal(blob, pw) {
+  const key = await keyFrom(pw, b64d(blob.salt), blob.iter || ITER);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64d(blob.iv) }, key, b64d(blob.ct));
+  return JSON.parse(DEC.decode(pt));
+}
+
+/* ------------------------------------------------------------------- rules */
+const RULES = JSON.parse(document.getElementById('rules-statement').textContent);
+const CATS = JSON.parse(document.getElementById('rules-categories').textContent);
+const FALLBACK = CATS.fallback || 'Diger';
+const toRe = (p, f) => new RegExp(String(p).replace(/\(\?P</g, '(?<'), f);
+const TXN_RES = (RULES.transaction || []).map(p => toRe(p, 'i'));
+const SKIP_RES = (RULES.skip_lines || []).map(p => toRe(p, 'i'));
+const CREDIT_RES = (RULES.credit_markers || []).map(p => toRe(p, 'i'));
+const INST_RE = RULES.installment ? toRe(RULES.installment, 'i') : null;
+const CAT_RES = (CATS.rules || []).map(r => ({ category: r.category, res: r.patterns.map(p => toRe(p, 'i')) }));
+const CATEGORY_NAMES = CAT_RES.map(r => r.category).concat([FALLBACK]);
+const AMOUNT_LIKE = /\d[.,]\d{2}\b/;
+
+/* --------------------------------------------------------------- utilities */
+const squeeze = s => String(s).replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+const $ = id => document.getElementById(id);
+const money = v => (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('tr-TR',
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = v => v.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function parseAmount(raw) {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === 'number') return raw;
+  let s = String(raw).replace(/[\s ]/g, '');
+  if (!s) return null;
+  const neg = s.startsWith('-') || s.endsWith('-') || (s.startsWith('(') && s.endsWith(')'));
+  s = s.replace(/[()+-]/g, '').replace(/(TL|TRY|USD|EUR|GBP|₺|\$|€|£)/gi, '');
+  s = s.replace(/\./g, '').replace(',', '.');
+  const v = parseFloat(s);
+  if (isNaN(v)) return null;
+  return neg ? -v : v;
+}
+function parseDate(raw, yearHint) {
+  const s = squeeze(raw).replace(/[.\-]/g, '/');
+  let m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) return m[3] + '-' + m[2] + '-' + m[1];
+  m = s.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  m = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (m && yearHint) return yearHint + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[1]).padStart(2, '0');
+  return null;
+}
+function categorise(description) {
+  for (const rule of CAT_RES) if (rule.res.some(re => re.test(description))) return rule.category;
+  return FALLBACK;
+}
+function merchantOf(description) {
+  let t = squeeze(description).toUpperCase();
+  t = t.replace(/\b\d{2}[./]\d{2}([./]\d{2,4})?\b/g, ' ');
+  t = t.replace(/\s(TR|TUR|IST|ISTANBUL|ANKARA|IZMIR)\s*$/g, ' ');
+  t = squeeze(t.replace(/[^\wÇĞİÖŞÜçğıöşü\s&.'-]/g, ' '));
+  return t.split(' ').slice(0, 4).join(' ') || '?';
+}
+function peelInstallment(text) {
+  if (!INST_RE) return [null, null, text];
+  const m = INST_RE.exec(text);
+  if (!m || !m.groups) return [null, null, text];
+  const paid = parseInt(m.groups.paid, 10), total = parseInt(m.groups.total, 10);
+  if (!(total > 1 && total >= paid && paid >= 1)) return [null, null, text];
+  return [paid, total, squeeze(text.slice(0, m.index))];
+}
+
+/* ------------------------------------------------------ statement parsing */
+function parseStatementText(pages, sourceName) {
+  const text = pages.join('\n');
+  const header = {};
+  for (const [field, patterns] of Object.entries(RULES.header || {})) {
+    for (const p of patterns) {
+      const m = toRe(p, 'i').exec(text);
+      if (!m) continue;
+      header[field] = squeeze(m[1]);
+      break;
+    }
+  }
+  const year = header.statement_date ? (parseDate(header.statement_date) || '').slice(0, 4) : null;
+  const out = [], missed = [];
+  pages.forEach((page, pi) => {
+    page.split('\n').forEach(rawLine => {
+      let line = squeeze(rawLine);
+      if (!line || SKIP_RES.some(re => re.test(line))) return;
+      let [paid, total, stripped] = peelInstallment(line);
+      line = stripped;
+      let match = null;
+      for (const re of TXN_RES) { match = re.exec(line); if (match) break; }
+      if (!match || !match.groups) { if (AMOUNT_LIKE.test(line)) missed.push(line); return; }
+      const g = match.groups;
+      const when = parseDate(g.date || '', year);
+      let amount = parseAmount(g.amount);
+      if (!when || amount === null) { missed.push(line); return; }
+      let description = squeeze(g.description || '');
+      if (paid === null) { const r = peelInstallment(description); paid = r[0]; total = r[1]; description = r[2]; }
+      if (amount > 0 && ((g.trailing || '').includes('-') || CREDIT_RES.some(re => re.test(description))))
+        amount = -amount;
+      let currency = (g.currency || g.currency_after || RULES.default_currency || 'TRY').toUpperCase();
+      if (currency === 'TL') currency = 'TRY';
+      out.push({
+        id: when + '|' + description + '|' + amount.toFixed(2) + '|' + (header.card_number || ''),
+        date: when, description, merchant: merchantOf(description),
+        category: categorise(description), amount: Math.round(amount * 100) / 100, currency,
+        installment_no: paid, installment_total: total,
+        card: header.card_number || '', statement: sourceName, page: pi + 1
+      });
+    });
+  });
+  return { header, transactions: out, missed };
+}
+
+async function pdfToPages(buffer, password) {
+  if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js yüklenemedi — CSV ile deneyin');
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const doc = await pdfjsLib.getDocument({ data: buffer, password: password || '' }).promise;
+  const pages = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const content = await (await doc.getPage(i)).getTextContent();
+    const rows = new Map();
+    for (const item of content.items) {
+      if (!item.str || !item.str.trim()) continue;
+      const key = Math.round(item.transform[5] / 3);
+      if (!rows.has(key)) rows.set(key, []);
+      rows.get(key).push({ x: item.transform[4], s: item.str });
+    }
+    pages.push([...rows.entries()].sort((a, b) => b[0] - a[0])
+      .map(([, items]) => squeeze(items.sort((a, b) => a.x - b.x).map(i => i.s).join(' ')))
+      .join('\n'));
+  }
+  return pages;
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let field = '', row = [], quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',' || c === ';') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (c !== '\r') field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+
+function csvToTransactions(text, sourceName) {
+  const rows = parseCsv(text.replace(/^﻿/, ''));
+  if (!rows.length) return [];
+  const head = rows[0].map(h => squeeze(h).toLowerCase());
+  const find = names => head.findIndex(h => names.some(n => h.includes(n)));
+  const iDate = find(['date', 'tarih']), iDesc = find(['description', 'aciklama', 'açıklama']),
+    iAmount = find(['amount', 'tutar']), iCat = find(['category', 'kategori']),
+    iInstNo = find(['installment_no']), iInstTot = find(['installment_total']);
+  if (iDate < 0 || iAmount < 0) throw new Error('CSV başlığında tarih ve tutar sütunu bulunamadı');
+  const out = [];
+  for (const row of rows.slice(1)) {
+    const when = parseDate(row[iDate] || '') ||
+      (/^\d{4}-\d{2}-\d{2}/.test(row[iDate] || '') ? row[iDate].slice(0, 10) : null);
+    const amount = parseAmount(row[iAmount]) ?? parseFloat(row[iAmount]);
+    if (!when || amount === null || isNaN(amount)) continue;
+    const description = squeeze(iDesc >= 0 ? row[iDesc] : '(açıklama yok)');
+    out.push({
+      id: when + '|' + description + '|' + amount.toFixed(2) + '|csv',
+      date: when, description, merchant: merchantOf(description),
+      category: (iCat >= 0 && squeeze(row[iCat])) || categorise(description),
+      amount: Math.round(amount * 100) / 100, currency: 'TRY',
+      installment_no: iInstNo >= 0 ? parseInt(row[iInstNo], 10) || null : null,
+      installment_total: iInstTot >= 0 ? parseInt(row[iInstTot], 10) || null : null,
+      card: '', statement: sourceName
+    });
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------------ report */
+function buildReport(txns, budget) {
+  const spend = txns.filter(t => t.amount > 0);
+  const byCat = {}, byMonth = {}, byMerchant = {};
+  let outstanding = 0;
+  for (const t of spend) {
+    const m = t.date.slice(0, 7);
+    byCat[t.category] = (byCat[t.category] || 0) + t.amount;
+    byMonth[m] = (byMonth[m] || 0) + t.amount;
+    const key = t.merchant || t.description;
+    if (!byMerchant[key]) byMerchant[key] = { amount: 0, count: 0, category: t.category };
+    byMerchant[key].amount += t.amount; byMerchant[key].count++;
+    if (t.installment_total && t.installment_no && t.installment_total > t.installment_no)
+      outstanding += t.amount * (t.installment_total - t.installment_no);
+  }
+  const months = Object.keys(byMonth).sort();
+  const budgetMonths = [...new Set(Object.values(budget || {}).flatMap(v => Object.keys(v)))].sort();
+  const overlap = months.filter(m => budgetMonths.includes(m));
+  const scope = { mode: overlap.length ? 'months' : 'full', months: overlap, budgetMonths };
+
+  const variance = [];
+  const seen = new Set();
+  for (const [label, byM] of Object.entries(budget || {})) {
+    const planned = overlap.length
+      ? overlap.reduce((s, m) => s + (byM[m] || 0), 0)
+      : Object.values(byM).reduce((s, v) => s + v, 0);
+    if (!planned && !byCat[label]) continue;
+    seen.add(label);
+    variance.push(varianceRow(label, planned, byCat[label] || 0));
+  }
+  for (const [cat, actual] of Object.entries(byCat))
+    if (!seen.has(cat)) variance.push(varianceRow(cat, 0, actual));
+  variance.sort((a, b) => b.actual - a.actual);
+
+  return {
+    count: txns.length, months,
+    totalSpend: round2(Object.values(byCat).reduce((s, v) => s + v, 0)),
+    totalCredits: round2(txns.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0)),
+    outstanding: round2(outstanding), scope, variance,
+    byCategory: Object.entries(byCat).map(([k, v]) => [k, round2(v)]).sort((a, b) => b[1] - a[1]),
+    byMonth: Object.entries(byMonth).map(([k, v]) => [k, round2(v)]).sort(),
+    topMerchants: Object.entries(byMerchant)
+      .map(([m, v]) => ({ merchant: m, amount: round2(v.amount), count: v.count, category: v.category }))
+      .sort((a, b) => b.amount - a.amount).slice(0, 15),
+    unmatched: Object.entries(byMerchant).filter(([, v]) => v.category === FALLBACK)
+      .map(([m, v]) => ({ merchant: m, amount: round2(v.amount), count: v.count }))
+      .sort((a, b) => b.amount - a.amount)
+  };
+}
+const round2 = v => Math.round(v * 100) / 100;
+function varianceRow(label, planned, actual) {
+  planned = round2(planned); actual = round2(actual);
+  const ratio = planned ? actual / planned : null;
+  let status = 'OK';
+  if (!planned) status = actual ? 'UNBUDGETED' : '-';
+  else if (ratio > 1) status = 'OVER';
+  else if (ratio > 0.85) status = 'WATCH';
+  return { label, budget: planned, actual, diff: round2(actual - planned),
+    used: ratio === null ? null : Math.round(ratio * 1000) / 10, status };
+}
+
+/* ------------------------------------------------------------------- vault */
+let VAULT = null, PASSWORD = null;
+
+function emptyVault() { return { version: 1, transactions: [], budget: {}, updated: null }; }
+
+async function save() {
+  VAULT.updated = new Date().toISOString();
+  localStorage.setItem(KEY_STORE, JSON.stringify(await seal(VAULT, PASSWORD)));
+  $('savedAt').textContent = 'kaydedildi ' + new Date().toLocaleTimeString('tr-TR');
+}
+function addTransactions(list) {
+  const have = new Set(VAULT.transactions.map(t => t.id));
+  let added = 0;
+  for (const t of list) if (!have.has(t.id)) { have.add(t.id); VAULT.transactions.push(t); added++; }
+  VAULT.transactions.sort((a, b) => a.date.localeCompare(b.date) || a.description.localeCompare(b.description));
+  return { added, skipped: list.length - added };
+}
+
+/* -------------------------------------------------------------------- lock */
+const stored = () => localStorage.getItem(KEY_STORE);
+function setupLock() {
+  const fresh = !stored();
+  $('lockTitle').textContent = fresh ? 'Yeni kasa oluştur' : 'Harcama Kontrolü';
+  $('lockText').textContent = fresh
+    ? 'Bir şifre belirleyin. Kısa ve akılda kalıcı olabilir — veri bu tarayıcıdan çıkmaz.'
+    : 'Kasayı açmak için şifrenizi girin.';
+  $('pw2').hidden = !fresh;
+  $('pw').placeholder = fresh ? 'Yeni şifre' : 'Şifre';
+  $('pw').setAttribute('autocomplete', fresh ? 'new-password' : 'current-password');
+  $('lockBtn').textContent = fresh ? 'Kasayı oluştur' : 'Aç';
+}
+async function doUnlock() {
+  const err = $('lockErr'), pw = $('pw').value;
+  if (!pw) { err.textContent = 'Şifre boş olamaz.'; return; }
+  err.textContent = 'Açılıyor...';
+  try {
+    if (!stored()) {
+      if (pw !== $('pw2').value) { err.textContent = 'Şifreler eşleşmiyor.'; return; }
+      PASSWORD = pw; VAULT = emptyVault(); await save();
+    } else {
+      VAULT = await unseal(JSON.parse(stored()), pw); PASSWORD = pw;
+      if (!VAULT.transactions) VAULT = Object.assign(emptyVault(), VAULT);
+    }
+    err.textContent = '';
+    $('pw').value = ''; $('pw2').value = '';
+    $('lock').hidden = true; $('app').hidden = false;
+    renderAll();
+  } catch (e) { err.textContent = 'Şifre yanlış — tekrar deneyin.'; }
+}
+$('lockBtn').addEventListener('click', doUnlock);
+for (const id of ['pw', 'pw2'])
+  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') doUnlock(); });
+$('lockNow').addEventListener('click', () => location.reload());
+
+/* ------------------------------------------------------------------ render */
+function renderAll() { renderSummary(); renderTxns(); renderBudget(); renderPickers();
+  $('savedAt').textContent = VAULT.updated
+    ? 'son kayıt ' + new Date(VAULT.updated).toLocaleString('tr-TR') : ''; }
+
+function renderSummary() {
+  const r = buildReport(VAULT.transactions, VAULT.budget);
+  const period = r.months.length ? r.months[0] + ' – ' + r.months[r.months.length - 1] : '—';
+  if (!r.count) {
+    $('tab-ozet').innerHTML = '<div class="card-box"><h3>Henüz veri yok</h3>' +
+      '<p>“İçe aktar” sekmesinden ekstre PDF’i, CSV veya tek işlem ekleyin.</p></div>';
+    return;
+  }
+  let html = '<div class="kpis">' +
+    kpi('Toplam harcama', money(r.totalSpend)) +
+    kpi('İade / ödeme', money(r.totalCredits)) +
+    kpi('Kalan taksit', money(r.outstanding)) +
+    kpi('Dönem', period) + '</div>';
+
+  if (r.variance.length) {
+    const note = r.scope.mode === 'months'
+      ? ' <span class="badge">' + esc(r.scope.months.join(', ')) + '</span>'
+      : (r.scope.budgetMonths.length ? ' <span class="badge over">ay örtüşmesi yok</span>' : '');
+    html += '<h2>Bütçe vs gerçekleşen' + note + '</h2><div class="wrap"><table><thead><tr>' +
+      '<th>Kalem</th><th class="n">Bütçe</th><th class="n">Gerçekleşen</th><th class="n">Fark</th>' +
+      '<th>Kullanım</th><th>Durum</th></tr></thead><tbody>' +
+      r.variance.map(v => '<tr class="s-' + v.status.toLowerCase() + '"><td>' + esc(v.label) + '</td>' +
+        '<td class="n">' + money(v.budget) + '</td><td class="n">' + money(v.actual) + '</td>' +
+        '<td class="n">' + money(v.diff) + '</td><td class="meter">' +
+        (v.used === null ? '' : '<span style="width:' + Math.min(v.used, 100) + '%"></span>') + '<em>' +
+        (v.used === null ? '—' : pct(v.used)) + '</em></td>' +
+        '<td><span class="badge ' + v.status.toLowerCase() + '">' + v.status + '</span></td></tr>').join('') +
+      '</tbody></table></div>';
+  } else {
+    html += '<h2>Bütçe</h2><p class="note">Bütçe girilmemiş — “Bütçe” sekmesinden kategori başına ' +
+      'aylık tutar yazın, karşılaştırma burada görünsün.</p>';
+  }
+
+  html += '<h2>Kategori bazında</h2><div class="wrap"><table><thead><tr><th>Kategori</th>' +
+    '<th class="n">Tutar</th><th class="n">Pay</th></tr></thead><tbody>' +
+    r.byCategory.map(([c, a]) => '<tr><td>' + esc(c) + '</td><td class="n">' + money(a) +
+      '</td><td class="n">' + pct(a / (r.totalSpend || 1) * 100) + '</td></tr>').join('') +
+    '</tbody></table></div>';
+
+  html += '<h2>Ay bazında</h2><div class="wrap"><table><thead><tr><th>Ay</th>' +
+    '<th class="n">Tutar</th></tr></thead><tbody>' +
+    r.byMonth.map(([m, a]) => '<tr><td>' + esc(m) + '</td><td class="n">' + money(a) + '</td></tr>').join('') +
+    '</tbody></table></div>';
+
+  html += '<h2>En çok harcanan işyerleri</h2><div class="wrap"><table><thead><tr><th>İşyeri</th>' +
+    '<th>Kategori</th><th class="n">Adet</th><th class="n">Tutar</th></tr></thead><tbody>' +
+    r.topMerchants.map(m => '<tr><td>' + esc(m.merchant) + '</td><td>' + esc(m.category) +
+      '</td><td class="n">' + m.count + '</td><td class="n">' + money(m.amount) + '</td></tr>').join('') +
+    '</tbody></table></div>';
+
+  if (r.unmatched.length) {
+    const total = r.unmatched.reduce((s, u) => s + u.amount, 0);
+    html += '<h2>Kategorisiz (' + money(total) + ')</h2>' +
+      '<p class="note">“İşlemler” sekmesinden bunlara kategori atayabilirsiniz.</p>' +
+      '<div class="wrap"><table><thead><tr><th>İşyeri</th><th class="n">Adet</th>' +
+      '<th class="n">Tutar</th></tr></thead><tbody>' +
+      r.unmatched.slice(0, 20).map(u => '<tr><td>' + esc(u.merchant) + '</td><td class="n">' +
+        u.count + '</td><td class="n">' + money(u.amount) + '</td></tr>').join('') +
+      '</tbody></table></div>';
+  }
+  $('tab-ozet').innerHTML = html;
+}
+const kpi = (label, value) => '<div class="kpi"><span>' + esc(label) + '</span><b>' + esc(value) + '</b></div>';
+
+function allCategories() {
+  return [...new Set(CATEGORY_NAMES
+    .concat(VAULT.transactions.map(t => t.category))
+    .concat(Object.keys(VAULT.budget)))].sort((a, b) => a.localeCompare(b, 'tr'));
+}
+function renderPickers() {
+  const cats = allCategories();
+  const options = cats.map(c => '<option>' + esc(c) + '</option>').join('');
+  $('mCat').innerHTML = options;
+  $('filterCat').innerHTML = '<option value="">Tüm kategoriler</option>' + options;
+}
+
+function renderTxns() {
+  const term = squeeze($('filterText').value).toLowerCase();
+  const cat = $('filterCat').value;
+  const cats = allCategories();
+  const rows = VAULT.transactions.filter(t =>
+    (!cat || t.category === cat) &&
+    (!term || (t.description + ' ' + t.merchant).toLowerCase().includes(term)));
+  $('txnTable').querySelector('tbody').innerHTML = rows.map((t) => {
+    const idx = VAULT.transactions.indexOf(t);
+    const inst = t.installment_total ? t.installment_no + '/' + t.installment_total : '';
+    return '<tr><td>' + esc(t.date) + '</td><td>' + esc(t.description) + '</td>' +
+      '<td><select data-idx="' + idx + '" class="catSel">' +
+      cats.map(c => '<option' + (c === t.category ? ' selected' : '') + '>' + esc(c) + '</option>').join('') +
+      '</select></td><td class="n' + (t.amount < 0 ? ' neg' : '') + '">' + money(t.amount) + '</td>' +
+      '<td>' + inst + '</td><td>' + esc(t.statement || '') + '</td>' +
+      '<td><button class="ghost del" data-idx="' + idx + '">Sil</button></td></tr>';
+  }).join('');
+  $('txnCount').textContent = rows.length + ' / ' + VAULT.transactions.length + ' işlem';
+}
+
+function budgetMonths() {
+  const fromTxn = [...new Set(VAULT.transactions.map(t => t.date.slice(0, 7)))];
+  const fromBudget = [...new Set(Object.values(VAULT.budget).flatMap(v => Object.keys(v)))];
+  let months = [...new Set(fromTxn.concat(fromBudget))].sort();
+  if (!months.length) months = [new Date().toISOString().slice(0, 7)];
+  return months;
+}
+function renderBudget() {
+  const months = budgetMonths(), cats = allCategories();
+  $('budgetTable').innerHTML =
+    '<thead><tr><th>Kategori</th><th class="n">Aylık</th>' +
+    months.map(m => '<th class="n">' + esc(m) + '</th>').join('') + '</tr></thead><tbody>' +
+    cats.map(c => '<tr><td>' + esc(c) + '</td>' +
+      '<td class="n"><input type="number" step="1" class="bAll" data-cat="' + esc(c) +
+      '" style="width:96px" placeholder="hepsi"></td>' +
+      months.map(m => '<td class="n"><input type="number" step="1" class="bCell" data-cat="' +
+        esc(c) + '" data-month="' + m + '" style="width:96px" value="' +
+        ((VAULT.budget[c] || {})[m] ?? '') + '"></td>').join('') + '</tr>').join('') +
+    '</tbody>';
+}
+
+/* ------------------------------------------------------------------ events */
+document.querySelectorAll('.tabs button').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b === btn)));
+  ['ozet', 'islemler', 'butce', 'ekle', 'ayarlar'].forEach(t => $('tab-' + t).hidden = t !== btn.dataset.tab);
+}));
+$('filterText').addEventListener('input', renderTxns);
+$('filterCat').addEventListener('change', renderTxns);
+$('txnTable').addEventListener('change', async e => {
+  if (!e.target.classList.contains('catSel')) return;
+  VAULT.transactions[+e.target.dataset.idx].category = e.target.value;
+  await save(); renderSummary(); renderPickers();
+});
+$('txnTable').addEventListener('click', async e => {
+  if (!e.target.classList.contains('del')) return;
+  VAULT.transactions.splice(+e.target.dataset.idx, 1);
+  await save(); renderTxns(); renderSummary();
+});
+$('budgetTable').addEventListener('change', async e => {
+  const cat = e.target.dataset.cat;
+  if (!cat) return;
+  VAULT.budget[cat] = VAULT.budget[cat] || {};
+  if (e.target.classList.contains('bAll')) {
+    const v = parseFloat(e.target.value);
+    for (const m of budgetMonths()) if (isNaN(v)) delete VAULT.budget[cat][m]; else VAULT.budget[cat][m] = v;
+    e.target.value = '';
+  } else {
+    const v = parseFloat(e.target.value);
+    if (isNaN(v)) delete VAULT.budget[cat][e.target.dataset.month];
+    else VAULT.budget[cat][e.target.dataset.month] = v;
+  }
+  if (!Object.keys(VAULT.budget[cat]).length) delete VAULT.budget[cat];
+  await save(); renderBudget(); renderSummary();
+});
+$('addCat').addEventListener('click', async () => {
+  const name = squeeze($('newCat').value);
+  if (!name) return;
+  VAULT.budget[name] = VAULT.budget[name] || {};
+  $('newCat').value = '';
+  await save(); renderBudget(); renderPickers();
+});
+$('addManual').addEventListener('click', async () => {
+  const date = $('mDate').value, description = squeeze($('mDesc').value);
+  const amount = parseFloat($('mAmount').value);
+  if (!date || !description || isNaN(amount)) { log('Tarih, açıklama ve tutar gerekli.', 'bad'); return; }
+  addTransactions([{
+    id: date + '|' + description + '|' + amount.toFixed(2) + '|manual|' + Date.now(),
+    date, description, merchant: merchantOf(description), category: $('mCat').value,
+    amount: round2(amount), currency: 'TRY', installment_no: null, installment_total: null,
+    card: '', statement: 'elle'
+  }]);
+  $('mDesc').value = ''; $('mAmount').value = '';
+  await save(); renderAll(); log('1 işlem eklendi.', 'good');
+});
+
+function log(message, cls) {
+  const box = $('log'); box.hidden = false;
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = message;
+  box.appendChild(line); box.scrollTop = box.scrollHeight;
+}
+
+async function ingestFiles(files) {
+  for (const file of files) {
+    try {
+      if (/\.csv$/i.test(file.name)) {
+        const result = addTransactions(csvToTransactions(await file.text(), file.name));
+        log(file.name + ': ' + result.added + ' eklendi, ' + result.skipped + ' tekrar', 'good');
+      } else {
+        const pages = await pdfToPages(await file.arrayBuffer(), $('pdfPw').value);
+        const parsed = parseStatementText(pages, file.name);
+        const result = addTransactions(parsed.transactions);
+        log(file.name + ': ' + result.added + ' eklendi, ' + result.skipped + ' tekrar' +
+          (parsed.missed.length ? ', ' + parsed.missed.length + ' satır çözümlenemedi' : ''),
+          parsed.transactions.length ? 'good' : 'bad');
+        if (!parsed.transactions.length)
+          log('  → hiçbir satır eşleşmedi. Örnek: ' + (parsed.missed[0] || '(metin çıkmadı — taranmış PDF olabilir)'), 'bad');
+      }
+    } catch (e) {
+      log(file.name + ': ' + (/password/i.test(e.message || '') ? 'PDF şifreli — şifreyi girip tekrar deneyin' : e.message), 'bad');
+    }
+  }
+  await save(); renderAll();
+}
+$('pickPdf').addEventListener('click', () => $('pdfInput').click());
+$('pdfInput').addEventListener('change', e => ingestFiles([...e.target.files]));
+$('pickCsv').addEventListener('click', () => $('csvInput').click());
+$('csvInput').addEventListener('change', e => ingestFiles([...e.target.files]));
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add('on');
+}));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove('on');
+}));
+drop.addEventListener('drop', e => ingestFiles([...e.dataTransfer.files]));
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type: type || 'text/plain;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+$('exportCsv').addEventListener('click', () => {
+  const fields = ['date', 'description', 'merchant', 'category', 'amount', 'currency',
+    'installment_no', 'installment_total', 'card', 'statement'];
+  const cell = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  download('harcamalar.csv', '﻿' + fields.join(',') + '\n' +
+    VAULT.transactions.map(t => fields.map(f => cell(t[f])).join(',')).join('\n'), 'text/csv');
+});
+$('exportVault').addEventListener('click', () =>
+  download('harcama-yedek-' + new Date().toISOString().slice(0, 10) + '.json',
+    stored(), 'application/json'));
+$('pickVault').addEventListener('click', () => $('vaultInput').click());
+$('vaultInput').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const restored = await unseal(JSON.parse(await file.text()), PASSWORD);
+    const result = addTransactions(restored.transactions || []);
+    VAULT.budget = Object.assign({}, restored.budget || {}, VAULT.budget);
+    await save(); renderAll();
+    log('Yedek geri yüklendi: ' + result.added + ' işlem eklendi.', 'good');
+  } catch (err) {
+    alert('Yedek açılamadı. Yedek başka bir şifreyle oluşturulmuş olabilir.');
+  }
+});
+$('changePw').addEventListener('click', async () => {
+  const a = $('npw').value, b = $('npw2').value, err = $('pwErr');
+  if (!a) { err.textContent = 'Yeni şifre boş olamaz.'; return; }
+  if (a !== b) { err.textContent = 'Şifreler eşleşmiyor.'; return; }
+  PASSWORD = a; await save();
+  $('npw').value = ''; $('npw2').value = '';
+  err.textContent = 'Şifre değiştirildi.';
+});
+$('wipe').addEventListener('click', () => {
+  if (!confirm('Bu tarayıcıdaki tüm harcama ve bütçe verisi silinecek. Emin misiniz?')) return;
+  localStorage.removeItem(KEY_STORE);
+  location.reload();
+});
+
+if (typeof pdfjsLib === 'undefined') {
+  $('pdfNote').innerHTML = '<b>PDF okuyucu yüklenemedi</b> (internet yok ya da CDN engelli). ' +
+    'Ekstreleri komut satırı aracıyla çözümleyip çıkan <code>transactions.csv</code> dosyasını ' +
+    'aşağıdan içe aktarabilirsiniz.';
+  $('drop').style.opacity = .55;
+} else {
+  $('pdfNote').textContent = 'Dosyalar tarayıcıdan çıkmaz; okuma bu sayfada yapılır.';
+}
+setupLock();
+</script>
+</body></html>
