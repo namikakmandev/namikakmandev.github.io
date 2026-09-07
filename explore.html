@@ -222,6 +222,45 @@
     }
     function extractSeries(body) { var out = {}; walk(body, "", 0, out); return out; }
 
+    /* ---------- population, for the per-person view ---------- */
+    /* The countries data/population.json covers, so a card knows it can offer the view
+       before the file is fetched. Keep in step with the population entry in data-sources.json. */
+    var POP_CODES = ["AR","AT","AU","BE","BG","BR","CA","CH","CN","CZ","DE","DK","EE","EL","ES","EU","FI","FR","GB","HR",
+      "HU","IE","IL","IN","IT","LT","LU","LV","NL","NO","PL","PT","RO","RU","SE","SI","SK","TR","UA","US"];
+    var POP_NAMES = {};
+    POP_CODES.forEach(function (c) { POP_NAMES[NAMES[c] || c] = c; });
+    var POP = null, POP_BY_NAME = {}, popPromise = null;
+    function loadPopulation() {
+      if (popPromise) return popPromise;
+      popPromise = fetch("data/population.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (!j) return null;
+        POP = extractSeries(j);
+        Object.keys(POP).forEach(function (k) {
+          var head = String(k).split(/[|.]/)[0];
+          POP_BY_NAME[NAMES[head] || head] = POP[k];
+        });
+        return POP;
+      }).catch(function () { return null; });
+      return popPromise;
+    }
+    /* A series belongs to a country if its key starts with a country code, or if the
+       dataset itself is one country (tr-cpi, us-prices). Returns that country's population. */
+    function countryOf(seriesName, file) {
+      var head = String(seriesName).split(/[|.]/)[0];
+      var name = NAMES[head];
+      if (!name) {
+        var n = String(file || "").replace("data/", "").replace(".json", "");
+        if (/^tr-|-tr$/.test(n)) name = "T\u00fcrkiye";
+        else if (/^us-|-us$/.test(n)) name = "United States";
+        else if (/^eu-|-eu$/.test(n)) name = "European Union";
+        else if (/^pl-/.test(n)) name = "Poland";
+        else if (/-il$/.test(n)) name = "Israel";
+      }
+      return name || null;
+    }
+    function hasPop(seriesName, file) { var c = countryOf(seriesName, file); return !!(c && POP_NAMES[c]); }
+    function popFor(seriesName, file) { var c = countryOf(seriesName, file); return c ? POP_BY_NAME[c] || null : null; }
+
     /* ---------- chart ---------- */
     function freqOf(d) { return /^\d{4}$/.test(d) ? "a" : /-Q/.test(d) ? "q" : /-S/.test(d) ? "s" : "m"; }
     function nice(lo, hi) {
@@ -302,7 +341,9 @@
       var chosen = {};
       (card.pick && card.pick.filter(function (n) { return card.series[n]; }).length ? card.pick : full.slice(0, 4).map(function (s) { return s.n; }))
         .forEach(function (n) { if (card.series[n]) chosen[n] = true; });
-      var state = { preset: 0, from: yF, to: yL };
+      var state = { preset: 0, from: yF, to: yL, view: "level" };
+      var canPC = full.some(function (s2) { return hasPop(s2.n, card.file); });
+      var pcPer = 1;
 
       var el = document.createElement("div");
       el.className = "card";
@@ -310,6 +351,7 @@
         "<p class='note'>" + esc(card.note || "") + "</p>" +
         "<div class='ctrl'><span class='lbl'>Period</span><span class='seg js-seg'></span>" +
         "<select class='js-from' aria-label='From year'></select><span class='asof'>to</span><select class='js-to' aria-label='To year'></select></div>" +
+        "<div class='ctrl'><span class='lbl'>Show</span><span class='seg js-view'></span><span class='asof js-viewnote'></span></div>" +
         "<div class='js-fig'></div>" +
         "<div class='ctrl'><span class='lbl'>Series</span>" + (full.length > 6 ? "<button class='allnone' data-all='1'>all</button><button class='allnone' data-all='0'>none</button>" : "") + "</div>" +
         "<div class='picks js-picks'></div>" +
@@ -322,6 +364,7 @@
           fromSel = el.querySelector(".js-from"), toSel = el.querySelector(".js-to"),
           asofEl = el.querySelector(".js-asof"), linkEl = el.querySelector(".js-link"),
           predEl = el.querySelector(".js-pred"), predBtn = el.querySelector(".js-predict");
+      var viewEl = el.querySelector(".js-view"), viewNote = el.querySelector(".js-viewnote");
       var forecastLine = null;
 
       /* Ask the server which method suits this series, then forecast with it.
@@ -372,6 +415,20 @@
         b.addEventListener("click", function () { state.preset = p.k; state.to = yL; state.from = p.k ? Math.max(yF, yL - p.k) : yF; fromSel.value = state.from; toSel.value = state.to; draw(); });
         segEl.appendChild(b);
       });
+      var VIEWS = [["level", "Level"], ["index", "Index = 100"]].concat(canPC ? [["pc", "Per person"]] : []);
+      VIEWS.forEach(function (v) {
+        var b = document.createElement("button");
+        b.type = "button"; b.textContent = v[1];
+        b.addEventListener("click", function () {
+          if (v[0] === "pc" && !POP) {
+            viewNote.textContent = "loading population\u2026";
+            loadPopulation().then(function () { viewNote.textContent = ""; state.view = "pc"; draw(); });
+            return;
+          }
+          state.view = v[0]; draw();
+        });
+        viewEl.appendChild(b);
+      });
       fromSel.addEventListener("change", function () { state.from = +fromSel.value; if (state.from > state.to) { state.to = state.from; toSel.value = state.to; } state.preset = -1; draw(); });
       toSel.addEventListener("change", function () { state.to = +toSel.value; if (state.to < state.from) { state.from = state.to; fromSel.value = state.from; } state.preset = -1; draw(); });
       Array.prototype.forEach.call(el.querySelectorAll("[data-all]"), function (b) {
@@ -395,8 +452,39 @@
           s.d.forEach(function (dt, i) { if (dt >= a && dt < b) { d.push(dt); v.push(s.v[i]); } });
           return { n: s.n, d: d, v: v };
         }).filter(function (s) { return s.d.length > 1; });
+        if (state.view === "index") {
+          win = win.map(function (s) {
+            var base = s.v[0];
+            return base ? { n: s.n, d: s.d, v: s.v.map(function (x) { return x / base * 100; }) } : s;
+          });
+        } else if (state.view === "pc") {
+          var mult = card.unitScale || 1;
+          win = win.map(function (s) {
+            var pop = popFor(s.n, card.file);
+            if (!pop) return null;
+            var d = [], v = [];
+            s.d.forEach(function (dt, i) {
+              var p = pop[String(dt).slice(0, 4)];
+              if (p) { d.push(dt); v.push(s.v[i] * mult / p); }
+            });
+            return d.length > 1 ? { n: s.n, d: d, v: v } : null;
+          }).filter(Boolean);
+          /* Per head of a big population is a tiny number, so scale up to whatever
+             head count reads well and say which one in the note. */
+          var peak = 0;
+          win.forEach(function (s) { s.v.forEach(function (x) { if (Math.abs(x) > peak) peak = Math.abs(x); }); });
+          var per = 1;
+          while (peak > 0 && peak * per < 0.5 && per < 1e6) per *= 1000;
+          pcPer = per;
+          if (per > 1) win = win.map(function (s) { return { n: s.n, d: s.d, v: s.v.map(function (x) { return x * per; }) }; });
+        }
         var vis = win.filter(function (s) { return chosen[s.n]; });
         figEl.innerHTML = svgFor(card.title, freq, vis);
+        Array.prototype.forEach.call(viewEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(VIEWS[i][0] === state.view)); });
+        if (state.view !== "pc" || viewNote.textContent.indexOf("loading") < 0) {
+          viewNote.textContent = state.view === "index" ? "each line starts at 100" :
+            state.view === "pc" ? (win.length ? (pcPer === 1 ? "per person" : "per " + pcPer.toLocaleString("en-GB") + " people") + (card.unitScale ? "" : " \u2014 only meaningful if the series is a quantity or a total, not an index") : "no population for these lines") : "";
+        }
         Array.prototype.forEach.call(segEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(presets[i].k === state.preset)); });
         picksEl.innerHTML = "";
         win.slice().sort(function (p, q) { return (chosen[q.n] ? 1 : 0) - (chosen[p.n] ? 1 : 0); }).forEach(function (s) {
@@ -412,6 +500,7 @@
         var spec = { title: card.title, series: vis.slice(0, 8).map(function (s) {
           return { dataset: card.file, series: s.n, start: vis[0].d[0], end: vis[0].d[vis[0].d.length - 1] }; }) };
         linkEl.href = spec.series.length ? "chart.html#" + b64url(JSON.stringify(spec)) : "chart.html";
+        linkEl.textContent = state.view === "level" ? "Open as a shareable chart \u2192" : "Open the level series as a shareable chart \u2192";
       }
       draw();
       return el;
