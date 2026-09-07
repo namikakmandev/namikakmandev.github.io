@@ -1,0 +1,37 @@
+name: Fetch brand logos
+
+# The dev sandbox cannot reach the manufacturers' sites, so the runner
+# collects logo candidates for the price tracker and commits them.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [claude/pricescraper-study-48ejdx]
+    paths:
+      - scripts/fetch_brand_logos.py
+      - .github/workflows/fetch-brand-logos.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - name: Collect logo candidates
+        run: python scripts/fetch_brand_logos.py
+      - name: Commit
+        run: |
+          git config user.name "data-bot"
+          git config user.email "actions@github.com"
+          git add assets/logos
+          git diff --cached --quiet || git commit -m "assets: brand logo candidates [skip ci]"
+          for i in 1 2 4 8; do
+            git push origin HEAD && break
+            sleep $i
+          done
