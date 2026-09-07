@@ -979,6 +979,193 @@ const weather: Provider = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// SEC EDGAR company facts (XBRL). Keyless, but the SEC requires a user agent
+// that identifies the caller, so every request carries one.
+
+const SEC_UA = "econ-mcp/0.4 (namikakmandev.github.io; akmannamik83@gmail.com)";
+
+/** The line items that make up each statement, in the order an analyst reads them. */
+const SEC_GROUPS: Record<string, string[]> = {
+  balance_sheet: [
+    "Assets", "AssetsCurrent", "CashAndCashEquivalentsAtCarryingValue", "AvailableForSaleSecuritiesDebtSecuritiesCurrent",
+    "AccountsReceivableNetCurrent", "InventoryNet", "PropertyPlantAndEquipmentNet", "Goodwill",
+    "Liabilities", "LiabilitiesCurrent", "AccountsPayableCurrent", "LongTermDebtNoncurrent", "LongTermDebtCurrent",
+    "StockholdersEquity", "RetainedEarningsAccumulatedDeficit",
+  ],
+  income_statement: [
+    "Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "CostOfRevenue", "CostOfGoodsAndServicesSold",
+    "GrossProfit", "ResearchAndDevelopmentExpense", "SellingGeneralAndAdministrativeExpense", "OperatingExpenses",
+    "OperatingIncomeLoss", "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+    "IncomeTaxExpenseBenefit", "NetIncomeLoss",
+  ],
+  cash_flow: [
+    "NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInInvestingActivities",
+    "NetCashProvidedByUsedInFinancingActivities", "PaymentsToAcquirePropertyPlantAndEquipment",
+    "DepreciationDepletionAndAmortization", "PaymentsForRepurchaseOfCommonStock", "PaymentsOfDividendsCommonStock",
+  ],
+};
+
+interface SecFact { end: string; start?: string; val: number; form?: string; filed?: string; frame?: string; fy?: number; fp?: string }
+
+let secTickers: { at: number; byTicker: Map<string, { cik: string; title: string }> } | null = null;
+const SEC_TICKER_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Ticker or CIK to the ten-digit, zero-padded CIK the XBRL endpoints want. */
+async function secResolveCik(token: string): Promise<{ cik: string; title: string }> {
+  const raw = token.trim();
+  const digits = /^(?:CIK)?0*(\d{1,10})$/i.exec(raw);
+  if (digits) return { cik: digits[1].padStart(10, "0"), title: `CIK ${digits[1]}` };
+  if (!secTickers || Date.now() - secTickers.at > SEC_TICKER_TTL_MS) {
+    const j = (await getJson("https://www.sec.gov/files/company_tickers.json", { "user-agent": SEC_UA })) as Record<string, { cik_str: number; ticker: string; title: string }>;
+    const byTicker = new Map<string, { cik: string; title: string }>();
+    for (const row of Object.values(j)) {
+      if (!row || typeof row.cik_str !== "number" || !row.ticker) continue;
+      byTicker.set(String(row.ticker).toUpperCase(), { cik: String(row.cik_str).padStart(10, "0"), title: row.title });
+    }
+    if (!byTicker.size) throw new DataError("The SEC ticker list came back empty.");
+    secTickers = { at: Date.now(), byTicker };
+  }
+  const hit = secTickers.byTicker.get(raw.toUpperCase());
+  if (!hit) throw new DataError(`No SEC filer with ticker '${raw}'. Use a US-listed ticker (AAPL, JPM, XOM) or a CIK such as CIK0000320193.`);
+  return hit;
+}
+
+/**
+ * A calendar label for a fact. The SEC's own `frame` is already calendar-aligned, so it
+ * wins; otherwise the period end decides the quarter, which keeps filers with odd fiscal
+ * years comparable with everyone else.
+ */
+function secPeriod(f: SecFact, annual: boolean): string | null {
+  const fr = f.frame;
+  if (fr) {
+    const m = /^CY(\d{4})(?:Q([1-4]))?I?$/.exec(fr);
+    if (m) return annual ? (m[2] ? null : m[1]) : m[2] ? `${m[1]}-Q${m[2]}` : `${m[1]}-Q4`;
+  }
+  const end = f.end;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) return null;
+  const y = end.slice(0, 4), q = Math.min(4, Math.floor((Number(end.slice(5, 7)) - 1) / 3) + 1);
+  return annual ? y : `${y}-Q${q}`;
+}
+
+/** Roughly how long a fact covers, in days; instants come back as 0. */
+function secSpanDays(f: SecFact): number {
+  if (!f.start) return 0;
+  const a = Date.parse(f.start), b = Date.parse(f.end);
+  return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / 864e5) : -1;
+}
+
+/**
+ * One value per period from the pile of overlapping facts a filer reports: keep the
+ * duration the caller asked for, then the most recently filed row, which is the
+ * restated number rather than the first print.
+ */
+function secSeriesFrom(facts: SecFact[], annual: boolean): Series {
+  const instant = facts.every((f) => !f.start);
+  const wanted = facts.filter((f) => {
+    if (instant) return true;
+    const d = secSpanDays(f);
+    return annual ? d >= 330 && d <= 400 : d >= 60 && d <= 120;
+  });
+  const best = new Map<string, SecFact>();
+  for (const f of wanted) {
+    const key = secPeriod(f, annual);
+    if (!key || !Number.isFinite(f.val)) continue;
+    const cur = best.get(key);
+    if (!cur || String(f.filed ?? "") > String(cur.filed ?? "")) best.set(key, f);
+  }
+  const out: Series = {};
+  for (const [k, f] of best) out[k] = f.val;
+  return out;
+}
+
+async function secConcept(cik: string, taxonomy: string, tag: string, unit: string): Promise<{ facts: SecFact[]; label: string } | null> {
+  const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${encodeURIComponent(taxonomy)}/${encodeURIComponent(tag)}.json`;
+  let j: { label?: string; units?: Record<string, SecFact[]> };
+  try { j = (await getJson(url, { "user-agent": SEC_UA })) as typeof j; }
+  catch { return null; }   // a tag the filer never used answers 404; that is a skip, not a failure
+  const units = j.units ?? {};
+  const rows = units[unit] ?? units[Object.keys(units)[0]];
+  if (!Array.isArray(rows) || !rows.length) return null;
+  return { facts: rows, label: j.label ?? tag };
+}
+
+const sec: Provider = {
+  name: "sec",
+  title: "SEC EDGAR company financials (XBRL company facts)",
+  coverage: "Every company that files with the SEC, from about 2009: balance sheet, income statement and cash flow line items as reported, quarterly and annual.",
+  id_format: "'TICKER:TAG' or 'CIK0000320193:TAG', e.g. 'AAPL:Assets'. TAG can be a whole statement: balance_sheet, income_statement or cash_flow. params: annual ('true' for fiscal years only, default quarterly), unit (default USD), taxonomy (default us-gaap).",
+  needs_key: null,
+  curated: [
+    { id: "AAPL:balance_sheet", title: "Apple: the whole balance sheet", hint: "Every line item at once; swap the ticker for any SEC filer." },
+    { id: "JPM:balance_sheet", title: "JPMorgan Chase: balance sheet" },
+    { id: "AAPL:income_statement", title: "Apple: income statement" },
+    { id: "AAPL:cash_flow", title: "Apple: cash flow statement" },
+    { id: "MSFT:Assets", title: "Microsoft: total assets" },
+    { id: "XOM:Revenues", title: "Exxon Mobil: revenues" },
+    { id: "TSLA:NetIncomeLoss", title: "Tesla: net income" },
+    { id: "BRK-B:StockholdersEquity", title: "Berkshire Hathaway: shareholders' equity" },
+    { id: "WMT:InventoryNet", title: "Walmart: inventories" },
+    { id: "KO:NetCashProvidedByUsedInOperatingActivities", title: "Coca-Cola: cash from operations" },
+  ],
+  async fetch(id, params) {
+    const cut = id.lastIndexOf(":");
+    if (cut < 1) throw new DataError(`SEC ids look like 'TICKER:TAG', e.g. 'AAPL:Assets' or 'AAPL:balance_sheet'. Got '${id}'.`);
+    const who = id.slice(0, cut), what = id.slice(cut + 1).trim();
+    const { cik, title } = await secResolveCik(who);
+    const taxonomy = params.taxonomy ?? "us-gaap";
+    const unit = params.unit ?? "USD";
+    const annual = String(params.annual ?? "").toLowerCase() === "true";
+    const group = SEC_GROUPS[what];
+    const tags = group ?? [what];
+    if (tags.length > 20) throw new DataError(`At most 20 tags at once, got ${tags.length}.`);
+
+    // The SEC asks for no more than ten requests a second and answers a burst with a
+    // block, so a whole statement goes out four tags at a time rather than all at once.
+    const got: Array<{ tag: string; res: Awaited<ReturnType<typeof secConcept>> }> = [];
+    for (let i = 0; i < tags.length; i += 4) {
+      if (i) await new Promise((r) => setTimeout(r, 500));
+      const batch = tags.slice(i, i + 4);
+      got.push(...await Promise.all(batch.map(async (t) => ({ tag: t, res: await secConcept(cik, taxonomy, t, unit) }))));
+    }
+    const series: Record<string, Series> = {};
+    const labels: string[] = [];
+    for (const { tag, res } of got) {
+      if (!res) continue;
+      const s = secSeriesFrom(res.facts, annual);
+      if (Object.keys(s).length) { series[tag] = s; labels.push(`${tag}: ${res.label}`); }
+    }
+    if (!Object.keys(series).length) {
+      throw new DataError(group
+        ? `${title} reports none of the ${what.replace("_", " ")} tags in ${unit} under ${taxonomy}. Banks and insurers use their own tags; try a single tag from the company's filing, or unit='USD'.`
+        : `${title} has no ${taxonomy} tag '${what}' in ${unit}. Tag names are XBRL element names (Assets, Revenues, NetIncomeLoss); try a whole statement instead: '${who}:balance_sheet'.`);
+    }
+    const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${taxonomy}/${(got.find((g) => g.res) ?? { tag: tags[0] }).tag}.json`;
+    return {
+      provider: "sec", id,
+      source: `SEC EDGAR XBRL company facts: ${title} (CIK ${cik}), ${taxonomy}`,
+      url, series,
+      notes: [
+        group ? `Series keys are XBRL tags from the ${what.replace("_", " ")}; a filer that does not report a tag is simply absent.` : "One series, keyed by its XBRL tag.",
+        annual ? "Fiscal-year figures, labelled by calendar year." : "Quarterly figures, labelled by the calendar quarter the period ends in, so filers with odd fiscal years stay comparable.",
+        `Values in ${unit}, as filed. Where a figure was restated, the most recently filed version is used, so history changes as companies refile.`,
+        "Balance-sheet items are stocks at the period end; income and cash-flow items are flows over the period. Do not mix the two in one ratio without checking.",
+        "Coverage starts around 2009, when XBRL tagging became mandatory. Tag choice varies by industry: banks, insurers and REITs use different elements from manufacturers.",
+      ],
+    };
+  },
+  async search(query) {
+    const hits = curatedSearch(sec.curated, query);
+    if (hits.length) return hits;
+    // Anything else: try to read the query as a company and offer its statements.
+    const token = query.trim().split(/\s+/)[0];
+    try {
+      const { cik, title } = await secResolveCik(token);
+      return Object.keys(SEC_GROUPS).map((g) => ({ id: `${token.toUpperCase()}:${g}`, title: `${title}: ${g.replace("_", " ")}`, hint: `CIK ${cik}` }));
+    } catch { return []; }
+  },
+};
+
 export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry[] {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   return list
@@ -992,7 +1179,7 @@ export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry
     .map((x) => x.e);
 }
 
-export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao, imf, weather };
+export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao, imf, weather, sec };
 
 export function providerInfo(env: ProviderEnv) {
   return Object.values(PROVIDERS).map((p) => ({

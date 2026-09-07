@@ -590,17 +590,29 @@ def worldbank(entry):
     start = entry.get("start", 1960)
     scale = entry.get("scale", {})
     out = defaultdict(dict)
+    # Thirty countries and sixty-five years in one request times out often enough to lose
+    # whole indicators, so countries go in chunks and each chunk gets a second attempt.
+    iso = list(countries.values())
+    chunks = [iso[i:i + 10] for i in range(0, len(iso), 10)] or [[]]
     for ikey, code in entry["indicators"].items():
-        url = (f"https://api.worldbank.org/v2/country/{';'.join(countries.values())}/indicator/{code}"
-               f"?format=json&per_page=20000&date={start}:{time.gmtime().tm_year}")
-        try:
-            j = json.loads(get(url).decode("utf-8", "replace"))
-        except Exception as ex:
-            out[f"_error|{ikey}"] = {"error": f"{code}: {type(ex).__name__}: {ex}"}
-            continue
-        rows = j[1] if isinstance(j, list) and len(j) > 1 and j[1] else []
-        if MODE == "discover":
-            return {"_discover": {"url": url, "n_rows": len(rows), "sample": rows[:3]}}
+        rows, failures = [], []
+        for chunk in chunks:
+            url = (f"https://api.worldbank.org/v2/country/{';'.join(chunk)}/indicator/{code}"
+                   f"?format=json&per_page=20000&date={start}:{time.gmtime().tm_year}")
+            for attempt in (1, 2):
+                try:
+                    j = json.loads(get(url).decode("utf-8", "replace"))
+                    rows.extend(j[1] if isinstance(j, list) and len(j) > 1 and j[1] else [])
+                    break
+                except Exception as ex:
+                    if attempt == 2:
+                        failures.append(f"{'+'.join(chunk)}: {type(ex).__name__}: {ex}")
+                    else:
+                        time.sleep(5)
+            if MODE == "discover":
+                return {"_discover": {"url": url, "n_rows": len(rows), "sample": rows[:3]}}
+        if failures:
+            out[f"_error|{ikey}"] = {"error": f"{code}: " + "; ".join(failures)}
         for r in rows:
             v = r.get("value")
             iso = r.get("countryiso3code") or (r.get("country") or {}).get("id")
@@ -690,10 +702,28 @@ def xlsx(entry):
     # no exact match falls back to the first header containing it ('Meat, beef' for 'beef').
     norm = lambda c: re.sub(r"[\s*]+", " ", str(c)).strip().upper()
     marker = norm(entry.get("code_row_contains", "Crude oil, average"))
-    code_row = next((r for r in rows if any(norm(c) == marker for c in r if c is not None)), None)
-    if code_row is None:
+    start_row = next((i for i, r in enumerate(rows) if any(norm(c) == marker for c in r if c is not None)), None)
+    if start_row is None:
         sample = [[c for c in r[:8]] for r in rows[:8]]
         raise RuntimeError(f"no row containing {marker!r} in sheet {ws.title}; first rows: {sample}")
+    # The Pink Sheet's index sheet spreads its headers down a staircase of rows, one per
+    # level of the grouping, so 'code_row_span' merges that many rows into one header,
+    # taking the first non-blank cell in each column.
+    span = int(entry.get("code_row_span", 1))
+    if span > 1:
+        block = rows[start_row:start_row + span]
+        width = max((len(r) for r in block), default=0)
+        code_row = []
+        for col in range(width):
+            val = None
+            for r in block:
+                c = r[col] if col < len(r) else None
+                if c is not None and str(c).strip():
+                    val = c
+                    break
+            code_row.append(val)
+    else:
+        code_row = rows[start_row]
     headers = [(norm(c), i) for i, c in enumerate(code_row) if c is not None]
     idx = {}
     for k, want in entry["columns"].items():

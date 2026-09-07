@@ -48,6 +48,39 @@ function defaultLambda(period: number, freq: string): number {
   return period === 4 ? 1600 : 100;
 }
 
+/**
+ * An inline chart series built from numbers this server computed (a fitted line, a
+ * residual, an impulse response). Non-finite points drop out; a long series is thinned
+ * so the link stays a link, keeping the first and last observation.
+ */
+const CHART_PTS = 400;
+function inline(label: string, xs: Array<string | number>, vals: Array<number | null | undefined>): SeriesRef {
+  const all: [string, number][] = [];
+  xs.forEach((d, i) => { const x = vals[i]; if (typeof x === "number" && Number.isFinite(x)) all.push([String(d), x]); });
+  if (all.length <= CHART_PTS) return { points: all, label };
+  const step = (all.length - 1) / (CHART_PTS - 1), thin: [string, number][] = [];
+  for (let i = 0; i < CHART_PTS; i++) thin.push(all[Math.round(i * step)]);
+  thin[thin.length - 1] = all[all.length - 1];
+  return { points: thin, label };
+}
+/** A shaded band on one of those series, from the same x values. */
+function inlineBand(series: number, label: string, xs: Array<string | number>, lo: Array<number | null | undefined>, hi: Array<number | null | undefined>): Band {
+  const all: [string, number, number][] = [];
+  xs.forEach((d, i) => { const a = lo[i], b = hi[i]; if (typeof a === "number" && typeof b === "number" && Number.isFinite(a) && Number.isFinite(b)) all.push([String(d), a, b]); });
+  if (all.length <= CHART_PTS) return { series, label, points: all };
+  const step = (all.length - 1) / (CHART_PTS - 1), thin: [string, number, number][] = [];
+  for (let i = 0; i < CHART_PTS; i++) thin.push(all[Math.round(i * step)]);
+  thin[thin.length - 1] = all[all.length - 1];
+  return { series, label, points: thin };
+}
+/** A flat reference line (a critical value, an unconditional level) across the same x range. */
+function refLine(label: string, xs: Array<string | number>, level: number): SeriesRef {
+  const ends = xs.length ? [xs[0], xs[xs.length - 1]] : [];
+  return inline(label, ends, ends.map(() => level));
+}
+/** Horizons as fixed-width strings so a numeric x axis sorts them in order. */
+const hx = (h: number) => String(h).padStart(2, "0");
+
 function pointsOut(dates: string[], v: Array<number | null>): Array<[string, number | null]> {
   return dates.map((d, i) => [d, v[i] === null || v[i] === undefined ? null : (r4(v[i] as number) as number)]);
 }
@@ -156,7 +189,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
       title: "Search a live provider",
       description: "Find series ids at a provider. FRED searches its full catalogue when FRED_API_KEY is set; World Bank searches all indicators; EVDS walks the TCMB catalogue when EVDS_API_KEY is set; FAOSTAT searches its item, area and element lists; the others match against a curated starter list, so for those also try the provider's own website and pass the id to fetch_external.",
       inputSchema: {
-        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather"]),
+        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather", "sec"]),
         query: z.string().min(1),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
@@ -174,7 +207,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
       title: "Fetch from a live provider",
       description: "Pull a series from FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS, FAOSTAT or IMF as [date, value] points, with the same window and transform options as get_series. When the id returns several series (countries, dimensions), the reply lists their keys; pick one with 'series'.",
       inputSchema: {
-        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather"]),
+        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather", "sec"]),
         id: z.string(),
         params: z.record(z.string(), z.string()).optional().describe("Provider filters. Eurostat: dimension codes (geo, unit, ...). World Bank: country='TUR;USA' or 'all'. OWID: entities='Turkey;United States'. EVDS/ECB/OECD: start, end. FAOSTAT: area, item, element, year (codes; several separated by commas). IMF: start, end, version."),
         series: z.string().optional().describe("Which series key to return when the id yields several"),
@@ -286,6 +319,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const p = profile(r);
       return text({
         ...meta(r), ...p.summary,
+        chart_url: chartUrl(origin, { series: [series], title: r.label, api: self }),
         unit_root: { levels: adfOut(p.adfLevel), first_difference: adfOut(p.adfDiff), integration_order: integrationOrder(p.adfLevel, p.adfDiff) },
         linear_trend: p.trendFit ? { slope_per_period: r4(p.trendFit.beta[1]), t: r3(p.trendFit.t[1]), r2: r3(p.trendFit.r2) } : null,
         seasonality: p.decomposition ? { period: p.period, seasonal_strength: r3(p.decomposition.seasonal_strength), trend_strength: r3(p.decomposition.trend_strength), factors: p.decomposition.seasonal_factors.map(r3) } : null,
@@ -392,9 +426,38 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       if (highVif.length) warnings.push(`VIF above 10 for ${highVif.join(", ")}: these regressors move together, so their separate coefficients are poorly determined even if the fit is good. Drop one or combine them.`);
       if (rs && rs.p < 0.05) warnings.push(`RESET p ${r4(rs.p)}: powers of the fitted values add explanatory power, so the linear form is misspecified (a curvature, a missing variable, or logs needed).`);
       const allLog = [ry, ...rx].every((r) => r.transform === "log");
+      // What the regression looks like: the fit against the data, the residuals, and for a
+      // single regressor the scatter with the line through it.
+      const fitDates = dates.slice(x_lags);
+      const fitted = yv.map((val, i) => val - fit.resid[i]);
+      const resSd = S.sd(fit.resid);
+      const fitChart: PlotSpec = {
+        series: [inline(ry.label, fitDates, yv), inline("fitted", fitDates, fitted)],
+        title: `${ry.label}: actual against the fit on ${rx.map((r) => r.label).join(", ")}`, api: self,
+      };
+      const residChart: PlotSpec = {
+        series: [inline("residual", fitDates, fit.resid)],
+        bands: [inlineBand(0, "±2 residual sd", fitDates, fit.resid.map(() => -2 * resSd), fit.resid.map(() => 2 * resSd))],
+        title: `${ry.label}: residuals`, api: self,
+      };
+      let scatterUrl: string | null = null;
+      if (rx.length === 1 && x_lags === 0 && !trend) {
+        const xs = rows.map((row) => row[1]);
+        const lo = Math.min(...xs), hi = Math.max(...xs);
+        const lineX = [lo, hi], lineY = lineX.map((xx) => fit.beta[0] + fit.beta[1] * xx);
+        scatterUrl = chartUrl(origin, {
+          series: [inline(`${ry.label} against ${rx[0].label}`, xs, yv), inline("fitted line", lineX, lineY)],
+          dots: [0], xaxis: "number", xlabel: rx[0].label,
+          title: `${ry.label} against ${rx[0].label}`, api: self,
+        });
+      }
       return text({
         y: meta(ry), x: rx.map(meta),
         n: fit.n, k: fit.k, first: dates[x_lags], last: dates[dates.length - 1],
+        chart_url: chartUrl(origin, fitChart),
+        residual_chart_url: chartUrl(origin, residChart),
+        scatter_chart_url: scatterUrl ?? undefined,
+        chart_note: "chart_url draws the actual series against the fitted values, residual_chart_url the errors against a two-sd band" + (scatterUrl ? ", scatter_chart_url the cloud of points with the regression line through it" : "") + ". Give the user the links.",
         coefficients: table,
         r2: r4(fit.r2), adj_r2: r4(fit.adj_r2), sigma: r4(fit.sigma), F: fit.F !== null ? r3(fit.F) : null, F_p: fit.F_p !== null ? r4(fit.F_p) : null,
         aic: r3(fit.aic), bic: r3(fit.bic), durbin_watson: r3(fit.dw), hac_lags: hac.lag,
@@ -457,8 +520,20 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const notes: string[] = [];
       if (orderA !== "I(1)" || orderB !== "I(1)") notes.push(`Both series should be I(1) for this test to mean anything. Found a: ${orderA}, b: ${orderB}.`);
       const fit = S.ols(va, vb.map((x) => [1, x]));
+      // The picture of the test: how far the pair sits from its long-run line, through time.
+      const eqChart: PlotSpec = { series: [inline(`${ra.label} minus its long-run level given ${rb.label}`, dates, fit.resid)],
+        title: `Equilibrium error: ${ra.label} against ${rb.label}`, api: self };
+      const loB = Math.min(...vb), hiB = Math.max(...vb);
+      const lineX = [loB, hiB];
+      const scatterChart: PlotSpec = {
+        series: [inline(`${ra.label} against ${rb.label}`, vb, va), inline("long-run line", lineX, lineX.map((x) => eg.beta[0] + eg.beta[1] * x))],
+        dots: [0], xaxis: "number", xlabel: rb.label, title: `${ra.label} against ${rb.label}, with the long-run line`, api: self,
+      };
       return text({
         a: meta(ra), b: meta(rb), n: dates.length, first: dates[0], last: dates[dates.length - 1],
+        chart_url: chartUrl(origin, eqChart),
+        scatter_chart_url: chartUrl(origin, scatterChart),
+        chart_note: "chart_url is the equilibrium error through time: cointegration means it returns to zero rather than wandering. scatter_chart_url is the pair with the long-run line through it.",
         integration_order: { a: orderA, b: orderB },
         long_run: { equation: `a = ${r4(eg.beta[0])} + ${r4(eg.beta[1])} * b`, intercept: r4(eg.beta[0]), slope: r4(eg.beta[1]), slope_se: r4(eg.se[1]), r2: r4(eg.r2) },
         residual_test: { statistic: r3(eg.residual_adf.statistic), lags: eg.residual_adf.lags, critical: { "1%": r3(eg.critical["1%"]), "5%": r3(eg.critical["5%"]), "10%": r3(eg.critical["10%"]) }, cointegrated_at: eg.cointegrated_at },
@@ -484,9 +559,17 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const cc = S.crossCorrelation(columns[0], columns[1], max_lag);
       const best = cc.reduce((p, q) => (Math.abs(q.r) > Math.abs(p.r) ? q : p));
       const band = 1.96 / Math.sqrt(dates.length);
+      const lagX = cc.map((c) => c.lag);
+      const ccChart: PlotSpec = {
+        series: [inline(`corr(${ra.label} at t, ${rb.label} at t+k)`, lagX, cc.map((c) => c.r))],
+        bands: [inlineBand(0, "not distinguishable from zero", lagX, cc.map(() => -band), cc.map(() => band))],
+        xaxis: "number", xlabel: "lag, in periods", title: `${ra.label} against ${rb.label} by lag (positive k: ${ra.label} leads)`, api: self,
+      };
       return text({
         a: meta(ra), b: meta(rb), n: dates.length, first: dates[0], last: dates[dates.length - 1],
         significance_band: r3(band),
+        chart_url: chartUrl(origin, ccChart),
+        chart_note: "The chart is the correlation against lag; bars outside the shaded band are the lags that carry information. Give the user the link.",
         strongest: { lag: best.lag, r: r3(best.r), reading: best.lag > 0 ? `a leads b by ${best.lag} periods` : best.lag < 0 ? `b leads a by ${-best.lag} periods` : "contemporaneous" },
         correlations: cc.map((c) => ({ lag: c.lag, r: r3(c.r), n: c.n, significant: Math.abs(c.r) > band })),
       });
@@ -507,8 +590,13 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const { frequency, period } = detectFrequency(dates);
       const lam = lambda ?? defaultLambda(period, frequency);
       const { trend, cycle } = S.hpFilter(v, lam);
+      const trendChart: PlotSpec = { series: [inline(r.label, dates, v), inline("trend", dates, trend)], title: `${r.label} and its trend (HP, lambda ${lam})`, api: self };
+      const cycleChart: PlotSpec = { series: [inline("cycle", dates, cycle)], title: `${r.label}: cycle around the trend`, api: self };
       return text({
         ...meta(r), n: v.length, frequency, lambda: lam,
+        chart_url: chartUrl(origin, trendChart),
+        cycle_chart_url: chartUrl(origin, cycleChart),
+        chart_note: "chart_url draws the series with the trend through it; cycle_chart_url the gap between them, which is the object of interest.",
         cycle_sd: r4(S.sd(cycle)), cycle_last: r4(cycle[cycle.length - 1]), trend_last: r4(trend[trend.length - 1]),
         trend: include_points ? pointsOut(dates, trend) : undefined,
         cycle: include_points ? pointsOut(dates, cycle) : undefined,
@@ -534,8 +622,15 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const d = S.decompose(v, p);
       const labels = p === 12 ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : p === 4 ? ["Q1", "Q2", "Q3", "Q4"] : Array.from({ length: p }, (_, i) => `s${i + 1}`);
       const offset = seasonOffset(dates[0], p);
+      const trendChart: PlotSpec = { series: [inline(r.label, dates, v), inline("trend", dates, d.trend)], title: `${r.label} and its trend`, api: self };
+      const partsChart: PlotSpec = { series: [inline("seasonal", dates, d.seasonal), inline("remainder", dates, d.residual)], title: `${r.label}: seasonal pattern and what is left`, api: self };
+      const factorChart: PlotSpec = { series: [inline("seasonal effect", d.seasonal_factors.map((_, i) => i + 1), d.seasonal_factors)], xaxis: "number", xlabel: p === 12 ? "month of the year" : p === 4 ? "quarter" : "season", title: `${r.label}: average effect of each ${p === 12 ? "month" : p === 4 ? "quarter" : "season"}`, api: self };
       return text({
         ...meta(r), n: v.length, period: p,
+        chart_url: chartUrl(origin, trendChart),
+        components_chart_url: chartUrl(origin, partsChart),
+        seasonal_shape_chart_url: chartUrl(origin, factorChart),
+        chart_note: `chart_url is the series with its trend, components_chart_url the seasonal swing and the remainder, seasonal_shape_chart_url the average effect of each of the ${p} seasons in order (season 1 is ${(p === 12 ? ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"] : p === 4 ? ["Q1","Q2","Q3","Q4"] : ["s1"])[((0 + offset) % p + p) % p]}).`,
         seasonal_strength: r3(d.seasonal_strength), trend_strength: r3(d.trend_strength),
         seasonal_factors: d.seasonal_factors.map((x, i) => ({ season: labels[(((i + offset) % p) + p) % p], effect: r4(x) })),
         reading: d.seasonal_strength > 0.6 ? "Strong seasonality: compare year-on-year or seasonally adjust before month-on-month reading." : d.seasonal_strength > 0.3 ? "Moderate seasonality." : "Weak seasonality: month-on-month changes are usable.",
@@ -628,7 +723,13 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         if (b < 0) return fail(`Date ${date} is after the sample end ${dates[dates.length - 1]}`);
         const c = S.chow(yv, X, b);
         const before = yv.slice(0, b), after = yv.slice(b);
+        const stepChart: PlotSpec = {
+          series: [inline(ry.label, dates, yv), inline("mean each side of the break", dates, dates.map((_, t) => (t < b ? S.mean(before) : S.mean(after))))],
+          title: `${ry.label}: level before and after ${dates[b]}`, api: self,
+        };
         return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "Chow", break_date: dates[b], F: r3(c.F), p: r4(c.p), n_before: c.n1, n_after: c.n2,
+          chart_url: chartUrl(origin, stepChart),
+          chart_note: "The chart draws the series with the average on each side of the tested date. Give the user the link.",
           mean_before: r4(S.mean(before)), mean_after: r4(S.mean(after)), verdict: c.p < 0.05 ? "Break at this date (5%)" : "No evidence of a break at this date" });
       }
       const k = X[0].length;
@@ -637,8 +738,8 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const crit = S.supFCritical(k), rej = S.supFReject(s.best.F, k);
       const segOut = (seg: S.BreakSegment) => ({ from: dates[seg.start], to: dates[seg.end], n: seg.n, mean_y: r4(seg.mean_y), ...(rx ? { intercept: r4(seg.beta[0]), slope: r4(seg.beta[1]) } : {}) });
       let multiple: Record<string, unknown> | undefined;
-      if (max_breaks > 1) {
-        const seq = S.sequentialBreaks(yv, X, max_breaks);
+      const seq = max_breaks > 1 ? S.sequentialBreaks(yv, X, max_breaks) : null;
+      if (seq) {
         multiple = { breaks: seq.breaks.map((b) => ({ date: dates[b.index], sup_F: r3(b.F), reject_at: b.reject_at })), segments: seq.segments.map(segOut), stopped: seq.stopped };
       }
       const segAt = (lo: number, hi: number): S.BreakSegment => {
@@ -647,7 +748,30 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         return { start: lo, end: hi - 1, n: ys.length, beta, mean_y: S.mean(ys) };
       };
       const single = { segments: [segAt(0, s.best.break_index), segAt(s.best.break_index, yv.length)] };
+      // The scan itself: F against every candidate date, with the line it has to clear.
+      const scanDates = s.scan.map((e) => dates[e.index]);
+      // The statistic runs to hundreds while the critical value sits near ten, so a flat
+      // line would vanish at the foot of the chart. Shading everything below it instead
+      // means the eye reads "out of the shade" as "a break", at any scale.
+      const scanChart: PlotSpec = {
+        series: [inline("sup-F at each candidate date", scanDates, s.scan.map((e) => e.F))],
+        bands: [inlineBand(0, `below this, no break at 5% (${r3(crit["5%"])})`, scanDates, s.scan.map(() => 0), s.scan.map(() => crit["5%"]))],
+        title: `${ry.label}: where a break is most likely`, api: self,
+      };
+      // The series with the level (or the fitted relation) inside each segment it found.
+      const segs = seq ? seq.segments : single.segments;
+      const stepAt = (t: number) => {
+        const seg = segs.find((g) => t >= g.start && t <= g.end) ?? segs[segs.length - 1];
+        return rx ? seg.beta[0] + seg.beta[1] * X[t][1] : seg.mean_y;
+      };
+      const segChart: PlotSpec = {
+        series: [inline(ry.label, dates, yv), inline(rx ? "fit inside each segment" : "level inside each segment", dates, dates.map((_, t) => stepAt(t)))],
+        title: `${ry.label}: ${segs.length} segment${segs.length > 1 ? "s" : ""}`, api: self,
+      };
       return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "sup-F scan (Quandt-Andrews), 15% trimming", most_likely_break: dates[s.best.break_index], sup_F: r3(s.best.F),
+        chart_url: chartUrl(origin, scanChart),
+        segments_chart_url: chartUrl(origin, segChart),
+        chart_note: "chart_url is the F statistic at every candidate date against its 5% line, so the reader sees how sharp the break is. segments_chart_url draws the series with the level or the fit inside each segment.",
         sup_F_critical: { "10%": r3(crit["10%"]), "5%": r3(crit["5%"]), "1%": r3(crit["1%"]) }, reject_no_break_at: rej,
         chow_p_at_that_date: r4(s.best.p), candidates: top,
         segments: rej && rej !== "10%" ? single.segments.map(segOut) : undefined,
@@ -682,7 +806,14 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         else val = S.pearson(a, columns[1].slice(t - window + 1, t + 1));
         out.push([dates[t], r4(val)]);
       }
-      return text({ ...meta(r), other: ro ? meta(ro) : undefined, stat, window, n: out.length, points: out });
+      const rollChart: PlotSpec = {
+        series: [inline(`${window}-period rolling ${stat}${ro ? ` with ${ro.label}` : ""}`, out.map((x) => x[0]), out.map((x) => x[1]))],
+        title: `${r.label}: rolling ${stat} over ${window} periods`, api: self,
+      };
+      return text({ ...meta(r), other: ro ? meta(ro) : undefined, stat, window, n: out.length,
+        chart_url: chartUrl(origin, rollChart),
+        chart_note: "The chart is the rolling statistic through time, which is the point of the tool. Give the user the link.",
+        points: out });
     }),
   );
 
@@ -710,8 +841,15 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const hNext = g.omega + g.alpha * last * last + g.beta * g.cond_variance[g.cond_variance.length - 1];
       const nonStationary = g.persistence >= 0.99;
       const uncSd = Math.sqrt(g.unconditional_variance);
+      const volDates = dates.slice(-last_n), volPath = condSd.slice(-last_n);
+      const volChart: PlotSpec = {
+        series: [inline("conditional volatility", volDates, volPath), refLine(`unconditional (${r4(uncSd)})`, volDates, uncSd)],
+        title: `${r.label}: GARCH(1,1) volatility`, api: self,
+      };
       return text({
         ...meta(r), n: g.nobs, first: dates[0], last: dates[dates.length - 1], frequency,
+        chart_url: chartUrl(origin, volChart),
+        chart_note: "The chart is the conditional volatility path against its unconditional level: the clustering the model is about is visible there, not in the parameters.",
         arch_lm: { statistic: r3(g.arch_lm.statistic), p: r4(g.arch_lm.p), lags: g.arch_lm.lags, clustering: g.arch_lm.p < 0.05 },
         garch: { omega: r4(g.omega), alpha: r4(g.alpha), beta: r4(g.beta), persistence: r4(g.persistence), loglik: r3(g.loglik), aic: r3(g.aic), bic: r3(g.bic) },
         unconditional_sd: r4(uncSd),
@@ -750,8 +888,17 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const qs = [...new Set(quantiles)].sort((a, b) => a - b);   // low tail first, whatever order was passed
       const rows = qs.map((q) => { const f = S.quantileRegress(Y, X, q); return { quantile: q, coefficients: Object.fromEntries(names.map((nm, j) => [nm, r4(f.beta[j])])), iterations: f.iterations }; });
       const slopeSpread = rx.map((r, j) => { const b = rows.map((row) => row.coefficients[r.label] as number); return { x: r.label, low_quantile: b[0], high_quantile: b[b.length - 1], ols: r4(olsFit.beta[j + 1]), tail_asymmetry: r4((b[b.length - 1] ?? 0) - (b[0] ?? 0)) }; });
+      // The slope of each x across the distribution of y, against its single OLS number.
+      const qSeries: SeriesRef[] = [];
+      rx.forEach((r, j) => {
+        qSeries.push(inline(`${r.label} by quantile`, qs, rows.map((row) => row.coefficients[r.label] as number)));
+        if (qSeries.length < 8) qSeries.push(refLine(`${r.label}, OLS`, qs, olsFit.beta[j + 1]));
+      });
+      const qChart: PlotSpec = { series: qSeries.slice(0, 8), xaxis: "number", xlabel: `quantile of ${ry.label}`, title: `${ry.label}: slope at each quantile`, api: self };
       return text({
         y: meta(ry), x: rx.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1],
+        chart_url: chartUrl(origin, qChart),
+        chart_note: "The chart puts each slope against the quantile of " + ry.label + ", with its OLS value as a flat line: where the two diverge, one average number is hiding the story.",
         ols: Object.fromEntries(names.map((nm, j) => [nm, r4(olsFit.beta[j])])),
         quantiles: qs,
         by_quantile: rows,
@@ -778,8 +925,22 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const p = S.pca(Y);
       const m = Math.min(components, p.k);
       const labels = rs.map((r) => r.label);
+      const scoreDates = dates.slice(-last_n);
+      const scoreChart: PlotSpec = {
+        series: Array.from({ length: m }, (_, c) => inline(`component ${c + 1}`, scoreDates, p.scores.slice(-last_n).map((row) => row[c]))),
+        title: `Common factor${m > 1 ? "s" : ""} across ${labels.join(", ")}`, api: self,
+      };
+      const comps = p.explained.slice(0, p.k).map((_, i) => i + 1);
+      const screeChart: PlotSpec = {
+        series: [inline("share of joint variance", comps, p.explained.slice(0, p.k)),
+          inline("cumulative", comps, comps.map((_, i) => p.explained.slice(0, i + 1).reduce((a, b) => a + b, 0)))],
+        xaxis: "number", xlabel: "component", title: "How much each component explains", api: self,
+      };
       return text({
         series: rs.map(meta), n: p.nobs, first: dates[0], last: dates[dates.length - 1],
+        chart_url: chartUrl(origin, scoreChart),
+        scree_chart_url: chartUrl(origin, screeChart),
+        chart_note: "chart_url is the common factor through time, the series to quote as the shared movement; scree_chart_url shows how much of the joint variation each component carries.",
         explained_variance: p.explained.slice(0, p.k).map((e, i) => ({ component: i + 1, share: r4(e), cumulative: r4(p.explained.slice(0, i + 1).reduce((a, b) => a + b, 0)) })),
         loadings: Array.from({ length: m }, (_, c) => ({ component: c + 1, loadings: Object.fromEntries(labels.map((l, j) => [l, r4(p.loadings[c][j])])) })),
         correlation_matrix: Object.fromEntries(labels.map((l, i) => [l, Object.fromEntries(labels.map((l2, j) => [l2, r3(p.correlation[i][j])]))])),
@@ -907,8 +1068,26 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const j = S.johansen(Y, lags, deterministic);
       const drift = driftCheck(rs.map((r) => r.label), columns, deterministic);
       const labels = [...rs.map((r) => r.label), ...(deterministic === "restricted_constant" ? ["constant"] : deterministic === "restricted_trend" ? ["trend"] : [])];
+      // The relation itself: beta'y through time. Cointegration means this comes back.
+      // Drawn even at rank 0, where the point is that the line wanders instead of returning.
+      let relUrl: string | null = null;
+      const bv = j.cointegrating_vector ?? (j.vectors?.length ? j.vectors[0] : null);
+      if (bv) {
+        const rel = Y.map((row, t) => {
+          let z = 0;
+          row.forEach((x, i) => { z += bv[i] * x; });
+          if (deterministic === "restricted_constant") z += bv[rs.length];
+          if (deterministic === "restricted_trend") z += bv[rs.length] * t;
+          return z;
+        });
+        relUrl = chartUrl(origin, { series: [inline(j.rank_at_5pct > 0 ? "cointegrating relation" : "leading combination (no relation at 5%)", dates, rel)], title: `Long-run relation between ${rs.map((r) => r.label).join(", ")}`, api: self });
+      }
       return text({
         series: rs.map(meta), n: j.nobs, first: dates[0], last: dates[dates.length - 1], lags, deterministic,
+        chart_url: relUrl ?? undefined,
+        chart_note: relUrl ? (j.rank_at_5pct > 0
+          ? "The chart is the first cointegrating relation through time: a line that returns to its mean is what the trace test is claiming."
+          : "The chart is the combination with the strongest mean reversion in the data. The trace test does not call it cointegrated at 5%, and the wandering line is why.") : undefined,
         eigenvalues: j.eigenvalues.map(r4),
         trace_tests: j.trace.map((t) => ({ null_rank_at_most: t.r, statistic: r3(t.statistic), critical: t.critical, reject: t.reject })),
         rank_at_5pct: j.rank_at_5pct,
@@ -954,8 +1133,15 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       }));
       const adjusters = relations[0].adjustment.filter((a) => a.adjusts).map((a) => a.series);
       const half = labels.map((l, i) => ({ l, a: m.alpha[i][0], p: m.alpha_p[i][0] })).filter((x) => x.p < 0.05 && x.a < 0).map((x) => `${x.l}: ${r3(Math.log(0.5) / Math.log(1 - Math.min(Math.abs(x.a), 0.99)))} periods`);
+      const ectDates = dates.slice(dates.length - m.ect.length);
+      const ectChart: PlotSpec = {
+        series: Array.from({ length: Math.min(m.rank, 4) }, (_, c) => inline(`deviation, relation ${c + 1}`, ectDates, m.ect.map((row) => row[c]))),
+        title: `${labels.join(", ")}: distance from the long-run relation`, api: self,
+      };
       return text({
         series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags, rank: m.rank, deterministic,
+        chart_url: chartUrl(origin, ectChart),
+        chart_note: "The chart is the error-correction term: how far the system sits from its long-run relation at each date, and how quickly it is pulled back. Give the user the link.",
         drift_check: drift,
         johansen: { rank_at_5pct: m.johansen.rank_at_5pct, trace: m.johansen.trace.map((t) => ({ null_rank_at_most: t.r, statistic: r3(t.statistic), critical_5pct: t.critical["5%"], reject: t.reject })) },
         relations,
@@ -1051,6 +1237,22 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           if (hh.length) significant.push(`${rn} to ${sn}: h=${hh.length > 6 ? `${hh[0]}..${hh[hh.length - 1]} (${hh.length})` : hh.join(",")}`);
         }));
       }
+      // One chart per shock: every series' response, with the 68% band where there is one.
+      const hs2 = bands ? (bands.horizons as Array<Record<string, unknown>>) : null;
+      const loKey2 = identification === "sign" ? "lo" : "lo16", hiKey2 = identification === "sign" ? "hi" : "hi84";
+      const hAxis = irf.map((_, h) => hx(h));
+      const f0 = detectFrequency(dates).frequency;
+      const irfCharts = shocks.map((sn, si) => {
+        const shown = names.slice(0, 8);
+        const spec: PlotSpec = {
+          series: shown.map((rn, ri) => inline(rn, hAxis, irf.map((h) => h[ri][si]))),
+          bands: hs2 ? shown.slice(0, 4).map((rn, ri) => inlineBand(ri, "68% band", hAxis,
+            hs2.map((row) => ((row[loKey2] as Record<string, Record<string, number | null>>)[rn][sn])),
+            hs2.map((row) => ((row[hiKey2] as Record<string, Record<string, number | null>>)[rn][sn])))) : undefined,
+          xaxis: "number", xlabel: `periods after the shock (${f0})`, title: `Response to a ${sn}`, api: self,
+        };
+        return { shock: sn, chart_url: chartUrl(origin, spec) };
+      });
       return text({
         series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags: p, lag_selection: lags ? "given" : `AIC over 1..${max_lags}`,
         aic: r3(m.aic), bic: r3(m.bic),
@@ -1060,6 +1262,8 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         impact_matrix: { note: "Row = series, column = structural shock: the response on impact to a one-standard-deviation shock", matrix: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(B[ri][si])]))])) },
         long_run_effects: longRun,
         sign_identification: signInfo,
+        impulse_response_charts: irfCharts,
+        chart_note: "One chart per shock, each drawing how every series responds over the horizon with its 68% band. These are the figures to show; the tables below are the same numbers.",
         impulse_responses: { note: identification === "cholesky" ? "Response of row series to a one-standard-deviation orthogonalised shock in column; ordering matters for contemporaneous effects." : "Response of row series to a one-standard-deviation structural shock in column.", horizons: grid(irf) },
         cumulative_responses_at_horizon: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(cumulative[horizon][ri][si])]))])),
         response_bands: bands,
@@ -1090,7 +1294,14 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       if (bi < 0) return fail(`Base ${b} is not a shared date (range ${dates[0]}..${dates[dates.length - 1]}).`);
       const pb = columns[1][bi];
       const real = columns[0].map((v, i) => (columns[1][i] ? (v * pb) / columns[1][i] : NaN));
-      return text({ nominal: meta(rn), deflator: meta(rd), base_date: b, n: dates.length, unit_hint: `${rn.label} at ${b} prices`, points: pointsOut(dates, real) });
+      const defChart: PlotSpec = {
+        series: [inline(`${rn.label}, nominal`, dates, columns[0]), inline(`at ${b} prices`, dates, real)],
+        title: `${rn.label}: nominal and real`, api: self,
+      };
+      return text({ nominal: meta(rn), deflator: meta(rd), base_date: b, n: dates.length, unit_hint: `${rn.label} at ${b} prices`,
+        chart_url: chartUrl(origin, defChart),
+        chart_note: "The chart puts the nominal series against the same series in constant prices; the gap between them is the inflation. Give the user the link.",
+        points: pointsOut(dates, real) });
     }),
   );
 
@@ -1270,8 +1481,15 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const degenerateWin = !beatsNaive && bestVsNaive?.some((t) => t.verdict.startsWith(best.method) && t.degenerate);
       const naiveTested = bestVsNaive?.some((t) => !t.verdict.startsWith("not tested") && !t.degenerate);
       const methodArg = best.method === "naive" || best.method === "drift" || best.method === "seasonal_naive" ? null : best.method;
+      const hAxisF = Array.from({ length: H }, (_, i) => hx(i + 1));
+      const scoreChart: PlotSpec = {
+        series: scored.slice(0, 8).map((x) => inline(x.method, hAxisF, x.byH.map((mm) => mm.rmse))),
+        xaxis: "number", xlabel: `periods ahead (${f.frequency})`, title: `${r.label}: forecast error by how far ahead`, api: self,
+      };
       return text({
         ...meta(r), n: v.length, frequency: f.frequency, horizon: H,
+        chart_url: chartUrl(origin, scoreChart),
+        chart_note: "The chart is each method's out-of-sample error against the horizon: the lines cross when one method is better close in and another further out. Give the user the link.",
         origins: { count: orig.length, step, first: dates[orig[0]], last: dates[orig[orig.length - 1]], scored_through: dates[orig[orig.length - 1] + H], min_training_points: minTrain, training_window: v.length > max_train ? `rolling, last ${max_train} observations` : "expanding, all history" },
         arima_order: arimaOrder ? { order: arimaOrder, note: "Chosen by AIC on the first training window and held fixed after that" } : undefined,
         ranking: scored.map((s, i) => ({
@@ -1335,7 +1553,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           { points: finiteRows.map((r) => [hx(r.h), r.cumulative as number]), label: "cumulative response" },
         ],
         bands: [{ series: 0, label: "95% band", points: finiteRows.map((r) => [hx(r.h), r.lo95 as number, r.hi95 as number]) }],
-        xaxis: "number", title: `Local projections: ${ry.label} after a shock to ${rx.label}`, api: self,
+        xaxis: "number", xlabel: `periods after the shock (${f.frequency})`, title: `Local projections: ${ry.label} after a shock to ${rx.label}`, api: self,
       };
       return text({
         y: meta(ry), x: meta(rx), controls: rc.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1], frequency: f.frequency, lags: p, horizon,
@@ -1400,8 +1618,18 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         } catch { /* skip */ }
       }
       const allLog = [ry, ...rx, ...rw].every((r) => r.transform === "log");
+      // The two fits side by side: where 2SLS and OLS part company is where endogeneity bites.
+      const Xrow = (t: number) => [1, ...endog[t], ...(ex.length ? ex[t] : [])];
+      const fit2 = dates.map((_, t) => Xrow(t).reduce((a, xv, j) => a + xv * iv.beta[j], 0));
+      const fitO = dates.map((_, t) => Xrow(t).reduce((a, xv, j) => a + xv * iv.ols.beta[j], 0));
+      const ivChart: PlotSpec = {
+        series: [inline(ry.label, dates, col(0)), inline("2SLS fit", dates, fit2), inline("OLS fit", dates, fitO)],
+        title: `${ry.label}: 2SLS against OLS`, api: self,
+      };
       return text({
         y: meta(ry), x: rx.map(meta), instruments: rz.map(meta), exog: rw.map(meta),
+        chart_url: chartUrl(origin, ivChart),
+        chart_note: "The chart draws the series with both fits: a visible gap between the 2SLS and OLS lines is the bias the instruments are correcting.",
         n: iv.n, first: dates[0], last: dates[T - 1], identification: iv.L === iv.m ? "just identified" : `over-identified (${iv.L} instruments for ${iv.m} endogenous regressor${iv.m > 1 ? "s" : ""})`,
         coefficients: table,
         r2: r4(iv.r2), sigma: r4(iv.sigma), hac_lags: iv.hac_lag,

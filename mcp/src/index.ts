@@ -68,7 +68,7 @@ export default {
         endpoint: new URL("/mcp", url).href,
         data_origin: origin,
         auth: env.MCP_API_KEYS ? "bearer" : "none",
-        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY", bis: "open", fao: env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "enabled" : "needs FAOSTAT_USER and FAOSTAT_PASSWORD", imf: "open", weather: "open" },
+        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY", bis: "open", fao: env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "enabled" : "needs FAOSTAT_USER and FAOSTAT_PASSWORD", imf: "open", weather: "open", sec: "open" },
         http: { series: new URL("/v1/series?s=" + encodeURIComponent('{"series":[{"dataset":"us-prices","series":"cattle_ppi","start":"2020"}]}'), url).href, analyze: new URL("/v1/analyze", url).href, chart: origin + "/chart.html" },
         docs: "https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp",
       });

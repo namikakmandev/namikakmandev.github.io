@@ -17,6 +17,21 @@
     h2.sec { font-size: 1.12rem; margin: 34px 0 4px; }
     .sec-note { color: var(--text-dim); font-size: .88rem; margin-bottom: 12px; }
 
+    .stats { display: flex; flex-wrap: wrap; gap: 8px 26px; padding: 14px 0 16px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 18px; }
+    .stat b { display: block; font-size: 1.35rem; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    .stat span { color: var(--text-dim); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+    .tile { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; font: inherit; color: var(--text); display: flex; flex-direction: column; gap: 4px; }
+    .tile:hover { border-color: var(--accent); }
+    .tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+    .tile strong { font-size: .92rem; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .tile strong em { font-style: normal; color: var(--text-dim); font-size: .76rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+    .tile small { color: var(--text-dim); font-size: .76rem; line-height: 1.45; }
+    .active { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .active button { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .78rem; padding: 4px 10px 4px 12px; border-radius: 999px; cursor: pointer; }
+    .active button::after { content: " \00d7"; color: var(--text-dim); }
+
     .filters { display: grid; grid-template-columns: 2fr 1.3fr 1.2fr; gap: 10px; margin-bottom: 12px; }
     @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
     .filters label { display: flex; flex-direction: column; gap: 5px; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
@@ -64,6 +79,16 @@
     .allnone { background: none; border: 0; color: var(--accent); font: inherit; font-size: .76rem; cursor: pointer; text-decoration: underline; padding: 2px 4px; }
     .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: auto; padding-top: 2px; }
     .card .foot a { color: var(--accent); font-size: .8rem; }
+    .card .foot .act { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .78rem; font-weight: 600; padding: 5px 12px; border-radius: 7px; cursor: pointer; }
+    .card .foot .act[disabled] { opacity: .55; cursor: default; }
+    .pred { border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 10px 10px 0; padding: 11px 14px; font-size: .86rem; line-height: 1.5; }
+    .pred h4 { margin: 0 0 6px; font-size: .9rem; }
+    .pred table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
+    .pred th, .pred td { text-align: right; padding: 4px 7px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .pred th:first-child, .pred td:first-child { text-align: left; }
+    .pred th { color: var(--text-dim); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
+    .pred tr.win td { color: var(--text); font-weight: 600; }
+    .pred .why { color: var(--text-dim); margin-top: 7px; }
     .card .foot .drop { background: none; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; cursor: pointer; text-decoration: underline; }
     .asof { color: var(--text-dim); font-size: .74rem; font-variant-numeric: tabular-nums; }
     .loading { color: var(--text-dim); padding: 30px 0; text-align: center; }
@@ -92,10 +117,10 @@
       <div class="container">
         <a href="data.html" class="back">&larr; The data behind the studies</a>
         <h1>Explore the data</h1>
-        <p class="lede">Every dataset behind the studies, charted in the browser. Pick a period, pick the countries or series you want, and the chart redraws. Nothing to install, no account, no sign-in.</p>
+        <p class="lede">Every dataset behind the studies, charted in the browser. Pick a subject, then a dataset, and it draws with the period, countries and series you choose. Nothing to install, no account, no sign-in.</p>
 
-        <div id="cards" class="cards"></div>
-        <p class="sec-note" id="hint">Loading the catalogue…</p>
+        <div class="stats" id="stats"></div>
+        <div class="tiles" id="tiles"></div>
 
         <h2 class="sec">Find a dataset</h2>
         <p class="sec-note">Search by subject, narrow by country, or by the years it has to cover.</p>
@@ -104,8 +129,13 @@
           <label>Country<select id="country"></select></label>
           <label>Covers<span class="years"><select id="from"></select><span class="count">to</span><select id="to"></select></span></label>
         </div>
+        <div class="active" id="active" hidden></div>
         <span class="count" id="count"></span>
         <div id="browse"></div>
+
+        <h2 class="sec" id="chart-head" hidden>Your charts</h2>
+        <p class="sec-note" id="hint">Press Chart on any dataset above and it opens here.</p>
+        <div id="cards" class="cards"></div>
 
         <div class="footnote">
           <p>Charts are drawn in your browser from the JSON files in
@@ -122,6 +152,7 @@
   (function () {
     "use strict";
     var COLORS = ["#2f9bff", "#19c37d", "#ff6500", "#e5484d", "#a78bfa", "#14b8a6"];
+    var API = "https://econ-mcp.akmannamik83.workers.dev";
     var FEATURED = [
       { file: "cattle-parity", title: "Meat price against feed cost, four markets", pick: ["US.parity_idx", "EU.parity_idx", "TR.parity_idx", "IL.parity_idx"] },
       { file: "tr-house-prices", title: "Turkish house prices", pick: ["turkey", "istanbul", "ankara", "izmir"] },
@@ -131,16 +162,23 @@
     var NAMES = {"AE":"United Arab Emirates","AL":"Albania","AT":"Austria","AU":"Australia","BA":"Bosnia and Herzegovina","BD":"Bangladesh","BE":"Belgium","BG":"Bulgaria","BR":"Brazil","CA":"Canada","CH":"Switzerland","CN":"China","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","EE":"Estonia","EG":"Egypt","EL":"Greece","ES":"Spain","FI":"Finland","FR":"France","GB":"United Kingdom","HR":"Croatia","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IR":"Iran","IS":"Iceland","IT":"Italy","JP":"Japan","KR":"South Korea","KZ":"Kazakhstan","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MD":"Moldova","ME":"Montenegro","MK":"North Macedonia","MT":"Malta","MX":"Mexico","MY":"Malaysia","NG":"Nigeria","NL":"Netherlands","NO":"Norway","PH":"Philippines","PK":"Pakistan","PL":"Poland","PT":"Portugal","RO":"Romania","RS":"Serbia","RU":"Russia","SA":"Saudi Arabia","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","TH":"Thailand","TR":"Türkiye","UA":"Ukraine","UK":"United Kingdom","US":"United States","UZ":"Uzbekistan","VN":"Vietnam","ZA":"South Africa","EU":"European Union",
       "ARE":"United Arab Emirates","ARG":"Argentina","AUS":"Australia","AZE":"Azerbaijan","BRA":"Brazil","CAN":"Canada","CHE":"Switzerland","CHL":"Chile","CHN":"China","COL":"Colombia","CZE":"Czechia","DNK":"Denmark","EGY":"Egypt","GBR":"United Kingdom","HKG":"Hong Kong","HUN":"Hungary","IDN":"Indonesia","IND":"India","ISR":"Israel","JPN":"Japan","KOR":"South Korea","MEX":"Mexico","MYS":"Malaysia","NOR":"Norway","NZL":"New Zealand","PAK":"Pakistan","PER":"Peru","POL":"Poland","ROU":"Romania","RUS":"Russia","SAU":"Saudi Arabia","SGP":"Singapore","SWE":"Sweden","THA":"Thailand","TUR":"Türkiye","TWN":"Taiwan","UKR":"Ukraine","URY":"Uruguay","USA":"United States","VNM":"Vietnam","ZAF":"South Africa",
       "TRY":"Türkiye","USD":"United States","GBP":"United Kingdom","CHF":"Switzerland","SEK":"Sweden","NOK":"Norway","DKK":"Denmark","PLN":"Poland","CZK":"Czechia","HUF":"Hungary","RON":"Romania"};
+    /* Subject, the file names that belong to it, and what a reader gets there.
+       Order matters: the first pattern that matches a dataset name wins. */
     var SUBJECTS = [
-      ["Livestock, meat and feed", /cattle|herd|meat|broiler|cowcalf|corn-parity|vet/],
-      ["Prices and inflation", /cpi|ppi|hicp|price|bigmac|ppp|inflation/],
-      ["Türkiye", /^tr-|cattle-tr/],
-      ["Economies, trade and forecasts", /gdp|gva|gni|weo|wdi|esi|lci|elec|gas|fx|sentiment|spf|hpi|export|comtrade|chem/],
-      ["Health and pharma", /pharma|glp1|peptide|stan|berd|eroom/],
-      ["Commodities, markets and climate", /commodit|market|climate|pump|oil|leverage/],
+      ["Livestock, meat and feed", /cattle|herd|meat|broiler|cowcalf|corn-parity|vet/, "Herd sizes, meat and feed prices, the margin between them"],
+      ["Money and central banks", /cb-|central-bank|money|reserve|policy-rate|balance/, "Central bank balance sheets, reserves, money in circulation"],
+      ["Prices and inflation", /cpi|ppi|hicp|price|bigmac|ppp|inflation/, "Consumer and producer prices, purchasing power, house prices"],
+      ["Trade and external accounts", /external|trade|export|import|comtrade|current-account/, "Trade balances, current accounts, reserves, external debt"],
+      ["Commodities and energy", /commodit|oil|gas|pump|energy|fertil|metal/, "Crude, gas, grains, fertilizers and metals from the Pink Sheet"],
+      ["Türkiye", /^tr-|cattle-tr/, "Turkish prices, housing, the central bank and the herd"],
+      ["Economies and forecasts", /gdp|gva|gni|weo|wdi|esi|lci|elec|fx|sentiment|spf|hpi|chem|population/, "Growth, value added, exchange rates, sentiment and IMF forecasts"],
+      ["Health and pharma", /pharma|glp1|peptide|stan|berd|eroom/, "Drug pipelines, R&D spending, the cost of a new molecule"],
+      ["Markets and climate", /market|climate|leverage/, "Market structure, pricing power, weather and climate series"],
     ];
 
     var app = document.getElementById("browse"), cardsEl = document.getElementById("cards"),
+        statsEl = document.getElementById("stats"), tilesEl = document.getElementById("tiles"),
+        activeEl = document.getElementById("active"), chartHead = document.getElementById("chart-head"),
         hintEl = document.getElementById("hint"), countEl = document.getElementById("count"),
         qEl = document.getElementById("q"), countryEl = document.getElementById("country"),
         fromEl = document.getElementById("from"), toEl = document.getElementById("to");
@@ -210,6 +248,45 @@
       });
     }
     function extractSeries(body) { var out = {}; walk(body, "", 0, out); return out; }
+
+    /* ---------- population, for the per-person view ---------- */
+    /* The countries data/population.json covers, so a card knows it can offer the view
+       before the file is fetched. Keep in step with the population entry in data-sources.json. */
+    var POP_CODES = ["AR","AT","AU","BE","BG","BR","CA","CH","CN","CZ","DE","DK","EE","EL","ES","EU","FI","FR","GB","HR",
+      "HU","IE","IL","IN","IT","LT","LU","LV","NL","NO","PL","PT","RO","RU","SE","SI","SK","TR","UA","US"];
+    var POP_NAMES = {};
+    POP_CODES.forEach(function (c) { POP_NAMES[NAMES[c] || c] = c; });
+    var POP = null, POP_BY_NAME = {}, popPromise = null;
+    function loadPopulation() {
+      if (popPromise) return popPromise;
+      popPromise = fetch("data/population.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (!j) return null;
+        POP = extractSeries(j);
+        Object.keys(POP).forEach(function (k) {
+          var head = String(k).split(/[|.]/)[0];
+          POP_BY_NAME[NAMES[head] || head] = POP[k];
+        });
+        return POP;
+      }).catch(function () { return null; });
+      return popPromise;
+    }
+    /* A series belongs to a country if its key starts with a country code, or if the
+       dataset itself is one country (tr-cpi, us-prices). Returns that country's population. */
+    function countryOf(seriesName, file) {
+      var head = String(seriesName).split(/[|.]/)[0];
+      var name = NAMES[head];
+      if (!name) {
+        var n = String(file || "").replace("data/", "").replace(".json", "");
+        if (/^tr-|-tr$/.test(n)) name = "T\u00fcrkiye";
+        else if (/^us-|-us$/.test(n)) name = "United States";
+        else if (/^eu-|-eu$/.test(n)) name = "European Union";
+        else if (/^pl-/.test(n)) name = "Poland";
+        else if (/-il$/.test(n)) name = "Israel";
+      }
+      return name || null;
+    }
+    function hasPop(seriesName, file) { var c = countryOf(seriesName, file); return !!(c && POP_NAMES[c]); }
+    function popFor(seriesName, file) { var c = countryOf(seriesName, file); return c ? POP_BY_NAME[c] || null : null; }
 
     /* ---------- chart ---------- */
     function freqOf(d) { return /^\d{4}$/.test(d) ? "a" : /-Q/.test(d) ? "q" : /-S/.test(d) ? "s" : "m"; }
@@ -291,7 +368,9 @@
       var chosen = {};
       (card.pick && card.pick.filter(function (n) { return card.series[n]; }).length ? card.pick : full.slice(0, 4).map(function (s) { return s.n; }))
         .forEach(function (n) { if (card.series[n]) chosen[n] = true; });
-      var state = { preset: 0, from: yF, to: yL };
+      var state = { preset: 0, from: yF, to: yL, view: "level" };
+      var canPC = full.some(function (s2) { return hasPop(s2.n, card.file); });
+      var pcPer = 1;
 
       var el = document.createElement("div");
       el.className = "card";
@@ -299,15 +378,59 @@
         "<p class='note'>" + esc(card.note || "") + "</p>" +
         "<div class='ctrl'><span class='lbl'>Period</span><span class='seg js-seg'></span>" +
         "<select class='js-from' aria-label='From year'></select><span class='asof'>to</span><select class='js-to' aria-label='To year'></select></div>" +
+        "<div class='ctrl'><span class='lbl'>Show</span><span class='seg js-view'></span><span class='asof js-viewnote'></span></div>" +
         "<div class='js-fig'></div>" +
         "<div class='ctrl'><span class='lbl'>Series</span>" + (full.length > 6 ? "<button class='allnone' data-all='1'>all</button><button class='allnone' data-all='0'>none</button>" : "") + "</div>" +
         "<div class='picks js-picks'></div>" +
-        "<div class='foot'><a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a><span class='asof js-asof'></span></div>";
+        "<div class='js-pred'></div>" +
+        "<div class='foot'><button type='button' class='act js-predict'>Predict</button>" +
+        "<a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a><span class='asof js-asof'></span></div>";
       if (prepend && cardsEl.firstChild) cardsEl.insertBefore(el, cardsEl.firstChild); else cardsEl.appendChild(el);
 
       var figEl = el.querySelector(".js-fig"), picksEl = el.querySelector(".js-picks"), segEl = el.querySelector(".js-seg"),
           fromSel = el.querySelector(".js-from"), toSel = el.querySelector(".js-to"),
-          asofEl = el.querySelector(".js-asof"), linkEl = el.querySelector(".js-link");
+          asofEl = el.querySelector(".js-asof"), linkEl = el.querySelector(".js-link"),
+          predEl = el.querySelector(".js-pred"), predBtn = el.querySelector(".js-predict");
+      var viewEl = el.querySelector(".js-view"), viewNote = el.querySelector(".js-viewnote");
+      var forecastLine = null;
+
+      /* Ask the server which method suits this series, then forecast with it.
+         No account and no model: /v1/analyze runs the same code the tools use. */
+      predBtn.addEventListener("click", async function () {
+        var vis = full.filter(function (s) { return chosen[s.n]; });
+        if (!vis.length) { predEl.innerHTML = "<div class='pred'>Pick one line first, then press Predict.</div>"; return; }
+        var target = vis[0];
+        predBtn.disabled = true; predBtn.textContent = "Testing methods…";
+        predEl.innerHTML = "<div class='pred'>Re-fitting each method at a run of past dates and scoring what actually happened. This takes a few seconds.</div>";
+        try {
+          var res = await fetch(API + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ tool: "predict", args: { series: { dataset: card.file, series: target.n }, horizon: 12, origins: 10 } }) });
+          var j = await res.json();
+          if (!res.ok || !j.result) throw new Error(j.error || ("HTTP " + res.status));
+          var r = j.result;
+          var rows = r.methods.map(function (m) {
+            return "<tr" + (m.recommended ? " class='win'" : "") + "><td>" + esc(m.what_it_does) + "</td><td>" + esc(fmt(m.typical_error)) +
+              "</td><td>" + (m.better_than_no_change === null ? "—" : Math.round(m.better_than_no_change * 100) + "%") + "</td></tr>";
+          }).join("");
+          predEl.innerHTML = "<div class='pred'><h4>" + esc(label(target.n)) + ": " + esc(r.recommendation.what_it_does) + "</h4>" +
+            "<div>" + esc(r.reading) + "</div>" +
+            "<table><thead><tr><th>Method</th><th>Typical error</th><th>Better than no change</th></tr></thead><tbody>" + rows + "</tbody></table>" +
+            "<div class='why'>" + esc(r.recommendation.why) + "</div>" +
+            "<div class='why'>" + esc(r.caveat) + "</div></div>";
+          forecastLine = { n: target.n + " — forecast", d: [target.d[target.d.length - 1]].concat(r.forecast.map(function (p) { return p.date; })),
+            v: [target.v[target.v.length - 1]].concat(r.forecast.map(function (p) { return p.value; })) };
+          var yEnd = +String(forecastLine.d[forecastLine.d.length - 1]).slice(0, 4);
+          if (yEnd > +toSel.value) {
+            var o = document.createElement("option"); o.value = o.textContent = yEnd; toSel.appendChild(o);
+            toSel.value = yEnd; state.to = yEnd;
+          }
+          chosen[forecastLine.n] = true;
+          draw();
+        } catch (e) {
+          predEl.innerHTML = "<div class='pred'>Could not run the test: " + esc(e.message) + "</div>";
+        }
+        predBtn.disabled = false; predBtn.textContent = "Predict";
+      });
       for (var y = yF; y <= yL; y++) {
         var o1 = document.createElement("option"); o1.value = o1.textContent = y; fromSel.appendChild(o1);
         var o2 = document.createElement("option"); o2.value = o2.textContent = y; toSel.appendChild(o2);
@@ -318,6 +441,20 @@
         b.type = "button"; b.textContent = p.l;
         b.addEventListener("click", function () { state.preset = p.k; state.to = yL; state.from = p.k ? Math.max(yF, yL - p.k) : yF; fromSel.value = state.from; toSel.value = state.to; draw(); });
         segEl.appendChild(b);
+      });
+      var VIEWS = [["level", "Level"], ["index", "Index = 100"]].concat(canPC ? [["pc", "Per person"]] : []);
+      VIEWS.forEach(function (v) {
+        var b = document.createElement("button");
+        b.type = "button"; b.textContent = v[1];
+        b.addEventListener("click", function () {
+          if (v[0] === "pc" && !POP) {
+            viewNote.textContent = "loading population\u2026";
+            loadPopulation().then(function () { viewNote.textContent = ""; state.view = "pc"; draw(); });
+            return;
+          }
+          state.view = v[0]; draw();
+        });
+        viewEl.appendChild(b);
       });
       fromSel.addEventListener("change", function () { state.from = +fromSel.value; if (state.from > state.to) { state.to = state.from; toSel.value = state.to; } state.preset = -1; draw(); });
       toSel.addEventListener("change", function () { state.to = +toSel.value; if (state.to < state.from) { state.from = state.to; fromSel.value = state.from; } state.preset = -1; draw(); });
@@ -336,13 +473,45 @@
       }
       function draw() {
         var a = String(state.from), b = String(state.to + 1);
-        var win = full.map(function (s) {
+        var source = forecastLine ? full.concat([forecastLine]) : full;
+        var win = source.map(function (s) {
           var d = [], v = [];
           s.d.forEach(function (dt, i) { if (dt >= a && dt < b) { d.push(dt); v.push(s.v[i]); } });
           return { n: s.n, d: d, v: v };
         }).filter(function (s) { return s.d.length > 1; });
+        if (state.view === "index") {
+          win = win.map(function (s) {
+            var base = s.v[0];
+            return base ? { n: s.n, d: s.d, v: s.v.map(function (x) { return x / base * 100; }) } : s;
+          });
+        } else if (state.view === "pc") {
+          var mult = card.unitScale || 1;
+          win = win.map(function (s) {
+            var pop = popFor(s.n, card.file);
+            if (!pop) return null;
+            var d = [], v = [];
+            s.d.forEach(function (dt, i) {
+              var p = pop[String(dt).slice(0, 4)];
+              if (p) { d.push(dt); v.push(s.v[i] * mult / p); }
+            });
+            return d.length > 1 ? { n: s.n, d: d, v: v } : null;
+          }).filter(Boolean);
+          /* Per head of a big population is a tiny number, so scale up to whatever
+             head count reads well and say which one in the note. */
+          var peak = 0;
+          win.forEach(function (s) { s.v.forEach(function (x) { if (Math.abs(x) > peak) peak = Math.abs(x); }); });
+          var per = 1;
+          while (peak > 0 && peak * per < 0.5 && per < 1e6) per *= 1000;
+          pcPer = per;
+          if (per > 1) win = win.map(function (s) { return { n: s.n, d: s.d, v: s.v.map(function (x) { return x * per; }) }; });
+        }
         var vis = win.filter(function (s) { return chosen[s.n]; });
         figEl.innerHTML = svgFor(card.title, freq, vis);
+        Array.prototype.forEach.call(viewEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(VIEWS[i][0] === state.view)); });
+        if (state.view !== "pc" || viewNote.textContent.indexOf("loading") < 0) {
+          viewNote.textContent = state.view === "index" ? "each line starts at 100" :
+            state.view === "pc" ? (win.length ? (pcPer === 1 ? "per person" : "per " + pcPer.toLocaleString("en-GB") + " people") + (card.unitScale ? "" : " \u2014 only meaningful if the series is a quantity or a total, not an index") : "no population for these lines") : "";
+        }
         Array.prototype.forEach.call(segEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(presets[i].k === state.preset)); });
         picksEl.innerHTML = "";
         win.slice().sort(function (p, q) { return (chosen[q.n] ? 1 : 0) - (chosen[p.n] ? 1 : 0); }).forEach(function (s) {
@@ -358,6 +527,7 @@
         var spec = { title: card.title, series: vis.slice(0, 8).map(function (s) {
           return { dataset: card.file, series: s.n, start: vis[0].d[0], end: vis[0].d[vis[0].d.length - 1] }; }) };
         linkEl.href = spec.series.length ? "chart.html#" + b64url(JSON.stringify(spec)) : "chart.html";
+        linkEl.textContent = state.view === "level" ? "Open as a shareable chart \u2192" : "Open the level series as a shareable chart \u2192";
       }
       draw();
       return el;
@@ -382,6 +552,12 @@
       for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i][1].test(name)) return SUBJECTS[i][0];
       return "Other";
     }
+    function subjectNote(subj) {
+      for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i][0] === subj) return SUBJECTS[i][2];
+      return "Everything that does not sit under one heading";
+    }
+    /* Thousands with a space, so 12 400 series reads at a glance. */
+    function big(n) { return n >= 1000 ? n.toLocaleString("en-GB") : String(n); }
     function pretty(name) {
       return name.replace(/-/g, " ").replace(/\b([a-z])/g, function (m) { return m.toUpperCase(); })
         .replace(/\bCpi\b/, "CPI").replace(/\bPpi\b/, "PPI").replace(/\bEu\b/, "EU").replace(/\bUs\b/, "US")
@@ -400,17 +576,46 @@
           src: typeof d.source === "string" ? d.source : "", c: countriesOf(d), subj: subjectOf(name) };
       }).filter(function (d) { return d.n > 0 && d.f; });
 
+      /* What is inside, before anything is drawn: the size of the collection,
+         then one tile per subject that filters the list below. */
+      var totSeries = DS.reduce(function (a, d) { return a + d.n; }, 0);
+      var totObs = DS.reduce(function (a, d) { return a + d.obs; }, 0);
+      var allCountries = {};
+      DS.forEach(function (d) { d.c.forEach(function (c) { allCountries[c] = 1; }); });
+      var earliest = DS.reduce(function (a, d) { return Math.min(a, d.f); }, 9999);
+      var latest = DS.reduce(function (a, d) { return Math.max(a, d.t); }, 0);
+      statsEl.innerHTML = [
+        [big(DS.length), "datasets"], [big(totSeries), "series"], [big(totObs), "observations"],
+        [big(Object.keys(allCountries).length), "countries"], [earliest + "\u2013" + latest, "years covered"],
+      ].map(function (x) { return "<div class='stat'><b>" + esc(x[0]) + "</b><span>" + esc(x[1]) + "</span></div>"; }).join("");
+
       var counts = {};
       DS.forEach(function (d) { d.c.forEach(function (c) { counts[c] = (counts[c] || 0) + 1; }); });
       countryEl.innerHTML = "<option value=''>Any country</option>" + Object.keys(counts).sort().map(function (c) {
         return "<option value='" + esc(c) + "'>" + esc(c) + " (" + counts[c] + ")</option>"; }).join("");
-      var minY = DS.reduce(function (a, d) { return Math.min(a, d.f); }, 9999);
+      /* One dataset reaches back to ice-core CO2 in 1018; a thousand-year dropdown helps
+         nobody, and no dataset ends before 1900, so the floor costs no matches. */
+      var minY = Math.max(1900, DS.reduce(function (a, d) { return Math.min(a, d.f); }, 9999));
       var maxY = DS.reduce(function (a, d) { return Math.max(a, d.t); }, 0);
       var opts = "";
       for (var y = minY; y <= maxY; y++) opts += "<option value='" + y + "'>" + y + "</option>";
       fromEl.innerHTML = opts; toEl.innerHTML = opts; fromEl.value = minY; toEl.value = maxY;
 
       var order = SUBJECTS.map(function (s) { return s[0]; }).concat(["Other"]);
+      var subject = "";
+      order.forEach(function (subj) {
+        var mine = DS.filter(function (d) { return d.subj === subj; });
+        if (!mine.length) return;
+        var t = document.createElement("button");
+        t.type = "button"; t.className = "tile"; t.setAttribute("aria-pressed", "false"); t.setAttribute("data-subj", subj);
+        t.innerHTML = "<strong>" + esc(subj) + "<em>" + mine.length + "</em></strong><small>" + esc(subjectNote(subj)) + "</small>";
+        t.addEventListener("click", function () {
+          subject = subject === subj ? "" : subj;
+          apply();
+          if (subject) app.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        tilesEl.appendChild(t);
+      });
       order.forEach(function (subj) {
         var mine = DS.filter(function (d) { return d.subj === subj; });
         if (!mine.length) return;
@@ -436,16 +641,32 @@
         var term = qEl.value.trim().toLowerCase(), country = countryEl.value, a = +fromEl.value, b = +toEl.value, shown = 0;
         order.forEach(function (subj) {
           var det = subjEls[subj]; if (!det) return;
-          var vis = 0;
+          var vis = 0, off = subject && subject !== subj;
           DS.filter(function (d) { return d.subj === subj; }).forEach(function (d) {
-            var hit = (!term || (d.name + " " + d.title + " " + d.src).toLowerCase().indexOf(term) >= 0) &&
+            var hit = !off && (!term || (d.name + " " + d.title + " " + d.src).toLowerCase().indexOf(term) >= 0) &&
                       (!country || d.c.indexOf(country) >= 0) && (d.f <= b && d.t >= a);
             rowEls[d.name].hidden = !hit; if (hit) vis++;
           });
           det.hidden = vis === 0;
-          det.open = vis > 0 && (!!term || !!country);
+          det.open = vis > 0 && (!!term || !!country || !!subject);
           det.querySelector(".n").textContent = vis;
           shown += vis;
+        });
+        Array.prototype.forEach.call(tilesEl.children, function (t) {
+          t.setAttribute("aria-pressed", String(t.getAttribute("data-subj") === subject));
+        });
+        var chips = [];
+        if (subject) chips.push(["subject", subject]);
+        if (country) chips.push(["country", country]);
+        if (term) chips.push(["search", qEl.value.trim()]);
+        activeEl.hidden = !chips.length;
+        activeEl.innerHTML = chips.map(function (c) { return "<button type='button' data-clear='" + esc(c[0]) + "'>" + esc(c[1]) + "</button>"; }).join("");
+        Array.prototype.forEach.call(activeEl.children, function (b2) {
+          b2.addEventListener("click", function () {
+            var k = b2.getAttribute("data-clear");
+            if (k === "subject") subject = ""; else if (k === "country") countryEl.value = ""; else qEl.value = "";
+            apply();
+          });
         });
         empty.hidden = shown > 0;
         countEl.textContent = shown === DS.length ? DS.length + " datasets" : shown + " of " + DS.length + " datasets match";
@@ -468,7 +689,10 @@
         opened[name] = true;
         makeCard({ file: name, title: title || (meta && meta.title) || name, note: (meta && meta.src) || ("Dataset " + name),
           series: series, pick: pick, drop: function () { delete opened[name]; } }, prepend !== false);
-        if (btn) btn.scrollIntoView({ behavior: "smooth", block: "center" });
+        chartHead.hidden = false;
+        hintEl.textContent = "Charts stay here until you remove them. Press Chart on another dataset to compare.";
+        var card = cardsEl.firstChild;
+        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (e) {
         if (btn) { btn.textContent = "not available"; setTimeout(function () { btn.textContent = label; btn.disabled = false; }, 2500); }
         return;
@@ -479,15 +703,25 @@
     document.addEventListener("click", function (ev) {
       if (!ev.target || typeof ev.target.closest !== "function") return;
       var b = ev.target.closest("[data-open]");
-      if (b) openDataset(b.getAttribute("data-open"), b, true);
+      if (!b) return;
+      ev.preventDefault();
+      var name = b.getAttribute("data-open"), feat = null;
+      FEATURED.forEach(function (f) { if (f.file === name) feat = f; });
+      openDataset(name, b.tagName === "BUTTON" ? b : null, true, feat && feat.pick, b.getAttribute("data-title"));
     });
 
     fetch("data/_catalog.json", { cache: "no-cache" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
       .then(function (cat) {
         build(cat);
-        hintEl.textContent = "Charts you open from the list below appear here.";
-        return Promise.all(FEATURED.map(function (f) { return openDataset(f.file, null, false, f.pick, f.title); }));
+        /* No chart until the reader asks for one: the page opens on what is inside.
+           The examples are one click away, in the order a newcomer would want them. */
+        var ex = document.createElement("p");
+        ex.className = "sec-note";
+        ex.innerHTML = "Or start with one of these: " + FEATURED.map(function (f) {
+          return "<a href='#' data-open='" + esc(f.file) + "' data-title='" + esc(f.title) + "'>" + esc(f.title) + "</a>";
+        }).join(" &middot; ");
+        hintEl.parentNode.insertBefore(ex, hintEl.nextSibling);
       })
       .catch(function (e) {
         hintEl.innerHTML = "<span class='err'>Could not load the catalogue: " + esc(e.message) + "</span>";

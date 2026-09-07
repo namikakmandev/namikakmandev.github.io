@@ -122,6 +122,42 @@ const OPENMETEO = [
     daily: { time: ["2024-06-29", "2024-06-30", "2024-07-01"], temperature_2m_mean: [20.0, 22.0, 24.0], precipitation_sum: [0.0, null, 2.5] } },
 ];
 
+// SEC EDGAR: the ticker directory, then company facts for one tag at a time.
+// Shape as data.sec.gov sends it: overlapping facts, restatements, a `frame` on the
+// rows the SEC itself has aligned to a calendar period.
+const SEC_TICKERS = {
+  "0": { cik_str: 320193, ticker: "AAPL", title: "Apple Inc." },
+  "1": { cik_str: 789019, ticker: "MSFT", title: "MICROSOFT CORP" },
+  "2": { cik_str: 51143, ticker: "IBM", title: "INTERNATIONAL BUSINESS MACHINES CORP" },
+};
+const SEC_ASSETS = {
+  cik: 320193, taxonomy: "us-gaap", tag: "Assets", label: "Assets", entityName: "Apple Inc.",
+  units: { USD: [
+    { end: "2023-04-01", val: 332160000000, accn: "a1", fy: 2023, fp: "Q2", form: "10-Q", filed: "2023-05-05", frame: "CY2023Q1I" },
+    { end: "2023-07-01", val: 335038000000, accn: "a2", fy: 2023, fp: "Q3", form: "10-Q", filed: "2023-08-04", frame: "CY2023Q2I" },
+    { end: "2023-09-30", val: 352583000000, accn: "a3", fy: 2023, fp: "FY", form: "10-K", filed: "2023-11-03", frame: "CY2023Q3I" },
+    { end: "2023-09-30", val: 352000000000, accn: "a3-old", fy: 2023, fp: "FY", form: "10-K", filed: "2023-11-01" },
+    { end: "2023-12-30", val: 353514000000, accn: "a4", fy: 2024, fp: "Q1", form: "10-Q", filed: "2024-02-02", frame: "CY2023Q4I" },
+  ] },
+};
+const SEC_EQUITY = {
+  cik: 320193, taxonomy: "us-gaap", tag: "StockholdersEquity", label: "Stockholders' Equity", entityName: "Apple Inc.",
+  units: { USD: [
+    { end: "2023-04-01", val: 62158000000, form: "10-Q", filed: "2023-05-05", frame: "CY2023Q1I" },
+    { end: "2023-07-01", val: 60274000000, form: "10-Q", filed: "2023-08-04", frame: "CY2023Q2I" },
+    { end: "2023-09-30", val: 62146000000, form: "10-K", filed: "2023-11-03", frame: "CY2023Q3I" },
+  ] },
+};
+const SEC_NETINCOME = {
+  cik: 320193, taxonomy: "us-gaap", tag: "NetIncomeLoss", label: "Net Income (Loss)", entityName: "Apple Inc.",
+  units: { USD: [
+    { start: "2023-01-01", end: "2023-04-01", val: 24160000000, form: "10-Q", filed: "2023-05-05", frame: "CY2023Q1" },
+    { start: "2023-04-02", end: "2023-07-01", val: 19881000000, form: "10-Q", filed: "2023-08-04", frame: "CY2023Q2" },
+    { start: "2022-10-02", end: "2023-09-30", val: 96995000000, form: "10-K", filed: "2023-11-03", frame: "CY2023" },
+    { start: "2023-07-02", end: "2023-09-30", val: 22956000000, form: "10-K", filed: "2023-11-03", frame: "CY2023Q3" },
+  ] },
+};
+
 export function installFetchMock() {
   const real = globalThis.fetch;
   const calls = [];
@@ -140,6 +176,13 @@ export function installFetchMock() {
       // The real API returns a bare object for one location and an array for several.
       const n = (u.searchParams.get("latitude") || "").split(",").length;
       return json(n === 1 ? OPENMETEO[0] : OPENMETEO.slice(0, n));
+    }
+    if (u.hostname === "www.sec.gov") return json(SEC_TICKERS);
+    if (u.hostname === "data.sec.gov") {
+      if (u.pathname.endsWith("/Assets.json")) return json(SEC_ASSETS);
+      if (u.pathname.endsWith("/NetIncomeLoss.json")) return json(SEC_NETINCOME);
+      if (u.pathname.endsWith("/StockholdersEquity.json")) return json(SEC_EQUITY);
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
     }
     if (u.hostname === "data-api.ecb.europa.eu") return text(ECB_CSV, "text/csv");
     if (u.hostname === "sdmx.oecd.org") return text(OECD_CSV, "text/csv");
