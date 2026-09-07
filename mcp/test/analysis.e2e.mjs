@@ -39,7 +39,7 @@ await check("list_providers reports key state", async () => {
   const j = await call("list_providers", {});
   const evds = j.providers.find((p) => p.provider === "evds");
   assert.match(String(evds.key_present), /yes/);
-  assert.equal(j.providers.length, 11);
+  assert.equal(j.providers.length, 12);
 });
 
 await check("IMF: SDMX-CSV keyed by the dimension columns, dataflow search", async () => {
@@ -692,6 +692,42 @@ await check("johansen and vecm with a restricted constant report the constant in
   const plan2 = await call("suggest_analysis", { series: [{ points: a.map((v, i) => [dt(i), v + 0.5 * i]), label: "a" }, { points: b.map((v, i) => [dt(i), v + 0.5 * i]), label: "b" }] });
   const jo2 = plan2.plan.find((p) => p.tool === "vecm");
   if (jo2) assert.equal(jo2.args.deterministic, "constant", "drifting walks get the unrestricted constant");
+});
+
+await check("sec: a company balance sheet by quarter, restatements resolved, tickers and CIKs both work", async () => {
+  const bs = await call("fetch_external", { provider: "sec", id: "AAPL:balance_sheet" });
+  // Only the tags this filer actually reports come back; the rest of the statement is absent, not empty.
+  assert.deepEqual(bs.series.map((x) => x.key), ["Assets", "StockholdersEquity"], JSON.stringify(bs.series));
+  assert.equal(bs.series[0].first, "2023-Q1");
+  assert.match(bs.source, /Apple Inc\./);
+  assert.match(bs.source, /CIK 0000320193/);
+  const assets = await call("fetch_external", { provider: "sec", id: "AAPL:Assets" });
+  // The SEC's own calendar frame labels the quarter, so odd fiscal years stay comparable.
+  assert.deepEqual(assets.points, [["2023-Q1", 332160000000], ["2023-Q2", 335038000000], ["2023-Q3", 352583000000], ["2023-Q4", 353514000000]]);
+  assert.equal(assets.points[2][1], 352583000000, "the later filing wins over the first print of the same period");
+  // Flows keep the quarterly duration by default, and the fiscal year on request
+  const ni = await call("fetch_external", { provider: "sec", id: "AAPL:NetIncomeLoss" });
+  assert.deepEqual(ni.points, [["2023-Q1", 24160000000], ["2023-Q2", 19881000000], ["2023-Q3", 22956000000]], "the twelve-month row is not a quarter");
+  const niY = await call("fetch_external", { provider: "sec", id: "AAPL:NetIncomeLoss", params: { annual: "true" } });
+  assert.deepEqual(niY.points, [["2023", 96995000000]]);
+  // A CIK works as well as a ticker
+  const byCik = await call("fetch_external", { provider: "sec", id: "CIK0000320193:Assets" });
+  assert.equal(byCik.points.length, 4);
+  assert.ok(byCik.caveats.some((c) => /restated/.test(c)), JSON.stringify(byCik.caveats));
+  // Clear errors for a bad ticker, a bad tag and a malformed id
+  for (const [args, re] of [
+    [{ provider: "sec", id: "NOPE:Assets" }, /No SEC filer with ticker/],
+    [{ provider: "sec", id: "AAPL:NotATag" }, /no us-gaap tag/],
+    [{ provider: "sec", id: "AAPL" }, /TICKER:TAG/],
+  ]) {
+    const r = await callRaw("fetch_external", args);
+    assert.ok(r.isError && re.test(r.content[0].text), JSON.stringify(args) + " -> " + r.content[0].text);
+  }
+  const found = await call("search_external", { provider: "sec", query: "balance sheet" });
+  assert.ok(found.matches.length, JSON.stringify(found));
+  // A bare ticker with no curated match still offers that filer's three statements
+  const byName = await call("search_external", { provider: "sec", query: "IBM" });
+  assert.deepEqual(byName.matches.map((m) => m.id), ["IBM:balance_sheet", "IBM:income_statement", "IBM:cash_flow"], JSON.stringify(byName.matches));
 });
 
 await check("weather: named regions and lat,lon, monthly aggregation, sums for rain and means for temperature", async () => {

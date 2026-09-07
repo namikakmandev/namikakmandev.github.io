@@ -189,7 +189,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
       title: "Search a live provider",
       description: "Find series ids at a provider. FRED searches its full catalogue when FRED_API_KEY is set; World Bank searches all indicators; EVDS walks the TCMB catalogue when EVDS_API_KEY is set; FAOSTAT searches its item, area and element lists; the others match against a curated starter list, so for those also try the provider's own website and pass the id to fetch_external.",
       inputSchema: {
-        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather"]),
+        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather", "sec"]),
         query: z.string().min(1),
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
@@ -207,7 +207,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
       title: "Fetch from a live provider",
       description: "Pull a series from FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS, FAOSTAT or IMF as [date, value] points, with the same window and transform options as get_series. When the id returns several series (countries, dimensions), the reply lists their keys; pick one with 'series'.",
       inputSchema: {
-        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather"]),
+        provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather", "sec"]),
         id: z.string(),
         params: z.record(z.string(), z.string()).optional().describe("Provider filters. Eurostat: dimension codes (geo, unit, ...). World Bank: country='TUR;USA' or 'all'. OWID: entities='Turkey;United States'. EVDS/ECB/OECD: start, end. FAOSTAT: area, item, element, year (codes; several separated by commas). IMF: start, end, version."),
         series: z.string().optional().describe("Which series key to return when the id yields several"),
