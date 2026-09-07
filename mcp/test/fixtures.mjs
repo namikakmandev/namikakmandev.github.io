@@ -125,6 +125,8 @@ const OPENMETEO = [
 // SEC EDGAR: the ticker directory, then company facts for one tag at a time.
 // Shape as data.sec.gov sends it: overlapping facts, restatements, a `frame` on the
 // rows the SEC itself has aligned to a calendar period.
+let secBlocked = false;
+export function setSecBlocked(v) { secBlocked = v; }
 const SEC_TICKERS = {
   "0": { cik_str: 320193, ticker: "AAPL", title: "Apple Inc." },
   "1": { cik_str: 789019, ticker: "MSFT", title: "MICROSOFT CORP" },
@@ -177,7 +179,9 @@ export function installFetchMock() {
       const n = (u.searchParams.get("latitude") || "").split(",").length;
       return json(n === 1 ? OPENMETEO[0] : OPENMETEO.slice(0, n));
     }
-    if (u.hostname === "www.sec.gov") return json(SEC_TICKERS);
+    // The SEC refuses callers it does not like; the provider must say so rather than
+    // reporting every company as unknown.
+    if (u.hostname === "www.sec.gov") return secBlocked ? new Response("<!DOCTYPE html><html>Request Rate Threshold Exceeded", { status: 403 }) : json(SEC_TICKERS);
     if (u.hostname === "data.sec.gov") {
       if (u.pathname.endsWith("/Assets.json")) return json(SEC_ASSETS);
       if (u.pathname.endsWith("/NetIncomeLoss.json")) return json(SEC_NETINCOME);
