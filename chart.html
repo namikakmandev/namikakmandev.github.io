@@ -15,12 +15,17 @@
     .study .back { color: var(--text-dim); font-size: .9rem; }
     .study h1 { font-size: 1.55rem; line-height: 1.2; letter-spacing: -.01em; margin: 12px 0 6px; }
     .study .lede { color: var(--text-dim); font-size: .95rem; margin-bottom: 14px; }
-    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0 12px; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0 6px; }
     .controls button, .controls label { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
       font: inherit; font-size: .82rem; padding: 6px 13px; border-radius: 999px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
     .controls button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
     .controls input { background: transparent; border: 0; color: var(--text); font: inherit; font-size: .82rem; width: 5.2em; outline: none; }
     .controls .sp { flex: 1; }
+    .controls .lbl { color: var(--text-dim); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; margin-right: -2px; }
+    .controls .grp { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .hint { color: var(--text-dim); font-size: .82rem; line-height: 1.5; margin: 0 0 12px; max-width: 82ch; }
+    .hint b { color: var(--text); font-weight: 600; }
+    @media (max-width: 620px) { .controls .sp { flex-basis: 100%; height: 0; } }
     .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px 10px; position: relative; }
     .panel svg { width: 100%; height: auto; display: block; font-family: var(--font); }
     .legend { display: flex; gap: 14px; flex-wrap: wrap; margin: 10px 2px 2px; }
@@ -73,15 +78,16 @@
       <div class="container">
         <a href="data.html" class="back">&larr; The data behind the studies</a>
         <h1 id="title">Chart</h1>
-        <p class="lede" id="lede">Series drawn live from the econ-data server. The link carries the references, not the numbers, so the chart is as fresh as the data.</p>
+        <p class="lede" id="lede">An interactive chart of public statistics. Read values by moving the pointer across it, switch between actual values and an index, narrow the years, or take the numbers away as a table or a spreadsheet. Every source and caveat is listed underneath.</p>
 
         <div id="app"><div class="loading">Loading…</div></div>
 
         <div class="footnote">
+          <p><a href="explore.html">Browse every dataset</a> to build a chart like this one, or open the full
+          <a href="data.html">catalogue</a> with sources, caveats and how fresh each file is.</p>
           <p>Drawn by <code>chart.html</code> from <code>/v1/series</code> on the econ-data MCP server.
           Ask any connected client to <code>plot</code> series and it returns a link like this one.
-          <a href="https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp">How to connect</a> ·
-          <a href="data.html">Dataset catalogue</a></p>
+          <a href="https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp">How to connect</a></p>
         </div>
       </div>
     </article>
@@ -171,11 +177,10 @@
     /* A chart built from computed numbers (a fitted line, an impulse response) carries its
        points inline, and that spec is far too long for a query string. The endpoint takes
        the same body by POST, so anything but a short reference list goes that way. */
-    var body = JSON.stringify({ series: spec.series });
-    var req = body.length > 1800
-      ? fetch(API + "/v1/series", { method: "POST", headers: { "content-type": "application/json" }, body: body })
-      : fetch(API + "/v1/series?s=" + encodeURIComponent(body));
-    req
+    var reqBody = JSON.stringify({ series: spec.series });
+    (reqBody.length > 1800
+      ? fetch(API + "/v1/series", { method: "POST", headers: { "content-type": "application/json" }, body: reqBody })
+      : fetch(API + "/v1/series?s=" + encodeURIComponent(reqBody)))
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); })
       .then(function (j) {
         DATA = j.series.map(function (s, i) {
@@ -200,14 +205,22 @@
     function build() {
       var h = "";
       h += "<div class='controls'>";
-      h += "<button id='b-lin' aria-pressed='" + (state.scale === "linear") + "'>Linear</button>";
-      h += "<button id='b-log' aria-pressed='" + (state.scale === "log") + "'>Log</button>";
-      h += "<button id='b-reb' aria-pressed='false'" + (XNUM ? " style='display:none'" : "") + ">Rebase to 100</button>";
-      h += "<label" + (XNUM ? " style='display:none'" : "") + ">From <input id='i-from' placeholder='2010'></label><label" + (XNUM ? " style='display:none'" : "") + ">To <input id='i-to' placeholder='2026'></label>";
+      h += "<span class='grp'><span class='lbl'>Show as</span>";
+      h += "<button id='b-abs' aria-pressed='true' title='The numbers as the source publishes them'" + (XNUM ? " style='display:none'" : "") + ">Actual values</button>";
+      h += "<button id='b-reb' aria-pressed='false' title='Every line set to 100 at the start of the window, so you compare growth rather than size'" + (XNUM ? " style='display:none'" : "") + ">Index, start = 100</button></span>";
+      h += "<span class='grp'><span class='lbl'>Scale</span>";
+      h += "<button id='b-lin' aria-pressed='" + (state.scale === "linear") + "' title='Equal steps for equal amounts'>Linear</button>";
+      h += "<button id='b-log' aria-pressed='" + (state.scale === "log") + "' title='Equal steps for equal percentage changes — use it when the lines differ by orders of magnitude'>Log</button></span>";
+      h += "<span class='grp'" + (XNUM ? " style='display:none'" : "") + "><span class='lbl'>Years</span>";
+      h += "<label>From <input id='i-from' placeholder='2010'></label><label>To <input id='i-to' placeholder='2026'></label></span>";
       h += "<span class='sp'></span>";
-      h += "<button id='b-tbl'>Table</button><button id='b-csv'>CSV</button><button id='b-link'>Copy link</button>";
+      h += "<button id='b-tbl' title='Show every value as a table you can copy'>Table</button>";
+      h += "<button id='b-csv' title='Download what is drawn as a spreadsheet file'>CSV</button>";
+      h += "<button id='b-link' title='Copy a link to this exact view'>Copy link</button>";
       h += "</div>";
+      h += "<p class='hint' id='hint'></p>";
       h += "<div class='panel'><div id='svg'></div><div class='tip' id='tip'></div><div class='legend' id='legend'></div></div>";
+      h += "<p class='hint' style='margin-top:8px'>Move the pointer across the chart to read every line at one date; tap <b>Table</b> for the numbers, <b>CSV</b> to take them away, and click a name in the key below the chart to hide that line. This link carries only the references to the series, not the numbers, so it redraws from the live source each time it is opened.</p>";
       h += "<div id='errs'></div><div id='table'></div>";
       h += "<div class='src'><h2>Sources and caveats</h2><ul id='src'></ul></div>";
       app.innerHTML = h;
@@ -223,7 +236,8 @@
       document.getElementById("errs").innerHTML = errs;
       document.getElementById("b-lin").onclick = function () { state.scale = "linear"; draw(); };
       document.getElementById("b-log").onclick = function () { state.scale = "log"; draw(); };
-      document.getElementById("b-reb").onclick = function () { state.rebase = !state.rebase; draw(); };
+      document.getElementById("b-abs").onclick = function () { state.rebase = false; draw(); };
+      document.getElementById("b-reb").onclick = function () { state.rebase = true; draw(); };
       document.getElementById("b-tbl").onclick = function () { state.table = !state.table; draw(); };
       document.getElementById("b-csv").onclick = downloadCsv;
       document.getElementById("b-link").onclick = function () {
@@ -250,9 +264,19 @@
     function draw() {
       ["b-lin", "b-log"].forEach(function (id) { document.getElementById(id).setAttribute("aria-pressed", String((id === "b-log") === (state.scale === "log"))); });
       document.getElementById("b-reb").setAttribute("aria-pressed", String(state.rebase));
+      document.getElementById("b-abs").setAttribute("aria-pressed", String(!state.rebase));
       document.getElementById("b-tbl").setAttribute("aria-pressed", String(state.table));
+      document.getElementById("hint").innerHTML =
+        (state.rebase
+          ? "<b>Index:</b> every line is set to 100 at its first point in the window, so the chart compares how much each has moved, not how big it is. Shaded intervals are hidden while indexed."
+          : "<b>Actual values</b> in the units each source publishes — check the sources below before reading two lines against each other.") +
+        (state.scale === "log" ? " <b>Log scale:</b> equal vertical steps are equal percentage changes, and values at or below zero cannot be drawn." : "") +
+        ((state.from || state.to) ? " Showing " + esc(state.from || "the start") + " to " + esc(state.to || "the end") + "; clear the year boxes to see everything." : "");
       var vis = visible();
-      var W = 1000, H = 460, L = 64, R = vis.some(function (x) { return x.right; }) ? 64 : 20, T = 18, B = 40;
+      /* A phone gets a narrower viewBox, so the 11px axis labels do not shrink to nothing. */
+      var narrow = window.innerWidth < 700;
+      var W = narrow ? 440 : 1000, H = narrow ? 320 : 460, L = narrow ? 42 : 64,
+          R = vis.some(function (x) { return x.right; }) ? (narrow ? 42 : 64) : 20, T = 18, B = 40;
       var iw = W - L - R, ih = H - T - B;
       var svgEl = document.getElementById("svg");
       if (!vis.length) { svgEl.innerHTML = "<div class='loading'>Nothing to draw in this window.</div>"; legend(); table(); return; }
@@ -289,7 +313,7 @@
       // x ticks: horizons on a numeric axis, years otherwise
       var span = 0;
       if (XNUM) {
-        niceTicks(tmin, tmax, 8).forEach(function (tv) {
+        niceTicks(tmin, tmax, narrow ? 4 : 8).forEach(function (tv) {
           if (tv < tmin || tv > tmax) return;
           var x = xOf(tv);
           svg += "<line x1='" + x.toFixed(1) + "' x2='" + x.toFixed(1) + "' y1='" + T + "' y2='" + (T + ih) + "' stroke='currentColor' stroke-opacity='.08'/>";
@@ -299,6 +323,7 @@
       } else {
         var y0 = new Date(tmin).getUTCFullYear(), y1 = new Date(tmax).getUTCFullYear(); span = y1 - y0 + 1;
         var step = span > 60 ? 10 : span > 30 ? 5 : span > 12 ? 2 : 1;
+        if (narrow) step *= span > 12 ? 2 : 1;
         for (var yy = Math.ceil(y0 / step) * step; yy <= y1; yy += step) {
           var t = Date.UTC(yy, 0, 1); if (t < tmin || t > tmax) continue;
           var x = xOf(t);
@@ -308,7 +333,7 @@
       }
       if (!XNUM && span <= 2) {
         // monthly labels for short windows
-        vis[0].pts.forEach(function (p, i) { if (i % Math.ceil(vis[0].pts.length / 8) === 0) svg += "<text x='" + xOf(p.t).toFixed(1) + "' y='" + (H - 2) + "' text-anchor='middle' font-size='10' fill='currentColor' fill-opacity='.6'>" + esc(p.d) + "</text>"; });
+        vis[0].pts.forEach(function (p, i) { if (i % Math.ceil(vis[0].pts.length / (narrow ? 4 : 8)) === 0) svg += "<text x='" + xOf(p.t).toFixed(1) + "' y='" + (H - 2) + "' text-anchor='middle' font-size='10' fill='currentColor' fill-opacity='.6'>" + esc(p.d) + "</text>"; });
       }
       // zero line when the axis crosses it
       if (!log && ax.lo < 0 && ax.hi > 0) svg += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + ax.y(0).toFixed(1) + "' y2='" + ax.y(0).toFixed(1) + "' stroke='currentColor' stroke-opacity='.4'/>";
@@ -352,16 +377,16 @@
       var shown = []; vis.forEach(function (x) { x.bands.forEach(function (bd) { shown.push(bd.b.label + " (" + x.s.label + ")"); }); });
       if (shown.length) svg += "<div style='font-size:.76rem;color:var(--text-dim);margin-top:4px'>Shaded: " + esc(shown.join("; ")) + ".</div>";
       svgEl.innerHTML = svg;
-      hover(vis, xOf, tmin, tmax);
+      hover(vis, xOf, tmin, tmax, W, L);
       legend(); table();
     }
 
-    function hover(vis, xOf, tmin, tmax) {
+    function hover(vis, xOf, tmin, tmax, W, L) {
       var svg = document.getElementById("chart"), hit = document.getElementById("hit"), cur = document.getElementById("cursor"), tip = document.getElementById("tip");
       var panel = svg.parentNode.parentNode;
       hit.addEventListener("mousemove", function (ev) {
-        var r = svg.getBoundingClientRect(), fx = (ev.clientX - r.left) / r.width * 1000;
-        var t = tmin + (fx - 64) / (xOf(tmax) - 64) * (tmax - tmin);
+        var r = svg.getBoundingClientRect(), fx = (ev.clientX - r.left) / r.width * W;
+        var t = tmin + (fx - L) / (xOf(tmax) - L) * (tmax - tmin);
         var rows = "", bestT = null, bestD = Infinity;
         vis.forEach(function (x) {
           var near = null, nd = Infinity;
