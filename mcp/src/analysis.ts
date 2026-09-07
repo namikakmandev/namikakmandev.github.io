@@ -207,6 +207,35 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
   );
 }
 
+/**
+ * Every analysis tool, captured as it is registered, so the same handler serves
+ * both MCP and the plain HTTP endpoint at /v1/analyze. The zod shape validates
+ * the arguments in both directions.
+ */
+export interface AnalysisTool {
+  name: string;
+  title: string;
+  description: string;
+  shape: z.ZodRawShape;
+  run: (args: Record<string, unknown>) => Promise<{ isError?: boolean; content: Array<{ type: "text"; text: string }> }>;
+}
+
+/** Build the toolkit against one origin and environment, without an MCP server. */
+export function analysisTools(origin: string, env: ProviderEnv, self?: string): Map<string, AnalysisTool> {
+  const out = new Map<string, AnalysisTool>();
+  const sink = {
+    registerTool(name: string, def: { title?: string; description?: string; inputSchema?: z.ZodRawShape }, handler: (args: never) => unknown) {
+      out.set(name, {
+        name, title: def.title ?? name, description: def.description ?? "",
+        shape: def.inputSchema ?? {},
+        run: handler as AnalysisTool["run"],
+      });
+    },
+  } as unknown as McpServer;
+  registerAnalysis(sink, origin, env, self);
+  return out;
+}
+
 export function registerAnalysis(server: McpServer, origin: string, env: ProviderEnv, self?: string) {
   const get = (ref: SeriesRef) => resolve(ref, origin, env);
   const REF = SeriesRefSchema.describe("Series reference: {dataset, series} for local data, {provider, id[, series, params]} for live data, or {points} for inline data. Optional start, end, frequency, transform.");
@@ -1062,6 +1091,105 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const pb = columns[1][bi];
       const real = columns[0].map((v, i) => (columns[1][i] ? (v * pb) / columns[1][i] : NaN));
       return text({ nominal: meta(rn), deflator: meta(rd), base_date: b, n: dates.length, unit_hint: `${rn.label} at ${b} prices`, points: pointsOut(dates, real) });
+    }),
+  );
+
+  server.registerTool(
+    "predict",
+    {
+      title: "Recommend a method and predict",
+      description: "One call for 'where is this going?'. It tests every forecasting method that suits the series on its own past (re-fitting at a run of earlier dates and scoring what actually happened), says which methods are worth using and why, picks the winner, and forecasts with it. Returns the ranked methods with their out-of-sample error, whether the winner genuinely beats assuming no change, the dated forecast with a 95% band, and a chart link. Pass method to override the recommendation.",
+      inputSchema: {
+        series: REF,
+        horizon: z.number().int().min(1).max(36).default(12),
+        origins: z.number().int().min(4).max(40).default(12).describe("How many past dates to test each method at"),
+        method: z.enum(["auto", "naive", "drift", "seasonal_naive", "holt", "holt_winters", "ar", "arima"]).default("auto").describe("auto = use the method that wins the test"),
+        ar_order: z.number().int().min(1).max(12).default(2),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, horizon, origins, method, ar_order }) => {
+      const r = await get(series);
+      const { dates, v } = values(r.series);
+      const f = detectFrequency(dates);
+      const H = horizon, seasonal = f.period > 1;
+      const minTrain = Math.max(24, 3 * (seasonal ? f.period : 1), 3 * ar_order + 6);
+      if (v.length < minTrain + H + 4) return fail(`Only ${v.length} observations of ${r.label}; a ${H}-step test needs at least ${minTrain + H + 4}. Ask for a shorter horizon, or forecast without the test.`);
+      const last = v[v.length - 1], lastD = dates[dates.length - 1];
+      const MAX_TRAIN = 600;
+      const mk = (name: string) => (train0: number[]) => {
+        const t = train0.length > MAX_TRAIN ? train0.slice(-MAX_TRAIN) : train0;
+        const lastV = t[t.length - 1];
+        if (name === "naive") return new Array<number>(H).fill(lastV);
+        if (name === "drift") return Array.from({ length: H }, (_, h) => lastV + ((h + 1) * (lastV - t[0])) / (t.length - 1));
+        if (name === "seasonal_naive") return Array.from({ length: H }, (_, h) => t[t.length - f.period + (h % f.period)]);
+        if (name === "holt") return S.holtWinters(t, H, 1).forecast;
+        if (name === "holt_winters") return S.holtWinters(t, H, f.period).forecast;
+        if (name === "ar") return S.arForecast(t, ar_order, H).forecast;
+        return S.autoArima(t, H).forecast;
+      };
+      const candidates = ["naive", "drift", ...(seasonal ? ["seasonal_naive", "holt_winters"] : []), "holt", "ar", "arima"];
+      const scored: Array<{ method: string; rmse: number; mape: number | null; bias: number; errs: number[] }> = [];
+      const skipped: string[] = [];
+      let origIdx: number[] = [];
+      for (const name of candidates) {
+        try {
+          const bt = S.rollingOrigin(v, mk(name), H, origins, minTrain, 1);
+          if (bt.failures === bt.origins.length) { skipped.push(name); continue; }
+          origIdx = bt.origins;
+          const flatE = bt.errors.flat();
+          const flatA = bt.origins.flatMap((o) => Array.from({ length: H }, (_, h) => v[o + 1 + h]));
+          const m = S.errorMetrics(flatE, flatA);
+          scored.push({ method: name, rmse: m.rmse, mape: m.mape, bias: m.bias, errs: bt.errors.map((row) => row[H - 1]) });
+        } catch { skipped.push(name); }
+      }
+      if (!scored.length) return fail(`No forecasting method could be tested on ${r.label}: ${skipped.join(", ")} all failed. The series may be too short or too irregular.`);
+      scored.sort((a, b) => a.rmse - b.rmse);
+      const best = scored[0], naive = scored.find((x) => x.method === "naive");
+      let beatsNaive: boolean | null = null, dmP: number | null = null;
+      if (naive && naive !== best) {
+        try { const d = S.dieboldMariano(best.errs, naive.errs, H); beatsNaive = d.better === 1; dmP = d.p; }
+        catch { beatsNaive = null; }
+      }
+      const chosen = method === "auto" ? best.method : method;
+      const label: Record<string, string> = { naive: "assume no change", drift: "straight-line trend", seasonal_naive: "repeat last year's pattern", holt: "trend smoothing", holt_winters: "seasonal smoothing", ar: "autoregression", arima: "ARIMA" };
+      // The forecast itself, fitted on everything
+      let fc: number[], sd: number, detail: string;
+      if (chosen === "naive") { fc = new Array<number>(H).fill(last); sd = S.sd(S.diff(v)); detail = "assume no change"; }
+      else if (chosen === "drift") { const slope = (last - v[0]) / (v.length - 1); fc = Array.from({ length: H }, (_, h) => last + (h + 1) * slope); sd = S.sd(S.diff(v)); detail = "straight-line trend"; }
+      else if (chosen === "seasonal_naive") { fc = Array.from({ length: H }, (_, h) => v[v.length - f.period + (h % f.period)]); sd = S.sd(S.diff(v, f.period)); detail = "repeat last year's pattern"; }
+      else if (chosen === "ar") { const a = S.arForecast(v, ar_order, H); fc = a.forecast; sd = a.resid_sd; detail = `autoregression of order ${ar_order}`; }
+      else if (chosen === "arima") { const a = S.autoArima(v, H); fc = a.forecast; sd = a.resid_sd; detail = `ARIMA(${a.p},${a.d},${a.q})`; }
+      else { const hw = S.holtWinters(v, H, chosen === "holt_winters" && seasonal ? f.period : 1); fc = hw.forecast; sd = hw.resid_sd; detail = chosen === "holt_winters" ? `seasonal smoothing, period ${f.period}` : "trend smoothing"; }
+      const future = futureDates(lastD, H, f.frequency);
+      const rows = future.map((d, i) => ({ date: d, value: r4(fc[i]), lo95: r4(fc[i] - 1.96 * sd * Math.sqrt(i + 1)), hi95: r4(fc[i] + 1.96 * sd * Math.sqrt(i + 1)) }));
+      const finite = rows.filter((x) => x.value !== null && x.lo95 !== null && x.hi95 !== null);
+      const chartSpec: PlotSpec = {
+        series: [series, { points: [[lastD, r4(last) as number], ...finite.map((x) => [x.date, x.value as number] as [string, number])], label: `${r.label}, ${detail}` }],
+        bands: [{ series: 1, label: "95% band", points: [[lastD, r4(last) as number, r4(last) as number], ...finite.map((x) => [x.date, x.lo95 as number, x.hi95 as number] as [string, number, number])] }],
+        title: `${r.label}: ${detail}, ${H} ahead`, api: self,
+      };
+      const skillOf = (x: typeof best) => (naive && naive.rmse ? r3(1 - x.rmse / naive.rmse) : null);
+      return text({
+        ...meta(r), n: v.length, frequency: f.frequency, last_actual: [lastD, r4(last)],
+        tested: { methods: scored.length, horizon: H, origins: origIdx.length, from: dates[origIdx[0]], to: dates[origIdx[origIdx.length - 1]],
+          note: "Every method was re-fitted at each of those dates and asked to forecast forward, then scored against what actually happened." },
+        methods: scored.map((x, i) => ({ rank: i + 1, method: x.method, what_it_does: label[x.method], typical_error: r4(x.rmse),
+          error_pct: x.mape === null ? null : r3(x.mape), bias: r4(x.bias), better_than_no_change: x.method === "naive" ? 0 : skillOf(x), recommended: x.method === best.method })),
+        skipped: skipped.length ? skipped.map((m) => ({ method: m, why: m === "seasonal_naive" || m === "holt_winters" ? "the data has no seasonal cycle" : "not enough history to fit it" })) : undefined,
+        recommendation: { method: best.method, what_it_does: label[best.method],
+          beats_no_change: beatsNaive, significance_p: dmP,
+          why: best.method === "naive"
+            ? "Nothing beat assuming no change, so the honest forecast is the last value with a band around it."
+            : beatsNaive === true ? `It had the lowest error over the test, and the margin over assuming no change is statistically real.`
+            : beatsNaive === false ? `It had the lowest error over the test, but the margin over assuming no change is inside the noise, so treat the path as indicative and the band as the real answer.`
+            : `It had the lowest error over the test.` },
+        used: { method: chosen, what_it_does: label[chosen], overridden: method !== "auto" },
+        forecast: rows,
+        chart_url: chartUrl(origin, chartSpec),
+        reading: `Over ${origIdx.length} test dates, ${label[best.method]} forecast ${H} ${f.frequency === "annual" ? "years" : f.frequency === "quarterly" ? "quarters" : "periods"} ahead with a typical error of ${r4(best.rmse)}${naive && naive !== best ? `, against ${r4(naive.rmse)} for assuming no change` : ""}. ${method !== "auto" ? `You asked for ${label[chosen]}, so that is what the forecast below uses.` : ""} ${r.label} was ${r4(last)} in ${lastD}; the forecast for ${rows[rows.length - 1].date} is ${rows[rows.length - 1].value}, and nineteen times in twenty it should land between ${rows[rows.length - 1].lo95} and ${rows[rows.length - 1].hi95}.`.replace(/\s+/g, " ").trim(),
+        caveat: "The band comes from how wrong the method was in the past and grows with the horizon. It assumes the future behaves like the sample: a policy change, a drought or a war is outside it. Test dates overlap, so the comparison between methods is sharper than the significance test.",
+      });
     }),
   );
 

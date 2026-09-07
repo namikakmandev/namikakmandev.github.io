@@ -42,6 +42,8 @@ Every answer carries the series' source and caveats. That is the point: a model 
 
 The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`), a plain HTTP endpoint that resolves the same series references and returns points, sources and caveats. Anything that speaks HTTP can use it directly.
 
+`/v1/analyze` runs the analysis tools over the same plain HTTP: `POST {"tool":"predict","args":{...}}`, or `GET ?tool=...&args=<json>`, and `GET /v1/analyze` with no tool lists what is callable. A web page can therefore forecast a series or locate a structural break with no MCP client and no model in the loop; `explore.html` on the site does exactly that.
+
 **Analysis**. Each takes series references, so the same call works on a local dataset, a live pull, or numbers you paste in:
 
 ```json
@@ -67,6 +69,7 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `hp_filter` | Trend and cycle, lambda by frequency. |
 | `decompose` | Classical seasonal decomposition, factors per month or quarter, strength measures. |
 | `forecast` | Holt-Winters, Holt, AR(p), or ARIMA(p,d,q) with order by AIC, with dated forecasts and an approximate band. |
+| `predict` | One call for "where is this going?": tests every method that suits the series, ranks them by out-of-sample error, says whether the winner really beats assuming no change, and forecasts with it. Explains each method in plain words. |
 | `forecast_evaluate` | Rolling-origin backtest of naive, drift, seasonal naive, Holt, Holt-Winters, AR and ARIMA: RMSE, MAE, MAPE by horizon, skill against naive, Diebold-Mariano tests of the winner. Run it before `forecast`. |
 | `deflate` | A nominal series in constant prices of a base date, using any price index as deflator. |
 | `structural_break` | Chow test at a date, or a sup-F scan judged against Andrews critical values; `max_breaks` runs a sequential search for several breaks with the mean or relation per segment. |
