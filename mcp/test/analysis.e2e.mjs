@@ -418,14 +418,56 @@ await check("vecm on cattle and corn logs reports adjustment and the current dev
 });
 
 await check("var_model on growth rates gives IRFs, FEVD and block Granger tests", async () => {
-  const j = await call("var_model", { series: [{ ...CORN, transform: "pct_change", start: "1995-01" }, { ...CATTLE, transform: "pct_change", start: "1995-01" }], horizon: 6 });
+  const j = await call("var_model", { series: [{ ...CORN, transform: "pct_change", start: "1995-01" }, { ...CATTLE, transform: "pct_change", start: "1995-01" }], horizon: 6, bootstrap: 60 });
   assert.ok(j.lags >= 1);
+  assert.equal(j.identification, "cholesky");
   assert.equal(j.impulse_responses.horizons.length, 7);
   assert.equal(j.granger_block_tests.length, 2);
   assert.equal(j.warnings.length, 0, JSON.stringify(j.warnings));
   const fevd = j.variance_decomposition_at_horizon;
   const row = Object.values(fevd)[0];
   assert.ok(Math.abs(Object.values(row).reduce((a, b) => a + b, 0) - 1) < 0.01);
+  assert.equal(j.response_bands.horizons.length, 7);
+  const sh = j.shocks; assert.equal(sh.length, 2);
+  const h0 = j.response_bands.horizons[0];
+  assert.ok(h0.lo16[j.series[0].label][sh[0]] <= h0.hi84[j.series[0].label][sh[0]], "band ordered");
+  assert.ok(Array.isArray(j.significant_at_68pct));
+  assert.equal(j.impact_matrix.matrix[j.series[0].label][sh[1]], 0, "Cholesky: first series does not respond to the second shock on impact");
+  assert.equal(j.long_run_effects, null);
+});
+
+await check("var_model with long-run and sign identification", async () => {
+  const S2 = [{ ...CATTLE, transform: "pct_change", start: "1995-01" }, { ...CORN, transform: "pct_change", start: "1995-01" }];
+  const lr = await call("var_model", { series: S2, horizon: 8, identification: "long_run", bootstrap: 40, shock_names: ["permanent", "transitory"] });
+  assert.deepEqual(lr.shocks, ["permanent", "transitory"]);
+  assert.equal(lr.long_run_effects.matrix[lr.series[0].label].transitory, 0, "shock 2 has no long-run effect on series 1");
+  assert.ok(typeof lr.impact_matrix.matrix[lr.series[0].label].permanent === "number");
+  assert.equal(lr.response_bands.horizons.length, 9);
+  assert.ok("cumulative_responses_at_horizon" in lr);
+  assert.match(lr.caveat, /Long-run restrictions/);
+  const sg = await call("var_model", { series: S2, horizon: 6, identification: "sign", sign_restrictions: [{ shock: 0, variable: 0, sign: "+" }, { shock: 0, variable: 1, sign: "+", horizons: [0, 1] }, { shock: 1, variable: 1, sign: "-" }] });
+  assert.ok(sg.sign_identification.accepted_draws > 0, JSON.stringify(sg.sign_identification));
+  assert.equal(sg.sign_identification.restrictions.length, 3);
+  const r0 = sg.impulse_responses.horizons[0].response;
+  assert.ok(r0[sg.series[0].label][sg.shocks[0]] > 0 && r0[sg.series[1].label][sg.shocks[0]] > 0 && r0[sg.series[1].label][sg.shocks[1]] < 0, "median responses obey the restrictions");
+  assert.ok(sg.response_bands.horizons[0].lo[sg.series[0].label][sg.shocks[0]] <= r0[sg.series[0].label][sg.shocks[0]]);
+  const none = await callRaw("var_model", { series: S2, identification: "sign" });
+  assert.ok(none.isError && /needs sign_restrictions/.test(none.content[0].text));
+  const impossible = await callRaw("var_model", { series: S2, identification: "sign", sign_restrictions: [{ shock: 0, variable: 0, sign: "+" }, { shock: 0, variable: 0, sign: "-" }] });
+  assert.ok(impossible.isError && /No draw/.test(impossible.content[0].text));
+  const bad = await callRaw("var_model", { series: S2, identification: "sign", sign_restrictions: [{ shock: 3, variable: 0, sign: "+" }] });
+  assert.ok(bad.isError && /only 2 series/.test(bad.content[0].text));
+});
+
+await check("johansen and vecm with a restricted trend report the trend coefficient", async () => {
+  const j = await call("johansen", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2, deterministic: "restricted_trend" });
+  assert.equal(j.trace_tests[0].critical["5%"], 25.8721);
+  assert.match(j.drift_check.note, /Drift check/);
+  if (j.cointegrating_vector) assert.ok("trend" in j.cointegrating_vector);
+  const v = await call("vecm", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2, rank: 1, deterministic: "restricted_trend" });
+  assert.ok("trend" in v.relations[0].long_run_vector);
+  assert.match(v.relations[0].equation, /× t \+ constant/);
+  assert.match(v.caveat, /linear trend sits inside/);
 });
 
 await check("forecast method arima picks an order and returns dated points", async () => {
