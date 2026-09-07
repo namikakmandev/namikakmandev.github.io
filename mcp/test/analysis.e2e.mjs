@@ -334,6 +334,70 @@ await check("forecast and local_projections return chart links with their bands"
   assert.equal(j.series[0].points[10][0], "10");
 });
 
+await check("every method that has a picture returns a chart link, and each one decodes to a drawable spec", async () => {
+  const window = { start: "2000-01" };
+  const cattle = { ...CATTLE, ...window }, corn = { ...CORN, ...window }, cpi = { ...CPI, ...window };
+  const g = { ...CATTLE, ...window, transform: "pct_change" }, g2 = { ...CORN, ...window, transform: "pct_change" };
+
+  const cases = [
+    ["describe_stats", { series: cattle }, ["chart_url"]],
+    ["regress", { y: cattle, x: [corn] }, ["chart_url", "residual_chart_url", "scatter_chart_url"]],
+    ["cointegration", { a: { ...cattle, transform: "log" }, b: { ...corn, transform: "log" } }, ["chart_url", "scatter_chart_url"]],
+    ["cross_correlation", { a: g, b: g2, max_lag: 6 }, ["chart_url"]],
+    ["hp_filter", { series: cattle, include_points: false }, ["chart_url", "cycle_chart_url"]],
+    ["decompose", { series: cattle }, ["chart_url", "components_chart_url", "seasonal_shape_chart_url"]],
+    ["structural_break", { y: cattle }, ["chart_url", "segments_chart_url"]],
+    ["structural_break", { y: cattle, date: "2020-01" }, ["chart_url"]],
+    ["rolling", { series: g, window: 24, stat: "sd" }, ["chart_url"]],
+    ["volatility", { series: g }, ["chart_url"]],
+    ["quantile_regress", { y: cattle, x: [corn] }, ["chart_url"]],
+    ["principal_components", { series: [g, g2] }, ["chart_url", "scree_chart_url"]],
+    ["deflate", { nominal: cattle, deflator: cpi }, ["chart_url"]],
+    ["iv_regress", { y: g, x: [g2], instruments: [{ ...CPI, ...window, transform: "pct_change" }] }, ["chart_url"]],
+    ["forecast_evaluate", { series: cpi, horizon: 3, origins: 8, methods: ["naive", "drift"] }, ["chart_url"]],
+    ["vecm", { series: [{ ...cattle, transform: "log" }, { ...corn, transform: "log" }], rank: 1 }, ["chart_url"]],
+    ["johansen", { series: [{ ...cattle, transform: "log" }, { ...corn, transform: "log" }] }, ["chart_url"]],
+  ];
+  for (const [tool, args, keys] of cases) {
+    const out = await call(tool, args);
+    for (const k of keys) {
+      assert.ok(typeof out[k] === "string" && out[k].includes("/chart.html#"), `${tool}: ${k} missing`);
+      const spec = decodeSpec(out[k]);
+      assert.ok(spec.series.length >= 1 && spec.series.length <= 8, `${tool}: ${k} has ${spec.series.length} series`);
+      for (const ser of spec.series) {
+        if (!ser.points) continue;
+        assert.ok(ser.points.length >= 2 && ser.points.length <= 400, `${tool}: ${k} has ${ser.points.length} points`);
+        for (const [x, v] of ser.points) assert.ok(typeof x === "string" && Number.isFinite(v), `${tool}: ${k} has a non-finite point`);
+      }
+      for (const b of spec.bands ?? []) {
+        assert.ok(spec.series[b.series], `${tool}: ${k} band points past the series list`);
+        for (const [, lo, hi] of b.points) assert.ok(Number.isFinite(lo) && Number.isFinite(hi) && hi >= lo, `${tool}: ${k} band is not an interval`);
+      }
+      assert.equal(spec.api, base);
+    }
+  }
+  // A scatter marks which series is drawn as points, and the fitted line spans the data
+  const reg = await call("regress", { y: cattle, x: [corn] });
+  const sc = decodeSpec(reg.scatter_chart_url);
+  assert.deepEqual(sc.dots, [0]);
+  assert.equal(sc.xaxis, "number");
+  assert.equal(sc.series[1].points.length, 2, "the fitted line is two ends");
+  // Impulse responses come back one chart per shock, each with a band per response
+  const v = await call("var_model", { series: [g, g2], horizon: 8, bootstrap: 50 });
+  assert.equal(v.impulse_response_charts.length, v.shocks.length);
+  const irf = decodeSpec(v.impulse_response_charts[0].chart_url);
+  assert.equal(irf.xaxis, "number");
+  assert.equal(irf.series.length, 2);
+  assert.equal(irf.series[0].points.length, 9, "h = 0..8");
+  assert.equal(irf.bands.length, 2);
+  // A long series is thinned to a link a browser can carry, first and last kept
+  const long = await call("hp_filter", { series: { ...CATTLE, start: "1960-01" }, include_points: false });
+  const hp = decodeSpec(long.chart_url);
+  const pts = hp.series[1].points;
+  assert.ok(pts.length <= 400);
+  assert.equal(pts[0][0].slice(0, 4), "1960");
+});
+
 await check("GET /v1/series returns points for a spec, and errors per series", async () => {
   const spec = { series: [{ ...CATTLE, start: "2020-01", end: "2020-03" }, { dataset: "us-prices", series: "nope" }] };
   const r = await fetch(base + "/v1/series?s=" + encodeURIComponent(JSON.stringify(spec)));

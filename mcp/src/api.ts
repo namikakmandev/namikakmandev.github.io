@@ -24,6 +24,7 @@ export const PlotSpecSchema = z.object({
   title: z.string().max(200).optional(),
   scale: z.enum(["linear", "log"]).optional(),
   right: z.array(z.number().int().min(0).max(7)).optional(),
+  dots: z.array(z.number().int().min(0).max(7)).optional().describe("Indexes of series to draw as points rather than a line (scatter)"),
   bands: z.array(BandSchema).max(4).optional(),
   xaxis: z.enum(["date", "number"]).optional().describe("number: x values are horizons or indexes, not dates"),
   api: z.string().optional(),
