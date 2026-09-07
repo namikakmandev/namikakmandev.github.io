@@ -426,7 +426,15 @@ await check("forecast_evaluate ranks methods out of sample, tests the winner aga
   // A subset of methods, and a series too short for the horizon
   const sub = await call("forecast_evaluate", { series: { ...CPI, start: "2015-01" }, horizon: 1, origins: 6, methods: ["naive", "drift"] });
   assert.deepEqual(sub.ranking.map((r) => r.method).sort(), ["drift", "naive"]);
+  assert.equal(Object.keys(sub.diebold_mariano).length, 1, "runner-up naive is not tested twice");
   assert.equal(sub.diebold_mariano[Object.keys(sub.diebold_mariano)[0]].length, 1, "one horizon, one test");
+  // Too few origins for the test: say so, do not call it a tie.
+  const few = await call("forecast_evaluate", { series: { ...CPI, start: "2015-01" }, horizon: 1, origins: 4, methods: ["naive", "ar"], ar_order: 3 });
+  if (few.ranking[0].method === "ar") {
+    assert.match(few.reading, /Too few origins/);
+    assert.equal(few.recommended_call.args.ar_order, 3, "the scored order is the recommended one");
+  }
+  assert.match(few.diebold_mariano[Object.keys(few.diebold_mariano)[0]][0].verdict, /^not tested/);
   const short = await callRaw("forecast_evaluate", { series: { ...CPI, start: "2023-01" }, horizon: 12 });
   assert.ok(short.isError && /need at least/.test(short.content[0].text), short.content[0].text);
 });

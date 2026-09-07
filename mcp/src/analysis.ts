@@ -996,15 +996,19 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const naive = scored.find((s) => s.method === "naive");
       const best = scored[0], second = scored[1];
       const dm = (a: typeof best, b: typeof best, h: number) => {
-        try { const d = S.dieboldMariano(a.bt.errors.map((row) => row[h]), b.bt.errors.map((row) => row[h]), h + 1); return { horizon: h + 1, statistic: r3(d.statistic), p: r4(d.p), n: d.n, verdict: d.better === 1 ? `${a.method} is better` : d.better === 2 ? `${b.method} is better` : "no significant difference" }; }
-        catch { return null; }
+        try {
+          const d = S.dieboldMariano(a.bt.errors.map((row) => row[h]), b.bt.errors.map((row) => row[h]), h + 1);
+          const verdict = d.degenerate ? (d.better === 1 ? `${a.method} is better at every origin (constant gap, no sampling variance)` : d.better === 2 ? `${b.method} is better at every origin (constant gap, no sampling variance)` : "identical losses") : d.better === 1 ? `${a.method} is better` : d.better === 2 ? `${b.method} is better` : "no significant difference";
+          return { horizon: h + 1, statistic: Number.isFinite(d.statistic) ? r3(d.statistic) : null, p: r4(d.p), n: d.n, verdict };
+        } catch (e) { return { horizon: h + 1, statistic: null, p: null, n: 0, verdict: `not tested: ${e instanceof Error ? e.message : String(e)}` }; }
       };
       const tests: Record<string, unknown> = {};
       if (naive && naive !== best) tests[`${best.method}_vs_naive`] = [dm(best, naive, 0), H > 1 ? dm(best, naive, H - 1) : null].filter(Boolean);
-      if (second) tests[`${best.method}_vs_${second.method}`] = [dm(best, second, 0), H > 1 ? dm(best, second, H - 1) : null].filter(Boolean);
+      if (second && second !== naive) tests[`${best.method}_vs_${second.method}`] = [dm(best, second, 0), H > 1 ? dm(best, second, H - 1) : null].filter(Boolean);
       const skill = (s: typeof best) => (naive && Number.isFinite(naive.overall.rmse) && naive.overall.rmse > 0 ? r3(1 - s.overall.rmse / naive.overall.rmse) : null);
       const bestVsNaive = tests[`${best.method}_vs_naive`] as Array<{ verdict: string }> | undefined;
       const beatsNaive = bestVsNaive?.some((t) => t.verdict.startsWith(best.method));
+      const naiveTested = bestVsNaive?.some((t) => !t.verdict.startsWith("not tested"));
       const methodArg = best.method === "naive" || best.method === "drift" || best.method === "seasonal_naive" ? null : best.method;
       return text({
         ...meta(r), n: v.length, frequency: f.frequency, horizon: H,
@@ -1021,11 +1025,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         skipped: skipped.length ? skipped : undefined,
         reading: [
           `Over ${orig.length} origins from ${dates[orig[0]]} to ${dates[orig[orig.length - 1]]}, ${best.method} had the lowest ${H}-step RMSE (${r4(best.overall.rmse)})${naive && naive !== best ? ` against ${r4(naive.overall.rmse)} for naive, a skill of ${r3((skill(best) ?? 0) * 100)}%` : ""}.`,
-          naive && naive !== best ? (beatsNaive ? "The Diebold-Mariano test says that improvement is real at 5%." : "The Diebold-Mariano test cannot distinguish it from naive: the series is close to unpredictable at this horizon and a no-change forecast is as honest a statement.") : best.method === "naive" ? "Naive wins: nothing here forecasts better than the last value. Quote the last value with the error band, not a model." : "",
+          naive && naive !== best ? (beatsNaive ? "The Diebold-Mariano test says that improvement is real at 5%." : naiveTested ? "The Diebold-Mariano test cannot distinguish it from naive: the series is close to unpredictable at this horizon and a no-change forecast is as honest a statement." : "Too few origins for a Diebold-Mariano test (it needs 6 paired errors), so whether that gap is real is untested; raise origins.") : best.method === "naive" ? "Naive wins: nothing here forecasts better than the last value. Quote the last value with the error band, not a model." : "",
           Math.abs(best.overall.bias) > 0.5 * best.overall.mae ? `${best.method} is biased (mean error ${r4(best.overall.bias)}): it systematically ${best.overall.bias > 0 ? "under" : "over"}-forecasts, a sign of a trend or level shift the method does not track.` : "",
           methodArg ? `Next: forecast with method='${methodArg}'.` : "",
         ].filter(Boolean).join(" "),
-        recommended_call: methodArg ? { tool: "forecast", args: { series, method: methodArg, horizon: H } } : null,
+        recommended_call: methodArg ? { tool: "forecast", args: { series, method: methodArg, horizon: H, ...(methodArg === "ar" ? { ar_order } : {}), ...(methodArg === "arima" && arimaOrder ? { arima_order: arimaOrder } : {}) } } : null,
         caveat: `Each origin re-estimates the model on data up to that point, so the scores are genuinely out of sample, but ${orig.length} origins is a small sample for the Diebold-Mariano test and adjacent origins overlap; treat a p-value near 0.05 as a coin toss. Errors are in the units of the series (${r.transform === "none" ? "levels" : r.transform}); MAPE is undefined when an actual is zero. ${need > v.length ? `Fewer origins than requested fit the sample.` : ""}`.trim(),
       });
     }),

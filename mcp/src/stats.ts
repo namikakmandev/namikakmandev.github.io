@@ -539,12 +539,7 @@ export function kpss(y: number[], trend: "c" | "ct" = "c", lags?: number): KpssR
   const X = y.map((_, t) => (trend === "ct" ? [1, t] : [1]));
   const e = ols(y, X).resid;
   const L = lags ?? Math.floor(4 * Math.pow(n / 100, 0.25));
-  let s2 = e.reduce((s, v) => s + v * v, 0) / n;
-  for (let l = 1; l <= L; l++) {
-    let g = 0;
-    for (let t = l; t < n; t++) g += e[t] * e[t - l];
-    s2 += 2 * (1 - l / (L + 1)) * (g / n);
-  }
+  const s2 = longRunVariance(e, L);   // residuals of a regression on a constant already have zero mean
   let S = 0, num = 0;
   for (let t = 0; t < n; t++) { S += e[t]; num += S * S; }
   const stat = num / (n * n * s2);
@@ -1124,7 +1119,7 @@ export function longRunVariance(d: number[], lags: number): number {
   return Math.max(v, 0);
 }
 
-export interface DmResult { statistic: number; p: number; n: number; mean_loss_diff: number; better: 1 | 2 | null }
+export interface DmResult { statistic: number; p: number; n: number; mean_loss_diff: number; better: 1 | 2 | null; degenerate?: boolean }
 
 /**
  * Diebold-Mariano test of equal predictive accuracy between two h-step forecast error
@@ -1132,13 +1127,16 @@ export interface DmResult { statistic: number; p: number; n: number; mean_loss_d
  * p-value from t(n-1). A negative statistic favours forecast 1.
  */
 export function dieboldMariano(e1: number[], e2: number[], h = 1, loss: "squared" | "absolute" = "squared"): DmResult {
-  const n = Math.min(e1.length, e2.length);
-  if (n < 6) throw new Error(`Diebold-Mariano needs 6 or more paired errors (have ${n})`);
   const L = (e: number) => (loss === "squared" ? e * e : Math.abs(e));
-  const d = Array.from({ length: n }, (_, t) => L(e1[t]) - L(e2[t]));
+  // Pairs where either forecaster failed (NaN) are dropped, as errorMetrics does.
+  const d: number[] = [];
+  for (let t = 0; t < Math.min(e1.length, e2.length); t++) if (Number.isFinite(e1[t]) && Number.isFinite(e2[t])) d.push(L(e1[t]) - L(e2[t]));
+  const n = d.length;
+  if (n < 6) throw new Error(`Diebold-Mariano needs 6 or more paired errors (have ${n})`);
   const md = mean(d);
   const lrv = longRunVariance(d, Math.max(h - 1, 0));
-  if (lrv <= 1e-18) return { statistic: 0, p: 1, n, mean_loss_diff: md, better: null };
+  // A constant loss gap has no sampling variance: one forecaster wins (or ties) at every origin.
+  if (lrv <= 1e-18 * Math.max(1, md * md)) return { statistic: md === 0 ? 0 : md < 0 ? -Infinity : Infinity, p: md === 0 ? 1 : 0, n, mean_loss_diff: md, better: md === 0 ? null : md < 0 ? 1 : 2, degenerate: true };
   const dm = md / Math.sqrt(lrv / n);
   const hln = Math.sqrt(Math.max((n + 1 - 2 * h + (h * (h - 1)) / n) / n, 1e-9));
   const stat = dm * hln;

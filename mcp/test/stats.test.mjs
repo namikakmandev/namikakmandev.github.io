@@ -327,6 +327,13 @@ check("Diebold-Mariano: separates a good forecaster from a bad one, not two equa
   const equal = S.dieboldMariano(e1, e3, 4);
   assert.equal(equal.better, null, `two iid N(0,1) error series, p ${equal.p}`);
   assert.throws(() => S.dieboldMariano(e1.slice(0, 4), e2.slice(0, 4)), /6 or more/);
+  // A failed origin (NaN) is dropped, not allowed to poison the test.
+  const holed = S.dieboldMariano([NaN, ...e1.slice(1)], e2, 1);
+  assert.equal(holed.n, n - 1); assert.equal(holed.better, 1, `with a NaN pair: p ${holed.p}`);
+  assert.throws(() => S.dieboldMariano([NaN, NaN, NaN, ...e1.slice(3, 8)], e2.slice(0, 8)), /6 or more/, "count after dropping");
+  // A constant gap is a win at every origin, not a tie.
+  const constant = S.dieboldMariano(new Array(10).fill(1), new Array(10).fill(2), 1);
+  assert.equal(constant.better, 1); assert.equal(constant.degenerate, true); assert.equal(constant.p, 0);
   close(S.longRunVariance(e1, 0), S.variance(e1, 0), 1e-12, "lag 0 is the plain variance");
 });
 
