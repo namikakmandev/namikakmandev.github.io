@@ -447,7 +447,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const lineX = [lo, hi], lineY = lineX.map((xx) => fit.beta[0] + fit.beta[1] * xx);
         scatterUrl = chartUrl(origin, {
           series: [inline(`${ry.label} against ${rx[0].label}`, xs, yv), inline("fitted line", lineX, lineY)],
-          dots: [0], xaxis: "number",
+          dots: [0], xaxis: "number", xlabel: rx[0].label,
           title: `${ry.label} against ${rx[0].label}`, api: self,
         });
       }
@@ -527,7 +527,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const lineX = [loB, hiB];
       const scatterChart: PlotSpec = {
         series: [inline(`${ra.label} against ${rb.label}`, vb, va), inline("long-run line", lineX, lineX.map((x) => eg.beta[0] + eg.beta[1] * x))],
-        dots: [0], xaxis: "number", title: `${ra.label} against ${rb.label}, with the long-run line`, api: self,
+        dots: [0], xaxis: "number", xlabel: rb.label, title: `${ra.label} against ${rb.label}, with the long-run line`, api: self,
       };
       return text({
         a: meta(ra), b: meta(rb), n: dates.length, first: dates[0], last: dates[dates.length - 1],
@@ -563,7 +563,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const ccChart: PlotSpec = {
         series: [inline(`corr(${ra.label} at t, ${rb.label} at t+k)`, lagX, cc.map((c) => c.r))],
         bands: [inlineBand(0, "not distinguishable from zero", lagX, cc.map(() => -band), cc.map(() => band))],
-        xaxis: "number", title: `${ra.label} against ${rb.label} by lag (positive k: ${ra.label} leads)`, api: self,
+        xaxis: "number", xlabel: "lag, in periods", title: `${ra.label} against ${rb.label} by lag (positive k: ${ra.label} leads)`, api: self,
       };
       return text({
         a: meta(ra), b: meta(rb), n: dates.length, first: dates[0], last: dates[dates.length - 1],
@@ -624,7 +624,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const offset = seasonOffset(dates[0], p);
       const trendChart: PlotSpec = { series: [inline(r.label, dates, v), inline("trend", dates, d.trend)], title: `${r.label} and its trend`, api: self };
       const partsChart: PlotSpec = { series: [inline("seasonal", dates, d.seasonal), inline("remainder", dates, d.residual)], title: `${r.label}: seasonal pattern and what is left`, api: self };
-      const factorChart: PlotSpec = { series: [inline("seasonal effect", d.seasonal_factors.map((_, i) => i + 1), d.seasonal_factors)], xaxis: "number", title: `${r.label}: average effect of each ${p === 12 ? "month" : p === 4 ? "quarter" : "season"}`, api: self };
+      const factorChart: PlotSpec = { series: [inline("seasonal effect", d.seasonal_factors.map((_, i) => i + 1), d.seasonal_factors)], xaxis: "number", xlabel: p === 12 ? "month of the year" : p === 4 ? "quarter" : "season", title: `${r.label}: average effect of each ${p === 12 ? "month" : p === 4 ? "quarter" : "season"}`, api: self };
       return text({
         ...meta(r), n: v.length, period: p,
         chart_url: chartUrl(origin, trendChart),
@@ -750,8 +750,12 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const single = { segments: [segAt(0, s.best.break_index), segAt(s.best.break_index, yv.length)] };
       // The scan itself: F against every candidate date, with the line it has to clear.
       const scanDates = s.scan.map((e) => dates[e.index]);
+      // The statistic runs to hundreds while the critical value sits near ten, so a flat
+      // line would vanish at the foot of the chart. Shading everything below it instead
+      // means the eye reads "out of the shade" as "a break", at any scale.
       const scanChart: PlotSpec = {
-        series: [inline("sup-F scan", scanDates, s.scan.map((e) => e.F)), refLine(`5% critical value (${r3(crit["5%"])})`, scanDates, crit["5%"])],
+        series: [inline("sup-F at each candidate date", scanDates, s.scan.map((e) => e.F))],
+        bands: [inlineBand(0, `below this, no break at 5% (${r3(crit["5%"])})`, scanDates, s.scan.map(() => 0), s.scan.map(() => crit["5%"]))],
         title: `${ry.label}: where a break is most likely`, api: self,
       };
       // The series with the level (or the fitted relation) inside each segment it found.
@@ -890,7 +894,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         qSeries.push(inline(`${r.label} by quantile`, qs, rows.map((row) => row.coefficients[r.label] as number)));
         if (qSeries.length < 8) qSeries.push(refLine(`${r.label}, OLS`, qs, olsFit.beta[j + 1]));
       });
-      const qChart: PlotSpec = { series: qSeries.slice(0, 8), xaxis: "number", title: `${ry.label}: slope at each quantile`, api: self };
+      const qChart: PlotSpec = { series: qSeries.slice(0, 8), xaxis: "number", xlabel: `quantile of ${ry.label}`, title: `${ry.label}: slope at each quantile`, api: self };
       return text({
         y: meta(ry), x: rx.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1],
         chart_url: chartUrl(origin, qChart),
@@ -930,7 +934,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const screeChart: PlotSpec = {
         series: [inline("share of joint variance", comps, p.explained.slice(0, p.k)),
           inline("cumulative", comps, comps.map((_, i) => p.explained.slice(0, i + 1).reduce((a, b) => a + b, 0)))],
-        xaxis: "number", title: "How much each component explains", api: self,
+        xaxis: "number", xlabel: "component", title: "How much each component explains", api: self,
       };
       return text({
         series: rs.map(meta), n: p.nobs, first: dates[0], last: dates[dates.length - 1],
@@ -1237,6 +1241,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const hs2 = bands ? (bands.horizons as Array<Record<string, unknown>>) : null;
       const loKey2 = identification === "sign" ? "lo" : "lo16", hiKey2 = identification === "sign" ? "hi" : "hi84";
       const hAxis = irf.map((_, h) => hx(h));
+      const f0 = detectFrequency(dates).frequency;
       const irfCharts = shocks.map((sn, si) => {
         const shown = names.slice(0, 8);
         const spec: PlotSpec = {
@@ -1244,7 +1249,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           bands: hs2 ? shown.slice(0, 4).map((rn, ri) => inlineBand(ri, "68% band", hAxis,
             hs2.map((row) => ((row[loKey2] as Record<string, Record<string, number | null>>)[rn][sn])),
             hs2.map((row) => ((row[hiKey2] as Record<string, Record<string, number | null>>)[rn][sn])))) : undefined,
-          xaxis: "number", title: `Response to a ${sn}`, api: self,
+          xaxis: "number", xlabel: `periods after the shock (${f0})`, title: `Response to a ${sn}`, api: self,
         };
         return { shock: sn, chart_url: chartUrl(origin, spec) };
       });
@@ -1479,7 +1484,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const hAxisF = Array.from({ length: H }, (_, i) => hx(i + 1));
       const scoreChart: PlotSpec = {
         series: scored.slice(0, 8).map((x) => inline(x.method, hAxisF, x.byH.map((mm) => mm.rmse))),
-        xaxis: "number", title: `${r.label}: forecast error by how far ahead`, api: self,
+        xaxis: "number", xlabel: `periods ahead (${f.frequency})`, title: `${r.label}: forecast error by how far ahead`, api: self,
       };
       return text({
         ...meta(r), n: v.length, frequency: f.frequency, horizon: H,
@@ -1548,7 +1553,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           { points: finiteRows.map((r) => [hx(r.h), r.cumulative as number]), label: "cumulative response" },
         ],
         bands: [{ series: 0, label: "95% band", points: finiteRows.map((r) => [hx(r.h), r.lo95 as number, r.hi95 as number]) }],
-        xaxis: "number", title: `Local projections: ${ry.label} after a shock to ${rx.label}`, api: self,
+        xaxis: "number", xlabel: `periods after the shock (${f.frequency})`, title: `Local projections: ${ry.label} after a shock to ${rx.label}`, api: self,
       };
       return text({
         y: meta(ry), x: meta(rx), controls: rc.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1], frequency: f.frequency, lags: p, horizon,
