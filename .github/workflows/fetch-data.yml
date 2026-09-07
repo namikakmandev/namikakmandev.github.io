@@ -31,10 +31,13 @@ jobs:
           FAOSTAT_USER: ${{ secrets.FAOSTAT_USER }}
           FAOSTAT_PASSWORD: ${{ secrets.FAOSTAT_PASSWORD }}
         run: python scripts/fetch.py ${{ inputs.only }}
+      # Both of these run even when the fetch reports a degraded source, so the data that
+      # did come back is still published; the run stays red so the failure is visible.
       - name: Rebuild catalog
+        if: ${{ always() }}
         run: python scripts/build_catalog.py
       - name: Commit
-        if: ${{ inputs.mode != 'discover' }}
+        if: ${{ always() && inputs.mode != 'discover' }}
         run: |
           git config user.name "data-bot"
           git config user.email "actions@github.com"

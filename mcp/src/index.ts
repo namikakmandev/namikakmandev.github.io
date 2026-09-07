@@ -16,6 +16,9 @@ export interface Env {
   FRED_API_KEY?: string;
   /** Optional. Required for TCMB EVDS pulls. */
   EVDS_API_KEY?: string;
+  /** Optional but effectively required for SEC pulls: the SEC refuses callers whose
+   *  user agent does not name them, in the form 'Company Name admin@example.com'. */
+  SEC_USER_AGENT?: string;
   /** Optional. FAOSTAT developer account (free); or a ready token. */
   FAOSTAT_USER?: string;
   FAOSTAT_PASSWORD?: string;
@@ -23,7 +26,7 @@ export interface Env {
 }
 
 function providerEnv(env: Env) {
-  return { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY, FAOSTAT_USER: env.FAOSTAT_USER, FAOSTAT_PASSWORD: env.FAOSTAT_PASSWORD, FAOSTAT_API_TOKEN: env.FAOSTAT_API_TOKEN };
+  return { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY, FAOSTAT_USER: env.FAOSTAT_USER, FAOSTAT_PASSWORD: env.FAOSTAT_PASSWORD, FAOSTAT_API_TOKEN: env.FAOSTAT_API_TOKEN, SEC_USER_AGENT: env.SEC_USER_AGENT };
 }
 
 const CORS = {
