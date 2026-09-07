@@ -51,7 +51,10 @@ PRODUCTS = {
         "pages": [
             "https://www.merck-animal-health-usa.com/hub/numelvi/about-numelvi/",
             "https://www.merck-animal-health-usa.com/hub/numelvi/",
-            "https://www.merck-animal-health.com/species/dogs/numelvi/",
+            "https://www.merck-animal-health-usa.com/hub/numelvi/dosing-administration/",
+            "https://www.merck-animal-health-usa.com/hub/numelvi/pet-owners/",
+            "https://www.merck-animal-health-usa.com/species/dogs/numelvi/",
+            "https://www.msd-animal-health.com/species/dogs/numelvi/",
             "https://www.numelvi.com/",
         ],
     },
@@ -74,6 +77,22 @@ class Imgs(HTMLParser):
             self.found.append((urljoin(self.base, a["content"]), "og:image", ""))
         if tag == "a" and a.get("href", "").lower().endswith((".svg", ".png")):
             self.found.append((urljoin(self.base, a["href"]), a.get("title", "") or "link", ""))
+        st = a.get("style", "")
+        for u in re.findall(r"url\(['\"]?([^'\")]+)", st):
+            self.found.append((urljoin(self.base, u), "css-bg", a.get("class", "")))
+        if tag == "svg":
+            self._svg += 1; self._svgbuf = [self.get_starttag_text()]
+        elif self._svg:
+            self._svgbuf.append(self.get_starttag_text())
+    def handle_endtag(self, tag):
+        if self._svg:
+            self._svgbuf.append(f"</{tag}>")
+            if tag == "svg":
+                self._svg -= 1
+                if not self._svg:
+                    self.found.append(("inline-svg:" + "".join(self._svgbuf), "inline svg", ""))
+    def handle_data(self, data):
+        if self._svg: self._svgbuf.append(data)
 
 
 def get(url, binary=False):
@@ -113,17 +132,27 @@ def main():
             except Exception as e:
                 manifest.setdefault("errors", []).append({"page": page, "error": str(e)[:200]}); continue
             p = Imgs(page); p.feed(html)
+            # stylesheet background images too
+            for u in re.findall(r"url\(['\"]?([^'\")]+\.(?:svg|png|webp))", html, re.I):
+                p.found.append((urljoin(page, u), "css-url", ""))
+            allseen = manifest.setdefault("all_images", {}).setdefault(pid, [])
             for url, alt, cls in p.found:
                 if url in seen: continue
                 seen.add(url)
-                if looks_like(url, alt, cls, spec["words"]):
+                if not url.startswith("inline-svg:"):
+                    allseen.append({"page": page, "url": url[:300], "alt": alt[:80]})
+                if url.startswith("inline-svg:"):
+                    svg = url[len("inline-svg:"):]
+                    if any(w in svg.lower() for w in spec["words"]) and len(svg) > 300:
+                        cands.append({"page": page, "url": "inline-svg", "alt": alt, "_data": svg.encode()})
+                elif looks_like(url, alt, cls, spec["words"]):
                     cands.append({"page": page, "url": url, "alt": alt})
             # og:image and anything else on the product's own domain with the name in it
             time.sleep(1)
         kept = []
         for i, c in enumerate(cands[:12]):
             try:
-                data = get(c["url"], binary=True)
+                data = c.pop("_data", None) or get(c["url"], binary=True)
             except Exception as e:
                 c["error"] = str(e)[:120]; continue
             info = probe(data)
