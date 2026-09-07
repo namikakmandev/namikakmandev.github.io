@@ -1013,6 +1013,25 @@ const weather: Provider = {
 const SEC_UA_DEFAULT = "Namik Akman economics data (namikakmandev.github.io)";
 function secUa(env: ProviderEnv): string { return env.SEC_USER_AGENT || SEC_UA_DEFAULT; }
 
+/**
+ * The SEC blocks callers whose user agent does not declare who they are, and its own
+ * guidance asks for a name and a contact address. Nothing else gets through, so say that
+ * rather than passing on a bare 403.
+ */
+function secRefusal(e: unknown, env: ProviderEnv, what: string): DataError {
+  if (e instanceof UpstreamError && (e.status === 403 || e.status === 429)) {
+    const said = htmlText(e.body, 200);
+    const undeclared = /undeclared automated tool/i.test(said);
+    return new DataError(
+      `The SEC refused ${what} (${e.status}${said ? `: ${said}` : ""}). ` +
+      (undeclared || !env.SEC_USER_AGENT
+        ? `The SEC only serves callers whose user agent names them and gives a contact address, in the form 'Company Name admin@example.com'. This server is sending '${secUa(env)}'. Set SEC_USER_AGENT to a real contact in the Cloudflare dashboard (Settings, Variables) and redeploy.`
+        : `The current SEC_USER_AGENT is '${secUa(env)}'; the SEC wants the form 'Company Name admin@example.com'. If it is already that, this is a rate limit: wait a minute and retry.`),
+    );
+  }
+  return e instanceof DataError ? e : new DataError(`SEC request failed: ${e instanceof Error ? e.message : String(e)}`);
+}
+
 /** The line items that make up each statement, in the order an analyst reads them. */
 const SEC_GROUPS: Record<string, string[]> = {
   balance_sheet: [
@@ -1049,8 +1068,7 @@ async function secResolveCik(token: string, env: ProviderEnv): Promise<{ cik: st
     try {
       j = (await getJson("https://www.sec.gov/files/company_tickers.json", { "user-agent": secUa(env) })) as typeof j;
     } catch (e) {
-      const why = e instanceof UpstreamError ? `${e.status}: ${htmlText(e.body, 240) || "no message"}` : e instanceof Error ? e.message : "error";
-      throw new DataError(`The SEC would not serve its ticker directory (${why}). Use the filer's CIK instead, as 'CIK0000320193:Assets'; you can look one up at sec.gov/cgi-bin/browse-edgar. The SEC asks callers to identify themselves with a contact address: set SEC_USER_AGENT to one.`);
+      throw secRefusal(e, env, "its ticker directory");
     }
     const byTicker = new Map<string, { cik: string; title: string }>();
     for (const row of Object.values(j)) {
@@ -1124,7 +1142,7 @@ async function secConcept(cik: string, taxonomy: string, tag: string, unit: stri
   try { j = (await getJson(url, { "user-agent": secUa(env) })) as typeof j; }
   catch (e) {
     if (e instanceof UpstreamError && e.status === 404) return null;
-    throw e;
+    throw secRefusal(e, env, `the ${tag} concept`);
   }
   const units = j.units ?? {};
   const rows = units[unit] ?? units[Object.keys(units)[0]];
@@ -1137,7 +1155,7 @@ const sec: Provider = {
   title: "SEC EDGAR company financials (XBRL company facts)",
   coverage: "Every company that files with the SEC, from about 2009: balance sheet, income statement and cash flow line items as reported, quarterly and annual.",
   id_format: "'TICKER:TAG' or 'CIK0000320193:TAG', e.g. 'AAPL:Assets'. TAG can be a whole statement: balance_sheet, income_statement or cash_flow. params: annual ('true' for fiscal years only, default quarterly), unit (default USD), taxonomy (default us-gaap).",
-  needs_key: null,
+  needs_key: "SEC_USER_AGENT: not a key, a contact address. The SEC refuses callers whose user agent does not name them, in the form 'Company Name admin@example.com'.",
   curated: [
     { id: "AAPL:balance_sheet", title: "Apple: the whole balance sheet", hint: "Every line item at once; swap the ticker for any SEC filer." },
     { id: "JPM:balance_sheet", title: "JPMorgan Chase: balance sheet" },
@@ -1230,7 +1248,7 @@ export function providerInfo(env: ProviderEnv) {
     coverage: p.coverage,
     id_format: p.id_format,
     needs_key: p.needs_key,
-    key_present: p.name === "evds" ? (env.EVDS_API_KEY ? "yes (fetch and catalogue search enabled)" : "no") : p.name === "fred" ? (env.FRED_API_KEY ? "yes (search enabled)" : "no (fetch works, search uses the starter list)") : p.name === "fao" ? (env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "yes" : "no (register at www.fao.org/faostat/en/#developer-portal and set FAOSTAT_USER and FAOSTAT_PASSWORD)") : "not needed",
+    key_present: p.name === "evds" ? (env.EVDS_API_KEY ? "yes (fetch and catalogue search enabled)" : "no") : p.name === "fred" ? (env.FRED_API_KEY ? "yes (search enabled)" : "no (fetch works, search uses the starter list)") : p.name === "fao" ? (env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "yes" : "no (register at www.fao.org/faostat/en/#developer-portal and set FAOSTAT_USER and FAOSTAT_PASSWORD)") : p.name === "sec" ? (env.SEC_USER_AGENT ? "yes (a contact address is declared)" : "no: the SEC blocks this server until SEC_USER_AGENT names a contact") : "not needed",
     starter_ids: p.curated.slice(0, 8).map((c) => `${c.id}: ${c.title}`),
   }));
 }
