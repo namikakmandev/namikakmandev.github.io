@@ -411,6 +411,15 @@ await check("deflate expresses cattle PPI in CPI terms of a base month", async (
 await check("forecast_evaluate ranks methods out of sample, tests the winner against naive, and points at forecast", async () => {
   const j = await call("forecast_evaluate", { series: { ...CPI, start: "2005-01" }, horizon: 3, origins: 8 });
   assert.equal(j.origins.count, 8);
+  assert.match(j.origins.training_window, /expanding/);
+  const long = await call("forecast_evaluate", { series: CPI, horizon: 2, origins: 6, methods: ["naive", "holt"], max_train: 120 });
+  assert.match(long.origins.training_window, /rolling, last 120/);
+  // A deterministic series: drift is exact, naive is not, and the reading must not claim a 5% test result.
+  const line = Array.from({ length: 80 }, (_, i) => [`${2000 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`, 10 + i]);
+  const det = await call("forecast_evaluate", { series: { points: line, label: "line" }, horizon: 2, origins: 6, methods: ["naive", "drift"] });
+  assert.equal(det.ranking[0].method, "drift");
+  assert.match(det.reading, /same margin at every origin/);
+  assert.doesNotMatch(det.reading, /real at 5%/);
   assert.ok(j.ranking.length >= 6, JSON.stringify(j.ranking.map((r) => r.method)));
   for (let i = 1; i < j.ranking.length; i++) assert.ok(j.ranking[i].rmse >= j.ranking[i - 1].rmse, "sorted by RMSE");
   assert.equal(j.ranking[0].rank, 1);
@@ -484,6 +493,8 @@ await check("iv_regress: 2SLS next to OLS with first-stage, Wu-Hausman and Sarga
   assert.ok(under.isError && /Under-identified/.test(under.content[0].text), under.content[0].text);
   const lev = await call("iv_regress", { y: { ...CATTLE, start: "1995-01" }, x: [{ ...CORN, start: "1995-01" }], instruments: [{ ...CPI, start: "1995-01" }] });
   assert.ok(lev.warnings.length >= 1, "levels get the spurious warning");
+  const self = await callRaw("iv_regress", { y: g(CATTLE), x: [g(CORN)], instruments: [g(CORN)] });
+  assert.ok(self.isError && /reproduce/.test(self.content[0].text), "x as its own instrument is refused");
   const plan = await call("suggest_analysis", { series: [CATTLE, CORN], question: "does corn drive cattle prices?" });
   assert.ok(plan.pitfalls.some((p) => /iv_regress/.test(p)), "causal question points at iv_regress");
 });

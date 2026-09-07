@@ -340,7 +340,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const vifs = S.vif(rows);
       const vifTable = names.slice(1).map((nm, j) => ({ term: nm, vif: Number.isFinite(vifs[j]) ? r3(vifs[j]) : null }));
       let rs: { F: number; p: number; df: [number, number] } | null = null;
-      try { if (fit.n > fit.k + 6) rs = S.reset(yv, rows, fit.fitted); } catch { /* collinear with the powers */ }
+      try { if (fit.n > fit.k + 6) rs = S.reset(yv, rows, fit); } catch { /* collinear with the powers */ }
       if (bp.p < 0.05) warnings.push(`Breusch-Pagan p ${r4(bp.p)}: residual variance changes with the regressors (heteroskedasticity). The HAC columns are robust to it; the plain se are not.`);
       const highVif = vifTable.filter((v) => v.vif !== null && (v.vif as number) > 10).map((v) => v.term);
       if (highVif.length) warnings.push(`VIF above 10 for ${highVif.join(", ")}: these regressors move together, so their separate coefficients are poorly determined even if the fit is good. Drop one or combine them.`);
@@ -584,7 +584,12 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const seq = S.sequentialBreaks(yv, X, max_breaks);
         multiple = { breaks: seq.breaks.map((b) => ({ date: dates[b.index], sup_F: r3(b.F), reject_at: b.reject_at })), segments: seq.segments.map(segOut), stopped: seq.stopped };
       }
-      const single = S.sequentialBreaks(yv, X, 1);
+      const segAt = (lo: number, hi: number): S.BreakSegment => {
+        const ys = yv.slice(lo, hi), Xs = X.slice(lo, hi);
+        let beta: number[]; try { beta = S.ols(ys, Xs).beta; } catch { beta = new Array<number>(k).fill(NaN); }
+        return { start: lo, end: hi - 1, n: ys.length, beta, mean_y: S.mean(ys) };
+      };
+      const single = { segments: [segAt(0, s.best.break_index), segAt(s.best.break_index, yv.length)] };
       return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "sup-F scan (Quandt-Andrews), 15% trimming", most_likely_break: dates[s.best.break_index], sup_F: r3(s.best.F),
         sup_F_critical: { "10%": r3(crit["10%"]), "5%": r3(crit["5%"]), "1%": r3(crit["1%"]) }, reject_no_break_at: rej,
         chow_p_at_that_date: r4(s.best.p), candidates: top,
@@ -976,10 +981,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         step: z.number().int().min(1).max(12).default(1).describe("Periods between origins"),
         methods: z.array(z.enum(["naive", "drift", "seasonal_naive", "holt", "holt_winters", "ar", "arima"])).min(1).optional().describe("Default: every method the series supports"),
         ar_order: z.number().int().min(1).max(12).default(2),
+        max_train: z.number().int().min(48).max(3000).default(600).describe("At each origin, fit on at most this many of the latest observations (a rolling window once the sample is longer)"),
       },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, horizon, origins, step, methods, ar_order }) => {
+    wrap(async ({ series, horizon, origins, step, methods, ar_order, max_train }) => {
       const r = await get(series);
       const { dates, v } = values(r.series);
       const f = detectFrequency(dates);
@@ -1008,7 +1014,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       for (const m of wanted) {
         if ((m === "seasonal_naive" || m === "holt_winters") && !seasonalOk) { skipped.push({ method: m, why: `${f.frequency} data has no seasonal period` }); continue; }
         try {
-          const bt = S.rollingOrigin(v, forecasters[m], H, origins, minTrain, step);
+          const bt = S.rollingOrigin(v, (train) => forecasters[m](train.length > max_train ? train.slice(-max_train) : train), H, origins, minTrain, step);
           if (bt.failures === bt.origins.length) { skipped.push({ method: m, why: "failed at every origin" }); continue; }
           runs.push({ method: m, bt });
         } catch (e) { skipped.push({ method: m, why: e instanceof Error ? e.message : String(e) }); }
@@ -1028,20 +1034,21 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         try {
           const d = S.dieboldMariano(a.bt.errors.map((row) => row[h]), b.bt.errors.map((row) => row[h]), h + 1);
           const verdict = d.degenerate ? (d.better === 1 ? `${a.method} is better at every origin (constant gap, no sampling variance)` : d.better === 2 ? `${b.method} is better at every origin (constant gap, no sampling variance)` : "identical losses") : d.better === 1 ? `${a.method} is better` : d.better === 2 ? `${b.method} is better` : "no significant difference";
-          return { horizon: h + 1, statistic: Number.isFinite(d.statistic) ? r3(d.statistic) : null, p: r4(d.p), n: d.n, verdict };
-        } catch (e) { return { horizon: h + 1, statistic: null, p: null, n: 0, verdict: `not tested: ${e instanceof Error ? e.message : String(e)}` }; }
+          return { horizon: h + 1, statistic: Number.isFinite(d.statistic) ? r3(d.statistic) : null, p: r4(d.p), n: d.n, verdict, degenerate: d.degenerate || undefined };
+        } catch (e) { return { horizon: h + 1, statistic: null, p: null, n: 0, verdict: `not tested: ${e instanceof Error ? e.message : String(e)}`, degenerate: undefined }; }
       };
       const tests: Record<string, unknown> = {};
       if (naive && naive !== best) tests[`${best.method}_vs_naive`] = [dm(best, naive, 0), H > 1 ? dm(best, naive, H - 1) : null].filter(Boolean);
       if (second && second !== naive) tests[`${best.method}_vs_${second.method}`] = [dm(best, second, 0), H > 1 ? dm(best, second, H - 1) : null].filter(Boolean);
       const skill = (s: typeof best) => (naive && Number.isFinite(naive.overall.rmse) && naive.overall.rmse > 0 ? r3(1 - s.overall.rmse / naive.overall.rmse) : null);
-      const bestVsNaive = tests[`${best.method}_vs_naive`] as Array<{ verdict: string }> | undefined;
-      const beatsNaive = bestVsNaive?.some((t) => t.verdict.startsWith(best.method));
-      const naiveTested = bestVsNaive?.some((t) => !t.verdict.startsWith("not tested"));
+      const bestVsNaive = tests[`${best.method}_vs_naive`] as Array<{ verdict: string; degenerate?: boolean }> | undefined;
+      const beatsNaive = bestVsNaive?.some((t) => t.verdict.startsWith(best.method) && !t.degenerate);
+      const degenerateWin = !beatsNaive && bestVsNaive?.some((t) => t.verdict.startsWith(best.method) && t.degenerate);
+      const naiveTested = bestVsNaive?.some((t) => !t.verdict.startsWith("not tested") && !t.degenerate);
       const methodArg = best.method === "naive" || best.method === "drift" || best.method === "seasonal_naive" ? null : best.method;
       return text({
         ...meta(r), n: v.length, frequency: f.frequency, horizon: H,
-        origins: { count: orig.length, step, first: dates[orig[0]], last: dates[orig[orig.length - 1]], scored_through: dates[orig[orig.length - 1] + H], min_training_points: minTrain },
+        origins: { count: orig.length, step, first: dates[orig[0]], last: dates[orig[orig.length - 1]], scored_through: dates[orig[orig.length - 1] + H], min_training_points: minTrain, training_window: v.length > max_train ? `rolling, last ${max_train} observations` : "expanding, all history" },
         arima_order: arimaOrder ? { order: arimaOrder, note: "Chosen by AIC on the first training window and held fixed after that" } : undefined,
         ranking: scored.map((s, i) => ({
           rank: i + 1, method: s.method,
@@ -1054,7 +1061,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         skipped: skipped.length ? skipped : undefined,
         reading: [
           `Over ${orig.length} origins from ${dates[orig[0]]} to ${dates[orig[orig.length - 1]]}, ${best.method} had the lowest ${H}-step RMSE (${r4(best.overall.rmse)})${naive && naive !== best ? ` against ${r4(naive.overall.rmse)} for naive, a skill of ${r3((skill(best) ?? 0) * 100)}%` : ""}.`,
-          naive && naive !== best ? (beatsNaive ? "The Diebold-Mariano test says that improvement is real at 5%." : naiveTested ? "The Diebold-Mariano test cannot distinguish it from naive: the series is close to unpredictable at this horizon and a no-change forecast is as honest a statement." : "Too few origins for a Diebold-Mariano test (it needs 6 paired errors), so whether that gap is real is untested; raise origins.") : best.method === "naive" ? "Naive wins: nothing here forecasts better than the last value. Quote the last value with the error band, not a model." : "",
+          naive && naive !== best ? (beatsNaive ? "The Diebold-Mariano test says that improvement is real at 5%." : degenerateWin ? `${best.method} beats naive by the same margin at every origin, so there is no sampling variation to test: the series is close to deterministic over this window.` : naiveTested ? "The Diebold-Mariano test cannot distinguish it from naive: the series is close to unpredictable at this horizon and a no-change forecast is as honest a statement." : "Too few origins for a Diebold-Mariano test (it needs 6 paired errors), so whether that gap is real is untested; raise origins.") : best.method === "naive" ? "Naive wins: nothing here forecasts better than the last value. Quote the last value with the error band, not a model." : "",
           Math.abs(best.overall.bias) > 0.5 * best.overall.mae ? `${best.method} is biased (mean error ${r4(best.overall.bias)}): it systematically ${best.overall.bias > 0 ? "under" : "over"}-forecasts, a sign of a trend or level shift the method does not track.` : "",
           methodArg ? `Next: forecast with method='${methodArg}'.` : "",
         ].filter(Boolean).join(" "),
@@ -1073,7 +1080,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         y: REF, x: REF,
         controls: z.array(REF).max(3).optional().describe("Extra series whose lags enter as controls"),
         horizon: z.number().int().min(1).max(40).default(12),
-        lags: z.number().int().min(1).max(12).optional().describe("Lags of y, x and controls as controls; default 4 (2 for annual data)"),
+        lags: z.number().int().min(1).max(8).optional().describe("Lags of y, x and controls as controls; default 4 (2 for annual data)"),
       },
       annotations: { readOnlyHint: true },
     },

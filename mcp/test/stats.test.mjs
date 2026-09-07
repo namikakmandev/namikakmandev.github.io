@@ -376,14 +376,17 @@ check("2SLS removes the endogeneity bias OLS carries, and the diagnostics say wh
   assert.equal(just.sargan, null, "just-identified: no Sargan test");
   close(just.beta[1], 2, 0.15, "just-identified slope");
   assert.throws(() => S.twoSLS(y, x.map((v, i) => [v, w[i]]), z1.map((v) => [v])), /Under-identified/);
+  assert.throws(() => S.twoSLS(y, x.map((v) => [v]), x.map((v) => [2 * v + 1])), /reproduce endogenous regressor 1 exactly/);
   // A weak instrument is flagged by the first-stage F
   const weak = S.twoSLS(y, x.map((v) => [v]), z1.map(() => [r.normal()]));
   assert.ok(weak.first_stage[0].F_excluded < 10, `noise instrument F ${weak.first_stage[0].F_excluded}`);
 });
 
 check("sup-F critical values: white noise does not reject, a mean shift does and is located; sequential search finds two", () => {
-  close(S.supFCritical(1)["5%"], 8.72, 0.01, "k=1 5% is Andrews' value");
-  close(S.supFCritical(2)["5%"], 11.69 / 2, 0.01, "sup-F is sup-Wald / k");
+  close(S.supFCritical(1)["5%"], 8.85, 0.05, "k=1 5% is Andrews' published value");
+  close(S.supFCritical(1)["1%"], 12.35, 0.05, "k=1 1% is Andrews' published value");
+  close(S.supFCritical(2)["5%"], 11.86 / 2, 0.01, "sup-F is sup-Wald / k");
+  assert.throws(() => S.supFCritical(6), /tabulated for 1 to 5/);
   const r = rng(52);
   const n = 200, X = Array.from({ length: n }, () => [1]);
   const wn = Array.from({ length: n }, () => r.normal());
@@ -402,6 +405,21 @@ check("sup-F critical values: white noise does not reject, a mean shift does and
   assert.match(seq.stopped, /no further break/);
   const none = S.sequentialBreaks(wn, X, 3);
   assert.equal(none.breaks.length, 0); assert.equal(none.segments.length, 1);
+  // The prefix-sum scan equals the explicit Chow test, for a constant and for a constant with a regressor.
+  const xr = Array.from({ length: n }, () => r.normal());
+  const yr = xr.map((v, i) => 0.5 + 0.8 * v + r.normal());
+  const X2 = xr.map((v) => [1, v]);
+  for (const [yy, XX] of [[shifted, X], [yr, X2]]) {
+    const scan = S.supF(yy, XX);
+    for (const e of scan.scan.filter((_, i) => i % 17 === 0)) close(e.F, S.chow(yy, XX, e.index).F, 1e-8, `F at ${e.index}`);
+  }
+  // A minimum segment in absolute terms keeps candidates away from the edges.
+  const narrow = S.supF(shifted, X, 0.15, 60);
+  assert.ok(narrow.scan.every((e) => e.index >= 60 && e.index <= n - 60));
+  // After the first split the remainder is not scanned to its edges: a 40-point white-noise tail gets no break.
+  const oneShift = wn.map((v, i) => v + (i >= 160 ? 2 : 0));
+  const seq1 = S.sequentialBreaks(oneShift, X, 5);
+  assert.equal(seq1.breaks.length, 1, `found ${seq1.breaks.map((b) => b.index)}`);
 });
 
 check("regression diagnostics: Breusch-Pagan, VIF and RESET react to what they should", () => {
@@ -417,8 +435,8 @@ check("regression diagnostics: Breusch-Pagan, VIF and RESET react to what they s
   assert.ok(v[0] > 5 && v[1] > 5 && v[2] < 2, `VIFs ${v}`);
   assert.deepEqual(S.vif(X.map((row) => [row[0], row[1]])), [1], "one regressor: VIF 1");
   const yQuad = x1.map((v, i) => 1 + v + 0.8 * v * v + 0.5 * r.normal());
-  assert.ok(S.reset(yQuad, X, S.ols(yQuad, X).fitted).p < 0.01, "missing square: RESET rejects");
-  assert.ok(S.reset(yHom, X, S.ols(yHom, X).fitted).p > 0.05, "correct linear form: RESET does not reject");
+  assert.ok(S.reset(yQuad, X, S.ols(yQuad, X)).p < 0.01, "missing square: RESET rejects");
+  assert.ok(S.reset(yHom, X, S.ols(yHom, X)).p > 0.05, "correct linear form: RESET does not reject");
 });
 
 console.log(failures ? `\n${failures} failing` : "\nall passing");

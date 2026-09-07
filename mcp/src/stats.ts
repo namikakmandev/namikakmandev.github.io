@@ -235,15 +235,17 @@ export function neweyWest(X: number[][], resid: number[], XtXinv: number[][], la
   const L = lag ?? Math.floor(4 * Math.pow(n / 100, 2 / 9));
   const S: number[][] = Array.from({ length: k }, () => new Array<number>(k).fill(0));
   const g = X.map((r, i) => r.map((v) => v * resid[i]));
+  // Each lag's contribution g_t g_{t-l}' + g_{t-l} g_t' is symmetric, so only the upper triangle is accumulated.
   for (let l = 0; l <= L; l++) {
     const w = l === 0 ? 1 : 1 - l / (L + 1);
     for (let t = l; t < n; t++) {
-      for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) {
-        const term = g[t][a] * g[t - l][b];
-        S[a][b] += w * (l === 0 ? term : term + g[t - l][a] * g[t][b]);
+      const gt = g[t], gl = g[t - l];
+      for (let a = 0; a < k; a++) for (let b = a; b < k; b++) {
+        S[a][b] += w * (l === 0 ? gt[a] * gt[b] : gt[a] * gl[b] + gl[a] * gt[b]);
       }
     }
   }
+  for (let a = 0; a < k; a++) for (let b = 0; b < a; b++) S[a][b] = S[b][a];
   // V = (X'X)^-1 S (X'X)^-1
   const tmp = XtXinv.map((row) => S[0].map((_, j) => row.reduce((s, v, m) => s + v * S[m][j], 0)));
   const V = tmp.map((row) => XtXinv[0].map((_, j) => row.reduce((s, v, m) => s + v * XtXinv[m][j], 0)));
@@ -511,17 +513,68 @@ export function chow(y: number[], X: number[][], b: number): ChowResult {
   return { break_index: b, F, p: fUpperP(F, k, y.length - 2 * k), k, n1: b, n2: y.length - b };
 }
 
-/** Quandt-Andrews sup-F scan over the middle (1 - 2*trim) of the sample. Critical values differ from F; treat as a locator. */
-export function supF(y: number[], X: number[][], trim = 0.15): { best: ChowResult; scan: Array<{ index: number; F: number }> } {
-  const n = y.length, lo = Math.max(Math.floor(n * trim), X[0].length + 2), hi = Math.min(Math.ceil(n * (1 - trim)), n - X[0].length - 2);
+/**
+ * Residual sum of squares of y on X over rows [lo, hi) from prefix sums, for X = [1] or
+ * [1, x]. Returns null when the segment cannot identify the slope.
+ */
+function segmentRssFactory(y: number[], X: number[][]): ((lo: number, hi: number) => number | null) | null {
+  const k = X[0].length;
+  if (k > 2 || X.some((r) => r[0] !== 1)) return null;
+  const n = y.length;
+  const Sy = new Float64Array(n + 1), Syy = new Float64Array(n + 1), Sx = new Float64Array(n + 1), Sxx = new Float64Array(n + 1), Sxy = new Float64Array(n + 1);
+  for (let t = 0; t < n; t++) {
+    const x = k === 2 ? X[t][1] : 0;
+    Sy[t + 1] = Sy[t] + y[t]; Syy[t + 1] = Syy[t] + y[t] * y[t];
+    Sx[t + 1] = Sx[t] + x; Sxx[t + 1] = Sxx[t] + x * x; Sxy[t + 1] = Sxy[t] + x * y[t];
+  }
+  return (lo, hi) => {
+    const m = hi - lo;
+    if (m <= k) return null;
+    const sy = Sy[hi] - Sy[lo], syy = Syy[hi] - Syy[lo];
+    let rss = syy - (sy * sy) / m;
+    if (k === 2) {
+      const sx = Sx[hi] - Sx[lo], sxx = Sxx[hi] - Sxx[lo], sxy = Sxy[hi] - Sxy[lo];
+      const vx = sxx - (sx * sx) / m;
+      if (vx <= 1e-12 * Math.max(1, sxx)) return null;
+      const cxy = sxy - (sx * sy) / m;
+      rss -= (cxy * cxy) / vx;
+    }
+    return Math.max(rss, 0);
+  };
+}
+
+/**
+ * Quandt-Andrews sup-F scan. Candidates run over the middle (1 - 2*trim) of the sample, or
+ * keep at least `minSeg` observations on either side when given (the sequential search
+ * passes the full-sample trim so short segments are not scanned to their edges). For a
+ * constant or a constant and one regressor the scan uses prefix sums, O(n) in total.
+ */
+export function supF(y: number[], X: number[][], trim = 0.15, minSeg?: number): { best: ChowResult; scan: Array<{ index: number; F: number }> } {
+  const n = y.length, k = X[0].length;
+  const h = Math.max(minSeg ?? Math.floor(n * trim), k + 2);
+  const lo = h, hi = n - h;
   let best: ChowResult | null = null;
   const scan: Array<{ index: number; F: number }> = [];
-  for (let b = lo; b <= hi; b++) {
-    try {
-      const r = chow(y, X, b);
-      scan.push({ index: b, F: r.F });
-      if (!best || r.F > best.F) best = r;
-    } catch { /* skip */ }
+  const fast = segmentRssFactory(y, X);
+  if (fast) {
+    const pooled = fast(0, n);
+    if (pooled === null) throw new Error("No admissible break points");
+    const df2 = n - 2 * k;
+    for (let b = lo; b <= hi; b++) {
+      const a = fast(0, b), c = fast(b, n);
+      if (a === null || c === null || df2 <= 0) continue;
+      const F = ((pooled - (a + c)) / k) / ((a + c) / df2);
+      scan.push({ index: b, F });
+      if (!best || F > best.F) best = { break_index: b, F, p: fUpperP(F, k, df2), k, n1: b, n2: n - b };
+    }
+  } else {
+    for (let b = lo; b <= hi; b++) {
+      try {
+        const r = chow(y, X, b);
+        scan.push({ index: b, F: r.F });
+        if (!best || r.F > best.F) best = r;
+      } catch { /* skip */ }
+    }
   }
   if (!best) throw new Error("No admissible break points");
   return { best, scan };
@@ -1267,6 +1320,7 @@ export function twoSLS(y: number[], endog: number[][], instruments: number[][], 
     for (let t = 0; t < n; t++) Xhat[t][1 + j] = u.fitted[t];
     firstResid.push(u.resid);
     const df1 = L, df2 = n - Z[0].length;
+    if (u.rss <= 1e-12 * Math.max(r.rss, 1) || u.r2 > 0.9999) throw new Error(`The instruments reproduce endogenous regressor ${j + 1} exactly (first-stage R² of 1): an instrument that is x itself, or a linear transform of it, is not excluded from the equation, so 2SLS collapses to OLS. Use a series that moves x but is not x.`);
     const F = ((r.rss - u.rss) / df1) / (u.rss / df2);
     first_stage.push({ r2: u.r2, F_excluded: F, F_p: fUpperP(F, df1, df2), df: [df1, df2], partial_r2: r.rss ? (r.rss - u.rss) / r.rss : NaN });
   }
@@ -1300,15 +1354,18 @@ export function twoSLS(y: number[], endog: number[][], instruments: number[][], 
 
 /**
  * Asymptotic critical values of the sup-Wald statistic (Andrews 1993) with 15% trimming,
- * for k parameters allowed to break, simulated from the k-dimensional Brownian bridge
- * (120,000 replications on a 2,000-point grid; k=1 agrees with Andrews 2003 to 0.05).
- * The sup-F reported by supF is sup-Wald / k, so compare k * F with these.
+ * for k parameters allowed to break, simulated from the k-dimensional Brownian bridge:
+ * 60,000 replications on grids of 2,000 and 8,000 points, the 5% and 1% levels extrapolated
+ * in 1/sqrt(grid) to remove the discretisation bias (k=1 then reproduces Andrews' published
+ * 8.85 and 12.35), the 10% level taken from the finer grid. The sup-F reported by supF is
+ * sup-Wald / k, so compare k * F with these.
  */
 const SUP_WALD_15 = [
-  [7.15, 8.72, 12.23], [9.95, 11.69, 15.46], [12.26, 14.11, 18.18], [14.29, 16.23, 20.53], [16.24, 18.31, 22.65],
+  [7.26, 8.85, 12.33], [10.03, 11.86, 15.62], [12.30, 14.11, 18.30], [14.42, 16.58, 20.97], [16.31, 18.50, 23.13],
 ];
 export function supFCritical(k: number): { "10%": number; "5%": number; "1%": number } {
-  const row = SUP_WALD_15[Math.min(Math.max(k, 1), SUP_WALD_15.length) - 1];
+  if (k < 1 || k > SUP_WALD_15.length) throw new Error(`sup-F critical values are tabulated for 1 to ${SUP_WALD_15.length} breaking parameters, not ${k}`);
+  const row = SUP_WALD_15[k - 1];
   return { "10%": row[0] / k, "5%": row[1] / k, "1%": row[2] / k };
 }
 export function supFReject(F: number, k: number): "1%" | "5%" | "10%" | null {
@@ -1323,22 +1380,24 @@ export interface SequentialBreaksResult { breaks: Array<{ index: number; F: numb
  * Sequential break detection in the spirit of Bai-Perron: locate the sup-F break in the
  * whole sample; if it clears the 5% Andrews critical value, split there and look for the
  * largest significant sup-F inside any segment; repeat until maxBreaks or nothing
- * significant. Each segment keeps at least `trim` of its own length on either side of a
- * candidate, and at least k + 3 observations.
+ * significant. Every candidate keeps at least trim * n observations (n the full sample) on
+ * either side, so a short remainder is never scanned to its edges.
  */
 export function sequentialBreaks(y: number[], X: number[][], maxBreaks: number, trim = 0.15): SequentialBreaksResult {
   const k = X[0].length;
   const breaks: SequentialBreaksResult["breaks"] = [];
   let stopped = "reached max_breaks";
+  // Minimum segment length is a share of the whole sample (Bai-Perron's h), not of the current segment.
+  const h = Math.max(Math.floor(y.length * trim), k + 3);
   const bounds = () => [0, ...breaks.map((b) => b.index).sort((a, b) => a - b), y.length];
   while (breaks.length < maxBreaks) {
     const bs = bounds();
     let best: { index: number; F: number } | null = null;
     for (let s = 0; s + 1 < bs.length; s++) {
       const lo = bs[s], hi = bs[s + 1];
-      if (hi - lo < 2 * (k + 3)) continue;
+      if (hi - lo < 2 * h) continue;
       try {
-        const r = supF(y.slice(lo, hi), X.slice(lo, hi), trim);
+        const r = supF(y.slice(lo, hi), X.slice(lo, hi), trim, h);
         if (supFReject(r.best.F, k) === null || supFReject(r.best.F, k) === "10%") continue;
         if (!best || r.best.F > best.F) best = { index: lo + r.best.break_index, F: r.best.F };
       } catch { /* segment too short */ }
@@ -1383,10 +1442,10 @@ export function vif(X: number[][]): number[] {
 }
 
 /** Ramsey RESET: add fitted² and fitted³ to the regression; F test on the two. */
-export function reset(y: number[], X: number[][], fitted: number[]): { F: number; p: number; df: [number, number] } {
+export function reset(y: number[], X: number[][], base: OlsResult): { F: number; p: number; df: [number, number] } {
+  const fitted = base.fitted;
   const scale = sd(fitted) || 1, m = mean(fitted);
   const z = fitted.map((f) => (f - m) / scale);
-  const base = ols(y, X);
   const aug = ols(y, X.map((r, i) => [...r, z[i] ** 2, z[i] ** 3]));
   const df2 = y.length - X[0].length - 2;
   const F = ((base.rss - aug.rss) / 2) / (aug.rss / df2);
