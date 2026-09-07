@@ -1077,6 +1077,112 @@
       "note": "Escalation tool: mid-size industrial benchmark band, published since 2007. NAC on purpose — FX is its own factor."
     },
     {
+      "name": "energy-spot",
+      "provider": "fred",
+      "series": {
+        "brent_usd_bbl": "DCOILBRENTEU",
+        "wti_usd_bbl": "DCOILWTICO",
+        "henry_hub_usd_mmbtu": "DHHNGSP",
+        "us_gasoline_usd_gal": "GASREGW",
+        "us_diesel_usd_gal": "GASDESW"
+      },
+      "out": "data/energy-spot.json",
+      "source": "Daily and weekly energy spot prices via FRED: Brent (DCOILBRENTEU) and WTI (DCOILWTICO) crude in USD per barrel, Henry Hub natural gas (DHHNGSP) in USD per million BTU, and US average retail regular gasoline (GASREGW) and diesel (GASDESW) in USD per gallon",
+      "note": "The current price, as against the monthly benchmarks in wb-commodities: crude and gas are daily from 1986 and 1997, the two pump prices weekly from 1990 and 1994. Nominal USD, not seasonally adjusted, and the pump prices include federal and state taxes while the crude and gas quotes do not. Daily series keep full dates, so resample with frequency='annual_mean' before mixing them with monthly or annual data."
+    },
+    {
+      "name": "energy-household-eu",
+      "provider": "eurostat",
+      "dataset": "nrg_pc_204",
+      "params": {
+        "nrg_cons": "KWH2500-4999",
+        "unit": "KWH",
+        "tax": "I_TAX",
+        "currency": "EUR",
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU",
+          "TR"
+        ]
+      },
+      "group_dims": [
+        "geo"
+      ],
+      "out": "data/energy-household-eu.json",
+      "source": "Eurostat nrg_pc_204 — electricity prices for household consumers, band DC (2 500–4 999 kWh a year), all taxes and levies included, euro per kWh, semi-annual from 2007",
+      "note": "What a household actually pays, as against the industrial bands in elec-eu and gas-eu. Taxes included on purpose: the tax wedge is most of what separates one country from another. Euro rather than national currency, so the countries are directly comparable and an exchange-rate move shows up in the price."
+    },
+    {
+      "name": "gas-household-eu",
+      "provider": "eurostat",
+      "dataset": "nrg_pc_202",
+      "params": {
+        "nrg_cons": "GJ20-199",
+        "unit": "GJ_GCV",
+        "tax": "I_TAX",
+        "currency": "EUR",
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "NO",
+          "IE",
+          "LU",
+          "TR"
+        ]
+      },
+      "group_dims": [
+        "geo"
+      ],
+      "out": "data/gas-household-eu.json",
+      "source": "Eurostat nrg_pc_202 — natural gas prices for household consumers, band D2 (20–199 GJ a year), all taxes and levies included, euro per gigajoule, semi-annual from 2007",
+      "note": "The household counterpart to gas-eu, which is the industrial band. Taxes included. Countries with no gas network are legitimately absent rather than missing."
+    },
+    {
       "name": "gas-eu",
       "provider": "eurostat",
       "dataset": "nrg_pc_203",
