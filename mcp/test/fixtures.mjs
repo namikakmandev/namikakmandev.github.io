@@ -114,6 +114,14 @@ dataflow,IMF.RES:WEO(6.0.0),I,USA,NGDP_RPCH,A,2024,2.8,Units,Percent,2024,2025-0
 `;
 const IMF_FLOWS = { data: { dataflows: [{ id: "WEO", agencyID: "IMF.RES", version: "6.0.0", name: "World Economic Outlook (WEO)" }, { id: "CPI", agencyID: "IMF.STA", version: "4.0.0", name: "Consumer Price Index (CPI)" }] } };
 
+// Open-Meteo archive: two locations, three days, the array form the API returns for multi-point requests.
+const OPENMETEO = [
+  { latitude: 41.6, longitude: -93.6, daily_units: { time: "iso8601", temperature_2m_mean: "°C", precipitation_sum: "mm" },
+    daily: { time: ["2024-06-29", "2024-06-30", "2024-07-01"], temperature_2m_mean: [22.5, 23.5, 25.0], precipitation_sum: [4.0, 6.0, 1.5] } },
+  { latitude: 37.87, longitude: 32.49, daily_units: { time: "iso8601", temperature_2m_mean: "°C", precipitation_sum: "mm" },
+    daily: { time: ["2024-06-29", "2024-06-30", "2024-07-01"], temperature_2m_mean: [20.0, 22.0, 24.0], precipitation_sum: [0.0, null, 2.5] } },
+];
+
 export function installFetchMock() {
   const real = globalThis.fetch;
   const calls = [];
@@ -128,6 +136,11 @@ export function installFetchMock() {
     if (u.hostname === "api.stlouisfed.org") return json(FRED_SEARCH);
     if (u.hostname === "ec.europa.eu") return u.pathname.includes("prc_hicp_midx") ? json(EUROSTAT_JSONSTAT) : json({ error: { status: 404, label: "Dataset not found" } });
     if (u.hostname === "api.worldbank.org") return u.pathname.includes("/indicator?") || u.pathname.endsWith("/indicator") ? json([{ pages: 1 }, [{ id: "NY.GDP.MKTP.CD", name: "GDP (current US$)", sourceNote: "GDP at purchaser's prices" }]]) : json(WORLDBANK);
+    if (u.hostname === "archive-api.open-meteo.com") {
+      // The real API returns a bare object for one location and an array for several.
+      const n = (u.searchParams.get("latitude") || "").split(",").length;
+      return json(n === 1 ? OPENMETEO[0] : OPENMETEO.slice(0, n));
+    }
     if (u.hostname === "data-api.ecb.europa.eu") return text(ECB_CSV, "text/csv");
     if (u.hostname === "sdmx.oecd.org") return text(OECD_CSV, "text/csv");
     if (u.hostname === "ourworldindata.org") return text(OWID_CSV, "text/csv");

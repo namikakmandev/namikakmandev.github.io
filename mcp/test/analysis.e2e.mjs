@@ -39,7 +39,7 @@ await check("list_providers reports key state", async () => {
   const j = await call("list_providers", {});
   const evds = j.providers.find((p) => p.provider === "evds");
   assert.match(String(evds.key_present), /yes/);
-  assert.equal(j.providers.length, 10);
+  assert.equal(j.providers.length, 11);
 });
 
 await check("IMF: SDMX-CSV keyed by the dimension columns, dataflow search", async () => {
@@ -628,6 +628,42 @@ await check("johansen and vecm with a restricted constant report the constant in
   const plan2 = await call("suggest_analysis", { series: [{ points: a.map((v, i) => [dt(i), v + 0.5 * i]), label: "a" }, { points: b.map((v, i) => [dt(i), v + 0.5 * i]), label: "b" }] });
   const jo2 = plan2.plan.find((p) => p.tool === "vecm");
   if (jo2) assert.equal(jo2.args.deterministic, "constant", "drifting walks get the unrestricted constant");
+});
+
+await check("weather: named regions and lat,lon, monthly aggregation, sums for rain and means for temperature", async () => {
+  const j = await call("fetch_external", { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" } });
+  assert.equal(j.series_count, 4, JSON.stringify(Object.keys(j.series || {})));
+  const corn = await call("fetch_external", { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" }, series: "us-corn-belt.precipitation_sum" });
+  // June has two days in the fixture (4 + 6 mm), July one (1.5 mm): rainfall is summed.
+  assert.deepEqual(corn.points, [["2024-06", 10], ["2024-07", 1.5]]);
+  const temp = await call("fetch_external", { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" }, series: "us-corn-belt.temperature_2m_mean" });
+  // Temperature is averaged, not summed.
+  assert.deepEqual(temp.points, [["2024-06", 23], ["2024-07", 25]]);
+  // A null day is skipped rather than counted as zero.
+  const konya = await call("fetch_external", { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" }, series: "tr-konya.precipitation_sum" });
+  assert.deepEqual(konya.points, [["2024-06", 0], ["2024-07", 2.5]]);
+  assert.match(j.source, /ERA5/);
+  assert.ok(j.notes.some((c) => /reanalysis/.test(c)), JSON.stringify(j.notes));
+  assert.ok(corn.caveats.some((c) => /reanalysis/.test(c)), JSON.stringify(corn.caveats));
+  // Annual and daily aggregation, and a bare coordinate pair
+  const annual = await call("fetch_external", { provider: "weather", id: "41.6,-93.6", params: { start: "2024", end: "2024", aggregate: "annual" }, series: "41.6,-93.6.precipitation_sum" });
+  assert.deepEqual(annual.points, [["2024", 11.5]]);
+  const daily = await call("fetch_external", { provider: "weather", id: "us-corn-belt", params: { aggregate: "daily" }, series: "us-corn-belt.temperature_2m_mean" });
+  assert.equal(daily.points.length, 3);
+  // Clear errors for a bad place, a bad aggregate and too many locations
+  for (const [args, re] of [
+    [{ provider: "weather", id: "narnia" }, /Unknown weather location/],
+    [{ provider: "weather", id: "us-corn-belt", params: { aggregate: "hourly" } }, /aggregate must be/],
+    [{ provider: "weather", id: "999,999" }, /Latitude must be/],
+  ]) {
+    const r = await callRaw("fetch_external", args);
+    assert.ok(r.isError && re.test(r.content[0].text), JSON.stringify(args) + " -> " + r.content[0].text);
+  }
+  const s = await call("search_external", { provider: "weather", query: "konya" });
+  assert.ok(s.matches.some((m) => m.id === "tr-konya"), JSON.stringify(s.matches));
+  // It plugs into the analysis layer like any other series
+  const st = await call("describe_stats", { series: { provider: "weather", id: "us-corn-belt", params: { aggregate: "daily" }, series: "us-corn-belt.temperature_2m_mean" } });
+  assert.equal(st.n, 3);
 });
 
 await client.close();

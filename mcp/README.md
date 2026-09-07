@@ -5,7 +5,7 @@ A remote [MCP](https://modelcontextprotocol.io) server for economics data and an
 Two kinds of data:
 
 - **Curated datasets** from this repo's `data/` directory, served by GitHub Pages and refreshed by the workflows in `.github/workflows/`. The server reads them live, so a refresh needs no redeploy. The index is `data/_catalog.json`, rebuilt on the same schedule.
-- **Live providers**: FRED, Eurostat, World Bank, ECB Data Portal, OECD, Our World in Data, BIS, IMF Data (WEO projections, CPI, IFS), FAOSTAT (with a free account), and TCMB EVDS for Turkey (with catalogue search). Pulled on demand, cached for ten minutes in the Worker, never stored.
+- **Live providers**: FRED, Eurostat, World Bank, ECB Data Portal, OECD, Our World in Data, BIS, IMF Data (WEO projections, CPI, IFS), FAOSTAT (with a free account), and TCMB EVDS for Turkey (with catalogue search), and Open-Meteo historical weather (ERA5 reanalysis, keyless). Pulled on demand, cached for ten minutes in the Worker, never stored.
 
 And one way to look at any of it: the `plot` tool returns a link to `chart.html` on the site, an interactive chart of up to eight series with hover values, log and rebase toggles, a right-hand axis, the sources and caveats, a table and CSV download. The link carries the series references, so it redraws from fresh data every time.
 
@@ -30,6 +30,7 @@ Every answer carries the series' source and caveats. That is the point: a model 
 | Tool | What it does |
 |---|---|
 | `list_providers` | Coverage, id format, key status and starter ids per provider. |
+| `weather` (provider) | Daily temperature, rainfall and evapotranspiration anywhere on land from 1940, aggregated to months or years. Named grain and livestock regions (`us-corn-belt`, `tr-konya`, `ua-steppe`, `br-mato-grosso`, …) or any `lat,lon`. The natural instrument for `iv_regress`: weather moves feed cost but reaches meat prices only through it. |
 | `search_external` | Find ids. FRED searches its full catalogue when `FRED_API_KEY` is set, World Bank searches all indicators, EVDS walks the TCMB catalogue, FAOSTAT searches its item, area and element lists; the rest match a starter list. |
 | `fetch_external` | Pull a series by provider and id. Multi-series replies (countries, dimensions) list their keys; pick one with `series`. |
 
