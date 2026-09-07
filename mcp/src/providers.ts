@@ -45,16 +45,32 @@ export interface Provider {
 const TTL_MS = 10 * 60 * 1000;
 const textCache = new Map<string, { at: number; body: string }>();
 
-/** Thrown by getText for a non-2xx, carrying the status so a caller can branch on it. */
+/** Thrown by getText for a non-2xx, carrying the status and the body so a caller can branch on it. */
 export class UpstreamError extends DataError {
-  constructor(message: string, readonly status: number) { super(message); }
+  constructor(message: string, readonly status: number, readonly body = "") { super(message); }
+}
+
+/** The readable words out of an HTML error page, for hosts that refuse in HTML. */
+export function htmlText(body: string, max = 400): string {
+  return body
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
 }
 
 async function getText(url: string, headers: Record<string, string> = {}): Promise<string> {
   const hit = textCache.get(url);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.body;
   const res = await fetch(url, { headers: { "user-agent": "econ-mcp/0.2 (+https://namikakmandev.github.io)", ...headers } });
-  if (!res.ok) throw new UpstreamError(`Upstream ${res.status} from ${new URL(url).host}: ${(await res.text()).slice(0, 200)}`, res.status);
+  if (!res.ok) {
+    const raw = (await res.text()).slice(0, 4000);
+    const head = raw.trimStart().slice(0, 15).toLowerCase();
+    const shown = head.startsWith("<!doctype") || head.startsWith("<html") ? htmlText(raw) : raw.slice(0, 200);
+    throw new UpstreamError(`Upstream ${res.status} from ${new URL(url).host}: ${shown}`, res.status, raw);
+  }
   const body = await res.text();
   const head = body.trimStart().slice(0, 15).toLowerCase();
   if (head.startsWith("<!doctype") || head.startsWith("<html")) {
@@ -1033,7 +1049,8 @@ async function secResolveCik(token: string, env: ProviderEnv): Promise<{ cik: st
     try {
       j = (await getJson("https://www.sec.gov/files/company_tickers.json", { "user-agent": secUa(env) })) as typeof j;
     } catch (e) {
-      throw new DataError(`The SEC would not serve its ticker directory (${e instanceof Error ? e.message.split(":")[0] : "error"}). Use the filer's CIK instead, as 'CIK0000320193:Assets'; you can look one up at sec.gov/cgi-bin/browse-edgar. If this persists, set SEC_USER_AGENT to a contact address, which is what the SEC asks callers to send.`);
+      const why = e instanceof UpstreamError ? `${e.status}: ${htmlText(e.body, 240) || "no message"}` : e instanceof Error ? e.message : "error";
+      throw new DataError(`The SEC would not serve its ticker directory (${why}). Use the filer's CIK instead, as 'CIK0000320193:Assets'; you can look one up at sec.gov/cgi-bin/browse-edgar. The SEC asks callers to identify themselves with a contact address: set SEC_USER_AGENT to one.`);
     }
     const byTicker = new Map<string, { cik: string; title: string }>();
     for (const row of Object.values(j)) {

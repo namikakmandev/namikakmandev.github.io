@@ -181,7 +181,7 @@ export function installFetchMock() {
     }
     // The SEC refuses callers it does not like; the provider must say so rather than
     // reporting every company as unknown.
-    if (u.hostname === "www.sec.gov") return secBlocked ? new Response("<!DOCTYPE html><html>Request Rate Threshold Exceeded", { status: 403 }) : json(SEC_TICKERS);
+    if (u.hostname === "www.sec.gov") return secBlocked ? new Response("<!DOCTYPE html><html><head><title>SEC.gov | Request Rate Threshold Exceeded</title></head><body><h1>Your Request Originates from an Undeclared Automated Tool</h1><p>Please declare your traffic by updating your user agent.</p></body></html>", { status: 403 }) : json(SEC_TICKERS);
     if (u.hostname === "data.sec.gov") {
       if (u.pathname.endsWith("/Assets.json")) return json(SEC_ASSETS);
       if (u.pathname.endsWith("/NetIncomeLoss.json")) return json(SEC_NETINCOME);

@@ -700,6 +700,8 @@ await check("sec: a company balance sheet by quarter, restatements resolved, tic
   setSecBlocked(true);
   const blocked = await callRaw("fetch_external", { provider: "sec", id: "AAPL:Assets" });
   assert.ok(blocked.isError && /would not serve its ticker directory/.test(blocked.content[0].text), blocked.content[0].text);
+  assert.match(blocked.content[0].text, /403/, "the status the SEC gave");
+  assert.match(blocked.content[0].text, /Undeclared Automated Tool/, "the words off the SEC's own page, not the markup around them");
   setSecBlocked(false);
   const bs = await call("fetch_external", { provider: "sec", id: "AAPL:balance_sheet" });
   // Only the tags this filer actually reports come back; the rest of the statement is absent, not empty.
