@@ -120,6 +120,15 @@ def describe(obj):
             "coverage": {"first": first, "last": last} if first else None}
 
 
+# What the last fetch actually managed, so a degraded source is flagged rather than
+# indexed as if every series in it were fresh.
+def load_fetch_report():
+    try:
+        return json.load(open(os.path.join(ROOT, "data", "_fetch-report.json"), encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — no report is the normal case on a fresh clone
+        return {}
+
+
 MAX_KEYS = 100
 
 
@@ -144,6 +153,7 @@ def series_keys(obj):
 def main():
     cfg = json.load(open(os.path.join(ROOT, "data-sources.json")))["sources"]
     by_out = {s["out"]: s for s in cfg}
+    fetch_report = load_fetch_report()
 
     entries, unattributed = [], []
     for path in sorted(glob.glob(os.path.join(DATA, "*.json"))):
@@ -168,6 +178,16 @@ def main():
                      provider=s.get("provider"), auto_refresh=True,
                      source=s.get("source") or obj.get("source"),
                      note=s.get("note"))
+            # A source whose last refresh lost part of itself must not be indexed as
+            # healthy: without this, a missing indicator is indistinguishable from one
+            # the dataset never carried.
+            fr = fetch_report.get(s["name"])
+            if isinstance(fr, dict) and fr.get("ok") is False:
+                e["degraded"] = {
+                    "failed": sorted(k.split("|")[-1] for k in (fr.get("errors") or {})),
+                    "carried_over": len(fr.get("carried_over") or []),
+                    "empty": fr.get("empty_keys") or [],
+                }
         elif rel in MANUAL:                                 # pulled by hand
             m = MANUAL[rel]
             e.update(provenance="manual", producer="manual pull", auto_refresh=False,

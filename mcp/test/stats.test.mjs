@@ -539,5 +539,38 @@ check("Johansen with a restricted trend: a trending equilibrium gets rank 1 and 
   close(S.mean(m.ect.map((row) => row[0])), 0, 0.5, "the error-correction term is centred");
 });
 
+check("ADF picks its lag by comparing fits on one sample, so the test keeps its power", () => {
+  // Every candidate lag must be scored on the same observations. Comparing AIC across
+  // different sample sizes picks the longest lag almost always, and the test loses most
+  // of its ability to see a stationary series.
+  const r = rng(42);
+  let maxPicked = 0, rejectsNoise = 0, powerAR = 0;
+  const N = 120, MAXLAG = 12;
+  for (let k = 0; k < N; k++) {
+    const wn = Array.from({ length: 200 }, () => r.normal());
+    const a = S.adf(wn, "c", "auto");
+    if (a.lags >= MAXLAG) maxPicked++;
+    if (a.reject_unit_root_at) rejectsNoise++;
+    const ar = [0];
+    for (let i = 1; i < 120; i++) ar.push(0.5 * ar[i - 1] + r.normal());
+    if (S.adf(ar, "c", "auto").reject_unit_root_at) powerAR++;
+  }
+  assert.ok(maxPicked / N < 0.15, `auto lag lands on the maximum ${(100 * maxPicked / N).toFixed(0)}% of the time; the broken rule did it ~99%`);
+  assert.ok(rejectsNoise / N > 0.95, `white noise rejected only ${(100 * rejectsNoise / N).toFixed(0)}% of the time`);
+  assert.ok(powerAR / N > 0.9, `power against a stationary AR(1) is ${(100 * powerAR / N).toFixed(0)}%; the broken rule gave ~68%`);
+});
+
+check("KPSS refuses to judge a series with no variance rather than rejecting it", () => {
+  const flat = new Array(60).fill(4.2);
+  const k = S.kpss(flat, "c");
+  assert.equal(k.reject_stationarity_at, null, "a constant series is not evidence against stationarity");
+  assert.ok(k.degenerate, "and it says why");
+  assert.ok(!Number.isFinite(k.statistic), "with no number pretending to back the claim");
+  // A normal series still works
+  const r = rng(5);
+  const ok = Array.from({ length: 200 }, () => r.normal());
+  assert.ok(Number.isFinite(S.kpss(ok, "c").statistic));
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);

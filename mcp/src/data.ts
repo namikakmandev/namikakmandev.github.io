@@ -35,6 +35,8 @@ export interface CatalogEntry {
   as_of?: string;
   refresh?: string;
   series_keys?: string[];
+  /** Set by build_catalog.py when the last refresh of this source came back incomplete. */
+  degraded?: { failed: string[]; carried_over: number; empty: string[] };
   error?: string;
 }
 
@@ -213,6 +215,14 @@ export function caveatsFor(entry: CatalogEntry | undefined, dataset: Json): stri
     if (entry.provenance === "manual") add(`Pulled by hand, as of ${entry.as_of ?? "unknown"}. ${entry.refresh ?? ""}`.trim());
     if (entry.provenance === "unattributed") add("No script produces this file. Provenance unknown. Verify before use.");
     if (!entry.auto_refresh && entry.provenance !== "manual") add("Not on the refresh schedule. Check last_commit before treating it as current.");
+    if (entry.degraded) {
+      const d = entry.degraded;
+      const parts: string[] = [];
+      if (d.failed.length) parts.push(`${d.failed.join(", ")} could not be refreshed`);
+      if (d.carried_over) parts.push(`${d.carried_over} series are last month's values, kept because this refresh failed for them`);
+      if (d.empty.length) parts.push(`${d.empty.join(", ")} came back empty`);
+      add(`The last refresh of this dataset was incomplete: ${parts.join("; ")}. Anything missing here is a failed fetch, not an absence in the source.`);
+    }
   }
   if (isObj(dataset)) {
     add(dataset.note);

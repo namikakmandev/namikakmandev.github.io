@@ -11,7 +11,7 @@ installFetchMock();
 
 const stat = await startStatic();
 const origin = addr(stat);
-const worker = await startWorker(handler, { DATA_ORIGIN: origin, EVDS_API_KEY: "test-key", FRED_API_KEY: "fred-key", FAOSTAT_USER: "fao@example.com", FAOSTAT_PASSWORD: "pw" });
+const worker = await startWorker(handler, { DATA_ORIGIN: origin, EVDS_API_KEY: "test-key", FRED_API_KEY: "fred-key", FAOSTAT_USER: "fao@example.com", FAOSTAT_PASSWORD: "pw", SEC_USER_AGENT: "Test Caller test@example.com" });
 const base = addr(worker);
 
 let failures = 0;
@@ -735,6 +735,12 @@ await check("sec: a company balance sheet by quarter, restatements resolved, tic
     const r = await callRaw("fetch_external", args);
     assert.ok(r.isError && re.test(r.content[0].text), JSON.stringify(args) + " -> " + r.content[0].text);
   }
+  // list_providers must report the contact state, and it can only do that if the variable
+  // reaches the provider at all: a plumbing gap here makes the documented remedy useless.
+  const provs = await call("list_providers", {});
+  const secp = provs.providers.find((p) => p.provider === "sec");
+  assert.match(String(secp.needs_key), /SEC_USER_AGENT/);
+  assert.match(String(secp.key_present), /yes/, "the worker passes SEC_USER_AGENT through to the provider");
   const found = await call("search_external", { provider: "sec", query: "balance sheet" });
   assert.ok(found.matches.length, JSON.stringify(found));
   // A bare ticker with no curated match still offers that filer's three statements

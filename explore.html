@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Explore the data — Namık Akman</title>
-  <meta name="description" content="Browse and chart 107 curated economics datasets: cattle and feed prices, inflation, house prices, herds, commodities and IMF projections. Filter by country and period. No account needed." />
+  <meta name="description" content="Browse and chart curated economics datasets: cattle and feed prices, inflation, house prices, herds, commodities and IMF projections. Every dataset says what question it answers. No account needed." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
   <link rel="stylesheet" href="css/style.css?v=30" />
@@ -13,25 +13,45 @@
     .study .container { max-width: 1120px; }
     .study .back { color: var(--text-dim); font-size: .9rem; }
     .study h1 { font-size: 1.7rem; line-height: 1.2; letter-spacing: -.01em; margin: 12px 0 6px; }
-    .study .lede { color: var(--text-dim); font-size: .97rem; margin-bottom: 20px; max-width: 62ch; }
+    .study .lede { color: var(--text-dim); font-size: .97rem; margin-bottom: 20px; max-width: 64ch; }
     h2.sec { font-size: 1.12rem; margin: 34px 0 4px; }
-    .sec-note { color: var(--text-dim); font-size: .88rem; margin-bottom: 12px; }
+    .sec-note { color: var(--text-dim); font-size: .88rem; margin-bottom: 12px; max-width: 72ch; }
 
-    .stats { display: flex; flex-wrap: wrap; gap: 8px 26px; padding: 14px 0 16px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); margin-bottom: 18px; }
-    .stat b { display: block; font-size: 1.35rem; font-variant-numeric: tabular-nums; line-height: 1.15; }
-    .stat span { color: var(--text-dim); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+    /* ---------- overview ---------- */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0 6px; }
+    @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+    .stats .s { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; }
+    .stats .s .v { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .stats .s .l { font-size: .74rem; color: var(--text-dim); margin-top: 4px; line-height: 1.35; }
+    .stats .s.blue .v { color: var(--accent); }
+    .stats .s.green .v { color: var(--accent-2); }
 
-    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
-    .tile { text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; font: inherit; color: var(--text); display: flex; flex-direction: column; gap: 4px; }
-    .tile:hover { border-color: var(--accent); }
-    .tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-    .tile strong { font-size: .92rem; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-    .tile strong em { font-style: normal; color: var(--text-dim); font-size: .76rem; font-weight: 400; font-variant-numeric: tabular-nums; }
-    .tile small { color: var(--text-dim); font-size: .76rem; line-height: 1.45; }
-    .active { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-    .active button { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .78rem; padding: 4px 10px 4px 12px; border-radius: 999px; cursor: pointer; }
-    .active button::after { content: " \00d7"; color: var(--text-dim); }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 4px; }
+    @media (max-width: 700px) { .steps { grid-template-columns: 1fr; } }
+    .steps li { list-style: none; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 13px; font-size: .85rem; color: var(--text-dim); display: flex; gap: 9px; align-items: baseline; }
+    .steps li b { color: var(--accent); font-variant-numeric: tabular-nums; }
+    .steps li span { color: var(--text); }
 
+    /* ---------- start here ---------- */
+    .starts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 6px; }
+    .start { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; text-align: left;
+      color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+    .start:hover { border-color: var(--accent); }
+    .start .q { font-size: .93rem; font-weight: 600; line-height: 1.35; }
+    .start .m { font-size: .75rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+    .start .go { font-size: .78rem; color: var(--accent); font-weight: 600; }
+
+    /* ---------- subject tiles ---------- */
+    .tiles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; color: var(--text-dim);
+      font: inherit; font-size: .83rem; padding: 7px 14px; cursor: pointer; display: inline-flex; gap: 7px; align-items: baseline; }
+    .tile:hover { color: var(--text); }
+    .tile b { color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; font-size: .76rem; }
+    .tile[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tile[aria-pressed="true"] b { color: rgba(255,255,255,.8); }
+
+    /* ---------- filters ---------- */
     .filters { display: grid; grid-template-columns: 2fr 1.3fr 1.2fr; gap: 10px; margin-bottom: 12px; }
     @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
     .filters label { display: flex; flex-direction: column; gap: 5px; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
@@ -40,45 +60,62 @@
     .filters .years { display: flex; gap: 6px; align-items: center; }
     .filters .years select { flex: 1; }
     .count { color: var(--text-dim); font-size: .8rem; font-variant-numeric: tabular-nums; }
+    .reset { background: none; border: 0; color: var(--accent); font: inherit; font-size: .8rem; cursor: pointer; text-decoration: underline; padding: 2px 6px; }
 
-    .theme { border-bottom: 1px solid var(--border); }
-    .theme > summary { cursor: pointer; padding: 11px 2px; font-weight: 600; font-size: .95rem; list-style: none; display: flex; gap: 9px; align-items: baseline; }
-    .theme > summary::-webkit-details-marker { display: none; }
-    .theme > summary::before { content: "\25B8"; color: var(--accent); font-size: .7rem; }
-    .theme[open] > summary::before { content: "\25BE"; }
-    .theme .n { color: var(--text-dim); font-size: .78rem; font-weight: 400; margin-left: auto; font-variant-numeric: tabular-nums; }
-    .ds { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 14px; }
-    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 9px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
-    .row .what { flex: 1 1 250px; font-size: .92rem; }
-    .row .what small { display: block; color: var(--text-dim); font-size: .76rem; }
-    .row .meta { color: var(--text-dim); font-size: .76rem; font-variant-numeric: tabular-nums; }
-    .row button { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .8rem; font-weight: 600; padding: 6px 13px; border-radius: 8px; cursor: pointer; }
-    .row button[disabled] { opacity: .55; cursor: default; }
+    /* ---------- dataset list ---------- */
+    .group { margin: 18px 0 0; }
+    .group > h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-dim);
+      font-weight: 600; margin: 0 0 8px; display: flex; gap: 8px; align-items: baseline; border-bottom: 1px solid var(--border); padding-bottom: 6px;
+      position: sticky; top: 66px; background: var(--bg); z-index: 2; padding-top: 8px; }
+    .group > h3 .n { margin-left: auto; font-variant-numeric: tabular-nums; }
+    .item { margin-bottom: 8px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 13px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+    .item.open .row { border-color: var(--accent); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .row .what { flex: 1 1 260px; min-width: 0; }
+    .row .what b { font-size: .93rem; font-weight: 600; display: block; }
+    .row .what small { display: block; color: var(--text-dim); font-size: .8rem; line-height: 1.4; margin-top: 1px; }
+    .row .spark { width: 84px; height: 26px; flex: 0 0 auto; color: var(--accent); opacity: .85; }
+    .row .spark svg { display: block; width: 84px; height: 26px; }
+    .row .meta { color: var(--text-dim); font-size: .76rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .row .go { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .8rem; font-weight: 600;
+      padding: 7px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+    .row .go[disabled] { opacity: .55; cursor: default; }
+    .flag { display: inline-block; font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+      padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+    .flag.fc { background: rgba(47,155,255,.16); color: var(--accent); }
+    .flag.hand { background: rgba(255,101,0,.16); color: var(--accent-3); }
+    .flag.unk { background: rgba(229,72,77,.16); color: var(--loss); }
+    .slot { border: 1px solid var(--accent); border-top: 0; border-radius: 0 0 10px 10px; }
     .empty { color: var(--text-dim); font-size: .9rem; padding: 16px 0; }
 
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 14px; }
-    @media (max-width: 560px) { .cards { grid-template-columns: 1fr; } }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 15px 16px 12px; display: flex; flex-direction: column; gap: 9px; }
-    .card h3 { font-size: 1rem; margin: 0; }
-    .card .note { color: var(--text-dim); font-size: .78rem; }
-    .card svg { width: 100%; height: auto; display: block; font-family: var(--font); }
+    /* ---------- chart card ---------- */
+    .card { background: var(--surface-2); padding: 14px 15px 12px; display: flex; flex-direction: column; gap: 9px; border-radius: 0 0 9px 9px; }
+    .card .note { color: var(--text-dim); font-size: .78rem; line-height: 1.45; }
+    .card svg.fig { width: 100%; height: auto; display: block; font-family: var(--font); }
     .ctrl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-    .ctrl .lbl { color: var(--text-dim); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; }
-    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    .seg button { background: transparent; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; padding: 5px 10px; cursor: pointer; }
+    .ctrl .lbl { color: var(--text-dim); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; min-width: 62px; }
+    .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+    .seg button { background: transparent; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
     .seg button + button { border-left: 1px solid var(--border); }
     .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; font-weight: 600; }
-    .card select { background: var(--surface-2); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .78rem; padding: 4px 6px; border-radius: 7px; }
-    .picks { display: flex; flex-wrap: wrap; gap: 6px; max-height: 116px; overflow-y: auto; }
-    .pick { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font: inherit; font-size: .78rem;
+    .card select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .78rem; padding: 4px 6px; border-radius: 7px; }
+    .card .hint { color: var(--text-dim); font-size: .78rem; line-height: 1.45; margin: -3px 0 0; }
+    .card .hint b { color: var(--text); font-weight: 600; }
+    .picks { display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; }
+    .pick { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); font: inherit; font-size: .78rem;
       padding: 4px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
     .pick i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .3; }
     .pick[aria-pressed="true"] { color: var(--text); border-color: currentColor; }
     .pick[aria-pressed="true"] i { opacity: 1; }
     .pick b { font-weight: 600; }
     .allnone { background: none; border: 0; color: var(--accent); font: inherit; font-size: .76rem; cursor: pointer; text-decoration: underline; padding: 2px 4px; }
-    .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: auto; padding-top: 2px; }
+    .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; padding-top: 2px; }
     .card .foot a { color: var(--accent); font-size: .8rem; }
+    .card .foot .drop { background: none; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; cursor: pointer; text-decoration: underline; }
+    .asof { color: var(--text-dim); font-size: .74rem; font-variant-numeric: tabular-nums; }
+    .loading { color: var(--text-dim); padding: 26px 0; text-align: center; }
+    .err { background: rgba(229,72,77,.12); border: 1px solid var(--loss); border-radius: 10px; padding: 10px 14px; margin: 10px 0; font-size: .88rem; }
     .card .foot .act { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .78rem; font-weight: 600; padding: 5px 12px; border-radius: 7px; cursor: pointer; }
     .card .foot .act[disabled] { opacity: .55; cursor: default; }
     .pred { border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 10px 10px 0; padding: 11px 14px; font-size: .86rem; line-height: 1.5; }
@@ -89,10 +126,6 @@
     .pred th { color: var(--text-dim); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
     .pred tr.win td { color: var(--text); font-weight: 600; }
     .pred .why { color: var(--text-dim); margin-top: 7px; }
-    .card .foot .drop { background: none; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; cursor: pointer; text-decoration: underline; }
-    .asof { color: var(--text-dim); font-size: .74rem; font-variant-numeric: tabular-nums; }
-    .loading { color: var(--text-dim); padding: 30px 0; text-align: center; }
-    .err { background: rgba(229,72,77,.12); border: 1px solid var(--loss); border-radius: 10px; padding: 10px 14px; margin: 10px 0; font-size: .88rem; }
     .footnote { color: var(--text-dim); font-size: .82rem; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 34px; }
     .footnote a { color: var(--accent); }
   </style>
@@ -105,7 +138,7 @@
       <ul class="nav-links">
         <li><a href="index.html">Home</a></li>
         <li><a href="projects.html">Projects</a></li>
-        <li><a href="data.html">Data</a></li>
+        <li><a href="explore.html">Data</a></li>
         <li><a href="about.html">About</a></li>
         <li><a href="contact.html">Contact</a></li>
       </ul>
@@ -117,31 +150,40 @@
       <div class="container">
         <a href="data.html" class="back">&larr; The data behind the studies</a>
         <h1>Explore the data</h1>
-        <p class="lede">Every dataset behind the studies, charted in the browser. Pick a subject, then a dataset, and it draws with the period, countries and series you choose. Nothing to install, no account, no sign-in.</p>
+        <p class="lede">Public statistics on prices, farming, trade, medicine and the wider economy, collected in one place
+        and charted in your browser. Every dataset below says, in a line, what question it answers. Nothing to install,
+        no account, no sign-in.</p>
 
         <div class="stats" id="stats"></div>
-        <div class="tiles" id="tiles"></div>
+        <p class="sec-note" id="scope"></p>
+
+        <ul class="steps">
+          <li><b>1</b><span>Pick a dataset — each one names the question it answers.</span></li>
+          <li><b>2</b><span>Choose the lines and the years; switch between actual values, an index and year-on-year change.</span></li>
+          <li><b>3</b><span>Open it as a link you can send to anyone.</span></li>
+        </ul>
+
+        <h2 class="sec">Start here</h2>
+        <p class="sec-note">Four questions this collection answers straight away. Each one opens a chart you can then take apart.</p>
+        <div class="starts" id="starts"></div>
 
         <h2 class="sec">Find a dataset</h2>
-        <p class="sec-note">Search by subject, narrow by country, or by the years it has to cover.</p>
+        <p class="sec-note">Pick a subject, search for a word, or narrow to a country and the years it has to cover.</p>
+        <div class="tiles" id="tiles"></div>
         <div class="filters">
           <label>Search<input id="q" type="search" placeholder="cattle, inflation, house prices, pharma…" /></label>
           <label>Country<select id="country"></select></label>
           <label>Covers<span class="years"><select id="from"></select><span class="count">to</span><select id="to"></select></span></label>
         </div>
-        <div class="active" id="active" hidden></div>
-        <span class="count" id="count"></span>
-        <div id="browse"></div>
-
-        <h2 class="sec" id="chart-head" hidden>Your charts</h2>
-        <p class="sec-note" id="hint">Press Chart on any dataset above and it opens here.</p>
-        <div id="cards" class="cards"></div>
+        <p><span class="count" id="count"></span> <button type="button" class="reset" id="reset" hidden>clear filters</button></p>
+        <div id="browse"><p class="loading">Loading the catalogue…</p></div>
 
         <div class="footnote">
           <p>Charts are drawn in your browser from the JSON files in
           <a href="https://github.com/namikakmandev/namikakmandev.github.io/tree/main/data">this repository</a>, the same files the studies use.
-          Anything you open here can also be opened as a shareable <a href="chart.html">chart link</a>.
-          The full catalogue with sources and caveats is on the <a href="data.html">data page</a>.</p>
+          Anything you open here can also be opened as a shareable <a href="chart.html">chart link</a>, which adds a log scale,
+          a data table and a CSV download. The full catalogue, with every source, caveat and how fresh each file is, is on the
+          <a href="data.html">data page</a>.</p>
         </div>
       </div>
     </article>
@@ -152,38 +194,187 @@
   (function () {
     "use strict";
     var COLORS = ["#2f9bff", "#19c37d", "#ff6500", "#e5484d", "#a78bfa", "#14b8a6"];
-    var API = "https://econ-mcp.akmannamik83.workers.dev";
-    var FEATURED = [
-      { file: "cattle-parity", title: "Meat price against feed cost, four markets", pick: ["US.parity_idx", "EU.parity_idx", "TR.parity_idx", "IL.parity_idx"] },
-      { file: "tr-house-prices", title: "Turkish house prices", pick: ["turkey", "istanbul", "ankara", "izmir"] },
-      { file: "us-prices", title: "US cattle, corn and consumer prices", pick: ["cattle_ppi", "corn_ppi", "cpi"] },
-      { file: "wb-commodities", title: "World commodity prices", pick: ["crude_brent", "maize", "wheat_us_hrw", "urea"] },
-    ];
-    var NAMES = {"AE":"United Arab Emirates","AL":"Albania","AT":"Austria","AU":"Australia","BA":"Bosnia and Herzegovina","BD":"Bangladesh","BE":"Belgium","BG":"Bulgaria","BR":"Brazil","CA":"Canada","CH":"Switzerland","CN":"China","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","EE":"Estonia","EG":"Egypt","EL":"Greece","ES":"Spain","FI":"Finland","FR":"France","GB":"United Kingdom","HR":"Croatia","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IR":"Iran","IS":"Iceland","IT":"Italy","JP":"Japan","KR":"South Korea","KZ":"Kazakhstan","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MD":"Moldova","ME":"Montenegro","MK":"North Macedonia","MT":"Malta","MX":"Mexico","MY":"Malaysia","NG":"Nigeria","NL":"Netherlands","NO":"Norway","PH":"Philippines","PK":"Pakistan","PL":"Poland","PT":"Portugal","RO":"Romania","RS":"Serbia","RU":"Russia","SA":"Saudi Arabia","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","TH":"Thailand","TR":"Türkiye","UA":"Ukraine","UK":"United Kingdom","US":"United States","UZ":"Uzbekistan","VN":"Vietnam","ZA":"South Africa","EU":"European Union",
-      "ARE":"United Arab Emirates","ARG":"Argentina","AUS":"Australia","AZE":"Azerbaijan","BRA":"Brazil","CAN":"Canada","CHE":"Switzerland","CHL":"Chile","CHN":"China","COL":"Colombia","CZE":"Czechia","DNK":"Denmark","EGY":"Egypt","GBR":"United Kingdom","HKG":"Hong Kong","HUN":"Hungary","IDN":"Indonesia","IND":"India","ISR":"Israel","JPN":"Japan","KOR":"South Korea","MEX":"Mexico","MYS":"Malaysia","NOR":"Norway","NZL":"New Zealand","PAK":"Pakistan","PER":"Peru","POL":"Poland","ROU":"Romania","RUS":"Russia","SAU":"Saudi Arabia","SGP":"Singapore","SWE":"Sweden","THA":"Thailand","TUR":"Türkiye","TWN":"Taiwan","UKR":"Ukraine","URY":"Uruguay","USA":"United States","VNM":"Vietnam","ZAF":"South Africa",
-      "TRY":"Türkiye","USD":"United States","GBP":"United Kingdom","CHF":"Switzerland","SEK":"Sweden","NOK":"Norway","DKK":"Denmark","PLN":"Poland","CZK":"Czechia","HUF":"Hungary","RON":"Romania"};
-    /* Subject, the file names that belong to it, and what a reader gets there.
-       Order matters: the first pattern that matches a dataset name wins. */
-    var SUBJECTS = [
-      ["Livestock, meat and feed", /cattle|herd|meat|broiler|cowcalf|corn-parity|vet/, "Herd sizes, meat and feed prices, the margin between them"],
-      ["Money and central banks", /cb-|central-bank|money|reserve|policy-rate|balance/, "Central bank balance sheets, reserves, money in circulation"],
-      ["Prices and inflation", /cpi|ppi|hicp|price|bigmac|ppp|inflation/, "Consumer and producer prices, purchasing power, house prices"],
-      ["Trade and external accounts", /external|trade|export|import|comtrade|current-account/, "Trade balances, current accounts, reserves, external debt"],
-      ["Commodities and energy", /commodit|oil|gas|pump|energy|fertil|metal/, "Crude, gas, grains, fertilizers and metals from the Pink Sheet"],
-      ["Türkiye", /^tr-|cattle-tr/, "Turkish prices, housing, the central bank and the herd"],
-      ["Economies and forecasts", /gdp|gva|gni|weo|wdi|esi|lci|elec|fx|sentiment|spf|hpi|chem|population/, "Growth, value added, exchange rates, sentiment and IMF forecasts"],
-      ["Health and pharma", /pharma|glp1|peptide|stan|berd|eroom/, "Drug pipelines, R&D spending, the cost of a new molecule"],
-      ["Markets and climate", /market|climate|leverage/, "Market structure, pricing power, weather and climate series"],
+
+    /* Four worked entry points. Each names a dataset that exists in data/_catalog.json. */
+    var STARTS = [
+      { file: "cattle-parity", q: "Is beef getting dearer than the feed it takes to raise it?", pick: ["US.parity_idx", "EU.parity_idx", "TR.parity_idx", "IL.parity_idx"] },
+      { file: "tr-house-prices", q: "What has happened to house prices in Türkiye?", pick: ["turkey", "istanbul", "ankara", "izmir"] },
+      { file: "wb-commodities", q: "What is happening to world commodity prices?", pick: ["crude_brent", "maize", "wheat_us_hrw", "urea"] },
+      { file: "asia-wdi", q: "How fast are the big Asian economies growing?", pick: ["CN|gdp_growth", "IN|gdp_growth", "JP|gdp_growth", "TR|gdp_growth"] }
     ];
 
-    var app = document.getElementById("browse"), cardsEl = document.getElementById("cards"),
-        statsEl = document.getElementById("stats"), tilesEl = document.getElementById("tiles"),
-        activeEl = document.getElementById("active"), chartHead = document.getElementById("chart-head"),
-        hintEl = document.getElementById("hint"), countEl = document.getElementById("count"),
+    /* Plain-English name and question for every file in the catalogue. Each line is a
+       restatement of that dataset's own `source`/`note` in data/_catalog.json — no new facts. */
+    var INFO = {
+      "asia-wdi": ["Asian and Middle Eastern economies", "How fast is each economy growing, and what are its inflation, unemployment and income per head?"],
+      "bigmac-eur": ["Big Mac index against the euro", "Is a currency cheap or dear against the euro, measured by the price of one burger?"],
+      "bigmac-src-eur": ["Big Mac prices in euros", "What does a Big Mac actually cost, in euros, in each euro-area country?"],
+      "bigmac-usd": ["Big Mac index against the dollar", "What does the same burger cost around the world once converted to dollars?"],
+      "broiler-parity-pl": ["Poland broiler parity working file", "Intermediate results behind the Poland–Türkiye broiler comparison."],
+      "cattle-eu": ["EU young bull and feed grain prices", "What do EU abattoirs pay for young bulls, and what does the grain to feed them cost?"],
+      "cattle-il": ["Israel beef and fodder price indices", "Are Israeli beef prices keeping up with the cost of fodder?"],
+      "cattle-il-alt": ["Israel beef and fodder, second pair", "The same Israeli question asked with a different pair of official indices, as a check."],
+      "cattle-parity": ["Beef against feed, four markets", "Is the meat price rising faster than the feed cost, in the US, EU, Türkiye and Israel?"],
+      "cattle-tr": ["Türkiye meat and feed producer prices", "What are Turkish processors paid for meat, and what do they pay for animal feed?"],
+      "cattle-us": ["US slaughter cattle and corn prices", "How have US cattle and corn prices moved against each other since 1971?"],
+      "chem-eng-exports": ["Chemical and machinery exports", "Which European countries export chemicals, machinery, electronics and vehicles, and how much?"],
+      "climate-co2": ["Atmospheric CO₂, the long run", "How much carbon dioxide is in the air, going back a thousand years?"],
+      "climate-temp": ["Global temperature anomaly", "How much warmer is the world than it was in the late nineteenth century?"],
+      "corn-parity": ["Beef against corn, robustness check", "Does the meat-to-feed story survive if corn is used as the feed price everywhere?"],
+      "cpi-eu": ["Consumer prices across the EU", "How fast are consumer prices rising in each EU country?"],
+      "ecb-forecaster-skill": ["ECB forecaster skill", "Are some professional forecasters consistently better than others at calling euro-area inflation?"],
+      "ecb-spf": ["ECB Survey of Professional Forecasters", "What did professional forecasters think euro-area inflation would be, and what did it turn out to be?"],
+      "ecb-spf-results": ["ECB forecaster study results", "Summary figures from the forecaster-skill study."],
+      "elec-eu": ["Industrial electricity prices in Europe", "What does a mid-size industrial user pay for electricity in each country?"],
+      "eu-berd-sectors": ["Business R&D spending by sector", "Which European industries spend most on research, and where?"],
+      "eu-esi": ["European business and consumer sentiment", "Do European firms and households feel confident about the months ahead?"],
+      "eu-gva-sectors": ["Output by industry in Europe", "How big is each industry — chemicals, electronics, machinery, vehicles — in each country?"],
+      "eu-hicp": ["Euro-area consumer prices", "The euro-area price level, used to turn money amounts into real terms."],
+      "eu-hpi": ["European house prices", "Are houses getting more expensive, country by country?"],
+      "eu-ipi-sectors": ["Industrial production by sector", "Is each European industry actually making more, or just charging more?"],
+      "eu-ppi-sectors": ["Factory-gate prices by sector", "What are European factories charging for their output, industry by industry?"],
+      "eu-ppp": ["Price levels across Europe", "What does the same basket of goods cost in each country, once currencies are taken out?"],
+      "eu-vet-countries": ["Veterinary spending by EU country", "How much does farming in each EU country spend on vets?"],
+      "eu-vet-expenses": ["EU farm veterinary spending", "How much does EU agriculture spend on veterinary care each year?"],
+      "eu-vet-sbs": ["European veterinary businesses", "How many veterinary firms are there in Europe, and what do they turn over?"],
+      "eu-vet-weight": ["Pets and vets in the shopping basket", "How much of household spending goes on pets and veterinary services?"],
+      "europe-map": ["Map outlines of Europe", "Country shapes used to draw the maps on this site — not a statistical series."],
+      "food-cpi-eu": ["Every food class in the EU basket", "Which foods are driving food inflation — bread, meat, dairy, oils, fruit or vegetables?"],
+      "fte-forecasts": ["FiveThirtyEight forecast record", "How often did FiveThirtyEight's published probabilities come true?"],
+      "fte-results": ["FiveThirtyEight study results", "Headline calibration figures from the forecast-record study."],
+      "fte-slices": ["FiveThirtyEight robustness slices", "The sub-samples that let the calibration result be re-checked."],
+      "fx-eur": ["Exchange rates against the euro, yearly", "How many units of each currency the euro bought, year by year."],
+      "fx-eur-m": ["Exchange rates against the euro, monthly", "How many units of each currency the euro bought, month by month."],
+      "gas-eu": ["Industrial gas prices in Europe", "What does a mid-size industrial user pay for natural gas in each country?"],
+      "gdp-eur": ["GDP in euros", "How big is each European economy, measured in a common currency?"],
+      "gdp-total": ["GDP in national currency", "The size of each economy in its own currency — the honest denominator for shares of GDP."],
+      "glp1-molecules": ["GLP-1 drug pipeline", "Which weight-loss and diabetes molecules are in development, and how far along are they?"],
+      "glp1-stocks": ["GLP-1 drugmakers on the stock market", "How have the makers of weight-loss drugs performed against the market?"],
+      "glp1-valuation": ["GLP-1 company valuations", "What are investors paying for the earnings of the weight-loss drugmakers?"],
+      "gni-gdp": ["National income against GDP", "How much of what a country produces actually stays with its residents?"],
+      "gva-total": ["Total output of each economy", "Total value added, the like-for-like denominator for any industry's share."],
+      "herd-cattle": ["Cattle herds: EU, Türkiye, US", "How many cattle are there, and is the herd growing or shrinking?"],
+      "herd-eu-countries": ["Cattle herds by EU country", "Which EU countries keep the most cattle, and whose herd is shrinking fastest?"],
+      "herd-report": ["Cattle herd study results", "Summary figures from the herd study."],
+      "hs6-check": ["Trade code coverage check", "Which countries publish detailed product-level trade data, and which suppress it."],
+      "hs6-probe": ["Trade code probe", "A one-off test of what the EU trade database will serve."],
+      "hs6-probe2": ["Trade code probe, second pass", "A follow-up test of which medicine sub-codes the EU trade database serves."],
+      "imf-weo": ["IMF World Economic Outlook", "What does the IMF expect growth, inflation, debt and unemployment to do in the next few years?"],
+      "lci-eu": ["European labour costs", "How fast is the cost of employing someone rising, country by country?"],
+      "livestock-ins-report": ["Livestock insurance study results", "Summary figures from the livestock insurance work."],
+      "livestock-ins-round3": ["Livestock insurance working file", "An exploratory pull nothing on the site now depends on."],
+      "livestock-ins-round4": ["Livestock insurance working file", "An exploratory pull nothing on the site now depends on."],
+      "livestock-ins-round5": ["Livestock insurance working file", "An exploratory pull nothing on the site now depends on."],
+      "livestock-ins-tarsim": ["Turkish livestock insurance figures", "An exploratory pull nothing on the site now depends on."],
+      "livestock-ins-usa": ["US livestock insurance figures", "An exploratory pull nothing on the site now depends on."],
+      "manuf-gva": ["Manufacturing output", "How big is manufacturing in each European economy?"],
+      "meat-cpi-eu": ["Meat in the European shopping basket", "Has meat risen faster than food in general, and faster than everything else?"],
+      "meat-cpi-us": ["Meat in the American shopping basket", "Has US meat risen faster than food at home, going back to 1913?"],
+      "peptide-dest": ["Where Ireland's peptide exports go", "Which countries buy Ireland's bulk peptide hormones?"],
+      "peptide-flows": ["Peptide hormone trade", "Is a country really making peptide hormones, or just re-exporting them?"],
+      "pharma-dest": ["Where medicines are shipped", "Which markets the biggest medicine exporters actually sell to."],
+      "pharma-eroom": ["Eroom's law working file", "Intermediate results behind the drug-discovery productivity study."],
+      "pharma-eroom-results": ["Drug discovery productivity", "Is it getting harder and more expensive to invent a new medicine?"],
+      "pharma-exports": ["Medicine exports by product class", "Which countries export vaccines, bulk medicines, packaged medicines, hormones and antibiotics?"],
+      "pharma-gva": ["Pharma output in national currency", "How much value does the pharmaceutical industry add, in each country's own money?"],
+      "pharma-gva-eur": ["Pharma output in euros", "How big is each country's pharmaceutical industry, in a common currency?"],
+      "pharma-hs6-trend": ["Medicine exports by therapeutic class", "Which kinds of medicine — vaccines, hormones, antibiotics — are growing in trade?"],
+      "pharma-mirror": ["What non-EU producers ship into the EU", "Which countries outside the EU sell medicines into it, and what kind?"],
+      "pharma-product-mix": ["Pharma product mix", "How the medicine trade splits between biologics, packaged doses, bulk, hormones and antibiotics."],
+      "pharma-share": ["Pharma's share of the economy", "How much of a country's economy is pharmaceuticals?"],
+      "pharma-share-stan": ["Pharma's share, OECD countries", "The same share for countries the European figures miss."],
+      "pharma-therapeutic": ["Medicine exports by therapeutic class, 2024", "What each therapeutic class was worth in exports in a single year."],
+      "pl-anchor-chicken": ["Polish chicken prices", "What Polish farmers are paid for live chickens."],
+      "pl-anchor-feed": ["Polish broiler feed prices", "What Polish farmers pay for broiler feed."],
+      "pl-broiler-ppi": ["Poland poultry and feed producer prices", "Is Polish poultry keeping up with the cost of the feed behind it?"],
+      "popular-markets": ["Bitcoin, shares and gold", "How have Bitcoin, the S&P 500, the Nasdaq and gold moved against each other?"],
+      "population": ["Population", "How many people live in each country — the divisor for any per-person comparison."],
+      "ppi-eu": ["Factory-gate prices in Europe", "What are European factories charging, in pharma, manufacturing overall and energy?"],
+      "price-leverage": ["Company cost structures", "How much of a company's cost is fixed, and what that does to its profits."],
+      "price-leverage-results": ["Operating leverage results", "Findings from the company cost-structure study."],
+      "pricescraper-daily": ["Daily price reads", "Day-by-day readings from the retail price tracker."],
+      "pricescraper-history": ["Backfilled price history", "Archived captures used to reconstruct retail price history."],
+      "pump-vs-oil": ["Petrol at the pump against crude oil", "When crude oil falls, does the price at the pump follow?"],
+      "stan-pharma": ["Pharma output, OECD basis", "The pharmaceutical industry's value added on the OECD's own accounts."],
+      "stan-total": ["Total output, OECD basis", "The matching total-economy figure, so the pharma share is internally consistent."],
+      "tr-cpi-ppi": ["Turkish consumer and producer prices", "How fast are Turkish prices rising, for shoppers and at the factory gate?"],
+      "tr-fx-monthly": ["Turkish lira exchange rates", "What has the lira done against the dollar and the euro?"],
+      "tr-house-prices": ["Turkish house prices", "What has happened to house prices in Türkiye, Istanbul, Ankara and Izmir?"],
+      "tr-rates": ["Turkish interest rates", "What does it cost to borrow in Türkiye, and what do deposits pay?"],
+      "tr-series-candidates": ["Turkish data catalogue dump", "A listing of the Turkish central bank's series, kept while a source was being found."],
+      "us-cowcalf-costs": ["US cow-calf costs and returns", "What does it cost an American rancher to raise a calf, and what does it earn?"],
+      "us-ip-sectors": ["US industrial production by sector", "Is American industry making more — chemicals, medicines, machinery, electronics?"],
+      "us-ppi-sectors": ["US factory-gate prices by sector", "What American factories charge, industry by industry."],
+      "us-prices": ["US cattle, corn and consumer prices", "The long American record: what cattle, corn and the cost of living have done since 1947."],
+      "us-sentiment": ["American consumer sentiment", "How do American households feel about the economy, and what inflation do they expect?"],
+      "vet-cpi-eu": ["Vet bills in Europe", "Are vet bills and pet costs rising faster than everything else?"],
+      "vet-cpi-us": ["Vet bills in America", "Are American vet bills rising faster than the cost of living?"],
+      "vetcost-eu-tr": ["Veterinary spending, EU and members", "What European farming spends on veterinary care."],
+      "vetcost-report": ["Veterinary cost study results", "Summary figures from the veterinary cost work."],
+      "vetcost-us": ["US cow-calf veterinary costs", "What American ranchers spend on animal health per cow."],
+      "wb-commodities": ["World commodity prices", "What is happening to oil, grain, metals, fertiliser and food prices worldwide?"],
+      "wb-commodity-indices": ["Commodity groups compared", "Which group of commodities — energy, food, fertiliser, metals — is driving the rest?"],
+      "energy-spot": ["Energy prices today", "What are crude oil, natural gas, petrol and diesel trading at right now?"],
+      "energy-household-eu": ["Household electricity bills across Europe", "What does a household actually pay for electricity, taxes included, and where is it dearest?"],
+      "gas-household-eu": ["Household gas bills across Europe", "What does a household actually pay for gas, taxes included?"],
+      "central-bank-assets": ["Central bank balance sheets", "How much have the Fed, the ECB and the Bank of Japan put on their books?"],
+      "tr-cb-balance": ["The Turkish central bank's balance sheet", "What sits on the CBRT's books, and how has it changed since 2005?"],
+      "macro-external": ["Trade and external accounts", "Which economies run a trade deficit, how big are their reserves, and how much do they owe abroad?"],
+      "yatirim-radar": ["Investment radar working file", "Figures kept for the investment radar tool."]
+    };
+
+    /* Subjects, in the order they are shown. A dataset belongs to the first list that names it. */
+    var SUBJECTS = [
+      ["Meat, feed and farming", ["cattle-parity", "corn-parity", "cattle-us", "cattle-eu", "cattle-tr", "cattle-il", "cattle-il-alt",
+        "herd-cattle", "herd-eu-countries", "herd-report", "us-cowcalf-costs", "vetcost-us", "vetcost-eu-tr", "vetcost-report",
+        "eu-vet-countries", "eu-vet-expenses", "eu-vet-sbs", "pl-broiler-ppi", "pl-anchor-chicken", "pl-anchor-feed", "broiler-parity-pl",
+        "livestock-ins-report", "livestock-ins-round3", "livestock-ins-round4", "livestock-ins-round5", "livestock-ins-tarsim", "livestock-ins-usa"]],
+      ["Prices and the cost of living", ["us-prices", "meat-cpi-us", "meat-cpi-eu", "food-cpi-eu", "cpi-eu", "eu-hicp", "tr-cpi-ppi",
+        "bigmac-usd", "bigmac-eur", "bigmac-src-eur", "eu-ppp", "ppi-eu", "eu-ppi-sectors", "us-ppi-sectors", "pump-vs-oil",
+        "vet-cpi-eu", "vet-cpi-us", "eu-vet-weight", "pricescraper-daily", "pricescraper-history"]],
+      ["Economies, growth and forecasts", ["asia-wdi", "imf-weo", "gdp-eur", "gdp-total", "gva-total", "manuf-gva", "gni-gdp",
+        "population", "eu-hpi", "tr-house-prices", "lci-eu", "eu-esi", "us-sentiment", "ecb-spf", "ecb-spf-results",
+        "ecb-forecaster-skill", "fte-forecasts", "fte-results", "fte-slices"]],
+      ["Medicine and health", ["pharma-share", "pharma-share-stan", "pharma-gva", "pharma-gva-eur", "stan-pharma", "stan-total",
+        "pharma-exports", "pharma-mirror", "pharma-dest", "pharma-hs6-trend", "pharma-therapeutic", "pharma-product-mix",
+        "pharma-eroom", "pharma-eroom-results", "eu-berd-sectors", "glp1-stocks", "glp1-molecules", "glp1-valuation",
+        "peptide-flows", "peptide-dest"]],
+      ["Industry and trade", ["eu-gva-sectors", "eu-ipi-sectors", "us-ip-sectors", "chem-eng-exports", "hs6-check", "hs6-probe", "hs6-probe2"]],
+      ["Money, markets and climate", ["wb-commodities", "popular-markets", "climate-co2", "climate-temp", "fx-eur", "fx-eur-m",
+        "tr-fx-monthly", "tr-rates", "price-leverage", "price-leverage-results"]],
+      ["Energy costs", ["energy-spot", "energy-household-eu", "gas-household-eu", "elec-eu", "gas-eu", "wb-commodity-indices"]],
+      ["Money and central banks", ["central-bank-assets", "tr-cb-balance", "macro-external"]],
+      ["Reference files", ["europe-map", "tr-series-candidates", "yatirim-radar"]]
+    ];
+
+    /* Datasets that carry projections as well as history, per their own catalogue notes. */
+    var FORECASTY = { "imf-weo": 1, "ecb-spf": 1, "ecb-spf-results": 1, "ecb-forecaster-skill": 1, "fte-forecasts": 1, "fte-results": 1, "fte-slices": 1 };
+
+    /* Annual country totals where dividing by population is meaningful, and the unit it makes. */
+    var PERPERSON = {
+      "herd-cattle": "cattle per person", "herd-eu-countries": "cattle per person",
+      "gdp-eur": "EUR per person", "gdp-total": "national currency per person",
+      "gva-total": "national currency per person", "manuf-gva": "national currency per person",
+      "pharma-gva-eur": "EUR per person", "pharma-gva": "national currency per person",
+      "eu-vet-countries": "EUR per person", "eu-gva-sectors": "EUR per person",
+      "pharma-exports": "EUR per person", "chem-eng-exports": "EUR per person",
+      "eu-berd-sectors": "EUR per person"
+    };
+    var SPARK_MAX_BYTES = 320000;   /* bigger files are not fetched just to draw a thumbnail */
+
+    var NAMES = {"AE":"United Arab Emirates","AL":"Albania","AR":"Argentina","AT":"Austria","AU":"Australia","BA":"Bosnia and Herzegovina","BD":"Bangladesh","BE":"Belgium","BG":"Bulgaria","BR":"Brazil","CA":"Canada","CH":"Switzerland","CN":"China","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","EE":"Estonia","EG":"Egypt","EL":"Greece","ES":"Spain","FI":"Finland","FR":"France","GB":"United Kingdom","HR":"Croatia","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IR":"Iran","IS":"Iceland","IT":"Italy","JP":"Japan","KR":"South Korea","KZ":"Kazakhstan","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MD":"Moldova","ME":"Montenegro","MK":"North Macedonia","MT":"Malta","MX":"Mexico","MY":"Malaysia","NG":"Nigeria","NL":"Netherlands","NO":"Norway","PH":"Philippines","PK":"Pakistan","PL":"Poland","PT":"Portugal","RO":"Romania","RS":"Serbia","RU":"Russia","SA":"Saudi Arabia","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","TH":"Thailand","TR":"Türkiye","UA":"Ukraine","UK":"United Kingdom","US":"United States","UZ":"Uzbekistan","VN":"Vietnam","ZA":"South Africa","EU":"European Union",
+      "ARE":"United Arab Emirates","ARG":"Argentina","AUS":"Australia","AZE":"Azerbaijan","BRA":"Brazil","CAN":"Canada","CHE":"Switzerland","CHL":"Chile","CHN":"China","COL":"Colombia","CZE":"Czechia","DNK":"Denmark","EGY":"Egypt","GBR":"United Kingdom","HKG":"Hong Kong","HUN":"Hungary","IDN":"Indonesia","IND":"India","ISR":"Israel","JPN":"Japan","KOR":"South Korea","MEX":"Mexico","MYS":"Malaysia","NOR":"Norway","NZL":"New Zealand","PAK":"Pakistan","PER":"Peru","POL":"Poland","ROU":"Romania","RUS":"Russia","SAU":"Saudi Arabia","SGP":"Singapore","SWE":"Sweden","THA":"Thailand","TUR":"Türkiye","TWN":"Taiwan","UKR":"Ukraine","URY":"Uruguay","USA":"United States","VNM":"Vietnam","ZAF":"South Africa",
+      "TRY":"Türkiye","USD":"United States","GBP":"United Kingdom","CHF":"Switzerland","SEK":"Sweden","NOK":"Norway","DKK":"Denmark","PLN":"Poland","CZK":"Czechia","HUF":"Hungary","RON":"Romania"};
+
+    var app = document.getElementById("browse"), statsEl = document.getElementById("stats"),
+        scopeEl = document.getElementById("scope"), startsEl = document.getElementById("starts"),
+        tilesEl = document.getElementById("tiles"), countEl = document.getElementById("count"),
+        resetEl = document.getElementById("reset"),
         qEl = document.getElementById("q"), countryEl = document.getElementById("country"),
         fromEl = document.getElementById("from"), toEl = document.getElementById("to");
-    var DS = [], opened = {};
+    var DS = [], BY = {}, subject = "";
     function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function commas(n) { return Number(n).toLocaleString("en-GB"); }
 
     /* ---------- read any dataset shape, as the server does ---------- */
     var DATE = /^\d{4}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
@@ -196,7 +387,9 @@
       var keys = Object.keys(v); if (!keys.length) return false;
       var dated = 0, i;
       for (i = 0; i < keys.length; i++) if (DATE.test(keys[i])) dated++;
-      if (dated < keys.length * 0.8) return false;
+      /* Mostly-dated keys, or plenty of them: the CO2 record dates ice cores as negative
+         years, so only its recent keys parse and the 80% test alone would reject it. */
+      if (dated < keys.length * 0.8 && dated < 8) return false;
       return keys.some(function (k) { return num(v[k]) || v[k] === null; });
     }
     function isDatedRecordDict(v) {
@@ -249,54 +442,31 @@
     }
     function extractSeries(body) { var out = {}; walk(body, "", 0, out); return out; }
 
-    /* ---------- population, for the per-person view ---------- */
-    /* The countries data/population.json covers, so a card knows it can offer the view
-       before the file is fetched. Keep in step with the population entry in data-sources.json. */
-    var POP_CODES = ["AR","AT","AU","BE","BG","BR","CA","CH","CN","CZ","DE","DK","EE","EL","ES","EU","FI","FR","GB","HR",
-      "HU","IE","IL","IN","IT","LT","LU","LV","NL","NO","PL","PT","RO","RU","SE","SI","SK","TR","UA","US"];
-    var POP_NAMES = {};
-    POP_CODES.forEach(function (c) { POP_NAMES[NAMES[c] || c] = c; });
-    var POP = null, POP_BY_NAME = {}, popPromise = null;
-    function loadPopulation() {
-      if (popPromise) return popPromise;
-      popPromise = fetch("data/population.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-        if (!j) return null;
-        POP = extractSeries(j);
-        Object.keys(POP).forEach(function (k) {
-          var head = String(k).split(/[|.]/)[0];
-          POP_BY_NAME[NAMES[head] || head] = POP[k];
+    /* one fetch per file, shared by the sparkline and the chart */
+    var files = {};
+    function loadFile(name) {
+      if (!files[name]) {
+        files[name] = fetch("data/" + name + ".json", { cache: "force-cache" }).then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        }).then(function (body) {
+          var s = extractSeries(body);
+          if (!Object.keys(s).length) throw new Error("no dated series in this file");
+          return s;
         });
-        return POP;
-      }).catch(function () { return null; });
-      return popPromise;
-    }
-    /* A series belongs to a country if its key starts with a country code, or if the
-       dataset itself is one country (tr-cpi, us-prices). Returns that country's population. */
-    function countryOf(seriesName, file) {
-      var head = String(seriesName).split(/[|.]/)[0];
-      var name = NAMES[head];
-      if (!name) {
-        var n = String(file || "").replace("data/", "").replace(".json", "");
-        if (/^tr-|-tr$/.test(n)) name = "T\u00fcrkiye";
-        else if (/^us-|-us$/.test(n)) name = "United States";
-        else if (/^eu-|-eu$/.test(n)) name = "European Union";
-        else if (/^pl-/.test(n)) name = "Poland";
-        else if (/-il$/.test(n)) name = "Israel";
       }
-      return name || null;
+      return files[name];
     }
-    function hasPop(seriesName, file) { var c = countryOf(seriesName, file); return !!(c && POP_NAMES[c]); }
-    function popFor(seriesName, file) { var c = countryOf(seriesName, file); return c ? POP_BY_NAME[c] || null : null; }
 
-    /* ---------- chart ---------- */
-    function freqOf(d) { return /^\d{4}$/.test(d) ? "a" : /-Q/.test(d) ? "q" : /-S/.test(d) ? "s" : "m"; }
+    /* ---------- chart drawing ---------- */
     function nice(lo, hi) {
       if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
-      var span = hi - lo, raw = span / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+      var span = hi - lo, raw = span / 5, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
       var step = (r >= 5 ? 10 : r >= 2.6 ? 5 : r >= 2 ? 2.5 : r >= 1 ? 2 : 1) * mag, t = [], v = Math.ceil(lo / step) * step;
       for (; v <= hi + step * 1e-9; v += step) t.push(+v.toFixed(10));
       return t;
     }
+    var API = "https://econ-mcp.akmannamik83.workers.dev";
     function fmt(v) {
       var a = Math.abs(v);
       if (a >= 1e9) return (v / 1e9).toFixed(1) + "bn";
@@ -305,9 +475,11 @@
       if (a >= 10) return v.toLocaleString("en-GB", { maximumFractionDigits: 1 });
       return v.toLocaleString("en-GB", { maximumFractionDigits: 2 });
     }
-    function svgFor(title, freq, vis) {
-      var W = 660, H = 200, L = 50, R = 10, T = 10, B = 22, iw = W - L - R, ih = H - T - B;
-      if (!vis.length) return "<svg viewBox='0 0 " + W + " " + H + "'><text x='" + (W / 2) + "' y='" + (H / 2) + "' text-anchor='middle' font-size='13' fill='currentColor' fill-opacity='.55'>Nothing selected — pick a line below.</text></svg>";
+    function svgFor(title, vis, suffix, unit) {
+      /* A narrow screen gets a narrower viewBox so the 11px labels do not shrink to nothing. */
+      var narrow = window.innerWidth < 700;
+      var W = narrow ? 400 : 660, H = narrow ? 210 : 200, L = narrow ? 40 : 52, R = 10, T = 10, B = 22, iw = W - L - R, ih = H - T - B;
+      if (!vis.length) return "<svg class='fig' viewBox='0 0 " + W + " " + H + "'><text x='" + (W / 2) + "' y='" + (H / 2) + "' text-anchor='middle' font-size='13' fill='currentColor' fill-opacity='.55'>Nothing selected — pick a line below.</text></svg>";
       var keys = {}, axis, idx = {};
       vis.forEach(function (s) { s.d.forEach(function (d) { keys[d] = 1; }); });
       axis = Object.keys(keys).sort();
@@ -319,11 +491,11 @@
       var ticks = nice(lo, hi);
       var x = function (d) { return L + (idx[d] / Math.max(axis.length - 1, 1)) * iw; };
       var y = function (v) { return T + (hi - v) / (hi - lo) * ih; };
-      var svg = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + esc(title) + "'>";
+      var svg = "<svg class='fig' viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + esc(title + (suffix ? ", " + suffix : "")) + "'>";
       ticks.forEach(function (t) {
         if (t < lo || t > hi) return;
         svg += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + y(t).toFixed(1) + "' y2='" + y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".35" : ".13") + "'/>";
-        svg += "<text x='" + (L - 7) + "' y='" + (y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t)) + "</text>";
+        svg += "<text x='" + (L - 7) + "' y='" + (y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t) + (unit || "")) + "</text>";
       });
       var y0 = +axis[0].slice(0, 4), y1 = +axis[axis.length - 1].slice(0, 4), span = y1 - y0;
       var step = span > 60 ? 20 : span > 40 ? 10 : span > 20 ? 5 : span > 10 ? 3 : span > 4 ? 2 : 1;
@@ -353,55 +525,133 @@
       if (m && NAMES[m[1]]) return NAMES[m[1]] + (m[2] ? " · " + m[2] : "");
       return name;
     }
-    function makeCard(card, prepend) {
+    /* the same date one year earlier, in whatever shape the dataset uses */
+    function yearBefore(d) {
+      var y = +d.slice(0, 4);
+      if (!y) return null;
+      return String(y - 1) + d.slice(4);
+    }
+
+    /* ---------- sparklines ---------- */
+    function sparkSvg(pts) {
+      var W = 84, H = 26, lo = Infinity, hi = -Infinity, i;
+      for (i = 0; i < pts.length; i++) { if (pts[i] < lo) lo = pts[i]; if (pts[i] > hi) hi = pts[i]; }
+      if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
+      var d = "";
+      for (i = 0; i < pts.length; i++) {
+        var x = (i / (pts.length - 1)) * (W - 3) + 1.5;
+        var y = H - 3 - ((pts[i] - lo) / (hi - lo)) * (H - 6);
+        d += (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+      }
+      var lx = W - 1.5, ly = H - 3 - ((pts[pts.length - 1] - lo) / (hi - lo)) * (H - 6);
+      return "<svg viewBox='0 0 " + W + " " + H + "' aria-hidden='true'><path d='" + d +
+        "' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round'/>" +
+        "<circle cx='" + lx.toFixed(1) + "' cy='" + ly.toFixed(1) + "' r='1.8' fill='currentColor'/></svg>";
+    }
+    function drawSpark(el, name) {
+      loadFile(name).then(function (series) {
+        var best = null, bn = "";
+        Object.keys(series).forEach(function (k) {
+          var n = Object.keys(series[k]).length;
+          if (!best || n > best) { best = n; bn = k; }
+        });
+        if (!best || best < 3) { el.textContent = ""; return; }
+        var dates = Object.keys(series[bn]).sort(), vals = dates.map(function (d) { return series[bn][d]; });
+        if (vals.length > 400) {           /* thin out so the thumbnail stays legible */
+          var stride = Math.ceil(vals.length / 400), thin = [], j;
+          for (j = 0; j < vals.length; j += stride) thin.push(vals[j]);
+          thin.push(vals[vals.length - 1]); vals = thin;
+        }
+        el.innerHTML = sparkSvg(vals);
+        el.setAttribute("title", "Longest series: " + label(bn) + ", " + dates[0] + " to " + dates[dates.length - 1]);
+      }, function () { el.textContent = ""; });
+    }
+    var queue = [], inflight = 0;
+    function pump() {
+      while (inflight < 3 && queue.length) {
+        var job = queue.shift(); inflight++;
+        /* jshint loopfunc:true */
+        (function (j) {
+          loadFile(j.name).then(function () { inflight--; pump(); }, function () { inflight--; pump(); });
+          drawSpark(j.el, j.name);
+        })(job);
+      }
+    }
+    var seen = {};
+    var io = window.IntersectionObserver ? new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        var name = e.target.getAttribute("data-spark");
+        if (seen[name]) return;
+        seen[name] = 1;
+        queue.push({ el: e.target, name: name });
+      });
+      pump();
+    }, { rootMargin: "200px" }) : null;
+
+    /* ---------- the chart card ---------- */
+    var POP = null;
+    function population() {
+      if (!POP) POP = loadFile("population");
+      return POP;
+    }
+    function makeCard(host, card) {
       var full = Object.keys(card.series).map(function (n) {
         var dates = Object.keys(card.series[n]).sort();
         return { n: n, d: dates, v: dates.map(function (d) { return card.series[n][d]; }) };
       }).filter(function (s) { return s.d.length > 1; });
-      if (!full.length) return null;
+      if (!full.length) throw new Error("no series long enough to draw");
       full.sort(function (a, b) { return b.d.length - a.d.length; });
-      var freq = freqOf(full[0].d[0]);
+      var annual = /^\d{4}$/.test(full[0].d[0]);
       var last = full.reduce(function (a, s) { var l = s.d[s.d.length - 1]; return l > a ? l : a; }, "");
       var firstAll = full.reduce(function (a, s) { return s.d[0] < a ? s.d[0] : a; }, "9999");
       var yF = +firstAll.slice(0, 4), yL = +last.slice(0, 4), spanY = yL - yF;
       var presets = [{ k: 0, l: "All" }].concat([20, 10, 5, 3].filter(function (n) { return n < spanY; }).map(function (n) { return { k: n, l: n + "y" }; }));
+      var ppUnit = annual ? PERPERSON[card.file] : null;
+      var modes = [
+        { k: "level", l: "Actual values" },
+        { k: "index", l: "Index, start = 100" },
+        { k: "yoy", l: "Change on a year earlier" }
+      ];
+      if (ppUnit) modes.push({ k: "pp", l: "Per person" });
       var chosen = {};
       (card.pick && card.pick.filter(function (n) { return card.series[n]; }).length ? card.pick : full.slice(0, 4).map(function (s) { return s.n; }))
         .forEach(function (n) { if (card.series[n]) chosen[n] = true; });
-      var state = { preset: 0, from: yF, to: yL, view: "level" };
-      var canPC = full.some(function (s2) { return hasPop(s2.n, card.file); });
-      var pcPer = 1;
+      var state = { preset: 0, from: yF, to: yL, mode: "level" };
+      var pop = null;
 
       var el = document.createElement("div");
       el.className = "card";
-      el.innerHTML = "<h3>" + esc(card.title) + "</h3>" +
-        "<p class='note'>" + esc(card.note || "") + "</p>" +
+      el.innerHTML = (card.note ? "<p class='note'>" + esc(card.note) + "</p>" : "") +
         "<div class='ctrl'><span class='lbl'>Period</span><span class='seg js-seg'></span>" +
         "<select class='js-from' aria-label='From year'></select><span class='asof'>to</span><select class='js-to' aria-label='To year'></select></div>" +
-        "<div class='ctrl'><span class='lbl'>Show</span><span class='seg js-view'></span><span class='asof js-viewnote'></span></div>" +
+        "<div class='ctrl'><span class='lbl'>Show as</span><span class='seg js-mode'></span></div>" +
+        "<p class='hint js-hint'></p>" +
         "<div class='js-fig'></div>" +
-        "<div class='ctrl'><span class='lbl'>Series</span>" + (full.length > 6 ? "<button class='allnone' data-all='1'>all</button><button class='allnone' data-all='0'>none</button>" : "") + "</div>" +
+        "<div class='ctrl'><span class='lbl'>Lines</span><span class='asof js-nsel'></span>" +
+        (full.length > 6 ? "<button class='allnone' data-all='1'>all</button><button class='allnone' data-all='0'>none</button>" : "") + "</div>" +
         "<div class='picks js-picks'></div>" +
         "<div class='js-pred'></div>" +
-        "<div class='foot'><button type='button' class='act js-predict'>Predict</button>" +
-        "<a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a><span class='asof js-asof'></span></div>";
-      if (prepend && cardsEl.firstChild) cardsEl.insertBefore(el, cardsEl.firstChild); else cardsEl.appendChild(el);
+        "<div class='foot'><button type='button' class='act js-predict'>Test forecasts</button>" +
+        "<a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a>" +
+        "<span class='asof js-asof'></span><button type='button' class='drop'>close</button></div>";
+      host.appendChild(el);
 
-      var figEl = el.querySelector(".js-fig"), picksEl = el.querySelector(".js-picks"), segEl = el.querySelector(".js-seg"),
-          fromSel = el.querySelector(".js-from"), toSel = el.querySelector(".js-to"),
-          asofEl = el.querySelector(".js-asof"), linkEl = el.querySelector(".js-link"),
-          predEl = el.querySelector(".js-pred"), predBtn = el.querySelector(".js-predict");
-      var viewEl = el.querySelector(".js-view"), viewNote = el.querySelector(".js-viewnote");
+      var predEl = el.querySelector(".js-pred"), predBtn = el.querySelector(".js-predict");
       var forecastLine = null;
-
-      /* Ask the server which method suits this series, then forecast with it.
-         No account and no model: /v1/analyze runs the same code the tools use. */
+      var figEl = el.querySelector(".js-fig"), picksEl = el.querySelector(".js-picks"), segEl = el.querySelector(".js-seg"),
+          modeEl = el.querySelector(".js-mode"), hintEl2 = el.querySelector(".js-hint"), nselEl = el.querySelector(".js-nsel"),
+          fromSel = el.querySelector(".js-from"), toSel = el.querySelector(".js-to"),
+          asofEl = el.querySelector(".js-asof"), linkEl = el.querySelector(".js-link");
+      /* Ask the server which method suits this series, then forecast with it. No account
+         and no model: /v1/analyze runs the same code the MCP tools do. */
       predBtn.addEventListener("click", async function () {
-        var vis = full.filter(function (s) { return chosen[s.n]; });
-        if (!vis.length) { predEl.innerHTML = "<div class='pred'>Pick one line first, then press Predict.</div>"; return; }
+        var vis = full.filter(function (x) { return chosen[x.n]; });
+        if (!vis.length) { predEl.innerHTML = "<div class='pred'>Pick one line first, then press this again.</div>"; return; }
         var target = vis[0];
-        predBtn.disabled = true; predBtn.textContent = "Testing methods…";
-        predEl.innerHTML = "<div class='pred'>Re-fitting each method at a run of past dates and scoring what actually happened. This takes a few seconds.</div>";
+        predBtn.disabled = true; predBtn.textContent = "Testing…";
+        predEl.innerHTML = "<div class='pred'>Re-fitting each method at a run of past dates and scoring it against what actually happened. A few seconds.</div>";
         try {
           var res = await fetch(API + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
             body: JSON.stringify({ tool: "predict", args: { series: { dataset: card.file, series: target.n }, horizon: 12, origins: 10 } }) });
@@ -415,8 +665,7 @@
           predEl.innerHTML = "<div class='pred'><h4>" + esc(label(target.n)) + ": " + esc(r.recommendation.what_it_does) + "</h4>" +
             "<div>" + esc(r.reading) + "</div>" +
             "<table><thead><tr><th>Method</th><th>Typical error</th><th>Better than no change</th></tr></thead><tbody>" + rows + "</tbody></table>" +
-            "<div class='why'>" + esc(r.recommendation.why) + "</div>" +
-            "<div class='why'>" + esc(r.caveat) + "</div></div>";
+            "<div class='why'>" + esc(r.recommendation.why) + "</div><div class='why'>" + esc(r.caveat) + "</div></div>";
           forecastLine = { n: target.n + " — forecast", d: [target.d[target.d.length - 1]].concat(r.forecast.map(function (p) { return p.date; })),
             v: [target.v[target.v.length - 1]].concat(r.forecast.map(function (p) { return p.value; })) };
           var yEnd = +String(forecastLine.d[forecastLine.d.length - 1]).slice(0, 4);
@@ -425,11 +674,12 @@
             toSel.value = yEnd; state.to = yEnd;
           }
           chosen[forecastLine.n] = true;
+          if (state.mode !== "level") { state.mode = "level"; }
           draw();
         } catch (e) {
           predEl.innerHTML = "<div class='pred'>Could not run the test: " + esc(e.message) + "</div>";
         }
-        predBtn.disabled = false; predBtn.textContent = "Predict";
+        predBtn.disabled = false; predBtn.textContent = "Test forecasts";
       });
       for (var y = yF; y <= yL; y++) {
         var o1 = document.createElement("option"); o1.value = o1.textContent = y; fromSel.appendChild(o1);
@@ -442,19 +692,19 @@
         b.addEventListener("click", function () { state.preset = p.k; state.to = yL; state.from = p.k ? Math.max(yF, yL - p.k) : yF; fromSel.value = state.from; toSel.value = state.to; draw(); });
         segEl.appendChild(b);
       });
-      var VIEWS = [["level", "Level"], ["index", "Index = 100"]].concat(canPC ? [["pc", "Per person"]] : []);
-      VIEWS.forEach(function (v) {
+      modes.forEach(function (m) {
         var b = document.createElement("button");
-        b.type = "button"; b.textContent = v[1];
+        b.type = "button"; b.textContent = m.l;
         b.addEventListener("click", function () {
-          if (v[0] === "pc" && !POP) {
-            viewNote.textContent = "loading population\u2026";
-            loadPopulation().then(function () { viewNote.textContent = ""; state.view = "pc"; draw(); });
+          if (m.k === "pp" && !pop) {
+            b.textContent = "loading…";
+            population().then(function (p) { pop = p; b.textContent = m.l; state.mode = "pp"; draw(); },
+                              function () { b.textContent = m.l; hintEl2.innerHTML = "<b>Per person</b> needs data/population.json, which did not load."; });
             return;
           }
-          state.view = v[0]; draw();
+          state.mode = m.k; draw();
         });
-        viewEl.appendChild(b);
+        modeEl.appendChild(b);
       });
       fromSel.addEventListener("change", function () { state.from = +fromSel.value; if (state.from > state.to) { state.to = state.from; toSel.value = state.to; } state.preset = -1; draw(); });
       toSel.addEventListener("change", function () { state.to = +toSel.value; if (state.to < state.from) { state.from = state.to; fromSel.value = state.from; } state.preset = -1; draw(); });
@@ -465,54 +715,59 @@
           draw();
         });
       });
-      if (card.drop) {
-        var d = document.createElement("button");
-        d.className = "drop"; d.type = "button"; d.textContent = "remove";
-        d.addEventListener("click", function () { el.remove(); card.drop(); });
-        el.querySelector(".foot").appendChild(d);
+      el.querySelector(".drop").addEventListener("click", function () { card.close(); });
+
+      /* population lookup for a series key such as 'DE' or 'DE|C21' */
+      function popFor(name) {
+        if (!pop) return null;
+        var head = String(name).split(/[|.]/)[0];
+        return pop[head + "|population"] || null;
+      }
+      function transform(s) {
+        var d = [], v = [], i;
+        if (state.mode === "index") {
+          var base = s.v[0];
+          if (!base) return { n: s.n, d: [], v: [] };
+          for (i = 0; i < s.d.length; i++) { d.push(s.d[i]); v.push(s.v[i] / base * 100); }
+        } else if (state.mode === "yoy") {
+          var by = {};
+          for (i = 0; i < s.d.length; i++) by[s.d[i]] = s.v[i];
+          for (i = 0; i < s.d.length; i++) {
+            var prev = by[yearBefore(s.d[i])];
+            if (typeof prev === "number" && prev !== 0) { d.push(s.d[i]); v.push((s.v[i] / prev - 1) * 100); }
+          }
+        } else if (state.mode === "pp") {
+          var p = popFor(s.n);
+          if (!p) return { n: s.n, d: [], v: [] };
+          for (i = 0; i < s.d.length; i++) {
+            var pv = p[s.d[i]];
+            if (typeof pv === "number" && pv > 0) { d.push(s.d[i]); v.push(s.v[i] / pv); }
+          }
+        } else {
+          return s;
+        }
+        return { n: s.n, d: d, v: v };
+      }
+      function hintText(vis) {
+        if (state.mode === "index") return "<b>Index:</b> every line is set to 100 at its first year in this window, so you are comparing how much each has moved, not how big it is.";
+        if (state.mode === "yoy") return "<b>Change on a year earlier:</b> each point is the percentage difference from the same month, quarter or year twelve months before.";
+        if (state.mode === "pp") return "<b>Per person:</b> each value divided by that country's population in the same year (World Bank, in <code>data/population.json</code>) — read as " + esc(ppUnit) + ".";
+        return "<b>Actual values</b> in the units the source publishes. Switch to an index to compare countries of very different size.";
       }
       function draw() {
         var a = String(state.from), b = String(state.to + 1);
-        var source = forecastLine ? full.concat([forecastLine]) : full;
+        var source = forecastLine && state.mode === "level" ? full.concat([forecastLine]) : full;
         var win = source.map(function (s) {
           var d = [], v = [];
           s.d.forEach(function (dt, i) { if (dt >= a && dt < b) { d.push(dt); v.push(s.v[i]); } });
           return { n: s.n, d: d, v: v };
-        }).filter(function (s) { return s.d.length > 1; });
-        if (state.view === "index") {
-          win = win.map(function (s) {
-            var base = s.v[0];
-            return base ? { n: s.n, d: s.d, v: s.v.map(function (x) { return x / base * 100; }) } : s;
-          });
-        } else if (state.view === "pc") {
-          var mult = card.unitScale || 1;
-          win = win.map(function (s) {
-            var pop = popFor(s.n, card.file);
-            if (!pop) return null;
-            var d = [], v = [];
-            s.d.forEach(function (dt, i) {
-              var p = pop[String(dt).slice(0, 4)];
-              if (p) { d.push(dt); v.push(s.v[i] * mult / p); }
-            });
-            return d.length > 1 ? { n: s.n, d: d, v: v } : null;
-          }).filter(Boolean);
-          /* Per head of a big population is a tiny number, so scale up to whatever
-             head count reads well and say which one in the note. */
-          var peak = 0;
-          win.forEach(function (s) { s.v.forEach(function (x) { if (Math.abs(x) > peak) peak = Math.abs(x); }); });
-          var per = 1;
-          while (peak > 0 && peak * per < 0.5 && per < 1e6) per *= 1000;
-          pcPer = per;
-          if (per > 1) win = win.map(function (s) { return { n: s.n, d: s.d, v: s.v.map(function (x) { return x * per; }) }; });
-        }
+        }).filter(function (s) { return s.d.length > 1; }).map(transform).filter(function (s) { return s.d.length > 1; });
         var vis = win.filter(function (s) { return chosen[s.n]; });
-        figEl.innerHTML = svgFor(card.title, freq, vis);
-        Array.prototype.forEach.call(viewEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(VIEWS[i][0] === state.view)); });
-        if (state.view !== "pc" || viewNote.textContent.indexOf("loading") < 0) {
-          viewNote.textContent = state.view === "index" ? "each line starts at 100" :
-            state.view === "pc" ? (win.length ? (pcPer === 1 ? "per person" : "per " + pcPer.toLocaleString("en-GB") + " people") + (card.unitScale ? "" : " \u2014 only meaningful if the series is a quantity or a total, not an index") : "no population for these lines") : "";
-        }
+        figEl.innerHTML = svgFor(card.title, vis, state.mode === "level" ? "" : state.mode, state.mode === "yoy" ? "%" : "");
         Array.prototype.forEach.call(segEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(presets[i].k === state.preset)); });
+        Array.prototype.forEach.call(modeEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(modes[i].k === state.mode)); });
+        hintEl2.innerHTML = hintText(vis);
+        nselEl.textContent = vis.length + " of " + win.length + " shown";
         picksEl.innerHTML = "";
         win.slice().sort(function (p, q) { return (chosen[q.n] ? 1 : 0) - (chosen[p.n] ? 1 : 0); }).forEach(function (s) {
           var on = !!chosen[s.n], i = vis.map(function (z) { return z.n; }).indexOf(s.n);
@@ -524,14 +779,30 @@
           picksEl.appendChild(b2);
         });
         asofEl.textContent = vis.length ? vis[0].d[0] + " to " + vis[0].d[vis[0].d.length - 1] : firstAll + " to " + last;
-        var spec = { title: card.title, series: vis.slice(0, 8).map(function (s) {
-          return { dataset: card.file, series: s.n, start: vis[0].d[0], end: vis[0].d[vis[0].d.length - 1] }; }) };
+        var tf = state.mode === "index" ? "rebase" : state.mode === "yoy" ? "yoy" : null;
+        var spec = { title: card.title + (tf === "rebase" ? " (index)" : tf === "yoy" ? " (year-on-year)" : ""),
+          series: vis.slice(0, 8).map(function (s) {
+            var one = { dataset: card.file, series: s.n, start: vis[0].d[0], end: vis[0].d[vis[0].d.length - 1] };
+            if (tf) one.transform = tf;
+            return one;
+          }) };
         linkEl.href = spec.series.length ? "chart.html#" + b64url(JSON.stringify(spec)) : "chart.html";
-        linkEl.textContent = state.view === "level" ? "Open as a shareable chart \u2192" : "Open the level series as a shareable chart \u2192";
+        linkEl.textContent = state.mode === "pp"
+          ? "Open the underlying totals as a shareable chart →"
+          : "Open as a shareable chart →";
       }
       draw();
+      el.redraw = draw;
       return el;
     }
+    /* cards that are still open redraw on rotate, so the phone viewBox is picked up */
+    var resizeT = null;
+    window.addEventListener("resize", function () {
+      if (resizeT) clearTimeout(resizeT);
+      resizeT = setTimeout(function () {
+        Array.prototype.forEach.call(document.querySelectorAll(".card"), function (c) { if (c.redraw) c.redraw(); });
+      }, 200);
+    });
 
     /* ---------- catalogue ---------- */
     function countriesOf(entry) {
@@ -548,16 +819,10 @@
       if (/-il$/.test(n)) out["Israel"] = 1;
       return Object.keys(out);
     }
-    function subjectOf(name) {
-      for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i][1].test(name)) return SUBJECTS[i][0];
-      return "Other";
-    }
-    function subjectNote(subj) {
-      for (var i = 0; i < SUBJECTS.length; i++) if (SUBJECTS[i][0] === subj) return SUBJECTS[i][2];
-      return "Everything that does not sit under one heading";
-    }
-    /* Thousands with a space, so 12 400 series reads at a glance. */
-    function big(n) { return n >= 1000 ? n.toLocaleString("en-GB") : String(n); }
+    var SUBJ_OF = {}, RANK = {};
+    SUBJECTS.forEach(function (s) {
+      s[1].forEach(function (n, i) { if (!SUBJ_OF[n]) { SUBJ_OF[n] = s[0]; RANK[n] = i; } });
+    });
     function pretty(name) {
       return name.replace(/-/g, " ").replace(/\b([a-z])/g, function (m) { return m.toUpperCase(); })
         .replace(/\bCpi\b/, "CPI").replace(/\bPpi\b/, "PPI").replace(/\bEu\b/, "EU").replace(/\bUs\b/, "US")
@@ -566,165 +831,218 @@
         .replace(/\bHpi\b/, "house prices").replace(/\bEsi\b/, "sentiment").replace(/\bLci\b/, "labour cost")
         .replace(/\bFx\b/, "exchange rates").replace(/\bGva\b/, "value added").replace(/\bPpp\b/, "price levels");
     }
-    var rowEls = {}, subjEls = {};
+    /* first sentence of the catalogue's own source line, as a fallback question */
+    function fallbackQ(src, name) {
+      if (!src) return "Source not stated in the catalogue — open the data page for what is known.";
+      var s = String(src).split(/ — | - |[.;] /)[0];
+      return s.length > 120 ? s.slice(0, 117) + "…" : s;
+    }
+
+    var rowEls = {}, groupEls = {}, emptyEl = null;
+
     function build(cat) {
-      DS = (cat.datasets || []).map(function (d) {
+      var all = (cat.datasets || []).map(function (d) {
         var name = (d.file || "").replace("data/", "").replace(".json", "");
         var cov = d.coverage || {};
-        return { name: name, title: pretty(name), n: d.series || 0, obs: d.observations || 0,
+        var info = INFO[name];
+        var src = typeof d.source === "string" ? d.source : "";
+        return { name: name, title: info ? info[0] : pretty(name), q: info ? info[1] : fallbackQ(src, name),
+          n: d.series || 0, obs: d.observations || 0, bytes: d.bytes || 0, prov: d.provenance || "",
           f: +String(cov.first || "").slice(0, 4) || 0, t: +String(cov.last || "").slice(0, 4) || 0,
-          src: typeof d.source === "string" ? d.source : "", c: countriesOf(d), subj: subjectOf(name) };
-      }).filter(function (d) { return d.n > 0 && d.f; });
+          src: src, c: countriesOf(d), subj: SUBJ_OF[name] || "Reference files" };
+      }).map(function (d) {
+        /* one value per series in a single year: a snapshot, not something to plot over time */
+        d.snap = d.f > 0 && d.f === d.t && d.obs <= d.n;
+        return d;
+      });
+      DS = all.filter(function (d) { return d.n > 0 && d.f; });
+      DS.forEach(function (d) { BY[d.name] = d; });
+      var undated = all.length - DS.length;
+      var chartable = DS.filter(function (d) { return !d.snap; }).length;
 
-      /* What is inside, before anything is drawn: the size of the collection,
-         then one tile per subject that filters the list below. */
-      var totSeries = DS.reduce(function (a, d) { return a + d.n; }, 0);
-      var totObs = DS.reduce(function (a, d) { return a + d.obs; }, 0);
-      var allCountries = {};
-      DS.forEach(function (d) { d.c.forEach(function (c) { allCountries[c] = 1; }); });
-      var earliest = DS.reduce(function (a, d) { return Math.min(a, d.f); }, 9999);
-      var latest = DS.reduce(function (a, d) { return Math.max(a, d.t); }, 0);
-      statsEl.innerHTML = [
-        [big(DS.length), "datasets"], [big(totSeries), "series"], [big(totObs), "observations"],
-        [big(Object.keys(allCountries).length), "countries"], [earliest + "\u2013" + latest, "years covered"],
-      ].map(function (x) { return "<div class='stat'><b>" + esc(x[0]) + "</b><span>" + esc(x[1]) + "</span></div>"; }).join("");
+      /* --- overview --- */
+      var series = DS.reduce(function (a, d) { return a + d.n; }, 0);
+      var minY = DS.reduce(function (a, d) { return Math.min(a, d.f); }, 9999);
+      var maxY = DS.reduce(function (a, d) { return Math.max(a, d.t); }, 0);
+      var obs = (cat.totals && cat.totals.observations) || DS.reduce(function (a, d) { return a + d.obs; }, 0);
+      [[chartable, "datasets you can chart right here", ""],
+       [commas(series), "individual series inside them", "blue"],
+       [commas(obs), "numbers in the whole collection", "green"],
+       [minY + "–" + maxY, "years covered, from the oldest CO₂ reading to the IMF's last projection", ""]
+      ].forEach(function (o) {
+        var d = document.createElement("div");
+        d.className = "s " + o[2];
+        d.innerHTML = "<div class='v'>" + esc(String(o[0])) + "</div><div class='l'>" + esc(o[1]) + "</div>";
+        statsEl.appendChild(d);
+      });
+      scopeEl.innerHTML = "Everything comes from official statistics — Eurostat, the World Bank, the IMF, the ECB, the US Federal Reserve and BLS, " +
+        "the Turkish central bank, FAO and others. Listed below but not drawn: " + (DS.length - chartable) +
+        " single-year snapshots. Not listed at all: " + undated + " probes and study outputs with no dated series; those are on the " +
+        "<a href='data.html'>data page</a>.";
 
+      /* --- start here --- */
+      STARTS.forEach(function (st) {
+        var d = BY[st.file];
+        if (!d) return;
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "start";
+        b.innerHTML = "<span class='q'>" + esc(st.q) + "</span>" +
+          "<span class='m'>" + esc(d.title) + " · " + d.f + "–" + d.t + " · " + d.n + " series</span>" +
+          "<span class='go'>Show me &rarr;</span>";
+        b.addEventListener("click", function () { openRow(st.file, st.pick); });
+        startsEl.appendChild(b);
+      });
+
+      /* --- filters --- */
       var counts = {};
       DS.forEach(function (d) { d.c.forEach(function (c) { counts[c] = (counts[c] || 0) + 1; }); });
       countryEl.innerHTML = "<option value=''>Any country</option>" + Object.keys(counts).sort().map(function (c) {
         return "<option value='" + esc(c) + "'>" + esc(c) + " (" + counts[c] + ")</option>"; }).join("");
-      /* One dataset reaches back to ice-core CO2 in 1018; a thousand-year dropdown helps
-         nobody, and no dataset ends before 1900, so the floor costs no matches. */
-      var minY = Math.max(1900, DS.reduce(function (a, d) { return Math.min(a, d.f); }, 9999));
-      var maxY = DS.reduce(function (a, d) { return Math.max(a, d.t); }, 0);
-      var opts = "";
-      for (var y = minY; y <= maxY; y++) opts += "<option value='" + y + "'>" + y + "</option>";
+      /* Only the years a dataset actually starts or ends in, so the list stays short
+         (one file reaches back to 1018 and a thousand-entry dropdown is unusable). */
+      var yset = {};
+      DS.forEach(function (d) { yset[d.f] = 1; yset[d.t] = 1; });
+      var years = Object.keys(yset).map(Number).sort(function (a, b) { return a - b; });
+      var opts = years.map(function (y) { return "<option value='" + y + "'>" + y + "</option>"; }).join("");
       fromEl.innerHTML = opts; toEl.innerHTML = opts; fromEl.value = minY; toEl.value = maxY;
 
-      var order = SUBJECTS.map(function (s) { return s[0]; }).concat(["Other"]);
-      var subject = "";
+      /* --- subject tiles --- */
+      var order = SUBJECTS.map(function (s) { return s[0]; });
+      var subjCount = {};
+      DS.forEach(function (d) { subjCount[d.subj] = (subjCount[d.subj] || 0) + 1; });
+      function tile(key, text, n) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "tile"; b.setAttribute("data-subj", key);
+        b.innerHTML = esc(text) + "<b>" + n + "</b>";
+        b.addEventListener("click", function () { subject = subject === key ? "" : key; apply(); });
+        tilesEl.appendChild(b);
+      }
+      tile("", "All subjects", DS.length);
+      order.forEach(function (s) { if (subjCount[s]) tile(s, s, subjCount[s]); });
+
+      /* --- the list --- */
+      app.innerHTML = "";
       order.forEach(function (subj) {
         var mine = DS.filter(function (d) { return d.subj === subj; });
         if (!mine.length) return;
-        var t = document.createElement("button");
-        t.type = "button"; t.className = "tile"; t.setAttribute("aria-pressed", "false"); t.setAttribute("data-subj", subj);
-        t.innerHTML = "<strong>" + esc(subj) + "<em>" + mine.length + "</em></strong><small>" + esc(subjectNote(subj)) + "</small>";
-        t.addEventListener("click", function () {
-          subject = subject === subj ? "" : subj;
-          apply();
-          if (subject) app.scrollIntoView({ behavior: "smooth", block: "start" });
+        var g = document.createElement("section");
+        g.className = "group";
+        g.innerHTML = "<h3>" + esc(subj) + "<span class='n'></span></h3>";
+        mine.sort(function (a, b) {
+          var ra = RANK[a.name], rb = RANK[b.name];
+          if (ra == null) ra = 999; if (rb == null) rb = 999;
+          return ra !== rb ? ra - rb : a.title.localeCompare(b.title);
+        }).forEach(function (d) {
+          var item = document.createElement("div");
+          item.className = "item";
+          var flag = "";
+          if (FORECASTY[d.name]) flag += "<span class='flag fc'>has projections</span>";
+          if (d.prov === "manual") flag += "<span class='flag hand'>updated by hand</span>";
+          else if (d.prov === "unattributed") flag += "<span class='flag unk'>unverified</span>";
+          var snapshot = d.snap;
+          item.innerHTML = "<div class='row'>" +
+            "<span class='what'><b>" + esc(d.title) + flag + "</b><small>" + esc(d.q) + "</small></span>" +
+            (snapshot ? "" : "<span class='spark' data-spark='" + esc(d.name) + "'></span>") +
+            "<span class='meta'>" + (d.f === d.t ? d.f : d.f + "–" + d.t) + " · " + d.n + " series · " + commas(d.obs) + " points</span>" +
+            (snapshot
+              ? "<span class='meta'>one year only &mdash; <a href='data.html'>see the catalogue</a></span>"
+              : "<button type='button' class='go' data-open='" + esc(d.name) + "'>Chart it</button>") +
+            "</div><div class='slot' hidden></div>";
+          g.appendChild(item);
+          rowEls[d.name] = item;
+          var sp = item.querySelector(".spark");
+          if (sp && io && d.bytes && d.bytes <= SPARK_MAX_BYTES) io.observe(sp);
         });
-        tilesEl.appendChild(t);
+        app.appendChild(g); groupEls[subj] = g;
       });
-      order.forEach(function (subj) {
-        var mine = DS.filter(function (d) { return d.subj === subj; });
-        if (!mine.length) return;
-        var det = document.createElement("details");
-        det.className = "theme";
-        det.innerHTML = "<summary>" + esc(subj) + "<span class='n'></span></summary>";
-        var list = document.createElement("div"); list.className = "ds";
-        mine.sort(function (a, b) { return a.title.localeCompare(b.title); }).forEach(function (d) {
-          var row = document.createElement("div");
-          row.className = "row";
-          row.innerHTML = "<span class='what'>" + esc(d.title) + "<small>" + esc(d.src ? d.src.slice(0, 110) : d.name) + "</small></span>" +
-            "<span class='meta'>" + d.f + "–" + d.t + " · " + d.n + " series</span>" +
-            "<button type='button' data-open='" + esc(d.name) + "'>Chart</button>";
-          list.appendChild(row); rowEls[d.name] = row;
-        });
-        det.appendChild(list); app.appendChild(det); subjEls[subj] = det;
-      });
-      var empty = document.createElement("p"); empty.className = "empty"; empty.hidden = true;
-      empty.textContent = "Nothing matches those filters. Widen the years or clear the country.";
-      app.appendChild(empty);
+      emptyEl = document.createElement("p");
+      emptyEl.className = "empty"; emptyEl.hidden = true;
+      emptyEl.textContent = "Nothing matches those filters. Widen the years, clear the country, or pick All subjects.";
+      app.appendChild(emptyEl);
 
       function apply() {
         var term = qEl.value.trim().toLowerCase(), country = countryEl.value, a = +fromEl.value, b = +toEl.value, shown = 0;
         order.forEach(function (subj) {
-          var det = subjEls[subj]; if (!det) return;
-          var vis = 0, off = subject && subject !== subj;
+          var g = groupEls[subj]; if (!g) return;
+          var vis = 0;
           DS.filter(function (d) { return d.subj === subj; }).forEach(function (d) {
-            var hit = !off && (!term || (d.name + " " + d.title + " " + d.src).toLowerCase().indexOf(term) >= 0) &&
-                      (!country || d.c.indexOf(country) >= 0) && (d.f <= b && d.t >= a);
+            var hit = (!term || (d.name + " " + d.title + " " + d.q + " " + d.src).toLowerCase().indexOf(term) >= 0) &&
+                      (!country || d.c.indexOf(country) >= 0) && (d.f <= b && d.t >= a) &&
+                      (!subject || d.subj === subject);
             rowEls[d.name].hidden = !hit; if (hit) vis++;
           });
-          det.hidden = vis === 0;
-          det.open = vis > 0 && (!!term || !!country || !!subject);
-          det.querySelector(".n").textContent = vis;
+          g.hidden = vis === 0;
+          g.querySelector(".n").textContent = vis;
           shown += vis;
         });
-        Array.prototype.forEach.call(tilesEl.children, function (t) {
-          t.setAttribute("aria-pressed", String(t.getAttribute("data-subj") === subject));
+        emptyEl.hidden = shown > 0;
+        Array.prototype.forEach.call(tilesEl.children, function (b2) {
+          b2.setAttribute("aria-pressed", String(b2.getAttribute("data-subj") === subject));
         });
-        var chips = [];
-        if (subject) chips.push(["subject", subject]);
-        if (country) chips.push(["country", country]);
-        if (term) chips.push(["search", qEl.value.trim()]);
-        activeEl.hidden = !chips.length;
-        activeEl.innerHTML = chips.map(function (c) { return "<button type='button' data-clear='" + esc(c[0]) + "'>" + esc(c[1]) + "</button>"; }).join("");
-        Array.prototype.forEach.call(activeEl.children, function (b2) {
-          b2.addEventListener("click", function () {
-            var k = b2.getAttribute("data-clear");
-            if (k === "subject") subject = ""; else if (k === "country") countryEl.value = ""; else qEl.value = "";
-            apply();
-          });
-        });
-        empty.hidden = shown > 0;
+        var filtered = !!(term || country || subject || a !== minY || b !== maxY);
+        resetEl.hidden = !filtered;
         countEl.textContent = shown === DS.length ? DS.length + " datasets" : shown + " of " + DS.length + " datasets match";
       }
       [qEl, countryEl, fromEl, toEl].forEach(function (e) { e.addEventListener("input", apply); e.addEventListener("change", apply); });
+      resetEl.addEventListener("click", function () {
+        qEl.value = ""; countryEl.value = ""; fromEl.value = minY; toEl.value = maxY; subject = ""; apply();
+      });
       apply();
     }
 
-    async function openDataset(name, btn, prepend, pick, title) {
-      if (opened[name]) return;
-      var label = btn ? btn.textContent : "";
-      if (btn) { btn.textContent = "Loading…"; btn.disabled = true; }
-      try {
-        var res = await fetch("data/" + name + ".json", { cache: "force-cache" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        var body = await res.json();
-        var series = extractSeries(body);
-        if (!Object.keys(series).length) throw new Error("no series in this file");
-        var meta = DS.filter(function (d) { return d.name === name; })[0];
-        opened[name] = true;
-        makeCard({ file: name, title: title || (meta && meta.title) || name, note: (meta && meta.src) || ("Dataset " + name),
-          series: series, pick: pick, drop: function () { delete opened[name]; } }, prepend !== false);
-        chartHead.hidden = false;
-        hintEl.textContent = "Charts stay here until you remove them. Press Chart on another dataset to compare.";
-        var card = cardsEl.firstChild;
-        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: "smooth", block: "start" });
-      } catch (e) {
-        if (btn) { btn.textContent = "not available"; setTimeout(function () { btn.textContent = label; btn.disabled = false; }, 2500); }
+    /* ---------- open / close a chart under its row ---------- */
+    function openRow(name, pick) {
+      var item = rowEls[name];
+      if (!item) return;
+      var slot = item.querySelector(".slot"), btn = item.querySelector(".go");
+      if (!btn) return;
+      if (item.classList.contains("open")) {
+        slot.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
-      if (btn) { btn.textContent = label; btn.disabled = false; }
+      var was = btn.textContent;
+      btn.textContent = "Loading…"; btn.disabled = true;
+      loadFile(name).then(function (series) {
+        var d = BY[name];
+        slot.innerHTML = "";
+        try {
+          makeCard(slot, { file: name, title: d.title, note: d.src, series: series, pick: pick,
+            close: function () { closeRow(name); } });
+        } catch (e) {
+          slot.innerHTML = "<div class='card'><p class='note'>" + esc(e.message) + "</p></div>";
+        }
+        slot.hidden = false;
+        item.classList.add("open");
+        btn.textContent = "Hide"; btn.disabled = false;
+        slot.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, function (e) {
+        btn.textContent = "not available";
+        setTimeout(function () { btn.textContent = was; btn.disabled = false; }, 2500);
+      });
+    }
+    function closeRow(name) {
+      var item = rowEls[name];
+      if (!item) return;
+      var slot = item.querySelector(".slot");
+      slot.hidden = true; slot.innerHTML = "";
+      item.classList.remove("open");
+      var btn = item.querySelector(".go");
+      if (btn) btn.textContent = "Chart it";
     }
 
     document.addEventListener("click", function (ev) {
       if (!ev.target || typeof ev.target.closest !== "function") return;
       var b = ev.target.closest("[data-open]");
       if (!b) return;
-      ev.preventDefault();
-      var name = b.getAttribute("data-open"), feat = null;
-      FEATURED.forEach(function (f) { if (f.file === name) feat = f; });
-      openDataset(name, b.tagName === "BUTTON" ? b : null, true, feat && feat.pick, b.getAttribute("data-title"));
+      var name = b.getAttribute("data-open");
+      if (rowEls[name] && rowEls[name].classList.contains("open")) closeRow(name); else openRow(name);
     });
 
     fetch("data/_catalog.json", { cache: "no-cache" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (cat) {
-        build(cat);
-        /* No chart until the reader asks for one: the page opens on what is inside.
-           The examples are one click away, in the order a newcomer would want them. */
-        var ex = document.createElement("p");
-        ex.className = "sec-note";
-        ex.innerHTML = "Or start with one of these: " + FEATURED.map(function (f) {
-          return "<a href='#' data-open='" + esc(f.file) + "' data-title='" + esc(f.title) + "'>" + esc(f.title) + "</a>";
-        }).join(" &middot; ");
-        hintEl.parentNode.insertBefore(ex, hintEl.nextSibling);
-      })
+      .then(build)
       .catch(function (e) {
-        hintEl.innerHTML = "<span class='err'>Could not load the catalogue: " + esc(e.message) + "</span>";
+        app.innerHTML = "<div class='err'>Could not load the catalogue: " + esc(e.message) + "</div>";
       });
   })();
   </script>

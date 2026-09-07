@@ -37,8 +37,14 @@ def get(url, timeout=120):
 
 # ----------------------------------------------------------------- providers
 def fred(entry):
-    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint."""
+    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint.
+
+    Keys are trimmed to the month by default, which is what a monthly series wants and
+    what every existing source here expects. entry['keep_dates'] keeps the full date, for
+    the daily and weekly series where the point is the price on a given day: trimming
+    those silently throws away all but the last observation of each month."""
     out = {}
+    keep = bool(entry.get("keep_dates"))
     for key, sid in entry["series"].items():
         try:
             raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
@@ -50,7 +56,7 @@ def fred(entry):
             date = (row.get("DATE") or row.get("observation_date") or "").strip()
             val = (row.get(sid) or "").strip()
             if len(date) >= 7 and val not in ("", "."):
-                vals[date[:7]] = float(val)
+                vals[date if keep else date[:7]] = float(val)
         out[key] = vals
     return out
 
@@ -777,21 +783,41 @@ def run(entry):
         print(f"[ok]   {name}: {len(data['_geojson']['features'])} features; "
               f"missing {data['_missing']}")
         return
+    errs = {k: v["error"] for k, v in data.items() if isinstance(v, dict) and "error" in v}
+    # An error belongs in the report, not in the published file: a '_error|reserves' key
+    # sitting where thirty country series used to be reads as data to everything
+    # downstream. Drop them, then put last month's values back for whatever failed, so a
+    # timeout costs freshness rather than the series itself.
+    data = {k: v for k, v in data.items() if k not in errs}
+    out_path = os.path.join(ROOT, entry["out"])
+    carried = []
+    if errs and os.path.exists(out_path):
+        try:
+            prev = json.load(open(out_path)).get("series") or {}
+        except Exception:  # noqa: BLE001 — an unreadable previous file is not fatal
+            prev = {}
+        for k, v in prev.items():
+            if k.startswith("_error|") or k in data or not isinstance(v, dict) or not v:
+                continue
+            data[k] = v
+            carried.append(k)
+        carried.sort()
     counts = {k: len(v) for k, v in data.items()}
     empty = [k for k, n in counts.items() if n == 0]
     # span is only meaningful for time-keyed series; a per-ticker metric dict is not one
     dated = all(re.match(r"^\d{4}(-\d{2})?$", str(t)) for v in data.values() for t in v)
-    errs = {k: v["error"] for k, v in data.items() if isinstance(v, dict) and "error" in v}
     report[name] = {"ok": bool(data) and not empty and not errs, "counts": counts,
                     "empty_keys": empty,
                     "errors": errs,
+                    "carried_over": carried,
                     "span": ({k: [min(v), max(v)] for k, v in data.items() if v}
                              if dated else "n/a (not a time series)")}
+    if carried:
+        print(f"[WARN] {name}: kept {len(carried)} series from the previous file because this fetch failed for them")
     if not data or empty:
         print(f"[WARN] {name}: empty series {empty or 'all'}")
     else:
         print(f"[ok]   {name}: " + ", ".join(f"{k}={n}" for k, n in counts.items()))
-    out_path = os.path.join(ROOT, entry["out"])
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     json.dump({"source": entry.get("source", entry["provider"]),
                "fetched_by": "scripts/fetch.py",
@@ -819,8 +845,15 @@ def main():
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
     json.dump(report, open(os.path.join(ROOT, "data", "_fetch-report.json"), "w"), indent=1)
     print("\n" + json.dumps(report, indent=1, default=str)[:3000])
+    degraded = sorted(n for n, r in report.items() if isinstance(r, dict) and r.get("ok") is False)
     if failed:
         print(f"\n{len(failed)} source(s) failed: {failed}")
+    if degraded:
+        # Everything written so far still gets committed: the later workflow steps run on
+        # always(). Exiting non-zero is what turns the run red, so a source that quietly
+        # loses an indicator stops passing for green.
+        print(f"\n{len(degraded)} source(s) came back degraded: {degraded}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
