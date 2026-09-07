@@ -32,7 +32,7 @@ const callRaw = (name, args) => client.callTool({ name, arguments: args });
 await check("tool list includes providers and analysis", async () => {
   const { tools } = await client.listTools();
   const names = new Set(tools.map((t) => t.name));
-  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis", "forecast_evaluate", "local_projections", "iv_regress"]) assert.ok(names.has(n), n);
+  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis", "forecast_evaluate", "local_projections", "iv_regress", "predict"]) assert.ok(names.has(n), n);
 });
 
 await check("list_providers reports key state", async () => {
@@ -664,6 +664,77 @@ await check("weather: named regions and lat,lon, monthly aggregation, sums for r
   // It plugs into the analysis layer like any other series
   const st = await call("describe_stats", { series: { provider: "weather", id: "us-corn-belt", params: { aggregate: "daily" }, series: "us-corn-belt.temperature_2m_mean" } });
   assert.equal(st.n, 3);
+});
+
+await check("/v1/analyze runs the same tools over plain HTTP, no MCP client", async () => {
+  // The catalogue of what is callable
+  const list = await (await fetch(base + "/v1/analyze")).json();
+  assert.ok(list.tools.length > 20, list.tools.length + " tools");
+  assert.ok(list.tools.some((t) => t.name === "forecast" && t.description), JSON.stringify(list.tools.slice(0, 2)));
+
+  // A forecast, by POST
+  const r = await fetch(base + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tool: "forecast", args: { series: { dataset: "us-prices", series: "cpi", start: "2015-01" }, horizon: 4, method: "holt" } }) });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.tool, "forecast");
+  assert.equal(j.result.forecast.length, 4);
+  assert.ok(j.result.chart_url && j.result.source, "carries the chart link and the source");
+
+  // A structural break, by GET
+  const g = await fetch(base + "/v1/analyze?tool=structural_break&args=" + encodeURIComponent(JSON.stringify({ y: { dataset: "us-prices", series: "cattle_ppi", transform: "yoy", start: "1990-01" }, max_breaks: 2 })));
+  const gj = await g.json();
+  assert.equal(g.status, 200);
+  assert.ok(gj.result.verdict && gj.result.sup_F_critical, JSON.stringify(gj).slice(0, 200));
+
+  // Errors are reported, not thrown
+  const bad = await fetch(base + "/v1/analyze?tool=nope");
+  assert.equal(bad.status, 404);
+  assert.ok((await bad.json()).tools.length > 0);
+  const badArgs = await fetch(base + "/v1/analyze?tool=forecast&args=" + encodeURIComponent(JSON.stringify({ horizon: 4 })));
+  assert.equal(badArgs.status, 400);
+  assert.ok((await badArgs.json()).issues.length, "says which argument is wrong");
+  const badSeries = await fetch(base + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tool: "forecast", args: { series: { dataset: "us-prices", series: "nope" } } }) });
+  assert.equal(badSeries.status, 400);
+  assert.match((await badSeries.json()).error, /No series/);
+  // CORS, so a browser page on the site can call it
+  assert.equal(r.headers.get("access-control-allow-origin"), "*");
+});
+
+await check("predict recommends a method, says whether it beats no-change, and forecasts with it", async () => {
+  const j = await call("predict", { series: { ...CPI, start: "2005-01" }, horizon: 6, origins: 10 });
+  assert.ok(j.methods.length >= 6, JSON.stringify(j.methods.map((m) => m.method)));
+  for (let i = 1; i < j.methods.length; i++) assert.ok(j.methods[i].typical_error >= j.methods[i - 1].typical_error, "ranked by error");
+  assert.equal(j.methods[0].rank, 1);
+  assert.ok(j.methods.filter((m) => m.recommended).length === 1, "exactly one recommendation");
+  assert.equal(j.methods[0].method, j.recommendation.method);
+  assert.ok(j.methods.every((m) => m.what_it_does), "every method explained in words");
+  assert.equal(j.used.method, j.recommendation.method);
+  assert.equal(j.used.overridden, false);
+  assert.equal(j.forecast.length, 6);
+  assert.ok(j.forecast[5].lo95 < j.forecast[5].value && j.forecast[5].value < j.forecast[5].hi95, "band brackets the path");
+  assert.ok(j.forecast[5].hi95 - j.forecast[5].lo95 > j.forecast[0].hi95 - j.forecast[0].lo95, "band widens with the horizon");
+  assert.ok(j.chart_url.includes("chart.html#"), j.chart_url);
+  assert.ok(j.tested.origins === 10 && j.tested.from < j.tested.to);
+  assert.match(j.reading, /typical error/);
+  assert.ok(typeof j.recommendation.why === "string" && j.recommendation.why.length > 20);
+  // Overriding the recommendation is honoured and flagged
+  const forced = await call("predict", { series: { ...CPI, start: "2005-01" }, horizon: 6, origins: 10, method: "naive" });
+  assert.equal(forced.used.method, "naive");
+  assert.equal(forced.used.overridden, true);
+  assert.ok(forced.forecast.every((p) => p.value === forced.last_actual[1]), "naive holds the last value flat");
+  assert.match(forced.reading, /You asked for assume no change/);
+  // A series too short to test says so instead of guessing
+  const short = await callRaw("predict", { series: { ...CPI, start: "2025-01" }, horizon: 12 });
+  assert.ok(short.isError && /needs at least/.test(short.content[0].text), short.content[0].text);
+  // And it is reachable over plain HTTP too
+  const http = await fetch(base + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tool: "predict", args: { series: { ...CATTLE, transform: "yoy", start: "1995-01" }, horizon: 3, origins: 8 } }) });
+  const hj = await http.json();
+  assert.equal(http.status, 200);
+  assert.equal(hj.result.forecast.length, 3);
+  assert.ok(hj.result.recommendation.method);
 });
 
 await client.close();

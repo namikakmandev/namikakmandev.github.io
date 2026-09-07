@@ -63,7 +63,7 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
         "To draw series, call plot: it returns a link to an interactive chart the user can open. " +
         "Analysis tools (describe_stats, test_stationarity with ADF and KPSS, regress, granger_causality, cointegration, " +
         "iv_regress for endogenous regressors, johansen and vecm with restricted constant or trend, var_model with structural impulse responses (Cholesky, long-run or sign restrictions) and bootstrap bands, local_projections, cross_correlation, hp_filter, decompose, " +
-        "forecast_evaluate then forecast incl. ARIMA, structural_break with sequential multiple breaks, rolling, deflate, volatility (GARCH), quantile_regress, principal_components) all take series references; " +
+        "predict (recommends a method and forecasts with it), forecast_evaluate then forecast incl. ARIMA, structural_break with sequential multiple breaks, rolling, deflate, volatility (GARCH), quantile_regress, principal_components) all take series references; " +
         "panel_regress runs fixed-effects regressions across countries on the UNIT|INDICATOR datasets (asia-wdi, imf-weo). Inputs are " +
         "{dataset, series}, {provider, id}, or {points}. Call suggest_analysis first when unsure which method fits; " +
         "it checks integration order, seasonality and overlap and returns an ordered plan. Every result carries " +
