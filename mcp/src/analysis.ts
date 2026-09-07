@@ -118,11 +118,13 @@ function adfOut(a: S.AdfResult | null) {
 }
 
 /** Which Johansen deterministic case the data support: series that drift need the unrestricted constant. */
-function driftCheck(labels: string[], columns: number[][], chosen: "constant" | "restricted_constant") {
+function driftCheck(labels: string[], columns: number[][], chosen: "constant" | "restricted_constant" | "restricted_trend") {
   const rows = labels.map((l, i) => { const t = S.driftT(columns[i]); return { series: l, drift_t: r3(t), drifts: Math.abs(t) > 2 }; });
   const drifting = rows.filter((r) => r.drifts).map((r) => r.series);
   const suggested = drifting.length ? "constant" : "restricted_constant";
-  const note = suggested === chosen ? "" : chosen === "constant"
+  const note = chosen === "restricted_trend"
+    ? (drifting.length ? "Drift check: the series drift, so a trend inside the relation is admissible; keep it only if its coefficient in vecm is clearly non-zero, otherwise deterministic='constant' has more power." : "Drift check: none of the series drifts, so there is no trend for the relation to absorb; deterministic='restricted_constant' is the better-specified test.")
+    : suggested === chosen ? "" : chosen === "constant"
     ? "Drift check: none of the series has a significant drift, so deterministic='restricted_constant' is the better-specified test here (the unrestricted constant over-rejects on drift-free series)."
     : `Drift check: ${drifting.join(", ")} drift${drifting.length === 1 ? "s" : ""} significantly, so deterministic='constant' fits the data better than the restricted constant.`;
   return { per_series: rows, suggested, note };
@@ -865,7 +867,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     {
       title: "Johansen cointegration (2 to 5 series)",
       description: "Trace test for the number of cointegrating relations among several I(1) series. deterministic='constant' (default) puts an unrestricted constant in the VAR, right for series that drift (price levels, logs of output); 'restricted_constant' puts the constant inside the cointegrating relation only, right for series without drift (interest rates, ratios, real exchange rates) and then reports the constant as part of the vector. Returns the eigenvalues, trace statistics against MacKinnon-Haug-Michelis critical values for the chosen case, the rank at 5%, the first cointegrating vector normalised on the first series, and a drift check that says which case fits the data. Use cointegration (Engle-Granger) for exactly two series when you want the residual series.",
-      inputSchema: { series: z.array(REF).min(2).max(5), lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the VECM"), deterministic: z.enum(["constant", "restricted_constant"]).default("constant") },
+      inputSchema: { series: z.array(REF).min(2).max(5), lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the VECM"), deterministic: z.enum(["constant", "restricted_constant", "restricted_trend"]).default("constant").describe("constant: unrestricted, for drifting series; restricted_constant: inside the relation only, for drift-free series; restricted_trend: unrestricted constant plus a linear trend inside the relation, when the series drift at different rates so the equilibrium itself trends") },
       annotations: { readOnlyHint: true },
     },
     wrap(async ({ series, lags, deterministic }) => {
@@ -875,7 +877,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
       const j = S.johansen(Y, lags, deterministic);
       const drift = driftCheck(rs.map((r) => r.label), columns, deterministic);
-      const labels = [...rs.map((r) => r.label), ...(deterministic === "restricted_constant" ? ["constant"] : [])];
+      const labels = [...rs.map((r) => r.label), ...(deterministic === "restricted_constant" ? ["constant"] : deterministic === "restricted_trend" ? ["trend"] : [])];
       return text({
         series: rs.map(meta), n: j.nobs, first: dates[0], last: dates[dates.length - 1], lags, deterministic,
         eigenvalues: j.eigenvalues.map(r4),
@@ -884,8 +886,8 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         cointegrating_vector: j.cointegrating_vector ? Object.fromEntries(labels.map((l, i) => [l, r4(j.cointegrating_vector![i])])) : null,
         drift_check: drift,
         reading: [j.rank_at_5pct === 0 ? "No cointegrating relation at 5%: model these in differences (VAR on growth rates)."
-          : `${j.rank_at_5pct} cointegrating relation${j.rank_at_5pct > 1 ? "s" : ""} at 5%: a levels relation exists; an error-correction model is appropriate. The vector shows the long-run weights, normalised so the first series has weight 1${deterministic === "restricted_constant" ? ", with the constant of the relation as its last element" : ""}.`, drift.note].filter(Boolean).join(" "),
-        caveat: "Critical values assume no linear trend inside the cointegrating relation and no breaks. Results are sensitive to the lag choice; try lags 1 to 4. The wrong deterministic case biases the rank: an unrestricted constant on drift-free series over-rejects, a restricted one on drifting series mis-specifies the trend.",
+          : `${j.rank_at_5pct} cointegrating relation${j.rank_at_5pct > 1 ? "s" : ""} at 5%: a levels relation exists; an error-correction model is appropriate. The vector shows the long-run weights, normalised so the first series has weight 1${deterministic === "restricted_constant" ? ", with the constant of the relation as its last element" : deterministic === "restricted_trend" ? ", with the trend coefficient of the relation (per period) as its last element" : ""}.`, drift.note].filter(Boolean).join(" "),
+        caveat: "Critical values assume no breaks and the chosen deterministic case. Results are sensitive to the lag choice; try lags 1 to 4. The wrong case biases the rank: an unrestricted constant on drift-free series over-rejects, a restricted constant on drifting series mis-specifies the trend, and a restricted trend costs power when the relation does not trend (test its coefficient in vecm).",
       });
     }),
   );
@@ -899,7 +901,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         series: z.array(REF).min(2).max(5),
         lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the model"),
         rank: z.number().int().min(1).max(4).optional().describe("Number of cointegrating relations; default from the Johansen trace test at 5%"),
-        deterministic: z.enum(["constant", "restricted_constant"]).default("constant").describe("constant: unrestricted, for drifting series; restricted_constant: inside the relation only, for drift-free series such as rates and ratios"),
+        deterministic: z.enum(["constant", "restricted_constant", "restricted_trend"]).default("constant").describe("constant: unrestricted, for drifting series; restricted_constant: inside the relation only, for drift-free series such as rates and ratios; restricted_trend: a linear trend inside the relation as well, when the equilibrium itself trends"),
       },
       annotations: { readOnlyHint: true },
     },
@@ -911,12 +913,12 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       let m: S.VecmResult;
       try { m = S.vecm(Y, lags, rank, deterministic); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
       const labels = rs.map((r) => r.label);
-      const rc = deterministic === "restricted_constant";
+      const rc = deterministic === "restricted_constant", rt = deterministic === "restricted_trend";
       const drift = driftCheck(labels, columns, deterministic);
       const relations = m.beta[0].map((_, c) => ({
         relation: c + 1,
-        long_run_vector: Object.fromEntries([...labels.map((l, i) => [l, r4(m.beta[i][c])]), ...(rc ? [["constant", r4(m.beta_constant[c])]] : [])]),
-        equation: `${labels[0]} = ${labels.slice(1).map((l, i) => `${r4(-m.beta[i + 1][c])} × ${l}`).join(" + ")} ${rc ? `+ ${r4(-m.beta_constant[c])}` : "+ constant"} (normalised on ${labels[0]})`,
+        long_run_vector: Object.fromEntries([...labels.map((l, i) => [l, r4(m.beta[i][c])]), ...(rc ? [["constant", r4(m.beta_constant[c])]] : []), ...(rt ? [["trend", r4(m.beta_trend[c])]] : [])]),
+        equation: `${labels[0]} = ${labels.slice(1).map((l, i) => `${r4(-m.beta[i + 1][c])} × ${l}`).join(" + ")} ${rc ? `+ ${r4(-m.beta_constant[c])}` : rt ? `+ ${r4(-m.beta_trend[c])} × t + constant` : "+ constant"} (normalised on ${labels[0]})`,
         adjustment: labels.map((l, i) => ({ series: l, alpha: r4(m.alpha[i][c]), t: r3(m.alpha_t[i][c]), p: r4(m.alpha_p[i][c]), adjusts: m.alpha_p[i][c] < 0.05, share_corrected_per_period: r3(Math.abs(m.alpha[i][c])) })),
         ect_last: r4(m.ect[m.ect.length - 1][c]),
         ect_mean: r4(m.ect.reduce((a, row) => a + row[c], 0) / m.ect.length),
@@ -936,7 +938,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           `Deviation now (relation 1): ${relations[0].ect_last} against a sample mean of ${relations[0].ect_mean}; a value above the mean means ${labels[0]} sits above its long-run level given the others.`,
           drift.note,
         ].filter(Boolean).join(" "),
-        caveat: `Alpha t-tests use OLS standard errors equation by equation. ${rc ? "The constant is restricted to the cointegrating relation, so the error-correction term is already centred and the differences carry no separate intercept." : "The constant is unrestricted (enters the differences), so the error-correction term has a non-zero mean; read the current deviation against the sample mean."} Sensitive to the lag choice and to breaks in the relation; check structural_break on the error-correction term if the sample spans a regime change.`,
+        caveat: `Alpha t-tests use OLS standard errors equation by equation. ${rc ? "The constant is restricted to the cointegrating relation, so the error-correction term is already centred and the differences carry no separate intercept." : rt ? "A linear trend sits inside the cointegrating relation (its coefficient is per period, from the first shared date) and the differences keep an unrestricted constant; if the trend coefficient is tiny, re-run with deterministic='constant' for a sharper test." : "The constant is unrestricted (enters the differences), so the error-correction term has a non-zero mean; read the current deviation against the sample mean."} Sensitive to the lag choice and to breaks in the relation; check structural_break on the error-correction term if the sample spans a regime change.`,
       });
     }),
   );
@@ -944,17 +946,26 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
   server.registerTool(
     "var_model",
     {
-      title: "Vector autoregression with impulse responses",
-      description: "Estimate a VAR(p) on 2 to 5 stationary series, lag order by AIC unless given. Returns coefficients, block Granger tests, orthogonalised impulse responses (Cholesky, in the order the series are given) and forecast error variance decomposition over the horizon. Pass growth rates or differences; the tool warns on non-stationary input. local_projections gives the same response with per-horizon bands and no lag structure imposed.",
+      title: "Vector autoregression with structural impulse responses",
+      description: "Estimate a VAR(p) on 2 to 5 stationary series, lag order by AIC unless given. Returns coefficients, block Granger tests, impulse responses with bootstrap bands, cumulative responses and the forecast error variance decomposition. Identification: cholesky (recursive, in the order the series are given), long_run (Blanchard-Quah: shock j has no permanent effect on series i for i < j, so put the variable whose permanent shock you want first and pass it in differences), or sign (draw rotations and keep those whose responses carry the requested signs; bands then reflect identification uncertainty). Pass growth rates or differences; the tool warns on non-stationary input. local_projections gives the same response without the lag structure.",
       inputSchema: {
         series: z.array(REF).min(2).max(5),
         lags: z.number().int().min(1).max(12).optional().describe("Lag order; default chosen by AIC up to max_lags"),
         max_lags: z.number().int().min(1).max(12).default(6),
         horizon: z.number().int().min(1).max(40).default(12),
+        identification: z.enum(["cholesky", "long_run", "sign"]).default("cholesky"),
+        sign_restrictions: z.array(z.object({
+          shock: z.number().int().min(0).max(4).describe("0-based index of the shock"),
+          variable: z.number().int().min(0).max(4).describe("0-based index of the series that must respond"),
+          sign: z.enum(["+", "-"]),
+          horizons: z.array(z.number().int().min(0).max(40)).min(1).default([0]),
+        })).max(20).optional().describe("For identification=sign: e.g. a demand shock raises output and prices on impact"),
+        shock_names: z.array(z.string().max(40)).max(5).optional().describe("Labels for the structural shocks, in shock order"),
+        bootstrap: z.number().int().min(0).max(500).default(200).describe("Residual-bootstrap replications for the response bands (cholesky and long_run); 0 to skip"),
       },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, lags, max_lags, horizon }) => {
+    wrap(async ({ series, lags, max_lags, horizon, identification, sign_restrictions, shock_names, bootstrap }) => {
       const rs = await Promise.all(series.map(get));
       const { dates, columns } = align(rs.map((r) => r.series));
       if (dates.length < 40) return fail(`Only ${dates.length} shared dates; need 40 or more.`);
@@ -962,22 +973,73 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const p = lags ?? S.varSelectLag(Y, max_lags);
       const m = S.varModel(Y, p, horizon);
       const names = rs.map((r) => r.label);
+      const shocks = names.map((nm, j) => shock_names?.[j] ?? (identification === "cholesky" ? `${nm} shock` : identification === "long_run" ? (j === 0 ? `permanent shock (${nm})` : `shock ${j + 1} (no long-run effect on ${names.slice(0, j).join(", ")})`) : `shock ${j + 1}`));
       const warnings: string[] = [];
-      columns.forEach((c, i) => { try { if (!S.adf(c, "c").reject_unit_root_at) warnings.push(`${names[i]} looks non-stationary; a VAR in levels can be spurious. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
+      columns.forEach((c, i) => { try { if (!S.adf(c, "c").reject_unit_root_at) warnings.push(`${names[i]} looks non-stationary; a VAR in levels can be spurious${identification === "long_run" ? " and long-run effects are not defined" : ""}. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
       const coefTable = m.coef.map((row, e) => {
         const terms: Record<string, number | null> = { const: r4(row[0]) };
         for (let l = 1; l <= p; l++) names.forEach((nm, j) => { terms[`${nm} (lag ${l})`] = r4(row[1 + (l - 1) * m.k + j]); });
         return { equation: names[e], terms };
       });
+      const grid = (M: number[][][], f = r4) => M.map((h, i) => ({ h: i, response: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, f(h[ri][si])]))])) }));
+      let irf: number[][][], cumulative: number[][][], fevd: number[][][], bands: Record<string, unknown> | null = null, longRun: Record<string, unknown> | null = null, signInfo: Record<string, unknown> | null = null, B: number[][];
+      if (identification === "sign") {
+        if (!sign_restrictions?.length) return fail("identification='sign' needs sign_restrictions, e.g. [{shock: 0, variable: 0, sign: '+'}, {shock: 0, variable: 1, sign: '+'}].");
+        const bad = sign_restrictions.find((r) => r.shock >= m.k || r.variable >= m.k);
+        if (bad) return fail(`A restriction refers to shock ${bad.shock} or variable ${bad.variable}, but there are only ${m.k} series (indexes 0..${m.k - 1}).`);
+        let sr: S.SignResult;
+        try { sr = S.signIdentify(m, sign_restrictions.map((r) => ({ shock: r.shock, variable: r.variable, sign: r.sign === "+" ? 1 : -1, horizons: r.horizons })), 200, 20000); }
+        catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+        irf = sr.irf_median; cumulative = sr.cumulative_median; fevd = sr.fevd_median; B = sr.B_median_target;
+        bands = { kind: "16th and 84th percentiles over the accepted draws (identification uncertainty, not sampling uncertainty)", horizons: sr.irf_lo.map((lo, h) => ({ h, lo: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(lo[ri][si])]))])), hi: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(sr.irf_hi[h][ri][si])]))])) })) };
+        signInfo = { accepted_draws: sr.accepted, total_draws: sr.draws, acceptance_rate: r4(sr.accepted / sr.draws), restrictions: sign_restrictions.map((r) => `${shocks[r.shock]} ${r.sign === "+" ? "raises" : "lowers"} ${names[r.variable]} at h=${r.horizons.join(",")}`),
+          note: "Responses shown are pointwise medians across accepted draws; impact_matrix is the single accepted draw closest to them (Fry-Pagan median target). Restrictions identify sets, not points: a narrow band means the data pin the response down, a wide one means the restrictions do not." };
+      } else {
+        let id: { B: number[][]; long_run: number[][] | null };
+        try { id = S.identify(m, identification); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+        B = id.B;
+        const sresp = S.structuralResponses(m.psi, B);
+        irf = sresp.irf; cumulative = sresp.cumulative; fevd = sresp.fevd;
+        if (id.long_run) longRun = { note: "Permanent effect of each shock on each series' level (for series passed in differences); lower triangular by construction", matrix: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(id.long_run![ri][si])]))])) };
+        if (bootstrap > 0) {
+          try {
+            const bb = S.varBootstrap(Y, p, horizon, identification, bootstrap);
+            bands = { kind: `residual bootstrap, ${bb.reps} replications, 16th/84th and 5th/95th percentiles`, horizons: bb.lo16.map((lo, h) => ({ h,
+              lo16: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(lo[ri][si])]))])),
+              hi84: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(bb.hi84[h][ri][si])]))])),
+              lo05: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(bb.lo05[h][ri][si])]))])),
+              hi95: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(bb.hi95[h][ri][si])]))])) })) };
+          } catch (e) { warnings.push(`Bootstrap bands unavailable: ${e instanceof Error ? e.message : String(e)}`); }
+        }
+      }
+      // Which responses are distinguishable from zero at the 68% level, by shock and series
+      const significant: string[] = [];
+      if (bands) {
+        const hs = bands.horizons as Array<Record<string, Record<string, Record<string, number | null>>>>;
+        const loKey = identification === "sign" ? "lo" : "lo16", hiKey = identification === "sign" ? "hi" : "hi84";
+        names.forEach((rn) => shocks.forEach((sn) => {
+          const hh = hs.map((row, h) => ({ h, lo: row[loKey][rn][sn], hi: row[hiKey][rn][sn] })).filter((x) => x.lo !== null && x.hi !== null && ((x.lo as number) > 0 || (x.hi as number) < 0)).map((x) => x.h);
+          if (hh.length) significant.push(`${rn} to ${sn}: h=${hh.length > 6 ? `${hh[0]}..${hh[hh.length - 1]} (${hh.length})` : hh.join(",")}`);
+        }));
+      }
       return text({
         series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags: p, lag_selection: lags ? "given" : `AIC over 1..${max_lags}`,
         aic: r3(m.aic), bic: r3(m.bic),
         equations: coefTable,
         granger_block_tests: m.granger.map((g) => ({ cause: names[g.cause], effect: names[g.effect], F: r3(g.F), p: r4(g.p), significant_5pct: g.p < 0.05 })),
-        impulse_responses: { ordering: names, note: "Response of row series to a one-standard-deviation orthogonalised shock in column series; ordering matters for contemporaneous effects.",
-          horizons: m.irf.map((h, i) => ({ h: i, response: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(names.map((sn, si) => [sn, r4(h[ri][si])]))])) })) },
-        variance_decomposition_at_horizon: Object.fromEntries(names.map((vn, vi) => [vn, Object.fromEntries(names.map((sn, si) => [sn, r3(m.fevd[horizon][vi][si])]))])),
+        identification, shocks,
+        impact_matrix: { note: "Row = series, column = structural shock: the response on impact to a one-standard-deviation shock", matrix: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(B[ri][si])]))])) },
+        long_run_effects: longRun,
+        sign_identification: signInfo,
+        impulse_responses: { note: identification === "cholesky" ? "Response of row series to a one-standard-deviation orthogonalised shock in column; ordering matters for contemporaneous effects." : "Response of row series to a one-standard-deviation structural shock in column.", horizons: grid(irf) },
+        cumulative_responses_at_horizon: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(cumulative[horizon][ri][si])]))])),
+        response_bands: bands,
+        significant_at_68pct: significant.length ? significant : bands ? ["none: no response is distinguishable from zero even at the 68% level"] : undefined,
+        variance_decomposition_at_horizon: Object.fromEntries(names.map((vn, vi) => [vn, Object.fromEntries(shocks.map((sn, si) => [sn, r3(fevd[horizon][vi][si])]))])),
         warnings,
+        caveat: identification === "long_run" ? "Long-run restrictions are only as good as the assumption that shocks after the first have no permanent effect on the earlier series; they are fragile when the VAR's lag polynomial is close to a unit root (very persistent series), where Psi(1) is poorly estimated. Series must be stationary; for level effects pass differences and read cumulative_responses_at_horizon."
+          : identification === "sign" ? "Sign restrictions do not point-identify: the band shows the set of models consistent with the restrictions and the data, and the median response need not come from any single model. Add restrictions at more horizons or on more variables to narrow it."
+          : "Recursive identification assumes the ordering: an earlier series does not respond within the period to shocks in later ones. Reorder to test how much the conclusion depends on it, or use long_run or sign identification.",
       });
     }),
   );

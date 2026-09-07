@@ -58,9 +58,9 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `regress` | OLS with Newey-West standard errors, R², Durbin-Watson, AIC/BIC, residual tests, Breusch-Pagan, VIF and RESET diagnostics, optional distributed lags and trend. Warns when a levels regression looks spurious. Log both sides for elasticities. |
 | `granger_causality` | F-tests in both directions, with a non-stationarity warning. |
 | `cointegration` | Engle-Granger: long-run vector, residual unit-root test, equilibrium error. |
-| `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, unrestricted or restricted constant, rank, first cointegrating vector, and a drift check that says which case the data support. |
-| `vecm` | Vector error-correction model on cointegrated series: long-run vectors (with the constant inside the relation when restricted), adjustment coefficients with t-tests (who corrects, how fast, half-life), short-run lags, and the current deviation from equilibrium. |
-| `var_model` | VAR(p) with lag order by AIC, block Granger tests, orthogonalised impulse responses and variance decomposition. |
+| `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values for an unrestricted constant, a restricted constant or a restricted trend, rank, first cointegrating vector, and a drift check that says which case the data support. |
+| `vecm` | Vector error-correction model on cointegrated series: long-run vectors (with the constant or trend inside the relation when restricted), adjustment coefficients with t-tests (who corrects, how fast, half-life), short-run lags, and the current deviation from equilibrium. |
+| `var_model` | VAR(p) with lag order by AIC, block Granger tests, structural impulse responses (recursive, long-run Blanchard-Quah, or sign restrictions) with bootstrap bands, cumulative responses, long-run effects and variance decomposition. |
 | `local_projections` | Jordà impulse response of y to a shock in x: one regression per horizon with Newey-West bands, responses per unit and per one-sd shock, cumulative response. The check on `var_model`. |
 | `cross_correlation` | Correlation by lead and lag with a significance band. |
 | `hp_filter` | Trend and cycle, lambda by frequency. |
@@ -76,7 +76,7 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `panel_regress` | Fixed-effects, pooled and between regressions across countries on `UNIT|INDICATOR` datasets, clustered standard errors, F test for country effects. |
 | `rolling` | Rolling mean, standard deviation, or correlation. |
 
-The numerics are in `src/stats.ts`, dependency-free so they run on the Worker. Critical values are MacKinnon (1991) for the unit-root tests and Andrews (1993) asymptotics for the sup-F test, the latter simulated from the Brownian bridge (see the comment in `stats.ts`); p-values come from the t, F and chi-square distributions. `test/stats.test.mjs` checks each estimator against known answers on seeded data.
+The numerics are in `src/stats.ts`, dependency-free so they run on the Worker. Critical values are MacKinnon (1991) for the unit-root tests, MacKinnon-Haug-Michelis (1999) for the Johansen cases, and Andrews (1993) asymptotics for the sup-F test; the 10% and 1% Johansen columns for the restricted cases and the sup-F table are simulated from the limiting Brownian functionals (see the comments in `stats.ts`); p-values come from the t, F and chi-square distributions. `test/stats.test.mjs` checks each estimator against known answers on seeded data.
 
 Resources: `econ://catalog` and `econ://dataset/{name}`.
 
@@ -124,5 +124,5 @@ Provider parsers are tested against canned replies in `test/fixtures.mjs` in the
 ## Later
 
 - Per-user login (OAuth 2.1 through Cloudflare's `workers-oauth-provider`) and Stripe metering. The bearer check in `src/index.ts` is the seam.
-- Structural VAR identification beyond Cholesky ordering; a linear trend inside the cointegrating relation.
+- Bayesian VAR with a Minnesota prior; cointegration with a break in the relation (Gregory-Hansen); Markov-switching regimes.
 - IMF provider once its SDMX 3 endpoint settles; EIA and UN Comtrade with keys.

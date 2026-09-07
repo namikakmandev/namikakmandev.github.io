@@ -468,5 +468,76 @@ check("Johansen with a restricted constant: rank on drift-free series, the const
   assert.ok(Math.abs(S.driftT(drifted)) > 4 && Math.abs(S.driftT(x)) < 2.5, `drift t ${S.driftT(drifted)} vs ${S.driftT(x)}`);
 });
 
+check("structural VAR: long-run restrictions recover permanent and transitory shocks, sign restrictions accept and band, bootstrap brackets the point", () => {
+  const r = rng(88);
+  const n = 800;
+  // y = random walk driven by e1 (permanent) + 0.8 z, z = 0.5 z_{-1} + e2 (transitory): e2 has no long-run effect on y.
+  const e1 = [], e2 = [], dy = [], z = []; let lvl = 0, zz = 0, prevY = 0;
+  for (let t = 0; t < n; t++) {
+    const a = r.normal(), b = r.normal(); e1.push(a); e2.push(b);
+    lvl += a; zz = 0.5 * zz + b; const y = lvl + 0.8 * zz;
+    dy.push(y - prevY); prevY = y; z.push(zz);
+  }
+  const Y = dy.map((v, i) => [v, z[i]]).slice(1);
+  const m = S.varModel(Y, 2, 12);
+  assert.equal(m.psi.length, 13); assert.equal(m.resid.length, 2);
+  const { B, long_run } = S.identify(m, "long_run");
+  close(long_run[0][1], 0, 1e-9, "long-run matrix is lower triangular by construction");
+  // Structural shocks eps = B^-1 u should line up with the true e1 (shock 1) and e2 (shock 2)
+  const Binv = S.inverseGeneral(B);
+  const eps = m.resid[0].map((_, t) => Binv.map((row) => row[0] * m.resid[0][t] + row[1] * m.resid[1][t]));
+  const off = Y.length - m.resid[0].length + 1;   // residuals start after p lags; Y dropped the first row
+  const c1 = Math.abs(S.pearson(eps.map((e) => e[0]), e1.slice(off, off + eps.length)));
+  const c2 = Math.abs(S.pearson(eps.map((e) => e[1]), e2.slice(off, off + eps.length)));
+  assert.ok(c1 > 0.9 && c2 > 0.9, `shock recovery correlations ${c1.toFixed(2)}, ${c2.toFixed(2)}`);
+  const BBt = S.matmul(B, S.transpose(B));
+  close(BBt[0][0], m.sigma[0][0], 1e-8, "B B' = Sigma"); close(BBt[0][1], m.sigma[0][1], 1e-8, "B B' = Sigma off-diagonal");
+  const chol = S.identify(m, "cholesky");
+  close(chol.B[0][1], 0, 1e-12, "Cholesky B is lower triangular");
+  assert.equal(chol.long_run, null);
+  // Sign restrictions: shock 1 raises dy on impact, shock 2 raises z on impact
+  const sr = S.signIdentify(m, [{ shock: 0, variable: 0, sign: 1, horizons: [0] }, { shock: 1, variable: 1, sign: 1, horizons: [0, 1] }], 100, 5000);
+  assert.ok(sr.accepted >= 50, `accepted ${sr.accepted} of ${sr.draws}`);
+  assert.ok(sr.irf_median[0][0][0] > 0 && sr.irf_median[0][1][1] > 0 && sr.irf_median[1][1][1] > 0, "median responses obey the restrictions");
+  for (let h = 0; h < 13; h++) for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) assert.ok(sr.irf_lo[h][i][j] <= sr.irf_median[h][i][j] && sr.irf_median[h][i][j] <= sr.irf_hi[h][i][j], "bands bracket the median");
+  const Bm = S.matmul(sr.B_median_target, S.transpose(sr.B_median_target));
+  close(Bm[1][1], m.sigma[1][1], 1e-8, "the target draw is a valid impact matrix");
+  assert.throws(() => S.signIdentify(m, [{ shock: 0, variable: 0, sign: 1, horizons: [0] }, { shock: 0, variable: 0, sign: -1, horizons: [0] }], 10, 200), /No draw/);
+  assert.throws(() => S.signIdentify(m, [{ shock: 3, variable: 0, sign: 1, horizons: [0] }]), /outside/);
+  // Bootstrap bands around the long-run IRF
+  const bb = S.varBootstrap(Y, 2, 12, "long_run", 60);
+  assert.ok(bb.reps >= 50);
+  const point = S.structuralResponses(m.psi, B).irf;
+  let inside = 0, total = 0;
+  for (let h = 0; h < 13; h++) for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { total++; if (bb.lo05[h][i][j] <= point[h][i][j] && point[h][i][j] <= bb.hi95[h][i][j]) inside++; assert.ok(bb.lo16[h][i][j] >= bb.lo05[h][i][j] && bb.hi84[h][i][j] <= bb.hi95[h][i][j], "68% band inside 90% band"); }
+  assert.ok(inside / total > 0.8, `point inside the 90% band for ${inside}/${total}`);
+  // An exactly singular long-run multiplier is refused; a general inverse round-trips
+  assert.equal(S.inverseGeneral([[1, 2], [2, 4]]), null);
+  const inv = S.inverseGeneral([[4, 7], [2, 6]]); const I = S.matmul([[4, 7], [2, 6]], inv);
+  close(I[0][0], 1, 1e-12, "A A^-1 = I"); close(I[0][1], 0, 1e-12, "A A^-1 = I off-diagonal");
+  assert.throws(() => S.identify({ ...m, a_sum: [[1, 0], [0, 1]] }, "long_run"), /unit root/);
+});
+
+check("Johansen with a restricted trend: a trending equilibrium gets rank 1 and the trend coefficient", () => {
+  const r = rng(91);
+  const n = 500;
+  const x = [0]; for (let i = 1; i < n; i++) x.push(x[i - 1] + 0.1 + r.normal());
+  // y = 2x + 0.05 t + u: the relation itself trends, so the trend belongs inside it
+  const y = []; let u = 0;
+  for (let i = 0; i < n; i++) { u = 0.4 * u + r.normal(); y.push(2 * x[i] + 0.05 * i + u); }
+  const Y = y.map((v, i) => [v, x[i]]);
+  const j = S.johansen(Y, 1, "restricted_trend");
+  assert.equal(j.det, "restricted_trend");
+  assert.equal(j.rank_at_5pct, 1, JSON.stringify(j.trace.map((t) => [t.r, +t.statistic.toFixed(1), t.critical["5%"]])));
+  assert.equal(j.trace[0].critical["5%"], 25.8721, "MHM restricted-trend critical value for n-r=2");
+  assert.equal(j.cointegrating_vector.length, 3);
+  close(j.cointegrating_vector[1], -2, 0.1, "slope"); close(j.cointegrating_vector[2], -0.05, 0.02, "trend inside the relation");
+  const m = S.vecm(Y, 1, undefined, "restricted_trend");
+  close(m.beta_trend[0], -0.05, 0.02, "VECM reports the trend coefficient");
+  assert.ok(m.alpha[0][0] < -0.2 && m.alpha_p[0][0] < 0.01, `y adjusts: alpha ${m.alpha[0][0]}`);
+  assert.ok(m.constant.every((c) => Number.isFinite(c)), "differences keep an unrestricted constant");
+  close(S.mean(m.ect.map((row) => row[0])), 0, 0.5, "the error-correction term is centred");
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);

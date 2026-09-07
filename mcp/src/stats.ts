@@ -686,26 +686,42 @@ const JOHANSEN_TRACE_CV_RC = [
   [50.29, 54.0790, 61.2669],
   [72.20, 76.9728, 85.3364],
 ];
-export type JohansenDet = "constant" | "restricted_constant";
+/**
+ * Trace critical values with an unrestricted constant and a linear trend restricted to the
+ * cointegrating relation. 5% is MacKinnon-Haug-Michelis (1999); 10% and 1% are simulated as
+ * for the restricted constant, with F = (B demeaned, u - 1/2); the simulation reproduces the
+ * published 5% column to within 0.7.
+ */
+const JOHANSEN_TRACE_CV_RT = [
+  [10.61, 12.5180, 16.39],
+  [23.10, 25.8721, 31.06],
+  [39.54, 42.9153, 49.27],
+  [59.70, 63.8761, 71.00],
+  [83.84, 88.8038, 97.01],
+];
+export type JohansenDet = "constant" | "restricted_constant" | "restricted_trend";
 
 /**
  * Johansen trace test. det = "constant": unrestricted constant in the VAR, right for series
  * that drift (most price levels, logs of output). det = "restricted_constant": the constant
  * enters the cointegrating relation only, right for series without drift (interest rates,
  * ratios, real exchange rates); the vectors then carry an extra last element, the constant.
+ * det = "restricted_trend": unrestricted constant plus a linear trend inside the relation, for
+ * series that drift at different rates so the equilibrium itself trends; the extra element
+ * is the trend coefficient.
  */
 export function johansen(Y: number[][], lags = 1, det: JohansenDet = "constant"): JohansenResult {
   // Y: rows = time, columns = variables
   const T = Y.length, k = Y[0].length;
   if (k < 2 || k > 5) throw new Error("Johansen here supports 2 to 5 series");
   if (T < 10 * k + lags + 10) throw new Error(`Too few observations (${T}) for ${k} series with ${lags} lags`);
-  const rc = det === "restricted_constant";
+  const rc = det === "restricted_constant", rt = det === "restricted_trend";
   const dY = Y.slice(1).map((r, t) => r.map((v, j) => v - Y[t][j]));
   const rows: number[][] = [], dyT: number[][] = [], lagY: number[][] = [];
   for (let t = lags; t < dY.length; t++) {
     const z = rc ? [] : [1];
     for (let l = 1; l <= lags; l++) z.push(...dY[t - l]);
-    rows.push(z); dyT.push(dY[t]); lagY.push(rc ? [...Y[t], 1] : Y[t]); // Y[t] is y_{t-1} relative to dY[t] = y_{t+1}-y_t
+    rows.push(z); dyT.push(dY[t]); lagY.push(rc ? [...Y[t], 1] : rt ? [...Y[t], t] : Y[t]); // Y[t] is y_{t-1} relative to dY[t] = y_{t+1}-y_t
   }
   const n = rows.length;
   const residualsOn = (target: number[][]) => {
@@ -730,7 +746,7 @@ export function johansen(Y: number[][], lags = 1, det: JohansenDet = "constant")
   const { values, vectors } = symEigen(M);
   // With the restricted constant M is (k+1)x(k+1) of rank k: the k largest eigenvalues are the test's.
   const eig = values.slice(0, k).map((v) => Math.min(Math.max(v, 0), 0.999999));
-  const table = rc ? JOHANSEN_TRACE_CV_RC : JOHANSEN_TRACE_CV;
+  const table = rc ? JOHANSEN_TRACE_CV_RC : rt ? JOHANSEN_TRACE_CV_RT : JOHANSEN_TRACE_CV;
   const trace = eig.map((_, r) => {
     let s = 0;
     for (let i = r; i < k; i++) s += Math.log(1 - eig[i]);
@@ -754,7 +770,8 @@ export function johansen(Y: number[][], lags = 1, det: JohansenDet = "constant")
 export interface VecmResult {
   k: number; lags: number; rank: number; nobs: number; det: JohansenDet;
   beta: number[][];          // k x r, each column normalised on the first series
-  beta_constant: number[];   // r constants inside the relations (zero with an unrestricted constant)
+  beta_constant: number[];   // r constants inside the relations (zero unless restricted_constant)
+  beta_trend: number[];      // r trend coefficients inside the relations (zero unless restricted_trend)
   alpha: number[][];         // k x r adjustment coefficients (row = equation)
   alpha_t: number[][];
   alpha_p: number[][];
@@ -768,18 +785,20 @@ export interface VecmResult {
 export function vecm(Y: number[][], lags = 1, rank?: number, det: JohansenDet = "constant"): VecmResult {
   const j = johansen(Y, lags, det);
   const k = j.k;
-  const rc = det === "restricted_constant";
+  const rc = det === "restricted_constant", rt = det === "restricted_trend";
   const r = rank ?? j.rank_at_5pct;
   if (r < 1) throw new Error("No cointegrating relation at 5% (rank 0): estimate a VAR on differences instead, or pass rank explicitly.");
   if (r >= k) throw new Error(`Rank must be below the number of series (${k}); rank ${k} means every series is stationary in levels.`);
   const beta = Y[0].map((_, i) => j.vectors[i].slice(0, r));   // k x r
   const beta_constant = rc ? j.vectors[k].slice(0, r) : new Array<number>(r).fill(0);
-  const ectAt = (y: number[]) => beta[0].map((_, c) => y.reduce((sum, v, i) => sum + v * beta[i][c], 0) + beta_constant[c]);
+  const beta_trend = rt ? j.vectors[k].slice(0, r) : new Array<number>(r).fill(0);
+  // The trend index matches the one johansen used: the position of y_{t-1} in Y.
+  const ectAt = (y: number[], t: number) => beta[0].map((_, c) => y.reduce((sum, v, i) => sum + v * beta[i][c], 0) + beta_constant[c] + beta_trend[c] * t);
   const dY = Y.slice(1).map((row, t) => row.map((v, i) => v - Y[t][i]));
   const X: number[][] = [], targets: number[][] = [];
   const off = rc ? 0 : 1;   // column of the first ECT
   for (let t = lags; t < dY.length; t++) {
-    const z = [...(rc ? [] : [1]), ...ectAt(Y[t])];          // Y[t] is y_{t-1} for dY[t]
+    const z = [...(rc ? [] : [1]), ...ectAt(Y[t], t)];          // Y[t] is y_{t-1} for dY[t]
     for (let l = 1; l <= lags; l++) z.push(...dY[t - l]);
     X.push(z); targets.push(dY[t]);
   }
@@ -792,7 +811,7 @@ export function vecm(Y: number[][], lags = 1, rank?: number, det: JohansenDet = 
     for (let l = 0; l < lags; l++) for (let v = 0; v < k; v++) gamma[l][eq][v] = fit.beta[off + r + l * k + v];
     r2.push(fit.r2);
   }
-  return { k, lags, rank: r, nobs: X.length, det, beta, beta_constant, alpha, alpha_t, alpha_p, gamma, constant, r2, ect: Y.map(ectAt), johansen: j };
+  return { k, lags, rank: r, nobs: X.length, det, beta, beta_constant, beta_trend, alpha, alpha_t, alpha_p, gamma, constant, r2, ect: Y.map((y, t) => ectAt(y, t)), johansen: j };
 }
 
 /** t-statistic of the mean of first differences: does the series drift? */
@@ -814,9 +833,36 @@ export interface VarResult {
   fevd: number[][][];            // [h][variable][shock] shares
   granger: Array<{ cause: number; effect: number; F: number; p: number }>;
   fitted_last: number[];
+  /** MA coefficient matrices Psi_0..Psi_horizon (Psi_0 = I), for structural identification. */
+  psi: number[][][];
+  /** Reduced-form residuals, one array per equation. */
+  resid: number[][];
+  /** Sum of the lag matrices A_1 + ... + A_p, for the long-run multiplier. */
+  a_sum: number[][];
 }
 
-export function varModel(Y: number[][], p: number, horizon = 12): VarResult {
+/** Several equations on the same regressors: one X'X inverse for all of them. */
+function olsMulti(targets: number[][], X: number[][]): Array<{ beta: number[]; resid: number[]; fitted: number[]; rss: number }> {
+  const n = X.length, k = X[0].length, m = targets[0].length;
+  if (n <= k) throw new Error(`OLS needs more observations (${n}) than regressors (${k})`);
+  const XtX: number[][] = Array.from({ length: k }, () => new Array<number>(k).fill(0));
+  const Xty: number[][] = Array.from({ length: m }, () => new Array<number>(k).fill(0));
+  for (let i = 0; i < n; i++) {
+    const r = X[i], y = targets[i];
+    for (let a = 0; a < k; a++) { for (let e = 0; e < m; e++) Xty[e][a] += r[a] * y[e]; for (let b = a; b < k; b++) XtX[a][b] += r[a] * r[b]; }
+  }
+  for (let a = 0; a < k; a++) for (let b = 0; b < a; b++) XtX[a][b] = XtX[b][a];
+  const XtXinv = inverse(XtX);
+  if (!XtXinv) throw new Error("Regressors are collinear (X'X singular). Drop one.");
+  return Array.from({ length: m }, (_, e) => {
+    const beta = XtXinv.map((row) => row.reduce((sum, v, j) => sum + v * Xty[e][j], 0));
+    const fitted = X.map((r) => r.reduce((sum, v, j) => sum + v * beta[j], 0));
+    const resid = targets.map((y, i) => y[e] - fitted[i]);
+    return { beta, resid, fitted, rss: resid.reduce((sum, v) => sum + v * v, 0) };
+  });
+}
+
+export function varModel(Y: number[][], p: number, horizon = 12, opts: { granger?: boolean } = {}): VarResult {
   const T = Y.length, k = Y[0].length;
   if (T < k * p * 3 + 10) throw new Error(`Too few observations (${T}) for VAR(${p}) with ${k} variables`);
   const X: number[][] = [], targets: number[][] = [];
@@ -826,7 +872,7 @@ export function varModel(Y: number[][], p: number, horizon = 12): VarResult {
     X.push(row); targets.push(Y[t]);
   }
   const n = X.length;
-  const fits = Array.from({ length: k }, (_, j) => ols(targets.map((r) => r[j]), X));
+  const fits = olsMulti(targets, X);
   const coef = fits.map((f) => f.beta);
   const resid = fits.map((f) => f.resid);
   const sigma = zeros(k, k);
@@ -854,7 +900,7 @@ export function varModel(Y: number[][], p: number, horizon = 12): VarResult {
   }
   // Block Granger tests: does variable c help predict variable e beyond e's own lags and the other variables?
   const granger: VarResult["granger"] = [];
-  for (let e = 0; e < k; e++) for (let c = 0; c < k; c++) {
+  if (opts.granger !== false) for (let e = 0; e < k; e++) for (let c = 0; c < k; c++) {
     if (c === e) continue;
     const keep = X[0].map((_, idx) => idx === 0 || ((idx - 1) % k) !== c);
     const Xr = X.map((row) => row.filter((_, idx) => keep[idx]));
@@ -863,7 +909,9 @@ export function varModel(Y: number[][], p: number, horizon = 12): VarResult {
     const F = ((r.rss - u.rss) / p) / (u.rss / (n - X[0].length));
     granger.push({ cause: c, effect: e, F, p: fUpperP(F, p, n - X[0].length) });
   }
-  return { p, k, nobs: n, coef, sigma, aic, bic, irf, fevd, granger, fitted_last: fits.map((f) => f.fitted[f.fitted.length - 1]) };
+  const aSum = zeros(k, k);
+  for (let l = 1; l <= p; l++) { const Al = A(l); for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) aSum[i][j] += Al[i][j]; }
+  return { p, k, nobs: n, coef, sigma, aic, bic, irf, fevd, granger, fitted_last: fits.map((f) => f.fitted[f.fitted.length - 1]), psi: Psi, resid, a_sum: aSum };
 }
 
 export function varSelectLag(Y: number[][], maxLag: number): number {
@@ -1485,4 +1533,166 @@ export function reset(y: number[], X: number[][], base: OlsResult): { F: number;
   const df2 = y.length - X[0].length - 2;
   const F = ((base.rss - aug.rss) / 2) / (aug.rss / df2);
   return { F, p: fUpperP(F, 2, df2), df: [2, df2] };
+}
+
+// ---------------------------------------------------------------------------
+// Structural identification of a VAR: impact matrix B with B B' = Sigma
+
+export type SvarMethod = "cholesky" | "long_run";
+
+/** Gauss-Jordan inverse of a general square matrix; null when singular. */
+export function inverseGeneral(A: Mat): Mat | null {
+  const n = A.length;
+  const M = A.map((r, i) => [...r, ...Array.from({ length: n }, (_, j) => (i === j ? 1 : 0))]);
+  for (let c = 0; c < n; c++) {
+    let piv = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+    if (Math.abs(M[piv][c]) < 1e-12) return null;
+    [M[c], M[piv]] = [M[piv], M[c]];
+    const d = M[c][c];
+    for (let j = 0; j < 2 * n; j++) M[c][j] /= d;
+    for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c]; if (f) for (let j = 0; j < 2 * n; j++) M[r][j] -= f * M[c][j]; }
+  }
+  return M.map((r) => r.slice(n));
+}
+
+/** Impulse responses, cumulative responses and variance decomposition for a given impact matrix. */
+export function structuralResponses(psi: Mat[], B: Mat): { irf: Mat[]; cumulative: Mat[]; fevd: number[][][] } {
+  const k = B.length;
+  const irf = psi.map((Ps) => matmul(Ps, B));
+  const cumulative: Mat[] = [];
+  const acc = zeros(k, k);
+  for (const h of irf) { for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) acc[i][j] += h[i][j]; cumulative.push(acc.map((r) => [...r])); }
+  const fevd: number[][][] = [];
+  const cum = zeros(k, k);
+  for (const h of irf) {
+    for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) cum[i][j] += h[i][j] * h[i][j];
+    fevd.push(cum.map((row) => { const tot = row.reduce((a, b) => a + b, 0); return row.map((v) => (tot ? v / tot : 0)); }));
+  }
+  return { irf, cumulative, fevd };
+}
+
+/**
+ * Impact matrix by recursive (Cholesky) ordering, or by long-run restrictions (Blanchard-Quah):
+ * the long-run multiplier Psi(1) B = (I - A(1))^-1 B is lower triangular, so shock j has no
+ * permanent effect on variable i for i < j. Returns B and, for long_run, the long-run matrix.
+ */
+export function identify(m: VarResult, method: SvarMethod): { B: Mat; long_run: Mat | null } {
+  const k = m.k;
+  if (method === "cholesky") return { B: cholesky(m.sigma), long_run: null };
+  const IminusA = Array.from({ length: k }, (_, i) => Array.from({ length: k }, (__, j) => (i === j ? 1 : 0) - m.a_sum[i][j]));
+  const psi1 = inverseGeneral(IminusA);
+  if (!psi1) throw new Error("The VAR has a unit root (I - A(1) is singular), so long-run effects are not defined; pass stationary series.");
+  const S = matmul(matmul(psi1, m.sigma), transpose(psi1));
+  const Ssym = S.map((r, i) => r.map((_, j) => (S[i][j] + S[j][i]) / 2));
+  const C = cholesky(Ssym);            // long-run impact matrix, lower triangular
+  const B = matmul(IminusA, C);        // Psi(1)^-1 C
+  return { B, long_run: C };
+}
+
+export interface SignRestriction { shock: number; variable: number; sign: 1 | -1; horizons: number[] }
+export interface SignResult { accepted: number; draws: number; irf_median: Mat[]; irf_lo: Mat[]; irf_hi: Mat[]; cumulative_median: Mat[]; fevd_median: number[][][]; B_median_target: Mat }
+
+/** Haar-distributed orthogonal matrix: Gram-Schmidt on Gaussian columns with a positive diagonal. */
+function randomOrthogonal(k: number, normal: () => number): Mat {
+  const cols: number[][] = [];
+  for (let c = 0; c < k; c++) {
+    let v = Array.from({ length: k }, normal);
+    for (const q of cols) { const d = v.reduce((s, x, i) => s + x * q[i], 0); v = v.map((x, i) => x - d * q[i]); }
+    const nrm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
+    cols.push(v.map((x) => x / nrm));
+  }
+  return cols[0].map((_, i) => cols.map((c) => c[i]));   // columns = orthonormal vectors
+}
+
+function seededNormal(seed: number): () => number {
+  let a = seed >>> 0;
+  const u = () => { a += 0x6d2b79f5; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  return () => Math.sqrt(-2 * Math.log(Math.max(u(), 1e-12))) * Math.cos(2 * Math.PI * u());
+}
+
+/**
+ * Sign-restriction identification (Uhlig 2005, Rubio-Ramirez et al. 2010): draw B = P Q with P
+ * the Cholesky factor and Q Haar-distributed, keep the draws whose impulse responses carry the
+ * requested signs at the requested horizons (each shock's column may be flipped, since a sign
+ * restriction pins the sign of a shock). Reports pointwise median and 16/84% bands over the
+ * accepted draws, which measure identification uncertainty, not sampling uncertainty.
+ */
+export function signIdentify(m: VarResult, restrictions: SignRestriction[], keep = 200, maxDraws = 20000, seed = 1): SignResult {
+  const k = m.k;
+  if (!restrictions.length) throw new Error("Sign identification needs at least one restriction");
+  for (const r of restrictions) if (r.shock < 0 || r.shock >= k || r.variable < 0 || r.variable >= k) throw new Error(`Restriction refers to shock ${r.shock} or variable ${r.variable}, outside 0..${k - 1}`);
+  const maxH = Math.max(...restrictions.flatMap((r) => r.horizons));
+  if (maxH >= m.psi.length) throw new Error(`Restriction horizon ${maxH} exceeds the response horizon ${m.psi.length - 1}`);
+  const P = cholesky(m.sigma);
+  const normal = seededNormal(seed);
+  const byShock = new Map<number, SignRestriction[]>();
+  for (const r of restrictions) byShock.set(r.shock, [...(byShock.get(r.shock) ?? []), r]);
+  const accepted: Mat[] = [];
+  let draws = 0;
+  while (accepted.length < keep && draws < maxDraws) {
+    draws++;
+    const Q = randomOrthogonal(k, normal);
+    const B = matmul(P, Q);
+    let ok = true;
+    for (const [j, rs] of byShock) {
+      const test = (flip: number) => rs.every((r) => r.horizons.every((h) => { let v = 0; for (let c = 0; c < k; c++) v += m.psi[h][r.variable][c] * B[c][j]; return flip * v * r.sign > 0; }));
+      if (test(1)) continue;
+      if (test(-1)) { for (let c = 0; c < k; c++) B[c][j] = -B[c][j]; continue; }
+      ok = false; break;
+    }
+    if (ok) accepted.push(B);
+  }
+  if (!accepted.length) throw new Error(`No draw out of ${draws} satisfied the sign restrictions; they may be mutually inconsistent with the data's covariance.`);
+  const H = m.psi.length;
+  const all = accepted.map((B) => structuralResponses(m.psi, B));
+  const q = (vals: number[], p: number) => { const a = [...vals].sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.max(0, Math.floor(p * (a.length - 1))))]; };
+  const pick = (f: (r: ReturnType<typeof structuralResponses>) => Mat[], p: number): Mat[] => Array.from({ length: H }, (_, h) => Array.from({ length: k }, (_, i) => Array.from({ length: k }, (_, j) => q(all.map((r) => f(r)[h][i][j]), p))));
+  const irf_median = pick((r) => r.irf, 0.5), irf_lo = pick((r) => r.irf, 0.16), irf_hi = pick((r) => r.irf, 0.84);
+  const cumulative_median = pick((r) => r.cumulative, 0.5);
+  const fevd_median = Array.from({ length: H }, (_, h) => Array.from({ length: k }, (_, i) => Array.from({ length: k }, (_, j) => q(all.map((r) => r.fevd[h][i][j]), 0.5))));
+  // The accepted draw closest to the pointwise median (Fry-Pagan), so one coherent model can be quoted.
+  let best = 0, bestD = Infinity;
+  all.forEach((r, idx) => { let d = 0; for (let h = 0; h < H; h++) for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) { const sc = Math.abs(irf_hi[h][i][j] - irf_lo[h][i][j]) || 1; d += ((r.irf[h][i][j] - irf_median[h][i][j]) / sc) ** 2; } if (d < bestD) { bestD = d; best = idx; } });
+  return { accepted: accepted.length, draws, irf_median, irf_lo, irf_hi, cumulative_median, fevd_median, B_median_target: accepted[best] };
+}
+
+export interface BootstrapBands { reps: number; lo16: Mat[]; hi84: Mat[]; lo05: Mat[]; hi95: Mat[] }
+
+/**
+ * Residual bootstrap for structural impulse responses: resample the centred residuals,
+ * rebuild the sample from the first p observations, refit, re-identify. Percentile bands.
+ */
+export function varBootstrap(Y: number[][], p: number, horizon: number, method: SvarMethod, reps = 200, seed = 7): BootstrapBands {
+  const base = varModel(Y, p, horizon);
+  const k = base.k, T = Y.length, n = base.nobs;
+  const normal = seededNormal(seed);
+  let a = (seed * 2654435761) >>> 0;
+  const uni = () => { a += 0x6d2b79f5; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  void normal;
+  const centred = base.resid.map((e) => { const m = mean(e); return e.map((v) => v - m); });
+  const results: Mat[][] = [];
+  for (let r = 0; r < reps; r++) {
+    const Ys: number[][] = Y.slice(0, p).map((row) => [...row]);
+    for (let t = p; t < T; t++) {
+      const idx = Math.floor(uni() * n);
+      const row = new Array<number>(k).fill(0);
+      for (let e = 0; e < k; e++) {
+        let v = base.coef[e][0];
+        for (let l = 1; l <= p; l++) for (let j = 0; j < k; j++) v += base.coef[e][1 + (l - 1) * k + j] * Ys[t - l][j];
+        row[e] = v + centred[e][idx];
+      }
+      Ys.push(row);
+    }
+    try {
+      const mb = varModel(Ys, p, horizon, { granger: false });
+      const { B } = identify(mb, method);
+      results.push(structuralResponses(mb.psi, B).irf);
+    } catch { /* a degenerate resample: skip */ }
+  }
+  if (results.length < 20) throw new Error("Bootstrap failed on most resamples");
+  const H = horizon + 1;
+  const q = (vals: number[], pr: number) => { const s = [...vals].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.max(0, Math.floor(pr * (s.length - 1))))]; };
+  const pick = (pr: number): Mat[] => Array.from({ length: H }, (_, h) => Array.from({ length: k }, (_, i) => Array.from({ length: k }, (_, j) => q(results.map((irf) => irf[h][i][j]), pr))));
+  return { reps: results.length, lo16: pick(0.16), hi84: pick(0.84), lo05: pick(0.05), hi95: pick(0.95) };
 }
