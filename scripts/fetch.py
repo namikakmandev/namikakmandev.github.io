@@ -37,8 +37,14 @@ def get(url, timeout=120):
 
 # ----------------------------------------------------------------- providers
 def fred(entry):
-    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint."""
+    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint.
+
+    Keys are trimmed to the month by default, which is what a monthly series wants and
+    what every existing source here expects. entry['keep_dates'] keeps the full date, for
+    the daily and weekly series where the point is the price on a given day: trimming
+    those silently throws away all but the last observation of each month."""
     out = {}
+    keep = bool(entry.get("keep_dates"))
     for key, sid in entry["series"].items():
         try:
             raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
@@ -50,7 +56,7 @@ def fred(entry):
             date = (row.get("DATE") or row.get("observation_date") or "").strip()
             val = (row.get(sid) or "").strip()
             if len(date) >= 7 and val not in ("", "."):
-                vals[date[:7]] = float(val)
+                vals[date if keep else date[:7]] = float(val)
         out[key] = vals
     return out
 
