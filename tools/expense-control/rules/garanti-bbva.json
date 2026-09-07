@@ -1,0 +1,70 @@
+{
+  "issuer": "Garanti BBVA",
+  "note": "Patterns for the 'Gecmis Donem Kredi Karti Ekstresi' PDF. Tune them by running `expense_control.py discover <pdf>` and comparing the dumped lines against these regexes.",
+  "decimal_style": "tr",
+  "default_currency": "TRY",
+  "header": {
+    "statement_date": [
+      "Hesap\\s*Kesim\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})",
+      "Ekstre\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})"
+    ],
+    "due_date": [
+      "Son\\s*[ÖO]deme\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})"
+    ],
+    "card_number": [
+      "(\\d{4}[\\s*]*\\*{4}[\\s*]*\\*{4}[\\s*]*\\d{4})",
+      "(\\d{4}\\s*\\*+\\s*\\d{4})",
+      "Kart\\s*(?:No|Numaras[ıi])[^0-9]{0,20}([0-9*\\s]{12,25})"
+    ],
+    "card_holder": [
+      "Kart\\s*Sahibi[^\\S\\n]{0,10}([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ.]*(?:[^\\S\\n]+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ.]*){0,4})"
+    ],
+    "period_total": [
+      "D[öo]nem\\s*Bor[çc]u[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})",
+      "Toplam\\s*Bor[çc][^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"
+    ],
+    "minimum_payment": [
+      "Asgari\\s*[ÖO]deme(?:\\s*Tutar[ıi])?[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"
+    ],
+    "credit_limit": [
+      "(?:Toplam\\s*)?(?:Kart\\s*)?Limit(?:i)?[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"
+    ],
+    "available_limit": [
+      "Kullan[ıi]labilir\\s*Limit[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"
+    ]
+  },
+  "transaction": [
+    "^(?P<date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+(?:(?P<post_date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+)?(?P<description>\\S.*?)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?(?:\\s+(?P<bonus>[\\d.]*\\d,\\d{2}))?\\s*(?P<trailing>[-+])?$",
+    "^(?P<date>\\d{2}[./-]\\d{2})\\s+(?P<description>\\S.*?)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?\\s*(?P<trailing>[-+])?$"
+  ],
+  "installment": "(?:TAKS[İI]T\\s*)?(?P<paid>\\d{1,2})\\s*[/-]\\s*(?P<total>\\d{1,2})\\s*$",
+  "skip_lines": [
+    "Devreden\\s*Bakiye",
+    "^Toplam",
+    "Ara\\s*Toplam",
+    "Genel\\s*Toplam",
+    "Sayfa\\s*\\d",
+    "Hesap\\s*Kesim",
+    "Son\\s*[ÖO]deme",
+    "Asgari\\s*[ÖO]deme",
+    "D[öo]nem\\s*Bor[çc]u",
+    "Kullan[ıi]labilir\\s*Limit",
+    "Faiz\\s*Oran",
+    "Nakit\\s*Avans\\s*Faiz",
+    "^\\s*$"
+  ],
+  "credit_markers": [
+    "[İI]ADE",
+    "ALACAK",
+    "[ÖO]DEME",
+    "V[İI]RMAN",
+    "PUAN\\s*KULLAN",
+    "BONUS\\s*KULLAN",
+    "IPTAL",
+    "[İI]PTAL"
+  ],
+  "transaction_note": "Pattern 1 treats the FIRST money column on the line as the amount and an optional SECOND one as the bonus/points column. If your statement prints the amount last (e.g. a running balance comes first), copy 'transaction_amount_last' over 'transaction'.",
+  "transaction_amount_last": [
+    "^(?P<date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+(?:(?P<post_date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+)?(?P<description>\\S.*)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?\\s*(?P<trailing>[-+])?$"
+  ]
+}
