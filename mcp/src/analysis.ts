@@ -12,7 +12,7 @@ import { SeriesRefSchema, align, detectFrequency, futureDates, resolve, type Res
 import { apply, clip, round, toPoints, type Transform } from "./transform.js";
 import * as S from "./stats.js";
 import { SERVER_BUILD } from "./version.js";
-import { chartUrl, type PlotSpec } from "./api.js";
+import { BandSchema, chartUrl, type Band, type PlotSpec } from "./api.js";
 
 const r4 = (x: number) => (Number.isFinite(x) ? Math.round(x * 10000) / 10000 : null);
 const r3 = (x: number) => (Number.isFinite(x) ? Math.round(x * 1000) / 1000 : null);
@@ -117,6 +117,17 @@ function adfOut(a: S.AdfResult | null) {
   return { spec: a.spec, lags: a.lags, nobs: a.nobs, statistic: r3(a.statistic), critical: { "1%": r3(a.critical["1%"]), "5%": r3(a.critical["5%"]), "10%": r3(a.critical["10%"]) }, reject_unit_root_at: a.reject_unit_root_at };
 }
 
+/** Which Johansen deterministic case the data support: series that drift need the unrestricted constant. */
+function driftCheck(labels: string[], columns: number[][], chosen: "constant" | "restricted_constant") {
+  const rows = labels.map((l, i) => { const t = S.driftT(columns[i]); return { series: l, drift_t: r3(t), drifts: Math.abs(t) > 2 }; });
+  const drifting = rows.filter((r) => r.drifts).map((r) => r.series);
+  const suggested = drifting.length ? "constant" : "restricted_constant";
+  const note = suggested === chosen ? "" : chosen === "constant"
+    ? "Drift check: none of the series has a significant drift, so deterministic='restricted_constant' is the better-specified test here (the unrestricted constant over-rejects on drift-free series)."
+    : `Drift check: ${drifting.join(", ")} drift${drifting.length === 1 ? "s" : ""} significantly, so deterministic='constant' fits the data better than the restricted constant.`;
+  return { per_series: rows, suggested, note };
+}
+
 function integrationOrder(level: S.AdfResult | null, first: S.AdfResult | null): "I(0)" | "I(1)" | "I(2) or worse" | "unknown" {
   if (!level) return "unknown";
   if (level.reject_unit_root_at) return "I(0)";
@@ -202,18 +213,22 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "plot",
     {
       title: "Plot series",
-      description: "Draw up to 8 series on one interactive chart and return its link. The page shows hover values, log and rebase-to-100 toggles, a right-hand axis for series on another scale, the sources and caveats, a data table and CSV download. Every series is resolved first, so a bad reference fails here rather than on the page. Give the user the chart_url.",
+      description: "Draw up to 8 series on one interactive chart and return its link. The page shows hover values, log and rebase-to-100 toggles, a right-hand axis for series on another scale, shaded bands (forecast intervals, confidence bands), the sources and caveats, a data table and CSV download. forecast and local_projections return a ready chart_url of their own. Every series is resolved first, so a bad reference fails here rather than on the page. Give the user the chart_url.",
       inputSchema: {
         series: z.array(REF).min(1).max(8),
         title: z.string().max(200).optional().describe("Chart title; default is built from the series labels"),
         scale: z.enum(["linear", "log"]).default("linear"),
         right_axis: z.array(z.number().int().min(0).max(7)).optional().describe("0-based indexes of series to draw on a right-hand axis, for series whose units differ"),
+        bands: z.array(BandSchema).max(4).optional().describe("Shaded bands, e.g. a forecast interval: [[date, low, high], ...] attached to a series by index"),
+        xaxis: z.enum(["date", "number"]).default("date").describe("number when the x values are horizons or indexes (zero-padded strings such as '00', '01')"),
       },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, title, scale, right_axis }) => {
+    wrap(async ({ series, title, scale, right_axis, bands, xaxis }) => {
       const rs = await Promise.all(series.map(get));
-      const spec: PlotSpec = { series, title, scale, right: right_axis?.length ? right_axis : undefined, api: self };
+      const badBand = (bands ?? []).find((b) => b.series >= series.length);
+      if (badBand) return fail(`Band '${badBand.label ?? ""}' refers to series ${badBand.series}, but only ${series.length} series were given.`);
+      const spec: PlotSpec = { series, title, scale, right: right_axis?.length ? right_axis : undefined, bands: bands?.length ? bands : undefined, xaxis: xaxis === "number" ? "number" : undefined, api: self };
       const url = chartUrl(origin, spec);
       return text({
         chart_url: url,
@@ -288,7 +303,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "regress",
     {
       title: "OLS regression",
-      description: "Regress y on one or more x series, aligned on shared dates. Newey-West robust standard errors, R², Durbin-Watson, AIC/BIC, residual tests, and a spurious-regression warning when levels are non-stationary. Set transform='log' on y and x for elasticities. Add lags of x for a distributed-lag model.",
+      description: "Regress y on one or more x series, aligned on shared dates. Newey-West robust standard errors, R², Durbin-Watson, AIC/BIC, residual tests, Breusch-Pagan for heteroskedasticity, VIF for collinearity, RESET for functional form, and a spurious-regression warning when levels are non-stationary. Set transform='log' on y and x for elasticities. Add lags of x for a distributed-lag model.",
       inputSchema: {
         y: REF,
         x: z.array(REF).min(1).max(8),
@@ -336,6 +351,15 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       }
       if (fit.dw < 1.2) warnings.push(`Durbin-Watson ${r3(fit.dw)}: strong positive residual autocorrelation. Use the HAC columns, not the plain se.`);
       const lb = S.ljungBox(fit.resid, Math.min(12, Math.floor(fit.n / 5)));
+      const bp = S.breuschPagan(rows, fit.resid);
+      const vifs = S.vif(rows);
+      const vifTable = names.slice(1).map((nm, j) => ({ term: nm, vif: Number.isFinite(vifs[j]) ? r3(vifs[j]) : null }));
+      let rs: { F: number; p: number; df: [number, number] } | null = null;
+      try { if (fit.n > fit.k + 6) rs = S.reset(yv, rows, fit); } catch { /* collinear with the powers */ }
+      if (bp.p < 0.05) warnings.push(`Breusch-Pagan p ${r4(bp.p)}: residual variance changes with the regressors (heteroskedasticity). The HAC columns are robust to it; the plain se are not.`);
+      const highVif = vifTable.filter((v) => v.vif !== null && (v.vif as number) > 10).map((v) => v.term);
+      if (highVif.length) warnings.push(`VIF above 10 for ${highVif.join(", ")}: these regressors move together, so their separate coefficients are poorly determined even if the fit is good. Drop one or combine them.`);
+      if (rs && rs.p < 0.05) warnings.push(`RESET p ${r4(rs.p)}: powers of the fitted values add explanatory power, so the linear form is misspecified (a curvature, a missing variable, or logs needed).`);
       const allLog = [ry, ...rx].every((r) => r.transform === "log");
       return text({
         y: meta(ry), x: rx.map(meta),
@@ -344,6 +368,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         r2: r4(fit.r2), adj_r2: r4(fit.adj_r2), sigma: r4(fit.sigma), F: fit.F !== null ? r3(fit.F) : null, F_p: fit.F_p !== null ? r4(fit.F_p) : null,
         aic: r3(fit.aic), bic: r3(fit.bic), durbin_watson: r3(fit.dw), hac_lags: hac.lag,
         residuals: { ljung_box_p: r4(lb.p), jarque_bera_p: r4(S.jarqueBera(fit.resid).p) },
+        diagnostics: {
+          breusch_pagan: { statistic: r3(bp.statistic), p: r4(bp.p), df: bp.df, heteroskedastic_at_5pct: bp.p < 0.05 },
+          vif: vifTable,
+          reset: rs ? { F: r3(rs.F), p: r4(rs.p), df: rs.df, misspecified_at_5pct: rs.p < 0.05 } : null,
+        },
         elasticities: allLog ? "Both sides are in logs, so each coefficient is an elasticity." : undefined,
         warnings,
       });
@@ -490,7 +519,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "forecast",
     {
       title: "Forecast",
-      description: "Project a series forward. auto picks Holt-Winters with seasonality for monthly/quarterly data and Holt's linear trend otherwise; ar fits an autoregression. Returns dated forecasts, an approximate 95% band from the residual spread, and in-sample fit.",
+      description: "Project a series forward. auto picks Holt-Winters with seasonality for monthly/quarterly data and Holt's linear trend otherwise; ar fits an autoregression. Returns dated forecasts, an approximate 95% band from the residual spread, and in-sample fit. Run forecast_evaluate first to pick the method by out-of-sample error.",
       inputSchema: {
         series: REF,
         horizon: z.number().int().min(1).max(60).default(12),
@@ -527,11 +556,22 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         detail = { method: per > 1 ? `Holt-Winters additive, period ${per}` : "Holt linear trend", alpha: hw.alpha, beta: hw.beta, gamma: hw.gamma, level: r4(hw.level), trend_per_period: r4(hw.trend) };
       }
       const ape = v.map((x, i) => (Number.isFinite(fitted[i]) && x !== 0 ? Math.abs((x - fitted[i]) / x) : NaN)).filter(Number.isFinite);
+      const fc = future.map((d, i) => ({ date: d, value: r4(forecast[i]), lo95: r4(forecast[i] - 1.96 * sdv * Math.sqrt(i + 1)), hi95: r4(forecast[i] + 1.96 * sdv * Math.sqrt(i + 1)) }));
+      const lastD = dates[dates.length - 1], lastV = r4(v[v.length - 1]) as number;
+      // The chart joins the forecast to the last actual; the band starts at zero width there. Only finite rows go into the link.
+      const finite = fc.filter((p) => p.value !== null && p.lo95 !== null && p.hi95 !== null);
+      const chartSpec: PlotSpec = {
+        series: [series, { points: [[lastD, lastV], ...finite.map((p) => [p.date, p.value as number] as [string, number])], label: `${r.label}, forecast` }],
+        bands: [{ series: 1, label: "95% band", points: [[lastD, lastV, lastV], ...finite.map((p) => [p.date, p.lo95 as number, p.hi95 as number] as [string, number, number])] }],
+        title: `${r.label}: ${String(detail.method)} forecast, ${horizon} ahead`, api: self,
+      };
       return text({
-        ...meta(r), n: v.length, frequency: f.frequency, last_actual: [dates[dates.length - 1], r4(v[v.length - 1])],
+        ...meta(r), n: v.length, frequency: f.frequency, last_actual: [lastD, lastV],
         ...detail,
         in_sample: { mape_pct: ape.length ? r3(S.mean(ape) * 100) : null, resid_sd: r4(sdv) },
-        forecast: future.map((d, i) => ({ date: d, value: r4(forecast[i]), lo95: r4(forecast[i] - 1.96 * sdv * Math.sqrt(i + 1)), hi95: r4(forecast[i] + 1.96 * sdv * Math.sqrt(i + 1)) })),
+        forecast: fc,
+        chart_url: chartUrl(origin, chartSpec),
+        chart_note: "The chart redraws the actual series from live data; the forecast and band are the numbers above, fixed in the link.",
         caveat: "The band grows with the square root of the horizon from the residual spread. It ignores parameter uncertainty and regime change, so treat it as a floor on the real uncertainty.",
       });
     }),
@@ -541,11 +581,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "structural_break",
     {
       title: "Structural break",
-      description: "Chow test at a given date, or a sup-F scan over the sample to locate the most likely break. Tests a shift in the mean of y, or in the relation y = a + b x when x is given.",
-      inputSchema: { y: REF, x: REF.optional(), date: z.string().optional().describe("Candidate break date; omit to scan") },
+      description: "Chow test at a given date, or a sup-F scan (Quandt-Andrews) over the sample to locate the most likely break, judged against Andrews' sup-F critical values so a data-chosen date gets an honest verdict. Set max_breaks above 1 for a sequential Bai-Perron style search that returns every significant break and the mean or relation inside each segment. Tests a shift in the mean of y, or in the relation y = a + b x when x is given.",
+      inputSchema: { y: REF, x: REF.optional(), date: z.string().optional().describe("Candidate break date; omit to scan"), max_breaks: z.number().int().min(1).max(5).default(1).describe("Above 1: sequential search for several breaks") },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ y, x, date }) => {
+    wrap(async ({ y, x, date, max_breaks }) => {
       const ry = await get(y);
       const rx = x ? await get(x) : null;
       const { dates, columns } = align(rx ? [ry.series, rx.series] : [ry.series]);
@@ -560,11 +600,31 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "Chow", break_date: dates[b], F: r3(c.F), p: r4(c.p), n_before: c.n1, n_after: c.n2,
           mean_before: r4(S.mean(before)), mean_after: r4(S.mean(after)), verdict: c.p < 0.05 ? "Break at this date (5%)" : "No evidence of a break at this date" });
       }
+      const k = X[0].length;
       const s = S.supF(yv, X);
       const top = [...s.scan].sort((p, q) => q.F - p.F).slice(0, 5).map((e) => ({ date: dates[e.index], F: r3(e.F) }));
+      const crit = S.supFCritical(k), rej = S.supFReject(s.best.F, k);
+      const segOut = (seg: S.BreakSegment) => ({ from: dates[seg.start], to: dates[seg.end], n: seg.n, mean_y: r4(seg.mean_y), ...(rx ? { intercept: r4(seg.beta[0]), slope: r4(seg.beta[1]) } : {}) });
+      let multiple: Record<string, unknown> | undefined;
+      if (max_breaks > 1) {
+        const seq = S.sequentialBreaks(yv, X, max_breaks);
+        multiple = { breaks: seq.breaks.map((b) => ({ date: dates[b.index], sup_F: r3(b.F), reject_at: b.reject_at })), segments: seq.segments.map(segOut), stopped: seq.stopped };
+      }
+      const segAt = (lo: number, hi: number): S.BreakSegment => {
+        const ys = yv.slice(lo, hi), Xs = X.slice(lo, hi);
+        let beta: number[]; try { beta = S.ols(ys, Xs).beta; } catch { beta = new Array<number>(k).fill(NaN); }
+        return { start: lo, end: hi - 1, n: ys.length, beta, mean_y: S.mean(ys) };
+      };
+      const single = { segments: [segAt(0, s.best.break_index), segAt(s.best.break_index, yv.length)] };
       return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "sup-F scan (Quandt-Andrews), 15% trimming", most_likely_break: dates[s.best.break_index], sup_F: r3(s.best.F),
+        sup_F_critical: { "10%": r3(crit["10%"]), "5%": r3(crit["5%"]), "1%": r3(crit["1%"]) }, reject_no_break_at: rej,
         chow_p_at_that_date: r4(s.best.p), candidates: top,
-        caveat: "The sup-F statistic has its own critical values (Andrews 1993), higher than the F-distribution's: the Chow p-value at a data-chosen date overstates significance. Use the scan to locate, then confirm with a Chow test at a date you can justify." });
+        segments: rej && rej !== "10%" ? single.segments.map(segOut) : undefined,
+        multiple_breaks: multiple,
+        verdict: rej === null ? "No break: the largest F in the scan is below Andrews' 10% critical value, so the sample can be treated as one regime."
+          : rej === "10%" ? "Weak evidence of a break (10% only); do not split the sample on this alone."
+          : `Break at ${dates[s.best.break_index]} (sup-F ${r3(s.best.F)} beats the ${rej} critical value ${r3(crit[rej])}).${multiple ? ` Sequential search: ${(multiple.breaks as unknown[]).length} break(s), ${multiple.stopped}.` : " Set max_breaks above 1 to look for more."}`,
+        caveat: "Sup-F critical values are Andrews (1993) asymptotics with 15% trimming, simulated for this k; the plain Chow p-value at a data-chosen date overstates significance and is shown only for reference. The sequential search tests each segment on its own, so a break found late in the sequence has a weaker basis than the first. Breaks in the mean of a trending or non-stationary series are found everywhere; difference or detrend first." });
     }),
   );
 
@@ -804,25 +864,28 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "johansen",
     {
       title: "Johansen cointegration (2 to 5 series)",
-      description: "Trace test for the number of cointegrating relations among several I(1) series, with an unrestricted constant. Returns the eigenvalues, trace statistics against MacKinnon-Haug-Michelis critical values, the rank at 5%, and the first cointegrating vector normalised on the first series. Use cointegration (Engle-Granger) for exactly two series when you want the residual series.",
-      inputSchema: { series: z.array(REF).min(2).max(5), lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the VECM") },
+      description: "Trace test for the number of cointegrating relations among several I(1) series. deterministic='constant' (default) puts an unrestricted constant in the VAR, right for series that drift (price levels, logs of output); 'restricted_constant' puts the constant inside the cointegrating relation only, right for series without drift (interest rates, ratios, real exchange rates) and then reports the constant as part of the vector. Returns the eigenvalues, trace statistics against MacKinnon-Haug-Michelis critical values for the chosen case, the rank at 5%, the first cointegrating vector normalised on the first series, and a drift check that says which case fits the data. Use cointegration (Engle-Granger) for exactly two series when you want the residual series.",
+      inputSchema: { series: z.array(REF).min(2).max(5), lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the VECM"), deterministic: z.enum(["constant", "restricted_constant"]).default("constant") },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, lags }) => {
+    wrap(async ({ series, lags, deterministic }) => {
       const rs = await Promise.all(series.map(get));
       const { dates, columns } = align(rs.map((r) => r.series));
       if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
-      const j = S.johansen(Y, lags);
+      const j = S.johansen(Y, lags, deterministic);
+      const drift = driftCheck(rs.map((r) => r.label), columns, deterministic);
+      const labels = [...rs.map((r) => r.label), ...(deterministic === "restricted_constant" ? ["constant"] : [])];
       return text({
-        series: rs.map(meta), n: j.nobs, first: dates[0], last: dates[dates.length - 1], lags,
+        series: rs.map(meta), n: j.nobs, first: dates[0], last: dates[dates.length - 1], lags, deterministic,
         eigenvalues: j.eigenvalues.map(r4),
         trace_tests: j.trace.map((t) => ({ null_rank_at_most: t.r, statistic: r3(t.statistic), critical: t.critical, reject: t.reject })),
         rank_at_5pct: j.rank_at_5pct,
-        cointegrating_vector: j.cointegrating_vector ? Object.fromEntries(rs.map((r, i) => [r.label, r4(j.cointegrating_vector![i])])) : null,
-        reading: j.rank_at_5pct === 0 ? "No cointegrating relation at 5%: model these in differences (VAR on growth rates)."
-          : `${j.rank_at_5pct} cointegrating relation${j.rank_at_5pct > 1 ? "s" : ""} at 5%: a levels relation exists; an error-correction model is appropriate. The vector shows the long-run weights, normalised so the first series has weight 1.`,
-        caveat: "Critical values assume no deterministic trend in the cointegrating relation and no breaks. Results are sensitive to the lag choice; try lags 1 to 4.",
+        cointegrating_vector: j.cointegrating_vector ? Object.fromEntries(labels.map((l, i) => [l, r4(j.cointegrating_vector![i])])) : null,
+        drift_check: drift,
+        reading: [j.rank_at_5pct === 0 ? "No cointegrating relation at 5%: model these in differences (VAR on growth rates)."
+          : `${j.rank_at_5pct} cointegrating relation${j.rank_at_5pct > 1 ? "s" : ""} at 5%: a levels relation exists; an error-correction model is appropriate. The vector shows the long-run weights, normalised so the first series has weight 1${deterministic === "restricted_constant" ? ", with the constant of the relation as its last element" : ""}.`, drift.note].filter(Boolean).join(" "),
+        caveat: "Critical values assume no linear trend inside the cointegrating relation and no breaks. Results are sensitive to the lag choice; try lags 1 to 4. The wrong deterministic case biases the rank: an unrestricted constant on drift-free series over-rejects, a restricted one on drifting series mis-specifies the trend.",
       });
     }),
   );
@@ -836,21 +899,24 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         series: z.array(REF).min(2).max(5),
         lags: z.number().int().min(1).max(8).default(1).describe("Lagged differences in the model"),
         rank: z.number().int().min(1).max(4).optional().describe("Number of cointegrating relations; default from the Johansen trace test at 5%"),
+        deterministic: z.enum(["constant", "restricted_constant"]).default("constant").describe("constant: unrestricted, for drifting series; restricted_constant: inside the relation only, for drift-free series such as rates and ratios"),
       },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, lags, rank }) => {
+    wrap(async ({ series, lags, rank, deterministic }) => {
       const rs = await Promise.all(series.map(get));
       const { dates, columns } = align(rs.map((r) => r.series));
       if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
       let m: S.VecmResult;
-      try { m = S.vecm(Y, lags, rank); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+      try { m = S.vecm(Y, lags, rank, deterministic); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
       const labels = rs.map((r) => r.label);
+      const rc = deterministic === "restricted_constant";
+      const drift = driftCheck(labels, columns, deterministic);
       const relations = m.beta[0].map((_, c) => ({
         relation: c + 1,
-        long_run_vector: Object.fromEntries(labels.map((l, i) => [l, r4(m.beta[i][c])])),
-        equation: `${labels[0]} = ${labels.slice(1).map((l, i) => `${r4(-m.beta[i + 1][c])} × ${l}`).join(" + ")} + constant (normalised on ${labels[0]})`,
+        long_run_vector: Object.fromEntries([...labels.map((l, i) => [l, r4(m.beta[i][c])]), ...(rc ? [["constant", r4(m.beta_constant[c])]] : [])]),
+        equation: `${labels[0]} = ${labels.slice(1).map((l, i) => `${r4(-m.beta[i + 1][c])} × ${l}`).join(" + ")} ${rc ? `+ ${r4(-m.beta_constant[c])}` : "+ constant"} (normalised on ${labels[0]})`,
         adjustment: labels.map((l, i) => ({ series: l, alpha: r4(m.alpha[i][c]), t: r3(m.alpha_t[i][c]), p: r4(m.alpha_p[i][c]), adjusts: m.alpha_p[i][c] < 0.05, share_corrected_per_period: r3(Math.abs(m.alpha[i][c])) })),
         ect_last: r4(m.ect[m.ect.length - 1][c]),
         ect_mean: r4(m.ect.reduce((a, row) => a + row[c], 0) / m.ect.length),
@@ -858,7 +924,8 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const adjusters = relations[0].adjustment.filter((a) => a.adjusts).map((a) => a.series);
       const half = labels.map((l, i) => ({ l, a: m.alpha[i][0], p: m.alpha_p[i][0] })).filter((x) => x.p < 0.05 && x.a < 0).map((x) => `${x.l}: ${r3(Math.log(0.5) / Math.log(1 - Math.min(Math.abs(x.a), 0.99)))} periods`);
       return text({
-        series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags, rank: m.rank,
+        series: rs.map(meta), n: m.nobs, first: dates[0], last: dates[dates.length - 1], lags, rank: m.rank, deterministic,
+        drift_check: drift,
         johansen: { rank_at_5pct: m.johansen.rank_at_5pct, trace: m.johansen.trace.map((t) => ({ null_rank_at_most: t.r, statistic: r3(t.statistic), critical_5pct: t.critical["5%"], reject: t.reject })) },
         relations,
         short_run: m.gamma.map((G, l) => ({ lag: l + 1, coefficients: Object.fromEntries(labels.map((eq, i) => [eq, Object.fromEntries(labels.map((v, j) => [v, r4(G[i][j])]))])) })),
@@ -867,8 +934,9 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           adjusters.length ? `${adjusters.join(" and ")} respond${adjusters.length === 1 ? "s" : ""} to deviations from the long-run relation; the others are weakly exogenous (they drive, they do not adjust).` : "No series adjusts significantly: the relation is not being corrected in this sample, which weakens the cointegration case.",
           half.length ? `Half-life of a deviation: ${half.join(", ")}.` : "",
           `Deviation now (relation 1): ${relations[0].ect_last} against a sample mean of ${relations[0].ect_mean}; a value above the mean means ${labels[0]} sits above its long-run level given the others.`,
+          drift.note,
         ].filter(Boolean).join(" "),
-        caveat: "Alpha t-tests use OLS standard errors equation by equation. The constant is unrestricted (enters the differences). Sensitive to the lag choice and to breaks in the relation; check structural_break on the error-correction term if the sample spans a regime change.",
+        caveat: `Alpha t-tests use OLS standard errors equation by equation. ${rc ? "The constant is restricted to the cointegrating relation, so the error-correction term is already centred and the differences carry no separate intercept." : "The constant is unrestricted (enters the differences), so the error-correction term has a non-zero mean; read the current deviation against the sample mean."} Sensitive to the lag choice and to breaks in the relation; check structural_break on the error-correction term if the sample spans a regime change.`,
       });
     }),
   );
@@ -877,7 +945,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "var_model",
     {
       title: "Vector autoregression with impulse responses",
-      description: "Estimate a VAR(p) on 2 to 5 stationary series, lag order by AIC unless given. Returns coefficients, block Granger tests, orthogonalised impulse responses (Cholesky, in the order the series are given) and forecast error variance decomposition over the horizon. Pass growth rates or differences; the tool warns on non-stationary input.",
+      description: "Estimate a VAR(p) on 2 to 5 stationary series, lag order by AIC unless given. Returns coefficients, block Granger tests, orthogonalised impulse responses (Cholesky, in the order the series are given) and forecast error variance decomposition over the horizon. Pass growth rates or differences; the tool warns on non-stationary input. local_projections gives the same response with per-horizon bands and no lag structure imposed.",
       inputSchema: {
         series: z.array(REF).min(2).max(5),
         lags: z.number().int().min(1).max(12).optional().describe("Lag order; default chosen by AIC up to max_lags"),
@@ -936,10 +1004,237 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
   );
 
   server.registerTool(
+    "forecast_evaluate",
+    {
+      title: "Forecast backtest (rolling origin)",
+      description: "Which forecasting method actually works on this series? Re-fits every method at a series of past origins, forecasts the next `horizon` periods each time, and scores the errors against what happened: RMSE, MAE and MAPE by horizon and overall, a skill score against the naive no-change forecast, and Diebold-Mariano tests of whether the best method beats naive and the runner-up. Methods: naive, drift, seasonal_naive, holt, holt_winters, ar, arima. Run it before quoting a forecast; then call forecast with the winning method.",
+      inputSchema: {
+        series: REF,
+        horizon: z.number().int().min(1).max(24).default(6).describe("Steps ahead scored at every origin"),
+        origins: z.number().int().min(4).max(60).default(12).describe("How many past origins to re-fit at; the last one leaves room for a full horizon"),
+        step: z.number().int().min(1).max(12).default(1).describe("Periods between origins"),
+        methods: z.array(z.enum(["naive", "drift", "seasonal_naive", "holt", "holt_winters", "ar", "arima"])).min(1).optional().describe("Default: every method the series supports"),
+        ar_order: z.number().int().min(1).max(12).default(2),
+        max_train: z.number().int().min(48).max(3000).default(600).describe("At each origin, fit on at most this many of the latest observations (a rolling window once the sample is longer)"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, horizon, origins, step, methods, ar_order, max_train }) => {
+      const r = await get(series);
+      const { dates, v } = values(r.series);
+      const f = detectFrequency(dates);
+      const H = horizon;
+      const seasonalOk = f.period > 1;
+      const wanted = methods ?? ["naive", "drift", ...(seasonalOk ? ["seasonal_naive", "holt_winters"] : []), "holt", "ar", "arima"];
+      const minTrain = Math.max(24, 3 * (seasonalOk ? f.period : 1), 3 * ar_order + 6);
+      const need = minTrain + H + (origins - 1) * step;
+      if (v.length < minTrain + H + 4) return fail(`Only ${v.length} observations; need at least ${minTrain + H + 4} for a ${H}-step backtest (${minTrain} to train on, ${H} to score, a few origins).`);
+      const skipped: Array<{ method: string; why: string }> = [];
+      const lastVal = (a: number[]) => a[a.length - 1];
+      let arimaOrder: [number, number, number] | null = null;
+      const forecasters: Record<string, (train: number[]) => number[]> = {
+        naive: (t) => new Array<number>(H).fill(lastVal(t)),
+        drift: (t) => Array.from({ length: H }, (_, h) => lastVal(t) + ((h + 1) * (lastVal(t) - t[0])) / (t.length - 1)),
+        seasonal_naive: (t) => Array.from({ length: H }, (_, h) => t[t.length - f.period + (h % f.period)]),
+        holt: (t) => S.holtWinters(t, H, 1).forecast,
+        holt_winters: (t) => S.holtWinters(t, H, f.period).forecast,
+        ar: (t) => S.arForecast(t, ar_order, H).forecast,
+        arima: (t) => {
+          if (!arimaOrder) { const a = S.autoArima(t, H); arimaOrder = [a.p, a.d, a.q]; return a.forecast; }
+          return S.arima(t, arimaOrder[0], arimaOrder[1], arimaOrder[2], H).forecast;
+        },
+      };
+      const runs: Array<{ method: string; bt: S.BacktestErrors }> = [];
+      for (const m of wanted) {
+        if ((m === "seasonal_naive" || m === "holt_winters") && !seasonalOk) { skipped.push({ method: m, why: `${f.frequency} data has no seasonal period` }); continue; }
+        try {
+          const bt = S.rollingOrigin(v, (train) => forecasters[m](train.length > max_train ? train.slice(-max_train) : train), H, origins, minTrain, step);
+          if (bt.failures === bt.origins.length) { skipped.push({ method: m, why: "failed at every origin" }); continue; }
+          runs.push({ method: m, bt });
+        } catch (e) { skipped.push({ method: m, why: e instanceof Error ? e.message : String(e) }); }
+      }
+      if (!runs.length) return fail(`No method could be evaluated: ${skipped.map((s) => `${s.method} (${s.why})`).join("; ")}`);
+      const orig = runs[0].bt.origins;
+      const actualsAt = (h: number) => orig.map((o) => v[o + 1 + h]);
+      const scored = runs.map(({ method, bt }) => {
+        const byH = Array.from({ length: H }, (_, h) => S.errorMetrics(bt.errors.map((row) => row[h]), actualsAt(h)));
+        const allE = bt.errors.flat(), allA = orig.flatMap((o) => Array.from({ length: H }, (_, h) => v[o + 1 + h]));
+        const overall = S.errorMetrics(allE, allA);
+        return { method, bt, byH, overall };
+      }).sort((a, b) => a.overall.rmse - b.overall.rmse);
+      const naive = scored.find((s) => s.method === "naive");
+      const best = scored[0], second = scored[1];
+      const dm = (a: typeof best, b: typeof best, h: number) => {
+        try {
+          const d = S.dieboldMariano(a.bt.errors.map((row) => row[h]), b.bt.errors.map((row) => row[h]), h + 1);
+          const verdict = d.degenerate ? (d.better === 1 ? `${a.method} is better at every origin (constant gap, no sampling variance)` : d.better === 2 ? `${b.method} is better at every origin (constant gap, no sampling variance)` : "identical losses") : d.better === 1 ? `${a.method} is better` : d.better === 2 ? `${b.method} is better` : "no significant difference";
+          return { horizon: h + 1, statistic: Number.isFinite(d.statistic) ? r3(d.statistic) : null, p: r4(d.p), n: d.n, verdict, degenerate: d.degenerate || undefined };
+        } catch (e) { return { horizon: h + 1, statistic: null, p: null, n: 0, verdict: `not tested: ${e instanceof Error ? e.message : String(e)}`, degenerate: undefined }; }
+      };
+      const tests: Record<string, unknown> = {};
+      if (naive && naive !== best) tests[`${best.method}_vs_naive`] = [dm(best, naive, 0), H > 1 ? dm(best, naive, H - 1) : null].filter(Boolean);
+      if (second && second !== naive) tests[`${best.method}_vs_${second.method}`] = [dm(best, second, 0), H > 1 ? dm(best, second, H - 1) : null].filter(Boolean);
+      const skill = (s: typeof best) => (naive && Number.isFinite(naive.overall.rmse) && naive.overall.rmse > 0 ? r3(1 - s.overall.rmse / naive.overall.rmse) : null);
+      const bestVsNaive = tests[`${best.method}_vs_naive`] as Array<{ verdict: string; degenerate?: boolean }> | undefined;
+      const beatsNaive = bestVsNaive?.some((t) => t.verdict.startsWith(best.method) && !t.degenerate);
+      const degenerateWin = !beatsNaive && bestVsNaive?.some((t) => t.verdict.startsWith(best.method) && t.degenerate);
+      const naiveTested = bestVsNaive?.some((t) => !t.verdict.startsWith("not tested") && !t.degenerate);
+      const methodArg = best.method === "naive" || best.method === "drift" || best.method === "seasonal_naive" ? null : best.method;
+      return text({
+        ...meta(r), n: v.length, frequency: f.frequency, horizon: H,
+        origins: { count: orig.length, step, first: dates[orig[0]], last: dates[orig[orig.length - 1]], scored_through: dates[orig[orig.length - 1] + H], min_training_points: minTrain, training_window: v.length > max_train ? `rolling, last ${max_train} observations` : "expanding, all history" },
+        arima_order: arimaOrder ? { order: arimaOrder, note: "Chosen by AIC on the first training window and held fixed after that" } : undefined,
+        ranking: scored.map((s, i) => ({
+          rank: i + 1, method: s.method,
+          rmse: r4(s.overall.rmse), mae: r4(s.overall.mae), mape_pct: s.overall.mape === null ? null : r3(s.overall.mape), bias: r4(s.overall.bias),
+          skill_vs_naive: s.method === "naive" ? 0 : skill(s),
+          by_horizon: s.byH.map((m, h) => ({ h: h + 1, rmse: r4(m.rmse), mae: r4(m.mae), mape_pct: m.mape === null ? null : r3(m.mape) })),
+          failed_origins: s.bt.failures || undefined,
+        })),
+        diebold_mariano: tests,
+        skipped: skipped.length ? skipped : undefined,
+        reading: [
+          `Over ${orig.length} origins from ${dates[orig[0]]} to ${dates[orig[orig.length - 1]]}, ${best.method} had the lowest ${H}-step RMSE (${r4(best.overall.rmse)})${naive && naive !== best ? ` against ${r4(naive.overall.rmse)} for naive, a skill of ${r3((skill(best) ?? 0) * 100)}%` : ""}.`,
+          naive && naive !== best ? (beatsNaive ? "The Diebold-Mariano test says that improvement is real at 5%." : degenerateWin ? `${best.method} beats naive by the same margin at every origin, so there is no sampling variation to test: the series is close to deterministic over this window.` : naiveTested ? "The Diebold-Mariano test cannot distinguish it from naive: the series is close to unpredictable at this horizon and a no-change forecast is as honest a statement." : "Too few origins for a Diebold-Mariano test (it needs 6 paired errors), so whether that gap is real is untested; raise origins.") : best.method === "naive" ? "Naive wins: nothing here forecasts better than the last value. Quote the last value with the error band, not a model." : "",
+          Math.abs(best.overall.bias) > 0.5 * best.overall.mae ? `${best.method} is biased (mean error ${r4(best.overall.bias)}): it systematically ${best.overall.bias > 0 ? "under" : "over"}-forecasts, a sign of a trend or level shift the method does not track.` : "",
+          methodArg ? `Next: forecast with method='${methodArg}'.` : "",
+        ].filter(Boolean).join(" "),
+        recommended_call: methodArg ? { tool: "forecast", args: { series, method: methodArg, horizon: H, ...(methodArg === "ar" ? { ar_order } : {}), ...(methodArg === "arima" && arimaOrder ? { arima_order: arimaOrder } : {}) } } : null,
+        caveat: `Each origin re-estimates the model on data up to that point, so the scores are genuinely out of sample, but ${orig.length} origins is a small sample for the Diebold-Mariano test and adjacent origins overlap; treat a p-value near 0.05 as a coin toss. Errors are in the units of the series (${r.transform === "none" ? "levels" : r.transform}); MAPE is undefined when an actual is zero. ${need > v.length ? `Fewer origins than requested fit the sample.` : ""}`.trim(),
+      });
+    }),
+  );
+
+  server.registerTool(
+    "local_projections",
+    {
+      title: "Local projections (Jordà impulse response)",
+      description: "Impulse response of y to a shock in x by local projections: for each horizon h, regress y(t+h) on x(t) with lags of both (and of any controls) and report the coefficient with Newey-West bands. Unlike var_model it imposes no lag structure across horizons and gives a confidence band per horizon, at the cost of noisier long-horizon estimates. Pass stationary series (growth rates, differences). Responses are per unit of x and per one-standard-deviation shock, plus the cumulative response.",
+      inputSchema: {
+        y: REF, x: REF,
+        controls: z.array(REF).max(3).optional().describe("Extra series whose lags enter as controls"),
+        horizon: z.number().int().min(1).max(40).default(12),
+        lags: z.number().int().min(1).max(8).optional().describe("Lags of y, x and controls as controls; default 4 (2 for annual data)"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ y, x, controls, horizon, lags }) => {
+      const ry = await get(y), rx = await get(x);
+      const rc = await Promise.all((controls ?? []).map(get));
+      const { dates, columns } = align([ry.series, rx.series, ...rc.map((c) => c.series)]);
+      if (dates.length < 40) return fail(`Only ${dates.length} shared dates; need 40 or more.`);
+      const f = detectFrequency(dates);
+      const p = lags ?? (f.frequency === "annual" ? 2 : 4);
+      let lp: S.LpResult;
+      try { lp = S.localProjections(columns[0], columns[1], horizon, p, columns.slice(2)); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+      const warnings: string[] = [];
+      [ry, rx, ...rc].forEach((r, i) => { try { if (!S.adf(columns[i], "c").reject_unit_root_at) warnings.push(`${r.label} looks non-stationary; local projections on levels can be spurious. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
+      let cum = 0;
+      const rows = lp.horizons.map((h) => {
+        cum += h.beta;
+        return { h: h.h, response: r4(h.beta), se: r4(h.se), lo90: r4(h.beta - 1.645 * h.se), hi90: r4(h.beta + 1.645 * h.se), lo95: r4(h.beta - 1.96 * h.se), hi95: r4(h.beta + 1.96 * h.se), t: r3(h.t), p: r4(h.p), significant_5pct: h.p < 0.05, response_to_1sd_shock: r4(h.beta * lp.shock_sd), cumulative: r4(cum), n: h.n };
+      });
+      const sig = rows.filter((r) => r.significant_5pct).map((r) => r.h);
+      const peak = rows.reduce((a, b) => (Math.abs(b.response ?? 0) > Math.abs(a.response ?? 0) ? b : a), rows[0]);
+      const impact = rows[0];
+      const hx = (h: number) => String(h).padStart(2, "0");
+      const finiteRows = rows.filter((r) => r.response !== null && r.lo95 !== null && r.hi95 !== null && r.cumulative !== null);
+      const chartSpec: PlotSpec = {
+        series: [
+          { points: finiteRows.map((r) => [hx(r.h), r.response as number]), label: `response of ${ry.label} to a unit shock in ${rx.label}` },
+          { points: finiteRows.map((r) => [hx(r.h), r.cumulative as number]), label: "cumulative response" },
+        ],
+        bands: [{ series: 0, label: "95% band", points: finiteRows.map((r) => [hx(r.h), r.lo95 as number, r.hi95 as number]) }],
+        xaxis: "number", title: `Local projections: ${ry.label} after a shock to ${rx.label}`, api: self,
+      };
+      return text({
+        y: meta(ry), x: meta(rx), controls: rc.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1], frequency: f.frequency, lags: p, horizon,
+        shock_sd: r4(lp.shock_sd),
+        responses: rows,
+        chart_url: chartUrl(origin, chartSpec),
+        peak: { h: peak.h, response: peak.response, response_to_1sd_shock: peak.response_to_1sd_shock },
+        cumulative_at_horizon: rows[rows.length - 1].cumulative,
+        reading: [
+          `A one-unit move in ${rx.label} shifts ${ry.label} by ${impact.response} on impact${impact.significant_5pct ? "" : " (not significant)"}, with the largest response at h=${peak.h} (${peak.response}, or ${peak.response_to_1sd_shock} for a typical one-sd shock).`,
+          sig.length ? `Significant at 5% at horizons ${sig.length > 6 ? `${sig[0]}..${sig[sig.length - 1]} (${sig.length} of ${rows.length})` : sig.join(", ")}.` : "No horizon is significant at 5%: no measurable response once the lags are controlled for.",
+          `Cumulative response after ${horizon} periods: ${rows[rows.length - 1].cumulative}.`,
+          "Compare with var_model: if both agree on sign and timing the finding is robust to the lag structure; if they differ, the VAR is imposing shape the data do not support.",
+        ].join(" "),
+        warnings,
+        caveat: `Newey-West bandwidth equals the horizon, which handles the overlap the h-step target creates. The response is to x(t) after controlling for ${p} lags of everything, so it is a reduced-form timing relation, not an identified structural shock; contemporaneous feedback from y to x within a period is not ruled out. Bands widen and the sample shrinks by one observation per horizon.`,
+      });
+    }),
+  );
+
+  server.registerTool(
+    "iv_regress",
+    {
+      title: "Instrumental variables (2SLS)",
+      description: "Two-stage least squares for when x is endogenous: it is set jointly with y, or a confounder moves both, so OLS is biased. Needs at least one instrument per endogenous regressor: a series that moves x but affects y only through x. Returns the 2SLS coefficients with plain and Newey-West errors next to OLS, the first-stage F of the excluded instruments (below 10 means weak instruments and unreliable estimates), the Wu-Hausman test of whether x is endogenous at all (if not, OLS is fine and more precise), and the Sargan over-identification test when there are more instruments than endogenous regressors. Typical: a supply shifter (weather, input cost) as the instrument for quantity in a demand equation, or a policy rate abroad for the domestic one.",
+      inputSchema: {
+        y: REF,
+        x: z.array(REF).min(1).max(2).describe("Endogenous regressors"),
+        instruments: z.array(REF).min(1).max(4).describe("Excluded instruments: move x, affect y only through x"),
+        exog: z.array(REF).max(4).optional().describe("Exogenous controls, in both stages"),
+        hac_lags: z.number().int().min(0).max(24).optional().describe("Newey-West bandwidth; default 4(n/100)^(2/9)"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ y, x, instruments, exog, hac_lags }) => {
+      const ry = await get(y);
+      const rx = await Promise.all(x.map(get)), rz = await Promise.all(instruments.map(get)), rw = await Promise.all((exog ?? []).map(get));
+      const { dates, columns } = align([ry.series, ...rx.map((r) => r.series), ...rz.map((r) => r.series), ...rw.map((r) => r.series)]);
+      if (dates.length < 20) return fail(`Only ${dates.length} shared dates across y, x, instruments and controls; need 20 or more.`);
+      const T = dates.length;
+      const col = (i: number) => columns[i];
+      const endog = Array.from({ length: T }, (_, t) => rx.map((_, j) => col(1 + j)[t]));
+      const inst = Array.from({ length: T }, (_, t) => rz.map((_, j) => col(1 + rx.length + j)[t]));
+      const ex = rw.length ? Array.from({ length: T }, (_, t) => rw.map((_, j) => col(1 + rx.length + rz.length + j)[t])) : [];
+      let iv: S.IvResult;
+      try { iv = S.twoSLS(col(0), endog, inst, ex, hac_lags); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+      const names = ["const", ...rx.map((r) => r.label), ...rw.map((r) => r.label)];
+      const table = names.map((term, j) => ({
+        term, coef_2sls: r4(iv.beta[j]), se: r4(iv.se[j]), t: r3(iv.t[j]), p: r4(iv.p[j]),
+        hac_se: r4(iv.hac_se[j]), hac_t: r3(iv.beta[j] / iv.hac_se[j]), hac_p: r4(S.tTwoSidedP(iv.beta[j] / iv.hac_se[j], iv.n - iv.k)),
+        coef_ols: r4(iv.ols.beta[j]), ols_se: r4(iv.ols.se[j]),
+      }));
+      const weak = iv.first_stage.map((f, j) => ({ endogenous: rx[j].label, F_excluded_instruments: r3(f.F_excluded), p: r4(f.F_p), df: f.df, r2: r4(f.r2), partial_r2: r4(f.partial_r2), weak: f.F_excluded < 10 }));
+      const anyWeak = weak.some((w) => w.weak);
+      const endogenous = iv.wu_hausman.p < 0.05;
+      const warnings: string[] = [];
+      const levels = ry.transform === "none" || ry.transform === "log" || ry.transform === "rebase";
+      if (levels && T >= 20) {
+        try {
+          const ay = S.adf(col(0), "c");
+          if (!ay.reject_unit_root_at && rx.some((_, j) => { try { return !S.adf(col(1 + j), "c").reject_unit_root_at; } catch { return false; } })) warnings.push("y and at least one x look non-stationary in levels; 2SLS on levels can be spurious like OLS. Use transform='pct_change' or 'diff', or establish cointegration first.");
+        } catch { /* skip */ }
+      }
+      const allLog = [ry, ...rx, ...rw].every((r) => r.transform === "log");
+      return text({
+        y: meta(ry), x: rx.map(meta), instruments: rz.map(meta), exog: rw.map(meta),
+        n: iv.n, first: dates[0], last: dates[T - 1], identification: iv.L === iv.m ? "just identified" : `over-identified (${iv.L} instruments for ${iv.m} endogenous regressor${iv.m > 1 ? "s" : ""})`,
+        coefficients: table,
+        r2: r4(iv.r2), sigma: r4(iv.sigma), hac_lags: iv.hac_lag,
+        first_stage: weak,
+        wu_hausman: { F: r3(iv.wu_hausman.F), p: r4(iv.wu_hausman.p), df: iv.wu_hausman.df, endogenous_at_5pct: endogenous, null_hypothesis: "x is exogenous: OLS and 2SLS estimate the same thing" },
+        sargan: iv.sargan ? { statistic: r3(iv.sargan.statistic), p: r4(iv.sargan.p), df: iv.sargan.df, instruments_valid_at_5pct: iv.sargan.p >= 0.05, null_hypothesis: "The over-identifying instruments are uncorrelated with the error" } : null,
+        elasticities: allLog ? "Both sides are in logs, so each coefficient is an elasticity." : undefined,
+        reading: [
+          anyWeak ? `Weak instruments: first-stage F ${weak.filter((w) => w.weak).map((w) => `${w.F_excluded_instruments} for ${w.endogenous}`).join(", ")} is below 10, so the 2SLS estimate is biased towards OLS and its standard errors understate the uncertainty. Find a stronger instrument before quoting the number.` : `Instruments are strong (first-stage F ${weak.map((w) => w.F_excluded_instruments).join(", ")}).`,
+          endogenous ? `Wu-Hausman rejects exogeneity (p ${r4(iv.wu_hausman.p)}): OLS is biased here, so the 2SLS coefficient on ${rx.map((r) => r.label).join(", ")} (${table.slice(1, 1 + rx.length).map((r) => r.coef_2sls).join(", ")}) is the one to quote, against ${table.slice(1, 1 + rx.length).map((r) => r.coef_ols).join(", ")} by OLS.` : `Wu-Hausman does not reject exogeneity (p ${r4(iv.wu_hausman.p)}): OLS and 2SLS agree within noise, and OLS is the more precise estimate.`,
+          iv.sargan ? (iv.sargan.p < 0.05 ? `Sargan rejects (p ${r4(iv.sargan.p)}): at least one instrument affects y directly, so the exclusion restriction fails and the estimate is not identified.` : `Sargan does not reject (p ${r4(iv.sargan.p)}): the over-identifying instruments are consistent with each other.`) : "Just identified: the exclusion restriction cannot be tested, it has to be argued.",
+        ].join(" "),
+        warnings,
+        caveat: "2SLS is consistent, not unbiased: in small samples it leans towards OLS, more so with weak instruments. The instrument must be relevant (testable, first-stage F) and excludable (only arguable: Sargan tests consistency among instruments, not validity). HAC errors use the structural residuals and the fitted regressors.",
+      });
+    }),
+  );
+
+  server.registerTool(
     "suggest_analysis",
     {
       title: "Suggest an analysis plan",
-      description: "Inspect one or more series (frequency, length, integration order, trend, seasonality, volatility clustering, overlap) and return an ordered plan of tool calls with the reason for each, plus the pitfalls the data carry. Routes to the right member of the toolkit, including volatility for ARCH effects, principal_components for three or more series, quantile_regress for tail behaviour and panel_regress when the series come from a country panel. Use it before choosing a method.",
+      description: "Inspect one or more series (frequency, length, integration order, trend, seasonality, volatility clustering, overlap) and return an ordered plan of tool calls with the reason for each, plus the pitfalls the data carry. Routes to the right member of the toolkit, including forecast_evaluate before forecast, local_projections next to var_model, iv_regress when the question is causal and an instrument exists, volatility for ARCH effects, principal_components for three or more series, quantile_regress for tail behaviour and panel_regress when the series come from a country panel. Use it before choosing a method.",
       inputSchema: { series: z.array(REF).min(1).max(4), question: z.string().optional().describe("What you want to know, e.g. 'does feed price drive cattle price?'") },
       annotations: { readOnlyHint: true },
     },
@@ -950,6 +1245,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         label: rs[i].label, n: p.n, frequency: p.frequency, first: p.dates[0], last: p.dates[p.n - 1],
         integration_order: integrationOrder(p.adfLevel, p.adfDiff),
         trending: p.trendFit ? Math.abs(p.trendFit.t[1]) > 4 : false,
+        drifts: Math.abs(S.driftT(p.v)) > 2,
         seasonal_strength: p.decomposition ? r3(p.decomposition.seasonal_strength) : null,
         positive_only: p.v.every((x) => x > 0),
         volatility_clustering_p: (() => { const a = archProbe(p.v); return a ? r4(a.p) : null; })(),
@@ -986,6 +1282,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const f = facts[0];
         if (f.trending || f.integration_order === "I(1)") plan.push({ step: step++, tool: "hp_filter", why: "Separate the trend from the cycle before reading turning points", args: { series: refOf(0) } });
         plan.push({ step: step++, tool: "structural_break", why: "Check whether one regime describes the whole sample before forecasting", args: { y: refOf(0) } });
+        if (f.n >= 60) plan.push({ step: step++, tool: "forecast_evaluate", why: "Let a rolling backtest pick the method: out-of-sample error against naive, not in-sample fit", args: { series: refOf(0) } });
         plan.push({ step: step++, tool: "forecast", why: f.seasonal_strength !== null && (f.seasonal_strength as number) > 0.3 ? "Holt-Winters handles the seasonality; compare with AR" : "Holt linear trend, then compare with AR", args: { series: refOf(0), method: "auto" } });
       } else {
         const orders = facts.map((f) => f.integration_order);
@@ -994,9 +1291,12 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const stationaryArgs = (i: number) => ({ ...refOf(i), transform: facts[i].positive_only ? "pct_change" : "diff" });
         if (allI1) {
           pitfalls.push("All series are I(1): a levels regression or a levels correlation between them will look strong whether or not they are related. Test cointegration first.");
-          if (facts.length > 2) plan.push({ step: step++, tool: "johansen", why: `${facts.length} I(1) series: count the cointegrating relations before choosing levels or differences`, args: { series: facts.map((_, i) => refOf(i)) } });
+          // Drift, not a levels trend fit: a trend regression on a random walk is spurious and reads "trending" most of the time.
+          const det = facts.some((f) => f.drifts) ? "constant" : "restricted_constant";
+          if (det === "restricted_constant") pitfalls.push("None of the series drifts (mean first difference not significant), so the Johansen constant belongs inside the cointegrating relation (deterministic='restricted_constant'); the default unrestricted constant over-rejects on drift-free series.");
+          if (facts.length > 2) plan.push({ step: step++, tool: "johansen", why: `${facts.length} I(1) series: count the cointegrating relations before choosing levels or differences`, args: { series: facts.map((_, i) => refOf(i)), deterministic: det } });
           plan.push({ step: step++, tool: "cointegration", why: "Both I(1): find out if a long-run relation exists before regressing levels", args: { a: refOf(0), b: refOf(1) } });
-          plan.push({ step: step++, tool: "vecm", why: "If cointegrated: which series does the adjusting, how fast, and how far the system is from equilibrium now", args: { series: facts.map((_, i) => refOf(i)) } });
+          plan.push({ step: step++, tool: "vecm", why: "If cointegrated: which series does the adjusting, how fast, and how far the system is from equilibrium now", args: { series: facts.map((_, i) => refOf(i)), deterministic: det } });
           plan.push({ step: step++, tool: "cross_correlation", why: "On growth rates, find which one moves first and by how many periods", args: { a: stationaryArgs(0), b: stationaryArgs(1) } });
           plan.push({ step: step++, tool: "granger_causality", why: "On growth rates, test predictive precedence in both directions", args: { a: stationaryArgs(0), b: stationaryArgs(1), lags: facts[0].frequency === "monthly" ? 3 : 2 } });
           plan.push({ step: step++, tool: "regress", why: "If cointegrated: levels regression (in logs for elasticities) is meaningful with HAC errors. If not: regress growth on growth.", args: { y: { ...refOf(0), transform: "log" }, x: [{ ...refOf(1), transform: "log" }] } });
@@ -1017,6 +1317,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           plan.push({ step: step++, tool: "quantile_regress", why: "Check whether the relation is the same in calm and extreme periods, not only on average", args: { y: stationaryArgs(0), x: [stationaryArgs(1)] } });
         }
         plan.push({ step: step++, tool: "var_model", why: "On stationary transforms, trace how a shock to one series propagates to the others and how much of each series' variance the others explain", args: { series: facts.map((_, i) => stationaryArgs(i)) } });
+        plan.push({ step: step++, tool: "local_projections", why: "The same impulse response without the VAR's lag structure, with a confidence band per horizon; agreement with var_model makes the timing robust", args: { y: stationaryArgs(0), x: stationaryArgs(1) } });
         plan.push({ step: step++, tool: "rolling", why: "Check whether the relationship is stable over time before quoting one number", args: { series: stationaryArgs(0), other: stationaryArgs(1), stat: "corr", window: facts[0].frequency === "monthly" ? 36 : 10 } });
         plan.push({ step: step++, tool: "structural_break", why: "Locate a regime change in the relation, then re-estimate on the stable sample", args: { y: stationaryArgs(0), x: stationaryArgs(1) } });
       }
@@ -1036,6 +1337,9 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         } else {
           pitfalls.push(`All ${facts.length} series are '${panel.indicators[0]}' for different countries in ${panel.dataset}. Comparing two countries answers a narrower question than panel_regress across all of them.`);
         }
+      }
+      if (!single && question && /\b(caus|effect of|impact of|drives?|driven|elasticit)/i.test(question)) {
+        pitfalls.push("The question is causal. regress, granger_causality and local_projections measure timing and association, not causation: a common driver (energy, exchange rate, demand) can produce all of them. If a series exists that moves the explanatory variable but reaches the outcome only through it (a supply shifter, a foreign policy rate, weather), iv_regress with it as the instrument is the test that separates the two.");
       }
       return text({
         question: question ?? null,

@@ -37,7 +37,7 @@ Every answer carries the series' source and caveats. That is the point: a model 
 
 | Tool | What it does |
 |---|---|
-| `plot` | Resolves up to 8 series references and returns a `chart_url` on the site. Options: title, log scale, which series go on a right-hand axis. |
+| `plot` | Resolves up to 8 series references and returns a `chart_url` on the site. Options: title, log scale, which series go on a right-hand axis, shaded bands, a numeric x axis for horizons. `forecast` and `local_projections` return a ready `chart_url` with their band. |
 
 The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`), a plain HTTP endpoint that resolves the same series references and returns points, sources and caveats. Anything that speaks HTTP can use it directly.
 
@@ -55,25 +55,28 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `suggest_analysis` | Inspects frequency, length, integration order, trend, seasonality and overlap, then returns an ordered plan of tool calls with reasons and the pitfalls the data carry. Call this first. |
 | `describe_stats` | Moments, quantiles, autocorrelations, Ljung-Box, Jarque-Bera, ADF on levels and differences, trend and seasonal strength. |
 | `test_stationarity` | Augmented Dickey-Fuller with MacKinnon critical values plus KPSS, lag length by AIC, integration order and a joint reading. |
-| `regress` | OLS with Newey-West standard errors, R², Durbin-Watson, AIC/BIC, residual tests, optional distributed lags and trend. Warns when a levels regression looks spurious. Log both sides for elasticities. |
+| `regress` | OLS with Newey-West standard errors, R², Durbin-Watson, AIC/BIC, residual tests, Breusch-Pagan, VIF and RESET diagnostics, optional distributed lags and trend. Warns when a levels regression looks spurious. Log both sides for elasticities. |
 | `granger_causality` | F-tests in both directions, with a non-stationarity warning. |
 | `cointegration` | Engle-Granger: long-run vector, residual unit-root test, equilibrium error. |
-| `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, rank and first cointegrating vector. |
-| `vecm` | Vector error-correction model on cointegrated series: long-run vectors, adjustment coefficients with t-tests (who corrects, how fast, half-life), short-run lags, and the current deviation from equilibrium. |
+| `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, unrestricted or restricted constant, rank, first cointegrating vector, and a drift check that says which case the data support. |
+| `vecm` | Vector error-correction model on cointegrated series: long-run vectors (with the constant inside the relation when restricted), adjustment coefficients with t-tests (who corrects, how fast, half-life), short-run lags, and the current deviation from equilibrium. |
 | `var_model` | VAR(p) with lag order by AIC, block Granger tests, orthogonalised impulse responses and variance decomposition. |
+| `local_projections` | Jordà impulse response of y to a shock in x: one regression per horizon with Newey-West bands, responses per unit and per one-sd shock, cumulative response. The check on `var_model`. |
 | `cross_correlation` | Correlation by lead and lag with a significance band. |
 | `hp_filter` | Trend and cycle, lambda by frequency. |
 | `decompose` | Classical seasonal decomposition, factors per month or quarter, strength measures. |
 | `forecast` | Holt-Winters, Holt, AR(p), or ARIMA(p,d,q) with order by AIC, with dated forecasts and an approximate band. |
+| `forecast_evaluate` | Rolling-origin backtest of naive, drift, seasonal naive, Holt, Holt-Winters, AR and ARIMA: RMSE, MAE, MAPE by horizon, skill against naive, Diebold-Mariano tests of the winner. Run it before `forecast`. |
 | `deflate` | A nominal series in constant prices of a base date, using any price index as deflator. |
-| `structural_break` | Chow test at a date, or a sup-F scan to locate one. |
+| `structural_break` | Chow test at a date, or a sup-F scan judged against Andrews critical values; `max_breaks` runs a sequential search for several breaks with the mean or relation per segment. |
 | `volatility` | ARCH-LM test and a GARCH(1,1) fit: persistence, unconditional and conditional volatility, one-step forecast. |
+| `iv_regress` | Two-stage least squares when x is endogenous: 2SLS next to OLS with HAC errors, first-stage F for weak instruments, Wu-Hausman for endogeneity, Sargan for over-identification. |
 | `quantile_regress` | Regression at several quantiles next to OLS, to see whether the relation differs in the tails. |
 | `principal_components` | Common factor across 2 to 8 series: explained variance, loadings, factor scores. |
 | `panel_regress` | Fixed-effects, pooled and between regressions across countries on `UNIT|INDICATOR` datasets, clustered standard errors, F test for country effects. |
 | `rolling` | Rolling mean, standard deviation, or correlation. |
 
-The numerics are in `src/stats.ts`, dependency-free so they run on the Worker. Critical values are MacKinnon (1991); p-values come from the t, F and chi-square distributions. `test/stats.test.mjs` checks each estimator against known answers on seeded data.
+The numerics are in `src/stats.ts`, dependency-free so they run on the Worker. Critical values are MacKinnon (1991) for the unit-root tests and Andrews (1993) asymptotics for the sup-F test, the latter simulated from the Brownian bridge (see the comment in `stats.ts`); p-values come from the t, F and chi-square distributions. `test/stats.test.mjs` checks each estimator against known answers on seeded data.
 
 Resources: `econ://catalog` and `econ://dataset/{name}`.
 
@@ -121,5 +124,5 @@ Provider parsers are tested against canned replies in `test/fixtures.mjs` in the
 ## Later
 
 - Per-user login (OAuth 2.1 through Cloudflare's `workers-oauth-provider`) and Stripe metering. The bearer check in `src/index.ts` is the seam.
-- Structural VAR identification beyond Cholesky ordering; restricted constants in the VECM.
+- Structural VAR identification beyond Cholesky ordering; a linear trend inside the cointegrating relation.
 - IMF provider once its SDMX 3 endpoint settles; EIA and UN Comtrade with keys.

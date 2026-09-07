@@ -235,15 +235,17 @@ export function neweyWest(X: number[][], resid: number[], XtXinv: number[][], la
   const L = lag ?? Math.floor(4 * Math.pow(n / 100, 2 / 9));
   const S: number[][] = Array.from({ length: k }, () => new Array<number>(k).fill(0));
   const g = X.map((r, i) => r.map((v) => v * resid[i]));
+  // Each lag's contribution g_t g_{t-l}' + g_{t-l} g_t' is symmetric, so only the upper triangle is accumulated.
   for (let l = 0; l <= L; l++) {
     const w = l === 0 ? 1 : 1 - l / (L + 1);
     for (let t = l; t < n; t++) {
-      for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) {
-        const term = g[t][a] * g[t - l][b];
-        S[a][b] += w * (l === 0 ? term : term + g[t - l][a] * g[t][b]);
+      const gt = g[t], gl = g[t - l];
+      for (let a = 0; a < k; a++) for (let b = a; b < k; b++) {
+        S[a][b] += w * (l === 0 ? gt[a] * gt[b] : gt[a] * gl[b] + gl[a] * gt[b]);
       }
     }
   }
+  for (let a = 0; a < k; a++) for (let b = 0; b < a; b++) S[a][b] = S[b][a];
   // V = (X'X)^-1 S (X'X)^-1
   const tmp = XtXinv.map((row) => S[0].map((_, j) => row.reduce((s, v, m) => s + v * S[m][j], 0)));
   const V = tmp.map((row) => XtXinv[0].map((_, j) => row.reduce((s, v, m) => s + v * XtXinv[m][j], 0)));
@@ -511,17 +513,68 @@ export function chow(y: number[], X: number[][], b: number): ChowResult {
   return { break_index: b, F, p: fUpperP(F, k, y.length - 2 * k), k, n1: b, n2: y.length - b };
 }
 
-/** Quandt-Andrews sup-F scan over the middle (1 - 2*trim) of the sample. Critical values differ from F; treat as a locator. */
-export function supF(y: number[], X: number[][], trim = 0.15): { best: ChowResult; scan: Array<{ index: number; F: number }> } {
-  const n = y.length, lo = Math.max(Math.floor(n * trim), X[0].length + 2), hi = Math.min(Math.ceil(n * (1 - trim)), n - X[0].length - 2);
+/**
+ * Residual sum of squares of y on X over rows [lo, hi) from prefix sums, for X = [1] or
+ * [1, x]. Returns null when the segment cannot identify the slope.
+ */
+function segmentRssFactory(y: number[], X: number[][]): ((lo: number, hi: number) => number | null) | null {
+  const k = X[0].length;
+  if (k > 2 || X.some((r) => r[0] !== 1)) return null;
+  const n = y.length;
+  const Sy = new Float64Array(n + 1), Syy = new Float64Array(n + 1), Sx = new Float64Array(n + 1), Sxx = new Float64Array(n + 1), Sxy = new Float64Array(n + 1);
+  for (let t = 0; t < n; t++) {
+    const x = k === 2 ? X[t][1] : 0;
+    Sy[t + 1] = Sy[t] + y[t]; Syy[t + 1] = Syy[t] + y[t] * y[t];
+    Sx[t + 1] = Sx[t] + x; Sxx[t + 1] = Sxx[t] + x * x; Sxy[t + 1] = Sxy[t] + x * y[t];
+  }
+  return (lo, hi) => {
+    const m = hi - lo;
+    if (m <= k) return null;
+    const sy = Sy[hi] - Sy[lo], syy = Syy[hi] - Syy[lo];
+    let rss = syy - (sy * sy) / m;
+    if (k === 2) {
+      const sx = Sx[hi] - Sx[lo], sxx = Sxx[hi] - Sxx[lo], sxy = Sxy[hi] - Sxy[lo];
+      const vx = sxx - (sx * sx) / m;
+      if (vx <= 1e-12 * Math.max(1, sxx)) return null;
+      const cxy = sxy - (sx * sy) / m;
+      rss -= (cxy * cxy) / vx;
+    }
+    return Math.max(rss, 0);
+  };
+}
+
+/**
+ * Quandt-Andrews sup-F scan. Candidates run over the middle (1 - 2*trim) of the sample, or
+ * keep at least `minSeg` observations on either side when given (the sequential search
+ * passes the full-sample trim so short segments are not scanned to their edges). For a
+ * constant or a constant and one regressor the scan uses prefix sums, O(n) in total.
+ */
+export function supF(y: number[], X: number[][], trim = 0.15, minSeg?: number): { best: ChowResult; scan: Array<{ index: number; F: number }> } {
+  const n = y.length, k = X[0].length;
+  const h = Math.max(minSeg ?? Math.floor(n * trim), k + 2);
+  const lo = h, hi = n - h;
   let best: ChowResult | null = null;
   const scan: Array<{ index: number; F: number }> = [];
-  for (let b = lo; b <= hi; b++) {
-    try {
-      const r = chow(y, X, b);
-      scan.push({ index: b, F: r.F });
-      if (!best || r.F > best.F) best = r;
-    } catch { /* skip */ }
+  const fast = segmentRssFactory(y, X);
+  if (fast) {
+    const pooled = fast(0, n);
+    if (pooled === null) throw new Error("No admissible break points");
+    const df2 = n - 2 * k;
+    for (let b = lo; b <= hi; b++) {
+      const a = fast(0, b), c = fast(b, n);
+      if (a === null || c === null || df2 <= 0) continue;
+      const F = ((pooled - (a + c)) / k) / ((a + c) / df2);
+      scan.push({ index: b, F });
+      if (!best || F > best.F) best = { break_index: b, F, p: fUpperP(F, k, df2), k, n1: b, n2: n - b };
+    }
+  } else {
+    for (let b = lo; b <= hi; b++) {
+      try {
+        const r = chow(y, X, b);
+        scan.push({ index: b, F: r.F });
+        if (!best || r.F > best.F) best = r;
+      } catch { /* skip */ }
+    }
   }
   if (!best) throw new Error("No admissible break points");
   return { best, scan };
@@ -539,12 +592,7 @@ export function kpss(y: number[], trend: "c" | "ct" = "c", lags?: number): KpssR
   const X = y.map((_, t) => (trend === "ct" ? [1, t] : [1]));
   const e = ols(y, X).resid;
   const L = lags ?? Math.floor(4 * Math.pow(n / 100, 0.25));
-  let s2 = e.reduce((s, v) => s + v * v, 0) / n;
-  for (let l = 1; l <= L; l++) {
-    let g = 0;
-    for (let t = l; t < n; t++) g += e[t] * e[t - l];
-    s2 += 2 * (1 - l / (L + 1)) * (g / n);
-  }
+  const s2 = longRunVariance(e, L);   // residuals of a regression on a constant already have zero mean
   let S = 0, num = 0;
   for (let t = 0; t < n; t++) { S += e[t]; num += S * S; }
   const stat = num / (n * n * s2);
@@ -608,16 +656,16 @@ export function symEigen(A: Mat): { values: number[]; vectors: Mat } {
 // Johansen cointegration (trace test, unrestricted constant)
 
 export interface JohansenResult {
-  k: number; lags: number; nobs: number;
+  k: number; lags: number; det: JohansenDet; nobs: number;
   eigenvalues: number[];
   trace: Array<{ r: number; statistic: number; critical: { "10%": number; "5%": number; "1%": number }; reject: boolean }>;
   rank_at_5pct: number;
   cointegrating_vector: number[] | null;
-  /** All k candidate vectors (columns, ordered by eigenvalue), each normalised on the first series. */
+  /** All k candidate vectors (columns, ordered by eigenvalue), each normalised on the first series; with a restricted constant the last row is the constant. */
   vectors: number[][];
 }
 
-/** MacKinnon-Haug-Michelis trace critical values, constant in the VAR (statsmodels det_order=0), rows n-r = 1..5. */
+/** MacKinnon-Haug-Michelis trace critical values, unrestricted constant (statsmodels det_order=0), rows n-r = 1..5. */
 const JOHANSEN_TRACE_CV = [
   [2.7055, 3.8415, 6.6349],
   [13.4294, 15.4943, 19.9349],
@@ -625,21 +673,43 @@ const JOHANSEN_TRACE_CV = [
   [44.4929, 47.8545, 54.6815],
   [65.8202, 69.8189, 76.1631],
 ];
+/**
+ * Trace critical values with the constant restricted to the cointegrating relation (no drift
+ * in the levels). 5% and 1% are MacKinnon-Haug-Michelis (1999); the 10% column is simulated
+ * from the asymptotic distribution (40,000 draws of tr(∫dB F'(∫FF')⁻¹∫F dB') with F = (B, 1),
+ * 1,000-point grid), a method that reproduces the table above to within 0.4.
+ */
+const JOHANSEN_TRACE_CV_RC = [
+  [7.59, 9.1645, 12.7607],
+  [17.76, 20.2618, 25.0781],
+  [32.14, 35.1928, 41.1950],
+  [50.29, 54.0790, 61.2669],
+  [72.20, 76.9728, 85.3364],
+];
+export type JohansenDet = "constant" | "restricted_constant";
 
-export function johansen(Y: number[][], lags = 1): JohansenResult {
+/**
+ * Johansen trace test. det = "constant": unrestricted constant in the VAR, right for series
+ * that drift (most price levels, logs of output). det = "restricted_constant": the constant
+ * enters the cointegrating relation only, right for series without drift (interest rates,
+ * ratios, real exchange rates); the vectors then carry an extra last element, the constant.
+ */
+export function johansen(Y: number[][], lags = 1, det: JohansenDet = "constant"): JohansenResult {
   // Y: rows = time, columns = variables
   const T = Y.length, k = Y[0].length;
   if (k < 2 || k > 5) throw new Error("Johansen here supports 2 to 5 series");
   if (T < 10 * k + lags + 10) throw new Error(`Too few observations (${T}) for ${k} series with ${lags} lags`);
+  const rc = det === "restricted_constant";
   const dY = Y.slice(1).map((r, t) => r.map((v, j) => v - Y[t][j]));
   const rows: number[][] = [], dyT: number[][] = [], lagY: number[][] = [];
   for (let t = lags; t < dY.length; t++) {
-    const z = [1];
+    const z = rc ? [] : [1];
     for (let l = 1; l <= lags; l++) z.push(...dY[t - l]);
-    rows.push(z); dyT.push(dY[t]); lagY.push(Y[t]); // Y[t] is y_{t-1} relative to dY[t] = y_{t+1}-y_t
+    rows.push(z); dyT.push(dY[t]); lagY.push(rc ? [...Y[t], 1] : Y[t]); // Y[t] is y_{t-1} relative to dY[t] = y_{t+1}-y_t
   }
   const n = rows.length;
   const residualsOn = (target: number[][]) => {
+    if (!rows[0].length) return target.map((r) => [...r]);
     const out: number[][] = Array.from({ length: n }, () => new Array<number>(target[0].length).fill(0));
     for (let j = 0; j < target[0].length; j++) {
       const fit = ols(target.map((r) => r[j]), rows);
@@ -658,12 +728,14 @@ export function johansen(Y: number[][], lags = 1): JohansenResult {
   const Linv = forwardSolve(L, A.map((_, i) => A.map((__, j) => (i === j ? 1 : 0))));
   const M = matmul(matmul(Linv, A), transpose(Linv));
   const { values, vectors } = symEigen(M);
-  const eig = values.map((v) => Math.min(Math.max(v, 0), 0.999999));
+  // With the restricted constant M is (k+1)x(k+1) of rank k: the k largest eigenvalues are the test's.
+  const eig = values.slice(0, k).map((v) => Math.min(Math.max(v, 0), 0.999999));
+  const table = rc ? JOHANSEN_TRACE_CV_RC : JOHANSEN_TRACE_CV;
   const trace = eig.map((_, r) => {
     let s = 0;
     for (let i = r; i < k; i++) s += Math.log(1 - eig[i]);
     const stat = -n * s;
-    const cv = JOHANSEN_TRACE_CV[k - r - 1];
+    const cv = table[k - r - 1];
     return { r, statistic: stat, critical: { "10%": cv[0], "5%": cv[1], "1%": cv[2] }, reject: stat > cv[1] };
   });
   let rank = 0;
@@ -672,16 +744,17 @@ export function johansen(Y: number[][], lags = 1): JohansenResult {
   const B = matmul(transpose(Linv), vectors);
   const cols: number[][] = [];
   for (let c = 0; c < k; c++) { const col = B.map((r) => r[c]); cols.push(col[0] !== 0 ? col.map((b) => b / col[0]) : col); }
-  const betaAll = cols[0].map((_, i) => cols.map((col) => col[i]));   // k x k
-  return { k, lags, nobs: n, eigenvalues: eig, trace, rank_at_5pct: rank, cointegrating_vector: rank > 0 ? cols[0] : null, vectors: betaAll };
+  const betaAll = cols[0].map((_, i) => cols.map((col) => col[i]));   // (k or k+1) x k
+  return { k, lags, det, nobs: n, eigenvalues: eig, trace, rank_at_5pct: rank, cointegrating_vector: rank > 0 ? cols[0] : null, vectors: betaAll };
 }
 
 // ---------------------------------------------------------------------------
 // Vector error-correction model: dy_t = c + alpha (beta' y_{t-1}) + sum Gamma_l dy_{t-l} + e_t
 
 export interface VecmResult {
-  k: number; lags: number; rank: number; nobs: number;
+  k: number; lags: number; rank: number; nobs: number; det: JohansenDet;
   beta: number[][];          // k x r, each column normalised on the first series
+  beta_constant: number[];   // r constants inside the relations (zero with an unrestricted constant)
   alpha: number[][];         // k x r adjustment coefficients (row = equation)
   alpha_t: number[][];
   alpha_p: number[][];
@@ -692,18 +765,21 @@ export interface VecmResult {
   johansen: JohansenResult;
 }
 
-export function vecm(Y: number[][], lags = 1, rank?: number): VecmResult {
-  const j = johansen(Y, lags);
+export function vecm(Y: number[][], lags = 1, rank?: number, det: JohansenDet = "constant"): VecmResult {
+  const j = johansen(Y, lags, det);
   const k = j.k;
+  const rc = det === "restricted_constant";
   const r = rank ?? j.rank_at_5pct;
   if (r < 1) throw new Error("No cointegrating relation at 5% (rank 0): estimate a VAR on differences instead, or pass rank explicitly.");
   if (r >= k) throw new Error(`Rank must be below the number of series (${k}); rank ${k} means every series is stationary in levels.`);
   const beta = Y[0].map((_, i) => j.vectors[i].slice(0, r));   // k x r
-  const ectAt = (y: number[]) => beta[0].map((_, c) => y.reduce((sum, v, i) => sum + v * beta[i][c], 0));
+  const beta_constant = rc ? j.vectors[k].slice(0, r) : new Array<number>(r).fill(0);
+  const ectAt = (y: number[]) => beta[0].map((_, c) => y.reduce((sum, v, i) => sum + v * beta[i][c], 0) + beta_constant[c]);
   const dY = Y.slice(1).map((row, t) => row.map((v, i) => v - Y[t][i]));
   const X: number[][] = [], targets: number[][] = [];
+  const off = rc ? 0 : 1;   // column of the first ECT
   for (let t = lags; t < dY.length; t++) {
-    const z = [1, ...ectAt(Y[t])];          // Y[t] is y_{t-1} for dY[t]
+    const z = [...(rc ? [] : [1]), ...ectAt(Y[t])];          // Y[t] is y_{t-1} for dY[t]
     for (let l = 1; l <= lags; l++) z.push(...dY[t - l]);
     X.push(z); targets.push(dY[t]);
   }
@@ -711,12 +787,19 @@ export function vecm(Y: number[][], lags = 1, rank?: number): VecmResult {
   const gamma: number[][][] = Array.from({ length: lags }, () => Array.from({ length: k }, () => new Array<number>(k).fill(0)));
   for (let eq = 0; eq < k; eq++) {
     const fit = ols(targets.map((row) => row[eq]), X);
-    constant.push(fit.beta[0]);
-    alpha.push(fit.beta.slice(1, 1 + r)); alpha_t.push(fit.t.slice(1, 1 + r)); alpha_p.push(fit.p.slice(1, 1 + r));
-    for (let l = 0; l < lags; l++) for (let v = 0; v < k; v++) gamma[l][eq][v] = fit.beta[1 + r + l * k + v];
+    constant.push(rc ? 0 : fit.beta[0]);
+    alpha.push(fit.beta.slice(off, off + r)); alpha_t.push(fit.t.slice(off, off + r)); alpha_p.push(fit.p.slice(off, off + r));
+    for (let l = 0; l < lags; l++) for (let v = 0; v < k; v++) gamma[l][eq][v] = fit.beta[off + r + l * k + v];
     r2.push(fit.r2);
   }
-  return { k, lags, rank: r, nobs: X.length, beta, alpha, alpha_t, alpha_p, gamma, constant, r2, ect: Y.map(ectAt), johansen: j };
+  return { k, lags, rank: r, nobs: X.length, det, beta, beta_constant, alpha, alpha_t, alpha_p, gamma, constant, r2, ect: Y.map(ectAt), johansen: j };
+}
+
+/** t-statistic of the mean of first differences: does the series drift? */
+export function driftT(y: number[]): number {
+  const d = diff(y);
+  if (d.length < 8) return NaN;
+  return (mean(d) / sd(d)) * Math.sqrt(d.length);
 }
 
 // ---------------------------------------------------------------------------
@@ -1110,4 +1193,296 @@ export function panelRegress(y: number[], X: number[][], unit: number[], time: n
   }
   const perUnit = [...units].map((u) => { const m = groupMeans(y, unit).get(u)!; return { unit: u, n: m.n, y: m.s / m.n }; });
   return { nobs: n, units: G, periods: Tn, k, balanced: n === G * Tn, effects, estimate, pooled, between, f_unit_effects: f, unit_means: perUnit };
+}
+
+// ---------------------------------------------------------------------------
+// Forecast evaluation: rolling-origin errors and the Diebold-Mariano test
+
+/** Long-run variance of a series' mean by the Bartlett kernel with `lags` lags (Newey-West on a constant). */
+export function longRunVariance(d: number[], lags: number): number {
+  const n = d.length, m = mean(d);
+  const gamma = (l: number) => { let s = 0; for (let t = l; t < n; t++) s += (d[t] - m) * (d[t - l] - m); return s / n; };
+  let v = gamma(0);
+  for (let l = 1; l <= lags; l++) v += 2 * (1 - l / (lags + 1)) * gamma(l);
+  return Math.max(v, 0);
+}
+
+export interface DmResult { statistic: number; p: number; n: number; mean_loss_diff: number; better: 1 | 2 | null; degenerate?: boolean }
+
+/**
+ * Diebold-Mariano test of equal predictive accuracy between two h-step forecast error
+ * series, squared-error loss, Harvey-Leybourne-Newbold small-sample correction,
+ * p-value from t(n-1). A negative statistic favours forecast 1.
+ */
+export function dieboldMariano(e1: number[], e2: number[], h = 1, loss: "squared" | "absolute" = "squared"): DmResult {
+  const L = (e: number) => (loss === "squared" ? e * e : Math.abs(e));
+  // Pairs where either forecaster failed (NaN) are dropped, as errorMetrics does.
+  const d: number[] = [];
+  for (let t = 0; t < Math.min(e1.length, e2.length); t++) if (Number.isFinite(e1[t]) && Number.isFinite(e2[t])) d.push(L(e1[t]) - L(e2[t]));
+  const n = d.length;
+  if (n < 6) throw new Error(`Diebold-Mariano needs 6 or more paired errors (have ${n})`);
+  const md = mean(d);
+  const lrv = longRunVariance(d, Math.max(h - 1, 0));
+  // A constant loss gap has no sampling variance: one forecaster wins (or ties) at every origin.
+  if (lrv <= 1e-18 * Math.max(1, md * md)) return { statistic: md === 0 ? 0 : md < 0 ? -Infinity : Infinity, p: md === 0 ? 1 : 0, n, mean_loss_diff: md, better: md === 0 ? null : md < 0 ? 1 : 2, degenerate: true };
+  const dm = md / Math.sqrt(lrv / n);
+  const hln = Math.sqrt(Math.max((n + 1 - 2 * h + (h * (h - 1)) / n) / n, 1e-9));
+  const stat = dm * hln;
+  const p = tTwoSidedP(stat, n - 1);
+  return { statistic: stat, p, n, mean_loss_diff: md, better: p < 0.05 ? (md < 0 ? 1 : 2) : null };
+}
+
+export interface BacktestErrors {
+  /** errors[o][h-1] = actual - forecast for origin o at horizon h, NaN where the forecaster failed */
+  errors: number[][];
+  /** index in y of the last observation each origin trained on */
+  origins: number[];
+  failures: number;
+}
+
+/**
+ * Rolling-origin evaluation. For each origin the forecaster sees y[0..origin] and returns
+ * H forecasts, compared with y[origin+1..origin+H]. Origins are the last `nOrigins` points
+ * that leave room for a full horizon, spaced `step` apart, so every origin has all H actuals.
+ */
+export function rollingOrigin(y: number[], forecaster: (train: number[]) => number[], H: number, nOrigins: number, minTrain: number, step = 1): BacktestErrors {
+  const n = y.length;
+  const last = n - 1 - H;
+  const origins: number[] = [];
+  for (let o = last; o >= minTrain - 1 && origins.length < nOrigins; o -= step) origins.push(o);
+  origins.reverse();
+  if (!origins.length) throw new Error(`Too few observations (${n}) for ${nOrigins} origins with horizon ${H} and at least ${minTrain} training points`);
+  let failures = 0;
+  const errors = origins.map((o) => {
+    let f: number[];
+    try { f = forecaster(y.slice(0, o + 1)); } catch { failures++; return new Array<number>(H).fill(NaN); }
+    return Array.from({ length: H }, (_, h) => (Number.isFinite(f[h]) ? y[o + 1 + h] - f[h] : NaN));
+  });
+  return { errors, origins, failures };
+}
+
+export interface ErrorMetrics { rmse: number; mae: number; mape: number | null; bias: number; n: number }
+
+/** Accuracy metrics over an error vector paired with the actuals it was measured against. */
+export function errorMetrics(errors: number[], actuals: number[]): ErrorMetrics {
+  const pairs = errors.map((e, i) => [e, actuals[i]] as const).filter(([e]) => Number.isFinite(e));
+  const n = pairs.length;
+  if (!n) return { rmse: NaN, mae: NaN, mape: null, bias: NaN, n: 0 };
+  const rmse = Math.sqrt(pairs.reduce((s, [e]) => s + e * e, 0) / n);
+  const mae = pairs.reduce((s, [e]) => s + Math.abs(e), 0) / n;
+  const ape = pairs.filter(([, a]) => a !== 0).map(([e, a]) => Math.abs(e / a));
+  const mape = ape.length === n ? (ape.reduce((s, x) => s + x, 0) / n) * 100 : null;
+  const bias = pairs.reduce((s, [e]) => s + e, 0) / n;
+  return { rmse, mae, mape, bias, n };
+}
+
+// ---------------------------------------------------------------------------
+// Local projections (Jordà 2005)
+
+export interface LpHorizon { h: number; beta: number; se: number; t: number; p: number; n: number; r2: number }
+export interface LpResult { horizons: LpHorizon[]; lags: number; shock_sd: number; controls: number }
+
+/**
+ * Impulse response of y to x by local projections: for each horizon h, regress y[t+h] on
+ * x[t], lags 1..p of y and x (and of any extra controls), and a constant. Standard errors
+ * are Newey-West with bandwidth h (the h-step overlap makes the errors MA(h-1) by construction).
+ * beta[h] is the response to a one-unit move in x[t]; shock_sd is the standard deviation
+ * of x after the same controls, for scaling to a one-sd shock.
+ */
+export function localProjections(y: number[], x: number[], H: number, p: number, controls: number[][] = []): LpResult {
+  const T = y.length;
+  if (x.length !== T || controls.some((c) => c.length !== T)) throw new Error("local projections: series lengths differ");
+  const k = 2 + p * (2 + controls.length);
+  if (T - H - p < k + 8) throw new Error(`Too few observations (${T}) for horizon ${H} with ${p} lags: need at least ${H + p + k + 8}`);
+  const row = (t: number): number[] => {
+    const r = [1, x[t]];
+    for (let l = 1; l <= p; l++) { r.push(y[t - l], x[t - l]); for (const c of controls) r.push(c[t - l]); }
+    return r;
+  };
+  const horizons: LpHorizon[] = [];
+  for (let h = 0; h <= H; h++) {
+    const X: number[][] = [], yy: number[] = [];
+    for (let t = p; t + h < T; t++) { X.push(row(t)); yy.push(y[t + h]); }
+    const fit = ols(yy, X);
+    const hac = neweyWest(X, fit.resid, fit.XtXinv, h);
+    const se = hac.se[1];
+    const t = fit.beta[1] / se;
+    horizons.push({ h, beta: fit.beta[1], se, t, p: tTwoSidedP(t, fit.n - fit.k), n: fit.n, r2: fit.r2 });
+  }
+  // Size of a typical shock: sd of x once its own and y's lags are partialled out.
+  const X0: number[][] = [], x0: number[] = [];
+  for (let t = p; t < T; t++) { const r = row(t); X0.push([r[0], ...r.slice(2)]); x0.push(x[t]); }
+  const shockFit = ols(x0, X0);
+  return { horizons, lags: p, shock_sd: shockFit.sigma, controls: controls.length };
+}
+
+// ---------------------------------------------------------------------------
+// Two-stage least squares (instrumental variables)
+
+export interface FirstStage { r2: number; F_excluded: number; F_p: number; df: [number, number]; partial_r2: number }
+export interface IvResult {
+  n: number; k: number; m: number; L: number;
+  beta: number[]; se: number[]; t: number[]; p: number[];
+  hac_se: number[]; hac_lag: number;
+  resid: number[]; sigma: number; r2: number;
+  first_stage: FirstStage[];
+  wu_hausman: { F: number; p: number; df: [number, number] };
+  sargan: { statistic: number; p: number; df: number } | null;
+  ols: OlsResult;
+}
+
+/**
+ * 2SLS of y on X = [1, endogenous (m columns), exogenous], instrumented by Z = [1, excluded
+ * instruments (L columns), the same exogenous]. Standard errors use the structural residuals
+ * y - X b, not the second-stage ones. First-stage F is the test of the excluded instruments
+ * only (the weak-instrument statistic); Wu-Hausman adds the first-stage residuals to OLS and
+ * tests them; Sargan tests over-identifying restrictions when L > m.
+ */
+export function twoSLS(y: number[], endog: number[][], instruments: number[][], exog: number[][] = [], hacLag?: number): IvResult {
+  const n = y.length, m = endog[0].length, L = instruments[0].length, kx = exog.length ? exog[0].length : 0;
+  if (L < m) throw new Error(`Under-identified: ${m} endogenous regressor(s) need at least ${m} excluded instrument(s), have ${L}`);
+  const X = y.map((_, t) => [1, ...endog[t], ...(kx ? exog[t] : [])]);
+  const Z = y.map((_, t) => [1, ...instruments[t], ...(kx ? exog[t] : [])]);
+  const Zr = y.map((_, t) => [1, ...(kx ? exog[t] : [])]);   // first stage without the excluded instruments
+  const k = X[0].length;
+  if (n <= Z[0].length + 2) throw new Error(`Too few observations (${n}) for ${Z[0].length} instruments`);
+  const Xhat = X.map((r) => [...r]);
+  const firstResid: number[][] = [];
+  const first_stage: FirstStage[] = [];
+  for (let j = 0; j < m; j++) {
+    const col = endog.map((r) => r[j]);
+    const u = ols(col, Z), r = ols(col, Zr);
+    for (let t = 0; t < n; t++) Xhat[t][1 + j] = u.fitted[t];
+    firstResid.push(u.resid);
+    const df1 = L, df2 = n - Z[0].length;
+    if (u.rss <= 1e-12 * Math.max(r.rss, 1) || u.r2 > 0.9999) throw new Error(`The instruments reproduce endogenous regressor ${j + 1} exactly (first-stage R² of 1): an instrument that is x itself, or a linear transform of it, is not excluded from the equation, so 2SLS collapses to OLS. Use a series that moves x but is not x.`);
+    const F = ((r.rss - u.rss) / df1) / (u.rss / df2);
+    first_stage.push({ r2: u.r2, F_excluded: F, F_p: fUpperP(F, df1, df2), df: [df1, df2], partial_r2: r.rss ? (r.rss - u.rss) / r.rss : NaN });
+  }
+  const second = ols(y, Xhat);
+  const beta = second.beta;
+  const resid = y.map((v, t) => v - X[t].reduce((s, x, j) => s + x * beta[j], 0));
+  const rss = resid.reduce((s, e) => s + e * e, 0);
+  const df = n - k;
+  const sigma2 = rss / df;
+  const se = second.XtXinv.map((row, j) => Math.sqrt(Math.max(sigma2 * row[j], 0)));
+  const t = beta.map((b, j) => (se[j] ? b / se[j] : NaN));
+  const p = t.map((tv) => tTwoSidedP(tv, df));
+  const hac = neweyWest(Xhat, resid, second.XtXinv, hacLag);
+  const my = mean(y), tss = y.reduce((s, v) => s + (v - my) ** 2, 0);
+  // Wu-Hausman: do the first-stage residuals explain y once X is in?
+  const aug = ols(y, X.map((r, i) => [...r, ...firstResid.map((fr) => fr[i])]));
+  const plain = ols(y, X);
+  const whF = ((plain.rss - aug.rss) / m) / (aug.rss / (n - k - m));
+  const wu_hausman = { F: whF, p: fUpperP(whF, m, n - k - m), df: [m, n - k - m] as [number, number] };
+  let sargan: IvResult["sargan"] = null;
+  if (L > m) {
+    const s = ols(resid, Z);
+    const stat = n * s.r2;
+    sargan = { statistic: stat, p: chi2UpperP(stat, L - m), df: L - m };
+  }
+  return { n, k, m, L, beta, se, t, p, hac_se: hac.se, hac_lag: hac.lag, resid, sigma: Math.sqrt(sigma2), r2: tss ? 1 - rss / tss : NaN, first_stage, wu_hausman, sargan, ols: plain };
+}
+
+// ---------------------------------------------------------------------------
+// Sup-F critical values and sequential multiple breaks
+
+/**
+ * Asymptotic critical values of the sup-Wald statistic (Andrews 1993) with 15% trimming,
+ * for k parameters allowed to break, simulated from the k-dimensional Brownian bridge:
+ * 60,000 replications on grids of 2,000 and 8,000 points, the 5% and 1% levels extrapolated
+ * in 1/sqrt(grid) to remove the discretisation bias (k=1 then reproduces Andrews' published
+ * 8.85 and 12.35), the 10% level taken from the finer grid. The sup-F reported by supF is
+ * sup-Wald / k, so compare k * F with these.
+ */
+const SUP_WALD_15 = [
+  [7.26, 8.85, 12.33], [10.03, 11.86, 15.62], [12.30, 14.11, 18.30], [14.42, 16.58, 20.97], [16.31, 18.50, 23.13],
+];
+export function supFCritical(k: number): { "10%": number; "5%": number; "1%": number } {
+  if (k < 1 || k > SUP_WALD_15.length) throw new Error(`sup-F critical values are tabulated for 1 to ${SUP_WALD_15.length} breaking parameters, not ${k}`);
+  const row = SUP_WALD_15[k - 1];
+  return { "10%": row[0] / k, "5%": row[1] / k, "1%": row[2] / k };
+}
+export function supFReject(F: number, k: number): "1%" | "5%" | "10%" | null {
+  const c = supFCritical(k);
+  return F > c["1%"] ? "1%" : F > c["5%"] ? "5%" : F > c["10%"] ? "10%" : null;
+}
+
+export interface BreakSegment { start: number; end: number; n: number; beta: number[]; mean_y: number }
+export interface SequentialBreaksResult { breaks: Array<{ index: number; F: number; reject_at: "1%" | "5%" | "10%" | null }>; segments: BreakSegment[]; k: number; stopped: string }
+
+/**
+ * Sequential break detection in the spirit of Bai-Perron: locate the sup-F break in the
+ * whole sample; if it clears the 5% Andrews critical value, split there and look for the
+ * largest significant sup-F inside any segment; repeat until maxBreaks or nothing
+ * significant. Every candidate keeps at least trim * n observations (n the full sample) on
+ * either side, so a short remainder is never scanned to its edges.
+ */
+export function sequentialBreaks(y: number[], X: number[][], maxBreaks: number, trim = 0.15): SequentialBreaksResult {
+  const k = X[0].length;
+  const breaks: SequentialBreaksResult["breaks"] = [];
+  let stopped = "reached max_breaks";
+  // Minimum segment length is a share of the whole sample (Bai-Perron's h), not of the current segment.
+  const h = Math.max(Math.floor(y.length * trim), k + 3);
+  const bounds = () => [0, ...breaks.map((b) => b.index).sort((a, b) => a - b), y.length];
+  while (breaks.length < maxBreaks) {
+    const bs = bounds();
+    let best: { index: number; F: number } | null = null;
+    for (let s = 0; s + 1 < bs.length; s++) {
+      const lo = bs[s], hi = bs[s + 1];
+      if (hi - lo < 2 * h) continue;
+      try {
+        const r = supF(y.slice(lo, hi), X.slice(lo, hi), trim, h);
+        if (supFReject(r.best.F, k) === null || supFReject(r.best.F, k) === "10%") continue;
+        if (!best || r.best.F > best.F) best = { index: lo + r.best.break_index, F: r.best.F };
+      } catch { /* segment too short */ }
+    }
+    if (!best) { stopped = breaks.length ? "no further break clears the 5% sup-F critical value" : "no break clears the 5% sup-F critical value"; break; }
+    breaks.push({ ...best, reject_at: supFReject(best.F, k) });
+  }
+  breaks.sort((a, b) => a.index - b.index);
+  const bs = bounds();
+  const segments: BreakSegment[] = [];
+  for (let s = 0; s + 1 < bs.length; s++) {
+    const ys = y.slice(bs[s], bs[s + 1]), Xs = X.slice(bs[s], bs[s + 1]);
+    let beta: number[];
+    try { beta = ols(ys, Xs).beta; } catch { beta = new Array<number>(k).fill(NaN); }
+    segments.push({ start: bs[s], end: bs[s + 1] - 1, n: ys.length, beta, mean_y: mean(ys) });
+  }
+  return { breaks, segments, k, stopped };
+}
+
+// ---------------------------------------------------------------------------
+// Regression diagnostics
+
+/** Breusch-Pagan (Koenker's studentised form): regress e² on X, n·R² ~ chi²(k-1). */
+export function breuschPagan(X: number[][], resid: number[]): { statistic: number; p: number; df: number } {
+  const e2 = resid.map((e) => e * e);
+  const df = X[0].length - 1;
+  if (df < 1) return { statistic: 0, p: 1, df: 0 };
+  const fit = ols(e2, X);
+  const stat = resid.length * fit.r2;
+  return { statistic: stat, p: chi2UpperP(stat, df), df };
+}
+
+/** Variance inflation factor of each non-constant column of X (column 0 is the constant). */
+export function vif(X: number[][]): number[] {
+  const k = X[0].length;
+  if (k <= 2) return new Array<number>(k - 1).fill(1);
+  return Array.from({ length: k - 1 }, (_, j) => {
+    const col = X.map((r) => r[1 + j]);
+    const others = X.map((r) => r.filter((_, c) => c !== 1 + j));
+    try { const f = ols(col, others); return f.r2 < 1 ? 1 / (1 - f.r2) : Infinity; } catch { return Infinity; }
+  });
+}
+
+/** Ramsey RESET: add fitted² and fitted³ to the regression; F test on the two. */
+export function reset(y: number[], X: number[][], base: OlsResult): { F: number; p: number; df: [number, number] } {
+  const fitted = base.fitted;
+  const scale = sd(fitted) || 1, m = mean(fitted);
+  const z = fitted.map((f) => (f - m) / scale);
+  const aug = ols(y, X.map((r, i) => [...r, z[i] ** 2, z[i] ** 3]));
+  const df2 = y.length - X[0].length - 2;
+  const F = ((base.rss - aug.rss) / 2) / (aug.rss / df2);
+  return { F, p: fUpperP(F, 2, df2), df: [2, df2] };
 }

@@ -32,7 +32,7 @@ const callRaw = (name, args) => client.callTool({ name, arguments: args });
 await check("tool list includes providers and analysis", async () => {
   const { tools } = await client.listTools();
   const names = new Set(tools.map((t) => t.name));
-  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis"]) assert.ok(names.has(n), n);
+  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis", "forecast_evaluate", "local_projections", "iv_regress"]) assert.ok(names.has(n), n);
 });
 
 await check("list_providers reports key state", async () => {
@@ -299,6 +299,39 @@ await check("plot resolves every series and links to chart.html with the spec in
   assert.equal(j.series[0].first, "2015-01");
   const bad = await client.callTool({ name: "plot", arguments: { series: [{ dataset: "us-prices", series: "nope" }] } });
   assert.ok(bad.isError);
+  // Bands ride in the spec; one that points past the series list is refused.
+  const banded = await call("plot", { series: [{ ...CATTLE, start: "2024-01" }], bands: [{ series: 0, label: "range", points: [["2024-01", 100, 120], ["2024-02", 101, 122]] }] });
+  const bs = JSON.parse(Buffer.from(banded.chart_url.split("#")[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+  assert.equal(bs.bands.length, 1); assert.equal(bs.bands[0].points.length, 2); assert.equal(bs.xaxis, undefined);
+  const off = await callRaw("plot", { series: [CATTLE], bands: [{ series: 3, points: [["2024-01", 1, 2]] }] });
+  assert.ok(off.isError && /refers to series 3/.test(off.content[0].text));
+});
+
+const decodeSpec = (url) => JSON.parse(Buffer.from(url.split("#")[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+
+await check("forecast and local_projections return chart links with their bands", async () => {
+  const f = await call("forecast", { series: { ...CPI, start: "2015-01" }, horizon: 6, method: "holt" });
+  const spec = decodeSpec(f.chart_url);
+  assert.equal(spec.series.length, 2);
+  assert.deepEqual(spec.series[0], { ...CPI, start: "2015-01" }, "the actual series stays a live reference");
+  assert.equal(spec.series[1].points.length, 7, "last actual plus six forecasts");
+  assert.deepEqual(spec.series[1].points[0], f.last_actual, "the forecast line starts at the last actual");
+  assert.equal(spec.bands[0].series, 1);
+  assert.equal(spec.bands[0].points.length, 7);
+  const [, lo, hi] = spec.bands[0].points[0]; assert.equal(lo, hi, "band starts at zero width");
+  assert.equal(spec.bands[0].points[6][1], f.forecast[5].lo95); assert.equal(spec.bands[0].points[6][2], f.forecast[5].hi95);
+  assert.equal(spec.api, base);
+  const lp = await call("local_projections", { y: { ...CATTLE, transform: "pct_change", start: "1995-01" }, x: { ...CORN, transform: "pct_change", start: "1995-01" }, horizon: 12 });
+  const ls = decodeSpec(lp.chart_url);
+  assert.equal(ls.xaxis, "number");
+  assert.equal(ls.series[0].points.length, 13);
+  assert.deepEqual(ls.series[0].points.map((p) => p[0]), Array.from({ length: 13 }, (_, h) => String(h).padStart(2, "0")), "zero-padded horizons sort as strings");
+  assert.equal(ls.bands[0].points[3][1], lp.responses[3].lo95);
+  // The /v1/series endpoint the page calls resolves the inline points in order
+  const r = await fetch(base + "/v1/series?s=" + encodeURIComponent(JSON.stringify({ series: ls.series })));
+  const j = await r.json();
+  assert.equal(j.series[0].points.length, 13);
+  assert.equal(j.series[0].points[10][0], "10");
 });
 
 await check("GET /v1/series returns points for a spec, and errors per series", async () => {
@@ -406,6 +439,153 @@ await check("deflate expresses cattle PPI in CPI terms of a base month", async (
   const b = j.points.find((p) => p[0] === "2020-01");
   const raw = await call("get_series", { dataset: "us-prices", series: "cattle_ppi", start: "2020-01", end: "2020-01" });
   assert.ok(Math.abs(b[1] - raw.points[0][1]) < 1e-3, "at the base date real equals nominal");
+});
+
+await check("forecast_evaluate ranks methods out of sample, tests the winner against naive, and points at forecast", async () => {
+  const j = await call("forecast_evaluate", { series: { ...CPI, start: "2005-01" }, horizon: 3, origins: 8 });
+  assert.equal(j.origins.count, 8);
+  assert.match(j.origins.training_window, /expanding/);
+  const long = await call("forecast_evaluate", { series: CPI, horizon: 2, origins: 6, methods: ["naive", "holt"], max_train: 120 });
+  assert.match(long.origins.training_window, /rolling, last 120/);
+  // A deterministic series: drift is exact, naive is not, and the reading must not claim a 5% test result.
+  const line = Array.from({ length: 80 }, (_, i) => [`${2000 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`, 10 + i]);
+  const det = await call("forecast_evaluate", { series: { points: line, label: "line" }, horizon: 2, origins: 6, methods: ["naive", "drift"] });
+  assert.equal(det.ranking[0].method, "drift");
+  assert.match(det.reading, /same margin at every origin/);
+  assert.doesNotMatch(det.reading, /real at 5%/);
+  assert.ok(j.ranking.length >= 6, JSON.stringify(j.ranking.map((r) => r.method)));
+  for (let i = 1; i < j.ranking.length; i++) assert.ok(j.ranking[i].rmse >= j.ranking[i - 1].rmse, "sorted by RMSE");
+  assert.equal(j.ranking[0].rank, 1);
+  assert.equal(j.ranking[0].by_horizon.length, 3);
+  const naive = j.ranking.find((r) => r.method === "naive");
+  assert.equal(naive.skill_vs_naive, 0);
+  assert.ok(j.arima_order && j.arima_order.order.length === 3, "ARIMA order chosen once");
+  if (j.ranking[0].method !== "naive") {
+    const t = j.diebold_mariano[`${j.ranking[0].method}_vs_naive`];
+    assert.ok(Array.isArray(t) && t.length === 2 && t[0].horizon === 1 && t[1].horizon === 3, JSON.stringify(t));
+  }
+  assert.match(j.reading, /lowest 3-step RMSE/);
+  // A subset of methods, and a series too short for the horizon
+  const sub = await call("forecast_evaluate", { series: { ...CPI, start: "2015-01" }, horizon: 1, origins: 6, methods: ["naive", "drift"] });
+  assert.deepEqual(sub.ranking.map((r) => r.method).sort(), ["drift", "naive"]);
+  assert.equal(Object.keys(sub.diebold_mariano).length, 1, "runner-up naive is not tested twice");
+  assert.equal(sub.diebold_mariano[Object.keys(sub.diebold_mariano)[0]].length, 1, "one horizon, one test");
+  // Too few origins for the test: say so, do not call it a tie.
+  const few = await call("forecast_evaluate", { series: { ...CPI, start: "2015-01" }, horizon: 1, origins: 4, methods: ["naive", "ar"], ar_order: 3 });
+  if (few.ranking[0].method === "ar") {
+    assert.match(few.reading, /Too few origins/);
+    assert.equal(few.recommended_call.args.ar_order, 3, "the scored order is the recommended one");
+  }
+  assert.match(few.diebold_mariano[Object.keys(few.diebold_mariano)[0]][0].verdict, /^not tested/);
+  const short = await callRaw("forecast_evaluate", { series: { ...CPI, start: "2023-01" }, horizon: 12 });
+  assert.ok(short.isError && /need at least/.test(short.content[0].text), short.content[0].text);
+});
+
+await check("local_projections on corn and cattle growth returns a band per horizon and a cumulative response", async () => {
+  const j = await call("local_projections", { y: { ...CATTLE, transform: "pct_change", start: "1995-01" }, x: { ...CORN, transform: "pct_change", start: "1995-01" }, horizon: 6 });
+  assert.equal(j.responses.length, 7);
+  assert.equal(j.lags, 4);
+  assert.equal(j.responses[0].h, 0);
+  for (const r of j.responses) { assert.ok(r.lo95 <= r.response && r.response <= r.hi95, `band at h=${r.h}`); assert.ok(r.lo90 >= r.lo95); }
+  assert.ok(Math.abs(j.responses[6].cumulative - j.responses.reduce((a, r) => a + r.response, 0)) < 1e-3, "cumulative is the running sum");
+  assert.ok(j.shock_sd > 0);
+  assert.equal(j.cumulative_at_horizon, j.responses[6].cumulative);
+  assert.equal(j.warnings.length, 0, JSON.stringify(j.warnings));
+  const lev = await call("local_projections", { y: { ...CATTLE, start: "1995-01" }, x: { ...CORN, start: "1995-01" }, horizon: 2, lags: 2 });
+  assert.ok(lev.warnings.length >= 1, "levels get a non-stationarity warning");
+  const ctl = await call("local_projections", { y: { ...CATTLE, transform: "pct_change", start: "1995-01" }, x: { ...CORN, transform: "pct_change", start: "1995-01" }, controls: [{ ...CPI, transform: "pct_change", start: "1995-01" }], horizon: 3 });
+  assert.equal(ctl.controls.length, 1);
+});
+
+await check("suggest_analysis routes to forecast_evaluate before forecast, and to local_projections next to var_model", async () => {
+  const one = await call("suggest_analysis", { series: [{ ...CPI, start: "2000-01" }] });
+  const tools = one.plan.map((p) => p.tool);
+  assert.ok(tools.indexOf("forecast_evaluate") >= 0 && tools.indexOf("forecast_evaluate") < tools.indexOf("forecast"), tools.join(","));
+  const two = await call("suggest_analysis", { series: [CATTLE, CORN] });
+  const t2 = two.plan.map((p) => p.tool);
+  assert.ok(t2.indexOf("local_projections") > t2.indexOf("var_model"), t2.join(","));
+});
+
+await check("iv_regress: 2SLS next to OLS with first-stage, Wu-Hausman and Sargan, and clean errors", async () => {
+  // Cattle growth on corn growth, corn's own lag as the instrument: a timing instrument, fine for the plumbing.
+  const g = (ref) => ({ ...ref, transform: "pct_change", start: "1995-01" });
+  const corn = await call("get_series", { ...CORN, transform: "pct_change", start: "1994-12" });
+  const lagged = corn.points.slice(0, -1).map((p, i) => [corn.points[i + 1][0], p[1]]);
+  const j = await call("iv_regress", { y: g(CATTLE), x: [g(CORN)], instruments: [{ points: lagged, label: "corn lag" }] });
+  assert.equal(j.identification, "just identified");
+  assert.equal(j.coefficients.length, 2);
+  assert.ok(typeof j.coefficients[1].coef_2sls === "number" && typeof j.coefficients[1].coef_ols === "number");
+  assert.equal(j.first_stage.length, 1); assert.ok(typeof j.first_stage[0].F_excluded_instruments === "number");
+  assert.ok(typeof j.wu_hausman.p === "number"); assert.equal(j.sargan, null);
+  assert.equal(j.warnings.length, 0, JSON.stringify(j.warnings));
+  const over = await call("iv_regress", { y: g(CATTLE), x: [g(CORN)], instruments: [{ points: lagged, label: "corn lag" }, g(CPI)], exog: [{ ...CPI, transform: "yoy", start: "1995-01" }] });
+  assert.match(over.identification, /over-identified/);
+  assert.ok(over.sargan && over.sargan.df === 1);
+  assert.equal(over.coefficients.length, 3);
+  const under = await callRaw("iv_regress", { y: g(CATTLE), x: [g(CORN), g(CPI)], instruments: [{ points: lagged, label: "corn lag" }] });
+  assert.ok(under.isError && /Under-identified/.test(under.content[0].text), under.content[0].text);
+  const lev = await call("iv_regress", { y: { ...CATTLE, start: "1995-01" }, x: [{ ...CORN, start: "1995-01" }], instruments: [{ ...CPI, start: "1995-01" }] });
+  assert.ok(lev.warnings.length >= 1, "levels get the spurious warning");
+  const self = await callRaw("iv_regress", { y: g(CATTLE), x: [g(CORN)], instruments: [g(CORN)] });
+  assert.ok(self.isError && /reproduce/.test(self.content[0].text), "x as its own instrument is refused");
+  const plan = await call("suggest_analysis", { series: [CATTLE, CORN], question: "does corn drive cattle prices?" });
+  assert.ok(plan.pitfalls.some((p) => /iv_regress/.test(p)), "causal question points at iv_regress");
+});
+
+await check("structural_break judges the scan against sup-F critical values and finds several breaks on request", async () => {
+  const j = await call("structural_break", { y: { ...CATTLE, transform: "yoy", start: "1990-01" } });
+  assert.ok(j.sup_F_critical["5%"] > j.sup_F_critical["10%"] && j.sup_F_critical["1%"] > j.sup_F_critical["5%"]);
+  assert.ok(["1%", "5%", "10%", null].includes(j.reject_no_break_at));
+  assert.match(j.verdict, /break/i);
+  // A series with two obvious level shifts
+  const pts = Array.from({ length: 150 }, (_, i) => [`${1990 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`, Math.sin(i) * 0.3 + (i >= 50 ? 3 : 0) + (i >= 100 ? -4 : 0)]);
+  const m = await call("structural_break", { y: { points: pts, label: "steps" }, max_breaks: 4 });
+  assert.equal(m.multiple_breaks.breaks.length, 2, JSON.stringify(m.multiple_breaks));
+  assert.deepEqual(m.multiple_breaks.breaks.map((b) => b.date), ["1994-03", "1998-05"]);
+  assert.equal(m.multiple_breaks.segments.length, 3);
+  assert.ok(Math.abs(m.multiple_breaks.segments[1].mean_y - m.multiple_breaks.segments[0].mean_y - 3) < 0.3);
+  assert.match(m.verdict, /Sequential search: 2 break/);
+  const rel = await call("structural_break", { y: { ...CATTLE, transform: "pct_change", start: "1990-01" }, x: { ...CORN, transform: "pct_change", start: "1990-01" }, max_breaks: 2 });
+  assert.ok(rel.multiple_breaks.segments.every((sg) => "slope" in sg), "relation breaks report slopes per segment");
+});
+
+await check("regress reports Breusch-Pagan, VIF and RESET diagnostics", async () => {
+  const j = await call("regress", { y: { ...CATTLE, transform: "yoy", start: "1990-01" }, x: [{ ...CORN, transform: "yoy", start: "1990-01" }, { ...CPI, transform: "yoy", start: "1990-01" }] });
+  assert.ok(typeof j.diagnostics.breusch_pagan.p === "number" && j.diagnostics.breusch_pagan.df === 2);
+  assert.equal(j.diagnostics.vif.length, 2);
+  assert.ok(j.diagnostics.vif.every((v) => v.vif >= 1));
+  assert.ok(j.diagnostics.reset && typeof j.diagnostics.reset.p === "number");
+  // A regressor entered twice via lags of a smooth series should push VIF up and be warned about
+  const lagged = await call("regress", { y: { ...CATTLE, transform: "yoy", start: "1990-01" }, x: [{ ...CPI, start: "1990-01" }], x_lags: 2 });
+  assert.ok(lagged.diagnostics.vif.some((v) => v.vif > 10), JSON.stringify(lagged.diagnostics.vif));
+  assert.ok(lagged.warnings.some((w) => /VIF above 10/.test(w)), lagged.warnings.join(" | "));
+});
+
+await check("johansen and vecm with a restricted constant report the constant in the vector and a drift check", async () => {
+  const j = await call("johansen", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2, deterministic: "restricted_constant" });
+  assert.equal(j.deterministic, "restricted_constant");
+  assert.equal(j.trace_tests[0].critical["5%"], 20.2618);
+  assert.equal(j.drift_check.per_series.length, 2);
+  assert.ok(["constant", "restricted_constant"].includes(j.drift_check.suggested));
+  if (j.cointegrating_vector) assert.ok("constant" in j.cointegrating_vector);
+  const v = await call("vecm", { series: [{ ...CATTLE, transform: "log", start: "1990-01" }, { ...CORN, transform: "log", start: "1990-01" }], lags: 2, rank: 1, deterministic: "restricted_constant" });
+  assert.ok("constant" in v.relations[0].long_run_vector);
+  assert.match(v.caveat, /restricted to the cointegrating relation/);
+  // Two drift-free inline series: suggest_analysis picks the restricted constant
+  const n = 200, a = [0], b = [];
+  let seed = 9; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647 - 0.5; };
+  for (let i = 1; i < n; i++) a.push(a[i - 1] + rnd());
+  for (let i = 0; i < n; i++) b.push(3 + a[i] + rnd() * 0.3);
+  const dt = (i) => `${1990 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}`;
+  const plan = await call("suggest_analysis", { series: [{ points: a.map((v, i) => [dt(i), v]), label: "a" }, { points: b.map((v, i) => [dt(i), v]), label: "b" }] });
+  assert.ok(plan.series.every((f) => f.integration_order === "I(1)"), JSON.stringify(plan.series.map((f) => f.integration_order)));
+  const jo = plan.plan.find((p) => p.tool === "vecm");
+  assert.equal(jo.args.deterministic, "restricted_constant", "drift-free walks get the restricted constant");
+  assert.ok(plan.pitfalls.some((p) => /restricted_constant/.test(p)));
+  // The same walks with a drift added: the unrestricted constant
+  const plan2 = await call("suggest_analysis", { series: [{ points: a.map((v, i) => [dt(i), v + 0.5 * i]), label: "a" }, { points: b.map((v, i) => [dt(i), v + 0.5 * i]), label: "b" }] });
+  const jo2 = plan2.plan.find((p) => p.tool === "vecm");
+  if (jo2) assert.equal(jo2.args.deterministic, "constant", "drifting walks get the unrestricted constant");
 });
 
 await client.close();

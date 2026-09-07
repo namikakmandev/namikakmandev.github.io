@@ -300,5 +300,173 @@ check("ARIMA: MA(1) coefficient recovered and auto order picks d=1 for a random 
   assert.ok(Math.abs(auto.forecast[0] - rw[rw.length - 1]) < 3, "forecast continues from the last level");
 });
 
+check("local projections recover the impulse response of a known AR(1) system", () => {
+  const r = rng(21);
+  // y_t = 0.5 y_{t-1} + 0.8 x_t + e_t, x white noise: response 0.8, 0.4, 0.2, 0.1 ...
+  const n = 1500, x = Array.from({ length: n }, () => r.normal()), y = [0];
+  for (let t = 1; t < n; t++) y.push(0.5 * y[t - 1] + 0.8 * x[t] + 0.3 * r.normal());
+  const lp = S.localProjections(y, x, 4, 2);
+  assert.equal(lp.horizons.length, 5);
+  close(lp.horizons[0].beta, 0.8, 0.05, "h=0"); close(lp.horizons[1].beta, 0.4, 0.06, "h=1");
+  close(lp.horizons[2].beta, 0.2, 0.06, "h=2"); close(lp.horizons[4].beta, 0.05, 0.06, "h=4");
+  assert.ok(lp.horizons[0].p < 1e-6 && lp.horizons[0].se > 0, "significant at impact");
+  close(lp.shock_sd, 1, 0.08, "shock sd is the sd of x given the controls");
+  assert.throws(() => S.localProjections(y.slice(0, 20), x.slice(0, 20), 8, 4), /Too few observations/);
+});
+
+check("Diebold-Mariano: separates a good forecaster from a bad one, not two equal ones", () => {
+  const r = rng(33);
+  const n = 80;
+  const e1 = Array.from({ length: n }, () => r.normal()), e2 = Array.from({ length: n }, () => 2 * r.normal());
+  const dm = S.dieboldMariano(e1, e2, 1);
+  assert.equal(dm.better, 1, `stat ${dm.statistic} p ${dm.p}`);
+  assert.ok(dm.statistic < -2.5 && dm.p < 0.02);
+  const same = S.dieboldMariano(e1, e1, 1);
+  assert.equal(same.statistic, 0); assert.equal(same.better, null);
+  const e3 = Array.from({ length: n }, () => r.normal());
+  const equal = S.dieboldMariano(e1, e3, 4);
+  assert.equal(equal.better, null, `two iid N(0,1) error series, p ${equal.p}`);
+  assert.throws(() => S.dieboldMariano(e1.slice(0, 4), e2.slice(0, 4)), /6 or more/);
+  // A failed origin (NaN) is dropped, not allowed to poison the test.
+  const holed = S.dieboldMariano([NaN, ...e1.slice(1)], e2, 1);
+  assert.equal(holed.n, n - 1); assert.equal(holed.better, 1, `with a NaN pair: p ${holed.p}`);
+  assert.throws(() => S.dieboldMariano([NaN, NaN, NaN, ...e1.slice(3, 8)], e2.slice(0, 8)), /6 or more/, "count after dropping");
+  // A constant gap is a win at every origin, not a tie.
+  const constant = S.dieboldMariano(new Array(10).fill(1), new Array(10).fill(2), 1);
+  assert.equal(constant.better, 1); assert.equal(constant.degenerate, true); assert.equal(constant.p, 0);
+  close(S.longRunVariance(e1, 0), S.variance(e1, 0), 1e-12, "lag 0 is the plain variance");
+});
+
+check("rolling-origin backtest: origins leave room for the horizon, errors line up with the actuals", () => {
+  const y = Array.from({ length: 50 }, (_, i) => i);   // a straight line: a naive forecast errs by h
+  const bt = S.rollingOrigin(y, (train) => new Array(3).fill(train[train.length - 1]), 3, 5, 10);
+  assert.deepEqual(bt.origins, [42, 43, 44, 45, 46]);
+  assert.deepEqual(bt.errors[0], [1, 2, 3]);
+  assert.equal(bt.failures, 0);
+  const stepped = S.rollingOrigin(y, (train) => [train[train.length - 1]], 1, 3, 10, 4);
+  assert.deepEqual(stepped.origins, [40, 44, 48]);
+  const failing = S.rollingOrigin(y, () => { throw new Error("no"); }, 2, 2, 10);
+  assert.equal(failing.failures, 2); assert.ok(Number.isNaN(failing.errors[0][0]));
+  assert.throws(() => S.rollingOrigin(y.slice(0, 5), () => [0], 3, 1, 10), /Too few observations/);
+  const m = S.errorMetrics([1, -1, 2, NaN], [10, 10, 10, 10]);
+  close(m.rmse, Math.sqrt(2), 1e-9, "rmse"); close(m.mae, 4 / 3, 1e-9, "mae"); close(m.mape, 1000 / 75, 1e-9, "mape"); assert.equal(m.n, 3);
+  assert.equal(S.errorMetrics([1, 2], [0, 5]).mape, null, "mape undefined when an actual is zero");
+});
+
+check("2SLS removes the endogeneity bias OLS carries, and the diagnostics say why", () => {
+  const r = rng(45);
+  const n = 600;
+  // x = 0.6 z1 + 0.4 z2 + u + v, y = 1 + 2 x + w + u: u is the confounder, z1 and z2 are clean instruments, w is exogenous
+  const z1 = [], z2 = [], w = [], x = [], y = [];
+  for (let i = 0; i < n; i++) {
+    const u = r.normal(), a = r.normal(), b = r.normal(), c = r.normal();
+    z1.push(a); z2.push(b); w.push(c);
+    const xi = 0.6 * a + 0.4 * b + u + 0.5 * r.normal();
+    x.push(xi); y.push(1 + 2 * xi + 0.7 * c + u + 0.3 * r.normal());
+  }
+  const iv = S.twoSLS(y, x.map((v) => [v]), z1.map((v, i) => [v, z2[i]]), w.map((v) => [v]));
+  close(iv.beta[1], 2, 0.1, "2SLS slope on x");
+  close(iv.beta[2], 0.7, 0.1, "exogenous slope");
+  assert.ok(iv.ols.beta[1] > 2.3, `OLS is biased up, got ${iv.ols.beta[1]}`);
+  assert.ok(iv.first_stage[0].F_excluded > 10 && iv.first_stage[0].F_p < 1e-6, "strong instruments");
+  assert.ok(iv.wu_hausman.p < 0.01, `Wu-Hausman should reject exogeneity, p ${iv.wu_hausman.p}`);
+  assert.ok(iv.sargan && iv.sargan.df === 1 && iv.sargan.p > 0.01, `valid instruments should pass Sargan, p ${iv.sargan?.p}`);
+  assert.ok(iv.se[1] > 0 && iv.hac_se[1] > 0 && Math.abs(iv.hac_se[1] / iv.se[1] - 1) < 0.5, "HAC se same order as plain se on iid data");
+  const just = S.twoSLS(y, x.map((v) => [v]), z1.map((v) => [v]));
+  assert.equal(just.sargan, null, "just-identified: no Sargan test");
+  close(just.beta[1], 2, 0.15, "just-identified slope");
+  assert.throws(() => S.twoSLS(y, x.map((v, i) => [v, w[i]]), z1.map((v) => [v])), /Under-identified/);
+  assert.throws(() => S.twoSLS(y, x.map((v) => [v]), x.map((v) => [2 * v + 1])), /reproduce endogenous regressor 1 exactly/);
+  // A weak instrument is flagged by the first-stage F
+  const weak = S.twoSLS(y, x.map((v) => [v]), z1.map(() => [r.normal()]));
+  assert.ok(weak.first_stage[0].F_excluded < 10, `noise instrument F ${weak.first_stage[0].F_excluded}`);
+});
+
+check("sup-F critical values: white noise does not reject, a mean shift does and is located; sequential search finds two", () => {
+  close(S.supFCritical(1)["5%"], 8.85, 0.05, "k=1 5% is Andrews' published value");
+  close(S.supFCritical(1)["1%"], 12.35, 0.05, "k=1 1% is Andrews' published value");
+  close(S.supFCritical(2)["5%"], 11.86 / 2, 0.01, "sup-F is sup-Wald / k");
+  assert.throws(() => S.supFCritical(6), /tabulated for 1 to 5/);
+  const r = rng(52);
+  const n = 200, X = Array.from({ length: n }, () => [1]);
+  const wn = Array.from({ length: n }, () => r.normal());
+  const q = S.supF(wn, X);
+  assert.equal(S.supFReject(q.best.F, 1), null, `white noise sup-F ${q.best.F}`);
+  const shifted = wn.map((v, i) => v + (i >= 120 ? 1.5 : 0));
+  const s1 = S.supF(shifted, X);
+  assert.equal(S.supFReject(s1.best.F, 1), "1%");
+  assert.ok(Math.abs(s1.best.break_index - 120) <= 3, `located at ${s1.best.break_index}`);
+  const two = wn.map((v, i) => v + (i >= 70 ? 1.5 : 0) + (i >= 140 ? -2 : 0));
+  const seq = S.sequentialBreaks(two, X, 4);
+  assert.equal(seq.breaks.length, 2, `found ${seq.breaks.map((b) => b.index)} (${seq.stopped})`);
+  assert.ok(Math.abs(seq.breaks[0].index - 70) <= 3 && Math.abs(seq.breaks[1].index - 140) <= 3, `at ${seq.breaks.map((b) => b.index)}`);
+  assert.equal(seq.segments.length, 3);
+  close(seq.segments[1].mean_y - seq.segments[0].mean_y, 1.5, 0.4, "segment means differ by the shift");
+  assert.match(seq.stopped, /no further break/);
+  const none = S.sequentialBreaks(wn, X, 3);
+  assert.equal(none.breaks.length, 0); assert.equal(none.segments.length, 1);
+  // The prefix-sum scan equals the explicit Chow test, for a constant and for a constant with a regressor.
+  const xr = Array.from({ length: n }, () => r.normal());
+  const yr = xr.map((v, i) => 0.5 + 0.8 * v + r.normal());
+  const X2 = xr.map((v) => [1, v]);
+  for (const [yy, XX] of [[shifted, X], [yr, X2]]) {
+    const scan = S.supF(yy, XX);
+    for (const e of scan.scan.filter((_, i) => i % 17 === 0)) close(e.F, S.chow(yy, XX, e.index).F, 1e-8, `F at ${e.index}`);
+  }
+  // A minimum segment in absolute terms keeps candidates away from the edges.
+  const narrow = S.supF(shifted, X, 0.15, 60);
+  assert.ok(narrow.scan.every((e) => e.index >= 60 && e.index <= n - 60));
+  // After the first split the remainder is not scanned to its edges: a 40-point white-noise tail gets no break.
+  const oneShift = wn.map((v, i) => v + (i >= 160 ? 2 : 0));
+  const seq1 = S.sequentialBreaks(oneShift, X, 5);
+  assert.equal(seq1.breaks.length, 1, `found ${seq1.breaks.map((b) => b.index)}`);
+});
+
+check("regression diagnostics: Breusch-Pagan, VIF and RESET react to what they should", () => {
+  const r = rng(61);
+  const n = 400;
+  const x1 = Array.from({ length: n }, () => r.normal()), x2 = x1.map((v) => 0.95 * v + 0.3 * r.normal()), x3 = Array.from({ length: n }, () => r.normal());
+  const X = x1.map((v, i) => [1, v, x3[i]]);
+  const yHom = x1.map((v, i) => 1 + v + x3[i] + r.normal());
+  const yHet = x1.map((v, i) => 1 + v + x3[i] + Math.exp(0.8 * v) * r.normal());
+  assert.ok(S.breuschPagan(X, S.ols(yHom, X).resid).p > 0.05, "homoskedastic: no rejection");
+  assert.ok(S.breuschPagan(X, S.ols(yHet, X).resid).p < 0.01, "heteroskedastic: rejection");
+  const v = S.vif(x1.map((a, i) => [1, a, x2[i], x3[i]]));
+  assert.ok(v[0] > 5 && v[1] > 5 && v[2] < 2, `VIFs ${v}`);
+  assert.deepEqual(S.vif(X.map((row) => [row[0], row[1]])), [1], "one regressor: VIF 1");
+  const yQuad = x1.map((v, i) => 1 + v + 0.8 * v * v + 0.5 * r.normal());
+  assert.ok(S.reset(yQuad, X, S.ols(yQuad, X)).p < 0.01, "missing square: RESET rejects");
+  assert.ok(S.reset(yHom, X, S.ols(yHom, X)).p > 0.05, "correct linear form: RESET does not reject");
+});
+
+check("Johansen with a restricted constant: rank on drift-free series, the constant recovered inside the relation", () => {
+  const r = rng(77);
+  const n = 500;
+  const x = [0]; for (let i = 1; i < n; i++) x.push(x[i - 1] + r.normal());
+  // y = 5 + 2x + u: no drift anywhere, a constant of 5 inside the relation
+  const y = []; let u = 0;
+  for (let i = 0; i < n; i++) { u = 0.4 * u + r.normal(); y.push(5 + 2 * x[i] + u); }
+  const Y = y.map((v, i) => [v, x[i]]);
+  const j = S.johansen(Y, 1, "restricted_constant");
+  assert.equal(j.det, "restricted_constant");
+  assert.equal(j.rank_at_5pct, 1, JSON.stringify(j.trace.map((t) => [t.r, +t.statistic.toFixed(1), t.critical["5%"]])));
+  assert.equal(j.cointegrating_vector.length, 3, "vector carries the constant");
+  close(j.cointegrating_vector[1], -2, 0.1, "slope"); close(j.cointegrating_vector[2], -5, 0.6, "constant in the relation");
+  assert.equal(j.trace[0].critical["5%"], 20.2618, "MHM restricted-constant critical value for n-r=2");
+  const m = S.vecm(Y, 1, undefined, "restricted_constant");
+  close(m.beta_constant[0], -5, 0.6, "VECM reports the relation's constant");
+  assert.ok(m.alpha[0][0] < -0.2 && m.alpha_p[0][0] < 0.01, `y adjusts: alpha ${m.alpha[0][0]}`);
+  assert.ok(Math.abs(m.alpha[1][0]) < 0.15, `x is weakly exogenous: alpha ${m.alpha[1][0]}`);
+  assert.deepEqual(m.constant, [0, 0], "no separate intercept in the differences");
+  close(S.mean(m.ect.map((row) => row[0])), 0, 0.5, "the error-correction term is centred");
+  // Two independent drift-free walks: rank 0 under the restricted constant
+  const w = [0]; for (let i = 1; i < n; i++) w.push(w[i - 1] + r.normal());
+  const j0 = S.johansen(x.map((v, i) => [v, w[i]]), 1, "restricted_constant");
+  assert.equal(j0.rank_at_5pct, 0, JSON.stringify(j0.trace.map((t) => +t.statistic.toFixed(1))));
+  // Drift check: a walk with drift has a large t, one without does not
+  const drifted = x.map((v, i) => v + 0.3 * i);
+  assert.ok(Math.abs(S.driftT(drifted)) > 4 && Math.abs(S.driftT(x)) < 2.5, `drift t ${S.driftT(drifted)} vs ${S.driftT(x)}`);
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);
