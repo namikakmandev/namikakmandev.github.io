@@ -13,6 +13,7 @@ import { clip } from "./transform.js";
 
 export interface ProviderEnv {
   FRED_API_KEY?: string;
+  SEC_USER_AGENT?: string;
   EVDS_API_KEY?: string;
   FAOSTAT_USER?: string;
   FAOSTAT_PASSWORD?: string;
@@ -44,11 +45,16 @@ export interface Provider {
 const TTL_MS = 10 * 60 * 1000;
 const textCache = new Map<string, { at: number; body: string }>();
 
+/** Thrown by getText for a non-2xx, carrying the status so a caller can branch on it. */
+export class UpstreamError extends DataError {
+  constructor(message: string, readonly status: number) { super(message); }
+}
+
 async function getText(url: string, headers: Record<string, string> = {}): Promise<string> {
   const hit = textCache.get(url);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.body;
   const res = await fetch(url, { headers: { "user-agent": "econ-mcp/0.2 (+https://namikakmandev.github.io)", ...headers } });
-  if (!res.ok) throw new DataError(`Upstream ${res.status} from ${new URL(url).host}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) throw new UpstreamError(`Upstream ${res.status} from ${new URL(url).host}: ${(await res.text()).slice(0, 200)}`, res.status);
   const body = await res.text();
   const head = body.trimStart().slice(0, 15).toLowerCase();
   if (head.startsWith("<!doctype") || head.startsWith("<html")) {
@@ -983,7 +989,13 @@ const weather: Provider = {
 // SEC EDGAR company facts (XBRL). Keyless, but the SEC requires a user agent
 // that identifies the caller, so every request carries one.
 
-const SEC_UA = "econ-mcp/0.4 (namikakmandev.github.io; akmannamik83@gmail.com)";
+/**
+ * The SEC refuses requests that do not identify the caller, and asks for a contact in the
+ * user agent. The default names the site; set SEC_USER_AGENT in the dashboard to put a
+ * real contact address there, which is what the SEC's own guidance asks for.
+ */
+const SEC_UA_DEFAULT = "Namik Akman economics data (namikakmandev.github.io)";
+function secUa(env: ProviderEnv): string { return env.SEC_USER_AGENT || SEC_UA_DEFAULT; }
 
 /** The line items that make up each statement, in the order an analyst reads them. */
 const SEC_GROUPS: Record<string, string[]> = {
@@ -1012,12 +1024,17 @@ let secTickers: { at: number; byTicker: Map<string, { cik: string; title: string
 const SEC_TICKER_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** Ticker or CIK to the ten-digit, zero-padded CIK the XBRL endpoints want. */
-async function secResolveCik(token: string): Promise<{ cik: string; title: string }> {
+async function secResolveCik(token: string, env: ProviderEnv): Promise<{ cik: string; title: string }> {
   const raw = token.trim();
   const digits = /^(?:CIK)?0*(\d{1,10})$/i.exec(raw);
   if (digits) return { cik: digits[1].padStart(10, "0"), title: `CIK ${digits[1]}` };
   if (!secTickers || Date.now() - secTickers.at > SEC_TICKER_TTL_MS) {
-    const j = (await getJson("https://www.sec.gov/files/company_tickers.json", { "user-agent": SEC_UA })) as Record<string, { cik_str: number; ticker: string; title: string }>;
+    let j: Record<string, { cik_str: number; ticker: string; title: string }>;
+    try {
+      j = (await getJson("https://www.sec.gov/files/company_tickers.json", { "user-agent": secUa(env) })) as typeof j;
+    } catch (e) {
+      throw new DataError(`The SEC would not serve its ticker directory (${e instanceof Error ? e.message.split(":")[0] : "error"}). Use the filer's CIK instead, as 'CIK0000320193:Assets'; you can look one up at sec.gov/cgi-bin/browse-edgar. If this persists, set SEC_USER_AGENT to a contact address, which is what the SEC asks callers to send.`);
+    }
     const byTicker = new Map<string, { cik: string; title: string }>();
     for (const row of Object.values(j)) {
       if (!row || typeof row.cik_str !== "number" || !row.ticker) continue;
@@ -1079,11 +1096,19 @@ function secSeriesFrom(facts: SecFact[], annual: boolean): Series {
   return out;
 }
 
-async function secConcept(cik: string, taxonomy: string, tag: string, unit: string): Promise<{ facts: SecFact[]; label: string } | null> {
+/**
+ * One concept, or null when this filer simply does not report it. A 404 means the tag is
+ * not in their filings, which is a skip; anything else (the edge refusing us, a rate
+ * limit) is a real failure and must not be reported as a missing tag.
+ */
+async function secConcept(cik: string, taxonomy: string, tag: string, unit: string, env: ProviderEnv): Promise<{ facts: SecFact[]; label: string } | null> {
   const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${encodeURIComponent(taxonomy)}/${encodeURIComponent(tag)}.json`;
   let j: { label?: string; units?: Record<string, SecFact[]> };
-  try { j = (await getJson(url, { "user-agent": SEC_UA })) as typeof j; }
-  catch { return null; }   // a tag the filer never used answers 404; that is a skip, not a failure
+  try { j = (await getJson(url, { "user-agent": secUa(env) })) as typeof j; }
+  catch (e) {
+    if (e instanceof UpstreamError && e.status === 404) return null;
+    throw e;
+  }
   const units = j.units ?? {};
   const rows = units[unit] ?? units[Object.keys(units)[0]];
   if (!Array.isArray(rows) || !rows.length) return null;
@@ -1108,11 +1133,11 @@ const sec: Provider = {
     { id: "WMT:InventoryNet", title: "Walmart: inventories" },
     { id: "KO:NetCashProvidedByUsedInOperatingActivities", title: "Coca-Cola: cash from operations" },
   ],
-  async fetch(id, params) {
+  async fetch(id, params, env) {
     const cut = id.lastIndexOf(":");
     if (cut < 1) throw new DataError(`SEC ids look like 'TICKER:TAG', e.g. 'AAPL:Assets' or 'AAPL:balance_sheet'. Got '${id}'.`);
     const who = id.slice(0, cut), what = id.slice(cut + 1).trim();
-    const { cik, title } = await secResolveCik(who);
+    const { cik, title } = await secResolveCik(who, env);
     const taxonomy = params.taxonomy ?? "us-gaap";
     const unit = params.unit ?? "USD";
     const annual = String(params.annual ?? "").toLowerCase() === "true";
@@ -1126,7 +1151,7 @@ const sec: Provider = {
     for (let i = 0; i < tags.length; i += 4) {
       if (i) await new Promise((r) => setTimeout(r, 500));
       const batch = tags.slice(i, i + 4);
-      got.push(...await Promise.all(batch.map(async (t) => ({ tag: t, res: await secConcept(cik, taxonomy, t, unit) }))));
+      got.push(...await Promise.all(batch.map(async (t) => ({ tag: t, res: await secConcept(cik, taxonomy, t, unit, env) }))));
     }
     const series: Record<string, Series> = {};
     const labels: string[] = [];
@@ -1154,13 +1179,13 @@ const sec: Provider = {
       ],
     };
   },
-  async search(query) {
+  async search(query, env) {
     const hits = curatedSearch(sec.curated, query);
     if (hits.length) return hits;
     // Anything else: try to read the query as a company and offer its statements.
     const token = query.trim().split(/\s+/)[0];
     try {
-      const { cik, title } = await secResolveCik(token);
+      const { cik, title } = await secResolveCik(token, env);
       return Object.keys(SEC_GROUPS).map((g) => ({ id: `${token.toUpperCase()}:${g}`, title: `${title}: ${g.replace("_", " ")}`, hint: `CIK ${cik}` }));
     } catch { return []; }
   },

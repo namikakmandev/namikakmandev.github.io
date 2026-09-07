@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { startStatic, startWorker, addr } from "./serve-node.mjs";
-import { installFetchMock } from "./fixtures.mjs";
+import { installFetchMock, setSecBlocked } from "./fixtures.mjs";
 
 const { default: handler } = await import("../dist/index.js");
 installFetchMock();
@@ -695,6 +695,12 @@ await check("johansen and vecm with a restricted constant report the constant in
 });
 
 await check("sec: a company balance sheet by quarter, restatements resolved, tickers and CIKs both work", async () => {
+  // First, before anything caches the directory: when the SEC refuses the caller, say so.
+  // Reporting it as an unknown company would send the reader hunting for a valid ticker.
+  setSecBlocked(true);
+  const blocked = await callRaw("fetch_external", { provider: "sec", id: "AAPL:Assets" });
+  assert.ok(blocked.isError && /would not serve its ticker directory/.test(blocked.content[0].text), blocked.content[0].text);
+  setSecBlocked(false);
   const bs = await call("fetch_external", { provider: "sec", id: "AAPL:balance_sheet" });
   // Only the tags this filer actually reports come back; the rest of the statement is absent, not empty.
   assert.deepEqual(bs.series.map((x) => x.key), ["Assets", "StockholdersEquity"], JSON.stringify(bs.series));
@@ -718,6 +724,7 @@ await check("sec: a company balance sheet by quarter, restatements resolved, tic
   for (const [args, re] of [
     [{ provider: "sec", id: "NOPE:Assets" }, /No SEC filer with ticker/],
     [{ provider: "sec", id: "AAPL:NotATag" }, /no us-gaap tag/],
+
     [{ provider: "sec", id: "AAPL" }, /TICKER:TAG/],
   ]) {
     const r = await callRaw("fetch_external", args);
