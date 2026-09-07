@@ -10,11 +10,21 @@ import type { ProviderEnv } from "./providers.js";
 import { SeriesRefSchema, labelOf, resolve } from "./resolve.js";
 import { round, toPoints } from "./transform.js";
 
+/** A shaded band around one of the series: [x, low, high] points, inline (a band is a computed thing, not a reference). */
+export const BandSchema = z.object({
+  label: z.string().max(80).optional(),
+  series: z.number().int().min(0).max(7).default(0).describe("Index of the series the band belongs to (colour and axis)"),
+  points: z.array(z.tuple([z.string(), z.number(), z.number()])).min(1).max(400).describe("[date or horizon, low, high]"),
+});
+export type Band = z.infer<typeof BandSchema>;
+
 export const PlotSpecSchema = z.object({
   series: z.array(SeriesRefSchema).min(1).max(8),
   title: z.string().max(200).optional(),
   scale: z.enum(["linear", "log"]).optional(),
   right: z.array(z.number().int().min(0).max(7)).optional(),
+  bands: z.array(BandSchema).max(4).optional(),
+  xaxis: z.enum(["date", "number"]).optional().describe("number: x values are horizons or indexes, not dates"),
   api: z.string().optional(),
 });
 export type PlotSpec = z.infer<typeof PlotSpecSchema>;

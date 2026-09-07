@@ -37,7 +37,7 @@ Every answer carries the series' source and caveats. That is the point: a model 
 
 | Tool | What it does |
 |---|---|
-| `plot` | Resolves up to 8 series references and returns a `chart_url` on the site. Options: title, log scale, which series go on a right-hand axis. |
+| `plot` | Resolves up to 8 series references and returns a `chart_url` on the site. Options: title, log scale, which series go on a right-hand axis, shaded bands, a numeric x axis for horizons. `forecast` and `local_projections` return a ready `chart_url` with their band. |
 
 The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`), a plain HTTP endpoint that resolves the same series references and returns points, sources and caveats. Anything that speaks HTTP can use it directly.
 

@@ -12,7 +12,7 @@ import { SeriesRefSchema, align, detectFrequency, futureDates, resolve, type Res
 import { apply, clip, round, toPoints, type Transform } from "./transform.js";
 import * as S from "./stats.js";
 import { SERVER_BUILD } from "./version.js";
-import { chartUrl, type PlotSpec } from "./api.js";
+import { BandSchema, chartUrl, type Band, type PlotSpec } from "./api.js";
 
 const r4 = (x: number) => (Number.isFinite(x) ? Math.round(x * 10000) / 10000 : null);
 const r3 = (x: number) => (Number.isFinite(x) ? Math.round(x * 1000) / 1000 : null);
@@ -213,18 +213,22 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "plot",
     {
       title: "Plot series",
-      description: "Draw up to 8 series on one interactive chart and return its link. The page shows hover values, log and rebase-to-100 toggles, a right-hand axis for series on another scale, the sources and caveats, a data table and CSV download. Every series is resolved first, so a bad reference fails here rather than on the page. Give the user the chart_url.",
+      description: "Draw up to 8 series on one interactive chart and return its link. The page shows hover values, log and rebase-to-100 toggles, a right-hand axis for series on another scale, shaded bands (forecast intervals, confidence bands), the sources and caveats, a data table and CSV download. forecast and local_projections return a ready chart_url of their own. Every series is resolved first, so a bad reference fails here rather than on the page. Give the user the chart_url.",
       inputSchema: {
         series: z.array(REF).min(1).max(8),
         title: z.string().max(200).optional().describe("Chart title; default is built from the series labels"),
         scale: z.enum(["linear", "log"]).default("linear"),
         right_axis: z.array(z.number().int().min(0).max(7)).optional().describe("0-based indexes of series to draw on a right-hand axis, for series whose units differ"),
+        bands: z.array(BandSchema).max(4).optional().describe("Shaded bands, e.g. a forecast interval: [[date, low, high], ...] attached to a series by index"),
+        xaxis: z.enum(["date", "number"]).default("date").describe("number when the x values are horizons or indexes (zero-padded strings such as '00', '01')"),
       },
       annotations: { readOnlyHint: true },
     },
-    wrap(async ({ series, title, scale, right_axis }) => {
+    wrap(async ({ series, title, scale, right_axis, bands, xaxis }) => {
       const rs = await Promise.all(series.map(get));
-      const spec: PlotSpec = { series, title, scale, right: right_axis?.length ? right_axis : undefined, api: self };
+      const badBand = (bands ?? []).find((b) => b.series >= series.length);
+      if (badBand) return fail(`Band '${badBand.label ?? ""}' refers to series ${badBand.series}, but only ${series.length} series were given.`);
+      const spec: PlotSpec = { series, title, scale, right: right_axis?.length ? right_axis : undefined, bands: bands?.length ? bands : undefined, xaxis: xaxis === "number" ? "number" : undefined, api: self };
       const url = chartUrl(origin, spec);
       return text({
         chart_url: url,
@@ -552,11 +556,21 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         detail = { method: per > 1 ? `Holt-Winters additive, period ${per}` : "Holt linear trend", alpha: hw.alpha, beta: hw.beta, gamma: hw.gamma, level: r4(hw.level), trend_per_period: r4(hw.trend) };
       }
       const ape = v.map((x, i) => (Number.isFinite(fitted[i]) && x !== 0 ? Math.abs((x - fitted[i]) / x) : NaN)).filter(Number.isFinite);
+      const fc = future.map((d, i) => ({ date: d, value: r4(forecast[i]), lo95: r4(forecast[i] - 1.96 * sdv * Math.sqrt(i + 1)), hi95: r4(forecast[i] + 1.96 * sdv * Math.sqrt(i + 1)) }));
+      const lastD = dates[dates.length - 1], lastV = r4(v[v.length - 1]) as number;
+      // The chart joins the forecast to the last actual; the band starts at zero width there.
+      const chartSpec: PlotSpec = {
+        series: [series, { points: [[lastD, lastV], ...fc.map((p) => [p.date, p.value as number] as [string, number])], label: `${r.label}, forecast` }],
+        bands: [{ series: 1, label: "95% band", points: [[lastD, lastV, lastV], ...fc.map((p) => [p.date, p.lo95 as number, p.hi95 as number] as [string, number, number])] }],
+        title: `${r.label}: ${String(detail.method)} forecast, ${horizon} ahead`, api: self,
+      };
       return text({
-        ...meta(r), n: v.length, frequency: f.frequency, last_actual: [dates[dates.length - 1], r4(v[v.length - 1])],
+        ...meta(r), n: v.length, frequency: f.frequency, last_actual: [lastD, lastV],
         ...detail,
         in_sample: { mape_pct: ape.length ? r3(S.mean(ape) * 100) : null, resid_sd: r4(sdv) },
-        forecast: future.map((d, i) => ({ date: d, value: r4(forecast[i]), lo95: r4(forecast[i] - 1.96 * sdv * Math.sqrt(i + 1)), hi95: r4(forecast[i] + 1.96 * sdv * Math.sqrt(i + 1)) })),
+        forecast: fc,
+        chart_url: chartUrl(origin, chartSpec),
+        chart_note: "The chart redraws the actual series from live data; the forecast and band are the numbers above, fixed in the link.",
         caveat: "The band grows with the square root of the horizon from the residual spread. It ignores parameter uncertainty and regime change, so treat it as a floor on the real uncertainty.",
       });
     }),
@@ -1122,10 +1136,20 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const sig = rows.filter((r) => r.significant_5pct).map((r) => r.h);
       const peak = rows.reduce((a, b) => (Math.abs(b.response ?? 0) > Math.abs(a.response ?? 0) ? b : a), rows[0]);
       const impact = rows[0];
+      const hx = (h: number) => String(h).padStart(2, "0");
+      const chartSpec: PlotSpec = {
+        series: [
+          { points: rows.map((r) => [hx(r.h), r.response as number]), label: `response of ${ry.label} to a unit shock in ${rx.label}` },
+          { points: rows.map((r) => [hx(r.h), r.cumulative as number]), label: "cumulative response" },
+        ],
+        bands: [{ series: 0, label: "95% band", points: rows.map((r) => [hx(r.h), r.lo95 as number, r.hi95 as number]) }],
+        xaxis: "number", title: `Local projections: ${ry.label} after a shock to ${rx.label}`, api: self,
+      };
       return text({
         y: meta(ry), x: meta(rx), controls: rc.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1], frequency: f.frequency, lags: p, horizon,
         shock_sd: r4(lp.shock_sd),
         responses: rows,
+        chart_url: chartUrl(origin, chartSpec),
         peak: { h: peak.h, response: peak.response, response_to_1sd_shock: peak.response_to_1sd_shock },
         cumulative_at_horizon: rows[rows.length - 1].cumulative,
         reading: [

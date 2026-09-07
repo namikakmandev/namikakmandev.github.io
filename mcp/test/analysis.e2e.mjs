@@ -299,6 +299,39 @@ await check("plot resolves every series and links to chart.html with the spec in
   assert.equal(j.series[0].first, "2015-01");
   const bad = await client.callTool({ name: "plot", arguments: { series: [{ dataset: "us-prices", series: "nope" }] } });
   assert.ok(bad.isError);
+  // Bands ride in the spec; one that points past the series list is refused.
+  const banded = await call("plot", { series: [{ ...CATTLE, start: "2024-01" }], bands: [{ series: 0, label: "range", points: [["2024-01", 100, 120], ["2024-02", 101, 122]] }] });
+  const bs = JSON.parse(Buffer.from(banded.chart_url.split("#")[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+  assert.equal(bs.bands.length, 1); assert.equal(bs.bands[0].points.length, 2); assert.equal(bs.xaxis, undefined);
+  const off = await callRaw("plot", { series: [CATTLE], bands: [{ series: 3, points: [["2024-01", 1, 2]] }] });
+  assert.ok(off.isError && /refers to series 3/.test(off.content[0].text));
+});
+
+const decodeSpec = (url) => JSON.parse(Buffer.from(url.split("#")[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+
+await check("forecast and local_projections return chart links with their bands", async () => {
+  const f = await call("forecast", { series: { ...CPI, start: "2015-01" }, horizon: 6, method: "holt" });
+  const spec = decodeSpec(f.chart_url);
+  assert.equal(spec.series.length, 2);
+  assert.deepEqual(spec.series[0], { ...CPI, start: "2015-01" }, "the actual series stays a live reference");
+  assert.equal(spec.series[1].points.length, 7, "last actual plus six forecasts");
+  assert.deepEqual(spec.series[1].points[0], f.last_actual, "the forecast line starts at the last actual");
+  assert.equal(spec.bands[0].series, 1);
+  assert.equal(spec.bands[0].points.length, 7);
+  const [, lo, hi] = spec.bands[0].points[0]; assert.equal(lo, hi, "band starts at zero width");
+  assert.equal(spec.bands[0].points[6][1], f.forecast[5].lo95); assert.equal(spec.bands[0].points[6][2], f.forecast[5].hi95);
+  assert.equal(spec.api, base);
+  const lp = await call("local_projections", { y: { ...CATTLE, transform: "pct_change", start: "1995-01" }, x: { ...CORN, transform: "pct_change", start: "1995-01" }, horizon: 12 });
+  const ls = decodeSpec(lp.chart_url);
+  assert.equal(ls.xaxis, "number");
+  assert.equal(ls.series[0].points.length, 13);
+  assert.deepEqual(ls.series[0].points.map((p) => p[0]), Array.from({ length: 13 }, (_, h) => String(h).padStart(2, "0")), "zero-padded horizons sort as strings");
+  assert.equal(ls.bands[0].points[3][1], lp.responses[3].lo95);
+  // The /v1/series endpoint the page calls resolves the inline points in order
+  const r = await fetch(base + "/v1/series?s=" + encodeURIComponent(JSON.stringify({ series: ls.series })));
+  const j = await r.json();
+  assert.equal(j.series[0].points.length, 13);
+  assert.equal(j.series[0].points[10][0], "10");
 });
 
 await check("GET /v1/series returns points for a spec, and errors per series", async () => {
