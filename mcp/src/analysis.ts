@@ -163,6 +163,15 @@ function driftCheck(labels: string[], columns: number[][], chosen: "constant" | 
   return { per_series: rows, suggested, note };
 }
 
+/**
+ * For a spurious-regression caution, "does not reject at 5% or better" is the right bar.
+ * A series that only clears the 10% line is not evidence of stationarity worth silencing
+ * the warning for; the warning costs a sentence, a spurious regression costs the finding.
+ */
+function looksNonStationary(a: S.AdfResult | null): boolean {
+  return !a || a.reject_unit_root_at === null || a.reject_unit_root_at === "10%";
+}
+
 function integrationOrder(level: S.AdfResult | null, first: S.AdfResult | null): "I(0)" | "I(1)" | "I(2) or worse" | "unknown" {
   if (!level) return "unknown";
   if (level.reject_unit_root_at) return "I(0)";
@@ -348,9 +357,11 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const order = integrationOrder(level, first);
       const kp = S.kpss(v, spec === "ct" ? "ct" : "c");
       const kpssOut = { trend: kp.trend, lags: kp.lags, statistic: r3(kp.statistic), critical: kp.critical, reject_stationarity_at: kp.reject_stationarity_at,
+        degenerate: kp.degenerate,
         null_hypothesis: "The series is stationary. Rejecting means a unit root." };
       const adfSaysStationary = !!level.reject_unit_root_at, kpssSaysStationary = !kp.reject_stationarity_at;
-      const joint = adfSaysStationary && kpssSaysStationary ? "Both tests agree: stationary."
+      const joint = kp.degenerate ? `KPSS could not be computed: ${kp.degenerate} Read the ADF result alone.`
+        : adfSaysStationary && kpssSaysStationary ? "Both tests agree: stationary."
         : !adfSaysStationary && !kpssSaysStationary ? "Both tests agree: unit root."
         : adfSaysStationary ? "ADF rejects a unit root but KPSS rejects stationarity: borderline, often a near-unit-root or a structural break. Check structural_break."
         : "Neither test rejects: the sample is too short or the series is too noisy to tell.";
@@ -409,7 +420,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         try {
           const ay = S.adf(yv, "c");
           const ax = rx.map((_, j) => { try { return S.adf(columns[j + 1].slice(x_lags), "c"); } catch { return null; } });
-          if (!ay.reject_unit_root_at && ax.some((a) => a && !a.reject_unit_root_at)) {
+          if (looksNonStationary(ay) && ax.some(looksNonStationary)) {
             warnings.push("y and at least one x look non-stationary in levels (ADF does not reject). A high R² here can be spurious. Run cointegration on the pair, or re-run with transform='pct_change' or 'diff'.");
           }
         } catch { /* skip */ }
@@ -489,7 +500,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const ab = S.granger(vb, va, lags), ba = S.granger(va, vb, lags);
       const warnings: string[] = [];
       try {
-        if (!S.adf(va, "c").reject_unit_root_at || !S.adf(vb, "c").reject_unit_root_at) warnings.push("At least one series looks non-stationary. Granger tests on levels of integrated series are unreliable; re-run with transform='diff' or 'pct_change'.");
+        if (looksNonStationary(S.adf(va, "c")) || looksNonStationary(S.adf(vb, "c"))) warnings.push("At least one series looks non-stationary. Granger tests on levels of integrated series are unreliable; re-run with transform='diff' or 'pct_change'.");
       } catch { /* skip */ }
       return text({
         a: meta(ra), b: meta(rb), lags, n: ab.nobs, first: dates[0], last: dates[dates.length - 1],
@@ -535,7 +546,9 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         scatter_chart_url: chartUrl(origin, scatterChart),
         chart_note: "chart_url is the equilibrium error through time: cointegration means it returns to zero rather than wandering. scatter_chart_url is the pair with the long-run line through it.",
         integration_order: { a: orderA, b: orderB },
-        long_run: { equation: `a = ${r4(eg.beta[0])} + ${r4(eg.beta[1])} * b`, intercept: r4(eg.beta[0]), slope: r4(eg.beta[1]), slope_se: r4(eg.se[1]), r2: r4(eg.r2) },
+        long_run: { equation: `a = ${r4(eg.beta[0])} + ${r4(eg.beta[1])} * b`, intercept: r4(eg.beta[0]), slope: r4(eg.beta[1]), r2: r4(eg.r2),
+          slope_se_ols: r4(eg.se[1]),
+          slope_se_note: "Do not build a t test or a confidence interval from slope_se_ols. In a cointegrating regression the slope is super-consistent but its conventional standard error is not valid: the residual is serially correlated and b is correlated with it, so a nominal 95% interval covers the truth about 70% of the time. For inference on the long-run coefficient use DOLS or fully modified OLS, or read the slope as a point estimate only." },
         residual_test: { statistic: r3(eg.residual_adf.statistic), lags: eg.residual_adf.lags, critical: { "1%": r3(eg.critical["1%"]), "5%": r3(eg.critical["5%"]), "10%": r3(eg.critical["10%"]) }, cointegrated_at: eg.cointegrated_at },
         verdict: eg.cointegrated_at ? `Cointegrated at ${eg.cointegrated_at}: deviations from the long-run line are mean-reverting, so levels regression is meaningful and an error-correction model is the next step.` : "No cointegration found: a levels regression between these two is likely spurious. Work with differences or growth rates.",
         equilibrium_error: include_residuals ? pointsOut(dates, fit.resid) : undefined,
@@ -558,7 +571,20 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       if (dates.length < max_lag * 2 + 10) return fail(`Only ${dates.length} shared dates for max_lag ${max_lag}.`);
       const cc = S.crossCorrelation(columns[0], columns[1], max_lag);
       const best = cc.reduce((p, q) => (Math.abs(q.r) > Math.abs(p.r) ? q : p));
-      const band = 1.96 / Math.sqrt(dates.length);
+      // 1.96/sqrt(n) is the band for two white noises. Real series are autocorrelated, and
+      // then that band is far too narrow: two independent AR(1) series with phi 0.8 cross
+      // the white-noise line at lag 0 about a third of the time. Bartlett's formula widens
+      // it by how much each series repeats itself.
+      const acfA = Array.from({ length: max_lag + 1 }, (_, k) => S.autocorr(columns[0], k));
+      const acfB = Array.from({ length: max_lag + 1 }, (_, k) => S.autocorr(columns[1], k));
+      let bartlettSum = 0;
+      for (let k = 1; k <= max_lag; k++) {
+        const a = acfA[k], b = acfB[k];
+        if (Number.isFinite(a) && Number.isFinite(b)) bartlettSum += a * b;
+      }
+      const inflation = Math.sqrt(Math.max(1 + 2 * bartlettSum, 1));
+      const whiteBand = 1.96 / Math.sqrt(dates.length);
+      const band = whiteBand * inflation;
       const lagX = cc.map((c) => c.lag);
       const ccChart: PlotSpec = {
         series: [inline(`corr(${ra.label} at t, ${rb.label} at t+k)`, lagX, cc.map((c) => c.r))],
@@ -568,6 +594,10 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       return text({
         a: meta(ra), b: meta(rb), n: dates.length, first: dates[0], last: dates[dates.length - 1],
         significance_band: r3(band),
+        significance_band_note: inflation > 1.05
+          ? `Bartlett band: ${r3(whiteBand)} widened by ${r3(inflation)} because both series repeat themselves, which makes chance correlations larger. The plain 1.96/sqrt(n) band would call ${cc.filter((c) => Math.abs(c.r) > whiteBand && Math.abs(c.r) <= band).length} more lag(s) significant than the data support.`
+          : "Both series are close to white noise, so this is the usual 1.96/sqrt(n) band.",
+        multiple_comparisons: `The strongest lag is the largest of ${cc.length} correlations, so its size is biased upward and its band is not a 5% test of that particular lag. Treat a peak that only just clears the band as a hypothesis, not a finding.`,
         chart_url: chartUrl(origin, ccChart),
         chart_note: "The chart is the correlation against lag; bars outside the shaded band are the lags that carry information. Give the user the link.",
         strongest: { lag: best.lag, r: r3(best.r), reading: best.lag > 0 ? `a leads b by ${best.lag} periods` : best.lag < 0 ? `b leads a by ${-best.lag} periods` : "contemporaneous" },
@@ -734,6 +764,15 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       }
       const k = X[0].length;
       const s = S.supF(yv, X);
+      // The scan uses the homoskedastic Chow statistic, which assumes the errors are not
+      // serially correlated. They usually are, and persistence alone manufactures breaks:
+      // at AR(1) phi 0.7 a series with no break is called broken about four times in five.
+      let persistence: number | null = null;
+      try {
+        const resid = rx ? S.ols(yv, X).resid : yv.map((v) => v - S.mean(yv));
+        persistence = S.autocorr(resid, 1);
+      } catch { /* leave it unknown */ }
+      const persistent = persistence !== null && Math.abs(persistence) > 0.3;
       const top = [...s.scan].sort((p, q) => q.F - p.F).slice(0, 5).map((e) => ({ date: dates[e.index], F: r3(e.F) }));
       const crit = S.supFCritical(k), rej = S.supFReject(s.best.F, k);
       const segOut = (seg: S.BreakSegment) => ({ from: dates[seg.start], to: dates[seg.end], n: seg.n, mean_y: r4(seg.mean_y), ...(rx ? { intercept: r4(seg.beta[0]), slope: r4(seg.beta[1]) } : {}) });
@@ -779,6 +818,12 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         verdict: rej === null ? "No break: the largest F in the scan is below Andrews' 10% critical value, so the sample can be treated as one regime."
           : rej === "10%" ? "Weak evidence of a break (10% only); do not split the sample on this alone."
           : `Break at ${dates[s.best.break_index]} (sup-F ${r3(s.best.F)} beats the ${rej} critical value ${r3(crit[rej])}).${multiple ? ` Sequential search: ${(multiple.breaks as unknown[]).length} break(s), ${multiple.stopped}.` : " Set max_breaks above 1 to look for more."}`,
+        residual_persistence: persistence === null ? undefined : {
+          first_order_autocorrelation: r3(persistence),
+          warning: persistent
+            ? `The residuals carry autocorrelation of ${r3(persistence)}, and this scan assumes none. A series that persistent produces a 'break' even when nothing changed: at 0.7 the false alarm rate is about 78%, at 0.9 about 98%, against a nominal 5%. Difference the series, or model the persistence first, before believing a date below.`
+            : "Low enough that the scan's no-autocorrelation assumption is reasonable.",
+        },
         caveat: "Sup-F critical values are Andrews (1993) asymptotics with 15% trimming, simulated for this k; the plain Chow p-value at a data-chosen date overstates significance and is shown only for reference. The sequential search tests each segment on its own, so a break found late in the sequence has a weaker basis than the first. Breaks in the mean of a trending or non-stationary series are found everywhere; difference or detrend first." });
     }),
   );
@@ -1093,6 +1138,9 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         rank_at_5pct: j.rank_at_5pct,
         cointegrating_vector: j.cointegrating_vector ? Object.fromEntries(labels.map((l, i) => [l, r4(j.cointegrating_vector![i])])) : null,
         drift_check: drift,
+        rank_verdict_held_back: deterministic === "constant" && !drift.per_series.some((x) => x.drifts) && j.rank_at_5pct > 0
+          ? "None of these series drifts, and on drift-free series an unrestricted constant rejects no cointegration about 12% of the time rather than 5% — and it does not improve with a longer sample. Treat the rank below as an upper bound and re-run with deterministic='restricted_constant', which is correctly sized here, before acting on it."
+          : undefined,
         reading: [j.rank_at_5pct === 0 ? "No cointegrating relation at 5%: model these in differences (VAR on growth rates)."
           : `${j.rank_at_5pct} cointegrating relation${j.rank_at_5pct > 1 ? "s" : ""} at 5%: a levels relation exists; an error-correction model is appropriate. The vector shows the long-run weights, normalised so the first series has weight 1${deterministic === "restricted_constant" ? ", with the constant of the relation as its last element" : deterministic === "restricted_trend" ? ", with the trend coefficient of the relation (per period) as its last element" : ""}.`, drift.note].filter(Boolean).join(" "),
         caveat: "Critical values assume no breaks and the chosen deterministic case. Results are sensitive to the lag choice; try lags 1 to 4. The wrong case biases the rank: an unrestricted constant on drift-free series over-rejects, a restricted constant on drifting series mis-specifies the trend, and a restricted trend costs power when the relation does not trend (test its coefficient in vecm).",
@@ -1190,7 +1238,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const names = rs.map((r) => r.label);
       const shocks = names.map((nm, j) => shock_names?.[j] ?? (identification === "cholesky" ? `${nm} shock` : identification === "long_run" ? (j === 0 ? `permanent shock (${nm})` : `shock ${j + 1} (no long-run effect on ${names.slice(0, j).join(", ")})`) : `shock ${j + 1}`));
       const warnings: string[] = [];
-      columns.forEach((c, i) => { try { if (!S.adf(c, "c").reject_unit_root_at) warnings.push(`${names[i]} looks non-stationary; a VAR in levels can be spurious${identification === "long_run" ? " and long-run effects are not defined" : ""}. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
+      columns.forEach((c, i) => { try { if (looksNonStationary(S.adf(c, "c"))) warnings.push(`${names[i]} looks non-stationary; a VAR in levels can be spurious${identification === "long_run" ? " and long-run effects are not defined" : ""}. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
       const coefTable = m.coef.map((row, e) => {
         const terms: Record<string, number | null> = { const: r4(row[0]) };
         for (let l = 1; l <= p; l++) names.forEach((nm, j) => { terms[`${nm} (lag ${l})`] = r4(row[1 + (l - 1) * m.k + j]); });
@@ -1340,7 +1388,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         return S.autoArima(t, H).forecast;
       };
       const candidates = ["naive", "drift", ...(seasonal ? ["seasonal_naive", "holt_winters"] : []), "holt", "ar", "arima"];
-      const scored: Array<{ method: string; rmse: number; mape: number | null; bias: number; errs: number[] }> = [];
+      const scored: Array<{ method: string; rmse: number; mape: number | null; bias: number; byH: number[]; errs: number[] }> = [];
       const skipped: string[] = [];
       let origIdx: number[] = [];
       for (const name of candidates) {
@@ -1351,7 +1399,13 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           const flatE = bt.errors.flat();
           const flatA = bt.origins.flatMap((o) => Array.from({ length: H }, (_, h) => v[o + 1 + h]));
           const m = S.errorMetrics(flatE, flatA);
-          scored.push({ method: name, rmse: m.rmse, mape: m.mape, bias: m.bias, errs: bt.errors.map((row) => row[H - 1]) });
+          // How wrong this method was at each horizon, which is what the band should be
+          // built from rather than the spread of its in-sample residuals.
+          const byH = Array.from({ length: H }, (_, h) => {
+            const e = bt.errors.map((row) => row[h]).filter((x) => Number.isFinite(x));
+            return e.length ? Math.sqrt(e.reduce((a, x) => a + x * x, 0) / e.length) : NaN;
+          });
+          scored.push({ method: name, rmse: m.rmse, mape: m.mape, bias: m.bias, byH, errs: bt.errors.map((row) => row[H - 1]) });
         } catch { skipped.push(name); }
       }
       if (!scored.length) return fail(`No forecasting method could be tested on ${r.label}: ${skipped.join(", ")} all failed. The series may be too short or too irregular.`);
@@ -1373,7 +1427,16 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       else if (chosen === "arima") { const a = S.autoArima(v, H); fc = a.forecast; sd = a.resid_sd; detail = `ARIMA(${a.p},${a.d},${a.q})`; }
       else { const hw = S.holtWinters(v, H, chosen === "holt_winters" && seasonal ? f.period : 1); fc = hw.forecast; sd = hw.resid_sd; detail = chosen === "holt_winters" ? `seasonal smoothing, period ${f.period}` : "trend smoothing"; }
       const future = futureDates(lastD, H, f.frequency);
-      const rows = future.map((d, i) => ({ date: d, value: r4(fc[i]), lo95: r4(fc[i] - 1.96 * sd * Math.sqrt(i + 1)), hi95: r4(fc[i] + 1.96 * sd * Math.sqrt(i + 1)) }));
+      // The band is the method's own out-of-sample error at each horizon, measured in the
+      // backtest above. Scaling an in-sample residual spread by sqrt(h) is a different
+      // quantity and does not match the coverage it claims.
+      const chosenScore = scored.find((x) => x.method === chosen);
+      const bandAt = (i: number) => {
+        const e = chosenScore?.byH[i];
+        return Number.isFinite(e) ? (e as number) : sd * Math.sqrt(i + 1);
+      };
+      const bandFromBacktest = !!chosenScore && chosenScore.byH.every((x) => Number.isFinite(x));
+      const rows = future.map((d, i) => ({ date: d, value: r4(fc[i]), lo95: r4(fc[i] - 1.96 * bandAt(i)), hi95: r4(fc[i] + 1.96 * bandAt(i)) }));
       const finite = rows.filter((x) => x.value !== null && x.lo95 !== null && x.hi95 !== null);
       const chartSpec: PlotSpec = {
         series: [series, { points: [[lastD, r4(last) as number], ...finite.map((x) => [x.date, x.value as number] as [string, number])], label: `${r.label}, ${detail}` }],
@@ -1399,7 +1462,10 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         forecast: rows,
         chart_url: chartUrl(origin, chartSpec),
         reading: `Over ${origIdx.length} test dates, ${label[best.method]} forecast ${H} ${f.frequency === "annual" ? "years" : f.frequency === "quarterly" ? "quarters" : "periods"} ahead with a typical error of ${r4(best.rmse)}${naive && naive !== best ? `, against ${r4(naive.rmse)} for assuming no change` : ""}. ${method !== "auto" ? `You asked for ${label[chosen]}, so that is what the forecast below uses.` : ""} ${r.label} was ${r4(last)} in ${lastD}; the forecast for ${rows[rows.length - 1].date} is ${rows[rows.length - 1].value}, and nineteen times in twenty it should land between ${rows[rows.length - 1].lo95} and ${rows[rows.length - 1].hi95}.`.replace(/\s+/g, " ").trim(),
-        caveat: "The band comes from how wrong the method was in the past and grows with the horizon. It assumes the future behaves like the sample: a policy change, a drought or a war is outside it. Test dates overlap, so the comparison between methods is sharper than the significance test.",
+        caveat: (bandFromBacktest
+          ? "The band is this method's own out-of-sample error at each horizon, measured at the test dates above, so it is what actually happened rather than a model's opinion of itself. "
+          : "The band could not be measured out of sample at every horizon, so where it could not it falls back to the spread of the fitted residuals scaled by the square root of the horizon, which is usually too narrow. ")
+          + "It still assumes the future behaves like the sample: a policy change, a drought or a war is outside it. Test dates overlap, so the comparison between methods is sharper than the significance test.",
       });
     }),
   );
@@ -1536,7 +1602,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       let lp: S.LpResult;
       try { lp = S.localProjections(columns[0], columns[1], horizon, p, columns.slice(2)); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
       const warnings: string[] = [];
-      [ry, rx, ...rc].forEach((r, i) => { try { if (!S.adf(columns[i], "c").reject_unit_root_at) warnings.push(`${r.label} looks non-stationary; local projections on levels can be spurious. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
+      [ry, rx, ...rc].forEach((r, i) => { try { if (looksNonStationary(S.adf(columns[i], "c"))) warnings.push(`${r.label} looks non-stationary; local projections on levels can be spurious. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
       let cum = 0;
       const rows = lp.horizons.map((h) => {
         cum += h.beta;
@@ -1614,7 +1680,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       if (levels && T >= 20) {
         try {
           const ay = S.adf(col(0), "c");
-          if (!ay.reject_unit_root_at && rx.some((_, j) => { try { return !S.adf(col(1 + j), "c").reject_unit_root_at; } catch { return false; } })) warnings.push("y and at least one x look non-stationary in levels; 2SLS on levels can be spurious like OLS. Use transform='pct_change' or 'diff', or establish cointegration first.");
+          if (looksNonStationary(ay) && rx.some((_, j) => { try { return looksNonStationary(S.adf(col(1 + j), "c")); } catch { return false; } })) warnings.push("y and at least one x look non-stationary in levels; 2SLS on levels can be spurious like OLS. Use transform='pct_change' or 'diff', or establish cointegration first.");
         } catch { /* skip */ }
       }
       const allLog = [ry, ...rx, ...rw].every((r) => r.transform === "log");

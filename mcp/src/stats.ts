@@ -287,9 +287,10 @@ export function adf(y: number[], spec: AdfSpec = "c", lags: number | "auto" = "a
   if (n < 12) throw new Error(`ADF needs at least 12 observations, got ${n}`);
   const maxLag = lags === "auto" ? Math.min(Math.floor(12 * Math.pow(n / 100, 0.25)), Math.floor((n - 5) / 3)) : lags;
   const dy = diff(y);
-  const build = (p: number) => {
+  /** The ADF regression at p lags, starting at observation `from` so candidates can share a sample. */
+  const build = (p: number, from: number) => {
     const rows: number[][] = [], target: number[] = [];
-    for (let t = p + 1; t < n; t++) {
+    for (let t = from + 1; t < n; t++) {
       const r: number[] = [y[t - 1]];
       if (spec !== "n") r.push(1);
       if (spec === "ct") r.push(t);
@@ -300,13 +301,25 @@ export function adf(y: number[], spec: AdfSpec = "c", lags: number | "auto" = "a
   };
   let best = { p: 0, aic: Infinity, fit: null as OlsResult | null };
   const candidates = lags === "auto" ? Array.from({ length: maxLag + 1 }, (_, i) => i) : [lags];
+  // Every candidate is fitted on the same observations, starting where the longest lag can
+  // start. Comparing AIC across different sample sizes is not a comparison at all: each
+  // extra lag drops an observation, -2*loglik falls with it, and the rule picks the
+  // maximum lag almost always, which costs the test most of its power.
   for (const p of candidates) {
-    const { rows, target } = build(p);
+    const { rows, target } = build(p, maxLag);
     if (!rows.length || rows.length <= rows[0].length + 2) continue;
     try {
       const fit = ols(target, rows);
       if (fit.aic < best.aic) best = { p, aic: fit.aic, fit };
     } catch { /* singular at this lag; skip */ }
+  }
+  // Then the chosen lag is refitted on everything it can use, which is the regression whose
+  // t statistic is reported.
+  if (best.fit && best.p < maxLag) {
+    const { rows, target } = build(best.p, best.p);
+    if (rows.length > rows[0].length + 2) {
+      try { best = { ...best, fit: ols(target, rows) }; } catch { /* keep the selection fit */ }
+    }
   }
   if (!best.fit) {
     throw new Error(lags === "auto"
@@ -583,7 +596,7 @@ export function supF(y: number[], X: number[][], trim = 0.15, minSeg?: number): 
 // ---------------------------------------------------------------------------
 // KPSS stationarity test (null: stationary)
 
-export interface KpssResult { trend: "c" | "ct"; lags: number; statistic: number; critical: { "10%": number; "5%": number; "2.5%": number; "1%": number }; reject_stationarity_at: "1%" | "2.5%" | "5%" | "10%" | null }
+export interface KpssResult { trend: "c" | "ct"; lags: number; statistic: number; critical: { "10%": number; "5%": number; "2.5%": number; "1%": number }; reject_stationarity_at: "1%" | "2.5%" | "5%" | "10%" | null; degenerate?: string }
 
 /** Kwiatkowski-Phillips-Schmidt-Shin, Bartlett long-run variance, lag floor(4(T/100)^(1/4)). */
 export function kpss(y: number[], trend: "c" | "ct" = "c", lags?: number): KpssResult {
@@ -599,6 +612,12 @@ export function kpss(y: number[], trend: "c" | "ct" = "c", lags?: number): KpssR
   const critical = trend === "ct"
     ? { "10%": 0.119, "5%": 0.146, "2.5%": 0.176, "1%": 0.216 }
     : { "10%": 0.347, "5%": 0.463, "2.5%": 0.574, "1%": 0.739 };
+  // A flat or near-flat series drives the long-run variance to zero and the statistic to
+  // infinity. That is a degenerate sample, not evidence against stationarity, and
+  // reporting "reject at 1%" with no number behind it is the wrong answer.
+  if (!Number.isFinite(stat)) {
+    return { trend, lags: L, statistic: NaN, critical, reject_stationarity_at: null, degenerate: "The residual variance is too small to test: the series is constant, or nearly so." };
+  }
   const reject = stat > critical["1%"] ? "1%" : stat > critical["2.5%"] ? "2.5%" : stat > critical["5%"] ? "5%" : stat > critical["10%"] ? "10%" : null;
   return { trend, lags: L, statistic: stat, critical, reject_stationarity_at: reject };
 }
