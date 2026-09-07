@@ -61,10 +61,12 @@ The page reads `GET /v1/series?s=<json>` on the Worker (also `POST /v1/series`),
 | `johansen` | Trace test for 2 to 5 series with MacKinnon-Haug-Michelis critical values, rank and first cointegrating vector. |
 | `vecm` | Vector error-correction model on cointegrated series: long-run vectors, adjustment coefficients with t-tests (who corrects, how fast, half-life), short-run lags, and the current deviation from equilibrium. |
 | `var_model` | VAR(p) with lag order by AIC, block Granger tests, orthogonalised impulse responses and variance decomposition. |
+| `local_projections` | Jordà impulse response of y to a shock in x: one regression per horizon with Newey-West bands, responses per unit and per one-sd shock, cumulative response. The check on `var_model`. |
 | `cross_correlation` | Correlation by lead and lag with a significance band. |
 | `hp_filter` | Trend and cycle, lambda by frequency. |
 | `decompose` | Classical seasonal decomposition, factors per month or quarter, strength measures. |
 | `forecast` | Holt-Winters, Holt, AR(p), or ARIMA(p,d,q) with order by AIC, with dated forecasts and an approximate band. |
+| `forecast_evaluate` | Rolling-origin backtest of naive, drift, seasonal naive, Holt, Holt-Winters, AR and ARIMA: RMSE, MAE, MAPE by horizon, skill against naive, Diebold-Mariano tests of the winner. Run it before `forecast`. |
 | `deflate` | A nominal series in constant prices of a base date, using any price index as deflator. |
 | `structural_break` | Chow test at a date, or a sup-F scan to locate one. |
 | `volatility` | ARCH-LM test and a GARCH(1,1) fit: persistence, unconditional and conditional volatility, one-step forecast. |

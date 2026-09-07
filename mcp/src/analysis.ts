@@ -490,7 +490,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "forecast",
     {
       title: "Forecast",
-      description: "Project a series forward. auto picks Holt-Winters with seasonality for monthly/quarterly data and Holt's linear trend otherwise; ar fits an autoregression. Returns dated forecasts, an approximate 95% band from the residual spread, and in-sample fit.",
+      description: "Project a series forward. auto picks Holt-Winters with seasonality for monthly/quarterly data and Holt's linear trend otherwise; ar fits an autoregression. Returns dated forecasts, an approximate 95% band from the residual spread, and in-sample fit. Run forecast_evaluate first to pick the method by out-of-sample error.",
       inputSchema: {
         series: REF,
         horizon: z.number().int().min(1).max(60).default(12),
@@ -877,7 +877,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     "var_model",
     {
       title: "Vector autoregression with impulse responses",
-      description: "Estimate a VAR(p) on 2 to 5 stationary series, lag order by AIC unless given. Returns coefficients, block Granger tests, orthogonalised impulse responses (Cholesky, in the order the series are given) and forecast error variance decomposition over the horizon. Pass growth rates or differences; the tool warns on non-stationary input.",
+      description: "Estimate a VAR(p) on 2 to 5 stationary series, lag order by AIC unless given. Returns coefficients, block Granger tests, orthogonalised impulse responses (Cholesky, in the order the series are given) and forecast error variance decomposition over the horizon. Pass growth rates or differences; the tool warns on non-stationary input. local_projections gives the same response with per-horizon bands and no lag structure imposed.",
       inputSchema: {
         series: z.array(REF).min(2).max(5),
         lags: z.number().int().min(1).max(12).optional().describe("Lag order; default chosen by AIC up to max_lags"),
@@ -936,10 +936,156 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
   );
 
   server.registerTool(
+    "forecast_evaluate",
+    {
+      title: "Forecast backtest (rolling origin)",
+      description: "Which forecasting method actually works on this series? Re-fits every method at a series of past origins, forecasts the next `horizon` periods each time, and scores the errors against what happened: RMSE, MAE and MAPE by horizon and overall, a skill score against the naive no-change forecast, and Diebold-Mariano tests of whether the best method beats naive and the runner-up. Methods: naive, drift, seasonal_naive, holt, holt_winters, ar, arima. Run it before quoting a forecast; then call forecast with the winning method.",
+      inputSchema: {
+        series: REF,
+        horizon: z.number().int().min(1).max(24).default(6).describe("Steps ahead scored at every origin"),
+        origins: z.number().int().min(4).max(60).default(12).describe("How many past origins to re-fit at; the last one leaves room for a full horizon"),
+        step: z.number().int().min(1).max(12).default(1).describe("Periods between origins"),
+        methods: z.array(z.enum(["naive", "drift", "seasonal_naive", "holt", "holt_winters", "ar", "arima"])).min(1).optional().describe("Default: every method the series supports"),
+        ar_order: z.number().int().min(1).max(12).default(2),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ series, horizon, origins, step, methods, ar_order }) => {
+      const r = await get(series);
+      const { dates, v } = values(r.series);
+      const f = detectFrequency(dates);
+      const H = horizon;
+      const seasonalOk = f.period > 1;
+      const wanted = methods ?? ["naive", "drift", ...(seasonalOk ? ["seasonal_naive", "holt_winters"] : []), "holt", "ar", "arima"];
+      const minTrain = Math.max(24, 3 * (seasonalOk ? f.period : 1), 3 * ar_order + 6);
+      const need = minTrain + H + (origins - 1) * step;
+      if (v.length < minTrain + H + 4) return fail(`Only ${v.length} observations; need at least ${minTrain + H + 4} for a ${H}-step backtest (${minTrain} to train on, ${H} to score, a few origins).`);
+      const skipped: Array<{ method: string; why: string }> = [];
+      const lastVal = (a: number[]) => a[a.length - 1];
+      let arimaOrder: [number, number, number] | null = null;
+      const forecasters: Record<string, (train: number[]) => number[]> = {
+        naive: (t) => new Array<number>(H).fill(lastVal(t)),
+        drift: (t) => Array.from({ length: H }, (_, h) => lastVal(t) + ((h + 1) * (lastVal(t) - t[0])) / (t.length - 1)),
+        seasonal_naive: (t) => Array.from({ length: H }, (_, h) => t[t.length - f.period + (h % f.period)]),
+        holt: (t) => S.holtWinters(t, H, 1).forecast,
+        holt_winters: (t) => S.holtWinters(t, H, f.period).forecast,
+        ar: (t) => S.arForecast(t, ar_order, H).forecast,
+        arima: (t) => {
+          if (!arimaOrder) { const a = S.autoArima(t, H); arimaOrder = [a.p, a.d, a.q]; return a.forecast; }
+          return S.arima(t, arimaOrder[0], arimaOrder[1], arimaOrder[2], H).forecast;
+        },
+      };
+      const runs: Array<{ method: string; bt: S.BacktestErrors }> = [];
+      for (const m of wanted) {
+        if ((m === "seasonal_naive" || m === "holt_winters") && !seasonalOk) { skipped.push({ method: m, why: `${f.frequency} data has no seasonal period` }); continue; }
+        try {
+          const bt = S.rollingOrigin(v, forecasters[m], H, origins, minTrain, step);
+          if (bt.failures === bt.origins.length) { skipped.push({ method: m, why: "failed at every origin" }); continue; }
+          runs.push({ method: m, bt });
+        } catch (e) { skipped.push({ method: m, why: e instanceof Error ? e.message : String(e) }); }
+      }
+      if (!runs.length) return fail(`No method could be evaluated: ${skipped.map((s) => `${s.method} (${s.why})`).join("; ")}`);
+      const orig = runs[0].bt.origins;
+      const actualsAt = (h: number) => orig.map((o) => v[o + 1 + h]);
+      const scored = runs.map(({ method, bt }) => {
+        const byH = Array.from({ length: H }, (_, h) => S.errorMetrics(bt.errors.map((row) => row[h]), actualsAt(h)));
+        const allE = bt.errors.flat(), allA = orig.flatMap((o) => Array.from({ length: H }, (_, h) => v[o + 1 + h]));
+        const overall = S.errorMetrics(allE, allA);
+        return { method, bt, byH, overall };
+      }).sort((a, b) => a.overall.rmse - b.overall.rmse);
+      const naive = scored.find((s) => s.method === "naive");
+      const best = scored[0], second = scored[1];
+      const dm = (a: typeof best, b: typeof best, h: number) => {
+        try { const d = S.dieboldMariano(a.bt.errors.map((row) => row[h]), b.bt.errors.map((row) => row[h]), h + 1); return { horizon: h + 1, statistic: r3(d.statistic), p: r4(d.p), n: d.n, verdict: d.better === 1 ? `${a.method} is better` : d.better === 2 ? `${b.method} is better` : "no significant difference" }; }
+        catch { return null; }
+      };
+      const tests: Record<string, unknown> = {};
+      if (naive && naive !== best) tests[`${best.method}_vs_naive`] = [dm(best, naive, 0), H > 1 ? dm(best, naive, H - 1) : null].filter(Boolean);
+      if (second) tests[`${best.method}_vs_${second.method}`] = [dm(best, second, 0), H > 1 ? dm(best, second, H - 1) : null].filter(Boolean);
+      const skill = (s: typeof best) => (naive && Number.isFinite(naive.overall.rmse) && naive.overall.rmse > 0 ? r3(1 - s.overall.rmse / naive.overall.rmse) : null);
+      const bestVsNaive = tests[`${best.method}_vs_naive`] as Array<{ verdict: string }> | undefined;
+      const beatsNaive = bestVsNaive?.some((t) => t.verdict.startsWith(best.method));
+      const methodArg = best.method === "naive" || best.method === "drift" || best.method === "seasonal_naive" ? null : best.method;
+      return text({
+        ...meta(r), n: v.length, frequency: f.frequency, horizon: H,
+        origins: { count: orig.length, step, first: dates[orig[0]], last: dates[orig[orig.length - 1]], scored_through: dates[orig[orig.length - 1] + H], min_training_points: minTrain },
+        arima_order: arimaOrder ? { order: arimaOrder, note: "Chosen by AIC on the first training window and held fixed after that" } : undefined,
+        ranking: scored.map((s, i) => ({
+          rank: i + 1, method: s.method,
+          rmse: r4(s.overall.rmse), mae: r4(s.overall.mae), mape_pct: s.overall.mape === null ? null : r3(s.overall.mape), bias: r4(s.overall.bias),
+          skill_vs_naive: s.method === "naive" ? 0 : skill(s),
+          by_horizon: s.byH.map((m, h) => ({ h: h + 1, rmse: r4(m.rmse), mae: r4(m.mae), mape_pct: m.mape === null ? null : r3(m.mape) })),
+          failed_origins: s.bt.failures || undefined,
+        })),
+        diebold_mariano: tests,
+        skipped: skipped.length ? skipped : undefined,
+        reading: [
+          `Over ${orig.length} origins from ${dates[orig[0]]} to ${dates[orig[orig.length - 1]]}, ${best.method} had the lowest ${H}-step RMSE (${r4(best.overall.rmse)})${naive && naive !== best ? ` against ${r4(naive.overall.rmse)} for naive, a skill of ${r3((skill(best) ?? 0) * 100)}%` : ""}.`,
+          naive && naive !== best ? (beatsNaive ? "The Diebold-Mariano test says that improvement is real at 5%." : "The Diebold-Mariano test cannot distinguish it from naive: the series is close to unpredictable at this horizon and a no-change forecast is as honest a statement.") : best.method === "naive" ? "Naive wins: nothing here forecasts better than the last value. Quote the last value with the error band, not a model." : "",
+          Math.abs(best.overall.bias) > 0.5 * best.overall.mae ? `${best.method} is biased (mean error ${r4(best.overall.bias)}): it systematically ${best.overall.bias > 0 ? "under" : "over"}-forecasts, a sign of a trend or level shift the method does not track.` : "",
+          methodArg ? `Next: forecast with method='${methodArg}'.` : "",
+        ].filter(Boolean).join(" "),
+        recommended_call: methodArg ? { tool: "forecast", args: { series, method: methodArg, horizon: H } } : null,
+        caveat: `Each origin re-estimates the model on data up to that point, so the scores are genuinely out of sample, but ${orig.length} origins is a small sample for the Diebold-Mariano test and adjacent origins overlap; treat a p-value near 0.05 as a coin toss. Errors are in the units of the series (${r.transform === "none" ? "levels" : r.transform}); MAPE is undefined when an actual is zero. ${need > v.length ? `Fewer origins than requested fit the sample.` : ""}`.trim(),
+      });
+    }),
+  );
+
+  server.registerTool(
+    "local_projections",
+    {
+      title: "Local projections (Jordà impulse response)",
+      description: "Impulse response of y to a shock in x by local projections: for each horizon h, regress y(t+h) on x(t) with lags of both (and of any controls) and report the coefficient with Newey-West bands. Unlike var_model it imposes no lag structure across horizons and gives a confidence band per horizon, at the cost of noisier long-horizon estimates. Pass stationary series (growth rates, differences). Responses are per unit of x and per one-standard-deviation shock, plus the cumulative response.",
+      inputSchema: {
+        y: REF, x: REF,
+        controls: z.array(REF).max(3).optional().describe("Extra series whose lags enter as controls"),
+        horizon: z.number().int().min(1).max(40).default(12),
+        lags: z.number().int().min(1).max(12).optional().describe("Lags of y, x and controls as controls; default 4 (2 for annual data)"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    wrap(async ({ y, x, controls, horizon, lags }) => {
+      const ry = await get(y), rx = await get(x);
+      const rc = await Promise.all((controls ?? []).map(get));
+      const { dates, columns } = align([ry.series, rx.series, ...rc.map((c) => c.series)]);
+      if (dates.length < 40) return fail(`Only ${dates.length} shared dates; need 40 or more.`);
+      const f = detectFrequency(dates);
+      const p = lags ?? (f.frequency === "annual" ? 2 : 4);
+      let lp: S.LpResult;
+      try { lp = S.localProjections(columns[0], columns[1], horizon, p, columns.slice(2)); } catch (e) { return fail(e instanceof Error ? e.message : String(e)); }
+      const warnings: string[] = [];
+      [ry, rx, ...rc].forEach((r, i) => { try { if (!S.adf(columns[i], "c").reject_unit_root_at) warnings.push(`${r.label} looks non-stationary; local projections on levels can be spurious. Use transform='pct_change' or 'diff'.`); } catch { /* skip */ } });
+      let cum = 0;
+      const rows = lp.horizons.map((h) => {
+        cum += h.beta;
+        return { h: h.h, response: r4(h.beta), se: r4(h.se), lo90: r4(h.beta - 1.645 * h.se), hi90: r4(h.beta + 1.645 * h.se), lo95: r4(h.beta - 1.96 * h.se), hi95: r4(h.beta + 1.96 * h.se), t: r3(h.t), p: r4(h.p), significant_5pct: h.p < 0.05, response_to_1sd_shock: r4(h.beta * lp.shock_sd), cumulative: r4(cum), n: h.n };
+      });
+      const sig = rows.filter((r) => r.significant_5pct).map((r) => r.h);
+      const peak = rows.reduce((a, b) => (Math.abs(b.response ?? 0) > Math.abs(a.response ?? 0) ? b : a), rows[0]);
+      const impact = rows[0];
+      return text({
+        y: meta(ry), x: meta(rx), controls: rc.map(meta), n: dates.length, first: dates[0], last: dates[dates.length - 1], frequency: f.frequency, lags: p, horizon,
+        shock_sd: r4(lp.shock_sd),
+        responses: rows,
+        peak: { h: peak.h, response: peak.response, response_to_1sd_shock: peak.response_to_1sd_shock },
+        cumulative_at_horizon: rows[rows.length - 1].cumulative,
+        reading: [
+          `A one-unit move in ${rx.label} shifts ${ry.label} by ${impact.response} on impact${impact.significant_5pct ? "" : " (not significant)"}, with the largest response at h=${peak.h} (${peak.response}, or ${peak.response_to_1sd_shock} for a typical one-sd shock).`,
+          sig.length ? `Significant at 5% at horizons ${sig.length > 6 ? `${sig[0]}..${sig[sig.length - 1]} (${sig.length} of ${rows.length})` : sig.join(", ")}.` : "No horizon is significant at 5%: no measurable response once the lags are controlled for.",
+          `Cumulative response after ${horizon} periods: ${rows[rows.length - 1].cumulative}.`,
+          "Compare with var_model: if both agree on sign and timing the finding is robust to the lag structure; if they differ, the VAR is imposing shape the data do not support.",
+        ].join(" "),
+        warnings,
+        caveat: `Newey-West bandwidth equals the horizon, which handles the overlap the h-step target creates. The response is to x(t) after controlling for ${p} lags of everything, so it is a reduced-form timing relation, not an identified structural shock; contemporaneous feedback from y to x within a period is not ruled out. Bands widen and the sample shrinks by one observation per horizon.`,
+      });
+    }),
+  );
+
+  server.registerTool(
     "suggest_analysis",
     {
       title: "Suggest an analysis plan",
-      description: "Inspect one or more series (frequency, length, integration order, trend, seasonality, volatility clustering, overlap) and return an ordered plan of tool calls with the reason for each, plus the pitfalls the data carry. Routes to the right member of the toolkit, including volatility for ARCH effects, principal_components for three or more series, quantile_regress for tail behaviour and panel_regress when the series come from a country panel. Use it before choosing a method.",
+      description: "Inspect one or more series (frequency, length, integration order, trend, seasonality, volatility clustering, overlap) and return an ordered plan of tool calls with the reason for each, plus the pitfalls the data carry. Routes to the right member of the toolkit, including forecast_evaluate before forecast, local_projections next to var_model, volatility for ARCH effects, principal_components for three or more series, quantile_regress for tail behaviour and panel_regress when the series come from a country panel. Use it before choosing a method.",
       inputSchema: { series: z.array(REF).min(1).max(4), question: z.string().optional().describe("What you want to know, e.g. 'does feed price drive cattle price?'") },
       annotations: { readOnlyHint: true },
     },
@@ -986,6 +1132,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const f = facts[0];
         if (f.trending || f.integration_order === "I(1)") plan.push({ step: step++, tool: "hp_filter", why: "Separate the trend from the cycle before reading turning points", args: { series: refOf(0) } });
         plan.push({ step: step++, tool: "structural_break", why: "Check whether one regime describes the whole sample before forecasting", args: { y: refOf(0) } });
+        if (f.n >= 60) plan.push({ step: step++, tool: "forecast_evaluate", why: "Let a rolling backtest pick the method: out-of-sample error against naive, not in-sample fit", args: { series: refOf(0) } });
         plan.push({ step: step++, tool: "forecast", why: f.seasonal_strength !== null && (f.seasonal_strength as number) > 0.3 ? "Holt-Winters handles the seasonality; compare with AR" : "Holt linear trend, then compare with AR", args: { series: refOf(0), method: "auto" } });
       } else {
         const orders = facts.map((f) => f.integration_order);
@@ -1017,6 +1164,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
           plan.push({ step: step++, tool: "quantile_regress", why: "Check whether the relation is the same in calm and extreme periods, not only on average", args: { y: stationaryArgs(0), x: [stationaryArgs(1)] } });
         }
         plan.push({ step: step++, tool: "var_model", why: "On stationary transforms, trace how a shock to one series propagates to the others and how much of each series' variance the others explain", args: { series: facts.map((_, i) => stationaryArgs(i)) } });
+        plan.push({ step: step++, tool: "local_projections", why: "The same impulse response without the VAR's lag structure, with a confidence band per horizon; agreement with var_model makes the timing robust", args: { y: stationaryArgs(0), x: stationaryArgs(1) } });
         plan.push({ step: step++, tool: "rolling", why: "Check whether the relationship is stable over time before quoting one number", args: { series: stationaryArgs(0), other: stationaryArgs(1), stat: "corr", window: facts[0].frequency === "monthly" ? 36 : 10 } });
         plan.push({ step: step++, tool: "structural_break", why: "Locate a regime change in the relation, then re-estimate on the stable sample", args: { y: stationaryArgs(0), x: stationaryArgs(1) } });
       }

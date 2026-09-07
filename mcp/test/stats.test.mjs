@@ -300,5 +300,51 @@ check("ARIMA: MA(1) coefficient recovered and auto order picks d=1 for a random 
   assert.ok(Math.abs(auto.forecast[0] - rw[rw.length - 1]) < 3, "forecast continues from the last level");
 });
 
+check("local projections recover the impulse response of a known AR(1) system", () => {
+  const r = rng(21);
+  // y_t = 0.5 y_{t-1} + 0.8 x_t + e_t, x white noise: response 0.8, 0.4, 0.2, 0.1 ...
+  const n = 1500, x = Array.from({ length: n }, () => r.normal()), y = [0];
+  for (let t = 1; t < n; t++) y.push(0.5 * y[t - 1] + 0.8 * x[t] + 0.3 * r.normal());
+  const lp = S.localProjections(y, x, 4, 2);
+  assert.equal(lp.horizons.length, 5);
+  close(lp.horizons[0].beta, 0.8, 0.05, "h=0"); close(lp.horizons[1].beta, 0.4, 0.06, "h=1");
+  close(lp.horizons[2].beta, 0.2, 0.06, "h=2"); close(lp.horizons[4].beta, 0.05, 0.06, "h=4");
+  assert.ok(lp.horizons[0].p < 1e-6 && lp.horizons[0].se > 0, "significant at impact");
+  close(lp.shock_sd, 1, 0.08, "shock sd is the sd of x given the controls");
+  assert.throws(() => S.localProjections(y.slice(0, 20), x.slice(0, 20), 8, 4), /Too few observations/);
+});
+
+check("Diebold-Mariano: separates a good forecaster from a bad one, not two equal ones", () => {
+  const r = rng(33);
+  const n = 80;
+  const e1 = Array.from({ length: n }, () => r.normal()), e2 = Array.from({ length: n }, () => 2 * r.normal());
+  const dm = S.dieboldMariano(e1, e2, 1);
+  assert.equal(dm.better, 1, `stat ${dm.statistic} p ${dm.p}`);
+  assert.ok(dm.statistic < -2.5 && dm.p < 0.02);
+  const same = S.dieboldMariano(e1, e1, 1);
+  assert.equal(same.statistic, 0); assert.equal(same.better, null);
+  const e3 = Array.from({ length: n }, () => r.normal());
+  const equal = S.dieboldMariano(e1, e3, 4);
+  assert.equal(equal.better, null, `two iid N(0,1) error series, p ${equal.p}`);
+  assert.throws(() => S.dieboldMariano(e1.slice(0, 4), e2.slice(0, 4)), /6 or more/);
+  close(S.longRunVariance(e1, 0), S.variance(e1, 0), 1e-12, "lag 0 is the plain variance");
+});
+
+check("rolling-origin backtest: origins leave room for the horizon, errors line up with the actuals", () => {
+  const y = Array.from({ length: 50 }, (_, i) => i);   // a straight line: a naive forecast errs by h
+  const bt = S.rollingOrigin(y, (train) => new Array(3).fill(train[train.length - 1]), 3, 5, 10);
+  assert.deepEqual(bt.origins, [42, 43, 44, 45, 46]);
+  assert.deepEqual(bt.errors[0], [1, 2, 3]);
+  assert.equal(bt.failures, 0);
+  const stepped = S.rollingOrigin(y, (train) => [train[train.length - 1]], 1, 3, 10, 4);
+  assert.deepEqual(stepped.origins, [40, 44, 48]);
+  const failing = S.rollingOrigin(y, () => { throw new Error("no"); }, 2, 2, 10);
+  assert.equal(failing.failures, 2); assert.ok(Number.isNaN(failing.errors[0][0]));
+  assert.throws(() => S.rollingOrigin(y.slice(0, 5), () => [0], 3, 1, 10), /Too few observations/);
+  const m = S.errorMetrics([1, -1, 2, NaN], [10, 10, 10, 10]);
+  close(m.rmse, Math.sqrt(2), 1e-9, "rmse"); close(m.mae, 4 / 3, 1e-9, "mae"); close(m.mape, 1000 / 75, 1e-9, "mape"); assert.equal(m.n, 3);
+  assert.equal(S.errorMetrics([1, 2], [0, 5]).mape, null, "mape undefined when an actual is zero");
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);

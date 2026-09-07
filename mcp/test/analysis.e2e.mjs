@@ -32,7 +32,7 @@ const callRaw = (name, args) => client.callTool({ name, arguments: args });
 await check("tool list includes providers and analysis", async () => {
   const { tools } = await client.listTools();
   const names = new Set(tools.map((t) => t.name));
-  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis"]) assert.ok(names.has(n), n);
+  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis", "forecast_evaluate", "local_projections"]) assert.ok(names.has(n), n);
 });
 
 await check("list_providers reports key state", async () => {
@@ -406,6 +406,54 @@ await check("deflate expresses cattle PPI in CPI terms of a base month", async (
   const b = j.points.find((p) => p[0] === "2020-01");
   const raw = await call("get_series", { dataset: "us-prices", series: "cattle_ppi", start: "2020-01", end: "2020-01" });
   assert.ok(Math.abs(b[1] - raw.points[0][1]) < 1e-3, "at the base date real equals nominal");
+});
+
+await check("forecast_evaluate ranks methods out of sample, tests the winner against naive, and points at forecast", async () => {
+  const j = await call("forecast_evaluate", { series: { ...CPI, start: "2005-01" }, horizon: 3, origins: 8 });
+  assert.equal(j.origins.count, 8);
+  assert.ok(j.ranking.length >= 6, JSON.stringify(j.ranking.map((r) => r.method)));
+  for (let i = 1; i < j.ranking.length; i++) assert.ok(j.ranking[i].rmse >= j.ranking[i - 1].rmse, "sorted by RMSE");
+  assert.equal(j.ranking[0].rank, 1);
+  assert.equal(j.ranking[0].by_horizon.length, 3);
+  const naive = j.ranking.find((r) => r.method === "naive");
+  assert.equal(naive.skill_vs_naive, 0);
+  assert.ok(j.arima_order && j.arima_order.order.length === 3, "ARIMA order chosen once");
+  if (j.ranking[0].method !== "naive") {
+    const t = j.diebold_mariano[`${j.ranking[0].method}_vs_naive`];
+    assert.ok(Array.isArray(t) && t.length === 2 && t[0].horizon === 1 && t[1].horizon === 3, JSON.stringify(t));
+  }
+  assert.match(j.reading, /lowest 3-step RMSE/);
+  // A subset of methods, and a series too short for the horizon
+  const sub = await call("forecast_evaluate", { series: { ...CPI, start: "2015-01" }, horizon: 1, origins: 6, methods: ["naive", "drift"] });
+  assert.deepEqual(sub.ranking.map((r) => r.method).sort(), ["drift", "naive"]);
+  assert.equal(sub.diebold_mariano[Object.keys(sub.diebold_mariano)[0]].length, 1, "one horizon, one test");
+  const short = await callRaw("forecast_evaluate", { series: { ...CPI, start: "2023-01" }, horizon: 12 });
+  assert.ok(short.isError && /need at least/.test(short.content[0].text), short.content[0].text);
+});
+
+await check("local_projections on corn and cattle growth returns a band per horizon and a cumulative response", async () => {
+  const j = await call("local_projections", { y: { ...CATTLE, transform: "pct_change", start: "1995-01" }, x: { ...CORN, transform: "pct_change", start: "1995-01" }, horizon: 6 });
+  assert.equal(j.responses.length, 7);
+  assert.equal(j.lags, 4);
+  assert.equal(j.responses[0].h, 0);
+  for (const r of j.responses) { assert.ok(r.lo95 <= r.response && r.response <= r.hi95, `band at h=${r.h}`); assert.ok(r.lo90 >= r.lo95); }
+  assert.ok(Math.abs(j.responses[6].cumulative - j.responses.reduce((a, r) => a + r.response, 0)) < 1e-3, "cumulative is the running sum");
+  assert.ok(j.shock_sd > 0);
+  assert.equal(j.cumulative_at_horizon, j.responses[6].cumulative);
+  assert.equal(j.warnings.length, 0, JSON.stringify(j.warnings));
+  const lev = await call("local_projections", { y: { ...CATTLE, start: "1995-01" }, x: { ...CORN, start: "1995-01" }, horizon: 2, lags: 2 });
+  assert.ok(lev.warnings.length >= 1, "levels get a non-stationarity warning");
+  const ctl = await call("local_projections", { y: { ...CATTLE, transform: "pct_change", start: "1995-01" }, x: { ...CORN, transform: "pct_change", start: "1995-01" }, controls: [{ ...CPI, transform: "pct_change", start: "1995-01" }], horizon: 3 });
+  assert.equal(ctl.controls.length, 1);
+});
+
+await check("suggest_analysis routes to forecast_evaluate before forecast, and to local_projections next to var_model", async () => {
+  const one = await call("suggest_analysis", { series: [{ ...CPI, start: "2000-01" }] });
+  const tools = one.plan.map((p) => p.tool);
+  assert.ok(tools.indexOf("forecast_evaluate") >= 0 && tools.indexOf("forecast_evaluate") < tools.indexOf("forecast"), tools.join(","));
+  const two = await call("suggest_analysis", { series: [CATTLE, CORN] });
+  const t2 = two.plan.map((p) => p.tool);
+  assert.ok(t2.indexOf("local_projections") > t2.indexOf("var_model"), t2.join(","));
 });
 
 await client.close();

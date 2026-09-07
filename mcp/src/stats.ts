@@ -1111,3 +1111,121 @@ export function panelRegress(y: number[], X: number[][], unit: number[], time: n
   const perUnit = [...units].map((u) => { const m = groupMeans(y, unit).get(u)!; return { unit: u, n: m.n, y: m.s / m.n }; });
   return { nobs: n, units: G, periods: Tn, k, balanced: n === G * Tn, effects, estimate, pooled, between, f_unit_effects: f, unit_means: perUnit };
 }
+
+// ---------------------------------------------------------------------------
+// Forecast evaluation: rolling-origin errors and the Diebold-Mariano test
+
+/** Long-run variance of a series' mean by the Bartlett kernel with `lags` lags (Newey-West on a constant). */
+export function longRunVariance(d: number[], lags: number): number {
+  const n = d.length, m = mean(d);
+  const gamma = (l: number) => { let s = 0; for (let t = l; t < n; t++) s += (d[t] - m) * (d[t - l] - m); return s / n; };
+  let v = gamma(0);
+  for (let l = 1; l <= lags; l++) v += 2 * (1 - l / (lags + 1)) * gamma(l);
+  return Math.max(v, 0);
+}
+
+export interface DmResult { statistic: number; p: number; n: number; mean_loss_diff: number; better: 1 | 2 | null }
+
+/**
+ * Diebold-Mariano test of equal predictive accuracy between two h-step forecast error
+ * series, squared-error loss, Harvey-Leybourne-Newbold small-sample correction,
+ * p-value from t(n-1). A negative statistic favours forecast 1.
+ */
+export function dieboldMariano(e1: number[], e2: number[], h = 1, loss: "squared" | "absolute" = "squared"): DmResult {
+  const n = Math.min(e1.length, e2.length);
+  if (n < 6) throw new Error(`Diebold-Mariano needs 6 or more paired errors (have ${n})`);
+  const L = (e: number) => (loss === "squared" ? e * e : Math.abs(e));
+  const d = Array.from({ length: n }, (_, t) => L(e1[t]) - L(e2[t]));
+  const md = mean(d);
+  const lrv = longRunVariance(d, Math.max(h - 1, 0));
+  if (lrv <= 1e-18) return { statistic: 0, p: 1, n, mean_loss_diff: md, better: null };
+  const dm = md / Math.sqrt(lrv / n);
+  const hln = Math.sqrt(Math.max((n + 1 - 2 * h + (h * (h - 1)) / n) / n, 1e-9));
+  const stat = dm * hln;
+  const p = tTwoSidedP(stat, n - 1);
+  return { statistic: stat, p, n, mean_loss_diff: md, better: p < 0.05 ? (md < 0 ? 1 : 2) : null };
+}
+
+export interface BacktestErrors {
+  /** errors[o][h-1] = actual - forecast for origin o at horizon h, NaN where the forecaster failed */
+  errors: number[][];
+  /** index in y of the last observation each origin trained on */
+  origins: number[];
+  failures: number;
+}
+
+/**
+ * Rolling-origin evaluation. For each origin the forecaster sees y[0..origin] and returns
+ * H forecasts, compared with y[origin+1..origin+H]. Origins are the last `nOrigins` points
+ * that leave room for a full horizon, spaced `step` apart, so every origin has all H actuals.
+ */
+export function rollingOrigin(y: number[], forecaster: (train: number[]) => number[], H: number, nOrigins: number, minTrain: number, step = 1): BacktestErrors {
+  const n = y.length;
+  const last = n - 1 - H;
+  const origins: number[] = [];
+  for (let o = last; o >= minTrain - 1 && origins.length < nOrigins; o -= step) origins.push(o);
+  origins.reverse();
+  if (!origins.length) throw new Error(`Too few observations (${n}) for ${nOrigins} origins with horizon ${H} and at least ${minTrain} training points`);
+  let failures = 0;
+  const errors = origins.map((o) => {
+    let f: number[];
+    try { f = forecaster(y.slice(0, o + 1)); } catch { failures++; return new Array<number>(H).fill(NaN); }
+    return Array.from({ length: H }, (_, h) => (Number.isFinite(f[h]) ? y[o + 1 + h] - f[h] : NaN));
+  });
+  return { errors, origins, failures };
+}
+
+export interface ErrorMetrics { rmse: number; mae: number; mape: number | null; bias: number; n: number }
+
+/** Accuracy metrics over an error vector paired with the actuals it was measured against. */
+export function errorMetrics(errors: number[], actuals: number[]): ErrorMetrics {
+  const pairs = errors.map((e, i) => [e, actuals[i]] as const).filter(([e]) => Number.isFinite(e));
+  const n = pairs.length;
+  if (!n) return { rmse: NaN, mae: NaN, mape: null, bias: NaN, n: 0 };
+  const rmse = Math.sqrt(pairs.reduce((s, [e]) => s + e * e, 0) / n);
+  const mae = pairs.reduce((s, [e]) => s + Math.abs(e), 0) / n;
+  const ape = pairs.filter(([, a]) => a !== 0).map(([e, a]) => Math.abs(e / a));
+  const mape = ape.length === n ? (ape.reduce((s, x) => s + x, 0) / n) * 100 : null;
+  const bias = pairs.reduce((s, [e]) => s + e, 0) / n;
+  return { rmse, mae, mape, bias, n };
+}
+
+// ---------------------------------------------------------------------------
+// Local projections (Jordà 2005)
+
+export interface LpHorizon { h: number; beta: number; se: number; t: number; p: number; n: number; r2: number }
+export interface LpResult { horizons: LpHorizon[]; lags: number; shock_sd: number; controls: number }
+
+/**
+ * Impulse response of y to x by local projections: for each horizon h, regress y[t+h] on
+ * x[t], lags 1..p of y and x (and of any extra controls), and a constant. Standard errors
+ * are Newey-West with bandwidth h (the h-step overlap makes the errors MA(h-1) by construction).
+ * beta[h] is the response to a one-unit move in x[t]; shock_sd is the standard deviation
+ * of x after the same controls, for scaling to a one-sd shock.
+ */
+export function localProjections(y: number[], x: number[], H: number, p: number, controls: number[][] = []): LpResult {
+  const T = y.length;
+  if (x.length !== T || controls.some((c) => c.length !== T)) throw new Error("local projections: series lengths differ");
+  const k = 2 + p * (2 + controls.length);
+  if (T - H - p < k + 8) throw new Error(`Too few observations (${T}) for horizon ${H} with ${p} lags: need at least ${H + p + k + 8}`);
+  const row = (t: number): number[] => {
+    const r = [1, x[t]];
+    for (let l = 1; l <= p; l++) { r.push(y[t - l], x[t - l]); for (const c of controls) r.push(c[t - l]); }
+    return r;
+  };
+  const horizons: LpHorizon[] = [];
+  for (let h = 0; h <= H; h++) {
+    const X: number[][] = [], yy: number[] = [];
+    for (let t = p; t + h < T; t++) { X.push(row(t)); yy.push(y[t + h]); }
+    const fit = ols(yy, X);
+    const hac = neweyWest(X, fit.resid, fit.XtXinv, h);
+    const se = hac.se[1];
+    const t = fit.beta[1] / se;
+    horizons.push({ h, beta: fit.beta[1], se, t, p: tTwoSidedP(t, fit.n - fit.k), n: fit.n, r2: fit.r2 });
+  }
+  // Size of a typical shock: sd of x once its own and y's lags are partialled out.
+  const X0: number[][] = [], x0: number[] = [];
+  for (let t = p; t < T; t++) { const r = row(t); X0.push([r[0], ...r.slice(2)]); x0.push(x[t]); }
+  const shockFit = ols(x0, X0);
+  return { horizons, lags: p, shock_sd: shockFit.sigma, controls: controls.length };
+}
