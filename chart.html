@@ -450,10 +450,18 @@
       var ex = { series: [{ dataset: "us-prices", series: "cattle_ppi", start: "2010-01" }, { dataset: "us-prices", series: "corn_ppi", start: "2010-01" }], title: "US cattle and corn producer prices" };
       var link = location.pathname + "#" + b64urlEncode(JSON.stringify(ex));
       if (!keepTitle) document.getElementById("title").textContent = "Chart any series";
-      app.innerHTML += "<div class='howto'><p>This page draws series that the econ-data MCP server can resolve: any curated dataset on this site, or a live pull from FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS or FAOSTAT. " +
+      /* Replace, do not append: appending leaves the loading spinner running forever
+         under a page that has finished and has nothing to load. */
+      if (!keepTitle) app.innerHTML = "";
+      app.innerHTML += "<div class='howto'>" +
+        "<p style='font-size:1rem;color:var(--text)'>This link carries no chart. To build one, " +
+        "<a href='explore.html'><b>browse the data and pick a series</b></a> \u2014 every chart there opens as a link like this one, " +
+        "which you can send to anyone.</p>" +
+        "<p>Or see <a href='data.html'>where each dataset comes from and how fresh it is</a>.</p>" +
+        "<details><summary style='cursor:pointer;color:var(--accent);font-size:.9rem'>Building a link by hand</summary><p>This page draws series that the econ-data MCP server can resolve: any curated dataset on this site, or a live pull from FRED, Eurostat, World Bank, ECB, OECD, Our World in Data, TCMB EVDS, BIS or FAOSTAT. " +
         "Connected clients get a link here by calling the <code>plot</code> tool. You can also build one: the fragment is base64url JSON of</p>" +
         "<pre>" + esc(JSON.stringify(ex, null, 1)) + "</pre>" +
-        "<p><a href='" + link + "'>Open that example</a>. Fields per series: <code>dataset</code>+<code>series</code>, or <code>provider</code>+<code>id</code> (+<code>series</code>, <code>params</code>), or <code>points</code>; optional <code>start</code>, <code>end</code>, <code>transform</code> (yoy, pct_change, diff, rebase, log), <code>frequency</code>, <code>label</code>. Chart-level: <code>title</code>, <code>scale</code>: \"log\", <code>right</code>: [indexes on the right axis], <code>bands</code>: [{series, label, points: [[date, low, high]]}] for a shaded interval, <code>dots</code>: [indexes drawn as points, for scatters], <code>xlabel</code>: what the numeric axis measures, <code>xaxis</code>: \"number\" when the x values are horizons rather than dates (the <code>forecast</code> and <code>local_projections</code> tools build such links).</p></div>";
+        "<p><a href='" + link + "'>Open that example</a>. Fields per series: <code>dataset</code>+<code>series</code>, or <code>provider</code>+<code>id</code> (+<code>series</code>, <code>params</code>), or <code>points</code>; optional <code>start</code>, <code>end</code>, <code>transform</code> (yoy, pct_change, diff, rebase, log), <code>frequency</code>, <code>label</code>. Chart-level: <code>title</code>, <code>scale</code>: \"log\", <code>right</code>: [indexes on the right axis], <code>bands</code>: [{series, label, points: [[date, low, high]]}] for a shaded interval, <code>dots</code>: [indexes drawn as points, for scatters], <code>xlabel</code>: what the numeric axis measures, <code>xaxis</code>: \"number\" when the x values are horizons rather than dates (the <code>forecast</code> and <code>local_projections</code> tools build such links).</p></details></div>";
       [].forEach.call(app.querySelectorAll("a[href^='" + location.pathname + "#']"), function (a) { a.onclick = function () { setTimeout(function () { location.reload(); }, 0); }; });
     }
   })();
