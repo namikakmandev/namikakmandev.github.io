@@ -763,6 +763,15 @@ await check("sec: a company balance sheet by quarter, restatements resolved, tic
   assert.deepEqual(byName.matches.map((m) => m.id), ["IBM:balance_sheet", "IBM:income_statement", "IBM:cash_flow"], JSON.stringify(byName.matches));
 });
 
+await check("search sees past the capped key list on the largest datasets", async () => {
+  // eu-ppp has 1166 series and the catalogue lists 100 of them, so a search scoring only
+  // on that sample cannot find a country whose keys fall outside it.
+  const d = await call("describe_dataset", { dataset: "eu-ppp" });
+  assert.ok(d.catalog.series > 1000, "still the big one");
+  const hit = await call("search_datasets", { query: "PT" });
+  assert.ok(hit.matches.some((m) => m.dataset === "eu-ppp"), JSON.stringify(hit.matches.map((m) => m.dataset)));
+});
+
 await check("every number says what it is measured in", async () => {
   // A figure nobody can name the unit of cannot go in front of a client.
   const d = await call("describe_dataset", { dataset: "energy-spot" });

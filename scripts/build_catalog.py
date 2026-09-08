@@ -132,7 +132,23 @@ def load_fetch_report():
 MAX_KEYS = 100
 
 
-def series_keys(obj):
+def key_vocabulary(keys, all_keys):
+    """The distinct parts of every series id, so search can see past the capped list.
+
+    A dataset with 1166 series shows 100 of them, and a search that scores on that list
+    cannot find Portugal in eu-ppp though the data is there. Series ids are built from
+    parts — 'PT|PLI_EU27_2020' is a country and an indicator — so the parts are what a
+    search should match on, and there are few enough of them to store in full."""
+    parts = set()
+    for k in all_keys:
+        for piece in re.split(r"[|.:/]", str(k)):
+            piece = piece.strip()
+            if piece and len(piece) <= 40:
+                parts.add(piece)
+    return sorted(parts)[:600]
+
+
+def series_keys(obj, cap=MAX_KEYS):
     """Top-level series names, so a search over the catalog can hit 'hicp' or 'TR'.
 
     For the fetch.py shape that is the keys of "series"; for a table it is the
@@ -142,11 +158,11 @@ def series_keys(obj):
     if not isinstance(obj, dict):
         return []
     if isinstance(obj.get("columns"), list):
-        return [str(c) for c in obj["columns"][1:]][:MAX_KEYS]
+        return [str(c) for c in obj["columns"][1:]][:cap]
     for key in ("series", "shares", "regions", "countries", "groups"):
         body = obj.get(key)
         if isinstance(body, dict):
-            return [str(k) for k in body][:MAX_KEYS]
+            return [str(k) for k in body][:cap]
     return []
 
 
@@ -169,7 +185,11 @@ def main():
 
         e = {"file": rel, "bytes": os.path.getsize(path)}
         e.update(describe(obj))
-        e["series_keys"] = series_keys(obj)
+        all_keys = series_keys(obj, cap=None)
+        e["series_keys"] = all_keys[:MAX_KEYS]
+        if len(all_keys) > MAX_KEYS:
+            e["series_keys_total"] = len(all_keys)
+            e["series_key_parts"] = key_vocabulary(e["series_keys"], all_keys)
         e["last_commit"] = git_last_commit(rel)
 
         if rel in by_out:                                   # fetch.py, on the cron

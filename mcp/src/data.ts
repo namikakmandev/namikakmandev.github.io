@@ -35,6 +35,10 @@ export interface CatalogEntry {
   as_of?: string;
   refresh?: string;
   series_keys?: string[];
+  /** How many series the file has, when series_keys is a capped sample of them. */
+  series_keys_total?: number;
+  /** Every distinct part of every series id, so search can see past that cap. */
+  series_key_parts?: string[];
   /** What the numbers are measured in: one unit for the dataset, or one per series. */
   unit?: string;
   units?: Record<string, string>;

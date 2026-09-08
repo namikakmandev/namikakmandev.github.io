@@ -121,12 +121,15 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
         .filter((d) => !d.error)
         .map((d) => {
           const name = datasetName(d.file).toLowerCase();
-          const hay = [name, asText(d.source), d.note, d.producer, d.provider, ...(d.series_keys ?? [])]
+          // series_keys is capped, so on the largest datasets it is a sample. The parts of
+          // every id are stored in full, and searching those is what makes 'Portugal' find
+          // eu-ppp instead of nothing.
+          const hay = [name, asText(d.source), d.note, d.producer, d.provider, d.unit, ...(d.series_keys ?? []), ...(d.series_key_parts ?? [])]
             .filter(Boolean).join(" ").toLowerCase();
           let score = 0;
           for (const t of terms) {
             if (name.includes(t)) score += 3;
-            if (d.series_keys?.some((k) => k.toLowerCase() === t)) score += 2;
+            if (d.series_keys?.some((k) => k.toLowerCase() === t) || d.series_key_parts?.some((k) => k.toLowerCase() === t)) score += 2;
             if (hay.includes(t)) score += 1;
           }
           return { d, score };

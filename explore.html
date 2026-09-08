@@ -118,6 +118,7 @@
     .err { background: rgba(229,72,77,.12); border: 1px solid var(--loss); border-radius: 10px; padding: 10px 14px; margin: 10px 0; font-size: .88rem; }
     .card .foot .act { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .78rem; font-weight: 600; padding: 5px 12px; border-radius: 7px; cursor: pointer; }
     .card .foot .act[disabled] { opacity: .55; cursor: default; }
+    .card .foot .act.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); font-weight: 500; }
     .pred { border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 10px 10px 0; padding: 11px 14px; font-size: .86rem; line-height: 1.5; }
     .pred h4 { margin: 0 0 6px; font-size: .9rem; }
     .pred table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
@@ -126,6 +127,9 @@
     .pred th { color: var(--text-dim); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
     .pred tr.win td { color: var(--text); font-weight: 600; }
     .pred .why { color: var(--text-dim); margin-top: 7px; }
+    .pred textarea { width: 100%; margin-top: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      font: inherit; font-size: .82rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding: 8px 10px; border-radius: 8px; resize: vertical; }
+    .pred .js-mine-name { background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .8rem; padding: 4px 8px; border-radius: 7px; margin-left: 6px; }
     .footnote { color: var(--text-dim); font-size: .82rem; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 34px; }
     .footnote a { color: var(--accent); }
   </style>
@@ -651,11 +655,77 @@
         "<div class='picks js-picks'></div>" +
         "<div class='js-pred'></div>" +
         "<div class='foot'><button type='button' class='act js-predict'>Test forecasts</button>" +
+        "<button type='button' class='act ghost js-csv'>Download CSV</button>" +
+        "<button type='button' class='act ghost js-mine'>Add my numbers</button>" +
         "<a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a>" +
         "<span class='asof js-asof'></span><button type='button' class='drop'>close</button></div>";
       host.appendChild(el);
 
-      var predEl = el.querySelector(".js-pred"), predBtn = el.querySelector(".js-predict");
+      var predEl = el.querySelector(".js-pred"), predBtn = el.querySelector(".js-predict"),
+          csvBtn = el.querySelector(".js-csv");
+      var lastDrawn = [];
+      var mineEl = null;
+      /* Your own column against the official one. This is the job a consultant's client
+         actually has, and until now it needed an assistant to do it. */
+      el.querySelector(".js-mine").addEventListener("click", function () {
+        if (mineEl) { mineEl.hidden = !mineEl.hidden; return; }
+        mineEl = document.createElement("div");
+        mineEl.className = "pred";
+        mineEl.innerHTML = "<h4>Add your own numbers</h4>" +
+          "<div>Paste two columns — a date and a value, one pair per line. Tabs, commas, semicolons or spaces all work, and dates look like 2024, 2024-06 or 2024-Q2.</div>" +
+          "<textarea class='js-mine-in' rows='6' placeholder='2022\t100\n2023\t112\n2024\t121'></textarea>" +
+          "<div class='ctrl'><label class='lbl' style='text-transform:none;letter-spacing:0'>Call it <input class='js-mine-name' value='My numbers'></label>" +
+          "<button type='button' class='act js-mine-add'>Add to the chart</button>" +
+          "<span class='asof js-mine-msg'></span></div>";
+        el.querySelector(".js-pred").parentNode.insertBefore(mineEl, el.querySelector(".js-pred"));
+        mineEl.querySelector(".js-mine-add").addEventListener("click", function () {
+          var raw = mineEl.querySelector(".js-mine-in").value;
+          var nm = (mineEl.querySelector(".js-mine-name").value || "My numbers").trim();
+          var msg = mineEl.querySelector(".js-mine-msg");
+          var d = [], v = [], skipped = 0;
+          raw.split(/\r?\n/).forEach(function (line) {
+            if (!line.trim()) return;
+            var parts = line.trim().split(/[\t,;]+|\s{1,}/).filter(Boolean);
+            if (parts.length < 2) { skipped++; return; }
+            var dt = parts[0].trim();
+            var num = parseFloat(parts[parts.length - 1].replace(/[^0-9eE+.\-]/g, ""));
+            if (!/^\d{4}(-(\d{2}|Q[1-4]|S[12]))?(-\d{2})?$/.test(dt) || !isFinite(num)) { skipped++; return; }
+            d.push(dt); v.push(num);
+          });
+          if (d.length < 2) { msg.textContent = "Needs at least two dated rows."; return; }
+          var order = d.map(function (x, i) { return i; }).sort(function (a2, b2) { return d[a2] < d[b2] ? -1 : 1; });
+          var line = { n: nm, d: order.map(function (i) { return d[i]; }), v: order.map(function (i) { return v[i]; }) };
+          full = full.filter(function (x) { return x.n !== nm; }).concat([line]);
+          chosen[nm] = true;
+          if (card.units) card.units[nm] = "your own numbers";
+          msg.textContent = d.length + " points added" + (skipped ? ", " + skipped + " lines skipped" : "") + ".";
+          draw();
+        });
+      });
+      /* What is drawn, as a spreadsheet. The deliverable of this audience is a column of
+         numbers, and copying them off a chart by hand is not one. */
+      csvBtn.addEventListener("click", function () {
+        var vis = lastDrawn.filter(function (x) { return chosen[x.n]; });
+        if (!vis.length) return;
+        var dates = {};
+        vis.forEach(function (x) { x.d.forEach(function (dt) { dates[dt] = 1; }); });
+        var axis = Object.keys(dates).sort();
+        var head = ["date"].concat(vis.map(function (x) {
+          var u = unitOf(x.n);
+          return '"' + label(x.n).replace(/"/g, '""') + (u && state.mode === "level" ? " (" + u.replace(/"/g, '""') + ")" : "") + '"';
+        }));
+        var at = vis.map(function (x) { var m = {}; x.d.forEach(function (dt, i) { m[dt] = x.v[i]; }); return m; });
+        var rows = axis.map(function (dt) {
+          return [dt].concat(at.map(function (m) { return m[dt] === undefined ? "" : m[dt]; })).join(",");
+        });
+        var note = "# " + card.title + " — " + (state.mode === "level" ? "actual values" : state.mode === "index" ? "index, first year = 100" : state.mode === "yoy" ? "percent change on a year earlier" : "per person");
+        var csv = note + "\n# " + (card.note || "").replace(/[\r\n]+/g, " ") + "\n" + head.join(",") + "\n" + rows.join("\n") + "\n";
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+        a.download = card.file + "-" + state.mode + ".csv";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      });
       var forecastLine = null;
       var figEl = el.querySelector(".js-fig"), picksEl = el.querySelector(".js-picks"), segEl = el.querySelector(".js-seg"),
           modeEl = el.querySelector(".js-mode"), hintEl2 = el.querySelector(".js-hint"), nselEl = el.querySelector(".js-nsel"),
@@ -783,6 +853,7 @@
           s.d.forEach(function (dt, i) { if (dt >= a && dt < b) { d.push(dt); v.push(s.v[i]); } });
           return { n: s.n, d: d, v: v };
         }).filter(function (s) { return s.d.length > 1; }).map(transform).filter(function (s) { return s.d.length > 1; });
+        lastDrawn = win;
         var vis = win.filter(function (s) { return chosen[s.n]; });
         figEl.innerHTML = svgFor(card.title, vis, state.mode === "level" ? "" : state.mode, state.mode === "yoy" ? "%" : "");
         Array.prototype.forEach.call(segEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(presets[i].k === state.preset)); });
@@ -871,6 +942,7 @@
           n: d.series || 0, obs: d.observations || 0, bytes: d.bytes || 0, prov: d.provenance || "",
           f: +String(cov.first || "").slice(0, 4) || 0, t: +String(cov.last || "").slice(0, 4) || 0,
           src: src, unit: d.unit || "", units: d.units || null, kind: d.kind || "",
+          keys: ((d.series_keys || []).join(" ") + " " + (d.series_key_parts || []).join(" ")).toLowerCase(),
           c: countriesOf(d), subj: SUBJ_OF[name] || "Reference files" };
       }).map(function (d) {
         /* one value per series in a single year: a snapshot, not something to plot over time */
@@ -988,7 +1060,9 @@
           var g = groupEls[subj]; if (!g) return;
           var vis = 0;
           DS.filter(function (d) { return d.subj === subj; }).forEach(function (d) {
-            var hit = (!term || (d.name + " " + d.title + " " + d.q + " " + d.src).toLowerCase().indexOf(term) >= 0) &&
+            // The series names inside a dataset are part of what a search is for: someone
+            // typing "wheat" means the series, not the file name.
+            var hit = (!term || (d.name + " " + d.title + " " + d.q + " " + d.src + " " + d.unit + " " + d.keys).toLowerCase().indexOf(term) >= 0) &&
                       (!country || d.c.indexOf(country) >= 0) && (d.f <= b && d.t >= a) &&
                       (!subject || d.subj === subject);
             rowEls[d.name].hidden = !hit; if (hit) vis++;
