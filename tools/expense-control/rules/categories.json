@@ -1,25 +1,397 @@
 {
-  "note": "First matching rule wins, so order matters: put the specific merchants above the generic keywords. Patterns are case-insensitive regexes matched against the transaction description. Run `expense_control.py report --unmatched` to see what is still falling through to 'Diger'.",
+  "note": "First matching rule wins, so specific merchants sit above generic keywords. Tuned against the real statements; genuinely ambiguous descriptors (payment gateways, personal names) are deliberately left in 'Diger' rather than guessed at. Run a report and read the 'UNCATEGORISED' block to extend this.",
   "fallback": "Diger",
   "rules": [
-    {"category": "Kart Odemesi",     "patterns": ["ODEME", "ÖDEME", "VIRMAN", "V[İI]RMAN", "TAHS[İI]LAT", "ALACAK"]},
-    {"category": "Faiz & Ucret",     "patterns": ["FA[İI]Z", "GEC[İI]KME", "KDV", "BSMV", "A[İI]DAT", "[ÜU]CRET", "KOM[İI]SYON", "EKSTRE [ÜU]CRET"]},
-    {"category": "Market",           "patterns": ["M[İI]GROS", "CARREFOUR", "A101", "A-101", "B[İI]M ", "^B[İI]M", "[ŞS]OK MARKET", "MACROCENTER", "METRO GROSMARKET", "TARIM KRED[İI]", "HAKMAR", "ONUR MARKET", "MARKET"]},
-    {"category": "Yakit",            "patterns": ["SHELL", "OPET", "PETROL OF[İI]S[İI]", "^BP ", "TOTAL ENERG", "AYTEM[İI]Z", "ALPET", "LUKOIL", "AKARYAKIT", "PETROL"]},
-    {"category": "Ulasim",           "patterns": ["HGS", "OGS", "[İI]ETT", "[İI]STANBULKART", "METRO", "UBER", "B[İI]TAKS[İI]", "MART[İI]", "OTOPARK", "PARK", "THY", "TURK[İI]SH A[İI]RL", "PEGASUS", "AJET", "TCDD", "OBILET", "ENUYGUN"]},
-    {"category": "Yeme-Icme",        "patterns": ["YEMEKSEPET[İI]", "GET[İI]R", "TRENDYOL GO", "M[İI]GROS YEMEK", "STARBUCKS", "KAHVE", "COFFEE", "CAFE", "KAFE", "RESTAURANT", "RESTORAN", "LOKANTA", "P[İI]DE", "BURGER", "DOM[İI]NO", "P[İI]ZZA", "MCDONALD", "SIMIT SARAY"]},
-    {"category": "Online Alisveris", "patterns": ["TRENDYOL", "HEPS[İI]BURADA", "AMAZON", "N11", "[ÇC][İI][ÇC]EKSEPET[İI]", "GITTIGID", "MORHIPO", "DEFACTO", "LC WAIK", "ZARA", "H&M", "BOYNER", "KOTON", "MAV[İI]", "FLO", "DECATHLON"]},
-    {"category": "Abonelik",         "patterns": ["NETFLIX", "SPOTIFY", "YOUTUBE", "DISNEY", "APPLE\\.COM", "ITUNES", "GOOGLE", "AMAZON PRIME", "BLU TV", "EXXEN", "GAIN", "OPENAI", "ANTHROPIC", "CLAUDE", "MICROSOFT", "ADOBE", "DROPBOX", "ICLOUD", "PLAYSTATION", "STEAM"]},
-    {"category": "Telekom",          "patterns": ["TURKCELL", "VODAFONE", "T[ÜU]RK TELEKOM", "SUPERONL[İI]NE", "T[ÜU]RKNET", "MILLENICOM", "D-SMART", "DIGITURK", "TIVIBU"]},
-    {"category": "Fatura & Enerji",  "patterns": ["ELEKTR[İI]K", "DOGAL ?GAZ", "DO[ĞG]AL ?GAZ", "[İI]GDA[ŞS]", "BA[ŞS]KENTGAZ", "SU [İI][ŞS]LER", "[İI]SK[İI]", "ASK[İI]", "BEDA[ŞS]", "AYEDA[ŞS]", "ENERJ[İI]SA", "CK BOGAZICI", "FATURA"]},
-    {"category": "Saglik",           "patterns": ["ECZANE", "HASTANE", "T[İI]P MERKEZ", "POL[İI]KL[İI]N[İI]K", "D[İI][ŞS] ", "LABORATUV", "MEDICAL", "OPT[İI]K", "GOZLUK"]},
-    {"category": "Sigorta",          "patterns": ["S[İI]GORTA", "ALLIANZ", "AXA", "ANADOLU S[İI]G", "AKS[İI]GORTA", "MAPFRE", "BUPA", "KASKO", "DASK", "BES", "EMEKL[İI]L[İI]K"]},
-    {"category": "Ev & Yapi",        "patterns": ["IKEA", "KO[ÇC]TA[ŞS]", "BAUHAUS", "TEKZEN", "ENGL[İI]SH HOME", "MADAME COCO", "KARACA", "BANYO", "MOB[İI]LYA", "YAPI MARKET"]},
-    {"category": "Elektronik",       "patterns": ["MEDIAMARKT", "MED[İI]A MARKT", "TEKNOSA", "VATAN B[İI]LG", "APPLE STORE", "SAMSUNG", "ARCEL[İI]K", "VESTEL", "BE[ŞS]TEL"]},
-    {"category": "Egitim",           "patterns": ["OKUL", "[ÜU]N[İI]VERS[İI]TE", "KURS", "UDEMY", "COURSERA", "KIRTAS[İI]YE", "K[İI]TAP", "D&R", "[İI]DEFIX"]},
-    {"category": "Seyahat & Konak",  "patterns": ["OTEL", "HOTEL", "BOOKING", "AIRBNB", "TRIVAGO", "TATIL", "ETSTUR", "JOLLY", "SETUR"]},
-    {"category": "Kisisel Bakim",    "patterns": ["GRAT[İI]S", "WATSONS", "ROSSMANN", "SEPHORA", "KUAF[ÖO]R", "BERBER", "SPOR SALON", "MACF[İI]T", "FITNESS", "GYM"]},
-    {"category": "Nakit Avans",      "patterns": ["NAK[İI]T AVANS", "ATM", "PARA [ÇC]EKME"]},
-    {"category": "Vergi & Resmi",    "patterns": ["VERG[İI]", "GIB", "E-DEVLET", "N[ÜU]FUS", "TAPU", "TRAF[İI]K CEZA", "MTV", "BELED[İI]YE"]}
+    {
+      "category": "Kart Odemesi",
+      "patterns": [
+        "[ÖO]DEMEN[İI]Z\\s*[İI][ÇC][İI]N",
+        "TE[ŞS]EKK[ÜU]R EDER[İI]Z",
+        "KART [ÖO]DEMES[İI]",
+        "V[İI]RMAN"
+      ]
+    },
+    {
+      "category": "Faiz & Ucret",
+      "patterns": [
+        "FA[İI]Z[İI]?\\b",
+        "GEC[İI]KME",
+        "KKDF",
+        "BSMV",
+        "A[İI]DAT",
+        "[ÜU]CRET",
+        "KOM[İI]SYON",
+        "D[ÖO]NEM FA[İI]Z"
+      ]
+    },
+    {
+      "category": "Nakit Avans",
+      "patterns": [
+        "NAK[İI]T AVANS",
+        "PARA [ÇC]EKME"
+      ]
+    },
+    {
+      "category": "Egitim",
+      "patterns": [
+        "[ÖO]ZEL E[ĞG][İI]T[İI]M",
+        "VES [İI]N E[ĞG][İI]T[İI]M",
+        "E[ĞG][İI]T[İI]M",
+        "OKUL",
+        "[ÜU]N[İI]VERS[İI]TE",
+        "KOLEJ",
+        "KRE[ŞS]",
+        "ANAOKUL",
+        "KURS",
+        "UDEMY",
+        "COURSERA",
+        "DERSHANE"
+      ]
+    },
+    {
+      "category": "Giyim & Aksesuar",
+      "patterns": [
+        "ZARA",
+        "MASS[İI]MO ?DUTT",
+        "MANGO",
+        "UNIQLO",
+        "DIOR",
+        "BARBOUR",
+        "VAKKO",
+        "INTIMISSIMI",
+        "VEJA",
+        "JACADI",
+        "SAMSONITE",
+        "MOKA ?UN[İI]TED",
+        "BB PERAKENDE",
+        "BROOKS BROTHERS",
+        "[İI]PEKYOL",
+        "EREN PERAKENDE",
+        "LE PETIT SOUK",
+        "MOM AND CITY",
+        "CENDRILLON",
+        "URART",
+        "BEİJE",
+        "HOPPA BE[İI]JE",
+        "LC WAIK",
+        "BOYNER",
+        "KOTON",
+        "DEFACTO",
+        "MAV[İI]\\b",
+        "FLO\\b",
+        "S[İI]MONE A BORDEAUX",
+        "SEGM BHV",
+        "GL HAUSSMANN",
+        "PAR[İI]S OLS SARL",
+        "S[İI]STER\\b",
+        "LO4W"
+      ]
+    },
+    {
+      "category": "Seyahat & Konak",
+      "patterns": [
+        "EKIES RESORT",
+        "MELIA",
+        "TOWN ?HOUSE",
+        "TOWN VALE",
+        "OD URLA",
+        "BOOKING",
+        "BKG ",
+        "AIRBNB",
+        "OTEL",
+        "HOTEL",
+        "RESORT",
+        "ETSTUR",
+        "JOLLY",
+        "SETUR",
+        "TATIL",
+        "G W MANAGEMENT"
+      ]
+    },
+    {
+      "category": "Yakit",
+      "patterns": [
+        "SHELL",
+        "OPET",
+        "PETROL OF[İI]S[İI]",
+        "^BP ",
+        "TOTAL ENERG",
+        "AYTEM[İI]Z",
+        "ALPET",
+        "LUKOIL",
+        "AKARYAKIT",
+        "PETROL",
+        "BENZ[İI]N"
+      ]
+    },
+    {
+      "category": "Ulasim",
+      "patterns": [
+        "TURK[İI]SH A[İI]RL",
+        "THY\\b",
+        "PEGASUS",
+        "AJET",
+        "TCDD",
+        "GARE ORLY",
+        "S[İI]TAX[İI]",
+        "TAKS[İI]",
+        "UBER",
+        "B[İI]TAKS[İI]",
+        "MART[İI]",
+        "HGS",
+        "OGS",
+        "[İI]ETT",
+        "[İI]STANBULKART",
+        "OTOPARK",
+        "ISPARK",
+        "YURT[İI][ÇC][İI] KARGO",
+        "KARGO",
+        "OBILET",
+        "ENUYGUN"
+      ]
+    },
+    {
+      "category": "Yeme-Icme",
+      "patterns": [
+        "ALL DAY",
+        "KRONOTROP",
+        "GRILL TOWER",
+        "BRASSIRE",
+        "UNLU MAM[ÜU]L",
+        "LE GABRIELLE",
+        "K[ÖO]ZDE D[ÖO]NER",
+        "KIPOS BALIK",
+        "KASAP",
+        "C[İI][ĞG]ERC[İI]",
+        "LA BANQUETTE",
+        "LE BOURBON",
+        "SBX ",
+        "STARBUCKS",
+        "MIDPOINT",
+        "SOSA ",
+        "LARGANDO",
+        "[İI]SABELABBEY",
+        "LITTLE KOOK",
+        "AFOI LATSONA",
+        "TIGERMILK",
+        "FRITES",
+        "YEMEKSEPET[İI]",
+        "GET[İI]R",
+        "TRENDYOL GO",
+        "TRENDYOLGO",
+        "KAHVE",
+        "COFFEE",
+        "CAFE",
+        "KAFE",
+        "RESTAURANT",
+        "RESTORAN",
+        "LOKANTA",
+        "P[İI]DE",
+        "BURGER",
+        "P[İI]ZZA",
+        "MCDONALD",
+        "S[İI]M[İI]T SARAY",
+        "BAKERY",
+        "PATISSERIE"
+      ]
+    },
+    {
+      "category": "Market",
+      "patterns": [
+        "TRENDYOL MARKET",
+        "ASYA PAZARI",
+        "K[ÖO]YDEN GELS[İI]N",
+        "BAEZ GIDA",
+        "METELEC GIDA",
+        "M[İI]GROS",
+        "CARREFOUR",
+        "A101",
+        "B[İI]M\\b",
+        "[ŞS]OK MARKET",
+        "MACROCENTER",
+        "GROSMARKET",
+        "TAR[İI]M KRED[İI]",
+        "MARKET",
+        "GIDA"
+      ]
+    },
+    {
+      "category": "Kisisel Bakim",
+      "patterns": [
+        "EXCLUSIVE BEAUTY",
+        "BELLESA",
+        "G[ÜU]ZELL[İI]K",
+        "STUD[İI]O PARLA",
+        "MEDIK8",
+        "KUAF[ÖO]R",
+        "BERBER",
+        "GRAT[İI]S",
+        "WATSONS",
+        "ROSSMANN",
+        "SEPHORA",
+        "SPOR SALON",
+        "MACF[İI]T",
+        "FITNESS"
+      ]
+    },
+    {
+      "category": "Saglik",
+      "patterns": [
+        "ACIBADEM",
+        "MED[İI]KAL",
+        "ECZANE",
+        "HASTANE",
+        "T[İI]P MERKEZ",
+        "POL[İI]KL[İI]N[İI]K",
+        "LABORATUV",
+        "D[İI][ŞS] HEK",
+        "OPT[İI]K",
+        "G[ÖO]ZL[ÜU]K",
+        "PS[İI]KOLOG"
+      ]
+    },
+    {
+      "category": "Evcil Hayvan",
+      "patterns": [
+        "VETER[İI]NER",
+        "PET ?WAY",
+        "PET ?SHOP",
+        "PETLEBI",
+        "MAMA"
+      ]
+    },
+    {
+      "category": "Kultur & Eglence",
+      "patterns": [
+        "STUBHUB",
+        "MUSEE",
+        "M[ÜU]ZE",
+        "B[İI]LET[İI]N[İI]AL",
+        "C[İI]NEVERSE",
+        "S[İI]NEMA",
+        "ETABLISSEMENT PUBLIC",
+        "IMMERSION",
+        "T[İI]YATRO",
+        "KONSER",
+        "TOYZZ",
+        "OYUNCAK"
+      ]
+    },
+    {
+      "category": "Abonelik & Dijital",
+      "patterns": [
+        "HBOMAX",
+        "NETFLIX",
+        "SPOTIFY",
+        "YOUTUBE",
+        "DISNEY",
+        "APPLE\\.COM",
+        "ITUNES",
+        "ICLOUD",
+        "GOOGLE",
+        "AMAZON PRIME",
+        "BLU ?TV",
+        "EXXEN",
+        "OPENAI",
+        "ANTHROPIC",
+        "MICROSOFT",
+        "ADOBE",
+        "DROPBOX",
+        "PLAYSTATION",
+        "STEAM"
+      ]
+    },
+    {
+      "category": "Online Alisveris",
+      "patterns": [
+        "TRENDYOL",
+        "HEPS[İI]BURADA",
+        "AMAZON",
+        "N11\\b",
+        "[ÇC][İI][ÇC]EKSEPET[İI]",
+        "SHOP[İI]ER",
+        "MORHIPO"
+      ]
+    },
+    {
+      "category": "Ev & Yasam",
+      "patterns": [
+        "IKEA",
+        "KO[ÇC]TA[ŞS]",
+        "BAUHAUS",
+        "TEKZEN",
+        "ENGL[İI]SH HOME",
+        "MADAME COCO",
+        "KARACA",
+        "MOB[İI]LYA",
+        "YAPI MARKET",
+        "HAVUZ",
+        "TEM[İI]ZL[İI]K"
+      ]
+    },
+    {
+      "category": "Elektronik",
+      "patterns": [
+        "MEDIAMARKT",
+        "MED[İI]A MARKT",
+        "TEKNOSA",
+        "VATAN B[İI]LG",
+        "APPLE STORE",
+        "SAMSUNG",
+        "ARCEL[İI]K",
+        "VESTEL"
+      ]
+    },
+    {
+      "category": "Telekom",
+      "patterns": [
+        "TURKCELL",
+        "VODAFONE",
+        "T[ÜU]RK TELEKOM",
+        "SUPERONL[İI]NE",
+        "T[ÜU]RKNET",
+        "D-SMART",
+        "DIGITURK"
+      ]
+    },
+    {
+      "category": "Fatura & Enerji",
+      "patterns": [
+        "ELEKTR[İI]K",
+        "DO[ĞG]AL ?GAZ",
+        "[İI]GDA[ŞS]",
+        "ENERJ[İI]SA",
+        "BEDA[ŞS]",
+        "AYEDA[ŞS]",
+        "[İI]SK[İI]",
+        "FATURA"
+      ]
+    },
+    {
+      "category": "Sigorta",
+      "patterns": [
+        "S[İI]GORTA",
+        "ALLIANZ",
+        "AXA\\b",
+        "AKS[İI]GORTA",
+        "MAPFRE",
+        "KASKO",
+        "DASK",
+        "EMEKL[İI]L[İI]K"
+      ]
+    },
+    {
+      "category": "Vergi & Resmi",
+      "patterns": [
+        "VERG[İI]",
+        "\\bGIB\\b",
+        "E-DEVLET",
+        "TAPU",
+        "TRAF[İI]K CEZA",
+        "MTV\\b",
+        "BELED[İI]YE",
+        "G[ÜU]MR[ÜU]KS[ÜU]Z"
+      ]
+    }
   ]
 }
