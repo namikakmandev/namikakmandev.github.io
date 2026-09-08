@@ -599,7 +599,8 @@ def worldbank(entry):
     # Thirty countries and sixty-five years in one request times out often enough to lose
     # whole indicators, so countries go in chunks and each chunk gets a second attempt.
     iso = list(countries.values())
-    chunks = [iso[i:i + 10] for i in range(0, len(iso), 10)] or [[]]
+    size = int(entry.get("chunk", 10))
+    chunks = [iso[i:i + size] for i in range(0, len(iso), size)] or [[]]
     for ikey, code in entry["indicators"].items():
         rows, failures = [], []
         for chunk in chunks:
