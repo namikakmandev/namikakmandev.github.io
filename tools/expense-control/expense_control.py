@@ -31,7 +31,7 @@ import json
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -40,6 +40,8 @@ DEFAULT_CATEGORY_RULES = HERE / "rules" / "categories.json"
 DEFAULT_OUT = HERE / "out"
 
 DATE_FORMATS = ("%d/%m/%Y", "%d.%m.%Y", "%d-%m-%Y", "%Y-%m-%d")
+MONEY_TOKEN = re.compile(r"^(?P<value>[\d.]*\d,\d{2})(?P<sign>[-+])?$")
+TR_LONG_DATE = re.compile(r"^(\d{1,2})\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)\s+(\d{4})$")
 AMOUNT_LIKE = re.compile(r"\d[.,]\d{2}\b")
 
 TR_MONTHS = {
@@ -95,7 +97,16 @@ def parse_amount(raw, style: str = "tr"):
 
 
 def parse_date(raw: str, fallback_year=None):
-    s = squeeze(raw).replace(".", "/").replace("-", "/")
+    text = squeeze(raw)
+    long_form = TR_LONG_DATE.match(text)
+    if long_form:                       # "09 Ocak 2026"
+        month = TR_MONTHS.get(fold(long_form.group(2)))
+        if month:
+            try:
+                return date(int(long_form.group(3)), month, int(long_form.group(1)))
+            except ValueError:
+                return None
+    s = text.replace(".", "/").replace("-", "/")
     for fmt in ("%d/%m/%Y", "%Y/%m/%d"):
         try:
             return datetime.strptime(s, fmt).date()
@@ -224,6 +235,229 @@ def extract_header(text, rules):
     return header
 
 
+# --------------------------------------------------------------------------
+# column layout: read the table by where the numbers sit, not by regex
+#
+# The Garanti/Bonus statement puts Bonus and Tutar in two right-aligned
+# columns. Telling them apart matters: a bonus-campaign line carries its
+# figure in the Bonus column and is not expenditure at all. The template also
+# paints invisible 2pt "bosluk" spacer glyphs that glue themselves onto the
+# amount, so anything below `min_font_size` is dropped before words are built.
+# --------------------------------------------------------------------------
+
+def extract_word_rows(path: Path, rules, password=None):
+    """[(page_number, [row, ...]), ...] where a row is a list of positioned words."""
+    try:
+        import pdfplumber
+    except ImportError as exc:  # pragma: no cover
+        raise SystemExit("pdfplumber is required to read PDFs.  pip install pdfplumber") from exc
+
+    min_size = rules.get("min_font_size", 4.0)
+    tol = rules.get("row_tolerance", 1.0)
+    keep = lambda obj: (obj.get("size") or 10) > min_size
+
+    try:
+        pdf = pdfplumber.open(str(path), password=password or "")
+    except Exception as exc:
+        hint = ""
+        if "password" in str(exc).lower() or "encrypt" in str(exc).lower():
+            hint = ("  This statement looks password-protected — pass the bank's "
+                    "PDF password with --password.")
+        raise SystemExit(f"{path.name}: could not read the PDF ({exc}).{hint}")
+
+    pages = []
+    with pdf:
+        for page_no, page in enumerate(pdf.pages, 1):
+            rows, current, last_top = [], [], None
+            for word in sorted(page.filter(keep).extract_words(), key=lambda w: (w["top"], w["x0"])):
+                if last_top is None or abs(word["top"] - last_top) <= tol:
+                    current.append(word)
+                else:
+                    rows.append(sorted(current, key=lambda w: w["x0"]))
+                    current = [word]
+                last_top = word["top"] if last_top is None else last_top if abs(
+                    word["top"] - last_top) <= tol else word["top"]
+            if current:
+                rows.append(sorted(current, key=lambda w: w["x0"]))
+            pages.append((page_no, rows))
+    return pages
+
+
+def detect_money_columns(pages, rules):
+    """Find the right edges of the amount and bonus columns from the data itself."""
+    override = rules.get("columns") or {}
+    if "amount" in override:
+        return override.get("amount"), override.get("bonus")
+
+    edges = defaultdict(int)
+    for _, rows in pages:
+        for row in rows:
+            if not _row_date(row):
+                continue
+            for word in row:
+                if MONEY_TOKEN.match(word["text"]):
+                    edges[round(word["x1"])] += 1
+    if not edges:
+        return None, None
+    # merge edges that sit within a couple of points of each other
+    merged = {}
+    for edge in sorted(edges):
+        key = next((k for k in merged if abs(k - edge) <= 3), edge)
+        merged[key] = merged.get(key, 0) + edges[edge]
+    ranked = sorted(merged.items(), key=lambda kv: -kv[1])
+    if not ranked:
+        return None, None
+    amount = max(k for k, _ in ranked[:3])
+    left = [k for k, n in ranked if k < amount - 20 and n >= 3]
+    return amount, (max(left) if left else None)
+
+
+def _row_date(row):
+    """A transaction row starts with '24 Aralık 2025' in the date column."""
+    if len(row) < 4:
+        return None
+    text = " ".join(w["text"] for w in row[:3])
+    return parse_date(text)
+
+
+def parse_columns(path: Path, rules, password=None):
+    pages = extract_word_rows(path, rules, password)
+    flat = "\n".join(" ".join(w["text"] for w in row) for _, rows in pages for row in rows)
+    header = extract_header(flat, rules)
+
+    amount_x, bonus_x = detect_money_columns(pages, rules)
+    if amount_x is None:
+        return {"source": str(path), "header": header, "transactions": [],
+                "unparsed_amount_lines": [], "pages": len(pages), "empty_text": not flat.strip(),
+                "reconciliation": None}
+
+    tol = rules.get("column_tolerance", 6)
+    inst_re = re.compile(rules["installment_plan"]) if rules.get("installment_plan") else None
+    no_re = re.compile(rules["installment_index"]) if rules.get("installment_index") else None
+    carried_re = re.compile(rules.get("carried_forward", "$^"), re.I)
+    desc_x0, desc_x1 = rules.get("description_span", [160, 420])
+    credit_sign = rules.get("credit_sign", "+")
+
+    transactions, carried, missed = [], None, []
+    for page_no, rows in pages:
+        for row in rows:
+            amount_word = next((w for w in row if MONEY_TOKEN.match(w["text"])
+                                and abs(w["x1"] - amount_x) <= tol), None)
+            when = _row_date(row)
+            text = squeeze(" ".join(w["text"] for w in row))
+
+            if amount_word is None:
+                if when and any(MONEY_TOKEN.match(w["text"]) for w in row):
+                    continue          # bonus-column-only row: points, not money spent
+                continue
+
+            match = MONEY_TOKEN.match(amount_word["text"])
+            value = parse_amount(match.group("value"))
+            if value is None:
+                missed.append({"page": page_no, "line": 0, "text": text})
+                continue
+            if match.group("sign") == credit_sign:
+                value = -value
+
+            if carried_re.search(text):
+                carried = abs(value)
+                continue
+
+            body = [w for w in row if w is not amount_word]
+            if when:
+                body = body[3:]
+            elif not (desc_x0 <= row[0]["x0"] <= desc_x1):
+                continue              # not a table row (page furniture, totals block)
+            else:
+                when = parse_date(header.get("statement_date", "")) or None
+                if when is None:
+                    continue
+
+            # Everything right of the description band is columnar: the bonus
+            # earned, the original amount and currency of a foreign charge, and
+            # the amount itself. Only the band is the merchant's name.
+            paid = total = None
+            original_amount = original_currency = None
+            description = []
+            for word in body:
+                token = word["text"]
+                if word["x0"] > desc_x1:
+                    money = MONEY_TOKEN.match(token)
+                    if money and bonus_x and abs(word["x1"] - bonus_x) <= tol:
+                        continue                       # bonus points earned
+                    if money:
+                        original_amount = parse_amount(money.group("value"))
+                    elif re.fullmatch(r"[A-Z]{3}", token):
+                        original_currency = token      # e.g. EUR on a foreign charge
+                    continue
+                plan = inst_re.match(token) if inst_re else None
+                if plan:
+                    total = int(plan.group("total"))
+                    continue
+                index = no_re.match(token) if no_re else None
+                if index:
+                    paid = int(index.group("no"))
+                    continue
+                description.append(token)
+
+            description = squeeze(" ".join(description))
+            if not description:
+                continue
+            if total and paid and total < paid:
+                paid = total
+
+            transactions.append({
+                "date": when.isoformat(),
+                "post_date": when.isoformat(),
+                "description": description,
+                "amount": round(value, 2),
+                "currency": rules.get("default_currency", "TRY"),
+                "installment_no": paid,
+                "installment_total": total,
+                "original_amount": original_amount,
+                "original_currency": original_currency,
+                "card": header.get("card_number", ""),
+                "statement": path.name,
+                "page": page_no,
+                "line": 0,
+                "raw": text,
+            })
+
+    return {
+        "source": str(path),
+        "header": header,
+        "transactions": transactions,
+        "unparsed_amount_lines": missed,
+        "pages": len(pages),
+        "empty_text": not flat.strip(),
+        "reconciliation": reconcile(transactions, carried, header),
+        "columns": {"amount_x": amount_x, "bonus_x": bonus_x},
+    }
+
+
+def reconcile(transactions, carried, header):
+    """Check the parse against the bank's own 'Dönem Borcunuz'.
+
+    carried forward + charges - credits should equal the stated period total.
+    If it does, every line on the statement has been read and signed correctly.
+    """
+    stated = header.get("period_total")
+    if stated is None or carried is None:
+        return None
+    debits = sum(t["amount"] for t in transactions if t["amount"] > 0)
+    credits = -sum(t["amount"] for t in transactions if t["amount"] < 0)
+    computed = carried + debits - credits
+    return {
+        "carried_forward": round(carried, 2),
+        "debits": round(debits, 2),
+        "credits": round(credits, 2),
+        "computed": round(computed, 2),
+        "stated": round(stated, 2),
+        "difference": round(computed - stated, 2),
+        "balanced": abs(computed - stated) < 0.01,
+    }
+
+
 def _peel_installment(text, inst_re):
     """Strip a trailing '3/12' style marker. Returns (paid, total, rest)."""
     match = inst_re.search(text)
@@ -236,6 +470,8 @@ def _peel_installment(text, inst_re):
 
 
 def parse_statement(path: Path, rules, password=None):
+    if rules.get("layout") == "columns" and path.suffix.lower() == ".pdf":
+        return parse_columns(path, rules, password)
     pages = extract_pages(path, password)
     text = "\n".join(pages)
     header = extract_header(text, rules)
@@ -314,18 +550,29 @@ def parse_statement(path: Path, rules, password=None):
         "unparsed_amount_lines": missed,
         "pages": len(pages),
         "empty_text": not text.strip(),
+        "reconciliation": None,
     }
 
 
 def dedupe(transactions):
-    """The same charge often appears in several overlapping statements."""
-    seen, unique, dropped = set(), [], 0
+    """Drop a charge that appears in two overlapping statements.
+
+    Only across statements: the same merchant, day and amount twice inside one
+    statement is two real charges (two identical fares bought together, say),
+    and dropping one would silently understate the total.
+    """
+    seen, unique, dropped = {}, [], 0
     for txn in transactions:
-        key = (txn["card"], txn["date"], fold(txn["description"]), round(txn["amount"], 2))
-        if key in seen:
-            dropped += 1
+        key = (txn["card"], txn["date"], fold(txn["description"]), round(txn["amount"], 2),
+               txn.get("installment_no"), txn.get("installment_total"))
+        statements = seen.setdefault(key, set())
+        if txn.get("statement") in statements:
+            unique.append(txn)          # repeat within one statement: genuine
             continue
-        seen.add(key)
+        if statements:
+            dropped += 1                # already seen on another statement
+            continue
+        statements.add(txn.get("statement"))
         unique.append(txn)
     return unique, dropped
 
@@ -507,6 +754,36 @@ def match_budget_categories(budget_categories, spend_categories):
 # report
 # --------------------------------------------------------------------------
 
+def monthly_vs_line(transactions, budget, line_name):
+    """Compare total monthly spend against one budget row.
+
+    A household cash-flow budget has a single row for a card ("ebru kk"), not a
+    row per spending category, so matching category-by-category would compare
+    things that were never meant to line up.
+    """
+    label = next((k for k in budget["monthly"] if fold(k) == fold(line_name)), None)
+    if label is None:
+        label = next((k for k in budget["monthly"] if fold(line_name) in fold(k)), None)
+    if label is None:
+        return None
+    planned = {m: abs(v) for m, v in budget["monthly"][label].items()}
+    actual = defaultdict(float)
+    for txn in transactions:
+        if txn["amount"] > 0:
+            actual[txn["date"][:7]] += txn["amount"]
+    months = sorted(set(planned) & set(actual))
+    rows = [_variance_row(m, m, planned.get(m, 0.0), actual.get(m, 0.0)) for m in months]
+    return {
+        "line": label,
+        "months": months,
+        "budget_months": sorted(planned),
+        "spend_months": sorted(actual),
+        "rows": rows,
+        "budget_total": round(sum(planned.get(m, 0.0) for m in months), 2),
+        "actual_total": round(sum(actual.get(m, 0.0) for m in months), 2),
+    }
+
+
 def build_report(transactions, budget=None, fallback="Diger"):
     spend = [t for t in transactions if t["amount"] > 0]
     credits = [t for t in transactions if t["amount"] < 0]
@@ -678,6 +955,20 @@ def render_console(report):
             ["line", "budget", "actual", "diff", "used", "status"],
             ["<", ">", ">", ">", ">", "<"]))
 
+    line_check = report.get("monthly_line")
+    if line_check:
+        lines.append(f"  MONTHLY SPEND vs BUDGET ROW '{line_check['line']}'")
+        lines.append(table(
+            [[r["label"], money(r["budget"]), money(r["actual"]), money(r["diff"]),
+              f"{r['used_pct']:.0f}%" if r["used_pct"] is not None else "-", r["status"]]
+             for r in line_check["rows"]]
+            + [["TOTAL", money(line_check["budget_total"]), money(line_check["actual_total"]),
+                money(line_check["actual_total"] - line_check["budget_total"]),
+                f"{line_check['actual_total'] / line_check['budget_total'] * 100:.0f}%"
+                if line_check["budget_total"] else "-", ""]],
+            ["month", "budget", "actual", "diff", "used", "status"],
+            ["<", ">", ">", ">", ">", "<"]))
+
     lines.append("  TOP MERCHANTS")
     lines.append(table([[m["merchant"], m["category"], str(m["count"]), money(m["amount"])]
                         for m in report["top_merchants"][:15]],
@@ -693,19 +984,45 @@ def render_console(report):
     return "\n".join(lines)
 
 
+def _variance_table_rows(rows, esc):
+    """Shared <tr> builder for both budget tables in the HTML report."""
+    out = []
+    for row in rows:
+        pct = row["used_pct"]
+        meter = "" if pct is None else (
+            '<span style="width:%d%%"></span>' % min(pct, 100))
+        out.append(
+            '<tr class="s-%s"><td>%s</td><td class="n">%s</td><td class="n">%s</td>'
+            '<td class="n">%s</td><td class="meter">%s<em>%s</em></td><td>%s</td></tr>' % (
+                row["status"].lower(), esc(row["label"]), money(row["budget"]),
+                money(row["actual"]), money(row["diff"]), meter,
+                "&mdash;" if pct is None else "%.0f%%" % pct, row["status"]))
+    return "".join(out)
+
+
 def render_html(report, path: Path):
     def esc(value):
         return (str(value).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
 
-    status_rows = ""
-    for v in report["variance"]:
-        pct = v["used_pct"] or 0
-        status_rows += (
-            f"<tr class='s-{v['status'].lower()}'><td>{esc(v['label'])}</td>"
-            f"<td class='n'>{money(v['budget'])}</td><td class='n'>{money(v['actual'])}</td>"
-            f"<td class='n'>{money(v['diff'])}</td>"
-            f"<td class='meter'><span style='width:{min(pct, 100):.0f}%'></span>"
-            f"<em>{pct:.0f}%</em></td><td>{v['status']}</td></tr>")
+    status_rows = _variance_table_rows(report["variance"], esc)
+
+    line_check = report.get("monthly_line")
+    line_html = ""
+    if line_check:
+        total_pct = (line_check["actual_total"] / line_check["budget_total"] * 100
+                     if line_check["budget_total"] else None)
+        line_html = (
+            "<h2>Aylik toplam harcama vs butce satiri &lsquo;" + esc(line_check["line"])
+            + "&rsquo;</h2><div class='wrap'><table><thead><tr><th>Ay</th><th>Butce</th>"
+            "<th>Gerceklesen</th><th>Fark</th><th>Kullanim</th><th>Durum</th></tr></thead><tbody>"
+            + _variance_table_rows(line_check["rows"], esc)
+            + "<tr><td><b>TOPLAM</b></td><td class='n'><b>" + money(line_check["budget_total"])
+            + "</b></td><td class='n'><b>" + money(line_check["actual_total"])
+            + "</b></td><td class='n'><b>"
+            + money(line_check["actual_total"] - line_check["budget_total"])
+            + "</b></td><td class='meter'><em>"
+            + ("&mdash;" if total_pct is None else "%.0f%%" % total_pct)
+            + "</em></td><td></td></tr></tbody></table></div>")
 
     scope = report.get("budget_scope") or {}
     if scope.get("mode") == "months":
@@ -777,6 +1094,7 @@ footer {{ color:var(--mut); font-size:12px; margin-top:36px }}
   <div class="kpi"><span>Kategori</span><b>{len(report['by_category'])}</b></div>
 </div>
 {"<h2>Butce vs gerceklesen" + scope_note + "</h2><div class='wrap'><table><thead><tr><th>Kalem</th><th>Butce</th><th>Gerceklesen</th><th>Fark</th><th>Kullanim</th><th>Durum</th></tr></thead><tbody>" + status_rows + "</tbody></table></div>" if status_rows else ""}
+{line_html}
 <h2>Kategori bazinda</h2>
 <div class="wrap"><table><thead><tr><th>Kategori</th><th>Tutar</th><th>Pay</th></tr></thead><tbody>{cat_rows}</tbody></table></div>
 <h2>Ay bazinda</h2>
@@ -799,7 +1117,8 @@ def write_transactions(transactions, out_dir: Path):
     (out_dir / "transactions.json").write_text(
         json.dumps(transactions, ensure_ascii=False, indent=2), encoding="utf-8")
     fields = ["date", "post_date", "description", "merchant", "category", "amount",
-              "currency", "installment_no", "installment_total", "card", "statement"]
+              "currency", "original_amount", "original_currency",
+              "installment_no", "installment_total", "card", "statement"]
     with (out_dir / "transactions.csv").open("w", newline="", encoding="utf-8-sig") as fh:
         writer = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
         writer.writeheader()
@@ -873,14 +1192,26 @@ def _discover_workbook(path: Path, out_dir: Path):
 def _collect(args):
     rules = load_rules(args.rules)
     categorise = Categoriser(load_rules(args.categories))
-    transactions, problems = [], []
+    transactions, problems, reconciliations = [], [], []
 
     for name in expand_paths(args.files):
         path = Path(name)
         parsed = parse_statement(path, rules, args.password)
         found = len(parsed["transactions"])
         missed = len(parsed["unparsed_amount_lines"])
-        print(f"  {path.name:<44} {found:>4} txn   {missed:>4} unparsed money lines")
+        check = parsed.get("reconciliation")
+        if check:
+            note = ("balanced" if check["balanced"]
+                    else f"OFF BY {check['difference']:+,.2f}")
+            print(f"  {path.name:<44} {found:>4} txn   {note}")
+            if not check["balanced"]:
+                problems.append(
+                    f"{path.name}: parsed total {check['computed']:,.2f} does not match the "
+                    f"statement's own D\u00f6nem Borcunuz {check['stated']:,.2f} "
+                    f"(off by {check['difference']:+,.2f}) — some lines were misread.")
+        else:
+            print(f"  {path.name:<44} {found:>4} txn   {missed:>4} unparsed money lines")
+        reconciliations.append((path.name, check))
         if parsed["empty_text"]:
             problems.append(f"{path.name}: no extractable text — the PDF is probably a scan; "
                             "OCR it first.")
@@ -900,6 +1231,11 @@ def _collect(args):
     if getattr(args, "until", None):
         transactions = [t for t in transactions if t["date"] <= args.until]
 
+    checked = [c for _, c in reconciliations if c]
+    if checked:
+        good = sum(1 for c in checked if c["balanced"])
+        print(f"  reconciled against the bank's own period total: "
+              f"{good}/{len(checked)} statements balance to the cent")
     if dropped:
         print(f"  deduplicated {dropped} repeated line(s) across statements")
     for problem in problems:
@@ -927,6 +1263,11 @@ def _report(transactions, args):
 
     fallback = load_rules(args.categories).get("fallback", "Diger")
     report = build_report(transactions, budget, fallback)
+    if budget and getattr(args, "budget_line", None):
+        report["monthly_line"] = monthly_vs_line(transactions, budget, args.budget_line)
+        if report["monthly_line"] is None:
+            print(f"  ! no budget row matching '{args.budget_line}' — available rows: "
+                  f"{', '.join(sorted(budget['monthly'])[:12])}")
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -994,6 +1335,9 @@ def build_parser():
         sub.add_argument("--budget", help="budget .xlsx to compare against")
         sub.add_argument("--budget-sheet", help="sheet name, if auto-detection picks the wrong one")
         sub.add_argument("--budget-year", help="year for bare month headers like 'Eylul'")
+        sub.add_argument("--budget-line",
+                         help="compare TOTAL monthly spend against this single budget row "
+                              "(e.g. 'ebru kk'), instead of matching category by category")
         sub.add_argument("--html", action="store_true", help="also write out/report.html")
 
     discover = subparsers.add_parser("discover", parents=[common], help="dump what a PDF/XLSX contains")

@@ -1,0 +1,27 @@
+{
+  "issuer": "Garanti BBVA — Bonus kredi kartı ekstresi",
+  "note": "Position-based. The statement has two right-aligned money columns, Bonus (TL) and Tutar (TL); only Tutar is expenditure. The template also paints invisible 2pt 'bosluk' spacer glyphs that glue onto the amount, so min_font_size drops them. Verified against the bank's own 'Dönem Borcunuz' on every statement.",
+  "layout": "columns",
+  "decimal_style": "tr",
+  "default_currency": "TRY",
+  "min_font_size": 4.0,
+  "row_tolerance": 1.0,
+  "column_tolerance": 6,
+  "description_span": [160, 420],
+  "credit_sign": "+",
+  "carried_forward": "DEV[İI]R ED[İI]LEN",
+
+  "installment_plan": "^(?P<unit>[\\d.]*\\d,\\d{2})x(?P<total>\\d{1,2})=(?P<gross>[\\d.]*\\d,\\d{2})$",
+  "installment_index": "^(?P<no>\\d{1,2})\\.\\s*Taksit$",
+
+  "header": {
+    "statement_date": ["Hesap\\s*Kesim\\s*Tarihi\\s*:?\\s*(\\d{1,2}\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\\s+\\d{4})"],
+    "due_date": ["Son\\s*[ÖO]deme\\s*Tarihi\\s*:?\\s*(\\d{1,2}\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\\s+\\d{4})"],
+    "card_number": ["Kart\\s*Numaras[ıi]\\s*(\\d{4}\\s*\\d{2}\\*{2}\\s*\\*{4}\\s*\\d{4})"],
+    "card_holder": ["Say[ıi]n\\s+([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ]*(?:\\s+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ]*){0,3})"],
+    "period_total": ["D[öo]nem\\s*Borcunuz\\s*([\\d.]*\\d,\\d{2})"],
+    "minimum_payment": ["Min\\.?\\s*[ÖO]deme\\s*Tutar[ıi]\\s*([\\d.]*\\d,\\d{2})"],
+    "credit_limit": ["Kart\\s*Limiti\\s*([\\d.]*\\d,\\d{2})"],
+    "bonus_balance": ["Harcanabilecek\\s*Toplam\\s*Bonus\\s*([\\d.]*\\d,\\d{2})"]
+  }
+}

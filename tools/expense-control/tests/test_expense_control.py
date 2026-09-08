@@ -121,7 +121,7 @@ def test_categories_and_dedupe():
     for description, want in [
         ("MIGROS TICARET AS ISTANBUL TR", "Market"),
         ("SHELL PETROL KADIKOY TR", "Yakit"),
-        ("NETFLIX COM AMSTERDAM NL", "Abonelik"),
+        ("NETFLIX COM AMSTERDAM NL", "Abonelik & Dijital"),
         ("TURKCELL ILETISIM TR", "Telekom"),
         ("ECZANE SAGLIK ISTANBUL TR", "Saglik"),
         ("UBER BV AMSTERDAM NL", "Ulasim"),
@@ -133,9 +133,20 @@ def test_categories_and_dedupe():
           "MIGROS TICARET AS ISTANBUL")
 
     txns = ec.parse_statement(FIXTURE, RULES)["transactions"]
-    doubled, dropped = ec.dedupe(txns + txns)
-    check("duplicates removed", len(doubled), len(txns))
+
+    # the same charge arriving on a second, overlapping statement is a duplicate
+    from copy import deepcopy
+    other = deepcopy(txns)
+    for txn in other:
+        txn["statement"] = "overlapping-statement.pdf"
+    merged, dropped = ec.dedupe(txns + other)
+    check("cross-statement duplicates removed", len(merged), len(txns))
     check("duplicate count reported", dropped, len(txns))
+
+    # but the same charge twice on ONE statement is two real charges
+    kept, dropped_same = ec.dedupe(txns + deepcopy(txns))
+    check("same-statement repeats kept", len(kept), len(txns) * 2)
+    check("no false duplicates", dropped_same, 0)
 
 
 def _make_budget(path, monthly=True):
@@ -149,7 +160,7 @@ def _make_budget(path, monthly=True):
         sheet.append(["Kategori", "Tem", "Agu", "Eyl"])
         for row in [["Market", 2000, 2000, 2000],
                     ["Yakit", 1000, 1000, 1000],
-                    ["Abonelik", 250, 250, 250],
+                    ["Abonelik & Dijital", 250, 250, 250],
                     ["Telekom", 800, 800, 800],
                     ["Saglik", 1000, 1000, 1000],
                     ["Toplam", 5050, 5050, 5050]]:
@@ -217,7 +228,7 @@ def test_report():
         check("yakit over budget", variance["Yakit"]["status"], "OVER")
         check("yakit overspend", variance["Yakit"]["diff"], 3025.0)   # 4025.00 spent vs 1000.00
         check("telekom near budget", variance["Telekom"]["status"], "WATCH")  # 749/800 = 94%
-        check("abonelik near budget", variance["Abonelik"]["status"], "WATCH")  # 229.99/250 = 92%
+        check("abonelik near budget", variance["Abonelik & Dijital"]["status"], "WATCH")  # 229.99/250 = 92%
         check("saglik within budget", variance["Saglik"]["status"], "OK")  # 512.60/1000 = 51%
         check("unbudgeted surfaces", variance["Elektronik"]["status"], "UNBUDGETED")
         check("uncategorised surfaces",
