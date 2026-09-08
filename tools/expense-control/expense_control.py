@@ -376,7 +376,7 @@ def parse_columns(path: Path, rules, password=None):
             # Everything right of the description band is columnar: the bonus
             # earned, the original amount and currency of a foreign charge, and
             # the amount itself. Only the band is the merchant's name.
-            paid = total = None
+            paid = total = gross = None
             original_amount = original_currency = None
             description = []
             for word in body:
@@ -393,6 +393,8 @@ def parse_columns(path: Path, rules, password=None):
                 plan = inst_re.match(token) if inst_re else None
                 if plan:
                     total = int(plan.group("total"))
+                    if "gross" in plan.groupdict():
+                        gross = parse_amount(plan.group("gross"), rules.get("decimal_style", "tr"))
                     continue
                 index = no_re.match(token) if no_re else None
                 if index:
@@ -414,6 +416,7 @@ def parse_columns(path: Path, rules, password=None):
                 "currency": rules.get("default_currency", "TRY"),
                 "installment_no": paid,
                 "installment_total": total,
+                "installment_gross": gross,
                 "original_amount": original_amount,
                 "original_currency": original_currency,
                 "card": header.get("card_number", ""),
@@ -776,12 +779,56 @@ def monthly_vs_line(transactions, budget, line_name):
     return {
         "line": label,
         "months": months,
+        "budget_by_month": planned,
         "budget_months": sorted(planned),
         "spend_months": sorted(actual),
         "rows": rows,
         "budget_total": round(sum(planned.get(m, 0.0) for m in months), 2),
         "actual_total": round(sum(actual.get(m, 0.0) for m in months), 2),
     }
+
+
+def shift_month(ym, k):
+    year, month = int(ym[:4]), int(ym[5:7])
+    index = year * 12 + (month - 1) + k
+    return f"{index // 12:04d}-{index % 12 + 1:02d}"
+
+
+def instalment_plans(transactions):
+    """One entry per plan, from its latest appearance.
+
+    Every monthly statement re-lists a running plan with the instalment number
+    advanced, so summing rows counts the same commitment once per statement.
+    Identity is merchant + total count + gross amount + sign + the month the
+    plan started, which separates two purchases of the same thing on
+    different days and a purchase from its own reversal.
+    """
+    plans = {}
+    for txn in transactions:
+        paid, total = txn.get("installment_no"), txn.get("installment_total")
+        if not (paid and total):
+            continue
+        origin = shift_month(txn["date"][:7], -(paid - 1))
+        gross = txn.get("installment_gross")
+        ident = round(gross, 2) if gross else round(abs(txn["amount"]), 2)
+        key = (fold(txn["description"]), total, ident, txn["amount"] < 0, origin)
+        if key not in plans or paid > plans[key]["installment_no"]:
+            plans[key] = txn
+    return list(plans.values())
+
+
+def instalment_schedule(plans):
+    """Month -> {committed, pending_credits}: what is already booked ahead."""
+    schedule = defaultdict(lambda: {"committed": 0.0, "pending_credits": 0.0})
+    for plan in plans:
+        paid, total = plan["installment_no"], plan["installment_total"]
+        for k in range(1, total - paid + 1):
+            month = shift_month(plan["date"][:7], k)
+            if plan["amount"] > 0:
+                schedule[month]["committed"] += plan["amount"]
+            else:
+                schedule[month]["pending_credits"] += plan["amount"]
+    return {m: {k: round(v, 2) for k, v in row.items()} for m, row in sorted(schedule.items())}
 
 
 def build_report(transactions, budget=None, fallback="Diger"):
@@ -804,11 +851,11 @@ def build_report(transactions, budget=None, fallback="Diger"):
         entry["category"] = txn["category"]
 
     months = sorted(by_month)
-    outstanding = 0.0
-    for txn in spend:
-        total, paid = txn.get("installment_total"), txn.get("installment_no")
-        if total and paid and total > paid:
-            outstanding += txn["amount"] * (total - paid)
+    plans = instalment_plans(transactions)
+    schedule = instalment_schedule(plans)
+    outstanding = sum(row["committed"] for row in schedule.values())
+    pending_credits = sum(row["pending_credits"] for row in schedule.values())
+    open_plans = [p for p in plans if p["amount"] > 0 and p["installment_total"] > p["installment_no"]]
 
     variance, scope = [], None
     if budget:
@@ -853,6 +900,15 @@ def build_report(transactions, budget=None, fallback="Diger"):
         "total_spend": round(sum(by_category.values()), 2),
         "total_credits": round(sum(t["amount"] for t in credits), 2),
         "installment_outstanding": round(outstanding, 2),
+        "installment_credits_pending": round(pending_credits, 2),
+        "installment_schedule": schedule,
+        "installment_open_plans": len(open_plans),
+        "installment_largest": sorted(
+            ({"merchant": p["merchant"], "description": p["description"], "amount": p["amount"],
+              "paid": p["installment_no"], "total": p["installment_total"],
+              "remaining": round(p["amount"] * (p["installment_total"] - p["installment_no"]), 2)}
+             for p in open_plans),
+            key=lambda r: -r["remaining"])[:10],
         "by_category": {k: round(v, 2) for k, v in sorted(by_category.items(), key=lambda kv: -kv[1])},
         "by_month": {k: round(v, 2) for k, v in sorted(by_month.items())},
         "by_category_month": {c: {m: round(a, 2) for m, a in sorted(ms.items())}
@@ -924,7 +980,10 @@ def render_console(report):
         f" .. {report['months'][-1] if report['months'] else '-'}",
         f"  total spend         {money(report['total_spend'])}",
         f"  credits / refunds   {money(report['total_credits'])}",
-        f"  instalments due     {money(report['installment_outstanding'])}  (future periods)",
+        f"  instalments due     {money(report['installment_outstanding'])}  across "
+        f"{report['installment_open_plans']} open plans"
+        + (f"  (and {money(report['installment_credits_pending'])} still coming back)"
+           if report["installment_credits_pending"] else ""),
         "",
         "  SPEND BY CATEGORY",
     ]
@@ -954,6 +1013,26 @@ def render_console(report):
              for v in report["variance"]],
             ["line", "budget", "actual", "diff", "used", "status"],
             ["<", ">", ">", ">", ">", "<"]))
+
+    schedule = report.get("installment_schedule") or {}
+    if schedule:
+        line_budget = (report.get("monthly_line") or {}).get("budget_by_month") or {}
+        lines.append("  ALREADY COMMITTED IN INSTALMENTS, BY COMING MONTH")
+        rows = []
+        for month, row in schedule.items():
+            budget_month = line_budget.get(month)
+            share = (f"{row['committed'] / budget_month * 100:.0f}%" if budget_month else "-")
+            rows.append([month, money(row["committed"]),
+                         money(row["pending_credits"]) if row["pending_credits"] else "",
+                         money(budget_month) if budget_month else "-", share])
+        lines.append(table(rows, ["month", "committed", "credits due", "budget", "of budget"],
+                           ["<", ">", ">", ">", ">"]))
+        if report.get("installment_largest"):
+            lines.append("  LARGEST OPEN PLANS")
+            lines.append(table(
+                [[r["merchant"], f"{r['paid']}/{r['total']}", money(r["amount"]), money(r["remaining"])]
+                 for r in report["installment_largest"]],
+                ["merchant", "paid", "per month", "remaining"], ["<", ">", ">", ">"]))
 
     line_check = report.get("monthly_line")
     if line_check:
@@ -1034,6 +1113,36 @@ def render_html(report, path: Path):
     else:
         scope_note = ""
 
+    schedule = report.get("installment_schedule") or {}
+    schedule_html = ""
+    if schedule:
+        line_budget = (report.get("monthly_line") or {}).get("budget_by_month") or {}
+        body = []
+        for month, row in schedule.items():
+            bm = line_budget.get(month)
+            share = (row["committed"] / bm * 100) if bm else None
+            body.append(
+                "<tr><td>%s</td><td class='n'>%s</td><td class='n'>%s</td><td class='n'>%s</td>"
+                "<td class='meter'>%s<em>%s</em></td></tr>" % (
+                    esc(month), money(row["committed"]),
+                    money(row["pending_credits"]) if row["pending_credits"] else "",
+                    money(bm) if bm else "&mdash;",
+                    "" if share is None else '<span style="width:%d%%"></span>' % min(share, 100),
+                    "&mdash;" if share is None else "%.0f%%" % share))
+        largest = "".join(
+            "<tr><td>%s</td><td class='n'>%d/%d</td><td class='n'>%s</td><td class='n'>%s</td></tr>" % (
+                esc(r["merchant"]), r["paid"], r["total"], money(r["amount"]), money(r["remaining"]))
+            for r in report.get("installment_largest") or [])
+        schedule_html = (
+            "<h2>Gelecek aylara simdiden yazilmis taksitler</h2>"
+            "<p class='note'>Acik planlarin kalan taksitleri, ay ay. Butce satiri varsa o ayin ne kadari "
+            "daha harcama yapilmadan dolmus gosterilir.</p>"
+            "<div class='wrap'><table><thead><tr><th>Ay</th><th>Taahhut</th><th>Gelecek iade</th>"
+            "<th>Butce</th><th>Butcenin</th></tr></thead><tbody>" + "".join(body) + "</tbody></table></div>"
+            + ("<h2>En buyuk acik planlar</h2><div class='wrap'><table><thead><tr><th>Isyeri</th>"
+               "<th>Odenen</th><th>Aylik</th><th>Kalan</th></tr></thead><tbody>" + largest
+               + "</tbody></table></div>" if largest else ""))
+
     cat_rows = "".join(
         f"<tr><td>{esc(c)}</td><td class='n'>{money(a)}</td>"
         f"<td class='n'>{a / (report['total_spend'] or 1) * 100:.1f}%</td></tr>"
@@ -1090,11 +1199,12 @@ footer {{ color:var(--mut); font-size:12px; margin-top:36px }}
 <div class="kpis">
   <div class="kpi"><span>Toplam harcama</span><b>{money(report['total_spend'])}</b></div>
   <div class="kpi"><span>Iade / odeme</span><b>{money(report['total_credits'])}</b></div>
-  <div class="kpi"><span>Kalan taksit</span><b>{money(report['installment_outstanding'])}</b></div>
+  <div class="kpi"><span>Kalan taksit &middot; {report['installment_open_plans']} plan</span><b>{money(report['installment_outstanding'])}</b></div>
   <div class="kpi"><span>Kategori</span><b>{len(report['by_category'])}</b></div>
 </div>
 {"<h2>Butce vs gerceklesen" + scope_note + "</h2><div class='wrap'><table><thead><tr><th>Kalem</th><th>Butce</th><th>Gerceklesen</th><th>Fark</th><th>Kullanim</th><th>Durum</th></tr></thead><tbody>" + status_rows + "</tbody></table></div>" if status_rows else ""}
 {line_html}
+{schedule_html}
 <h2>Kategori bazinda</h2>
 <div class="wrap"><table><thead><tr><th>Kategori</th><th>Tutar</th><th>Pay</th></tr></thead><tbody>{cat_rows}</tbody></table></div>
 <h2>Ay bazinda</h2>

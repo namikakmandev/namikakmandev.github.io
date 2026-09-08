@@ -344,7 +344,7 @@ function parseStatementText(pages, sourceName) {
         id: when + '|' + description + '|' + amount.toFixed(2) + '|' + (header.card_number || ''),
         date: when, description, merchant: merchantOf(description),
         category: categorise(description), amount: Math.round(amount * 100) / 100, currency,
-        installment_no: paid, installment_total: total,
+        installment_no: paid, installment_total: total, installment_gross: gross,
         card: header.card_number || '', statement: sourceName, page: pi + 1
       });
     });
@@ -480,7 +480,7 @@ function parseColumns(pages, sourceName) {
       else if (!(words[0].x0 >= descX0 && words[0].x0 <= descX1)) continue;
       else { when = statementDate; if (!when) continue; }
 
-      let paid = null, total = null, originalAmount = null, originalCurrency = null;
+      let paid = null, total = null, gross = null, originalAmount = null, originalCurrency = null;
       const description = [];
       for (const w of body) {
         if (w.x0 > descX1) {
@@ -491,7 +491,11 @@ function parseColumns(pages, sourceName) {
           continue;
         }
         const plan = planRe && planRe.exec(w.text);
-        if (plan) { total = parseInt(plan.groups.total, 10); continue; }
+        if (plan) {
+          total = parseInt(plan.groups.total, 10);
+          if (plan.groups.gross) gross = parseAmount(plan.groups.gross);
+          continue;
+        }
         const idx = indexRe && indexRe.exec(w.text);
         if (idx) { paid = parseInt(idx.groups.no, 10); continue; }
         description.push(w.text);
@@ -505,7 +509,7 @@ function parseColumns(pages, sourceName) {
         date: when, description: desc, merchant: merchantOf(desc), category: categorise(desc),
         amount: round2(value), currency: RULES.default_currency || 'TRY',
         original_amount: originalAmount, original_currency: originalCurrency,
-        installment_no: paid, installment_total: total,
+        installment_no: paid, installment_total: total, installment_gross: gross,
         card: header.card_number || '', statement: sourceName, page: pi + 1
       });
     }
@@ -592,10 +596,13 @@ function buildReport(txns, budget) {
     const key = t.merchant || t.description;
     if (!byMerchant[key]) byMerchant[key] = { amount: 0, count: 0, category: t.category };
     byMerchant[key].amount += t.amount; byMerchant[key].count++;
-    if (t.installment_total && t.installment_no && t.installment_total > t.installment_no)
-      outstanding += t.amount * (t.installment_total - t.installment_no);
   }
   const months = Object.keys(byMonth).sort();
+  const plans = instalmentPlans(txns);
+  const schedule = instalmentSchedule(plans);
+  outstanding = Object.values(schedule).reduce((s, r) => s + r.committed, 0);
+  const pendingCredits = Object.values(schedule).reduce((s, r) => s + r.pending, 0);
+  const openPlans = plans.filter(p => p.amount > 0 && p.installment_total > p.installment_no);
   const totalBudget = (VAULT && VAULT.totalBudget) || null;
   let totalLine = null;
   if (totalBudget && Object.keys(totalBudget).length) {
@@ -637,7 +644,13 @@ function buildReport(txns, budget) {
     count: txns.length, months,
     totalSpend: round2(Object.values(byCat).reduce((s, v) => s + v, 0)),
     totalCredits: round2(txns.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0)),
-    outstanding: round2(outstanding), scope, variance, totalLine,
+    outstanding: round2(outstanding), pendingCredits: round2(pendingCredits),
+    schedule, openPlans: openPlans.length,
+    largestPlans: openPlans.map(p => ({ merchant: p.merchant, amount: p.amount,
+        paid: p.installment_no, total: p.installment_total,
+        remaining: round2(p.amount * (p.installment_total - p.installment_no)) }))
+      .sort((a, b) => b.remaining - a.remaining).slice(0, 10),
+    scope, variance, totalLine,
     byCategory: Object.entries(byCat).map(([k, v]) => [k, round2(v)]).sort((a, b) => b[1] - a[1]),
     byMonth: Object.entries(byMonth).map(([k, v]) => [k, round2(v)]).sort(),
     topMerchants: Object.entries(byMerchant)
@@ -648,6 +661,41 @@ function buildReport(txns, budget) {
       .sort((a, b) => b.amount - a.amount)
   };
 }
+
+function shiftMonth(ym, k) {
+  const index = +ym.slice(0, 4) * 12 + (+ym.slice(5, 7) - 1) + k;
+  return `${Math.floor(index / 12)}-${String(index % 12 + 1).padStart(2, '0')}`;
+}
+
+/* One entry per instalment plan, from its latest appearance. Every monthly
+   statement re-lists a running plan with the number advanced, so summing rows
+   counts the same commitment once per statement. */
+function instalmentPlans(txns) {
+  const plans = new Map();
+  for (const t of txns) {
+    const paid = t.installment_no, total = t.installment_total;
+    if (!paid || !total) continue;
+    const origin = shiftMonth(t.date.slice(0, 7), -(paid - 1));
+    const ident = t.installment_gross ? round2(t.installment_gross) : round2(Math.abs(t.amount));
+    const key = [fold(t.description), total, ident, t.amount < 0, origin].join('|');
+    if (!plans.has(key) || paid > plans.get(key).installment_no) plans.set(key, t);
+  }
+  return [...plans.values()];
+}
+
+function instalmentSchedule(plans) {
+  const schedule = {};
+  for (const p of plans) {
+    for (let k = 1; k <= p.installment_total - p.installment_no; k++) {
+      const m = shiftMonth(p.date.slice(0, 7), k);
+      schedule[m] = schedule[m] || { committed: 0, pending: 0 };
+      if (p.amount > 0) schedule[m].committed += p.amount; else schedule[m].pending += p.amount;
+    }
+  }
+  return Object.fromEntries(Object.entries(schedule).sort()
+    .map(([m, r]) => [m, { committed: round2(r.committed), pending: round2(r.pending) }]));
+}
+
 const round2 = v => Math.round(v * 100) / 100;
 function varianceRow(label, planned, actual) {
   planned = round2(planned); actual = round2(actual);
@@ -930,7 +978,7 @@ function renderSummary() {
   let html = '<div class="kpis">' +
     kpi('Toplam harcama', money(r.totalSpend)) +
     kpi('İade / ödeme', money(r.totalCredits)) +
-    kpi('Kalan taksit', money(r.outstanding)) +
+    kpi('Kalan taksit · ' + r.openPlans + ' plan', money(r.outstanding)) +
     kpi('Dönem', period) + '</div>';
 
   if (r.variance.length) {
@@ -970,6 +1018,31 @@ function renderSummary() {
       money(t.actualTotal - t.budgetTotal) + '</b></td><td class="meter"><em>' +
       (pct === null ? '—' : pct2(pct)) + '</em></td><td></td></tr>' +
       '</tbody></table></div>';
+  }
+
+  const schedMonths = Object.keys(r.schedule);
+  if (schedMonths.length) {
+    const tb = (VAULT && VAULT.totalBudget) || {};
+    html += '<h2>Gelecek aylara şimdiden yazılmış taksitler</h2>' +
+      '<p class="note">Açık planların kalan taksitleri, ay ay. Bütçe satırı varsa o ayın ne kadarının ' +
+      'daha harcama yapılmadan dolduğu gösterilir.</p>' +
+      '<div class="wrap"><table><thead><tr><th>Ay</th><th class="n">Taahhüt</th>' +
+      '<th class="n">Gelecek iade</th><th class="n">Bütçe</th><th>Bütçenin</th></tr></thead><tbody>' +
+      schedMonths.map(m => {
+        const row = r.schedule[m], bm = tb[m];
+        const share = bm ? row.committed / bm * 100 : null;
+        return '<tr><td>' + esc(m) + '</td><td class="n">' + money(row.committed) + '</td>' +
+          '<td class="n">' + (row.pending ? money(row.pending) : '') + '</td>' +
+          '<td class="n">' + (bm ? money(bm) : '—') + '</td><td class="meter">' +
+          (share === null ? '' : '<span style="width:' + Math.min(share, 100) + '%"></span>') +
+          '<em>' + (share === null ? '—' : pct2(share)) + '</em></td></tr>';
+      }).join('') + '</tbody></table></div>';
+    if (r.largestPlans.length)
+      html += '<h2>En büyük açık planlar</h2><div class="wrap"><table><thead><tr><th>İşyeri</th>' +
+        '<th class="n">Ödenen</th><th class="n">Aylık</th><th class="n">Kalan</th></tr></thead><tbody>' +
+        r.largestPlans.map(p => '<tr><td>' + esc(p.merchant) + '</td><td class="n">' + p.paid + '/' +
+          p.total + '</td><td class="n">' + money(p.amount) + '</td><td class="n">' +
+          money(p.remaining) + '</td></tr>').join('') + '</tbody></table></div>';
   }
 
   html += '<h2>Kategori bazında</h2><div class="wrap"><table><thead><tr><th>Kategori</th>' +

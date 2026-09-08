@@ -243,6 +243,39 @@ def test_report():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def test_instalment_plans():
+    print("\ninstalment plans are counted once, not once per statement")
+    base = {"description": "TRENDYOL.COM", "merchant": "TRENDYOL.COM", "category": "Online Alisveris",
+            "currency": "TRY", "card": "", "installment_gross": 6000.0}
+    # the same 6-instalment plan as it appears on three consecutive statements
+    rows = [dict(base, date="2026-01-20", amount=1000.0, installment_no=1, installment_total=6, statement="a"),
+            dict(base, date="2026-02-20", amount=1000.0, installment_no=2, installment_total=6, statement="b"),
+            dict(base, date="2026-03-20", amount=1000.0, installment_no=3, installment_total=6, statement="c"),
+            # a different purchase of the same thing, started a month later: its own plan
+            dict(base, date="2026-03-20", amount=1000.0, installment_no=2, installment_total=6, statement="c"),
+            # a reversal being credited back in instalments
+            dict(base, date="2026-03-20", amount=-500.0, installment_no=1, installment_total=2, statement="c",
+                 installment_gross=1000.0),
+            # an ordinary, non-instalment charge
+            dict(base, date="2026-03-21", amount=250.0, installment_no=None, installment_total=None, statement="c")]
+    plans = ec.instalment_plans(rows)
+    check("three appearances collapse to one plan, plus the other two", len(plans), 3)
+    latest = next(p for p in plans if p["amount"] > 0 and p["installment_no"] == 3)
+    check("latest appearance kept", latest["statement"], "c")
+    schedule = ec.instalment_schedule(plans)
+    check("first plan: 3 of 6 paid, 3 to come", sum(r["committed"] for r in schedule.values()),
+          1000.0 * 3 + 1000.0 * 4)
+    check("months run forward from the latest billing", sorted(schedule)[:2], ["2026-04", "2026-05"])
+    check("reversal counted as a pending credit",
+          schedule["2026-04"]["pending_credits"], -500.0)
+    report = ec.build_report(rows)
+    check("report uses the per-plan figure", report["installment_outstanding"], 7000.0)
+    check("open plan count", report["installment_open_plans"], 2)
+    check("naive row-sum would have been wrong",
+          sum(r["amount"] * (r["installment_total"] - r["installment_no"])
+              for r in rows if r["amount"] > 0 and r["installment_total"]) != 7000.0, True)
+
+
 def test_cli():
     print("\ncli end to end")
     tmp = Path(tempfile.mkdtemp())
@@ -268,7 +301,7 @@ def test_cli():
 
 if __name__ == "__main__":
     for test in (test_numbers, test_parse_text, test_parse_pdf, test_categories_and_dedupe,
-                 test_budget, test_report, test_cli):
+                 test_budget, test_report, test_instalment_plans, test_cli):
         test()
     print(f"\n{PASSED} passed, {FAILED} failed")
     sys.exit(1 if FAILED else 0)

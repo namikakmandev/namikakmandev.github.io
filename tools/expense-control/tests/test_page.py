@@ -125,6 +125,12 @@ def main():
             check("foreign original read", rows[("2026-01-21", "BARBOUR")][4:6], [438.0, "EUR"])
             check("undated fee row read", rows[("2026-01-09", "KKDF + BSMV")][0], 162.36)
             check("category assigned", rows[("2026-01-21", "BARBOUR")][1], "Giyim & Aksesuar")
+            report = page.evaluate("buildReport(VAULT.transactions, VAULT.budget)")
+            check("instalments due = open debit plans only", report["outstanding"], 1613.0 * 2)
+            check("reversal plan shown as pending credit", report["pendingCredits"], -1760.0 * 2)
+            check("schedule runs forward from the billing month",
+                  sorted(report["schedule"]), ["2026-01", "2026-02"])
+            check("largest open plan", report["largestPlans"][0]["merchant"], "MOKAUNITED ZARA GİYİM")
 
             cli_dir = TMP / "cli"
             subprocess.run([sys.executable, "expense_control.py", "parse", str(statement),
