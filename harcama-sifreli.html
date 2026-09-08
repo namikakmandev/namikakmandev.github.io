@@ -154,6 +154,15 @@ td select,td input{padding:4px 6px;font-size:13px;border-radius:6px}
       <input type="file" id="csvInput" accept=".csv,text/csv" hidden>
     </div>
 
+    <h2>Bütçe tablosu (Excel)</h2>
+    <p class="note">Aylık bütçenizi <code>.xlsx</code> dosyasından okur. Ay adlarının bulunduğu
+      satırı ve altındaki kalemleri kendisi bulur; uygulamadan önce ne bulduğunu gösterir.</p>
+    <div class="row">
+      <button class="ghost" id="pickXlsx">Excel dosyası seç</button>
+      <input type="file" id="xlsxInput" accept=".xlsx,.xlsm" hidden>
+    </div>
+    <div id="xlsxPreview" hidden class="card-box" style="margin-top:12px"></div>
+
     <h2>Tek işlem</h2>
     <div class="card-box"><div class="row">
       <input id="mDate" type="date" style="min-width:150px">
@@ -195,9 +204,9 @@ td select,td input{padding:4px 6px;font-size:13px;border-radius:6px}
   </section>
 </div>
 
-<script id="rules-statement" type="application/json">{"issuer":"Garanti BBVA","decimal_style":"tr","default_currency":"TRY","header":{"statement_date":["Hesap\\s*Kesim\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})","Ekstre\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})"],"due_date":["Son\\s*[ÖO]deme\\s*Tarihi[^0-9]{0,40}(\\d{2}[./-]\\d{2}[./-]\\d{4})"],"card_number":["(\\d{4}[\\s*]*\\*{4}[\\s*]*\\*{4}[\\s*]*\\d{4})","(\\d{4}\\s*\\*+\\s*\\d{4})","Kart\\s*(?:No|Numaras[ıi])[^0-9]{0,20}([0-9*\\s]{12,25})"],"card_holder":["Kart\\s*Sahibi[^\\S\\n]{0,10}([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ.]*(?:[^\\S\\n]+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ.]*){0,4})"],"period_total":["D[öo]nem\\s*Bor[çc]u[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})","Toplam\\s*Bor[çc][^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"],"minimum_payment":["Asgari\\s*[ÖO]deme(?:\\s*Tutar[ıi])?[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"],"credit_limit":["(?:Toplam\\s*)?(?:Kart\\s*)?Limit(?:i)?[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"],"available_limit":["Kullan[ıi]labilir\\s*Limit[^0-9-]{0,40}(-?[\\d.]*\\d,\\d{2})"]},"transaction":["^(?P<date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+(?:(?P<post_date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+)?(?P<description>\\S.*?)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?(?:\\s+(?P<bonus>[\\d.]*\\d,\\d{2}))?\\s*(?P<trailing>[-+])?$","^(?P<date>\\d{2}[./-]\\d{2})\\s+(?P<description>\\S.*?)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?\\s*(?P<trailing>[-+])?$"],"installment":"(?:TAKS[İI]T\\s*)?(?P<paid>\\d{1,2})\\s*[/-]\\s*(?P<total>\\d{1,2})\\s*$","skip_lines":["Devreden\\s*Bakiye","^Toplam","Ara\\s*Toplam","Genel\\s*Toplam","Sayfa\\s*\\d","Hesap\\s*Kesim","Son\\s*[ÖO]deme","Asgari\\s*[ÖO]deme","D[öo]nem\\s*Bor[çc]u","Kullan[ıi]labilir\\s*Limit","Faiz\\s*Oran","Nakit\\s*Avans\\s*Faiz","^\\s*$"],"credit_markers":["[İI]ADE","ALACAK","[ÖO]DEME","V[İI]RMAN","PUAN\\s*KULLAN","BONUS\\s*KULLAN","IPTAL","[İI]PTAL"],"transaction_amount_last":["^(?P<date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+(?:(?P<post_date>\\d{2}[./-]\\d{2}[./-]\\d{4})\\s+)?(?P<description>\\S.*)\\s+(?P<currency>TL|TRY|USD|EUR|GBP)?\\s*(?P<amount>-?[\\d.]*\\d,\\d{2})\\s*(?P<currency_after>TL|TRY|USD|EUR|GBP)?\\s*(?P<trailing>[-+])?$"]}</script>
-<script id="rules-categories" type="application/json">{"fallback":"Diger","rules":[{"category":"Kart Odemesi","patterns":["ODEME","ÖDEME","VIRMAN","V[İI]RMAN","TAHS[İI]LAT","ALACAK"]},{"category":"Faiz & Ucret","patterns":["FA[İI]Z","GEC[İI]KME","KDV","BSMV","A[İI]DAT","[ÜU]CRET","KOM[İI]SYON","EKSTRE [ÜU]CRET"]},{"category":"Market","patterns":["M[İI]GROS","CARREFOUR","A101","A-101","B[İI]M ","^B[İI]M","[ŞS]OK MARKET","MACROCENTER","METRO GROSMARKET","TARIM KRED[İI]","HAKMAR","ONUR MARKET","MARKET"]},{"category":"Yakit","patterns":["SHELL","OPET","PETROL OF[İI]S[İI]","^BP ","TOTAL ENERG","AYTEM[İI]Z","ALPET","LUKOIL","AKARYAKIT","PETROL"]},{"category":"Ulasim","patterns":["HGS","OGS","[İI]ETT","[İI]STANBULKART","METRO","UBER","B[İI]TAKS[İI]","MART[İI]","OTOPARK","PARK","THY","TURK[İI]SH A[İI]RL","PEGASUS","AJET","TCDD","OBILET","ENUYGUN"]},{"category":"Yeme-Icme","patterns":["YEMEKSEPET[İI]","GET[İI]R","TRENDYOL GO","M[İI]GROS YEMEK","STARBUCKS","KAHVE","COFFEE","CAFE","KAFE","RESTAURANT","RESTORAN","LOKANTA","P[İI]DE","BURGER","DOM[İI]NO","P[İI]ZZA","MCDONALD","SIMIT SARAY"]},{"category":"Online Alisveris","patterns":["TRENDYOL","HEPS[İI]BURADA","AMAZON","N11","[ÇC][İI][ÇC]EKSEPET[İI]","GITTIGID","MORHIPO","DEFACTO","LC WAIK","ZARA","H&M","BOYNER","KOTON","MAV[İI]","FLO","DECATHLON"]},{"category":"Abonelik","patterns":["NETFLIX","SPOTIFY","YOUTUBE","DISNEY","APPLE\\.COM","ITUNES","GOOGLE","AMAZON PRIME","BLU TV","EXXEN","GAIN","OPENAI","ANTHROPIC","CLAUDE","MICROSOFT","ADOBE","DROPBOX","ICLOUD","PLAYSTATION","STEAM"]},{"category":"Telekom","patterns":["TURKCELL","VODAFONE","T[ÜU]RK TELEKOM","SUPERONL[İI]NE","T[ÜU]RKNET","MILLENICOM","D-SMART","DIGITURK","TIVIBU"]},{"category":"Fatura & Enerji","patterns":["ELEKTR[İI]K","DOGAL ?GAZ","DO[ĞG]AL ?GAZ","[İI]GDA[ŞS]","BA[ŞS]KENTGAZ","SU [İI][ŞS]LER","[İI]SK[İI]","ASK[İI]","BEDA[ŞS]","AYEDA[ŞS]","ENERJ[İI]SA","CK BOGAZICI","FATURA"]},{"category":"Saglik","patterns":["ECZANE","HASTANE","T[İI]P MERKEZ","POL[İI]KL[İI]N[İI]K","D[İI][ŞS] ","LABORATUV","MEDICAL","OPT[İI]K","GOZLUK"]},{"category":"Sigorta","patterns":["S[İI]GORTA","ALLIANZ","AXA","ANADOLU S[İI]G","AKS[İI]GORTA","MAPFRE","BUPA","KASKO","DASK","BES","EMEKL[İI]L[İI]K"]},{"category":"Ev & Yapi","patterns":["IKEA","KO[ÇC]TA[ŞS]","BAUHAUS","TEKZEN","ENGL[İI]SH HOME","MADAME COCO","KARACA","BANYO","MOB[İI]LYA","YAPI MARKET"]},{"category":"Elektronik","patterns":["MEDIAMARKT","MED[İI]A MARKT","TEKNOSA","VATAN B[İI]LG","APPLE STORE","SAMSUNG","ARCEL[İI]K","VESTEL","BE[ŞS]TEL"]},{"category":"Egitim","patterns":["OKUL","[ÜU]N[İI]VERS[İI]TE","KURS","UDEMY","COURSERA","KIRTAS[İI]YE","K[İI]TAP","D&R","[İI]DEFIX"]},{"category":"Seyahat & Konak","patterns":["OTEL","HOTEL","BOOKING","AIRBNB","TRIVAGO","TATIL","ETSTUR","JOLLY","SETUR"]},{"category":"Kisisel Bakim","patterns":["GRAT[İI]S","WATSONS","ROSSMANN","SEPHORA","KUAF[ÖO]R","BERBER","SPOR SALON","MACF[İI]T","FITNESS","GYM"]},{"category":"Nakit Avans","patterns":["NAK[İI]T AVANS","ATM","PARA [ÇC]EKME"]},{"category":"Vergi & Resmi","patterns":["VERG[İI]","GIB","E-DEVLET","N[ÜU]FUS","TAPU","TRAF[İI]K CEZA","MTV","BELED[İI]YE"]}]}</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script id="rules-statement" type="application/json">{"issuer":"Garanti BBVA — Bonus kredi kartı ekstresi","layout":"columns","decimal_style":"tr","default_currency":"TRY","min_font_size":4.0,"row_tolerance":1.0,"column_tolerance":6,"description_span":[160,420],"credit_sign":"+","carried_forward":"DEV[İI]R ED[İI]LEN","installment_plan":"^(?P<unit>[\\d.]*\\d,\\d{2})x(?P<total>\\d{1,2})=(?P<gross>[\\d.]*\\d,\\d{2})$","installment_index":"^(?P<no>\\d{1,2})\\.\\s*Taksit$","header":{"statement_date":["Hesap\\s*Kesim\\s*Tarihi\\s*:?\\s*(\\d{1,2}\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\\s+\\d{4})"],"due_date":["Son\\s*[ÖO]deme\\s*Tarihi\\s*:?\\s*(\\d{1,2}\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\\s+\\d{4})"],"card_number":["Kart\\s*Numaras[ıi]\\s*(\\d{4}\\s*\\d{2}\\*{2}\\s*\\*{4}\\s*\\d{4})"],"card_holder":["Say[ıi]n\\s+([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ]*(?:\\s+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ]*){0,3})"],"period_total":["D[öo]nem\\s*Borcunuz\\s*([\\d.]*\\d,\\d{2})"],"minimum_payment":["Min\\.?\\s*[ÖO]deme\\s*Tutar[ıi]\\s*([\\d.]*\\d,\\d{2})"],"credit_limit":["Kart\\s*Limiti\\s*([\\d.]*\\d,\\d{2})"],"bonus_balance":["Harcanabilecek\\s*Toplam\\s*Bonus\\s*([\\d.]*\\d,\\d{2})"]}}</script>
+<script id="rules-categories" type="application/json">{"fallback":"Diger","rules":[{"category":"Kart Odemesi","patterns":["[ÖO]DEMEN[İI]Z\\s*[İI][ÇC][İI]N","TE[ŞS]EKK[ÜU]R EDER[İI]Z","KART [ÖO]DEMES[İI]","V[İI]RMAN"]},{"category":"Faiz & Ucret","patterns":["FA[İI]Z[İI]?\\b","GEC[İI]KME","KKDF","BSMV","A[İI]DAT","[ÜU]CRET","KOM[İI]SYON","D[ÖO]NEM FA[İI]Z"]},{"category":"Nakit Avans","patterns":["NAK[İI]T AVANS","PARA [ÇC]EKME"]},{"category":"Egitim","patterns":["[ÖO]ZEL E[ĞG][İI]T[İI]M","VES [İI]N E[ĞG][İI]T[İI]M","E[ĞG][İI]T[İI]M","OKUL","[ÜU]N[İI]VERS[İI]TE","KOLEJ","KRE[ŞS]","ANAOKUL","KURS","UDEMY","COURSERA","DERSHANE"]},{"category":"Giyim & Aksesuar","patterns":["ZARA","MASS[İI]MO ?DUTT","MANGO","UNIQLO","DIOR","BARBOUR","VAKKO","INTIMISSIMI","VEJA","JACADI","SAMSONITE","MOKA ?UN[İI]TED","BB PERAKENDE","BROOKS BROTHERS","[İI]PEKYOL","EREN PERAKENDE","LE PETIT SOUK","MOM AND CITY","CENDRILLON","URART","BEİJE","HOPPA BE[İI]JE","LC WAIK","BOYNER","KOTON","DEFACTO","MAV[İI]\\b","FLO\\b","S[İI]MONE A BORDEAUX","SEGM BHV","GL HAUSSMANN","PAR[İI]S OLS SARL","S[İI]STER\\b","LO4W"]},{"category":"Seyahat & Konak","patterns":["EKIES RESORT","MELIA","TOWN ?HOUSE","TOWN VALE","OD URLA","BOOKING","BKG ","AIRBNB","OTEL","HOTEL","RESORT","ETSTUR","JOLLY","SETUR","TATIL","G W MANAGEMENT"]},{"category":"Yakit","patterns":["SHELL","OPET","PETROL OF[İI]S[İI]","^BP ","TOTAL ENERG","AYTEM[İI]Z","ALPET","LUKOIL","AKARYAKIT","PETROL","BENZ[İI]N"]},{"category":"Ulasim","patterns":["TURK[İI]SH A[İI]RL","THY\\b","PEGASUS","AJET","TCDD","GARE ORLY","S[İI]TAX[İI]","TAKS[İI]","UBER","B[İI]TAKS[İI]","MART[İI]","HGS","OGS","[İI]ETT","[İI]STANBULKART","OTOPARK","ISPARK","YURT[İI][ÇC][İI] KARGO","KARGO","OBILET","ENUYGUN"]},{"category":"Yeme-Icme","patterns":["ALL DAY","KRONOTROP","GRILL TOWER","BRASSIRE","UNLU MAM[ÜU]L","LE GABRIELLE","K[ÖO]ZDE D[ÖO]NER","KIPOS BALIK","KASAP","C[İI][ĞG]ERC[İI]","LA BANQUETTE","LE BOURBON","SBX ","STARBUCKS","MIDPOINT","SOSA ","LARGANDO","[İI]SABELABBEY","LITTLE KOOK","AFOI LATSONA","TIGERMILK","FRITES","YEMEKSEPET[İI]","GET[İI]R","TRENDYOL GO","TRENDYOLGO","KAHVE","COFFEE","CAFE","KAFE","RESTAURANT","RESTORAN","LOKANTA","P[İI]DE","BURGER","P[İI]ZZA","MCDONALD","S[İI]M[İI]T SARAY","BAKERY","PATISSERIE"]},{"category":"Market","patterns":["TRENDYOL MARKET","ASYA PAZARI","K[ÖO]YDEN GELS[İI]N","BAEZ GIDA","METELEC GIDA","M[İI]GROS","CARREFOUR","A101","B[İI]M\\b","[ŞS]OK MARKET","MACROCENTER","GROSMARKET","TAR[İI]M KRED[İI]","MARKET","GIDA"]},{"category":"Kisisel Bakim","patterns":["EXCLUSIVE BEAUTY","BELLESA","G[ÜU]ZELL[İI]K","STUD[İI]O PARLA","MEDIK8","KUAF[ÖO]R","BERBER","GRAT[İI]S","WATSONS","ROSSMANN","SEPHORA","SPOR SALON","MACF[İI]T","FITNESS"]},{"category":"Saglik","patterns":["ACIBADEM","MED[İI]KAL","ECZANE","HASTANE","T[İI]P MERKEZ","POL[İI]KL[İI]N[İI]K","LABORATUV","D[İI][ŞS] HEK","OPT[İI]K","G[ÖO]ZL[ÜU]K","PS[İI]KOLOG"]},{"category":"Evcil Hayvan","patterns":["VETER[İI]NER","PET ?WAY","PET ?SHOP","PETLEBI","MAMA"]},{"category":"Kultur & Eglence","patterns":["STUBHUB","MUSEE","M[ÜU]ZE","B[İI]LET[İI]N[İI]AL","C[İI]NEVERSE","S[İI]NEMA","ETABLISSEMENT PUBLIC","IMMERSION","T[İI]YATRO","KONSER","TOYZZ","OYUNCAK"]},{"category":"Abonelik & Dijital","patterns":["HBOMAX","NETFLIX","SPOTIFY","YOUTUBE","DISNEY","APPLE\\.COM","ITUNES","ICLOUD","GOOGLE","AMAZON PRIME","BLU ?TV","EXXEN","OPENAI","ANTHROPIC","MICROSOFT","ADOBE","DROPBOX","PLAYSTATION","STEAM"]},{"category":"Online Alisveris","patterns":["TRENDYOL","HEPS[İI]BURADA","AMAZON","N11\\b","[ÇC][İI][ÇC]EKSEPET[İI]","SHOP[İI]ER","MORHIPO"]},{"category":"Ev & Yasam","patterns":["IKEA","KO[ÇC]TA[ŞS]","BAUHAUS","TEKZEN","ENGL[İI]SH HOME","MADAME COCO","KARACA","MOB[İI]LYA","YAPI MARKET","HAVUZ","TEM[İI]ZL[İI]K"]},{"category":"Elektronik","patterns":["MEDIAMARKT","MED[İI]A MARKT","TEKNOSA","VATAN B[İI]LG","APPLE STORE","SAMSUNG","ARCEL[İI]K","VESTEL"]},{"category":"Telekom","patterns":["TURKCELL","VODAFONE","T[ÜU]RK TELEKOM","SUPERONL[İI]NE","T[ÜU]RKNET","D-SMART","DIGITURK"]},{"category":"Fatura & Enerji","patterns":["ELEKTR[İI]K","DO[ĞG]AL ?GAZ","[İI]GDA[ŞS]","ENERJ[İI]SA","BEDA[ŞS]","AYEDA[ŞS]","[İI]SK[İI]","FATURA"]},{"category":"Sigorta","patterns":["S[İI]GORTA","ALLIANZ","AXA\\b","AKS[İI]GORTA","MAPFRE","KASKO","DASK","EMEKL[İI]L[İI]K"]},{"category":"Vergi & Resmi","patterns":["VERG[İI]","\\bGIB\\b","E-DEVLET","TAPU","TRAF[İI]K CEZA","MTV\\b","BELED[İI]YE","G[ÜU]MR[ÜU]KS[ÜU]Z"]}]}</script>
+<script src="assets/vendor/pdfjs/pdf.min.js"></script>
 <script>
 "use strict";
 /* ------------------------------------------------------------------ crypto */
@@ -240,10 +249,20 @@ const AMOUNT_LIKE = /\d[.,]\d{2}\b/;
 
 /* --------------------------------------------------------------- utilities */
 const squeeze = s => String(s).replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+const fold = s => String(s).replace(/[ÇĞİIÖŞÜçğıiöşü]/g,
+  c => ({ 'Ç': 'c', 'Ğ': 'g', 'İ': 'i', 'I': 'i', 'Ö': 'o', 'Ş': 's', 'Ü': 'u',
+          'ç': 'c', 'ğ': 'g', 'ı': 'i', 'i': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u' }[c]))
+  .toLowerCase().trim();
+const TR_MONTHS = { ocak: 1, subat: 2, mart: 3, nisan: 4, mayis: 5, haziran: 6, temmuz: 7,
+  agustos: 8, eylul: 9, ekim: 10, kasim: 11, aralik: 12,
+  oca: 1, sub: 2, mar: 3, nis: 4, may: 5, haz: 6, tem: 7, agu: 8, eyl: 9, eki: 10, kas: 11, ara: 12 };
+const EN_MONTHS = { january: 1, jan: 1, february: 2, feb: 2, march: 3, april: 4, apr: 4, may: 5,
+  june: 6, jun: 6, july: 7, jul: 7, august: 8, aug: 8, september: 9, sep: 9, sept: 9,
+  october: 10, oct: 10, november: 11, nov: 11, december: 12, dec: 12 };
 const $ = id => document.getElementById(id);
 const money = v => (v < 0 ? '-' : '') + Math.abs(v).toLocaleString('tr-TR',
   { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const pct = v => v.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+const pct2 = v => v.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function parseAmount(raw) {
@@ -325,7 +344,7 @@ function parseStatementText(pages, sourceName) {
         id: when + '|' + description + '|' + amount.toFixed(2) + '|' + (header.card_number || ''),
         date: when, description, merchant: merchantOf(description),
         category: categorise(description), amount: Math.round(amount * 100) / 100, currency,
-        installment_no: paid, installment_total: total,
+        installment_no: paid, installment_total: total, installment_gross: gross,
         card: header.card_number || '', statement: sourceName, page: pi + 1
       });
     });
@@ -333,26 +352,189 @@ function parseStatementText(pages, sourceName) {
   return { header, transactions: out, missed };
 }
 
-async function pdfToPages(buffer, password) {
-  if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js yüklenemedi — CSV ile deneyin');
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+/* Positioned words out of a PDF.
+
+   pdf.js hands back text runs, not words, and the statement template paints
+   invisible ~2pt "bosluk" spacer glyphs that would otherwise glue themselves
+   onto the amount. So: drop anything below the size floor, then merge runs
+   that sit closer together than a space. */
+async function pdfToRows(buffer, password, minSize) {
+  if (typeof pdfjsLib === 'undefined')
+    throw new Error('PDF okuyucu yüklenemedi — CSV ile içe aktarın');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/vendor/pdfjs/pdf.worker.min.js';
   const doc = await pdfjsLib.getDocument({ data: buffer, password: password || '' }).promise;
   const pages = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const content = await (await doc.getPage(i)).getTextContent();
-    const rows = new Map();
+    const tokens = [];
     for (const item of content.items) {
       if (!item.str || !item.str.trim()) continue;
-      const key = Math.round(item.transform[5] / 3);
-      if (!rows.has(key)) rows.set(key, []);
-      rows.get(key).push({ x: item.transform[4], s: item.str });
+      const size = Math.abs(item.transform[3]) || item.height || 10;
+      if (size <= (minSize || 0)) continue;
+      tokens.push(...splitRun(item.str, item.transform[4], item.width || 0, item.transform[5]));
     }
-    pages.push([...rows.entries()].sort((a, b) => b[0] - a[0])
-      .map(([, items]) => squeeze(items.sort((a, b) => a.x - b.x).map(i => i.s).join(' ')))
-      .join('\n'));
+    // group into visual rows (pdf y grows upwards, so sort descending)
+    const rows = [];
+    for (const t of tokens.sort((a, b) => b.y - a.y || a.x0 - b.x0)) {
+      const row = rows.length && Math.abs(rows[rows.length - 1].y - t.y) <= 1.5
+        ? rows[rows.length - 1] : (rows.push({ y: t.y, words: [] }), rows[rows.length - 1]);
+      row.words.push(t);
+    }
+    pages.push(rows.map(r => r.words.sort((a, b) => a.x0 - b.x0)));
   }
   return pages;
+}
+
+/* pdf.js hands back text runs, not words: a whole "09 Aralık 2025" arrives as
+   one item. Split on spaces and apportion the run's width across the pieces,
+   so the columns can be read off the right edges the way they are on paper. */
+function splitRun(text, x0, width, y) {
+  const perChar = text.length ? width / text.length : 0;
+  const out = [];
+  let offset = 0;
+  for (const piece of text.split(/(\s+)/)) {
+    if (piece.trim()) {
+      out.push({ text: piece, x0: x0 + offset * perChar,
+                 x1: x0 + (offset + piece.length) * perChar, y });
+    }
+    offset += piece.length;
+  }
+  return out;
+}
+
+const MONEY_TOKEN = /^(?<value>[\d.]*\d,\d{2})(?<sign>[-+])?$/;
+const TR_LONG_DATE = /^(\d{1,2})\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)\s+(\d{4})$/;
+
+function rowDate(words) {
+  if (words.length < 4) return null;
+  const m = TR_LONG_DATE.exec(words.slice(0, 3).map(w => w.text).join(' '));
+  if (!m) return null;
+  const month = TR_MONTHS[fold(m[2])];
+  if (!month) return null;
+  return `${m[3]}-${String(month).padStart(2, '0')}-${String(+m[1]).padStart(2, '0')}`;
+}
+
+/* Find the amount column from the data: the rightmost cluster of right-edges
+   across rows that begin with a date. The bonus column sits to its left. */
+function detectColumns(pages) {
+  const edges = new Map();
+  for (const rows of pages)
+    for (const words of rows) {
+      if (!rowDate(words)) continue;
+      for (const w of words)
+        if (MONEY_TOKEN.test(w.text)) {
+          const key = Math.round(w.x1);
+          edges.set(key, (edges.get(key) || 0) + 1);
+        }
+    }
+  if (!edges.size) return { amount: null, bonus: null };
+  const merged = new Map();
+  for (const key of [...edges.keys()].sort((a, b) => a - b)) {
+    const near = [...merged.keys()].find(k => Math.abs(k - key) <= 3);
+    const target = near === undefined ? key : near;
+    merged.set(target, (merged.get(target) || 0) + edges.get(key));
+  }
+  const ranked = [...merged.entries()].sort((a, b) => b[1] - a[1]);
+  const amount = Math.max(...ranked.slice(0, 3).map(([k]) => k));
+  const left = ranked.filter(([k, n]) => k < amount - 20 && n >= 3).map(([k]) => k);
+  return { amount, bonus: left.length ? Math.max(...left) : null };
+}
+
+function parseColumns(pages, sourceName) {
+  const flat = pages.map(rows => rows.map(w => w.map(t => t.text).join(' ')).join('\n')).join('\n');
+  const header = {};
+  for (const [field, patterns] of Object.entries(RULES.header || {}))
+    for (const p of patterns) {
+      const m = toRe(p, 'i').exec(flat);
+      if (m) { header[field] = squeeze(m[1]); break; }
+    }
+
+  const { amount: amountX, bonus: bonusX } = detectColumns(pages);
+  if (amountX === null) return { header, transactions: [], missed: [], reconciliation: null };
+
+  const tol = RULES.column_tolerance || 6;
+  const [descX0, descX1] = RULES.description_span || [160, 420];
+  const planRe = RULES.installment_plan ? toRe(RULES.installment_plan, '') : null;
+  const indexRe = RULES.installment_index ? toRe(RULES.installment_index, '') : null;
+  const carriedRe = toRe(RULES.carried_forward || '$^', 'i');
+  const creditSign = RULES.credit_sign || '+';
+  const statementDate = header.statement_date ? trDate(header.statement_date) : null;
+
+  const out = [], missed = [];
+  let carried = null;
+  pages.forEach((rows, pi) => {
+    for (const words of rows) {
+      const text = squeeze(words.map(w => w.text).join(' '));
+      const amountWord = words.find(w => MONEY_TOKEN.test(w.text) && Math.abs(w.x1 - amountX) <= tol);
+      if (!amountWord) continue;
+      const m = MONEY_TOKEN.exec(amountWord.text);
+      let value = parseAmount(m.groups.value);
+      if (value === null) { missed.push(text); continue; }
+      if (m.groups.sign === creditSign) value = -value;
+
+      if (carriedRe.test(text)) { carried = Math.abs(value); continue; }
+
+      let when = rowDate(words);
+      let body = words.filter(w => w !== amountWord);
+      if (when) body = body.slice(3);
+      else if (!(words[0].x0 >= descX0 && words[0].x0 <= descX1)) continue;
+      else { when = statementDate; if (!when) continue; }
+
+      let paid = null, total = null, gross = null, originalAmount = null, originalCurrency = null;
+      const description = [];
+      for (const w of body) {
+        if (w.x0 > descX1) {
+          const money = MONEY_TOKEN.exec(w.text);
+          if (money && bonusX !== null && Math.abs(w.x1 - bonusX) <= tol) continue;
+          if (money) originalAmount = parseAmount(money.groups.value);
+          else if (/^[A-Z]{3}$/.test(w.text)) originalCurrency = w.text;
+          continue;
+        }
+        const plan = planRe && planRe.exec(w.text);
+        if (plan) {
+          total = parseInt(plan.groups.total, 10);
+          if (plan.groups.gross) gross = parseAmount(plan.groups.gross);
+          continue;
+        }
+        const idx = indexRe && indexRe.exec(w.text);
+        if (idx) { paid = parseInt(idx.groups.no, 10); continue; }
+        description.push(w.text);
+      }
+      const desc = squeeze(description.join(' '));
+      if (!desc) continue;
+      if (total && paid && total < paid) paid = total;
+
+      out.push({
+        id: `${when}|${desc}|${value.toFixed(2)}|${header.card_number || ''}|${sourceName}|${out.length}`,
+        date: when, description: desc, merchant: merchantOf(desc), category: categorise(desc),
+        amount: round2(value), currency: RULES.default_currency || 'TRY',
+        original_amount: originalAmount, original_currency: originalCurrency,
+        installment_no: paid, installment_total: total, installment_gross: gross,
+        card: header.card_number || '', statement: sourceName, page: pi + 1
+      });
+    }
+  });
+  return { header, transactions: out, missed, reconciliation: reconcile(out, carried, header) };
+}
+
+function trDate(text) {
+  const m = TR_LONG_DATE.exec(squeeze(text));
+  if (!m) return null;
+  const month = TR_MONTHS[fold(m[2])];
+  return month ? `${m[3]}-${String(month).padStart(2, '0')}-${String(+m[1]).padStart(2, '0')}` : null;
+}
+
+/* The statement prints its own period total; if carried forward + charges
+   - credits lands on it, every line was read and signed correctly. */
+function reconcile(transactions, carried, header) {
+  const stated = parseAmount(header.period_total);
+  if (stated === null || carried === null) return null;
+  const debits = transactions.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const credits = -transactions.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+  const computed = carried + debits - credits;
+  return { carried: round2(carried), debits: round2(debits), credits: round2(credits),
+           computed: round2(computed), stated: round2(stated),
+           difference: round2(computed - stated), balanced: Math.abs(computed - stated) < 0.01 };
 }
 
 function parseCsv(text) {
@@ -414,17 +596,38 @@ function buildReport(txns, budget) {
     const key = t.merchant || t.description;
     if (!byMerchant[key]) byMerchant[key] = { amount: 0, count: 0, category: t.category };
     byMerchant[key].amount += t.amount; byMerchant[key].count++;
-    if (t.installment_total && t.installment_no && t.installment_total > t.installment_no)
-      outstanding += t.amount * (t.installment_total - t.installment_no);
   }
   const months = Object.keys(byMonth).sort();
+  const plans = instalmentPlans(txns);
+  const schedule = instalmentSchedule(plans);
+  outstanding = Object.values(schedule).reduce((s, r) => s + r.committed, 0);
+  const pendingCredits = Object.values(schedule).reduce((s, r) => s + r.pending, 0);
+  const openPlans = plans.filter(p => p.amount > 0 && p.installment_total > p.installment_no);
+  const totalBudget = (VAULT && VAULT.totalBudget) || null;
+  let totalLine = null;
+  if (totalBudget && Object.keys(totalBudget).length) {
+    const shared = months.filter(m => totalBudget[m] !== undefined);
+    if (shared.length) {
+      const rows = shared.map(m => varianceRow(m, Math.abs(totalBudget[m]), byMonth[m] || 0));
+      totalLine = {
+        label: (VAULT.totalBudgetLabel || 'bütçe'),
+        rows,
+        budgetTotal: round2(rows.reduce((s, r) => s + r.budget, 0)),
+        actualTotal: round2(rows.reduce((s, r) => s + r.actual, 0))
+      };
+    }
+  }
   const budgetMonths = [...new Set(Object.values(budget || {}).flatMap(v => Object.keys(v)))].sort();
   const overlap = months.filter(m => budgetMonths.includes(m));
   const scope = { mode: overlap.length ? 'months' : 'full', months: overlap, budgetMonths };
 
+  // With no category budgets at all there is nothing to compare against, and
+  // listing every category as UNBUDGETED is noise rather than information.
   const variance = [];
   const seen = new Set();
-  for (const [label, byM] of Object.entries(budget || {})) {
+  const hasCategoryBudget = Object.values(budget || {})
+    .some(v => Object.values(v).some(n => n));
+  for (const [label, byM] of (hasCategoryBudget ? Object.entries(budget) : [])) {
     const planned = overlap.length
       ? overlap.reduce((s, m) => s + (byM[m] || 0), 0)
       : Object.values(byM).reduce((s, v) => s + v, 0);
@@ -432,15 +635,22 @@ function buildReport(txns, budget) {
     seen.add(label);
     variance.push(varianceRow(label, planned, byCat[label] || 0));
   }
-  for (const [cat, actual] of Object.entries(byCat))
-    if (!seen.has(cat)) variance.push(varianceRow(cat, 0, actual));
+  if (hasCategoryBudget)
+    for (const [cat, actual] of Object.entries(byCat))
+      if (!seen.has(cat)) variance.push(varianceRow(cat, 0, actual));
   variance.sort((a, b) => b.actual - a.actual);
 
   return {
     count: txns.length, months,
     totalSpend: round2(Object.values(byCat).reduce((s, v) => s + v, 0)),
     totalCredits: round2(txns.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0)),
-    outstanding: round2(outstanding), scope, variance,
+    outstanding: round2(outstanding), pendingCredits: round2(pendingCredits),
+    schedule, openPlans: openPlans.length,
+    largestPlans: openPlans.map(p => ({ merchant: p.merchant, amount: p.amount,
+        paid: p.installment_no, total: p.installment_total,
+        remaining: round2(p.amount * (p.installment_total - p.installment_no)) }))
+      .sort((a, b) => b.remaining - a.remaining).slice(0, 10),
+    scope, variance, totalLine,
     byCategory: Object.entries(byCat).map(([k, v]) => [k, round2(v)]).sort((a, b) => b[1] - a[1]),
     byMonth: Object.entries(byMonth).map(([k, v]) => [k, round2(v)]).sort(),
     topMerchants: Object.entries(byMerchant)
@@ -451,6 +661,41 @@ function buildReport(txns, budget) {
       .sort((a, b) => b.amount - a.amount)
   };
 }
+
+function shiftMonth(ym, k) {
+  const index = +ym.slice(0, 4) * 12 + (+ym.slice(5, 7) - 1) + k;
+  return `${Math.floor(index / 12)}-${String(index % 12 + 1).padStart(2, '0')}`;
+}
+
+/* One entry per instalment plan, from its latest appearance. Every monthly
+   statement re-lists a running plan with the number advanced, so summing rows
+   counts the same commitment once per statement. */
+function instalmentPlans(txns) {
+  const plans = new Map();
+  for (const t of txns) {
+    const paid = t.installment_no, total = t.installment_total;
+    if (!paid || !total) continue;
+    const origin = shiftMonth(t.date.slice(0, 7), -(paid - 1));
+    const ident = t.installment_gross ? round2(t.installment_gross) : round2(Math.abs(t.amount));
+    const key = [fold(t.description), total, ident, t.amount < 0, origin].join('|');
+    if (!plans.has(key) || paid > plans.get(key).installment_no) plans.set(key, t);
+  }
+  return [...plans.values()];
+}
+
+function instalmentSchedule(plans) {
+  const schedule = {};
+  for (const p of plans) {
+    for (let k = 1; k <= p.installment_total - p.installment_no; k++) {
+      const m = shiftMonth(p.date.slice(0, 7), k);
+      schedule[m] = schedule[m] || { committed: 0, pending: 0 };
+      if (p.amount > 0) schedule[m].committed += p.amount; else schedule[m].pending += p.amount;
+    }
+  }
+  return Object.fromEntries(Object.entries(schedule).sort()
+    .map(([m, r]) => [m, { committed: round2(r.committed), pending: round2(r.pending) }]));
+}
+
 const round2 = v => Math.round(v * 100) / 100;
 function varianceRow(label, planned, actual) {
   planned = round2(planned); actual = round2(actual);
@@ -461,6 +706,206 @@ function varianceRow(label, planned, actual) {
   else if (ratio > 0.85) status = 'WATCH';
   return { label, budget: planned, actual, diff: round2(actual - planned),
     used: ratio === null ? null : Math.round(ratio * 1000) / 10, status };
+}
+
+
+/* ------------------------------------------------------------------- xlsx
+   An .xlsx is a ZIP of XML. The browser can inflate raw deflate streams and
+   parse XML on its own, so the workbook is read here with no library. */
+
+async function inflateRaw(bytes) {
+  if (typeof DecompressionStream === 'undefined')
+    throw new Error('Tarayıcı sıkıştırılmış dosya açmayı desteklemiyor');
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function unzip(buffer) {
+  const view = new DataView(buffer), bytes = new Uint8Array(buffer);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 66000); i--)
+    if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('Geçerli bir Excel dosyası değil');
+
+  const count = view.getUint16(eocd + 10, true);
+  let ptr = view.getUint32(eocd + 16, true);
+  const entries = {};
+  for (let i = 0; i < count; i++) {
+    if (view.getUint32(ptr, true) !== 0x02014b50) break;
+    const nameLen = view.getUint16(ptr + 28, true);
+    entries[new TextDecoder().decode(bytes.subarray(ptr + 46, ptr + 46 + nameLen))] = {
+      method: view.getUint16(ptr + 10, true),
+      size: view.getUint32(ptr + 20, true),
+      offset: view.getUint32(ptr + 42, true)
+    };
+    ptr += 46 + nameLen + view.getUint16(ptr + 30, true) + view.getUint16(ptr + 32, true);
+  }
+  return async name => {
+    const e = entries[name];
+    if (!e) return null;
+    const start = e.offset + 30 + view.getUint16(e.offset + 26, true)
+                            + view.getUint16(e.offset + 28, true);
+    const raw = bytes.subarray(start, start + e.size);
+    return new TextDecoder().decode(e.method === 0 ? raw : await inflateRaw(raw));
+  };
+}
+
+const BUILTIN_DATE_FORMATS = new Set(['14','15','16','17','18','19','20','21','22','45','46','47']);
+const colIndex = ref => {
+  let n = 0;
+  for (const ch of ref.toUpperCase()) {
+    if (ch < 'A' || ch > 'Z') break;
+    n = n * 26 + (ch.charCodeAt(0) - 64);
+  }
+  return n - 1;
+};
+const serialToDate = n => new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000);
+
+async function readWorkbook(buffer) {
+  const read = await unzip(buffer);
+  const xml = t => new DOMParser().parseFromString(t, 'application/xml');
+
+  const shared = [];
+  const ssText = await read('xl/sharedStrings.xml');
+  if (ssText)
+    for (const si of xml(ssText).getElementsByTagName('si'))
+      shared.push([...si.getElementsByTagName('t')].map(t => t.textContent).join(''));
+
+  const dateStyles = new Set();
+  const stylesText = await read('xl/styles.xml');
+  if (stylesText) {
+    const doc = xml(stylesText), custom = {};
+    for (const nf of doc.getElementsByTagName('numFmt'))
+      custom[nf.getAttribute('numFmtId')] = nf.getAttribute('formatCode') || '';
+    const xfs = doc.getElementsByTagName('cellXfs')[0];
+    if (xfs) [...xfs.getElementsByTagName('xf')].forEach((xf, i) => {
+      const id = xf.getAttribute('numFmtId') || '0';
+      const code = (custom[id] || '').replace(/\[[^\]]*\]/g, '').replace(/"[^"]*"/g, '');
+      if (BUILTIN_DATE_FORMATS.has(id) || /[dmyh]/i.test(code)) dateStyles.add(i);
+    });
+  }
+
+  const rels = {};
+  const relText = await read('xl/_rels/workbook.xml.rels');
+  if (relText)
+    for (const r of xml(relText).getElementsByTagName('Relationship'))
+      rels[r.getAttribute('Id')] = r.getAttribute('Target');
+
+  const sheets = [];
+  const wbText = await read('xl/workbook.xml');
+  if (wbText)
+    for (const sh of xml(wbText).getElementsByTagName('sheet')) {
+      const rid = sh.getAttribute('r:id') || sh.getAttributeNS(
+        'http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+      const target = (rels[rid] || 'worksheets/sheet1.xml').replace(/^\//, '').replace(/^xl\//, '');
+      sheets.push({ name: sh.getAttribute('name'), path: 'xl/' + target });
+    }
+
+  const grids = [];
+  for (const sheet of sheets) {
+    const text = await read(sheet.path);
+    const rows = [];
+    if (text) {
+      for (const row of xml(text).getElementsByTagName('row')) {
+        const cells = [];
+        for (const c of row.getElementsByTagName('c')) {
+          const at = colIndex(c.getAttribute('r') || '');
+          if (at < 0) continue;
+          const type = c.getAttribute('t');
+          let value = null;
+          if (type === 'inlineStr') {
+            value = [...c.getElementsByTagName('t')].map(t => t.textContent).join('');
+          } else {
+            const v = c.getElementsByTagName('v')[0];
+            if (v) {
+              if (type === 's') value = shared[parseInt(v.textContent, 10)] ?? null;
+              else if (type === 'str' || type === 'e') value = v.textContent;
+              else if (type === 'b') value = v.textContent === '1';
+              else {
+                const num = parseFloat(v.textContent);
+                const style = parseInt(c.getAttribute('s') || '-1', 10);
+                value = (!isNaN(num) && dateStyles.has(style)) ? serialToDate(num) : num;
+              }
+            }
+          }
+          while (cells.length < at) cells.push(null);
+          cells[at] = value;
+        }
+        const index = parseInt(row.getAttribute('r') || '0', 10) - 1;
+        if (index >= 0) { while (rows.length < index) rows.push([]); rows[index] = cells; }
+        else rows.push(cells);
+      }
+    }
+    grids.push({ name: sheet.name, rows });
+  }
+  return grids;
+}
+
+/* Anything month-shaped -> {key:'YYYY-MM', month, explicit}. `explicit` says
+   whether the cell carried its own year; a bare "eylül" does not. */
+function normaliseMonth(value, yearHint) {
+  const wrap = (year, month, explicit) => year
+    ? { key: `${year}-${String(month).padStart(2, '0')}`, month, explicit } : null;
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date) return wrap(value.getUTCFullYear(), value.getUTCMonth() + 1, true);
+  if (typeof value === 'number') return null;
+  const text = squeeze(String(value));
+  if (!text) return null;
+  let m = /^(\d{4})[-/.](\d{1,2})$/.exec(text);
+  if (m) return wrap(+m[1], +m[2], true);
+  m = /^(\d{1,2})[-/.](\d{4})$/.exec(text);
+  if (m) return wrap(+m[2], +m[1], true);
+  m = /^([A-Za-zÇĞİÖŞÜçğıöşü]{3,12})\s*[-/. ]?\s*(\d{2}|\d{4})?$/.exec(text);
+  if (!m) return null;
+  const month = TR_MONTHS[fold(m[1])] || EN_MONTHS[fold(m[1])];
+  if (!month) return null;
+  if (m[2]) return wrap(+m[2] < 100 ? 2000 + +m[2] : +m[2], month, true);
+  return wrap(yearHint, month, false);
+}
+
+/* Find the month header row and read every labelled row beneath it. */
+function findBudgetTable(grids, yearHint) {
+  let best = null;
+  for (const sheet of grids) {
+    for (let r = 0; r < Math.min(sheet.rows.length, 30); r++) {
+      const columns = {};
+      let year = yearHint, previous = null, found = 0;
+      (sheet.rows[r] || []).forEach((cell, c) => {
+        const norm = normaliseMonth(cell, year);
+        if (!norm) return;
+        let key = norm.key;
+        if (norm.explicit) {
+          year = +key.slice(0, 4);
+        } else {
+          // a bare month list wraps into the next year: ... aralık, ocak ...
+          if (previous !== null && norm.month <= previous && year) year += 1;
+          key = `${year}-${String(norm.month).padStart(2, '0')}`;
+        }
+        previous = norm.month;
+        columns[c] = key;
+        found++;
+      });
+      if (found < 2) continue;
+      const first = Math.min(...Object.keys(columns).map(Number));
+      const rows = [];
+      for (let i = r + 1; i < sheet.rows.length; i++) {
+        const row = sheet.rows[i] || [];
+        let label = null;
+        for (let c = 0; c < first; c++)
+          if (typeof row[c] === 'string' && row[c].trim()) { label = squeeze(row[c]); break; }
+        if (!label || /^(genel\s*)?(ara\s*)?(toplam|total|kalan)\b/i.test(label)) continue;
+        const values = {};
+        for (const [c, key] of Object.entries(columns)) {
+          const n = parseAmount(row[c]);
+          if (n) values[key] = round2((values[key] || 0) + n);
+        }
+        if (Object.keys(values).length) rows.push({ label, values });
+      }
+      if (rows.length && (!best || rows.length > best.rows.length))
+        best = { sheet: sheet.name, headerRow: r + 1, months: [...new Set(Object.values(columns))].sort(), rows };
+    }
+  }
+  return best;
 }
 
 /* ------------------------------------------------------------------- vault */
@@ -533,7 +978,7 @@ function renderSummary() {
   let html = '<div class="kpis">' +
     kpi('Toplam harcama', money(r.totalSpend)) +
     kpi('İade / ödeme', money(r.totalCredits)) +
-    kpi('Kalan taksit', money(r.outstanding)) +
+    kpi('Kalan taksit · ' + r.openPlans + ' plan', money(r.outstanding)) +
     kpi('Dönem', period) + '</div>';
 
   if (r.variance.length) {
@@ -547,7 +992,7 @@ function renderSummary() {
         '<td class="n">' + money(v.budget) + '</td><td class="n">' + money(v.actual) + '</td>' +
         '<td class="n">' + money(v.diff) + '</td><td class="meter">' +
         (v.used === null ? '' : '<span style="width:' + Math.min(v.used, 100) + '%"></span>') + '<em>' +
-        (v.used === null ? '—' : pct(v.used)) + '</em></td>' +
+        (v.used === null ? '—' : pct2(v.used)) + '</em></td>' +
         '<td><span class="badge ' + v.status.toLowerCase() + '">' + v.status + '</span></td></tr>').join('') +
       '</tbody></table></div>';
   } else {
@@ -555,10 +1000,55 @@ function renderSummary() {
       'aylık tutar yazın, karşılaştırma burada görünsün.</p>';
   }
 
+  if (r.totalLine) {
+    const t = r.totalLine;
+    const pct = t.budgetTotal ? (t.actualTotal / t.budgetTotal * 100) : null;
+    html += '<h2>Aylık toplam vs bütçe satırı <span class="badge">' + esc(t.label) + '</span></h2>' +
+      '<div class="wrap"><table><thead><tr><th>Ay</th><th class="n">Bütçe</th>' +
+      '<th class="n">Gerçekleşen</th><th class="n">Fark</th><th>Kullanım</th><th>Durum</th>' +
+      '</tr></thead><tbody>' +
+      t.rows.map(v => '<tr class="s-' + v.status.toLowerCase() + '"><td>' + esc(v.label) + '</td>' +
+        '<td class="n">' + money(v.budget) + '</td><td class="n">' + money(v.actual) + '</td>' +
+        '<td class="n">' + money(v.diff) + '</td><td class="meter">' +
+        (v.used === null ? '' : '<span style="width:' + Math.min(v.used, 100) + '%"></span>') +
+        '<em>' + (v.used === null ? '—' : pct2(v.used)) + '</em></td>' +
+        '<td><span class="badge ' + v.status.toLowerCase() + '">' + v.status + '</span></td></tr>').join('') +
+      '<tr><td><b>TOPLAM</b></td><td class="n"><b>' + money(t.budgetTotal) + '</b></td>' +
+      '<td class="n"><b>' + money(t.actualTotal) + '</b></td><td class="n"><b>' +
+      money(t.actualTotal - t.budgetTotal) + '</b></td><td class="meter"><em>' +
+      (pct === null ? '—' : pct2(pct)) + '</em></td><td></td></tr>' +
+      '</tbody></table></div>';
+  }
+
+  const schedMonths = Object.keys(r.schedule);
+  if (schedMonths.length) {
+    const tb = (VAULT && VAULT.totalBudget) || {};
+    html += '<h2>Gelecek aylara şimdiden yazılmış taksitler</h2>' +
+      '<p class="note">Açık planların kalan taksitleri, ay ay. Bütçe satırı varsa o ayın ne kadarının ' +
+      'daha harcama yapılmadan dolduğu gösterilir.</p>' +
+      '<div class="wrap"><table><thead><tr><th>Ay</th><th class="n">Taahhüt</th>' +
+      '<th class="n">Gelecek iade</th><th class="n">Bütçe</th><th>Bütçenin</th></tr></thead><tbody>' +
+      schedMonths.map(m => {
+        const row = r.schedule[m], bm = tb[m];
+        const share = bm ? row.committed / bm * 100 : null;
+        return '<tr><td>' + esc(m) + '</td><td class="n">' + money(row.committed) + '</td>' +
+          '<td class="n">' + (row.pending ? money(row.pending) : '') + '</td>' +
+          '<td class="n">' + (bm ? money(bm) : '—') + '</td><td class="meter">' +
+          (share === null ? '' : '<span style="width:' + Math.min(share, 100) + '%"></span>') +
+          '<em>' + (share === null ? '—' : pct2(share)) + '</em></td></tr>';
+      }).join('') + '</tbody></table></div>';
+    if (r.largestPlans.length)
+      html += '<h2>En büyük açık planlar</h2><div class="wrap"><table><thead><tr><th>İşyeri</th>' +
+        '<th class="n">Ödenen</th><th class="n">Aylık</th><th class="n">Kalan</th></tr></thead><tbody>' +
+        r.largestPlans.map(p => '<tr><td>' + esc(p.merchant) + '</td><td class="n">' + p.paid + '/' +
+          p.total + '</td><td class="n">' + money(p.amount) + '</td><td class="n">' +
+          money(p.remaining) + '</td></tr>').join('') + '</tbody></table></div>';
+  }
+
   html += '<h2>Kategori bazında</h2><div class="wrap"><table><thead><tr><th>Kategori</th>' +
     '<th class="n">Tutar</th><th class="n">Pay</th></tr></thead><tbody>' +
     r.byCategory.map(([c, a]) => '<tr><td>' + esc(c) + '</td><td class="n">' + money(a) +
-      '</td><td class="n">' + pct(a / (r.totalSpend || 1) * 100) + '</td></tr>').join('') +
+      '</td><td class="n">' + pct2(a / (r.totalSpend || 1) * 100) + '</td></tr>').join('') +
     '</tbody></table></div>';
 
   html += '<h2>Ay bazında</h2><div class="wrap"><table><thead><tr><th>Ay</th>' +
@@ -704,16 +1194,34 @@ function log(message, cls) {
 async function ingestFiles(files) {
   for (const file of files) {
     try {
+      if (/\.xlsx?$|\.xlsm$/i.test(file.name)) {
+        await previewWorkbook(file);
+        document.querySelector('.tabs button[data-tab=ekle]').click();
+        continue;
+      }
       if (/\.csv$/i.test(file.name)) {
         const result = addTransactions(csvToTransactions(await file.text(), file.name));
         log(file.name + ': ' + result.added + ' eklendi, ' + result.skipped + ' tekrar', 'good');
       } else {
-        const pages = await pdfToPages(await file.arrayBuffer(), $('pdfPw').value);
-        const parsed = parseStatementText(pages, file.name);
+        const buffer = await file.arrayBuffer();
+        let parsed;
+        if (RULES.layout === 'columns') {
+          parsed = parseColumns(await pdfToRows(buffer, $('pdfPw').value, RULES.min_font_size), file.name);
+        } else {
+          parsed = parseStatementText(await pdfToPages(buffer, $('pdfPw').value), file.name);
+        }
         const result = addTransactions(parsed.transactions);
         log(file.name + ': ' + result.added + ' eklendi, ' + result.skipped + ' tekrar' +
           (parsed.missed.length ? ', ' + parsed.missed.length + ' satır çözümlenemedi' : ''),
           parsed.transactions.length ? 'good' : 'bad');
+        const check = parsed.reconciliation;
+        if (check) {
+          log('  → ekstrenin kendi dönem borcu ile ' +
+              (check.balanced ? 'birebir uyuşuyor (' + money(check.stated) + ')'
+                              : 'UYUŞMUYOR: fark ' + money(check.difference) +
+                                ' — bazı satırlar yanlış okunmuş olabilir'),
+              check.balanced ? 'good' : 'bad');
+        }
         if (!parsed.transactions.length)
           log('  → hiçbir satır eşleşmedi. Örnek: ' + (parsed.missed[0] || '(metin çıkmadı — taranmış PDF olabilir)'), 'bad');
       }
@@ -723,6 +1231,103 @@ async function ingestFiles(files) {
   }
   await save(); renderAll();
 }
+
+/* ------------------------------------------------------- spreadsheet import */
+let PENDING_BUDGET = null;
+
+async function previewWorkbook(file) {
+  const box = $('xlsxPreview');
+  box.hidden = false;
+  box.innerHTML = '<p class="note">Okunuyor…</p>';
+  try {
+    const grids = await readWorkbook(await file.arrayBuffer());
+    const monthsSoFar = [...new Set(VAULT.transactions.map(t => t.date.slice(0, 7)))].sort();
+    const guessYear = monthsSoFar.length ? +monthsSoFar[0].slice(0, 4) : new Date().getFullYear();
+    const table = findBudgetTable(grids, guessYear);
+    if (!table) {
+      box.innerHTML = '<h3>Bütçe tablosu bulunamadı</h3><p>Ay adlarını içeren bir başlık satırı ' +
+        've altında kalem satırları arandı. Sayfalar: ' +
+        esc(grids.map(g => g.name).join(', ')) + '</p>';
+      return;
+    }
+    PENDING_BUDGET = { table, file: file.name, year: guessYear };
+    renderBudgetPreview();
+  } catch (err) {
+    box.innerHTML = '<h3>Okunamadı</h3><p>' + esc(err.message) + '</p>';
+  }
+}
+
+function renderBudgetPreview() {
+  const { table, file, year } = PENDING_BUDGET;
+  const rows = table.rows.map((r, i) =>
+    '<option value="' + i + '">' + esc(r.label) + '</option>').join('');
+  $('xlsxPreview').innerHTML =
+    '<h3>' + esc(file) + '</h3>' +
+    '<p>Sayfa <b>' + esc(table.sheet) + '</b>, başlık satırı ' + table.headerRow + ' &middot; ' +
+    table.rows.length + ' kalem &middot; ' + table.months.length + ' ay (' +
+    esc(table.months[0]) + ' – ' + esc(table.months[table.months.length - 1]) + ')</p>' +
+    '<p class="note">Ay adlarında yıl yazmıyorsa ilk ayın yılı varsayılır. Yanlışsa ' +
+    'değiştirin: <input type="number" id="bYear" value="' + year + '" style="width:90px"></p>' +
+    '<div class="row" style="margin:10px 0">' +
+      '<label><input type="radio" name="bMode" value="line" checked> Tek satır — kart harcaması ' +
+      'bütçesi</label> <select id="bRow">' + rows + '</select>' +
+    '</div>' +
+    '<div class="row" style="margin-bottom:12px">' +
+      '<label><input type="radio" name="bMode" value="categories"> Her satır bir kategori ' +
+      'bütçesi</label>' +
+    '</div>' +
+    '<div class="wrap" style="max-height:200px;overflow:auto"><table><thead><tr><th>Kalem</th>' +
+    table.months.slice(0, 8).map(m => '<th class="n">' + esc(m) + '</th>').join('') +
+    '</tr></thead><tbody>' +
+    table.rows.slice(0, 8).map(r => '<tr><td>' + esc(r.label) + '</td>' +
+      table.months.slice(0, 8).map(m => '<td class="n">' +
+        (r.values[m] === undefined ? '' : money(Math.abs(r.values[m]))) + '</td>').join('') +
+      '</tr>').join('') +
+    '</tbody></table></div>' +
+    '<div class="row" style="margin-top:12px"><button id="bApply">Uygula</button>' +
+    '<button class="ghost" id="bCancel">İptal</button></div>';
+
+  $('bYear').addEventListener('change', async e => {
+    PENDING_BUDGET.year = parseInt(e.target.value, 10) || year;
+    const grids = PENDING_BUDGET.grids;
+    if (grids) { PENDING_BUDGET.table = findBudgetTable(grids, PENDING_BUDGET.year); renderBudgetPreview(); }
+  });
+  $('bCancel').addEventListener('click', () => {
+    PENDING_BUDGET = null; $('xlsxPreview').hidden = true;
+  });
+  $('bApply').addEventListener('click', applyBudget);
+}
+
+async function applyBudget() {
+  const { table } = PENDING_BUDGET;
+  const mode = document.querySelector('input[name=bMode]:checked').value;
+  if (mode === 'line') {
+    const row = table.rows[+$('bRow').value];
+    VAULT.totalBudget = {};
+    for (const [month, value] of Object.entries(row.values))
+      VAULT.totalBudget[month] = Math.abs(value);
+    VAULT.totalBudgetLabel = row.label;
+    log('Bütçe satırı «' + row.label + '» uygulandı (' +
+        Object.keys(row.values).length + ' ay).', 'good');
+  } else {
+    for (const row of table.rows) {
+      VAULT.budget[row.label] = VAULT.budget[row.label] || {};
+      for (const [month, value] of Object.entries(row.values))
+        VAULT.budget[row.label][month] = Math.abs(value);
+    }
+    log(table.rows.length + ' kategori bütçesi uygulandı.', 'good');
+  }
+  PENDING_BUDGET = null;
+  $('xlsxPreview').hidden = true;
+  await save();
+  renderAll();
+}
+
+$('pickXlsx').addEventListener('click', () => $('xlsxInput').click());
+$('xlsxInput').addEventListener('change', e => {
+  if (e.target.files[0]) previewWorkbook(e.target.files[0]);
+});
+
 $('pickPdf').addEventListener('click', () => $('pdfInput').click());
 $('pdfInput').addEventListener('change', e => ingestFiles([...e.target.files]));
 $('pickCsv').addEventListener('click', () => $('csvInput').click());
@@ -780,9 +1385,8 @@ $('wipe').addEventListener('click', () => {
 });
 
 if (typeof pdfjsLib === 'undefined') {
-  $('pdfNote').innerHTML = '<b>PDF okuyucu yüklenemedi</b> (internet yok ya da CDN engelli). ' +
-    'Ekstreleri komut satırı aracıyla çözümleyip çıkan <code>transactions.csv</code> dosyasını ' +
-    'aşağıdan içe aktarabilirsiniz.';
+  $('pdfNote').innerHTML = '<b>PDF okuyucu yüklenemedi.</b> Ekstreleri komut satırı aracıyla ' +
+    'çözümleyip çıkan <code>transactions.csv</code> dosyasını aşağıdan içe aktarabilirsiniz.';
   $('drop').style.opacity = .55;
 } else {
   $('pdfNote').textContent = 'Dosyalar tarayıcıdan çıkmaz; okuma bu sayfada yapılır.';

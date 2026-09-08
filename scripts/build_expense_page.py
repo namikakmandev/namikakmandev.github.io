@@ -19,7 +19,7 @@ PAGE = ROOT / "harcama-sifreli.html"
 RULES = ROOT / "tools" / "expense-control" / "rules"
 
 BLOCKS = {
-    "rules-statement": RULES / "garanti-bbva.json",
+    "rules-statement": RULES / "garanti-bonus.json",
     "rules-categories": RULES / "categories.json",
 }
 

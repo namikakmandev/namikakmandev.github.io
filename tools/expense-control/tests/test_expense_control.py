@@ -121,7 +121,7 @@ def test_categories_and_dedupe():
     for description, want in [
         ("MIGROS TICARET AS ISTANBUL TR", "Market"),
         ("SHELL PETROL KADIKOY TR", "Yakit"),
-        ("NETFLIX COM AMSTERDAM NL", "Abonelik"),
+        ("NETFLIX COM AMSTERDAM NL", "Abonelik & Dijital"),
         ("TURKCELL ILETISIM TR", "Telekom"),
         ("ECZANE SAGLIK ISTANBUL TR", "Saglik"),
         ("UBER BV AMSTERDAM NL", "Ulasim"),
@@ -133,9 +133,20 @@ def test_categories_and_dedupe():
           "MIGROS TICARET AS ISTANBUL")
 
     txns = ec.parse_statement(FIXTURE, RULES)["transactions"]
-    doubled, dropped = ec.dedupe(txns + txns)
-    check("duplicates removed", len(doubled), len(txns))
+
+    # the same charge arriving on a second, overlapping statement is a duplicate
+    from copy import deepcopy
+    other = deepcopy(txns)
+    for txn in other:
+        txn["statement"] = "overlapping-statement.pdf"
+    merged, dropped = ec.dedupe(txns + other)
+    check("cross-statement duplicates removed", len(merged), len(txns))
     check("duplicate count reported", dropped, len(txns))
+
+    # but the same charge twice on ONE statement is two real charges
+    kept, dropped_same = ec.dedupe(txns + deepcopy(txns))
+    check("same-statement repeats kept", len(kept), len(txns) * 2)
+    check("no false duplicates", dropped_same, 0)
 
 
 def _make_budget(path, monthly=True):
@@ -149,7 +160,7 @@ def _make_budget(path, monthly=True):
         sheet.append(["Kategori", "Tem", "Agu", "Eyl"])
         for row in [["Market", 2000, 2000, 2000],
                     ["Yakit", 1000, 1000, 1000],
-                    ["Abonelik", 250, 250, 250],
+                    ["Abonelik & Dijital", 250, 250, 250],
                     ["Telekom", 800, 800, 800],
                     ["Saglik", 1000, 1000, 1000],
                     ["Toplam", 5050, 5050, 5050]]:
@@ -217,7 +228,7 @@ def test_report():
         check("yakit over budget", variance["Yakit"]["status"], "OVER")
         check("yakit overspend", variance["Yakit"]["diff"], 3025.0)   # 4025.00 spent vs 1000.00
         check("telekom near budget", variance["Telekom"]["status"], "WATCH")  # 749/800 = 94%
-        check("abonelik near budget", variance["Abonelik"]["status"], "WATCH")  # 229.99/250 = 92%
+        check("abonelik near budget", variance["Abonelik & Dijital"]["status"], "WATCH")  # 229.99/250 = 92%
         check("saglik within budget", variance["Saglik"]["status"], "OK")  # 512.60/1000 = 51%
         check("unbudgeted surfaces", variance["Elektronik"]["status"], "UNBUDGETED")
         check("uncategorised surfaces",
@@ -230,6 +241,39 @@ def test_report():
         check("console renders", "SPEND BY CATEGORY" in ec.render_console(report), True)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_instalment_plans():
+    print("\ninstalment plans are counted once, not once per statement")
+    base = {"description": "TRENDYOL.COM", "merchant": "TRENDYOL.COM", "category": "Online Alisveris",
+            "currency": "TRY", "card": "", "installment_gross": 6000.0}
+    # the same 6-instalment plan as it appears on three consecutive statements
+    rows = [dict(base, date="2026-01-20", amount=1000.0, installment_no=1, installment_total=6, statement="a"),
+            dict(base, date="2026-02-20", amount=1000.0, installment_no=2, installment_total=6, statement="b"),
+            dict(base, date="2026-03-20", amount=1000.0, installment_no=3, installment_total=6, statement="c"),
+            # a different purchase of the same thing, started a month later: its own plan
+            dict(base, date="2026-03-20", amount=1000.0, installment_no=2, installment_total=6, statement="c"),
+            # a reversal being credited back in instalments
+            dict(base, date="2026-03-20", amount=-500.0, installment_no=1, installment_total=2, statement="c",
+                 installment_gross=1000.0),
+            # an ordinary, non-instalment charge
+            dict(base, date="2026-03-21", amount=250.0, installment_no=None, installment_total=None, statement="c")]
+    plans = ec.instalment_plans(rows)
+    check("three appearances collapse to one plan, plus the other two", len(plans), 3)
+    latest = next(p for p in plans if p["amount"] > 0 and p["installment_no"] == 3)
+    check("latest appearance kept", latest["statement"], "c")
+    schedule = ec.instalment_schedule(plans)
+    check("first plan: 3 of 6 paid, 3 to come", sum(r["committed"] for r in schedule.values()),
+          1000.0 * 3 + 1000.0 * 4)
+    check("months run forward from the latest billing", sorted(schedule)[:2], ["2026-04", "2026-05"])
+    check("reversal counted as a pending credit",
+          schedule["2026-04"]["pending_credits"], -500.0)
+    report = ec.build_report(rows)
+    check("report uses the per-plan figure", report["installment_outstanding"], 7000.0)
+    check("open plan count", report["installment_open_plans"], 2)
+    check("naive row-sum would have been wrong",
+          sum(r["amount"] * (r["installment_total"] - r["installment_no"])
+              for r in rows if r["amount"] > 0 and r["installment_total"]) != 7000.0, True)
 
 
 def test_cli():
@@ -257,7 +301,7 @@ def test_cli():
 
 if __name__ == "__main__":
     for test in (test_numbers, test_parse_text, test_parse_pdf, test_categories_and_dedupe,
-                 test_budget, test_report, test_cli):
+                 test_budget, test_report, test_instalment_plans, test_cli):
         test()
     print(f"\n{PASSED} passed, {FAILED} failed")
     sys.exit(1 if FAILED else 0)
