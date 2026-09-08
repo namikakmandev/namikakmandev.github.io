@@ -62,6 +62,9 @@ const META_KEYS = new Set([
 const CONTAINER_KEYS = new Set(["series", "shares", "regions", "countries", "groups"]);
 
 interface CacheEntry { at: number; body: Json }
+/** Bounded, oldest-first: a Worker isolate has 128 MB and some dataset files are large,
+ *  so an unbounded cache is an OOM waiting for enough traffic. */
+const CACHE_MAX_ENTRIES = 40;
 const cache = new Map<string, CacheEntry>();
 
 export class DataError extends Error {}
@@ -74,11 +77,23 @@ export async function fetchJson(origin: string, path: string): Promise<Json> {
   const url = `${origin.replace(/\/$/, "")}/${path}`;
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.body;
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
+  } catch (e) {
+    const name = e instanceof Error ? e.name : "";
+    if (name === "TimeoutError" || name === "AbortError") throw new DataError(`${path} did not load within 20 seconds.`);
+    throw e;
+  }
   if (res.status === 404) throw new DataError(`No such dataset: ${path}`);
   if (!res.ok) throw new DataError(`Upstream ${res.status} for ${path}`);
   const body = (await res.json()) as Json;
+  cache.delete(url);
   cache.set(url, { at: Date.now(), body });
+  for (const k of cache.keys()) {
+    if (cache.size <= CACHE_MAX_ENTRIES) break;
+    cache.delete(k);
+  }
   return body;
 }
 

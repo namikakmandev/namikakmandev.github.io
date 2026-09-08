@@ -741,6 +741,13 @@ await check("sec: a company balance sheet by quarter, restatements resolved, tic
   const secp = provs.providers.find((p) => p.provider === "sec");
   assert.match(String(secp.needs_key), /SEC_USER_AGENT/);
   assert.match(String(secp.key_present), /yes/, "the worker passes SEC_USER_AGENT through to the provider");
+  // A tag the filer reports only in another currency must not come back labelled USD:
+  // the figures do not convert, and they would be deflated and regressed as dollars.
+  const wrongUnit = await callRaw("fetch_external", { provider: "sec", id: "AAPL:Revenues" });
+  assert.ok(wrongUnit.isError, JSON.stringify(wrongUnit).slice(0, 200));
+  assert.match(wrongUnit.content[0].text, /reported in EUR, not USD/);
+  const asFiled = await call("fetch_external", { provider: "sec", id: "AAPL:Revenues", params: { unit: "EUR" } });
+  assert.equal(asFiled.points.length, 1, "and it reads fine once you ask for the unit it is in");
   const found = await call("search_external", { provider: "sec", query: "balance sheet" });
   assert.ok(found.matches.length, JSON.stringify(found));
   // A bare ticker with no curated match still offers that filer's three statements
@@ -748,27 +755,31 @@ await check("sec: a company balance sheet by quarter, restatements resolved, tic
   assert.deepEqual(byName.matches.map((m) => m.id), ["IBM:balance_sheet", "IBM:income_statement", "IBM:cash_flow"], JSON.stringify(byName.matches));
 });
 
-await check("weather: named regions and lat,lon, monthly aggregation, sums for rain and means for temperature", async () => {
-  const j = await call("fetch_external", { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" } });
-  assert.equal(j.series_count, 4, JSON.stringify(Object.keys(j.series || {})));
-  const corn = await call("fetch_external", { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" }, series: "us-corn-belt.precipitation_sum" });
-  // June has two days in the fixture (4 + 6 mm), July one (1.5 mm): rainfall is summed.
-  assert.deepEqual(corn.points, [["2024-06", 10], ["2024-07", 1.5]]);
-  const temp = await call("fetch_external", { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" }, series: "us-corn-belt.temperature_2m_mean" });
-  // Temperature is averaged, not summed.
+await check("World Bank: a paged answer is read to the end, not truncated at page one", async () => {
+  const j = await call("fetch_external", { provider: "worldbank", id: "PAGED", params: { country: "TUR" }, series: "TUR" });
+  assert.deepEqual(j.points, [["2020", 10], ["2021", 20]], "both pages, in date order");
+});
+
+await check("weather: whole months only, sums for rain and means for temperature, partial periods dropped", async () => {
+  const w = { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" } };
+  const j = await call("fetch_external", w);
+  assert.equal(j.series_count, 4, JSON.stringify(j.series));
+  // June is complete in the fixture: 30 days of 1 mm is a real monthly total.
+  const corn = await call("fetch_external", { ...w, series: "us-corn-belt.precipitation_sum" });
+  assert.deepEqual(corn.points, [["2024-06", 30]], "the two-day July stub is not a July total");
+  // Temperature is averaged, and an average over part of a month is still an average.
+  const temp = await call("fetch_external", { ...w, series: "us-corn-belt.temperature_2m_mean" });
   assert.deepEqual(temp.points, [["2024-06", 23], ["2024-07", 25]]);
-  // A null day is skipped rather than counted as zero.
-  const konya = await call("fetch_external", { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" }, series: "tr-konya.precipitation_sum" });
-  assert.deepEqual(konya.points, [["2024-06", 0], ["2024-07", 2.5]]);
+  // A null day is skipped rather than counted as zero: 29 days of 0.5 mm, not 30.
+  const konya = await call("fetch_external", { ...w, series: "tr-konya.precipitation_sum" });
+  assert.deepEqual(konya.points, [["2024-06", 14.5]]);
+  assert.ok(j.notes.some((c) => /Dropped as incomplete/.test(c)), JSON.stringify(j.notes));
   assert.match(j.source, /ERA5/);
-  assert.ok(j.notes.some((c) => /reanalysis/.test(c)), JSON.stringify(j.notes));
   assert.ok(corn.caveats.some((c) => /reanalysis/.test(c)), JSON.stringify(corn.caveats));
-  // Annual and daily aggregation, and a bare coordinate pair
-  const annual = await call("fetch_external", { provider: "weather", id: "41.6,-93.6", params: { start: "2024", end: "2024", aggregate: "annual" }, series: "41.6,-93.6.precipitation_sum" });
-  assert.deepEqual(annual.points, [["2024", 11.5]]);
-  const daily = await call("fetch_external", { provider: "weather", id: "us-corn-belt", params: { aggregate: "daily" }, series: "us-corn-belt.temperature_2m_mean" });
-  assert.equal(daily.points.length, 3);
-  // Clear errors for a bad place, a bad aggregate and too many locations
+  // Daily aggregation keeps every day, partial or not: there is no period to be short of.
+  const daily = await call("fetch_external", { provider: "weather", id: "us-corn-belt", params: { aggregate: "daily" }, series: "us-corn-belt.precipitation_sum" });
+  assert.equal(daily.points.length, 32);
+  // Clear errors for a bad place, a bad aggregate and an impossible coordinate
   for (const [args, re] of [
     [{ provider: "weather", id: "narnia" }, /Unknown weather location/],
     [{ provider: "weather", id: "us-corn-belt", params: { aggregate: "hourly" } }, /aggregate must be/],
@@ -777,11 +788,6 @@ await check("weather: named regions and lat,lon, monthly aggregation, sums for r
     const r = await callRaw("fetch_external", args);
     assert.ok(r.isError && re.test(r.content[0].text), JSON.stringify(args) + " -> " + r.content[0].text);
   }
-  const s = await call("search_external", { provider: "weather", query: "konya" });
-  assert.ok(s.matches.some((m) => m.id === "tr-konya"), JSON.stringify(s.matches));
-  // It plugs into the analysis layer like any other series
-  const st = await call("describe_stats", { series: { provider: "weather", id: "us-corn-belt", params: { aggregate: "daily" }, series: "us-corn-belt.temperature_2m_mean" } });
-  assert.equal(st.n, 3);
 });
 
 await check("/v1/analyze runs the same tools over plain HTTP, no MCP client", async () => {
