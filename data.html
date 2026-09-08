@@ -234,7 +234,14 @@
       h += "</tr></thead><tbody>";
       rows.forEach(function(e){
         var cov = e.coverage ? (e.coverage.first + " → " + e.coverage.last) : "—";
-        h += "<tr><td class='f'><code>"+esc(e.file.replace("data/",""))+"</code>";
+        /* Every row is a dead end otherwise: a filename with no way to see the numbers.
+           Only datasets with dated series can be drawn, so only those get the link. */
+        var nm = e.file.replace("data/","").replace(".json","");
+        var drawable = e.series > 0 && e.coverage && e.coverage.first;
+        h += "<tr><td class='f'>" + (drawable
+          ? "<a href='explore.html#open=" + encodeURIComponent(nm) + "'><code>" + esc(nm) + "</code></a>"
+          : "<code>" + esc(nm) + "</code>");
+        if (e.unit) h += "<span class='src'>Unit: " + esc(e.unit) + "</span>";
         if (e.source) h += "<span class='src'>"+esc(e.source)+"</span>";
         else if (e.note) h += "<span class='src'>"+esc(e.note)+"</span>";
         h += "</td>";

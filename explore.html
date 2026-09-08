@@ -657,6 +657,7 @@
         "<div class='foot'><button type='button' class='act js-predict'>Test forecasts</button>" +
         "<button type='button' class='act ghost js-csv'>Download CSV</button>" +
         "<button type='button' class='act ghost js-mine'>Add my numbers</button>" +
+        "<button type='button' class='act ghost js-analyse'>Analyse</button>" +
         "<a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a>" +
         "<span class='asof js-asof'></span><button type='button' class='drop'>close</button></div>";
       host.appendChild(el);
@@ -664,7 +665,107 @@
       var predEl = el.querySelector(".js-pred"), predBtn = el.querySelector(".js-predict"),
           csvBtn = el.querySelector(".js-csv");
       var lastDrawn = [];
+      var anaEl = null, onRedraw = null;
       var mineEl = null;
+      /* The whole econometrics toolkit is already served keylessly at /v1/analyze, and until
+         now the page called exactly one of its twenty-eight tools. A reader with no
+         assistant could look at a line but never test it. */
+      var ANALYSES = [
+        { id: "describe_stats", label: "Describe it", need: 1,
+          say: "Average, spread, how much it repeats itself, and whether it has a unit root." },
+        { id: "test_stationarity", label: "Is it trending?", need: 1,
+          say: "ADF and KPSS together: can this be regressed in levels, or must it be differenced first?" },
+        { id: "structural_break", label: "Did it change?", need: 1,
+          say: "Scans every date for the most likely break, corrected for serial correlation." },
+        { id: "decompose", label: "Seasonal pattern", need: 1,
+          say: "Splits it into trend, the repeating seasonal shape, and what is left." },
+        { id: "regress", label: "Does the first explain the rest?", need: 2,
+          say: "OLS with robust errors, plus the diagnostics that say whether to believe it." },
+        { id: "cross_correlation", label: "Which leads which?", need: 2,
+          say: "Correlation at every lag, against a band widened for how much each series repeats itself." },
+        { id: "cointegration", label: "Do they move together?", need: 2,
+          say: "Engle-Granger: is there a long-run relation, or would a levels regression be spurious?" },
+        { id: "granger_causality", label: "Does one forecast the other?", need: 2,
+          say: "Whether past values of one improve a forecast of the other." }
+      ];
+      function analyseRefs(vis) {
+        return vis.map(function (x) { return { dataset: card.file, series: x.n }; });
+      }
+      el.querySelector(".js-analyse").addEventListener("click", function () {
+        if (anaEl) { anaEl.hidden = !anaEl.hidden; return; }
+        anaEl = document.createElement("div");
+        anaEl.className = "pred";
+        anaEl.innerHTML = "<h4>Test what you are looking at</h4>" +
+          "<div class='js-ana-sub'></div><div class='ctrl js-ana-btns'></div><div class='js-ana-out'></div>";
+        el.querySelector(".js-pred").parentNode.insertBefore(anaEl, el.querySelector(".js-pred"));
+        var sub = anaEl.querySelector(".js-ana-sub"), btns = anaEl.querySelector(".js-ana-btns"), out = anaEl.querySelector(".js-ana-out");
+        function refresh() {
+          var vis = lastDrawn.filter(function (x) { return chosen[x.n]; });
+          sub.textContent = vis.length === 0 ? "Pick at least one line above."
+            : vis.length === 1 ? "Testing " + label(vis[0].n) + "."
+            : "Testing " + label(vis[0].n) + " against " + label(vis[1].n) + (vis.length > 2 ? " (the first two of " + vis.length + ")" : "") + ".";
+          btns.innerHTML = "";
+          ANALYSES.forEach(function (a) {
+            if (vis.length < a.need) return;
+            var b = document.createElement("button");
+            b.type = "button"; b.className = "act ghost"; b.textContent = a.label; b.title = a.say;
+            b.addEventListener("click", function () { run(a, vis); });
+            btns.appendChild(b);
+          });
+        }
+        async function run(a, vis) {
+          out.innerHTML = "<div class='why'>Running " + esc(a.label.toLowerCase()) + "…</div>";
+          var refs = analyseRefs(vis);
+          var args = a.need === 1 ? { series: refs[0] }
+            : a.id === "regress" ? { y: refs[0], x: [refs[1]] }
+            : a.id === "cointegration" ? { a: refs[0], b: refs[1] }
+            : a.id === "granger_causality" ? { a: refs[0], b: refs[1] }
+            : { a: refs[0], b: refs[1] };
+          if (a.id === "structural_break") args = { y: refs[0] };
+          try {
+            var res = await fetch(API + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+              body: JSON.stringify({ tool: a.id, args: args }) });
+            var j = await res.json();
+            if (!res.ok || !j.result) throw new Error(j.error || ("HTTP " + res.status));
+            out.innerHTML = renderResult(a, j.result);
+          } catch (e) {
+            out.innerHTML = "<div class='why'>Could not run it: " + esc(e.message) + "</div>";
+          }
+        }
+        /* Lead with the sentence the server wrote, then its caveat. The numbers are there
+           for anyone who wants them, folded away. */
+        function renderResult(a, r) {
+          var lead = r.reading || r.verdict || r.joint_reading || r.recommendation || "";
+          if (lead && typeof lead === "object") lead = lead.why || JSON.stringify(lead);
+          /* Some tools return numbers and no sentence. Say the thing the reader came for
+             rather than showing them an empty line above a JSON blob. */
+          if (!lead && a.id === "describe_stats") {
+            lead = "Average " + fmt(r.mean) + ", spread " + fmt(r.sd) + ", from " + fmt(r.min) + " to " + fmt(r.max) +
+              " over " + r.n + " observations (" + r.first + " to " + r.last + "). " +
+              (r.unit_root && r.unit_root.integration_order ? "Integration order: " + r.unit_root.integration_order + "." : "");
+          }
+          if (!lead && a.id === "regress" && r.coefficients && r.coefficients[1]) {
+            var c = r.coefficients[1];
+            lead = "A one-unit rise in " + c.term + " goes with " + fmt(c.coef) + " on " + (r.y && r.y.label ? r.y.label : "the first line") +
+              " (robust t " + c.hac_t + ", p " + c.hac_p + "), R\u00b2 " + r.r2 + ".";
+            if (r.warnings && r.warnings.length) lead += " " + r.warnings[0];
+          }
+          if (!lead && a.id === "cross_correlation" && r.strongest) {
+            lead = "Strongest at lag " + r.strongest.lag + " (r " + r.strongest.r + "): " + r.strongest.reading + ".";
+          }
+          var extra = [];
+          if (r.chart_url) extra.push("<a href='" + esc(r.chart_url) + "' target='_blank' rel='noopener'>See it charted &rarr;</a>");
+          if (r.scatter_chart_url) extra.push("<a href='" + esc(r.scatter_chart_url) + "' target='_blank' rel='noopener'>Scatter &rarr;</a>");
+          var cav = r.caveat || (r.caveats && r.caveats.join(" ")) || "";
+          return "<div><b>" + esc(a.label) + ".</b> " + esc(String(lead)) + "</div>" +
+            (extra.length ? "<div class='why'>" + extra.join(" &middot; ") + "</div>" : "") +
+            (cav ? "<div class='why'>" + esc(String(cav)) + "</div>" : "") +
+            "<details style='margin-top:8px'><summary style='cursor:pointer;color:var(--accent);font-size:.8rem'>Every number</summary>" +
+            "<pre style='white-space:pre-wrap;font-size:.72rem;max-height:340px;overflow:auto'>" + esc(JSON.stringify(r, null, 1)) + "</pre></details>";
+        }
+        onRedraw = refresh;
+        refresh();
+      });
       /* Your own column against the official one. This is the job a consultant's client
          actually has, and until now it needed an assistant to do it. */
       el.querySelector(".js-mine").addEventListener("click", function () {
@@ -854,6 +955,7 @@
           return { n: s.n, d: d, v: v };
         }).filter(function (s) { return s.d.length > 1; }).map(transform).filter(function (s) { return s.d.length > 1; });
         lastDrawn = win;
+        if (onRedraw) setTimeout(onRedraw, 0);
         var vis = win.filter(function (s) { return chosen[s.n]; });
         figEl.innerHTML = svgFor(card.title, vis, state.mode === "level" ? "" : state.mode, state.mode === "yoy" ? "%" : "");
         Array.prototype.forEach.call(segEl.children, function (b2, i) { b2.setAttribute("aria-pressed", String(presets[i].k === state.preset)); });
@@ -1102,7 +1204,21 @@
         var d = BY[name];
         slot.innerHTML = "";
         try {
-          makeCard(slot, { file: name, title: d.title, note: d.src, unit: d.unit, units: d.units, series: series, pick: pick,
+          /* If a country filter is on, that is what the reader asked to see. Drawing the
+             first four series alphabetically would ignore the choice they just made. */
+          var want = pick;
+          var picked = countryEl && countryEl.value;
+          if (!want && picked) {
+            var code = null;
+            for (var cc in NAMES) { if (NAMES[cc] === picked) { code = cc; break; } }
+            if (code) {
+              var mine = Object.keys(series).filter(function (k) {
+                return String(k).split(/[|.]/)[0] === code;
+              });
+              if (mine.length) want = mine.slice(0, 6);
+            }
+          }
+          makeCard(slot, { file: name, title: d.title, note: d.src, unit: d.unit, units: d.units, series: series, pick: want,
             close: function () { closeRow(name); } });
         } catch (e) {
           slot.innerHTML = "<div class='card'><p class='note'>" + esc(e.message) + "</p></div>";
@@ -1134,9 +1250,20 @@
       if (rowEls[name] && rowEls[name].classList.contains("open")) closeRow(name); else openRow(name);
     });
 
+    /* data.html links here as explore.html#open=<dataset>, so a row there is no longer a
+       dead end: it opens that dataset's chart directly. */
+    function openFromHash() {
+      var m = /^#open=(.+)$/.exec(location.hash || "");
+      if (!m) return;
+      var name = decodeURIComponent(m[1]);
+      var row = document.querySelector('[data-open="' + name.replace(/"/g, '') + '"]');
+      if (!row) return;
+      row.click();
+      setTimeout(function () { row.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
+    }
     fetch("data/_catalog.json", { cache: "no-cache" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(build)
+      .then(function (cat) { build(cat); openFromHash(); })
       .catch(function (e) {
         app.innerHTML = "<div class='err'>Could not load the catalogue: " + esc(e.message) + "</div>";
       });
