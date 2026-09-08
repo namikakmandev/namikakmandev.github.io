@@ -237,10 +237,12 @@
         /* Every row is a dead end otherwise: a filename with no way to see the numbers.
            Only datasets with dated series can be drawn, so only those get the link. */
         var nm = e.file.replace("data/","").replace(".json","");
-        var drawable = e.series > 0 && e.coverage && e.coverage.first;
+        /* a single-year snapshot has nothing to plot, so it links to the file itself */
+        var snap = e.coverage && e.coverage.first && e.coverage.first === e.coverage.last && e.observations <= e.series;
+        var drawable = e.series > 0 && e.coverage && e.coverage.first && !snap;
         h += "<tr><td class='f'>" + (drawable
           ? "<a href='explore.html#open=" + encodeURIComponent(nm) + "'><code>" + esc(nm) + "</code></a>"
-          : "<code>" + esc(nm) + "</code>");
+          : "<a href='https://github.com/namikakmandev/namikakmandev.github.io/blob/main/" + esc(e.file) + "' title='Open the JSON file'><code>" + esc(nm) + "</code></a>");
         if (e.unit) h += "<span class='src'>Unit: " + esc(e.unit) + "</span>";
         if (e.source) h += "<span class='src'>"+esc(e.source)+"</span>";
         else if (e.note) h += "<span class='src'>"+esc(e.note)+"</span>";

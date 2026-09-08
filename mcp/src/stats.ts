@@ -83,6 +83,14 @@ export function tTwoSidedP(t: number, df: number): number {
   return betaInc(x, df / 2, 0.5);
 }
 
+/** Two-sided t critical value: the |t| that leaves `alpha` in both tails together. Bisection on tTwoSidedP. */
+export function tCritical(alpha: number, df: number): number {
+  if (!(df > 0)) return NaN;
+  let lo = 0, hi = 50;
+  for (let i = 0; i < 80; i++) { const mid = (lo + hi) / 2; if (tTwoSidedP(mid, df) > alpha) lo = mid; else hi = mid; }
+  return (lo + hi) / 2;
+}
+
 export function fUpperP(F: number, d1: number, d2: number): number {
   if (!Number.isFinite(F) || F <= 0) return 1;
   return betaInc(d2 / (d2 + d1 * F), d2 / 2, d1 / 2);
@@ -624,15 +632,39 @@ export function supF(y: number[], X: number[][], trim = 0.15, minSeg?: number): 
 // ---------------------------------------------------------------------------
 // KPSS stationarity test (null: stationary)
 
-export interface KpssResult { trend: "c" | "ct"; lags: number; statistic: number; critical: { "10%": number; "5%": number; "2.5%": number; "1%": number }; reject_stationarity_at: "1%" | "2.5%" | "5%" | "10%" | null; degenerate?: string }
+export interface KpssResult { trend: "c" | "ct"; lags: number; bandwidth: string; statistic: number; critical: { "10%": number; "5%": number; "2.5%": number; "1%": number }; reject_stationarity_at: "1%" | "2.5%" | "5%" | "10%" | null; degenerate?: string }
 
-/** Kwiatkowski-Phillips-Schmidt-Shin, Bartlett long-run variance, lag floor(4(T/100)^(1/4)). */
+/**
+ * Bartlett bandwidth from the residuals' own autocovariances (Hobijn, Franses and Ooms
+ * 1998, the rule statsmodels calls "auto"). The fixed rule floor(4(T/100)^0.25) gives four
+ * lags at T=200 whatever the series looks like, and on a stationary series with first-order
+ * autocorrelation 0.9 KPSS then rejects stationarity almost half the time. The Andrews AR(1)
+ * plug-in cures that but its bandwidth explodes near a unit root and the test loses most of
+ * its power against the random walk it exists to detect; this rule keeps both in bounds.
+ */
+export function hfoBandwidth(e: number[]): number {
+  const n = e.length;
+  const covlags = Math.floor(Math.pow(n, 2 / 9));
+  let s0 = 0; for (const x of e) s0 += x * x; s0 /= n;
+  let s1 = 0;
+  for (let i = 1; i <= covlags; i++) {
+    let acc = 0; for (let t = i; t < n; t++) acc += e[t] * e[t - i];
+    acc /= n / 2; s0 += acc; s1 += i * acc;
+  }
+  const sHat = s0 > 0 ? s1 / s0 : 0;
+  const gamma = 1.1447 * Math.pow(sHat * sHat, 1 / 3);
+  const L = Math.floor(gamma * Math.pow(n, 1 / 3));
+  return Math.max(0, Math.min(L, n - 1));
+}
+
+/** Kwiatkowski-Phillips-Schmidt-Shin, Bartlett long-run variance, bandwidth by the Andrews plug-in unless given. */
 export function kpss(y: number[], trend: "c" | "ct" = "c", lags?: number): KpssResult {
   const n = y.length;
   if (n < 12) throw new Error(`KPSS needs at least 12 observations, got ${n}`);
   const X = y.map((_, t) => (trend === "ct" ? [1, t] : [1]));
   const e = ols(y, X).resid;
-  const L = lags ?? Math.floor(4 * Math.pow(n / 100, 0.25));
+  const L = lags ?? hfoBandwidth(e);
+  const bandwidth = lags !== undefined ? "given" : "Hobijn-Franses-Ooms automatic";
   const s2 = longRunVariance(e, L);   // residuals of a regression on a constant already have zero mean
   let S = 0, num = 0;
   for (let t = 0; t < n; t++) { S += e[t]; num += S * S; }
@@ -644,10 +676,10 @@ export function kpss(y: number[], trend: "c" | "ct" = "c", lags?: number): KpssR
   // infinity. That is a degenerate sample, not evidence against stationarity, and
   // reporting "reject at 1%" with no number behind it is the wrong answer.
   if (!Number.isFinite(stat)) {
-    return { trend, lags: L, statistic: NaN, critical, reject_stationarity_at: null, degenerate: "The residual variance is too small to test: the series is constant, or nearly so." };
+    return { trend, lags: L, bandwidth, statistic: NaN, critical, reject_stationarity_at: null, degenerate: "The residual variance is too small to test: the series is constant, or nearly so." };
   }
   const reject = stat > critical["1%"] ? "1%" : stat > critical["2.5%"] ? "2.5%" : stat > critical["5%"] ? "5%" : stat > critical["10%"] ? "10%" : null;
-  return { trend, lags: L, statistic: stat, critical, reject_stationarity_at: reject };
+  return { trend, lags: L, bandwidth, statistic: stat, critical, reject_stationarity_at: reject };
 }
 
 // ---------------------------------------------------------------------------
@@ -999,7 +1031,29 @@ function nelderMead(f: (x: number[]) => number, x0: number[], step = 0.1, iters 
   return simplex[vals.indexOf(Math.min(...vals))];
 }
 
-export interface ArimaResult { p: number; d: number; q: number; const: number; ar: number[]; ma: number[]; sse: number; aic: number; resid_sd: number; forecast: number[]; fitted: number[] }
+export interface ArimaResult { p: number; d: number; q: number; const: number; ar: number[]; ma: number[]; sse: number; aic: number; resid_sd: number; forecast: number[]; fitted: number[]; resid: number[] }
+
+/**
+ * MA(infinity) weights of an ARIMA(p,d,q): the h-step forecast error variance is
+ * sigma^2 * sum_{j<h} psi_j^2. For an AR(1) with phi 0.7 that levels off; only a random
+ * walk grows like h, so scaling a band by sqrt(h) is a random-walk band.
+ */
+export function psiWeights(phi: number[], theta: number[], d: number, h: number): number[] {
+  let psi: number[] = [1];
+  for (let j = 1; j < h; j++) {
+    let v = j <= theta.length ? theta[j - 1] : 0;
+    for (let i = 1; i <= Math.min(j, phi.length); i++) v += phi[i - 1] * psi[j - i];
+    psi.push(v);
+  }
+  for (let k = 0; k < d; k++) { let acc = 0; psi = psi.map((x) => (acc += x)); }
+  return psi;
+}
+
+/** Largest root magnitude of the companion matrix of a scalar lag polynomial 1 - c1 L - ... ; below 1 the polynomial is stable. */
+function lagPolyRadius(c: number[]): number {
+  if (!c.length) return 0;
+  return companionRadius([[0, ...c]], 1, c.length);
+}
 
 function armaCss(y: number[], p: number, q: number, theta: number[]): { sse: number; resid: number[]; fitted: number[] } {
   const c = theta[0], phi = theta.slice(1, 1 + p), th = theta.slice(1 + p);
@@ -1046,7 +1100,7 @@ export function arima(series: number[], p: number, d: number, q: number, h: numb
     let acc = last;
     level = level.map((v) => (acc += v));
   }
-  return { p, d, q, const: c, ar: phi, ma: th, sse, aic, resid_sd: Math.sqrt(sse / eff), forecast: level, fitted };
+  return { p, d, q, const: c, ar: phi, ma: th, sse, aic, resid_sd: Math.sqrt(sse / eff), forecast: level, fitted, resid };
 }
 
 /** Pick (p, d, q) by AIC on a small grid; d from the ADF test unless given. */
@@ -1055,10 +1109,23 @@ export function autoArima(series: number[], h: number, dFixed?: number, maxP = 3
   if (dFixed === undefined) {
     try { const a = adf(series, "c"); if (!a.reject_unit_root_at) { d = 1; const b = adf(diff(series), "c"); if (!b.reject_unit_root_at) d = 2; } } catch { d = 1; }
   }
-  let best: ArimaResult | null = null;
+  // Every candidate is scored on the same observations (those after the largest order
+  // on the grid), as adf does for its lag choice: an AIC over a different sample is not
+  // comparable, and it handed the largest order the win a third of the time on a plain
+  // AR(1). Candidates whose AR or MA polynomial is explosive are not orders, they are
+  // the optimiser wandering, so they are out.
+  let best: ArimaResult | null = null, bestScore = Infinity;
+  const m0 = Math.max(maxP, maxQ);
   for (let p = 0; p <= maxP; p++) for (let q = 0; q <= maxQ; q++) {
     if (p === 0 && q === 0 && d === 0) continue;
-    try { const m = arima(series, p, d, q, h); if (!best || m.aic < best.aic) best = m; } catch { /* skip */ }
+    try {
+      const m = arima(series, p, d, q, h);
+      if (lagPolyRadius(m.ar) >= 0.999 || lagPolyRadius(m.ma.map((x) => -x)) >= 0.999) continue;
+      const n = m.resid.length, eff = n - m0;
+      let sse = 0; for (let t = m0; t < n; t++) sse += m.resid[t] * m.resid[t];
+      const score = eff * Math.log(sse / eff) + 2 * (1 + p + q);
+      if (score < bestScore) { best = m; bestScore = score; }
+    } catch { /* skip */ }
   }
   if (!best) throw new Error("No ARIMA order could be estimated");
   return best;
@@ -1071,6 +1138,7 @@ export function autoArima(series: number[], h: number, dFixed?: number, maxP = 3
 export interface GarchResult {
   omega: number; alpha: number; beta: number;
   persistence: number;
+  identified: boolean;                // false when alpha is at zero and beta is not pinned down
   unconditional_variance: number;
   loglik: number; aic: number; bic: number;
   nobs: number;
@@ -1122,7 +1190,11 @@ export function garch11(series: number[]): GarchResult {
   for (let t = 0; t < n; t++) { if (t > 0) h = omega + alpha * e[t - 1] * e[t - 1] + beta * h; cond.push(h); }
   const ll = -negll(best);
   const k = 4;
-  return { omega, alpha, beta, persistence: alpha + beta, unconditional_variance: alpha + beta < 1 ? omega / (1 - alpha - beta) : NaN,
+  // With alpha at zero the likelihood is flat in beta (only omega/(1-beta) is pinned down),
+  // and the optimiser drifts to the ceiling: on white noise three fits in four report
+  // persistence 0.999 and a half-life of hundreds of periods. That is not a finding.
+  const identified = alpha >= 0.01;
+  return { omega, alpha, beta, persistence: alpha + beta, identified, unconditional_variance: alpha + beta < 1 ? omega / (1 - alpha - beta) : NaN,
     loglik: ll, aic: -2 * ll + 2 * k, bic: -2 * ll + k * Math.log(n), nobs: n, cond_variance: cond, arch_lm: lm, mean: mu };
 }
 
@@ -1232,9 +1304,13 @@ function clusterSe(X: number[][], resid: number[], cluster: number[], dfResid: n
 
 function fitPanel(y: number[], X: number[][], cluster: number[], dfResid: number): PanelFit {
   const fit = ols(y, X);
-  const se = clusterSe(X, fit.resid, cluster, dfResid) ?? fit.se;
+  const cse = clusterSe(X, fit.resid, cluster, dfResid);
+  const se = cse ?? fit.se;
   const t = fit.beta.map((b, j) => (se[j] ? b / se[j] : NaN));
-  return { beta: fit.beta, se, t, p: t.map((v) => tTwoSidedP(v, Math.max(dfResid, 1))), rss: fit.rss, r2: fit.r2, nobs: fit.n, df: dfResid };
+  // A cluster-robust t is referred to t(G-1), the number of clusters less one, not the
+  // residual degrees of freedom: with eight countries the latter roughly doubles the size.
+  const dfT = cse ? Math.max(new Set(cluster).size - 1, 1) : Math.max(dfResid, 1);
+  return { beta: fit.beta, se, t, p: t.map((v) => tTwoSidedP(v, dfT)), rss: fit.rss, r2: fit.r2, nobs: fit.n, df: dfResid };
 }
 
 /**

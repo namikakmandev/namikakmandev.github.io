@@ -1851,7 +1851,20 @@
       "out": "data/imf-weo.json",
       "source": "IMF World Economic Outlook via the IMF Data API (latest release), 30 economies: real GDP growth (NGDP_RPCH), inflation average and end-period (PCPIPCH, PCPIEPCH), unemployment (LUR), government gross debt and net lending % GDP (GGXWDG_NGDP, GGXCNL_NGDP), current account % GDP (BCA_NGDPD), GDP per capita and GDP in USD (NGDPDPC, NGDPD), investment and saving % GDP (NID_NGDP, NGSD_NGDP)",
       "note": "Series keys are country|indicator. Actuals through the release's last actual year, IMF projections after it (usually five years ahead); the two are not distinguished in the file, so treat the last five or six years as forecasts. Percent for rates, USD (full dollars, not billions) for NGDPD, USD for NGDPDPC",
-      "unit": "varies by indicator: percent for growth and inflation, percent of GDP for balances, USD for per-capita levels"
+      "unit": "varies by indicator; see units",
+      "units": {
+        "NGDP_RPCH": "percent change on a year earlier",
+        "PCPIPCH": "percent change on a year earlier, period average",
+        "PCPIEPCH": "percent change on a year earlier, end of period",
+        "LUR": "percent of the labour force",
+        "GGXWDG_NGDP": "percent of GDP",
+        "GGXCNL_NGDP": "percent of GDP",
+        "BCA_NGDPD": "percent of GDP",
+        "NID_NGDP": "percent of GDP",
+        "NGSD_NGDP": "percent of GDP",
+        "NGDPDPC": "current US dollars per person",
+        "NGDPD": "current US dollars (full dollars, not billions)"
+      }
     },
     {
       "name": "asia-wdi",
@@ -2694,7 +2707,20 @@
       "out": "data/macro-external.json",
       "source": "World Bank World Development Indicators: trade balance, current account, exports and imports, reserves, external debt, broad money, FDI, remittances and the real effective exchange rate, 30 economies",
       "note": "Series keys are country|indicator. Annual, and the World Bank lags one to two years; external debt is reported only by low and middle income countries, so it is empty for the advanced economies here. Government debt is not here: the WDI series is central government only and covers a third of these countries in odd years; use imf-weo GGXWDG_NGDP for general government gross debt. Broad money is missing for euro-area members (the ECB reports it for the area) and the REER for Türkiye",
-      "unit": "percent of GDP for balances and debt, USD for reserves, remittances and FDI, months of imports for reserve cover, index for the real effective exchange rate"
+      "unit": "varies by indicator; see units",
+      "units": {
+        "trade_balance_pct_gdp": "percent of GDP",
+        "current_account_pct_gdp": "percent of GDP",
+        "exports_pct_gdp": "percent of GDP",
+        "imports_pct_gdp": "percent of GDP",
+        "broad_money_pct_gdp": "percent of GDP",
+        "reserves_usd": "current US dollars",
+        "external_debt_usd": "current US dollars",
+        "fdi_net_inflow_usd": "current US dollars",
+        "remittances_usd": "current US dollars",
+        "reserves_months_of_imports": "months of imports",
+        "real_effective_exchange_rate": "index, 2010 = 100"
+      }
     }
   ]
 }

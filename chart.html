@@ -167,6 +167,12 @@
     if (spec._error) { app.innerHTML = "<div class='err'>" + esc(spec._error) + "</div>"; showHowTo(true); return; }
     var API = (spec.api || DEFAULT_API).replace(/\/$/, "");
     var state = { scale: spec.scale === "log" ? "log" : "linear", rebase: false, from: "", to: "", hidden: {}, table: false };
+    /* "Copy link" stores the window, the index switch and the hidden lines under 'view', so the
+       link reopens on the same picture rather than the same data. */
+    if (spec.view && typeof spec.view === "object") {
+      state.from = String(spec.view.from || ""); state.to = String(spec.view.to || ""); state.rebase = !!spec.view.rebase;
+      (spec.view.hidden || []).forEach(function (i) { state.hidden[i] = true; });
+    }
     var right = {}; (spec.right || []).forEach(function (i) { right[i] = true; });
     var dotted = {}; (spec.dots || []).forEach(function (i) { dotted[i] = true; });
     var DATA = null, BANDS = [];
@@ -178,10 +184,99 @@
        points inline, and that spec is far too long for a query string. The endpoint takes
        the same body by POST, so anything but a short reference list goes that way. */
     var reqBody = JSON.stringify({ series: spec.series });
+    /* The curated files sit on this origin, so a reference to one of them can be drawn even
+       when the Worker is down or blocked: read data/<dataset>.json and pull the series out the
+       way explore.html does. Transforms other than none need the API and say so. */
+    /* a bare four-digit key must be a year: HS product codes (2937, 3004) are not dates */
+    var DATE = /^(1[0-9]|20|21)\d{2}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
+    function isObj(v) { return v && typeof v === "object" && !Array.isArray(v); }
+    function num(v) { return typeof v === "number" && isFinite(v); }
+    var META = ["source","source_url","source_file","fetched_by","fetched_at","config","note","generated_by","base","meta","unit","hicp_source","cpi_source","_readme","as_of","question","definition","scope_note","encoding","excludes","basis","dimension_order","window","log","runs","errors","updated","asof"];
+    var CONTAINER = ["series","shares","regions","countries","groups"];
+    function isSeriesDict(v) {
+      if (!isObj(v)) return false;
+      var keys = Object.keys(v); if (!keys.length) return false;
+      var dated = 0, i;
+      for (i = 0; i < keys.length; i++) if (DATE.test(keys[i])) dated++;
+      /* Mostly-dated keys, or plenty of them: the CO2 record dates ice cores as negative
+         years, so only its recent keys parse and the 80% test alone would reject it. */
+      if (dated < keys.length * 0.8 && dated < 8) return false;
+      return keys.some(function (k) { return num(v[k]) || v[k] === null; });
+    }
+    function isDatedRecordDict(v) {
+      if (!isObj(v)) return false;
+      var keys = Object.keys(v);
+      return keys.length >= 2 && keys.every(function (k) { return DATE.test(k) && isObj(v[k]); });
+    }
+    function cleanSeries(v) {
+      var out = {};
+      Object.keys(v).sort().forEach(function (k) { if (DATE.test(k) && num(v[k])) out[k] = v[k]; });
+      return out;
+    }
+    function tableSeries(columns, rows, prefix, out) {
+      columns.forEach(function (col, i) {
+        if (i === 0 || typeof col !== "string") return;
+        var s = {};
+        rows.forEach(function (r) {
+          if (!Array.isArray(r) || r.length <= i) return;
+          var d = String(r[0]);
+          if (DATE.test(d) && num(r[i])) s[d] = r[i];
+        });
+        if (Object.keys(s).length) out[prefix ? prefix + "." + col : col] = s;
+      });
+    }
+    function walk(node, path, depth, out) {
+      if (depth > 5 || !isObj(node)) return;
+      if (Array.isArray(node.columns) && Array.isArray(node.rows)) { tableSeries(node.columns, node.rows, path, out); return; }
+      if (isSeriesDict(node)) { var s = cleanSeries(node); if (Object.keys(s).length) out[path] = s; return; }
+      if (isDatedRecordDict(node)) {
+        var fields = {}, recs = {};
+        Object.keys(node).forEach(function (d) { if (isObj(node[d])) { recs[d] = node[d]; Object.keys(node[d]).forEach(function (f) { fields[f] = 1; }); } });
+        Object.keys(fields).forEach(function (f) {
+          var s2 = {};
+          Object.keys(recs).sort().forEach(function (d) { if (num(recs[d][f])) s2[d] = recs[d][f]; });
+          if (Object.keys(s2).length) out[path ? path + "." + f : f] = s2;
+        });
+        return;
+      }
+      Object.keys(node).forEach(function (k) {
+        var v = node[k];
+        if (depth === 0 && META.indexOf(k) >= 0) return;
+        if (typeof v !== "object" || v === null) return;
+        var next = depth === 0 && CONTAINER.indexOf(k) >= 0 ? path : (path ? path + "." + k : k);
+        if (Array.isArray(v)) {
+          if (isObj(node.meta) && Array.isArray(node.meta.columns)) tableSeries(node.meta.columns, v, next, out);
+          return;
+        }
+        walk(v, next, depth + 1, out);
+      });
+    }
+    function extractSeries(body) { var out = {}; walk(body, "", 0, out); return out; }
+
+    function fromFiles() {
+      var refs = spec.series || [];
+      if (!refs.length || !refs.every(function (r) { return r && r.dataset && r.series; })) return Promise.reject(new Error("not all series are curated-file references"));
+      return Promise.all(refs.map(function (r) {
+        var name = String(r.dataset).replace(/^data\//, "").replace(/\.json$/, "");
+        return fetch("data/" + name + ".json", { cache: "force-cache" }).then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status + " for data/" + name + ".json");
+          return res.json();
+        }).then(function (body) {
+          var all = extractSeries(body), s = all[r.series];
+          var label = r.label || (name + ":" + r.series);
+          if (!s) return { label: label, error: "No series '" + r.series + "' in " + name };
+          if (r.transform && r.transform !== "none") return { label: label, error: "The '" + r.transform + "' transform needs the API, which could not be reached" };
+          var dates = Object.keys(s).sort().filter(function (d) { return (!r.start || d >= r.start) && (!r.end || d <= r.end || d.indexOf(r.end) === 0); });
+          return { label: label, points: dates.map(function (d) { return [d, s[d]]; }), source: (body && body.source) || "data/" + name + ".json", n: dates.length, first: dates[0], last: dates[dates.length - 1], transform: "none",
+            caveats: ["Drawn from the file on this site because the chart service could not be reached; units and caveats are on the data page."] };
+        });
+      })).then(function (series) { return { series: series }; });
+    }
     (reqBody.length > 1800
       ? fetch(API + "/v1/series", { method: "POST", headers: { "content-type": "application/json" }, body: reqBody })
       : fetch(API + "/v1/series?s=" + encodeURIComponent(reqBody)))
       .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || r.status); return j; }); })
+      .catch(function (e) { return fromFiles().catch(function () { throw e; }); })
       .then(function (j) {
         DATA = j.series.map(function (s, i) {
           s.i = i; s.color = COLORS[i % COLORS.length]; s.right = !!right[i]; s.dots = !!dotted[i];
@@ -242,6 +337,9 @@
       document.getElementById("b-csv").onclick = downloadCsv;
       document.getElementById("b-link").onclick = function () {
         var s = JSON.parse(JSON.stringify(spec)); if (state.scale === "log") s.scale = "log"; else delete s.scale;
+        var hidden = Object.keys(state.hidden).filter(function (i) { return state.hidden[i]; }).map(Number);
+        delete s.view;
+        if (state.from || state.to || state.rebase || hidden.length) s.view = { from: state.from || undefined, to: state.to || undefined, rebase: state.rebase || undefined, hidden: hidden.length ? hidden : undefined };
         var url = location.origin + location.pathname + "#" + b64urlEncode(JSON.stringify(s));
         (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { this.textContent = "Copied"; }.bind(this), function () { prompt("Chart link", url); });
       };

@@ -233,7 +233,17 @@ export function describeSeries(all: Map<string, Series>): SeriesInfo[] {
  *  dataset-wide one, and neither is guessed. */
 export function unitFor(entry: CatalogEntry | undefined, series?: string): string | null {
   if (!entry) return null;
-  if (series && entry.units && entry.units[series]) return entry.units[series];
+  const u = entry.units;
+  if (series && u) {
+    if (u[series]) return u[series];
+    // country|indicator keys: a map by indicator alone serves every country
+    const parts = series.split("|");
+    if (parts.length > 1) {
+      const tail = parts.slice(1).join("|");
+      if (u[tail]) return u[tail];
+      if (u[parts[0]]) return u[parts[0]];
+    }
+  }
   return entry.unit ?? null;
 }
 

@@ -88,10 +88,25 @@ export async function resolve(ref: SeriesRef, origin: string, env: ProviderEnv, 
 }
 
 /** Inner join on dates. Returns aligned arrays in date order. */
-export function align(list: Series[]): { dates: string[]; columns: number[][] } {
-  if (!list.length) return { dates: [], columns: [] };
+export function align(list: Series[]): { dates: string[]; columns: number[][]; gaps: number } {
+  if (!list.length) return { dates: [], columns: [], gaps: 0 };
   const dates = Object.keys(list[0]).filter((d) => list.every((s) => d in s)).sort();
-  return { dates, columns: list.map((s) => dates.map((d) => s[d])) };
+  // Adjacent positions in the joined arrays are treated as adjacent periods by every
+  // lag-based tool; when one series is published every third month the join is a grid
+  // with holes, and a lag-1 correlation over it is a lag-3 correlation in places.
+  let gaps = 0;
+  const f = detectFrequency(dates).frequency;
+  if (f !== "daily" && f !== "unknown") {
+    for (let i = 1; i < dates.length; i++) if (futureDates(dates[i - 1], 1, f)[0] !== dates[i]) gaps++;
+  }
+  return { dates, columns: list.map((s) => dates.map((d) => s[d])), gaps };
+}
+
+/** Attach a warning to the first reference when the join left holes, so it reaches the result's caveats. */
+export function noteGaps(a: { dates: string[]; gaps: number }, r: Resolved): void {
+  if (!a.gaps) return;
+  const note = `The series share ${a.dates.length} dates but ${a.gaps} of the steps between them are longer than one period (a partner series with missing months or a lower frequency), and lags, autocorrelations and forecasts here treat every step as one period. Resample both to the coarser frequency for a clean answer.`;
+  r.caveats = [...r.caveats, note];
 }
 
 export type Freq = "daily" | "weekly" | "monthly" | "quarterly" | "semiannual" | "annual" | "unknown";
