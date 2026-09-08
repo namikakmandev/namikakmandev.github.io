@@ -35,6 +35,15 @@ export interface CatalogEntry {
   as_of?: string;
   refresh?: string;
   series_keys?: string[];
+  /** How many series the file has, when series_keys is a capped sample of them. */
+  series_keys_total?: number;
+  /** Every distinct part of every series id, so search can see past that cap. */
+  series_key_parts?: string[];
+  /** What the numbers are measured in: one unit for the dataset, or one per series. */
+  unit?: string;
+  units?: Record<string, string>;
+  /** reference data, a study output, or a one-off probe of what a source publishes. */
+  kind?: string;
   /** Set by build_catalog.py when the last refresh of this source came back incomplete. */
   degraded?: { failed: string[]; carried_over: number; empty: string[] };
   error?: string;
@@ -62,6 +71,9 @@ const META_KEYS = new Set([
 const CONTAINER_KEYS = new Set(["series", "shares", "regions", "countries", "groups"]);
 
 interface CacheEntry { at: number; body: Json }
+/** Bounded, oldest-first: a Worker isolate has 128 MB and some dataset files are large,
+ *  so an unbounded cache is an OOM waiting for enough traffic. */
+const CACHE_MAX_ENTRIES = 40;
 const cache = new Map<string, CacheEntry>();
 
 export class DataError extends Error {}
@@ -74,11 +86,23 @@ export async function fetchJson(origin: string, path: string): Promise<Json> {
   const url = `${origin.replace(/\/$/, "")}/${path}`;
   const hit = cache.get(url);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.body;
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(20_000) });
+  } catch (e) {
+    const name = e instanceof Error ? e.name : "";
+    if (name === "TimeoutError" || name === "AbortError") throw new DataError(`${path} did not load within 20 seconds.`);
+    throw e;
+  }
   if (res.status === 404) throw new DataError(`No such dataset: ${path}`);
   if (!res.ok) throw new DataError(`Upstream ${res.status} for ${path}`);
   const body = (await res.json()) as Json;
+  cache.delete(url);
   cache.set(url, { at: Date.now(), body });
+  for (const k of cache.keys()) {
+    if (cache.size <= CACHE_MAX_ENTRIES) break;
+    cache.delete(k);
+  }
   return body;
 }
 
@@ -204,6 +228,14 @@ export function describeSeries(all: Map<string, Series>): SeriesInfo[] {
 }
 
 /** Caveats travel with the data: from the catalog, from the file itself, from provenance. */
+/** The unit a given series is in, from the catalogue: the per-series map wins over the
+ *  dataset-wide one, and neither is guessed. */
+export function unitFor(entry: CatalogEntry | undefined, series?: string): string | null {
+  if (!entry) return null;
+  if (series && entry.units && entry.units[series]) return entry.units[series];
+  return entry.unit ?? null;
+}
+
 export function caveatsFor(entry: CatalogEntry | undefined, dataset: Json): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -214,6 +246,7 @@ export function caveatsFor(entry: CatalogEntry | undefined, dataset: Json): stri
     add(entry.note);
     if (entry.provenance === "manual") add(`Pulled by hand, as of ${entry.as_of ?? "unknown"}. ${entry.refresh ?? ""}`.trim());
     if (entry.provenance === "unattributed") add("No script produces this file. Provenance unknown. Verify before use.");
+    if (entry.kind === "probe") add("A probe of what a source publishes, kept as a record of the check. Not a series to quote.");
     if (!entry.auto_refresh && entry.provenance !== "manual") add("Not on the refresh schedule. Check last_commit before treating it as current.");
     if (entry.degraded) {
       const d = entry.degraded;

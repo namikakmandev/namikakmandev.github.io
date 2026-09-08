@@ -6,7 +6,7 @@ import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mc
 import { z } from "zod";
 import {
   type Catalog, type CatalogEntry, type Json, DataError,
-  asText, caveatsFor, datasetName, describeSeries, dig, extractSeries, loadCatalog, loadDataset, sourceFor,
+  asText, caveatsFor, datasetName, describeSeries, dig, extractSeries, loadCatalog, loadDataset, sourceFor, unitFor,
 } from "./data.js";
 import { apply, clip, correlation, resample, round, toPoints, type Frequency, type Transform } from "./transform.js";
 import { registerAnalysis, registerProviders } from "./analysis.js";
@@ -44,6 +44,9 @@ function summary(e: CatalogEntry) {
     coverage: e.coverage,
     source: asText(e.source),
     note: e.note,
+    unit: e.unit,
+    units: e.units,
+    kind: e.kind,
     provenance: e.provenance,
     auto_refresh: e.auto_refresh,
     last_commit: e.last_commit,
@@ -118,12 +121,15 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
         .filter((d) => !d.error)
         .map((d) => {
           const name = datasetName(d.file).toLowerCase();
-          const hay = [name, asText(d.source), d.note, d.producer, d.provider, ...(d.series_keys ?? [])]
+          // series_keys is capped, so on the largest datasets it is a sample. The parts of
+          // every id are stored in full, and searching those is what makes 'Portugal' find
+          // eu-ppp instead of nothing.
+          const hay = [name, asText(d.source), d.note, d.producer, d.provider, d.unit, ...(d.series_keys ?? []), ...(d.series_key_parts ?? [])]
             .filter(Boolean).join(" ").toLowerCase();
           let score = 0;
           for (const t of terms) {
             if (name.includes(t)) score += 3;
-            if (d.series_keys?.some((k) => k.toLowerCase() === t)) score += 2;
+            if (d.series_keys?.some((k) => k.toLowerCase() === t) || d.series_key_parts?.some((k) => k.toLowerCase() === t)) score += 2;
             if (hay.includes(t)) score += 1;
           }
           return { d, score };
@@ -153,8 +159,9 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
         catalog: entry ? summary(entry) : null,
         source: sourceFor(entry, body),
         caveats: caveatsFor(entry, body),
+        unit: entry?.unit ?? (entry?.units ? "differs by series; each is named below" : "not stated in the catalogue"),
         series_count: series.length,
-        series,
+        series: series.map((x) => ({ ...x, unit: unitFor(entry, x.id) ?? undefined })),
         hint: series.length ? undefined : "No date-keyed series found. Use get_dataset to read the raw structure.",
       });
     }),
@@ -195,7 +202,11 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
         source: sourceFor(entry, body),
         caveats: caveatsFor(entry, body),
         frequency, transform,
-        unit_hint: transform === "pct_change" || transform === "yoy" ? "percent" : transform === "rebase" ? `index, ${base ?? pts[0]?.[0]} = 100` : "as published",
+        unit: transform === "pct_change" || transform === "yoy" ? "percent change"
+          : transform === "diff" ? `change in ${unitFor(entry, series) ?? "the published unit"} from the previous observation`
+          : transform === "rebase" ? `index, ${base ?? pts[0]?.[0]} = 100`
+          : transform === "log" ? `natural log of ${unitFor(entry, series) ?? "the published unit"}`
+          : unitFor(entry, series) ?? "not stated in the catalogue — check the source line before quoting a level",
         n: pts.length,
         first: pts[0]?.[0] ?? null,
         last: pts[pts.length - 1]?.[0] ?? null,

@@ -599,22 +599,36 @@ def worldbank(entry):
     # Thirty countries and sixty-five years in one request times out often enough to lose
     # whole indicators, so countries go in chunks and each chunk gets a second attempt.
     iso = list(countries.values())
-    chunks = [iso[i:i + 10] for i in range(0, len(iso), 10)] or [[]]
+    size = int(entry.get("chunk", 10))
+    chunks = [iso[i:i + size] for i in range(0, len(iso), size)] or [[]]
+
+    def pull(code, group, rows, failures, depth=0):
+        """One request for a group of countries; on failure, split it and try the halves.
+
+        A group of ten times out on some indicators and a group of four on others, and
+        asking for four everywhere triples the request count and starts new timeouts.
+        Splitting only what actually failed keeps the fast path fast and still recovers
+        the countries the big request would have lost."""
+        url = (f"https://api.worldbank.org/v2/country/{';'.join(group)}/indicator/{code}"
+               f"?format=json&per_page=20000&date={start}:{time.gmtime().tm_year}")
+        try:
+            j = json.loads(get(url).decode("utf-8", "replace"))
+            rows.extend(j[1] if isinstance(j, list) and len(j) > 1 and j[1] else [])
+            return url
+        except Exception as ex:
+            if len(group) > 1 and depth < 4:
+                time.sleep(2)
+                mid = len(group) // 2
+                pull(code, group[:mid], rows, failures, depth + 1)
+                pull(code, group[mid:], rows, failures, depth + 1)
+            else:
+                failures.append(f"{'+'.join(group)}: {type(ex).__name__}: {ex}")
+            return url
+
     for ikey, code in entry["indicators"].items():
         rows, failures = [], []
         for chunk in chunks:
-            url = (f"https://api.worldbank.org/v2/country/{';'.join(chunk)}/indicator/{code}"
-                   f"?format=json&per_page=20000&date={start}:{time.gmtime().tm_year}")
-            for attempt in (1, 2):
-                try:
-                    j = json.loads(get(url).decode("utf-8", "replace"))
-                    rows.extend(j[1] if isinstance(j, list) and len(j) > 1 and j[1] else [])
-                    break
-                except Exception as ex:
-                    if attempt == 2:
-                        failures.append(f"{'+'.join(chunk)}: {type(ex).__name__}: {ex}")
-                    else:
-                        time.sleep(5)
+            url = pull(code, chunk, rows, failures)
             if MODE == "discover":
                 return {"_discover": {"url": url, "n_rows": len(rows), "sample": rows[:3]}}
         if failures:

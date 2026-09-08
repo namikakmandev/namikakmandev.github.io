@@ -43,7 +43,42 @@ export interface Provider {
 }
 
 const TTL_MS = 10 * 60 * 1000;
+const FETCH_TIMEOUT_MS = 20_000;
+/** Caps on the response cache. A Worker isolate has 128 MB, and a few broad SDMX pulls
+ *  are megabytes each: without a bound the cache walks the isolate into an OOM kill,
+ *  which the client sees as an opaque 500 followed by a working server. */
+const CACHE_MAX_ENTRIES = 60;
+const CACHE_MAX_BYTES = 24 * 1024 * 1024;
+const CACHE_MAX_ENTRY_BYTES = 2 * 1024 * 1024;
 const textCache = new Map<string, { at: number; body: string }>();
+let cacheBytes = 0;
+
+/** Insertion order is eviction order: drop the oldest until both caps hold. */
+function cachePut(url: string, body: string): void {
+  if (body.length > CACHE_MAX_ENTRY_BYTES) return;   // too big to be worth keeping
+  const prev = textCache.get(url);
+  if (prev) { cacheBytes -= prev.body.length; textCache.delete(url); }
+  textCache.set(url, { at: Date.now(), body });
+  cacheBytes += body.length;
+  for (const [k, v] of textCache) {
+    if (textCache.size <= CACHE_MAX_ENTRIES && cacheBytes <= CACHE_MAX_BYTES) break;
+    textCache.delete(k); cacheBytes -= v.body.length;
+  }
+}
+
+/** Everything upstream goes through here, so no single slow host can hold a request open
+ *  until the platform kills it with no message at all. */
+export async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = FETCH_TIMEOUT_MS): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
+  } catch (e) {
+    const name = e instanceof Error ? e.name : "";
+    if (name === "TimeoutError" || name === "AbortError") {
+      throw new DataError(`${new URL(url).host} did not answer within ${Math.round(ms / 1000)} seconds. It may be slow or down; narrow the request (fewer countries, a shorter window) or try again.`);
+    }
+    throw e;
+  }
+}
 
 /** Thrown by getText for a non-2xx, carrying the status and the body so a caller can branch on it. */
 export class UpstreamError extends DataError {
@@ -64,7 +99,7 @@ export function htmlText(body: string, max = 400): string {
 async function getText(url: string, headers: Record<string, string> = {}): Promise<string> {
   const hit = textCache.get(url);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.body;
-  const res = await fetch(url, { headers: { "user-agent": "econ-mcp/0.2 (+https://namikakmandev.github.io)", ...headers } });
+  const res = await fetchWithTimeout(url, { headers: { "user-agent": "econ-mcp/0.2 (+https://namikakmandev.github.io)", ...headers } });
   if (!res.ok) {
     const raw = (await res.text()).slice(0, 4000);
     const head = raw.trimStart().slice(0, 15).toLowerCase();
@@ -76,7 +111,7 @@ async function getText(url: string, headers: Record<string, string> = {}): Promi
   if (head.startsWith("<!doctype") || head.startsWith("<html")) {
     throw new DataError(`${new URL(url).host} answered with a web page instead of data. For EVDS this usually means the key was rejected; check it at evds2.tcmb.gov.tr.`);
   }
-  textCache.set(url, { at: Date.now(), body });
+  cachePut(url, body);
   return body;
 }
 
@@ -348,9 +383,19 @@ const worldbank: Provider = {
       const msg = Array.isArray(j) && j[0] && typeof j[0] === "object" && "message" in (j[0] as object) ? JSON.stringify((j[0] as { message: unknown }).message) : JSON.stringify(j).slice(0, 200);
       throw new DataError(`World Bank returned no data for ${id} / ${country}: ${msg}`);
     }
+    // The API reports how many pages it split the answer into. Reading only the first and
+    // saying nothing hands back a plausible-looking subset of countries.
+    const meta = j[0] as { pages?: number; total?: number } | undefined;
+    const pages = Number(meta?.pages ?? 1);
+    const rows: unknown[] = [...(j[1] as unknown[])];
+    for (let page = 2; page <= Math.min(pages, 10); page++) {
+      const more = (await getJson(`${url}&page=${page}`)) as unknown;
+      if (Array.isArray(more) && Array.isArray(more[1])) rows.push(...(more[1] as unknown[]));
+    }
+    const truncated = pages > 10;
     const series: Record<string, Series> = {};
     let name = id;
-    for (const r of j[1] as Array<{ date: string; value: number | null; countryiso3code?: string; country?: { id: string; value: string }; indicator?: { value: string } }>) {
+    for (const r of rows as Array<{ date: string; value: number | null; countryiso3code?: string; country?: { id: string; value: string }; indicator?: { value: string } }>) {
       if (r.value === null || r.value === undefined) continue;
       const d = normDate(r.date);
       if (!d) continue;
@@ -359,7 +404,8 @@ const worldbank: Provider = {
       if (r.indicator?.value) name = r.indicator.value;
     }
     return { provider: "worldbank", id, source: `World Bank ${id}: ${name}`, url, series,
-      notes: ["Series keys are ISO3 country codes.", "Annual data. Values are as published; some indicators are revised for several years."] };
+      notes: ["Series keys are ISO3 country codes.", "Annual data. Values are as published; some indicators are revised for several years.",
+        ...(truncated ? [`The World Bank split this into ${pages} pages and only the first 10 were read: the answer is incomplete. Ask for fewer countries or a shorter window.`] : [])] };
   },
   async search(query) {
     const url = `https://api.worldbank.org/v2/indicator?format=json&per_page=25000`;
@@ -657,7 +703,7 @@ async function faoAuth(env: ProviderEnv): Promise<string> {
   }
   if (faoToken && Date.now() - faoToken.at < FAO_TOKEN_TTL_MS) return faoToken.token;
   // FAO's edge rejects requests without a User-Agent with an HTML 403, so send the same one as the data calls.
-  const res = await fetch(FAO_BASE + "auth/login", {
+  const res = await fetchWithTimeout(FAO_BASE + "auth/login", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "user-agent": "econ-mcp/0.4 (+https://namikakmandev.github.io)", origin: "https://www.fao.org", referer: "https://www.fao.org/faostat/en/" },
     body: qs({ username: env.FAOSTAT_USER, password: env.FAOSTAT_PASSWORD }),
@@ -893,6 +939,13 @@ const WEATHER_PLACES: Record<string, { lat: number; lon: number; title: string }
 };
 
 /** Variables that accumulate over a period are summed; everything else is averaged. */
+/** Days in the month a 'YYYY-MM' bucket covers, so a short bucket can be recognised. */
+function daysInMonth(key: string): number {
+  const m = /^(\d{4})-(\d{2})$/.exec(key);
+  if (!m) return 30;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]), 0)).getUTCDate();
+}
+
 function weatherAggregation(v: string): "sum" | "mean" {
   return /_sum$|precipitation|rain|snowfall|hours/.test(v) ? "sum" : "mean";
 }
@@ -958,6 +1011,7 @@ const weather: Provider = {
 
     const series: Record<string, Series> = {};
     const units: string[] = [];
+    const partial: string[] = [];
     blocks.forEach((block, bi) => {
       const daily = block.daily;
       if (!daily || !Array.isArray(daily.time)) throw new DataError(`Open-Meteo returned no daily block for ${points[bi].key}.`);
@@ -977,7 +1031,16 @@ const weather: Provider = {
           b.sum += value; b.n += 1; bucket.set(key, b);
         });
         const out: Series = {};
-        for (const [key, b] of bucket) out[key] = how === "sum" ? Math.round(b.sum * 1000) / 1000 : Math.round((b.sum / b.n) * 1000) / 1000;
+        for (const [key, b] of bucket) {
+          // A total over half a month is not a monthly total, and a regression would read
+          // the short last bucket as a real drought. Averages survive a partial period;
+          // sums do not, so drop those.
+          if (how === "sum" && aggregate !== "daily") {
+            const full = aggregate === "annual" ? 365 : daysInMonth(key);
+            if (b.n < full * 0.9) { partial.push(key); continue; }
+          }
+          out[key] = how === "sum" ? Math.round(b.sum * 1000) / 1000 : Math.round((b.sum / b.n) * 1000) / 1000;
+        }
         series[`${points[bi].key}.${v}`] = out;
       }
     });
@@ -990,6 +1053,7 @@ const weather: Provider = {
       notes: [
         "Series keys are 'location.variable'.",
         aggregate === "daily" ? "Daily values as published." : `Daily values aggregated to ${aggregate === "annual" ? "years" : "months"}: totals for rainfall and other accumulating variables, averages for the rest.`,
+        partial.length ? `Dropped as incomplete, because a total over part of a period is not that period's total: ${[...new Set(partial)].sort().join(", ")}. The archive lags real time, so the current period is usually one of them.` : "",
         units.length ? `Units: ${units.join(", ")}.` : "",
         "ERA5 is a reanalysis on a roughly 25 km grid, not a station reading: one point stands for its region and local extremes are smoothed away. Rainfall is less reliable than temperature.",
         "The archive lags real time by about five days.",
@@ -1052,6 +1116,13 @@ const SEC_GROUPS: Record<string, string[]> = {
     "DepreciationDepletionAndAmortization", "PaymentsForRepurchaseOfCommonStock", "PaymentsOfDividendsCommonStock",
   ],
 };
+
+/** The filer reports this tag, but not in the unit that was asked for. */
+class SecUnitError extends DataError {
+  constructor(readonly tag: string, readonly wanted: string, readonly have: string[]) {
+    super(`${tag} is reported in ${have.join(", ")}, not ${wanted}. Pass params={unit:'${have[0]}'} to read it as filed; do not assume the figures convert.`);
+  }
+}
 
 interface SecFact { end: string; start?: string; val: number; form?: string; filed?: string; frame?: string; fy?: number; fp?: string }
 
@@ -1145,8 +1216,15 @@ async function secConcept(cik: string, taxonomy: string, tag: string, unit: stri
     throw secRefusal(e, env, `the ${tag} concept`);
   }
   const units = j.units ?? {};
-  const rows = units[unit] ?? units[Object.keys(units)[0]];
-  if (!Array.isArray(rows) || !rows.length) return null;
+  const rows = units[unit];
+  if (!Array.isArray(rows) || !rows.length) {
+    // Falling back to whatever unit the filer did report and calling it the requested one
+    // is off by an exchange rate, and the number would be deflated and regressed as
+    // dollars. Say which units exist instead.
+    const have = Object.keys(units).filter((u) => Array.isArray(units[u]) && units[u].length);
+    if (have.length) throw new SecUnitError(tag, unit, have);
+    return null;
+  }
   return { facts: rows, label: j.label ?? tag };
 }
 
