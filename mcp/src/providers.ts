@@ -743,6 +743,19 @@ function faoList(v: string | undefined): string | undefined {
   return out.join(",");
 }
 
+/** FAOSTAT abbreviates its units ("An" is animals, "hg/ha" hectograms per hectare); spell them out so a caveat reading "Units: An." says head. */
+const FAO_UNITS: Record<string, string> = {
+  "An": "head (animals)", "1000 An": "thousand head", "No": "number", "1000 No": "thousand",
+  "t": "tonnes", "1000 t": "thousand tonnes", "kg": "kilograms", "g": "grams",
+  "hg/ha": "hectograms per hectare (divide by 10,000 for t/ha)", "kg/ha": "kg per hectare", "t/ha": "tonnes per hectare",
+  "kg/An": "kg per animal", "100 g/An": "hundred grams per animal", "0.1 g/An": "tenths of a gram per animal", "100 mg/An": "hundred milligrams per animal",
+  "ha": "hectares", "1000 ha": "thousand hectares", "km2": "square kilometres",
+  "USD": "US dollars", "1000 USD": "thousand US dollars", "USD/t": "US dollars per tonne", "LCU": "local currency units", "LCU/t": "local currency units per tonne", "SLC": "standard local currency", "SLC/t": "standard local currency per tonne", "Int. $": "international dollars",
+  "%": "percent", "index": "index", "kcal/cap/d": "kilocalories per person per day", "g/cap/d": "grams per person per day", "kg/cap": "kg per person per year",
+  "kt": "kilotonnes", "kt CO2eq": "kilotonnes CO2 equivalent", "1000 persons": "thousand persons", "TJ": "terajoules",
+};
+const faoUnit = (u: string) => FAO_UNITS[u] ? `${FAO_UNITS[u]} (${u})` : u;
+
 const FAO_MONTHS: Record<string, string> = { "7001": "01", "7002": "02", "7003": "03", "7004": "04", "7005": "05", "7006": "06", "7007": "07", "7008": "08", "7009": "09", "7010": "10", "7011": "11", "7012": "12" };
 
 const fao: Provider = {
@@ -813,7 +826,7 @@ const fao: Provider = {
     if (!Object.keys(series).length) throw new DataError(`FAOSTAT rows for ${domain} carried no numeric values`);
     const src = `FAOSTAT ${domain} (${FAO_DOMAINS[domain]?.split(":")[0] ?? domain})`;
     return { provider: "fao", id: domain, source: src, url: FAO_BASE + "en/" + path, series,
-      notes: [`Units: ${[...units].join(", ") || "as published"}. FAOSTAT figures are official, semi-official, estimated or imputed by country and year; the flags are on the FAOSTAT site.`,
+      notes: [`Units: ${[...units].map(faoUnit).join(", ") || "as published"}. FAOSTAT figures are official, semi-official, estimated or imputed by country and year; the flags are on the FAOSTAT site.`,
         keyDims.length ? `Series keys are ${keyDims.join("|")} labels.` : "Single series: area, item and element were all fixed.", ...(elementNote ? [elementNote] : [])] };
   },
   async search(query, env) {
