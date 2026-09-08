@@ -4,14 +4,14 @@ import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { startStatic, startWorker, addr } from "./serve-node.mjs";
-import { installFetchMock } from "./fixtures.mjs";
+import { installFetchMock, setSecBlocked } from "./fixtures.mjs";
 
 const { default: handler } = await import("../dist/index.js");
 installFetchMock();
 
 const stat = await startStatic();
 const origin = addr(stat);
-const worker = await startWorker(handler, { DATA_ORIGIN: origin, EVDS_API_KEY: "test-key", FRED_API_KEY: "fred-key", FAOSTAT_USER: "fao@example.com", FAOSTAT_PASSWORD: "pw" });
+const worker = await startWorker(handler, { DATA_ORIGIN: origin, EVDS_API_KEY: "test-key", FRED_API_KEY: "fred-key", FAOSTAT_USER: "fao@example.com", FAOSTAT_PASSWORD: "pw", SEC_USER_AGENT: "Test Caller test@example.com" });
 const base = addr(worker);
 
 let failures = 0;
@@ -32,14 +32,14 @@ const callRaw = (name, args) => client.callTool({ name, arguments: args });
 await check("tool list includes providers and analysis", async () => {
   const { tools } = await client.listTools();
   const names = new Set(tools.map((t) => t.name));
-  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis", "forecast_evaluate", "local_projections", "iv_regress"]) assert.ok(names.has(n), n);
+  for (const n of ["list_providers", "search_external", "fetch_external", "describe_stats", "test_stationarity", "regress", "granger_causality", "cointegration", "cross_correlation", "hp_filter", "decompose", "forecast", "structural_break", "rolling", "suggest_analysis", "forecast_evaluate", "local_projections", "iv_regress", "predict"]) assert.ok(names.has(n), n);
 });
 
 await check("list_providers reports key state", async () => {
   const j = await call("list_providers", {});
   const evds = j.providers.find((p) => p.provider === "evds");
   assert.match(String(evds.key_present), /yes/);
-  assert.equal(j.providers.length, 10);
+  assert.equal(j.providers.length, 12);
 });
 
 await check("IMF: SDMX-CSV keyed by the dimension columns, dataflow search", async () => {
@@ -334,6 +334,70 @@ await check("forecast and local_projections return chart links with their bands"
   assert.equal(j.series[0].points[10][0], "10");
 });
 
+await check("every method that has a picture returns a chart link, and each one decodes to a drawable spec", async () => {
+  const window = { start: "2000-01" };
+  const cattle = { ...CATTLE, ...window }, corn = { ...CORN, ...window }, cpi = { ...CPI, ...window };
+  const g = { ...CATTLE, ...window, transform: "pct_change" }, g2 = { ...CORN, ...window, transform: "pct_change" };
+
+  const cases = [
+    ["describe_stats", { series: cattle }, ["chart_url"]],
+    ["regress", { y: cattle, x: [corn] }, ["chart_url", "residual_chart_url", "scatter_chart_url"]],
+    ["cointegration", { a: { ...cattle, transform: "log" }, b: { ...corn, transform: "log" } }, ["chart_url", "scatter_chart_url"]],
+    ["cross_correlation", { a: g, b: g2, max_lag: 6 }, ["chart_url"]],
+    ["hp_filter", { series: cattle, include_points: false }, ["chart_url", "cycle_chart_url"]],
+    ["decompose", { series: cattle }, ["chart_url", "components_chart_url", "seasonal_shape_chart_url"]],
+    ["structural_break", { y: cattle }, ["chart_url", "segments_chart_url"]],
+    ["structural_break", { y: cattle, date: "2020-01" }, ["chart_url"]],
+    ["rolling", { series: g, window: 24, stat: "sd" }, ["chart_url"]],
+    ["volatility", { series: g }, ["chart_url"]],
+    ["quantile_regress", { y: cattle, x: [corn] }, ["chart_url"]],
+    ["principal_components", { series: [g, g2] }, ["chart_url", "scree_chart_url"]],
+    ["deflate", { nominal: cattle, deflator: cpi }, ["chart_url"]],
+    ["iv_regress", { y: g, x: [g2], instruments: [{ ...CPI, ...window, transform: "pct_change" }] }, ["chart_url"]],
+    ["forecast_evaluate", { series: cpi, horizon: 3, origins: 8, methods: ["naive", "drift"] }, ["chart_url"]],
+    ["vecm", { series: [{ ...cattle, transform: "log" }, { ...corn, transform: "log" }], rank: 1 }, ["chart_url"]],
+    ["johansen", { series: [{ ...cattle, transform: "log" }, { ...corn, transform: "log" }] }, ["chart_url"]],
+  ];
+  for (const [tool, args, keys] of cases) {
+    const out = await call(tool, args);
+    for (const k of keys) {
+      assert.ok(typeof out[k] === "string" && out[k].includes("/chart.html#"), `${tool}: ${k} missing`);
+      const spec = decodeSpec(out[k]);
+      assert.ok(spec.series.length >= 1 && spec.series.length <= 8, `${tool}: ${k} has ${spec.series.length} series`);
+      for (const ser of spec.series) {
+        if (!ser.points) continue;
+        assert.ok(ser.points.length >= 2 && ser.points.length <= 400, `${tool}: ${k} has ${ser.points.length} points`);
+        for (const [x, v] of ser.points) assert.ok(typeof x === "string" && Number.isFinite(v), `${tool}: ${k} has a non-finite point`);
+      }
+      for (const b of spec.bands ?? []) {
+        assert.ok(spec.series[b.series], `${tool}: ${k} band points past the series list`);
+        for (const [, lo, hi] of b.points) assert.ok(Number.isFinite(lo) && Number.isFinite(hi) && hi >= lo, `${tool}: ${k} band is not an interval`);
+      }
+      assert.equal(spec.api, base);
+    }
+  }
+  // A scatter marks which series is drawn as points, and the fitted line spans the data
+  const reg = await call("regress", { y: cattle, x: [corn] });
+  const sc = decodeSpec(reg.scatter_chart_url);
+  assert.deepEqual(sc.dots, [0]);
+  assert.equal(sc.xaxis, "number");
+  assert.equal(sc.series[1].points.length, 2, "the fitted line is two ends");
+  // Impulse responses come back one chart per shock, each with a band per response
+  const v = await call("var_model", { series: [g, g2], horizon: 8, bootstrap: 50 });
+  assert.equal(v.impulse_response_charts.length, v.shocks.length);
+  const irf = decodeSpec(v.impulse_response_charts[0].chart_url);
+  assert.equal(irf.xaxis, "number");
+  assert.equal(irf.series.length, 2);
+  assert.equal(irf.series[0].points.length, 9, "h = 0..8");
+  assert.equal(irf.bands.length, 2);
+  // A long series is thinned to a link a browser can carry, first and last kept
+  const long = await call("hp_filter", { series: { ...CATTLE, start: "1960-01" }, include_points: false });
+  const hp = decodeSpec(long.chart_url);
+  const pts = hp.series[1].points;
+  assert.ok(pts.length <= 400);
+  assert.equal(pts[0][0].slice(0, 4), "1960");
+});
+
 await check("GET /v1/series returns points for a spec, and errors per series", async () => {
   const spec = { series: [{ ...CATTLE, start: "2020-01", end: "2020-03" }, { dataset: "us-prices", series: "nope" }] };
   const r = await fetch(base + "/v1/series?s=" + encodeURIComponent(JSON.stringify(spec)));
@@ -431,7 +495,9 @@ await check("var_model on growth rates gives IRFs, FEVD and block Granger tests"
   const sh = j.shocks; assert.equal(sh.length, 2);
   const h0 = j.response_bands.horizons[0];
   assert.ok(h0.lo16[j.series[0].label][sh[0]] <= h0.hi84[j.series[0].label][sh[0]], "band ordered");
-  assert.ok(Array.isArray(j.significant_at_68pct));
+  assert.ok(Array.isArray(j.responses_whose_68pct_band_clears_zero));
+  assert.match(j.band_reading, /weaker than a 5% test/, "the band is not reported as significance");
+  assert.match(j.response_bands.kind, /Kilian bias correction/);
   assert.equal(j.impact_matrix.matrix[j.series[0].label][sh[1]], 0, "Cholesky: first series does not respond to the second shock on impact");
   assert.equal(j.long_run_effects, null);
 });
@@ -586,7 +652,13 @@ await check("structural_break judges the scan against sup-F critical values and 
   assert.deepEqual(m.multiple_breaks.breaks.map((b) => b.date), ["1994-03", "1998-05"]);
   assert.equal(m.multiple_breaks.segments.length, 3);
   assert.ok(Math.abs(m.multiple_breaks.segments[1].mean_y - m.multiple_breaks.segments[0].mean_y - 3) < 0.3);
-  assert.match(m.verdict, /Sequential search: 2 break/);
+  // Three distinct levels make the single-fit residuals look like a random walk, so the
+  // serial-correlation correction cannot separate a real break from persistence here.
+  // The tool must say that rather than pick a side: the dates are still reported.
+  assert.ok(m.serial_correlation_correction.factor > 5, JSON.stringify(m.serial_correlation_correction));
+  assert.match(m.verdict, /Undecided/);
+  assert.match(m.verdict, /1994-03, 1998-05/, "and it still names where the breaks are");
+  assert.ok(m.sup_F_uncorrected > m.sup_F * 5, "the uncorrected statistic is reported next to it");
   const rel = await call("structural_break", { y: { ...CATTLE, transform: "pct_change", start: "1990-01" }, x: { ...CORN, transform: "pct_change", start: "1990-01" }, max_breaks: 2 });
   assert.ok(rel.multiple_breaks.segments.every((sg) => "slope" in sg), "relation breaks report slopes per segment");
 });
@@ -628,6 +700,201 @@ await check("johansen and vecm with a restricted constant report the constant in
   const plan2 = await call("suggest_analysis", { series: [{ points: a.map((v, i) => [dt(i), v + 0.5 * i]), label: "a" }, { points: b.map((v, i) => [dt(i), v + 0.5 * i]), label: "b" }] });
   const jo2 = plan2.plan.find((p) => p.tool === "vecm");
   if (jo2) assert.equal(jo2.args.deterministic, "constant", "drifting walks get the unrestricted constant");
+});
+
+await check("sec: a company balance sheet by quarter, restatements resolved, tickers and CIKs both work", async () => {
+  // First, before anything caches the directory: when the SEC refuses the caller, say so.
+  // Reporting it as an unknown company would send the reader hunting for a valid ticker.
+  setSecBlocked(true);
+  const blocked = await callRaw("fetch_external", { provider: "sec", id: "AAPL:Assets" });
+  assert.ok(blocked.isError, blocked.content[0].text);
+  const said = blocked.content[0].text;
+  assert.match(said, /refused its ticker directory/, said);
+  assert.match(said, /403/, "the status the SEC gave");
+  assert.match(said, /Undeclared Automated Tool/, "the words off the SEC's own page, not the markup around them");
+  assert.match(said, /SEC_USER_AGENT/, "and what to do about it");
+  setSecBlocked(false);
+  const bs = await call("fetch_external", { provider: "sec", id: "AAPL:balance_sheet" });
+  // Only the tags this filer actually reports come back; the rest of the statement is absent, not empty.
+  assert.deepEqual(bs.series.map((x) => x.key), ["Assets", "StockholdersEquity"], JSON.stringify(bs.series));
+  assert.equal(bs.series[0].first, "2023-Q1");
+  assert.match(bs.source, /Apple Inc\./);
+  assert.match(bs.source, /CIK 0000320193/);
+  const assets = await call("fetch_external", { provider: "sec", id: "AAPL:Assets" });
+  // The SEC's own calendar frame labels the quarter, so odd fiscal years stay comparable.
+  assert.deepEqual(assets.points, [["2023-Q1", 332160000000], ["2023-Q2", 335038000000], ["2023-Q3", 352583000000], ["2023-Q4", 353514000000]]);
+  assert.equal(assets.points[2][1], 352583000000, "the later filing wins over the first print of the same period");
+  // Flows keep the quarterly duration by default, and the fiscal year on request
+  const ni = await call("fetch_external", { provider: "sec", id: "AAPL:NetIncomeLoss" });
+  assert.deepEqual(ni.points, [["2023-Q1", 24160000000], ["2023-Q2", 19881000000], ["2023-Q3", 22956000000]], "the twelve-month row is not a quarter");
+  const niY = await call("fetch_external", { provider: "sec", id: "AAPL:NetIncomeLoss", params: { annual: "true" } });
+  assert.deepEqual(niY.points, [["2023", 96995000000]]);
+  // A CIK works as well as a ticker
+  const byCik = await call("fetch_external", { provider: "sec", id: "CIK0000320193:Assets" });
+  assert.equal(byCik.points.length, 4);
+  assert.ok(byCik.caveats.some((c) => /restated/.test(c)), JSON.stringify(byCik.caveats));
+  // Clear errors for a bad ticker, a bad tag and a malformed id
+  for (const [args, re] of [
+    [{ provider: "sec", id: "NOPE:Assets" }, /No SEC filer with ticker/],
+    [{ provider: "sec", id: "AAPL:NotATag" }, /no us-gaap tag/],
+
+    [{ provider: "sec", id: "AAPL" }, /TICKER:TAG/],
+  ]) {
+    const r = await callRaw("fetch_external", args);
+    assert.ok(r.isError && re.test(r.content[0].text), JSON.stringify(args) + " -> " + r.content[0].text);
+  }
+  // list_providers must report the contact state, and it can only do that if the variable
+  // reaches the provider at all: a plumbing gap here makes the documented remedy useless.
+  const provs = await call("list_providers", {});
+  const secp = provs.providers.find((p) => p.provider === "sec");
+  assert.match(String(secp.needs_key), /SEC_USER_AGENT/);
+  assert.match(String(secp.key_present), /yes/, "the worker passes SEC_USER_AGENT through to the provider");
+  // A tag the filer reports only in another currency must not come back labelled USD:
+  // the figures do not convert, and they would be deflated and regressed as dollars.
+  const wrongUnit = await callRaw("fetch_external", { provider: "sec", id: "AAPL:Revenues" });
+  assert.ok(wrongUnit.isError, JSON.stringify(wrongUnit).slice(0, 200));
+  assert.match(wrongUnit.content[0].text, /reported in EUR, not USD/);
+  const asFiled = await call("fetch_external", { provider: "sec", id: "AAPL:Revenues", params: { unit: "EUR" } });
+  assert.equal(asFiled.points.length, 1, "and it reads fine once you ask for the unit it is in");
+  const found = await call("search_external", { provider: "sec", query: "balance sheet" });
+  assert.ok(found.matches.length, JSON.stringify(found));
+  // A bare ticker with no curated match still offers that filer's three statements
+  const byName = await call("search_external", { provider: "sec", query: "IBM" });
+  assert.deepEqual(byName.matches.map((m) => m.id), ["IBM:balance_sheet", "IBM:income_statement", "IBM:cash_flow"], JSON.stringify(byName.matches));
+});
+
+await check("search sees past the capped key list on the largest datasets", async () => {
+  // eu-ppp has 1166 series and the catalogue lists 100 of them, so a search scoring only
+  // on that sample cannot find a country whose keys fall outside it.
+  const d = await call("describe_dataset", { dataset: "eu-ppp" });
+  assert.ok(d.catalog.series > 1000, "still the big one");
+  const hit = await call("search_datasets", { query: "PT" });
+  assert.ok(hit.matches.some((m) => m.dataset === "eu-ppp"), JSON.stringify(hit.matches.map((m) => m.dataset)));
+});
+
+await check("every number says what it is measured in", async () => {
+  // A figure nobody can name the unit of cannot go in front of a client.
+  const d = await call("describe_dataset", { dataset: "energy-spot" });
+  assert.match(String(d.unit), /differs by series/);
+  const brent = d.series.find((x) => x.id === "brent_usd_bbl");
+  assert.equal(brent.unit, "USD per barrel");
+  assert.equal(d.series.find((x) => x.id === "henry_hub_usd_mmbtu").unit, "USD per million BTU");
+  // one unit for the whole dataset, and it reaches get_series
+  const one = await call("describe_dataset", { dataset: "tr-house-prices" });
+  assert.equal(one.unit, "index, 2023 = 100");
+  const g = await call("get_series", { dataset: "energy-spot", series: "brent_usd_bbl", last_n: 3 });
+  assert.equal(g.unit, "USD per barrel");
+  // a transform changes the unit, and says so rather than repeating the level's
+  const y = await call("get_series", { dataset: "energy-spot", series: "brent_usd_bbl", transform: "yoy", last_n: 3 });
+  assert.equal(y.unit, "percent change");
+  const diff = await call("get_series", { dataset: "energy-spot", series: "brent_usd_bbl", transform: "diff", last_n: 3 });
+  assert.match(diff.unit, /change in USD per barrel/);
+});
+
+await check("World Bank: a paged answer is read to the end, not truncated at page one", async () => {
+  const j = await call("fetch_external", { provider: "worldbank", id: "PAGED", params: { country: "TUR" }, series: "TUR" });
+  assert.deepEqual(j.points, [["2020", 10], ["2021", 20]], "both pages, in date order");
+});
+
+await check("weather: whole months only, sums for rain and means for temperature, partial periods dropped", async () => {
+  const w = { provider: "weather", id: "us-corn-belt+tr-konya", params: { start: "2024-06", end: "2024-07" } };
+  const j = await call("fetch_external", w);
+  assert.equal(j.series_count, 4, JSON.stringify(j.series));
+  // June is complete in the fixture: 30 days of 1 mm is a real monthly total.
+  const corn = await call("fetch_external", { ...w, series: "us-corn-belt.precipitation_sum" });
+  assert.deepEqual(corn.points, [["2024-06", 30]], "the two-day July stub is not a July total");
+  // Temperature is averaged, and an average over part of a month is still an average.
+  const temp = await call("fetch_external", { ...w, series: "us-corn-belt.temperature_2m_mean" });
+  assert.deepEqual(temp.points, [["2024-06", 23], ["2024-07", 25]]);
+  // A null day is skipped rather than counted as zero: 29 days of 0.5 mm, not 30.
+  const konya = await call("fetch_external", { ...w, series: "tr-konya.precipitation_sum" });
+  assert.deepEqual(konya.points, [["2024-06", 14.5]]);
+  assert.ok(j.notes.some((c) => /Dropped as incomplete/.test(c)), JSON.stringify(j.notes));
+  assert.match(j.source, /ERA5/);
+  assert.ok(corn.caveats.some((c) => /reanalysis/.test(c)), JSON.stringify(corn.caveats));
+  // Daily aggregation keeps every day, partial or not: there is no period to be short of.
+  const daily = await call("fetch_external", { provider: "weather", id: "us-corn-belt", params: { aggregate: "daily" }, series: "us-corn-belt.precipitation_sum" });
+  assert.equal(daily.points.length, 32);
+  // Clear errors for a bad place, a bad aggregate and an impossible coordinate
+  for (const [args, re] of [
+    [{ provider: "weather", id: "narnia" }, /Unknown weather location/],
+    [{ provider: "weather", id: "us-corn-belt", params: { aggregate: "hourly" } }, /aggregate must be/],
+    [{ provider: "weather", id: "999,999" }, /Latitude must be/],
+  ]) {
+    const r = await callRaw("fetch_external", args);
+    assert.ok(r.isError && re.test(r.content[0].text), JSON.stringify(args) + " -> " + r.content[0].text);
+  }
+});
+
+await check("/v1/analyze runs the same tools over plain HTTP, no MCP client", async () => {
+  // The catalogue of what is callable
+  const list = await (await fetch(base + "/v1/analyze")).json();
+  assert.ok(list.tools.length > 20, list.tools.length + " tools");
+  assert.ok(list.tools.some((t) => t.name === "forecast" && t.description), JSON.stringify(list.tools.slice(0, 2)));
+
+  // A forecast, by POST
+  const r = await fetch(base + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tool: "forecast", args: { series: { dataset: "us-prices", series: "cpi", start: "2015-01" }, horizon: 4, method: "holt" } }) });
+  assert.equal(r.status, 200);
+  const j = await r.json();
+  assert.equal(j.tool, "forecast");
+  assert.equal(j.result.forecast.length, 4);
+  assert.ok(j.result.chart_url && j.result.source, "carries the chart link and the source");
+
+  // A structural break, by GET
+  const g = await fetch(base + "/v1/analyze?tool=structural_break&args=" + encodeURIComponent(JSON.stringify({ y: { dataset: "us-prices", series: "cattle_ppi", transform: "yoy", start: "1990-01" }, max_breaks: 2 })));
+  const gj = await g.json();
+  assert.equal(g.status, 200);
+  assert.ok(gj.result.verdict && gj.result.sup_F_critical, JSON.stringify(gj).slice(0, 200));
+
+  // Errors are reported, not thrown
+  const bad = await fetch(base + "/v1/analyze?tool=nope");
+  assert.equal(bad.status, 404);
+  assert.ok((await bad.json()).tools.length > 0);
+  const badArgs = await fetch(base + "/v1/analyze?tool=forecast&args=" + encodeURIComponent(JSON.stringify({ horizon: 4 })));
+  assert.equal(badArgs.status, 400);
+  assert.ok((await badArgs.json()).issues.length, "says which argument is wrong");
+  const badSeries = await fetch(base + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tool: "forecast", args: { series: { dataset: "us-prices", series: "nope" } } }) });
+  assert.equal(badSeries.status, 400);
+  assert.match((await badSeries.json()).error, /No series/);
+  // CORS, so a browser page on the site can call it
+  assert.equal(r.headers.get("access-control-allow-origin"), "*");
+});
+
+await check("predict recommends a method, says whether it beats no-change, and forecasts with it", async () => {
+  const j = await call("predict", { series: { ...CPI, start: "2005-01" }, horizon: 6, origins: 10 });
+  assert.ok(j.methods.length >= 6, JSON.stringify(j.methods.map((m) => m.method)));
+  for (let i = 1; i < j.methods.length; i++) assert.ok(j.methods[i].typical_error >= j.methods[i - 1].typical_error, "ranked by error");
+  assert.equal(j.methods[0].rank, 1);
+  assert.ok(j.methods.filter((m) => m.recommended).length === 1, "exactly one recommendation");
+  assert.equal(j.methods[0].method, j.recommendation.method);
+  assert.ok(j.methods.every((m) => m.what_it_does), "every method explained in words");
+  assert.equal(j.used.method, j.recommendation.method);
+  assert.equal(j.used.overridden, false);
+  assert.equal(j.forecast.length, 6);
+  assert.ok(j.forecast[5].lo95 < j.forecast[5].value && j.forecast[5].value < j.forecast[5].hi95, "band brackets the path");
+  assert.ok(j.forecast[5].hi95 - j.forecast[5].lo95 > j.forecast[0].hi95 - j.forecast[0].lo95, "band widens with the horizon");
+  assert.ok(j.chart_url.includes("chart.html#"), j.chart_url);
+  assert.ok(j.tested.origins === 10 && j.tested.from < j.tested.to);
+  assert.match(j.reading, /typical error/);
+  assert.ok(typeof j.recommendation.why === "string" && j.recommendation.why.length > 20);
+  // Overriding the recommendation is honoured and flagged
+  const forced = await call("predict", { series: { ...CPI, start: "2005-01" }, horizon: 6, origins: 10, method: "naive" });
+  assert.equal(forced.used.method, "naive");
+  assert.equal(forced.used.overridden, true);
+  assert.ok(forced.forecast.every((p) => p.value === forced.last_actual[1]), "naive holds the last value flat");
+  assert.match(forced.reading, /You asked for assume no change/);
+  // A series too short to test says so instead of guessing
+  const short = await callRaw("predict", { series: { ...CPI, start: "2025-01" }, horizon: 12 });
+  assert.ok(short.isError && /needs at least/.test(short.content[0].text), short.content[0].text);
+  // And it is reachable over plain HTTP too
+  const http = await fetch(base + "/v1/analyze", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tool: "predict", args: { series: { ...CATTLE, transform: "yoy", start: "1995-01" }, horizon: 3, origins: 8 } }) });
+  const hj = await http.json();
+  assert.equal(http.status, 200);
+  assert.equal(hj.result.forecast.length, 3);
+  assert.ok(hj.result.recommendation.method);
 });
 
 await client.close();

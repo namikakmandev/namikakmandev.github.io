@@ -5,7 +5,7 @@
  */
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { buildServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
-import { handleSeriesRequest } from "./api.js";
+import { handleAnalyzeRequest, handleSeriesRequest } from "./api.js";
 
 export interface Env {
   /** Where the curated datasets live. Defaults to the portfolio site when unset. */
@@ -16,6 +16,9 @@ export interface Env {
   FRED_API_KEY?: string;
   /** Optional. Required for TCMB EVDS pulls. */
   EVDS_API_KEY?: string;
+  /** Optional but effectively required for SEC pulls: the SEC refuses callers whose
+   *  user agent does not name them, in the form 'Company Name admin@example.com'. */
+  SEC_USER_AGENT?: string;
   /** Optional. FAOSTAT developer account (free); or a ready token. */
   FAOSTAT_USER?: string;
   FAOSTAT_PASSWORD?: string;
@@ -23,7 +26,7 @@ export interface Env {
 }
 
 function providerEnv(env: Env) {
-  return { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY, FAOSTAT_USER: env.FAOSTAT_USER, FAOSTAT_PASSWORD: env.FAOSTAT_PASSWORD, FAOSTAT_API_TOKEN: env.FAOSTAT_API_TOKEN };
+  return { FRED_API_KEY: env.FRED_API_KEY, EVDS_API_KEY: env.EVDS_API_KEY, FAOSTAT_USER: env.FAOSTAT_USER, FAOSTAT_PASSWORD: env.FAOSTAT_PASSWORD, FAOSTAT_API_TOKEN: env.FAOSTAT_API_TOKEN, SEC_USER_AGENT: env.SEC_USER_AGENT };
 }
 
 const CORS = {
@@ -68,8 +71,8 @@ export default {
         endpoint: new URL("/mcp", url).href,
         data_origin: origin,
         auth: env.MCP_API_KEYS ? "bearer" : "none",
-        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY", bis: "open", fao: env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "enabled" : "needs FAOSTAT_USER and FAOSTAT_PASSWORD", imf: "open" },
-        http: { series: new URL("/v1/series?s=" + encodeURIComponent('{"series":[{"dataset":"us-prices","series":"cattle_ppi","start":"2020"}]}'), url).href, chart: origin + "/chart.html" },
+        providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY", bis: "open", fao: env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "enabled" : "needs FAOSTAT_USER and FAOSTAT_PASSWORD", imf: "open", weather: "open", sec: "open" },
+        http: { series: new URL("/v1/series?s=" + encodeURIComponent('{"series":[{"dataset":"us-prices","series":"cattle_ppi","start":"2020"}]}'), url).href, analyze: new URL("/v1/analyze", url).href, chart: origin + "/chart.html" },
         docs: "https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp",
       });
     }
@@ -79,6 +82,12 @@ export default {
     if (url.pathname === "/v1/series") {
       if (!authorized(request, env)) return withCors(new Response("Unauthorized", { status: 401, headers: { "www-authenticate": "Bearer" } }));
       const { status, body } = await handleSeriesRequest(request, origin, providerEnv(env));
+      return json(body, status);
+    }
+
+    if (url.pathname === "/v1/analyze") {
+      if (!authorized(request, env)) return withCors(new Response("Unauthorized", { status: 401, headers: { "www-authenticate": "Bearer" } }));
+      const { status, body } = await handleAnalyzeRequest(request, origin, providerEnv(env), url.origin);
       return json(body, status);
     }
 
@@ -96,6 +105,6 @@ export default {
       return withCors(res);
     }
 
-    return json({ error: "not found", try: ["/", "/mcp", "/health", "/v1/series?s=..."] }, 404);
+    return json({ error: "not found", try: ["/", "/mcp", "/health", "/v1/series?s=...", "/v1/analyze"] }, 404);
   },
 } satisfies ExportedHandler<Env>;

@@ -14,7 +14,7 @@ import { apply, clip, resample, type Frequency, type Transform } from "./transfo
 export const SeriesRefSchema = z.object({
   dataset: z.string().optional().describe("Local dataset name, e.g. 'us-prices'"),
   series: z.string().optional().describe("Series id within the dataset or provider result; required for local datasets, optional when a provider returns one series"),
-  provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf"]).optional(),
+  provider: z.enum(["fred", "eurostat", "worldbank", "ecb", "oecd", "owid", "evds", "bis", "fao", "imf", "weather", "sec"]).optional(),
   id: z.string().optional().describe("Provider series or dataset id"),
   params: z.record(z.string(), z.string()).optional().describe("Provider filters, e.g. {geo:'TR'} for Eurostat, {country:'TUR'} for World Bank"),
   points: z.array(z.tuple([z.string(), z.number()])).optional().describe("Inline data as [date, value] pairs"),

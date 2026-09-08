@@ -13,6 +13,7 @@ import { clip } from "./transform.js";
 
 export interface ProviderEnv {
   FRED_API_KEY?: string;
+  SEC_USER_AGENT?: string;
   EVDS_API_KEY?: string;
   FAOSTAT_USER?: string;
   FAOSTAT_PASSWORD?: string;
@@ -42,19 +43,75 @@ export interface Provider {
 }
 
 const TTL_MS = 10 * 60 * 1000;
+const FETCH_TIMEOUT_MS = 20_000;
+/** Caps on the response cache. A Worker isolate has 128 MB, and a few broad SDMX pulls
+ *  are megabytes each: without a bound the cache walks the isolate into an OOM kill,
+ *  which the client sees as an opaque 500 followed by a working server. */
+const CACHE_MAX_ENTRIES = 60;
+const CACHE_MAX_BYTES = 24 * 1024 * 1024;
+const CACHE_MAX_ENTRY_BYTES = 2 * 1024 * 1024;
 const textCache = new Map<string, { at: number; body: string }>();
+let cacheBytes = 0;
+
+/** Insertion order is eviction order: drop the oldest until both caps hold. */
+function cachePut(url: string, body: string): void {
+  if (body.length > CACHE_MAX_ENTRY_BYTES) return;   // too big to be worth keeping
+  const prev = textCache.get(url);
+  if (prev) { cacheBytes -= prev.body.length; textCache.delete(url); }
+  textCache.set(url, { at: Date.now(), body });
+  cacheBytes += body.length;
+  for (const [k, v] of textCache) {
+    if (textCache.size <= CACHE_MAX_ENTRIES && cacheBytes <= CACHE_MAX_BYTES) break;
+    textCache.delete(k); cacheBytes -= v.body.length;
+  }
+}
+
+/** Everything upstream goes through here, so no single slow host can hold a request open
+ *  until the platform kills it with no message at all. */
+export async function fetchWithTimeout(url: string, init: RequestInit = {}, ms = FETCH_TIMEOUT_MS): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
+  } catch (e) {
+    const name = e instanceof Error ? e.name : "";
+    if (name === "TimeoutError" || name === "AbortError") {
+      throw new DataError(`${new URL(url).host} did not answer within ${Math.round(ms / 1000)} seconds. It may be slow or down; narrow the request (fewer countries, a shorter window) or try again.`);
+    }
+    throw e;
+  }
+}
+
+/** Thrown by getText for a non-2xx, carrying the status and the body so a caller can branch on it. */
+export class UpstreamError extends DataError {
+  constructor(message: string, readonly status: number, readonly body = "") { super(message); }
+}
+
+/** The readable words out of an HTML error page, for hosts that refuse in HTML. */
+export function htmlText(body: string, max = 400): string {
+  return body
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
 
 async function getText(url: string, headers: Record<string, string> = {}): Promise<string> {
   const hit = textCache.get(url);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.body;
-  const res = await fetch(url, { headers: { "user-agent": "econ-mcp/0.2 (+https://namikakmandev.github.io)", ...headers } });
-  if (!res.ok) throw new DataError(`Upstream ${res.status} from ${new URL(url).host}: ${(await res.text()).slice(0, 200)}`);
+  const res = await fetchWithTimeout(url, { headers: { "user-agent": "econ-mcp/0.2 (+https://namikakmandev.github.io)", ...headers } });
+  if (!res.ok) {
+    const raw = (await res.text()).slice(0, 4000);
+    const head = raw.trimStart().slice(0, 15).toLowerCase();
+    const shown = head.startsWith("<!doctype") || head.startsWith("<html") ? htmlText(raw) : raw.slice(0, 200);
+    throw new UpstreamError(`Upstream ${res.status} from ${new URL(url).host}: ${shown}`, res.status, raw);
+  }
   const body = await res.text();
   const head = body.trimStart().slice(0, 15).toLowerCase();
   if (head.startsWith("<!doctype") || head.startsWith("<html")) {
     throw new DataError(`${new URL(url).host} answered with a web page instead of data. For EVDS this usually means the key was rejected; check it at evds2.tcmb.gov.tr.`);
   }
-  textCache.set(url, { at: Date.now(), body });
+  cachePut(url, body);
   return body;
 }
 
@@ -326,9 +383,19 @@ const worldbank: Provider = {
       const msg = Array.isArray(j) && j[0] && typeof j[0] === "object" && "message" in (j[0] as object) ? JSON.stringify((j[0] as { message: unknown }).message) : JSON.stringify(j).slice(0, 200);
       throw new DataError(`World Bank returned no data for ${id} / ${country}: ${msg}`);
     }
+    // The API reports how many pages it split the answer into. Reading only the first and
+    // saying nothing hands back a plausible-looking subset of countries.
+    const meta = j[0] as { pages?: number; total?: number } | undefined;
+    const pages = Number(meta?.pages ?? 1);
+    const rows: unknown[] = [...(j[1] as unknown[])];
+    for (let page = 2; page <= Math.min(pages, 10); page++) {
+      const more = (await getJson(`${url}&page=${page}`)) as unknown;
+      if (Array.isArray(more) && Array.isArray(more[1])) rows.push(...(more[1] as unknown[]));
+    }
+    const truncated = pages > 10;
     const series: Record<string, Series> = {};
     let name = id;
-    for (const r of j[1] as Array<{ date: string; value: number | null; countryiso3code?: string; country?: { id: string; value: string }; indicator?: { value: string } }>) {
+    for (const r of rows as Array<{ date: string; value: number | null; countryiso3code?: string; country?: { id: string; value: string }; indicator?: { value: string } }>) {
       if (r.value === null || r.value === undefined) continue;
       const d = normDate(r.date);
       if (!d) continue;
@@ -337,7 +404,8 @@ const worldbank: Provider = {
       if (r.indicator?.value) name = r.indicator.value;
     }
     return { provider: "worldbank", id, source: `World Bank ${id}: ${name}`, url, series,
-      notes: ["Series keys are ISO3 country codes.", "Annual data. Values are as published; some indicators are revised for several years."] };
+      notes: ["Series keys are ISO3 country codes.", "Annual data. Values are as published; some indicators are revised for several years.",
+        ...(truncated ? [`The World Bank split this into ${pages} pages and only the first 10 were read: the answer is incomplete. Ask for fewer countries or a shorter window.`] : [])] };
   },
   async search(query) {
     const url = `https://api.worldbank.org/v2/indicator?format=json&per_page=25000`;
@@ -635,7 +703,7 @@ async function faoAuth(env: ProviderEnv): Promise<string> {
   }
   if (faoToken && Date.now() - faoToken.at < FAO_TOKEN_TTL_MS) return faoToken.token;
   // FAO's edge rejects requests without a User-Agent with an HTML 403, so send the same one as the data calls.
-  const res = await fetch(FAO_BASE + "auth/login", {
+  const res = await fetchWithTimeout(FAO_BASE + "auth/login", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json", "user-agent": "econ-mcp/0.4 (+https://namikakmandev.github.io)", origin: "https://www.fao.org", referer: "https://www.fao.org/faostat/en/" },
     body: qs({ username: env.FAOSTAT_USER, password: env.FAOSTAT_PASSWORD }),
@@ -845,6 +913,397 @@ const imf: Provider = {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Open-Meteo historical weather (ERA5 reanalysis, keyless)
+
+/** Grain and livestock regions, one representative grid point each. */
+const WEATHER_PLACES: Record<string, { lat: number; lon: number; title: string }> = {
+  "us-corn-belt": { lat: 41.6, lon: -93.6, title: "US Corn Belt (Des Moines, Iowa)" },
+  "us-plains-wheat": { lat: 37.7, lon: -97.3, title: "US winter wheat plains (Wichita, Kansas)" },
+  "us-texas-cattle": { lat: 35.2, lon: -101.8, title: "Texas panhandle cattle feeding (Amarillo)" },
+  "tr-konya": { lat: 37.87, lon: 32.49, title: "Türkiye central Anatolia grain (Konya)" },
+  "tr-thrace": { lat: 41.68, lon: 26.56, title: "Türkiye Thrace grain (Edirne)" },
+  "tr-cukurova": { lat: 37.0, lon: 35.32, title: "Türkiye Çukurova (Adana)" },
+  "tr-erzurum": { lat: 39.9, lon: 41.27, title: "Türkiye eastern grazing (Erzurum)" },
+  "eu-beauce": { lat: 47.9, lon: 1.9, title: "French grain belt (Orléans)" },
+  "eu-north-germany": { lat: 52.37, lon: 9.73, title: "North German plain (Hannover)" },
+  "eu-poland": { lat: 52.4, lon: 16.93, title: "Polish grain belt (Poznań)" },
+  "eu-spain-duero": { lat: 41.65, lon: -4.72, title: "Spanish Duero basin (Valladolid)" },
+  "ua-steppe": { lat: 48.5, lon: 32.26, title: "Ukrainian steppe (Kropyvnytskyi)" },
+  "ru-volga": { lat: 51.53, lon: 46.03, title: "Russian Volga grain (Saratov)" },
+  "ar-pampas": { lat: -32.95, lon: -60.65, title: "Argentine pampas (Rosario)" },
+  "br-mato-grosso": { lat: -12.55, lon: -55.72, title: "Brazilian soy belt (Sorriso)" },
+  "au-wheat-belt": { lat: -31.48, lon: 118.28, title: "Australian wheat belt (Merredin)" },
+  "in-punjab": { lat: 30.9, lon: 75.85, title: "Indian Punjab (Ludhiana)" },
+  "cn-north-plain": { lat: 34.75, lon: 113.62, title: "North China plain (Zhengzhou)" },
+};
+
+/** Variables that accumulate over a period are summed; everything else is averaged. */
+/** Days in the month a 'YYYY-MM' bucket covers, so a short bucket can be recognised. */
+function daysInMonth(key: string): number {
+  const m = /^(\d{4})-(\d{2})$/.exec(key);
+  if (!m) return 30;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]), 0)).getUTCDate();
+}
+
+function weatherAggregation(v: string): "sum" | "mean" {
+  return /_sum$|precipitation|rain|snowfall|hours/.test(v) ? "sum" : "mean";
+}
+
+function weatherPoint(token: string): { key: string; lat: number; lon: number; title: string } {
+  const t = token.trim();
+  const place = WEATHER_PLACES[t.toLowerCase()];
+  if (place) return { key: t.toLowerCase(), lat: place.lat, lon: place.lon, title: place.title };
+  const m = /^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/.exec(t);
+  if (!m) {
+    throw new DataError(`Unknown weather location '${t}'. Use a named region (${Object.keys(WEATHER_PLACES).slice(0, 6).join(", ")}, …) or 'lat,lon' such as '39.93,32.86'.`);
+  }
+  const lat = Number(m[1]), lon = Number(m[2]);
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) throw new DataError(`Latitude must be -90..90 and longitude -180..180, got '${t}'.`);
+  return { key: `${lat},${lon}`, lat, lon, title: `${lat}, ${lon}` };
+}
+
+/** 'YYYY', 'YYYY-MM' or 'YYYY-MM-DD' -> a full ISO date at the start or end of the period. */
+function weatherDay(raw: string | undefined, fallback: string, end: boolean): string {
+  const v = (raw ?? "").trim();
+  if (!v) return fallback;
+  if (/^\d{4}$/.test(v)) return end ? `${v}-12-31` : `${v}-01-01`;
+  if (/^\d{4}-\d{2}$/.test(v)) {
+    if (!end) return `${v}-01`;
+    const [y, m] = v.split("-").map(Number);
+    return `${v}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, "0")}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  throw new DataError(`Weather dates must be YYYY, YYYY-MM or YYYY-MM-DD, got '${v}'.`);
+}
+
+const weather: Provider = {
+  name: "weather",
+  title: "Open-Meteo historical weather (ERA5 reanalysis)",
+  coverage: "Daily temperature, rainfall, evapotranspiration and wind anywhere on land from 1940 to about five days ago, aggregated to months or years. Named grain and livestock regions, or any latitude and longitude.",
+  id_format: "A named region, several joined with '+', or 'lat,lon': e.g. 'us-corn-belt', 'tr-konya+ua-steppe', '39.93,32.86'. params: daily (comma-separated variables, default temperature_2m_mean,precipitation_sum), aggregate (monthly, annual or daily; default monthly), start and end as YYYY, YYYY-MM or YYYY-MM-DD.",
+  needs_key: null,
+  curated: Object.entries(WEATHER_PLACES).map(([id, p]) => ({ id, title: p.title, hint: `Grid point ${p.lat}, ${p.lon}. Variables: temperature_2m_mean, temperature_2m_max, temperature_2m_min, precipitation_sum, rain_sum, snowfall_sum, et0_fao_evapotranspiration, windspeed_10m_max, shortwave_radiation_sum.` })),
+  async fetch(id, params) {
+    const tokens = id.split("+").map((t) => t.trim()).filter(Boolean);
+    if (!tokens.length) throw new DataError("Give at least one weather location.");
+    if (tokens.length > 8) throw new DataError(`At most 8 locations at once, got ${tokens.length}.`);
+    const points = tokens.map(weatherPoint);
+    const vars = (params.daily ?? "temperature_2m_mean,precipitation_sum").split(",").map((v) => v.trim()).filter(Boolean);
+    if (!vars.length) throw new DataError("Give at least one daily variable, e.g. daily='temperature_2m_mean,precipitation_sum'.");
+    const aggregate = (params.aggregate ?? "monthly").toLowerCase();
+    if (!["monthly", "annual", "daily"].includes(aggregate)) throw new DataError(`aggregate must be monthly, annual or daily, got '${aggregate}'.`);
+    const start = weatherDay(params.start, "1990-01-01", false);
+    // ERA5 lands about five days behind; ask for a week ago so the request never runs past the archive.
+    const end = weatherDay(params.end, new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10), true);
+    if (start > end) throw new DataError(`start ${start} is after end ${end}.`);
+
+    const url = `https://archive-api.open-meteo.com/v1/archive?${qs({
+      latitude: points.map((p) => p.lat).join(","),
+      longitude: points.map((p) => p.lon).join(","),
+      start_date: start, end_date: end,
+      daily: vars.join(","), timezone: "UTC",
+    })}`;
+    const raw = await getJson(url);
+    const blocks = (Array.isArray(raw) ? raw : [raw]) as Array<{ daily?: Record<string, Array<number | null> | string[]>; daily_units?: Record<string, string>; error?: boolean; reason?: string }>;
+    if (blocks[0] && blocks[0].error) throw new DataError(`Open-Meteo: ${blocks[0].reason ?? "request rejected"}`);
+    if (blocks.length !== points.length) throw new DataError(`Open-Meteo returned ${blocks.length} locations for ${points.length} requested.`);
+
+    const series: Record<string, Series> = {};
+    const units: string[] = [];
+    const partial: string[] = [];
+    blocks.forEach((block, bi) => {
+      const daily = block.daily;
+      if (!daily || !Array.isArray(daily.time)) throw new DataError(`Open-Meteo returned no daily block for ${points[bi].key}.`);
+      const days = daily.time as string[];
+      for (const v of vars) {
+        const values = daily[v] as Array<number | null> | undefined;
+        if (!values) continue;
+        const unit = block.daily_units?.[v];
+        if (unit && !units.includes(`${v} in ${unit}`)) units.push(`${v} in ${unit}`);
+        const how = weatherAggregation(v);
+        const bucket = new Map<string, { sum: number; n: number }>();
+        days.forEach((day, i) => {
+          const value = values[i];
+          if (value === null || value === undefined || !Number.isFinite(value)) return;
+          const key = aggregate === "daily" ? day : aggregate === "annual" ? day.slice(0, 4) : day.slice(0, 7);
+          const b = bucket.get(key) ?? { sum: 0, n: 0 };
+          b.sum += value; b.n += 1; bucket.set(key, b);
+        });
+        const out: Series = {};
+        for (const [key, b] of bucket) {
+          // A total over half a month is not a monthly total, and a regression would read
+          // the short last bucket as a real drought. Averages survive a partial period;
+          // sums do not, so drop those.
+          if (how === "sum" && aggregate !== "daily") {
+            const full = aggregate === "annual" ? 365 : daysInMonth(key);
+            if (b.n < full * 0.9) { partial.push(key); continue; }
+          }
+          out[key] = how === "sum" ? Math.round(b.sum * 1000) / 1000 : Math.round((b.sum / b.n) * 1000) / 1000;
+        }
+        series[`${points[bi].key}.${v}`] = out;
+      }
+    });
+    if (!Object.keys(series).length) throw new DataError(`Open-Meteo returned nothing for ${vars.join(", ")}. Check the variable names against open-meteo.com/en/docs/historical-weather-api.`);
+
+    return {
+      provider: "weather", id,
+      source: `Open-Meteo ERA5 reanalysis: ${points.map((p) => p.title).join("; ")}`,
+      url, series,
+      notes: [
+        "Series keys are 'location.variable'.",
+        aggregate === "daily" ? "Daily values as published." : `Daily values aggregated to ${aggregate === "annual" ? "years" : "months"}: totals for rainfall and other accumulating variables, averages for the rest.`,
+        partial.length ? `Dropped as incomplete, because a total over part of a period is not that period's total: ${[...new Set(partial)].sort().join(", ")}. The archive lags real time, so the current period is usually one of them.` : "",
+        units.length ? `Units: ${units.join(", ")}.` : "",
+        "ERA5 is a reanalysis on a roughly 25 km grid, not a station reading: one point stands for its region and local extremes are smoothed away. Rainfall is less reliable than temperature.",
+        "The archive lags real time by about five days.",
+      ].filter(Boolean),
+    };
+  },
+  async search(query) {
+    return curatedSearch(weather.curated, query);
+  },
+};
+
+// ---------------------------------------------------------------------------
+// SEC EDGAR company facts (XBRL). Keyless, but the SEC requires a user agent
+// that identifies the caller, so every request carries one.
+
+/**
+ * The SEC refuses requests that do not identify the caller, and asks for a contact in the
+ * user agent. The default names the site; set SEC_USER_AGENT in the dashboard to put a
+ * real contact address there, which is what the SEC's own guidance asks for.
+ */
+const SEC_UA_DEFAULT = "Namik Akman economics data (namikakmandev.github.io)";
+function secUa(env: ProviderEnv): string { return env.SEC_USER_AGENT || SEC_UA_DEFAULT; }
+
+/**
+ * The SEC blocks callers whose user agent does not declare who they are, and its own
+ * guidance asks for a name and a contact address. Nothing else gets through, so say that
+ * rather than passing on a bare 403.
+ */
+function secRefusal(e: unknown, env: ProviderEnv, what: string): DataError {
+  if (e instanceof UpstreamError && (e.status === 403 || e.status === 429)) {
+    const said = htmlText(e.body, 200);
+    const undeclared = /undeclared automated tool/i.test(said);
+    return new DataError(
+      `The SEC refused ${what} (${e.status}${said ? `: ${said}` : ""}). ` +
+      (undeclared || !env.SEC_USER_AGENT
+        ? `The SEC only serves callers whose user agent names them and gives a contact address, in the form 'Company Name admin@example.com'. This server is sending '${secUa(env)}'. Set SEC_USER_AGENT to a real contact in the Cloudflare dashboard (Settings, Variables) and redeploy.`
+        : `The current SEC_USER_AGENT is '${secUa(env)}'; the SEC wants the form 'Company Name admin@example.com'. If it is already that, this is a rate limit: wait a minute and retry.`),
+    );
+  }
+  return e instanceof DataError ? e : new DataError(`SEC request failed: ${e instanceof Error ? e.message : String(e)}`);
+}
+
+/** The line items that make up each statement, in the order an analyst reads them. */
+const SEC_GROUPS: Record<string, string[]> = {
+  balance_sheet: [
+    "Assets", "AssetsCurrent", "CashAndCashEquivalentsAtCarryingValue", "AvailableForSaleSecuritiesDebtSecuritiesCurrent",
+    "AccountsReceivableNetCurrent", "InventoryNet", "PropertyPlantAndEquipmentNet", "Goodwill",
+    "Liabilities", "LiabilitiesCurrent", "AccountsPayableCurrent", "LongTermDebtNoncurrent", "LongTermDebtCurrent",
+    "StockholdersEquity", "RetainedEarningsAccumulatedDeficit",
+  ],
+  income_statement: [
+    "Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "CostOfRevenue", "CostOfGoodsAndServicesSold",
+    "GrossProfit", "ResearchAndDevelopmentExpense", "SellingGeneralAndAdministrativeExpense", "OperatingExpenses",
+    "OperatingIncomeLoss", "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+    "IncomeTaxExpenseBenefit", "NetIncomeLoss",
+  ],
+  cash_flow: [
+    "NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInInvestingActivities",
+    "NetCashProvidedByUsedInFinancingActivities", "PaymentsToAcquirePropertyPlantAndEquipment",
+    "DepreciationDepletionAndAmortization", "PaymentsForRepurchaseOfCommonStock", "PaymentsOfDividendsCommonStock",
+  ],
+};
+
+/** The filer reports this tag, but not in the unit that was asked for. */
+class SecUnitError extends DataError {
+  constructor(readonly tag: string, readonly wanted: string, readonly have: string[]) {
+    super(`${tag} is reported in ${have.join(", ")}, not ${wanted}. Pass params={unit:'${have[0]}'} to read it as filed; do not assume the figures convert.`);
+  }
+}
+
+interface SecFact { end: string; start?: string; val: number; form?: string; filed?: string; frame?: string; fy?: number; fp?: string }
+
+let secTickers: { at: number; byTicker: Map<string, { cik: string; title: string }> } | null = null;
+const SEC_TICKER_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Ticker or CIK to the ten-digit, zero-padded CIK the XBRL endpoints want. */
+async function secResolveCik(token: string, env: ProviderEnv): Promise<{ cik: string; title: string }> {
+  const raw = token.trim();
+  const digits = /^(?:CIK)?0*(\d{1,10})$/i.exec(raw);
+  if (digits) return { cik: digits[1].padStart(10, "0"), title: `CIK ${digits[1]}` };
+  if (!secTickers || Date.now() - secTickers.at > SEC_TICKER_TTL_MS) {
+    let j: Record<string, { cik_str: number; ticker: string; title: string }>;
+    try {
+      j = (await getJson("https://www.sec.gov/files/company_tickers.json", { "user-agent": secUa(env) })) as typeof j;
+    } catch (e) {
+      throw secRefusal(e, env, "its ticker directory");
+    }
+    const byTicker = new Map<string, { cik: string; title: string }>();
+    for (const row of Object.values(j)) {
+      if (!row || typeof row.cik_str !== "number" || !row.ticker) continue;
+      byTicker.set(String(row.ticker).toUpperCase(), { cik: String(row.cik_str).padStart(10, "0"), title: row.title });
+    }
+    if (!byTicker.size) throw new DataError("The SEC ticker list came back empty.");
+    secTickers = { at: Date.now(), byTicker };
+  }
+  const hit = secTickers.byTicker.get(raw.toUpperCase());
+  if (!hit) throw new DataError(`No SEC filer with ticker '${raw}'. Use a US-listed ticker (AAPL, JPM, XOM) or a CIK such as CIK0000320193.`);
+  return hit;
+}
+
+/**
+ * A calendar label for a fact. The SEC's own `frame` is already calendar-aligned, so it
+ * wins; otherwise the period end decides the quarter, which keeps filers with odd fiscal
+ * years comparable with everyone else.
+ */
+function secPeriod(f: SecFact, annual: boolean): string | null {
+  const fr = f.frame;
+  if (fr) {
+    const m = /^CY(\d{4})(?:Q([1-4]))?I?$/.exec(fr);
+    if (m) return annual ? (m[2] ? null : m[1]) : m[2] ? `${m[1]}-Q${m[2]}` : `${m[1]}-Q4`;
+  }
+  const end = f.end;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) return null;
+  const y = end.slice(0, 4), q = Math.min(4, Math.floor((Number(end.slice(5, 7)) - 1) / 3) + 1);
+  return annual ? y : `${y}-Q${q}`;
+}
+
+/** Roughly how long a fact covers, in days; instants come back as 0. */
+function secSpanDays(f: SecFact): number {
+  if (!f.start) return 0;
+  const a = Date.parse(f.start), b = Date.parse(f.end);
+  return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / 864e5) : -1;
+}
+
+/**
+ * One value per period from the pile of overlapping facts a filer reports: keep the
+ * duration the caller asked for, then the most recently filed row, which is the
+ * restated number rather than the first print.
+ */
+function secSeriesFrom(facts: SecFact[], annual: boolean): Series {
+  const instant = facts.every((f) => !f.start);
+  const wanted = facts.filter((f) => {
+    if (instant) return true;
+    const d = secSpanDays(f);
+    return annual ? d >= 330 && d <= 400 : d >= 60 && d <= 120;
+  });
+  const best = new Map<string, SecFact>();
+  for (const f of wanted) {
+    const key = secPeriod(f, annual);
+    if (!key || !Number.isFinite(f.val)) continue;
+    const cur = best.get(key);
+    if (!cur || String(f.filed ?? "") > String(cur.filed ?? "")) best.set(key, f);
+  }
+  const out: Series = {};
+  for (const [k, f] of best) out[k] = f.val;
+  return out;
+}
+
+/**
+ * One concept, or null when this filer simply does not report it. A 404 means the tag is
+ * not in their filings, which is a skip; anything else (the edge refusing us, a rate
+ * limit) is a real failure and must not be reported as a missing tag.
+ */
+async function secConcept(cik: string, taxonomy: string, tag: string, unit: string, env: ProviderEnv): Promise<{ facts: SecFact[]; label: string } | null> {
+  const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${encodeURIComponent(taxonomy)}/${encodeURIComponent(tag)}.json`;
+  let j: { label?: string; units?: Record<string, SecFact[]> };
+  try { j = (await getJson(url, { "user-agent": secUa(env) })) as typeof j; }
+  catch (e) {
+    if (e instanceof UpstreamError && e.status === 404) return null;
+    throw secRefusal(e, env, `the ${tag} concept`);
+  }
+  const units = j.units ?? {};
+  const rows = units[unit];
+  if (!Array.isArray(rows) || !rows.length) {
+    // Falling back to whatever unit the filer did report and calling it the requested one
+    // is off by an exchange rate, and the number would be deflated and regressed as
+    // dollars. Say which units exist instead.
+    const have = Object.keys(units).filter((u) => Array.isArray(units[u]) && units[u].length);
+    if (have.length) throw new SecUnitError(tag, unit, have);
+    return null;
+  }
+  return { facts: rows, label: j.label ?? tag };
+}
+
+const sec: Provider = {
+  name: "sec",
+  title: "SEC EDGAR company financials (XBRL company facts)",
+  coverage: "Every company that files with the SEC, from about 2009: balance sheet, income statement and cash flow line items as reported, quarterly and annual.",
+  id_format: "'TICKER:TAG' or 'CIK0000320193:TAG', e.g. 'AAPL:Assets'. TAG can be a whole statement: balance_sheet, income_statement or cash_flow. params: annual ('true' for fiscal years only, default quarterly), unit (default USD), taxonomy (default us-gaap).",
+  needs_key: "SEC_USER_AGENT: not a key, a contact address. The SEC refuses callers whose user agent does not name them, in the form 'Company Name admin@example.com'.",
+  curated: [
+    { id: "AAPL:balance_sheet", title: "Apple: the whole balance sheet", hint: "Every line item at once; swap the ticker for any SEC filer." },
+    { id: "JPM:balance_sheet", title: "JPMorgan Chase: balance sheet" },
+    { id: "AAPL:income_statement", title: "Apple: income statement" },
+    { id: "AAPL:cash_flow", title: "Apple: cash flow statement" },
+    { id: "MSFT:Assets", title: "Microsoft: total assets" },
+    { id: "XOM:Revenues", title: "Exxon Mobil: revenues" },
+    { id: "TSLA:NetIncomeLoss", title: "Tesla: net income" },
+    { id: "BRK-B:StockholdersEquity", title: "Berkshire Hathaway: shareholders' equity" },
+    { id: "WMT:InventoryNet", title: "Walmart: inventories" },
+    { id: "KO:NetCashProvidedByUsedInOperatingActivities", title: "Coca-Cola: cash from operations" },
+  ],
+  async fetch(id, params, env) {
+    const cut = id.lastIndexOf(":");
+    if (cut < 1) throw new DataError(`SEC ids look like 'TICKER:TAG', e.g. 'AAPL:Assets' or 'AAPL:balance_sheet'. Got '${id}'.`);
+    const who = id.slice(0, cut), what = id.slice(cut + 1).trim();
+    const { cik, title } = await secResolveCik(who, env);
+    const taxonomy = params.taxonomy ?? "us-gaap";
+    const unit = params.unit ?? "USD";
+    const annual = String(params.annual ?? "").toLowerCase() === "true";
+    const group = SEC_GROUPS[what];
+    const tags = group ?? [what];
+    if (tags.length > 20) throw new DataError(`At most 20 tags at once, got ${tags.length}.`);
+
+    // The SEC asks for no more than ten requests a second and answers a burst with a
+    // block, so a whole statement goes out four tags at a time rather than all at once.
+    const got: Array<{ tag: string; res: Awaited<ReturnType<typeof secConcept>> }> = [];
+    for (let i = 0; i < tags.length; i += 4) {
+      if (i) await new Promise((r) => setTimeout(r, 500));
+      const batch = tags.slice(i, i + 4);
+      got.push(...await Promise.all(batch.map(async (t) => ({ tag: t, res: await secConcept(cik, taxonomy, t, unit, env) }))));
+    }
+    const series: Record<string, Series> = {};
+    const labels: string[] = [];
+    for (const { tag, res } of got) {
+      if (!res) continue;
+      const s = secSeriesFrom(res.facts, annual);
+      if (Object.keys(s).length) { series[tag] = s; labels.push(`${tag}: ${res.label}`); }
+    }
+    if (!Object.keys(series).length) {
+      throw new DataError(group
+        ? `${title} reports none of the ${what.replace("_", " ")} tags in ${unit} under ${taxonomy}. Banks and insurers use their own tags; try a single tag from the company's filing, or unit='USD'.`
+        : `${title} has no ${taxonomy} tag '${what}' in ${unit}. Tag names are XBRL element names (Assets, Revenues, NetIncomeLoss); try a whole statement instead: '${who}:balance_sheet'.`);
+    }
+    const url = `https://data.sec.gov/api/xbrl/companyconcept/CIK${cik}/${taxonomy}/${(got.find((g) => g.res) ?? { tag: tags[0] }).tag}.json`;
+    return {
+      provider: "sec", id,
+      source: `SEC EDGAR XBRL company facts: ${title} (CIK ${cik}), ${taxonomy}`,
+      url, series,
+      notes: [
+        group ? `Series keys are XBRL tags from the ${what.replace("_", " ")}; a filer that does not report a tag is simply absent.` : "One series, keyed by its XBRL tag.",
+        annual ? "Fiscal-year figures, labelled by calendar year." : "Quarterly figures, labelled by the calendar quarter the period ends in, so filers with odd fiscal years stay comparable.",
+        `Values in ${unit}, as filed. Where a figure was restated, the most recently filed version is used, so history changes as companies refile.`,
+        "Balance-sheet items are stocks at the period end; income and cash-flow items are flows over the period. Do not mix the two in one ratio without checking.",
+        "Coverage starts around 2009, when XBRL tagging became mandatory. Tag choice varies by industry: banks, insurers and REITs use different elements from manufacturers.",
+      ],
+    };
+  },
+  async search(query, env) {
+    const hits = curatedSearch(sec.curated, query);
+    if (hits.length) return hits;
+    // Anything else: try to read the query as a company and offer its statements.
+    const token = query.trim().split(/\s+/)[0];
+    try {
+      const { cik, title } = await secResolveCik(token, env);
+      return Object.keys(SEC_GROUPS).map((g) => ({ id: `${token.toUpperCase()}:${g}`, title: `${title}: ${g.replace("_", " ")}`, hint: `CIK ${cik}` }));
+    } catch { return []; }
+  },
+};
+
 export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry[] {
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   return list
@@ -858,7 +1317,7 @@ export function curatedSearch(list: CuratedEntry[], query: string): CuratedEntry
     .map((x) => x.e);
 }
 
-export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao, imf };
+export const PROVIDERS: Record<string, Provider> = { fred, eurostat, worldbank, ecb, oecd, owid, evds, bis, fao, imf, weather, sec };
 
 export function providerInfo(env: ProviderEnv) {
   return Object.values(PROVIDERS).map((p) => ({
@@ -867,7 +1326,7 @@ export function providerInfo(env: ProviderEnv) {
     coverage: p.coverage,
     id_format: p.id_format,
     needs_key: p.needs_key,
-    key_present: p.name === "evds" ? (env.EVDS_API_KEY ? "yes (fetch and catalogue search enabled)" : "no") : p.name === "fred" ? (env.FRED_API_KEY ? "yes (search enabled)" : "no (fetch works, search uses the starter list)") : p.name === "fao" ? (env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "yes" : "no (register at www.fao.org/faostat/en/#developer-portal and set FAOSTAT_USER and FAOSTAT_PASSWORD)") : "not needed",
+    key_present: p.name === "evds" ? (env.EVDS_API_KEY ? "yes (fetch and catalogue search enabled)" : "no") : p.name === "fred" ? (env.FRED_API_KEY ? "yes (search enabled)" : "no (fetch works, search uses the starter list)") : p.name === "fao" ? (env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "yes" : "no (register at www.fao.org/faostat/en/#developer-portal and set FAOSTAT_USER and FAOSTAT_PASSWORD)") : p.name === "sec" ? (env.SEC_USER_AGENT ? "yes (a contact address is declared)" : "no: the SEC blocks this server until SEC_USER_AGENT names a contact") : "not needed",
     starter_ids: p.curated.slice(0, 8).map((c) => `${c.id}: ${c.title}`),
   }));
 }

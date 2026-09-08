@@ -539,5 +539,70 @@ check("Johansen with a restricted trend: a trending equilibrium gets rank 1 and 
   close(S.mean(m.ect.map((row) => row[0])), 0, 0.5, "the error-correction term is centred");
 });
 
+check("ADF picks its lag by comparing fits on one sample, so the test keeps its power", () => {
+  // Every candidate lag must be scored on the same observations. Comparing AIC across
+  // different sample sizes picks the longest lag almost always, and the test loses most
+  // of its ability to see a stationary series.
+  const r = rng(42);
+  let maxPicked = 0, rejectsNoise = 0, powerAR = 0;
+  const N = 120, MAXLAG = 12;
+  for (let k = 0; k < N; k++) {
+    const wn = Array.from({ length: 200 }, () => r.normal());
+    const a = S.adf(wn, "c", "auto");
+    if (a.lags >= MAXLAG) maxPicked++;
+    if (a.reject_unit_root_at) rejectsNoise++;
+    const ar = [0];
+    for (let i = 1; i < 120; i++) ar.push(0.5 * ar[i - 1] + r.normal());
+    if (S.adf(ar, "c", "auto").reject_unit_root_at) powerAR++;
+  }
+  assert.ok(maxPicked / N < 0.15, `auto lag lands on the maximum ${(100 * maxPicked / N).toFixed(0)}% of the time; the broken rule did it ~99%`);
+  assert.ok(rejectsNoise / N > 0.95, `white noise rejected only ${(100 * rejectsNoise / N).toFixed(0)}% of the time`);
+  assert.ok(powerAR / N > 0.9, `power against a stationary AR(1) is ${(100 * powerAR / N).toFixed(0)}%; the broken rule gave ~68%`);
+});
+
+check("KPSS refuses to judge a series with no variance rather than rejecting it", () => {
+  const flat = new Array(60).fill(4.2);
+  const k = S.kpss(flat, "c");
+  assert.equal(k.reject_stationarity_at, null, "a constant series is not evidence against stationarity");
+  assert.ok(k.degenerate, "and it says why");
+  assert.ok(!Number.isFinite(k.statistic), "with no number pretending to back the claim");
+  // A normal series still works
+  const r = rng(5);
+  const ok = Array.from({ length: 200 }, () => r.normal());
+  assert.ok(Number.isFinite(S.kpss(ok, "c").statistic));
+});
+
+check("the break scan is corrected for serial correlation, and keeps its power", () => {
+  // Persistence alone manufactures breaks in the uncorrected statistic: at first-order
+  // autocorrelation 0.7 a series with no break at all is called broken four times in five.
+  const r = rng(11);
+  const crit = S.supFCritical(1)["5%"];
+  const rate = (phi) => {
+    let raw = 0, hac = 0, N = 120;
+    for (let k = 0; k < N; k++) {
+      const y = [0];
+      for (let i = 1; i < 200; i++) y.push(phi * y[i - 1] + r.normal());
+      const X = y.map(() => [1]);
+      const s = S.supF(y, X);
+      if (s.best.F > crit) raw++;
+      if (s.best.F / S.hacInflation(y, X) > crit) hac++;
+    }
+    return { raw: raw / N, hac: hac / N };
+  };
+  const p7 = rate(0.7);
+  assert.ok(p7.raw > 0.5, `uncorrected should fail badly here, got ${p7.raw}`);
+  assert.ok(p7.hac < 0.2, `corrected false-break rate ${p7.hac} is too high`);
+  // and a real break is still found every time
+  let found = 0, N = 60;
+  for (let k = 0; k < N; k++) {
+    const y = [];
+    for (let i = 0; i < 200; i++) y.push((i < 100 ? 0 : 1.5) + r.normal());
+    const X = y.map(() => [1]);
+    const s = S.supF(y, X);
+    if (s.best.F / S.hacInflation(y, X) > crit) found++;
+  }
+  assert.ok(found / N > 0.9, `power against a real break fell to ${found / N}`);
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);

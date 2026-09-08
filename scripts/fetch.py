@@ -37,8 +37,14 @@ def get(url, timeout=120):
 
 # ----------------------------------------------------------------- providers
 def fred(entry):
-    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint."""
+    """Any FRED series -> {series_key: {YYYY-MM: value}}. Keyless CSV endpoint.
+
+    Keys are trimmed to the month by default, which is what a monthly series wants and
+    what every existing source here expects. entry['keep_dates'] keeps the full date, for
+    the daily and weekly series where the point is the price on a given day: trimming
+    those silently throws away all but the last observation of each month."""
     out = {}
+    keep = bool(entry.get("keep_dates"))
     for key, sid in entry["series"].items():
         try:
             raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
@@ -50,7 +56,7 @@ def fred(entry):
             date = (row.get("DATE") or row.get("observation_date") or "").strip()
             val = (row.get(sid) or "").strip()
             if len(date) >= 7 and val not in ("", "."):
-                vals[date[:7]] = float(val)
+                vals[date if keep else date[:7]] = float(val)
         out[key] = vals
     return out
 
@@ -590,17 +596,43 @@ def worldbank(entry):
     start = entry.get("start", 1960)
     scale = entry.get("scale", {})
     out = defaultdict(dict)
-    for ikey, code in entry["indicators"].items():
-        url = (f"https://api.worldbank.org/v2/country/{';'.join(countries.values())}/indicator/{code}"
+    # Thirty countries and sixty-five years in one request times out often enough to lose
+    # whole indicators, so countries go in chunks and each chunk gets a second attempt.
+    iso = list(countries.values())
+    size = int(entry.get("chunk", 10))
+    chunks = [iso[i:i + size] for i in range(0, len(iso), size)] or [[]]
+
+    def pull(code, group, rows, failures, depth=0):
+        """One request for a group of countries; on failure, split it and try the halves.
+
+        A group of ten times out on some indicators and a group of four on others, and
+        asking for four everywhere triples the request count and starts new timeouts.
+        Splitting only what actually failed keeps the fast path fast and still recovers
+        the countries the big request would have lost."""
+        url = (f"https://api.worldbank.org/v2/country/{';'.join(group)}/indicator/{code}"
                f"?format=json&per_page=20000&date={start}:{time.gmtime().tm_year}")
         try:
             j = json.loads(get(url).decode("utf-8", "replace"))
+            rows.extend(j[1] if isinstance(j, list) and len(j) > 1 and j[1] else [])
+            return url
         except Exception as ex:
-            out[f"_error|{ikey}"] = {"error": f"{code}: {type(ex).__name__}: {ex}"}
-            continue
-        rows = j[1] if isinstance(j, list) and len(j) > 1 and j[1] else []
-        if MODE == "discover":
-            return {"_discover": {"url": url, "n_rows": len(rows), "sample": rows[:3]}}
+            if len(group) > 1 and depth < 4:
+                time.sleep(2)
+                mid = len(group) // 2
+                pull(code, group[:mid], rows, failures, depth + 1)
+                pull(code, group[mid:], rows, failures, depth + 1)
+            else:
+                failures.append(f"{'+'.join(group)}: {type(ex).__name__}: {ex}")
+            return url
+
+    for ikey, code in entry["indicators"].items():
+        rows, failures = [], []
+        for chunk in chunks:
+            url = pull(code, chunk, rows, failures)
+            if MODE == "discover":
+                return {"_discover": {"url": url, "n_rows": len(rows), "sample": rows[:3]}}
+        if failures:
+            out[f"_error|{ikey}"] = {"error": f"{code}: " + "; ".join(failures)}
         for r in rows:
             v = r.get("value")
             iso = r.get("countryiso3code") or (r.get("country") or {}).get("id")
@@ -690,10 +722,28 @@ def xlsx(entry):
     # no exact match falls back to the first header containing it ('Meat, beef' for 'beef').
     norm = lambda c: re.sub(r"[\s*]+", " ", str(c)).strip().upper()
     marker = norm(entry.get("code_row_contains", "Crude oil, average"))
-    code_row = next((r for r in rows if any(norm(c) == marker for c in r if c is not None)), None)
-    if code_row is None:
+    start_row = next((i for i, r in enumerate(rows) if any(norm(c) == marker for c in r if c is not None)), None)
+    if start_row is None:
         sample = [[c for c in r[:8]] for r in rows[:8]]
         raise RuntimeError(f"no row containing {marker!r} in sheet {ws.title}; first rows: {sample}")
+    # The Pink Sheet's index sheet spreads its headers down a staircase of rows, one per
+    # level of the grouping, so 'code_row_span' merges that many rows into one header,
+    # taking the first non-blank cell in each column.
+    span = int(entry.get("code_row_span", 1))
+    if span > 1:
+        block = rows[start_row:start_row + span]
+        width = max((len(r) for r in block), default=0)
+        code_row = []
+        for col in range(width):
+            val = None
+            for r in block:
+                c = r[col] if col < len(r) else None
+                if c is not None and str(c).strip():
+                    val = c
+                    break
+            code_row.append(val)
+    else:
+        code_row = rows[start_row]
     headers = [(norm(c), i) for i, c in enumerate(code_row) if c is not None]
     idx = {}
     for k, want in entry["columns"].items():
@@ -747,21 +797,41 @@ def run(entry):
         print(f"[ok]   {name}: {len(data['_geojson']['features'])} features; "
               f"missing {data['_missing']}")
         return
+    errs = {k: v["error"] for k, v in data.items() if isinstance(v, dict) and "error" in v}
+    # An error belongs in the report, not in the published file: a '_error|reserves' key
+    # sitting where thirty country series used to be reads as data to everything
+    # downstream. Drop them, then put last month's values back for whatever failed, so a
+    # timeout costs freshness rather than the series itself.
+    data = {k: v for k, v in data.items() if k not in errs}
+    out_path = os.path.join(ROOT, entry["out"])
+    carried = []
+    if errs and os.path.exists(out_path):
+        try:
+            prev = json.load(open(out_path)).get("series") or {}
+        except Exception:  # noqa: BLE001 — an unreadable previous file is not fatal
+            prev = {}
+        for k, v in prev.items():
+            if k.startswith("_error|") or k in data or not isinstance(v, dict) or not v:
+                continue
+            data[k] = v
+            carried.append(k)
+        carried.sort()
     counts = {k: len(v) for k, v in data.items()}
     empty = [k for k, n in counts.items() if n == 0]
     # span is only meaningful for time-keyed series; a per-ticker metric dict is not one
     dated = all(re.match(r"^\d{4}(-\d{2})?$", str(t)) for v in data.values() for t in v)
-    errs = {k: v["error"] for k, v in data.items() if isinstance(v, dict) and "error" in v}
     report[name] = {"ok": bool(data) and not empty and not errs, "counts": counts,
                     "empty_keys": empty,
                     "errors": errs,
+                    "carried_over": carried,
                     "span": ({k: [min(v), max(v)] for k, v in data.items() if v}
                              if dated else "n/a (not a time series)")}
+    if carried:
+        print(f"[WARN] {name}: kept {len(carried)} series from the previous file because this fetch failed for them")
     if not data or empty:
         print(f"[WARN] {name}: empty series {empty or 'all'}")
     else:
         print(f"[ok]   {name}: " + ", ".join(f"{k}={n}" for k, n in counts.items()))
-    out_path = os.path.join(ROOT, entry["out"])
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     json.dump({"source": entry.get("source", entry["provider"]),
                "fetched_by": "scripts/fetch.py",
@@ -787,10 +857,46 @@ def main():
             print(f"[FAIL] {e['name']}: {type(ex).__name__}: {ex}")
             failed.append(e["name"])
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
-    json.dump(report, open(os.path.join(ROOT, "data", "_fetch-report.json"), "w"), indent=1)
+    # The report is cumulative. A run that touches one source must not erase what the last
+    # run recorded about the others: build_catalog.py reads this to flag degraded datasets,
+    # so replacing the whole file would quietly mark every source healthy again.
+    report_path = os.path.join(ROOT, "data", "_fetch-report.json")
+    this_run = dict(report)
+    merged = {}
+    if os.path.exists(report_path):
+        try:
+            prev = json.load(open(report_path))
+            if isinstance(prev, dict):
+                merged.update(prev)
+        except Exception:  # noqa: BLE001 — an unreadable report is not fatal
+            pass
+    stamp = time.strftime("%Y-%m-%d", time.gmtime())
+    for name, entry in report.items():
+        if isinstance(entry, dict):
+            entry = dict(entry, ran_at=stamp)
+        merged[name] = entry
+    # Drop sources that no longer exist in the config, so the file does not grow forever.
+    live = {e["name"] for e in cfg["sources"]}
+    merged = {k: v for k, v in merged.items() if k in live}
+    report.clear()
+    report.update(merged)
+    json.dump(merged, open(report_path, "w"), indent=1)
     print("\n" + json.dumps(report, indent=1, default=str)[:3000])
+    # The exit code is about this run, not about a failure some earlier run recorded and
+    # nobody has fixed yet: otherwise every run would be red until the oldest one is.
+    degraded = sorted(n for n, r in this_run.items() if isinstance(r, dict) and r.get("ok") is False)
+    stale = sorted(n for n, r in merged.items()
+                   if n not in this_run and isinstance(r, dict) and r.get("ok") is False)
+    if stale:
+        print(f"\nstill degraded from an earlier run, not touched by this one: {stale}")
     if failed:
         print(f"\n{len(failed)} source(s) failed: {failed}")
+    if degraded:
+        # Everything written so far still gets committed: the later workflow steps run on
+        # always(). Exiting non-zero is what turns the run red, so a source that quietly
+        # loses an indicator stops passing for green.
+        print(f"\n{len(degraded)} source(s) came back degraded: {degraded}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

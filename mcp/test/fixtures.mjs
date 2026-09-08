@@ -114,6 +114,53 @@ dataflow,IMF.RES:WEO(6.0.0),I,USA,NGDP_RPCH,A,2024,2.8,Units,Percent,2024,2025-0
 `;
 const IMF_FLOWS = { data: { dataflows: [{ id: "WEO", agencyID: "IMF.RES", version: "6.0.0", name: "World Economic Outlook (WEO)" }, { id: "CPI", agencyID: "IMF.STA", version: "4.0.0", name: "Consumer Price Index (CPI)" }] } };
 
+// Open-Meteo archive: two locations, three days, the array form the API returns for multi-point requests.
+// A complete June, then a two-day stub of July: the whole month is a real monthly
+// total, the stub is not and must be dropped rather than reported as one.
+const OPENMETEO = [{"latitude": 41.6, "longitude": -93.6, "daily_units": {"time": "iso8601", "temperature_2m_mean": "°C", "precipitation_sum": "mm"}, "daily": {"time": ["2024-06-01", "2024-06-02", "2024-06-03", "2024-06-04", "2024-06-05", "2024-06-06", "2024-06-07", "2024-06-08", "2024-06-09", "2024-06-10", "2024-06-11", "2024-06-12", "2024-06-13", "2024-06-14", "2024-06-15", "2024-06-16", "2024-06-17", "2024-06-18", "2024-06-19", "2024-06-20", "2024-06-21", "2024-06-22", "2024-06-23", "2024-06-24", "2024-06-25", "2024-06-26", "2024-06-27", "2024-06-28", "2024-06-29", "2024-06-30", "2024-07-01", "2024-07-02"], "temperature_2m_mean": [23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 23.0, 25.0, 25.0], "precipitation_sum": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5]}}, {"latitude": 37.87, "longitude": 32.49, "daily_units": {"time": "iso8601", "temperature_2m_mean": "°C", "precipitation_sum": "mm"}, "daily": {"time": ["2024-06-01", "2024-06-02", "2024-06-03", "2024-06-04", "2024-06-05", "2024-06-06", "2024-06-07", "2024-06-08", "2024-06-09", "2024-06-10", "2024-06-11", "2024-06-12", "2024-06-13", "2024-06-14", "2024-06-15", "2024-06-16", "2024-06-17", "2024-06-18", "2024-06-19", "2024-06-20", "2024-06-21", "2024-06-22", "2024-06-23", "2024-06-24", "2024-06-25", "2024-06-26", "2024-06-27", "2024-06-28", "2024-06-29", "2024-06-30", "2024-07-01", "2024-07-02"], "temperature_2m_mean": [21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 21.0, 24.0, 24.0], "precipitation_sum": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, null, 2.5, 2.5]}}];
+
+// SEC EDGAR: the ticker directory, then company facts for one tag at a time.
+// Shape as data.sec.gov sends it: overlapping facts, restatements, a `frame` on the
+// rows the SEC itself has aligned to a calendar period.
+let secBlocked = false;
+export function setSecBlocked(v) { secBlocked = v; }
+const SEC_TICKERS = {
+  "0": { cik_str: 320193, ticker: "AAPL", title: "Apple Inc." },
+  "1": { cik_str: 789019, ticker: "MSFT", title: "MICROSOFT CORP" },
+  "2": { cik_str: 51143, ticker: "IBM", title: "INTERNATIONAL BUSINESS MACHINES CORP" },
+};
+const SEC_ASSETS = {
+  cik: 320193, taxonomy: "us-gaap", tag: "Assets", label: "Assets", entityName: "Apple Inc.",
+  units: { USD: [
+    { end: "2023-04-01", val: 332160000000, accn: "a1", fy: 2023, fp: "Q2", form: "10-Q", filed: "2023-05-05", frame: "CY2023Q1I" },
+    { end: "2023-07-01", val: 335038000000, accn: "a2", fy: 2023, fp: "Q3", form: "10-Q", filed: "2023-08-04", frame: "CY2023Q2I" },
+    { end: "2023-09-30", val: 352583000000, accn: "a3", fy: 2023, fp: "FY", form: "10-K", filed: "2023-11-03", frame: "CY2023Q3I" },
+    { end: "2023-09-30", val: 352000000000, accn: "a3-old", fy: 2023, fp: "FY", form: "10-K", filed: "2023-11-01" },
+    { end: "2023-12-30", val: 353514000000, accn: "a4", fy: 2024, fp: "Q1", form: "10-Q", filed: "2024-02-02", frame: "CY2023Q4I" },
+  ] },
+};
+const SEC_EUR_ONLY = {
+  cik: 320193, taxonomy: "us-gaap", tag: "Revenues", label: "Revenues", entityName: "Apple Inc.",
+  units: { EUR: [{ start: "2023-01-01", end: "2023-04-01", val: 21000000000, form: "10-Q", filed: "2023-05-05", frame: "CY2023Q1" }] },
+};
+const SEC_EQUITY = {
+  cik: 320193, taxonomy: "us-gaap", tag: "StockholdersEquity", label: "Stockholders' Equity", entityName: "Apple Inc.",
+  units: { USD: [
+    { end: "2023-04-01", val: 62158000000, form: "10-Q", filed: "2023-05-05", frame: "CY2023Q1I" },
+    { end: "2023-07-01", val: 60274000000, form: "10-Q", filed: "2023-08-04", frame: "CY2023Q2I" },
+    { end: "2023-09-30", val: 62146000000, form: "10-K", filed: "2023-11-03", frame: "CY2023Q3I" },
+  ] },
+};
+const SEC_NETINCOME = {
+  cik: 320193, taxonomy: "us-gaap", tag: "NetIncomeLoss", label: "Net Income (Loss)", entityName: "Apple Inc.",
+  units: { USD: [
+    { start: "2023-01-01", end: "2023-04-01", val: 24160000000, form: "10-Q", filed: "2023-05-05", frame: "CY2023Q1" },
+    { start: "2023-04-02", end: "2023-07-01", val: 19881000000, form: "10-Q", filed: "2023-08-04", frame: "CY2023Q2" },
+    { start: "2022-10-02", end: "2023-09-30", val: 96995000000, form: "10-K", filed: "2023-11-03", frame: "CY2023" },
+    { start: "2023-07-02", end: "2023-09-30", val: 22956000000, form: "10-K", filed: "2023-11-03", frame: "CY2023Q3" },
+  ] },
+};
+
 export function installFetchMock() {
   const real = globalThis.fetch;
   const calls = [];
@@ -127,7 +174,30 @@ export function installFetchMock() {
     if (u.hostname === "fred.stlouisfed.org") return u.searchParams.get("id") === "CPIAUCSL" ? text(FRED_CSV, "text/csv") : text("", "text/csv");
     if (u.hostname === "api.stlouisfed.org") return json(FRED_SEARCH);
     if (u.hostname === "ec.europa.eu") return u.pathname.includes("prc_hicp_midx") ? json(EUROSTAT_JSONSTAT) : json({ error: { status: 404, label: "Dataset not found" } });
-    if (u.hostname === "api.worldbank.org") return u.pathname.includes("/indicator?") || u.pathname.endsWith("/indicator") ? json([{ pages: 1 }, [{ id: "NY.GDP.MKTP.CD", name: "GDP (current US$)", sourceNote: "GDP at purchaser's prices" }]]) : json(WORLDBANK);
+    if (u.hostname === "api.worldbank.org") {
+      if (u.pathname.includes("/indicator?") || u.pathname.endsWith("/indicator")) return json([{ pages: 1 }, [{ id: "NY.GDP.MKTP.CD", name: "GDP (current US$)", sourceNote: "GDP at purchaser's prices" }]]);
+      // A paged answer: page 1 says there are two, and only reading it loses half the data.
+      if (u.pathname.includes("PAGED")) {
+        const page = u.searchParams.get("page") || "1";
+        return json([{ pages: 2, total: 2 }, [{ date: page === "1" ? "2020" : "2021", value: page === "1" ? 10 : 20, countryiso3code: "TUR", indicator: { value: "Paged indicator" } }]]);
+      }
+      return json(WORLDBANK);
+    }
+    if (u.hostname === "archive-api.open-meteo.com") {
+      // The real API returns a bare object for one location and an array for several.
+      const n = (u.searchParams.get("latitude") || "").split(",").length;
+      return json(n === 1 ? OPENMETEO[0] : OPENMETEO.slice(0, n));
+    }
+    // The SEC refuses callers it does not like; the provider must say so rather than
+    // reporting every company as unknown.
+    if (u.hostname === "www.sec.gov") return secBlocked ? new Response("<!DOCTYPE html><html><head><title>SEC.gov | Request Rate Threshold Exceeded</title></head><body><h1>Your Request Originates from an Undeclared Automated Tool</h1><p>Please declare your traffic by updating your user agent.</p></body></html>", { status: 403 }) : json(SEC_TICKERS);
+    if (u.hostname === "data.sec.gov") {
+      if (u.pathname.endsWith("/Assets.json")) return json(SEC_ASSETS);
+      if (u.pathname.endsWith("/NetIncomeLoss.json")) return json(SEC_NETINCOME);
+      if (u.pathname.endsWith("/StockholdersEquity.json")) return json(SEC_EQUITY);
+      if (u.pathname.endsWith("/Revenues.json")) return json(SEC_EUR_ONLY);
+      return new Response(JSON.stringify({ error: "not found" }), { status: 404 });
+    }
     if (u.hostname === "data-api.ecb.europa.eu") return text(ECB_CSV, "text/csv");
     if (u.hostname === "sdmx.oecd.org") return text(OECD_CSV, "text/csv");
     if (u.hostname === "ourworldindata.org") return text(OWID_CSV, "text/csv");

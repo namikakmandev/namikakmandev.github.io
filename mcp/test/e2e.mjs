@@ -105,7 +105,7 @@ await check("get_series yoy has a value at the window start", async () => {
   const j = parse(await client.callTool({ name: "get_series", arguments: { dataset: "us-prices", series: "cpi", start: "2022-01", end: "2022-03", transform: "yoy" } }));
   assert.equal(j.points[0][0], "2022-01");
   assert.ok(j.points[0][1] > 5 && j.points[0][1] < 10, `Jan 2022 US CPI yoy came out as ${j.points[0][1]}`);
-  assert.equal(j.unit_hint, "percent");
+  assert.equal(j.unit, "percent change");
 });
 
 await check("get_series annual resample and last_n", async () => {
