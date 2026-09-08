@@ -96,7 +96,7 @@ If `MCP_API_KEYS` is set, add `--header "Authorization: Bearer <key>"` in Claude
 
 ### The question box on the website
 
-`POST /v1/ask` with `{question, history?}` asks Claude Opus 5 with this server's tools attached (Anthropic's MCP connector calls `/mcp` server-side) and streams Anthropic's server-sent events straight back; `GET /v1/ask/quota` returns what the caller has left. `js/ask.js` on `explore.html` and `econ-mcp.html` is the page side. The owner pays per question, so a Durable Object (`AskQuota`, declared in `wrangler.jsonc`, nothing to create by hand) counts questions: 10 per visitor per day by hashed IP, 300 per day for the site, both in `src/ask.ts`. Past the limit the page points at the free route above. A question is capped at 4,000 output tokens and Anthropic's server-side tool loop stops at `pause_turn`, which the page reports rather than resuming. The box is off, and says so, until `ANTHROPIC_API_KEY` is set.
+`POST /v1/ask` with `{question, history?}` asks Claude Opus 5 with this server's tools attached (Anthropic's MCP connector calls `/mcp` server-side) and streams Anthropic's server-sent events straight back; `GET /v1/ask/quota` returns what the caller has left. `js/ask.js` on `explore.html` and `econ-mcp.html` is the page side. The owner pays per question, so a Durable Object (`AskQuota`, declared in `wrangler.jsonc`, nothing to create by hand) counts questions: 5 per visitor per day by hashed IP, 300 per day for the site, both in `src/ask.ts`. Past the limit the page points at the free route above. A question is capped at 4,000 output tokens and Anthropic's server-side tool loop stops at `pause_turn`, which the page reports rather than resuming. The box is off, and says so, until `ANTHROPIC_API_KEY` is set.
 
 ## Deploy
 

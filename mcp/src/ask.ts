@@ -10,7 +10,7 @@
  */
 
 export const ASK_MODEL = "claude-opus-5";
-export const PER_VISITOR_PER_DAY = 10;
+export const PER_VISITOR_PER_DAY = 5;
 export const SITE_PER_DAY = 300;
 const MAX_QUESTION_CHARS = 1000;
 const MAX_HISTORY_TURNS = 6;
