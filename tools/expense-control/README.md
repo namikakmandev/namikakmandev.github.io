@@ -1,9 +1,14 @@
 # Expenditure control
 
 Turns credit-card statement PDFs into a categorised transaction list and checks
-it against a budget spreadsheet. Built for the Garanti BBVA *Geçmiş Dönem Kredi
-Kartı Ekstresi* layout, but the parsing is entirely regex-driven, so any issuer
-is a matter of editing one JSON file.
+it against a budget spreadsheet. Built for the Garanti BBVA / Bonus *Geçmiş
+Dönem Kredi Kartı Ekstresi*, with a second, regex-driven layout for simpler
+statements — either way an issuer is one JSON file.
+
+**Every statement is checked against the bank's own "Dönem Borcunuz".** Carried
+forward + charges − credits has to land on the printed period total. That is
+what establishes the parse is complete: not that it looked plausible, but that
+it adds up to the figure the bank itself prints.
 
 > **This repository is public.** Statements go in `inbox/`, results in `out/`.
 > Both are git-ignored — keep them that way. Never commit a statement, an
@@ -63,7 +68,32 @@ like expenditure.
 
 ## Tuning
 
-**`rules/garanti-bbva.json`** — statement layout.
+### Two layouts
+
+`rules/garanti-bonus.json` (`"layout": "columns"`, the default) reads the table
+by **where the numbers sit**, because on this statement a regex over flattened
+text cannot be correct:
+
+- Two right-aligned money columns, Bonus (TL) and Tutar (TL). Only Tutar is
+  expenditure — a bonus-campaign line carries its figure in the Bonus column,
+  so "the last number on the line" books loyalty points as money spent.
+- A third column holds the original amount and currency of a foreign charge;
+  these are kept as `original_amount` / `original_currency`.
+- Dates are Turkish long form, "24 Aralık 2025".
+- Instalments read "1.760,00x3=5.280,00 1.Taksit".
+- A trailing `+` on the amount marks a credit — a payment, refund or reversal.
+- Fee lines (DÖNEM FAİZİ, GEÇ ÖDEME FAİZİ, KKDF + BSMV) carry no date at all.
+- The template paints invisible ~2pt "bosluk" spacer glyphs that glue
+  themselves onto the amount, so anything under `min_font_size` is dropped
+  before words are built.
+
+The amount column is found from the data (the rightmost cluster of right-edges
+across dated rows), not hard-coded, so it survives a change of page geometry.
+
+`rules/garanti-bbva.json` (`"layout": "lines"`) is the regex-per-line form, for
+statements whose columns do survive being flattened to text.
+
+**`rules/garanti-bbva.json`** — line layout.
 
 - `header` — one or more regexes per field; the first that matches wins.
 - `transaction` — the line patterns. Pattern 1 treats the **first** money
@@ -106,10 +136,18 @@ page asks for it before showing anything.
   with AES-256-GCM (PBKDF2-SHA256, 250 000 iterations) under your password and
   kept in that browser's `localStorage`. Nothing is uploaded, and nothing is
   written to this repository.
-- **Import** statement PDFs by drag-and-drop (parsed in the page via pdf.js),
-  a `transactions.csv` from the CLI, or one transaction at a time by hand.
-- **Budget** is a category × month grid; the "Aylık" box fills every month at
-  once.
+- **Import** statement PDFs by drag-and-drop — parsed in the page, with the
+  same column logic and the same reconciliation check as the CLI, which the
+  import log reports per file. Also a `transactions.csv` from the CLI, or one
+  transaction at a time by hand.
+- **Import a budget `.xlsx`** — the page finds the month-header row and the
+  items under it, shows what it found, and asks before applying. Either every
+  row becomes a category budget, or one row (a household cash-flow sheet
+  usually has a single line per card) becomes the monthly total to measure
+  against. The workbook is read natively: an `.xlsx` is a ZIP of XML and the
+  browser can inflate and parse both, so there is no spreadsheet library.
+- **Budget** can also be typed into a category × month grid; the "Aylık" box
+  fills every month at once.
 - **Özet** shows the same figures as the CLI report: budget vs actual scoped to
   the overlapping months, spend by category and month, top merchants,
   outstanding instalments, and the uncategorised list. Categories can be
@@ -125,8 +163,8 @@ Caveats worth knowing:
   encrypted backup.
 - `localStorage` is per-browser and per-device. Clearing site data wipes the
   vault; use a backup.
-- PDF reading needs pdf.js from cdnjs, so that one feature needs a network. If
-  it cannot load, the page says so and the CLI → CSV route still works.
+- pdf.js is vendored in `assets/vendor/pdfjs/` and served from this repository,
+  so PDF reading works offline and depends on no CDN.
 - The page is deliberately **not linked from the site navigation**. It is
   reachable only if you know the URL.
 
@@ -144,8 +182,8 @@ same fixture, so the two cannot drift apart unnoticed.
 ## Tests
 
 ```bash
-python3 tests/test_expense_control.py     # 77 checks on the CLI, ~2 s
-python3 tests/test_page.py                # 50 checks driving the page in Chromium
+python3 tests/test_expense_control.py     # 79 checks on the CLI, ~3 s
+python3 tests/test_page.py                # 43 checks driving the page in Chromium
 ```
 
 The browser test needs `pip install playwright`. It serves the repository over
@@ -153,6 +191,12 @@ http, drives `harcama-sifreli.html`, and verifies the crypto round-trip, that
 a wrong password is rejected, and that nothing readable is left in
 `localStorage`.
 
-Everything is synthetic: a text fixture, a statement PDF generated with
-reportlab, and a budget workbook generated with openpyxl. The tests never need
-— and must never be given — a real statement.
+Everything is synthetic. `tests/make_fixture_pdf.py` generates a statement in
+the column layout with all of its awkwardness — the two money columns, a
+bonus-only row, a foreign charge, instalments, a `+` credit, undated fee rows
+and the invisible spacer glyphs — and the fixture computes its own period total
+so the reconciliation check is exercised for real. Budgets are generated with
+openpyxl. The tests never need — and must never be given — a real statement.
+
+`test_page.py` also asserts that the page and the CLI return identical
+transactions from the same PDF, so the two parsers cannot drift apart.
