@@ -94,6 +94,10 @@ The endpoint is `https://<worker-host>/mcp` over Streamable HTTP. After `npm run
 
 If `MCP_API_KEYS` is set, add `--header "Authorization: Bearer <key>"` in Claude Code, or enter the key where the client asks.
 
+### The question box on the website
+
+`POST /v1/ask` with `{question, history?}` asks Claude Opus 5 with this server's tools attached (Anthropic's MCP connector calls `/mcp` server-side) and streams Anthropic's server-sent events straight back; `GET /v1/ask/quota` returns what the caller has left. `js/ask.js` on `explore.html` and `econ-mcp.html` is the page side. The owner pays per question, so a Durable Object (`AskQuota`, declared in `wrangler.jsonc`, nothing to create by hand) counts questions: 10 per visitor per day by hashed IP, 300 per day for the site, both in `src/ask.ts`. Past the limit the page points at the free route above. A question is capped at 4,000 output tokens and Anthropic's server-side tool loop stops at `pause_turn`, which the page reports rather than resuming. The box is off, and says so, until `ANTHROPIC_API_KEY` is set.
+
 ## Deploy
 
 The Worker is connected to this repository through Cloudflare Workers Builds: every push to `main` that touches `mcp/` builds and deploys it (root directory `mcp`, deploy command `npx wrangler deploy`). Nothing to run by hand.
@@ -105,6 +109,7 @@ Variables and secrets live in the Worker's settings in the Cloudflare dashboard 
 - `FAOSTAT_USER` and `FAOSTAT_PASSWORD` for FAOSTAT (a free developer account at www.fao.org/faostat/en/#developer-portal; the API has required a login since 2025). The same two names as repository secrets let the fetch workflow refresh the `fao-*` datasets.
 - `FRED_API_KEY` for FRED catalogue search
 - `MCP_API_KEYS` comma-separated bearer tokens, when the server should not be open
+- `ANTHROPIC_API_KEY` (Secret) switches on `/v1/ask`; set a monthly spend limit on the key in the Anthropic console as the wall the code cannot cross
 
 Manual alternatives, should the git connection ever be off: `npm run deploy` after `npx wrangler login`, or paste `dist-bundle/econ-mcp.js` (regenerate with `npm run bundle`) into the Worker in the dashboard.
 

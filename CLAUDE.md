@@ -18,7 +18,7 @@ Run the tests and the bundle before every commit that touches `mcp/`. The bundle
 
 ## Deploy
 
-Merging to `main` with changes under `mcp/` triggers Cloudflare Workers Builds (root `mcp`, `npx wrangler deploy`). Dashboard variables survive (`keep_vars`). Bump `SERVER_BUILD` in `mcp/src/version.ts` on every server change; `list_providers` echoes it, which is the only way to confirm a deploy from a client. Variables added in the dashboard create an undeployed version that must be promoted from the Deployments tab.
+Merging to `main` with changes under `mcp/` triggers Cloudflare Workers Builds (root `mcp`, `npx wrangler deploy`). Dashboard variables survive (`keep_vars`). Bump `SERVER_BUILD` in `mcp/src/version.ts` on every server change; `list_providers` echoes it, which is the only way to confirm a deploy from a client. Variables added in the dashboard create an undeployed version that must be promoted from the Deployments tab. The website's question box (`/v1/ask`, `js/ask.js`) spends the owner's `ANTHROPIC_API_KEY`; its daily counters are a Durable Object declared in `wrangler.jsonc`, so a change to the class needs a new migration tag.
 
 The sandbox cannot reach the Worker, the site, or most data providers. Verify live behaviour through the Econ Data connector (tools `mcp__Econ_Data__*`) and data fetches through GitHub Actions runs. Reachable from the sandbox: npm, api.github.com (public endpoints), raw.githubusercontent.com, gitlab.com.
 

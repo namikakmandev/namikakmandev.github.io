@@ -15,6 +15,30 @@
     .study h1 { font-size: 1.7rem; line-height: 1.2; letter-spacing: -.01em; margin: 12px 0 6px; }
     .study .lede { color: var(--text-dim); font-size: .97rem; margin-bottom: 20px; max-width: 64ch; }
     h2.sec { font-size: 1.12rem; margin: 34px 0 4px; }
+    /* Ask the data */
+    .ask { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius, 14px); padding: 16px 18px 14px; margin: 6px 0 26px; }
+    .ask-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .ask-head .sec { margin: 0 0 6px; }
+    .ask-quota { color: var(--text-dim); font-size: .78rem; white-space: nowrap; }
+    .ask-form { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
+    .ask-form textarea { flex: 1; resize: vertical; min-height: 44px; font: inherit; font-size: .93rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; }
+    .ask-form textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .ask-go { background: var(--accent); color: #fff; border: 0; font: inherit; font-weight: 600; font-size: .9rem; padding: 0 18px; border-radius: 10px; cursor: pointer; }
+    .ask-go[disabled] { opacity: .5; cursor: default; }
+    .ask-examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .ask-eg { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font: inherit; font-size: .78rem; padding: 4px 10px; border-radius: 999px; cursor: pointer; text-align: left; }
+    .ask-eg:hover { color: var(--text); border-color: var(--accent); }
+    .ask-thread { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
+    .ask-msg { border-radius: 12px; padding: 10px 14px; font-size: .92rem; line-height: 1.55; max-width: 60ch; }
+    .ask-msg.me { align-self: flex-end; background: rgba(47,155,255,.14); border: 1px solid rgba(47,155,255,.35); }
+    .ask-msg.bot { align-self: stretch; max-width: none; background: var(--surface-2); border: 1px solid var(--border); }
+    .ask-msg p { margin: 0 0 8px; } .ask-msg p:last-child { margin-bottom: 0; } .ask-msg ul { margin: 4px 0 8px 18px; } .ask-msg a { color: var(--accent); }
+    .ask-msg code { font-size: .85em; background: rgba(127,127,127,.15); padding: 1px 5px; border-radius: 5px; }
+    .ask-status { color: var(--text-dim); font-size: .76rem; margin-bottom: 4px; min-height: 1em; }
+    .ask-err { color: var(--loss, #e5484d); }
+    .ask-limit { background: rgba(255,101,0,.10); border: 1px solid rgba(255,101,0,.35); border-radius: 10px; padding: 9px 12px; font-size: .86rem; margin-top: 10px; }
+    .ask-limit a { color: var(--accent); }
+    @media (max-width: 560px) { .ask-form { flex-direction: column; } .ask-go { padding: 10px; } }
     .sec-note { color: var(--text-dim); font-size: .88rem; margin-bottom: 12px; max-width: 72ch; }
 
     /* ---------- overview ---------- */
@@ -158,6 +182,8 @@
         and charted in your browser. Every dataset below says, in a line, what question it answers. Nothing to install,
         no account, no sign-in.</p>
 
+        <div id="ask" data-connect="econ-mcp.html#connect"></div>
+
         <h2 class="sec">Start here</h2>
         <p class="sec-note">Four questions this collection answers straight away. Each one opens a chart you can then take apart.</p>
         <div class="starts" id="starts"></div>
@@ -194,6 +220,7 @@
   </main>
 
   <script src="js/main.js" defer></script>
+  <script src="js/ask.js" defer></script>
   <script>
   (function () {
     "use strict";
