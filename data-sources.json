@@ -71,7 +71,40 @@
       "out": "data/us-cowcalf-costs.json",
       "source": "USDA ERS commodity costs and returns, cow-calf",
       "note": "SURVEY BASIS CHANGED IN 2008 — do not compare across that break",
-      "unit": "USD per cow"
+      "units": {
+        "Purchased feed": "USD per cow",
+        "Custom services": "USD per cow",
+        "Homegrown harvested feed": "USD per cow",
+        "Total, costs listed": "USD per cow",
+        "Total, gross value of production": "USD per cow",
+        "Calves weaned": "NOT dollars — a USDA cow-calf production figure; check its definition before quoting",
+        "Grazed feed": "USD per cow",
+        "Total, feed costs": "USD per cow",
+        "Hired labor": "USD per cow",
+        "Cattle for backgrounding": "USD per cow",
+        "Repairs": "USD per cow",
+        "Value of production less total costs listed": "USD per cow",
+        "Taxes and insurance": "USD per cow",
+        "Calves sold": "USD per cow",
+        "Opportunity cost of land": "USD per cow",
+        "Value of production less operating costs": "USD per cow",
+        "Beef cows on farm or ranch": "USD per cow",
+        "Total, allocated overhead": "USD per cow",
+        "Interest on operating capital": "USD per cow",
+        "Marketing": "USD per cow",
+        "Total, operating costs": "USD per cow",
+        "Bedding and litter": "USD per cow",
+        "Capital recovery of machinery and equipment": "USD per cow",
+        "Fuel, lube, and electricity": "USD per cow",
+        "Stockers and yearlings sold": "USD per cow",
+        "Opportunity cost of unpaid labor": "USD per cow",
+        "Calves": "USD per cow",
+        "General farm overhead": "USD per cow",
+        "Other cattle": "USD per cow",
+        "Stockers and yearlings": "USD per cow",
+        "Veterinary and medicine": "USD per cow",
+        "Cows and heifers calving": "USD per cow"
+      }
     },
     {
       "name": "eu-herd-countries",
@@ -622,7 +655,32 @@
       "enabled": true,
       "source": "Comext — HS 2937.19 imports (flow 1) and exports (flow 2), value and quantity",
       "note": "net exports test: re-export shows as large imports; domestic production does not",
-      "unit": "EUR for value series, kilograms for quantity series"
+      "units": {
+        "BE|1|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "BE|1|VALUE_IN_EUROS": "EUR",
+        "BE|2|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "BE|2|VALUE_IN_EUROS": "EUR",
+        "DE|1|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "DE|1|VALUE_IN_EUROS": "EUR",
+        "DE|2|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "DE|2|VALUE_IN_EUROS": "EUR",
+        "DK|1|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "DK|1|VALUE_IN_EUROS": "EUR",
+        "DK|2|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "DK|2|VALUE_IN_EUROS": "EUR",
+        "FR|1|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "FR|1|VALUE_IN_EUROS": "EUR",
+        "FR|2|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "FR|2|VALUE_IN_EUROS": "EUR",
+        "IE|1|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "IE|1|VALUE_IN_EUROS": "EUR",
+        "IE|2|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "IE|2|VALUE_IN_EUROS": "EUR",
+        "IT|1|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "IT|1|VALUE_IN_EUROS": "EUR",
+        "IT|2|QUANTITY_IN_100KG": "hundreds of kilograms, as Comext publishes it — multiply by 100 for kg",
+        "IT|2|VALUE_IN_EUROS": "EUR"
+      }
     },
     {
       "name": "peptide-dest",
@@ -1476,7 +1534,7 @@
       "out": "data/bigmac-eur.json",
       "source": "The Economist Big Mac index — raw valuation vs the euro (0 = burger costs the same as in the euro area; +0.10 = 10% dearer)",
       "note": "Same file as bigmac-usd, euro-relative column; fractions, not percent.",
-      "unit": "percent over- or under-valuation against the euro"
+      "unit": "fraction, not percent: -0.17 means a Big Mac is 17% cheaper than in the euro area, +0.28 means 28% dearer. Multiply by 100 before quoting a percentage."
     },
     {
       "name": "bigmac-src-eur",
@@ -1659,7 +1717,17 @@
       "out": "data/tr-cpi-ppi.json",
       "source": "TCMB EVDS, TÜİK price indices: CPI general, food, core B and C, services and rent on the 2025=100 base (TP.TUKFIY2025.*, TP.FE25.*), back-cast to 2005; CPI general (TP.FG.J0) and domestic PPI (TP.TUFE1YI.T1) on the 2003=100 base; CPI annual change (TP.FE.OKTG01)",
       "note": "Use 'cpi' (2025=100, from 2005-01) as the deflator. The 2003=100 CPI stops at 2026-01 with the 2026 rebase; the PPI is still published on the 2003 base. Core B excludes unprocessed food, energy, alcohol, tobacco and gold; core C also excludes all food",
-      "unit": "index, 2025 = 100"
+      "units": {
+        "cpi_2003": "index, 2003 = 100 (legacy series, ends 2026-01)",
+        "ppi_2003": "index, 2003 = 100 (legacy series)",
+        "cpi_yoy": "percent change on a year earlier",
+        "cpi": "index, 2025 = 100",
+        "cpi_food": "index, 2025 = 100",
+        "cpi_core_b": "index, 2025 = 100",
+        "cpi_core_c": "index, 2025 = 100",
+        "cpi_services": "index, 2025 = 100",
+        "cpi_rent": "index, 2025 = 100"
+      }
     },
     {
       "name": "tr-rates",
@@ -2152,7 +2220,7 @@
       "out": "data/eu-esi.json",
       "source": "European Commission business and consumer surveys via Eurostat ei_bssi_m_r2, seasonally adjusted, monthly: economic sentiment indicator (long-run mean 100), industrial, consumer and services confidence balances",
       "note": "ESI is an index around 100; the confidence indicators are percentage balances around zero. Türkiye is covered by the EC survey programme",
-      "unit": "balance of responses, long-run average = 100"
+      "unit": "balance of responses in percentage points: the share answering positively minus the share answering negatively, so it runs negative in bad times and has no 100 base"
     },
     {
       "name": "eu-hpi",
