@@ -3,6 +3,7 @@
 A GitHub Pages portfolio (static HTML at the root) plus two things that matter for data work:
 
 - `data/` holds curated economics datasets as JSON, indexed by `data/_catalog.json`. Nothing here is edited by hand: `scripts/fetch.py` writes them from `data-sources.json`, and `scripts/build_catalog.py` rebuilds the index. The `.github/workflows/fetch-data.yml` workflow runs both monthly and on dispatch (inputs `only` = space-separated dataset names, `mode` = `discover` to dump a source's raw shape instead of parsing). It commits to `main` itself.
+- `explore.html`, `chart.html` and `data.html` are the data pages. They share `css/data-look.css` (paper ground, Fraunces headings, Plex Mono numbers, the six line colours) on top of `css/style.css`; the rest of the site stays dark. `explore.html` draws six featured charts from `STARTS` before anything is clicked.
 - `mcp/` is the econ-data MCP server (TypeScript, Cloudflare Worker, zero runtime dependencies beyond the MCP SDK and zod). It serves the curated data, ten live providers, an econometrics toolkit, and the `plot` tool behind `chart.html`.
 
 ## Commands

@@ -6,174 +6,182 @@
   <title>Explore the data — Namık Akman</title>
   <meta name="description" content="Browse and chart curated economics datasets: cattle and feed prices, inflation, house prices, herds, commodities and IMF projections. Every dataset says what question it answers. No account needed." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <meta name="theme-color" content="#2F9BFF" />
+  <meta name="theme-color" content="#f4f4f1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css?v=30" />
+  <link rel="stylesheet" href="css/data-look.css?v=1" />
   <style>
-    .study { padding: 28px 0 72px; }
-    .study .container { max-width: 1120px; }
-    .study .back { color: var(--text-dim); font-size: .9rem; }
-    .study h1 { font-size: 1.7rem; line-height: 1.2; letter-spacing: -.01em; margin: 12px 0 6px; }
-    .study .lede { color: var(--text-dim); font-size: .97rem; margin-bottom: 20px; max-width: 64ch; }
-    h2.sec { font-size: 1.12rem; margin: 34px 0 4px; }
-    /* Ask the data */
-    .ask { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius, 14px); padding: 16px 18px 14px; margin: 6px 0 26px; }
+    /* Tokens, fonts and the header live in css/data-look.css, shared with chart.html and data.html. */
+    .num, .meta, .asof, .count, .stats .v, .fleg b, .fleg, .pick b, .guide small, .tile b, .feat .ffoot { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    .study { padding: 30px 0 72px; }
+    .study .container { max-width: 1140px; }
+    .study .back { color: var(--text-dim); font-size: .86rem; }
+    .study h1 { font-size: clamp(2.1rem, 4.4vw, 3.1rem); margin: 12px 0 10px; }
+    .study .lede { color: var(--text-dim); font-size: 1.02rem; line-height: 1.55; margin-bottom: 18px; max-width: 62ch; }
+    h2.sec { font-family: var(--display); font-weight: 600; font-size: 1.55rem; letter-spacing: -.01em; line-height: 1.15; margin: 44px 0 4px; }
+    .sec-note { color: var(--text-dim); font-size: .9rem; margin-bottom: 14px; max-width: 70ch; }
+
+    /* ---------- facts strip: the collection in one ruled line ---------- */
+    .stats { display: flex; flex-wrap: wrap; gap: 6px 36px; border-top: 1px solid var(--text); border-bottom: 1px solid var(--border); padding: 12px 0; margin: 4px 0 30px; }
+    .stats .s { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+    .stats .s .v { font-size: 1.15rem; font-weight: 500; line-height: 1; color: var(--text); white-space: nowrap; }
+    .stats .s .l { font-size: .78rem; color: var(--text-dim); line-height: 1.3; }
+    .stats .s.blue .v { color: var(--accent); }
+    .stats .s.green .v { color: var(--accent-2); }
+    @media (max-width: 700px) { .stats { gap: 8px 22px; } .stats .s .l { font-size: .74rem; } }
+
+    /* ---------- start here: six charts, drawn from the files ---------- */
+    .starts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 14px 0 8px; }
+    @media (max-width: 980px) { .starts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 600px) { .starts { grid-template-columns: 1fr; } }
+    .feat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; box-shadow: 0 1px 2px rgba(22,25,31,.04); }
+    .feat .fhead { cursor: pointer; }
+    .feat .eyebrow { display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); margin-bottom: 4px; }
+    .feat h3 { font-family: var(--display); font-weight: 600; font-size: 1.14rem; line-height: 1.22; letter-spacing: -.005em; margin: 0; text-wrap: balance; }
+    .feat .fhead:hover h3 { color: var(--accent); }
+    .feat .ffig { min-height: 150px; margin: 2px -4px 0; }
+    .feat .ffig svg { width: 100%; height: auto; display: block; font-family: var(--mono); }
+    .feat .ffig .loading { padding: 60px 0; font-size: .8rem; }
+    .fleg { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .74rem; color: var(--text-dim); line-height: 1.4; }
+    .fleg span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+    .fleg i { width: 9px; height: 3px; border-radius: 2px; background: currentColor; flex: 0 0 auto; }
+    .fleg b { font-weight: 500; color: var(--text); }
+    .feat .ffoot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--border); font-size: .72rem; color: var(--text-dim); }
+    .feat .ffoot .open { font-family: var(--font); background: none; border: 0; color: var(--accent); font-size: .82rem; font-weight: 600; cursor: pointer; padding: 0; white-space: nowrap; }
+    .feat .ffoot .open:hover { text-decoration: underline; }
+    .feat .err { margin: 0; }
+
+    /* ---------- what's inside: eight subjects in one ruled block ---------- */
+    .guide { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--text); border-bottom: 1px solid var(--border); margin: 12px 0 10px; }
+    .guide .g { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .guide .g:nth-last-child(-n+4) { border-bottom: 0; }
+    .guide .g b { font-family: var(--display); font-size: 1.02rem; font-weight: 600; line-height: 1.25; }
+    .guide .g b small { color: var(--text-dim); font-weight: 400; font-size: .74rem; margin-left: 7px; }
+    .guide .g span { color: var(--text-dim); font-size: .8rem; line-height: 1.45; }
+    .guide .g button { align-self: flex-start; margin-top: auto; padding: 4px 0 0; background: transparent; border: 0; color: var(--accent); font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
+    .guide .g button:hover { text-decoration: underline; }
+    @media (max-width: 900px) { .guide { grid-template-columns: repeat(2, 1fr); } .guide .g:nth-last-child(-n+4) { border-bottom: 1px solid var(--border); } .guide .g:nth-last-child(-n+2) { border-bottom: 0; } }
+    /* a phone gets the names and counts only: eight rows, one screen, not three */
+    @media (max-width: 480px) { .guide { grid-template-columns: 1fr; } .guide .g { padding: 9px 0; flex-direction: row; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--border) !important; } .guide .g:last-child { border-bottom: 0 !important; } .guide .g > span { display: none; } .guide .g b { font-size: .98rem; } .guide .g button { margin: 0 0 0 auto; padding: 0; white-space: nowrap; } .guide .g button .more { display: none; } }
+    .steps3 { list-style: none; margin: 0 0 22px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--text-dim); font-size: .84rem; }
+    .steps3 li { display: flex; gap: 8px; align-items: baseline; }
+    .steps3 b { color: var(--accent); font-family: var(--mono); }
+
+    /* ---------- Ask the data ---------- */
+    .ask { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px 14px; margin: 6px 0 8px; }
     .ask-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .ask-head .sec { margin: 0 0 6px; }
-    .ask-quota { color: var(--text-dim); font-size: .78rem; white-space: nowrap; }
+    .ask-head .sec { margin: 0 0 6px; font-size: 1.3rem; }
+    .ask-quota { color: var(--text-dim); font-size: .76rem; white-space: nowrap; font-family: var(--mono); }
     .ask-form { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
-    .ask-form textarea { flex: 1; resize: vertical; min-height: 44px; font: inherit; font-size: .93rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; }
+    .ask-form textarea { flex: 1; resize: vertical; min-height: 46px; font: inherit; font-size: .95rem; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
     .ask-form textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-    .ask-go { background: var(--accent); color: #fff; border: 0; font: inherit; font-weight: 600; font-size: .9rem; padding: 0 18px; border-radius: 10px; cursor: pointer; }
+    .ask-go { background: var(--text); color: var(--bg); border: 0; font: inherit; font-weight: 600; font-size: .9rem; padding: 0 20px; border-radius: 8px; cursor: pointer; }
+    .ask-go:hover { background: var(--accent); color: #fff; }
     .ask-go[disabled] { opacity: .5; cursor: default; }
     .ask-examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .ask-eg { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font: inherit; font-size: .78rem; padding: 4px 10px; border-radius: 999px; cursor: pointer; text-align: left; }
     .ask-eg:hover { color: var(--text); border-color: var(--accent); }
     .ask-thread { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
-    .ask-msg { border-radius: 12px; padding: 10px 14px; font-size: .92rem; line-height: 1.55; max-width: 60ch; }
-    .ask-msg.me { align-self: flex-end; background: rgba(47,155,255,.14); border: 1px solid rgba(47,155,255,.35); }
-    .ask-msg.bot { align-self: stretch; max-width: none; background: var(--surface-2); border: 1px solid var(--border); }
+    .ask-msg { border-radius: 10px; padding: 10px 14px; font-size: .93rem; line-height: 1.55; max-width: 60ch; }
+    .ask-msg.me { align-self: flex-end; background: rgba(28,99,201,.08); border: 1px solid rgba(28,99,201,.3); }
+    .ask-msg.bot { align-self: stretch; max-width: none; background: var(--bg); border: 1px solid var(--border); }
     .ask-msg p { margin: 0 0 8px; } .ask-msg p:last-child { margin-bottom: 0; } .ask-msg ul { margin: 4px 0 8px 18px; } .ask-msg a { color: var(--accent); }
-    .ask-msg code { font-size: .85em; background: rgba(127,127,127,.15); padding: 1px 5px; border-radius: 5px; }
-    .ask-status { color: var(--text-dim); font-size: .76rem; margin-bottom: 4px; min-height: 1em; }
-    .ask-err { color: var(--loss, #e5484d); }
-    .ask-limit { background: rgba(255,101,0,.10); border: 1px solid rgba(255,101,0,.35); border-radius: 10px; padding: 9px 12px; font-size: .86rem; margin-top: 10px; }
+    .ask-msg code { font-family: var(--mono); font-size: .85em; background: rgba(22,25,31,.07); padding: 1px 5px; border-radius: 4px; }
+    .ask-status { color: var(--text-dim); font-size: .74rem; margin-bottom: 4px; min-height: 1em; font-family: var(--mono); }
+    .ask-err { color: var(--loss); }
+    .ask-limit { background: rgba(217,84,30,.08); border: 1px solid rgba(217,84,30,.35); border-radius: 8px; padding: 9px 12px; font-size: .86rem; margin-top: 10px; }
     .ask-limit a { color: var(--accent); }
     @media (max-width: 560px) { .ask-form { flex-direction: column; } .ask-go { padding: 10px; } }
-    .sec-note { color: var(--text-dim); font-size: .88rem; margin-bottom: 12px; max-width: 72ch; }
 
-    /* ---------- overview ---------- */
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0 6px; }
-    @media (max-width: 700px) { .stats { grid-template-columns: repeat(2, 1fr); } }
-    .stats .s { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; }
-    .stats .s .v { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
-    .stats .s .l { font-size: .74rem; color: var(--text-dim); margin-top: 4px; line-height: 1.35; }
-    .stats .s.blue .v { color: var(--accent); }
-    .stats .s.green .v { color: var(--accent-2); }
-
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0 4px; }
-    @media (max-width: 700px) { .steps { grid-template-columns: 1fr; } }
-    .steps li { list-style: none; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
-      padding: 10px 13px; font-size: .85rem; color: var(--text-dim); display: flex; gap: 9px; align-items: baseline; }
-    .steps li b { color: var(--accent); font-variant-numeric: tabular-nums; }
-    .steps li span { color: var(--text); }
-
-    /* ---------- start here ---------- */
-    .starts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 6px; }
-    .start { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; text-align: left;
-      color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
-    .start:hover { border-color: var(--accent); }
-    .start .q { font-size: .93rem; font-weight: 600; line-height: 1.35; }
-    .start .m { font-size: .75rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-    .start .go { font-size: .78rem; color: var(--accent); font-weight: 600; }
-
-    /* ---------- subject tiles ---------- */
-    /* What's inside: one ruled block, eight subjects, three named datasets each */
-    .guide { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); margin: 4px 0 10px; }
-    .guide .g { padding: 12px 14px 10px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-    .guide .g:nth-child(4n) { border-right: 0; }
-    .guide .g:nth-last-child(-n+4) { border-bottom: 0; }
-    .guide .g b { font-size: .92rem; font-weight: 700; }
-    .guide .g b small { color: var(--text-dim); font-weight: 500; font-size: .74rem; margin-left: 6px; font-variant-numeric: tabular-nums; }
-    .guide .g span { color: var(--text-dim); font-size: .8rem; line-height: 1.4; }
-    .guide .g button { align-self: flex-start; margin-top: auto; padding: 4px 0 0; background: transparent; border: 0; color: var(--accent); font: inherit; font-size: .8rem; cursor: pointer; }
-    .guide .g button:hover { text-decoration: underline; }
-    @media (max-width: 900px) { .guide { grid-template-columns: repeat(2, 1fr); } .guide .g:nth-child(4n) { border-right: 1px solid var(--border); } .guide .g:nth-child(2n) { border-right: 0; } .guide .g:nth-last-child(-n+4) { border-bottom: 1px solid var(--border); } .guide .g:nth-last-child(-n+2) { border-bottom: 0; } }
-    @media (max-width: 480px) { .guide { grid-template-columns: 1fr; } .guide .g { border-right: 0 !important; border-bottom: 1px solid var(--border) !important; } .guide .g:last-child { border-bottom: 0 !important; } }
-    .howto { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--text-dim); font-size: .84rem; }
-    .howto li { display: flex; gap: 8px; align-items: baseline; }
-    .howto b { color: var(--accent); font-variant-numeric: tabular-nums; }
-    .tiles { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; color: var(--text-dim);
-      font: inherit; font-size: .83rem; padding: 7px 14px; cursor: pointer; display: inline-flex; gap: 7px; align-items: baseline; }
-    .tile:hover { color: var(--text); }
-    .tile b { color: var(--text-dim); font-weight: 600; font-variant-numeric: tabular-nums; font-size: .76rem; }
-    .tile[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .tile[aria-pressed="true"] b { color: rgba(255,255,255,.8); }
-
-    /* ---------- filters ---------- */
-    .filters { display: grid; grid-template-columns: 2fr 1.3fr 1.2fr; gap: 10px; margin-bottom: 12px; }
+    /* ---------- subject pills and filters ---------- */
+    .tiles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; color: var(--text); font: inherit; font-size: .84rem; padding: 6px 13px; cursor: pointer; display: inline-flex; gap: 7px; align-items: baseline; }
+    .tile:hover { border-color: var(--text); }
+    .tile b { color: var(--text-dim); font-weight: 400; font-size: .72rem; }
+    .tile[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
+    .tile[aria-pressed="true"] b { color: rgba(244,244,241,.7); }
+    .filters { display: grid; grid-template-columns: 2fr 1.3fr 1.2fr; gap: 10px; margin-bottom: 10px; }
     @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
-    .filters label { display: flex; flex-direction: column; gap: 5px; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-dim); }
-    .filters input, .filters select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit;
-      font-size: .9rem; padding: 9px 11px; border-radius: 10px; width: 100%; text-transform: none; letter-spacing: 0; }
+    .filters label { display: flex; flex-direction: column; gap: 5px; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); }
+    .filters input, .filters select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .9rem; padding: 9px 11px; border-radius: 8px; width: 100%; text-transform: none; letter-spacing: 0; }
+    .filters input:focus, .filters select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
     .filters .years { display: flex; gap: 6px; align-items: center; }
     .filters .years select { flex: 1; }
-    .count { color: var(--text-dim); font-size: .8rem; font-variant-numeric: tabular-nums; }
+    .count { color: var(--text-dim); font-size: .78rem; }
     .reset { background: none; border: 0; color: var(--accent); font: inherit; font-size: .8rem; cursor: pointer; text-decoration: underline; padding: 2px 6px; }
 
-    /* ---------- dataset list ---------- */
-    .group { margin: 18px 0 0; }
-    .group > h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-dim);
-      font-weight: 600; margin: 0 0 8px; display: flex; gap: 8px; align-items: baseline; border-bottom: 1px solid var(--border); padding-bottom: 6px;
-      position: sticky; top: 66px; background: var(--bg); z-index: 2; padding-top: 8px; }
-    .group > h3 .n { margin-left: auto; font-variant-numeric: tabular-nums; }
-    .item { margin-bottom: 8px; }
-    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 13px;
-      background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
-    .item.open .row { border-color: var(--accent); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-    .row .what { flex: 1 1 260px; min-width: 0; }
-    .row .what b { font-size: .93rem; font-weight: 600; display: block; }
-    .row .what small { display: block; color: var(--text-dim); font-size: .8rem; line-height: 1.4; margin-top: 1px; }
-    .row .spark { width: 84px; height: 26px; flex: 0 0 auto; color: var(--accent); opacity: .85; }
+    /* ---------- dataset list: a ruled list, not a stack of boxes ---------- */
+    .group { margin: 22px 0 0; }
+    .group > h3 { font-family: var(--display); font-size: 1.15rem; font-weight: 600; letter-spacing: -.005em; color: var(--text); margin: 0; display: flex; gap: 10px; align-items: baseline; border-bottom: 1px solid var(--text); padding: 8px 0 6px; position: sticky; top: 66px; background: var(--bg); z-index: 2; }
+    .group > h3 .n { margin-left: auto; font-family: var(--mono); font-weight: 400; font-size: .78rem; color: var(--text-dim); }
+    .item { border-bottom: 1px solid var(--border); }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 11px 0; }
+    .item.open .row { padding-bottom: 8px; }
+    .row .what { flex: 1 1 280px; min-width: 0; }
+    .row .what b { font-size: .96rem; font-weight: 600; display: block; line-height: 1.3; }
+    .row .what small { display: block; color: var(--text-dim); font-size: .82rem; line-height: 1.4; margin-top: 2px; }
+    .row .spark { width: 84px; height: 26px; flex: 0 0 auto; color: var(--accent); opacity: .9; }
     .row .spark svg { display: block; width: 84px; height: 26px; }
-    .row .meta { color: var(--text-dim); font-size: .76rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .row .go { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .8rem; font-weight: 600;
-      padding: 7px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+    .row .meta { color: var(--text-dim); font-size: .72rem; white-space: nowrap; }
+    .row .go { background: transparent; border: 1px solid var(--text); color: var(--text); font: inherit; font-size: .8rem; font-weight: 600; padding: 6px 13px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+    .row .go:hover { background: var(--text); color: var(--bg); }
     .row .go[disabled] { opacity: .55; cursor: default; }
-    .flag { display: inline-block; font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
-      padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
-    .flag.fc { background: rgba(47,155,255,.16); color: var(--accent); }
-    .flag.hand { background: rgba(255,101,0,.16); color: var(--accent-3); }
-    .flag.unk { background: rgba(229,72,77,.16); color: var(--loss); }
-    .slot { border: 1px solid var(--accent); border-top: 0; border-radius: 0 0 10px 10px; }
+    .flag { display: inline-block; font-family: var(--mono); font-size: .62rem; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; padding: 1px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 2px; white-space: nowrap; }
+    .flag.fc { background: rgba(28,99,201,.1); color: var(--accent); }
+    .flag.hand { background: rgba(217,84,30,.12); color: var(--accent-3); }
+    .flag.unk { background: rgba(198,40,40,.1); color: var(--loss); }
+    .slot { margin: 0 0 12px; }
     .empty { color: var(--text-dim); font-size: .9rem; padding: 16px 0; }
 
     /* ---------- chart card ---------- */
-    .card { background: var(--surface-2); padding: 14px 15px 12px; display: flex; flex-direction: column; gap: 9px; border-radius: 0 0 9px 9px; }
-    .card .note { color: var(--text-dim); font-size: .78rem; line-height: 1.45; }
-    .card svg.fig { width: 100%; height: auto; display: block; font-family: var(--font); }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 9px; box-shadow: 0 1px 2px rgba(22,25,31,.04); }
+    .card .note { color: var(--text-dim); font-size: .8rem; line-height: 1.45; }
+    .card svg.fig { width: 100%; height: auto; display: block; font-family: var(--mono); }
     .ctrl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-    .ctrl .lbl { color: var(--text-dim); font-size: .66rem; text-transform: uppercase; letter-spacing: .06em; min-width: 62px; }
-    .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+    .ctrl .lbl { color: var(--text-dim); font-size: .64rem; text-transform: uppercase; letter-spacing: .08em; min-width: 62px; }
+    .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: var(--bg); }
     .seg button { background: transparent; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; padding: 5px 10px; cursor: pointer; white-space: nowrap; }
     .seg button + button { border-left: 1px solid var(--border); }
-    .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; font-weight: 600; }
-    .card select { background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .78rem; padding: 4px 6px; border-radius: 7px; }
-    .card .hint { color: var(--text-dim); font-size: .78rem; line-height: 1.45; margin: -3px 0 0; }
+    .seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); font-weight: 600; }
+    .card select { background: var(--bg); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .78rem; padding: 4px 6px; border-radius: 7px; }
+    .card .hint { color: var(--text-dim); font-size: .8rem; line-height: 1.45; margin: -3px 0 0; }
     .card .hint b { color: var(--text); font-weight: 600; }
     .picks { display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow-y: auto; }
-    .pick { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); font: inherit; font-size: .78rem;
-      padding: 4px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+    .pick { background: var(--bg); border: 1px solid var(--border); color: var(--text-dim); font: inherit; font-size: .78rem; padding: 4px 10px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
     .pick i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .3; }
-    .pick[aria-pressed="true"] { color: var(--text); border-color: currentColor; }
+    .pick[aria-pressed="true"] { color: var(--text); border-color: currentColor; background: var(--surface); }
     .pick[aria-pressed="true"] i { opacity: 1; }
-    .pick b { font-weight: 600; }
+    .pick b { font-weight: 500; }
     .allnone { background: none; border: 0; color: var(--accent); font: inherit; font-size: .76rem; cursor: pointer; text-decoration: underline; padding: 2px 4px; }
-    .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; padding-top: 2px; }
-    .card .foot a { color: var(--accent); font-size: .8rem; }
+    .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; border-top: 1px solid var(--border); }
+    .card .foot a { color: var(--accent); font-size: .8rem; font-weight: 600; }
     .card .foot .drop { background: none; border: 0; color: var(--text-dim); font: inherit; font-size: .78rem; cursor: pointer; text-decoration: underline; }
-    .asof { color: var(--text-dim); font-size: .74rem; font-variant-numeric: tabular-nums; }
+    .asof { color: var(--text-dim); font-size: .72rem; }
     .loading { color: var(--text-dim); padding: 26px 0; text-align: center; }
-    .err { background: rgba(229,72,77,.12); border: 1px solid var(--loss); border-radius: 10px; padding: 10px 14px; margin: 10px 0; font-size: .88rem; }
-    .card .foot .act { background: var(--accent); border: 0; color: #fff; font: inherit; font-size: .78rem; font-weight: 600; padding: 5px 12px; border-radius: 7px; cursor: pointer; }
+    .err { background: rgba(198,40,40,.08); border: 1px solid var(--loss); border-radius: 8px; padding: 10px 14px; margin: 10px 0; font-size: .88rem; }
+    .card .foot .act { background: var(--text); border: 1px solid var(--text); color: var(--bg); font: inherit; font-size: .78rem; font-weight: 600; padding: 5px 12px; border-radius: 999px; cursor: pointer; }
     .card .foot .act[disabled] { opacity: .55; cursor: default; }
     .card .foot .act.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); font-weight: 500; }
-    .pred { border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 10px 10px 0; padding: 11px 14px; font-size: .86rem; line-height: 1.5; }
-    .pred h4 { margin: 0 0 6px; font-size: .9rem; }
-    .pred table { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; margin-top: 8px; }
+    .card .foot .act.ghost:hover { border-color: var(--text); }
+    .pred { border-left: 3px solid var(--accent); background: var(--bg); border-radius: 0 8px 8px 0; padding: 11px 14px; font-size: .86rem; line-height: 1.5; }
+    .pred h4 { margin: 0 0 6px; font-size: .95rem; font-family: var(--display); font-weight: 600; }
+    .pred table { width: 100%; border-collapse: collapse; font-size: .8rem; font-family: var(--mono); margin-top: 8px; }
     .pred th, .pred td { text-align: right; padding: 4px 7px; border-bottom: 1px solid var(--border); white-space: nowrap; }
     .pred th:first-child, .pred td:first-child { text-align: left; }
-    .pred th { color: var(--text-dim); font-weight: 600; font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
+    .pred th { color: var(--text-dim); font-weight: 500; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
     .pred tr.win td { color: var(--text); font-weight: 600; }
     .pred .why { color: var(--text-dim); margin-top: 7px; }
-    .pred textarea { width: 100%; margin-top: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text);
-      font: inherit; font-size: .82rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding: 8px 10px; border-radius: 8px; resize: vertical; }
+    .pred textarea { width: 100%; margin-top: 8px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .82rem; font-family: var(--mono); padding: 8px 10px; border-radius: 8px; resize: vertical; }
     .pred .js-mine-name { background: var(--surface); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: .8rem; padding: 4px 8px; border-radius: 7px; margin-left: 6px; }
-    .footnote { color: var(--text-dim); font-size: .82rem; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 34px; }
+    .footnote { color: var(--text-dim); font-size: .84rem; border-top: 1px solid var(--border); padding-top: 14px; margin-top: 34px; max-width: 76ch; }
     .footnote a { color: var(--accent); }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
 </head>
-<body>
+<body class="tool-light data-look">
   <header class="site-header">
     <div class="container nav">
       <a class="brand" href="index.html">Namık<span> Akman</span></a>
@@ -194,21 +202,23 @@
         <a href="data.html" class="back">&larr; The data behind the studies</a>
         <h1>Explore the data</h1>
         <p class="lede">Public statistics on prices, farming, trade, medicine and the wider economy, collected in one place
-        and charted in your browser. Every dataset below says, in a line, what question it answers. Nothing to install,
+        and charted in your browser. Every dataset says, in a line, what question it answers. Nothing to install,
         no account, no sign-in.</p>
+        <div class="stats" id="stats"></div>
 
+        <h2 class="sec">Start here</h2>
+        <p class="sec-note">Six questions this collection answers straight away, drawn from the files as you read. Open any one to change the years, the lines and the measure.</p>
+        <div class="starts" id="starts"></div>
+
+        <h2 class="sec">What is inside</h2>
         <div class="guide" id="guide" hidden></div>
-        <ol class="howto" id="howto">
-          <li><b>1</b><span>Pick a subject above, or a chart below.</span></li>
+        <ol class="steps3" id="howto">
+          <li><b>1</b><span>Pick a chart above or a subject here.</span></li>
           <li><b>2</b><span>Change the years, switch to an index or a yearly rate, pick the lines.</span></li>
           <li><b>3</b><span>Ask what it means: the answer names the source and draws the chart.</span></li>
         </ol>
 
         <div id="ask" data-connect="econ-mcp.html#connect"></div>
-
-        <h2 class="sec">Start here</h2>
-        <p class="sec-note">Four questions this collection answers straight away. Each one opens a chart you can then take apart.</p>
-        <div class="starts" id="starts"></div>
 
         <h2 class="sec">Find a dataset</h2>
         <p class="sec-note">Pick a subject, search for a word or a country, or narrow to the years it has to cover. Every chart can be switched to an index or year-on-year change and opened as a link.</p>
@@ -221,14 +231,7 @@
         <p><span class="count" id="count"></span> <button type="button" class="reset" id="reset" hidden>clear filters</button></p>
         <div id="browse"><p class="loading">Loading the catalogue…</p></div>
 
-        <div class="stats" id="stats"></div>
-        <p class="sec-note" id="scope"></p>
-
-        <ul class="steps">
-          <li><b>1</b><span>Pick a dataset — each one names the question it answers.</span></li>
-          <li><b>2</b><span>Choose the lines and the years; switch between actual values, an index and year-on-year change.</span></li>
-          <li><b>3</b><span>Open it as a link you can send to anyone.</span></li>
-        </ul>
+        <p class="sec-note" id="scope" style="margin-top:28px"></p>
 
         <div class="footnote">
           <p>Charts are drawn in your browser from the JSON files in
@@ -246,14 +249,24 @@
   <script>
   (function () {
     "use strict";
-    var COLORS = ["#2f9bff", "#19c37d", "#ff6500", "#e5484d", "#a78bfa", "#14b8a6"];
+    var COLORS = ["#1c63c9", "#d9541e", "#138a5a", "#7b3fd1", "#b7791f", "#c2306a"];
 
-    /* Four worked entry points. Each names a dataset that exists in data/_catalog.json. */
+    /* Six worked entry points, drawn as charts before anyone clicks. Each names a dataset
+       that exists in data/_catalog.json, the lines to draw, the window in years (0 = all)
+       and the measure: level, index (100 at the window start) or yoy (change on a year earlier). */
     var STARTS = [
-      { file: "cattle-parity", q: "Is beef getting dearer than the feed it takes to raise it?", pick: ["US.parity_idx", "EU.parity_idx", "TR.parity_idx", "IL.parity_idx"] },
-      { file: "tr-house-prices", q: "What has happened to house prices in Türkiye?", pick: ["turkey", "istanbul", "ankara", "izmir"] },
-      { file: "wb-commodities", q: "What is happening to world commodity prices?", pick: ["crude_brent", "maize", "wheat_us_hrw", "urea"] },
-      { file: "asia-wdi", q: "How fast are the big Asian economies growing?", pick: ["CN|gdp_growth", "IN|gdp_growth", "JP|gdp_growth", "TR|gdp_growth"] }
+      { file: "cattle-parity", q: "Is beef getting dearer than the feed it takes to raise it?", pick: ["US.parity_idx", "EU.parity_idx", "TR.parity_idx", "IL.parity_idx"], years: 0, mode: "level",
+        names: { "US.parity_idx": "United States", "EU.parity_idx": "European Union", "TR.parity_idx": "Türkiye", "IL.parity_idx": "Israel" }, note: "Meat price over feed price, 2016 = 1" },
+      { file: "tr-cpi-ppi", q: "How fast are Turkish prices rising?", pick: ["cpi", "cpi_food", "cpi_core_b"], years: 10, mode: "yoy",
+        names: { cpi: "All items", cpi_food: "Food", cpi_core_b: "Core (B)" }, note: "Consumer prices, change on a year earlier" },
+      { file: "wb-commodities", q: "What is happening to world commodity prices?", pick: ["crude_brent", "maize", "wheat_us_hrw", "urea"], years: 10, mode: "index",
+        names: { crude_brent: "Brent crude", maize: "Maize", wheat_us_hrw: "US wheat", urea: "Urea" }, note: "Dollar prices as an index" },
+      { file: "tr-house-prices", q: "What has happened to house prices in Türkiye?", pick: ["turkey", "istanbul", "ankara", "izmir"], years: 0, mode: "level",
+        names: { turkey: "Türkiye", istanbul: "Istanbul", ankara: "Ankara", izmir: "Izmir" }, note: "Index, 2023 = 100, current prices" },
+      { file: "imf-weo", q: "Whose government debt is heaviest, and where is it heading?", pick: ["JP|GGXWDG_NGDP", "US|GGXWDG_NGDP", "DE|GGXWDG_NGDP", "TR|GGXWDG_NGDP"], years: 15, mode: "level", unit: "%",
+        names: { "JP|GGXWDG_NGDP": "Japan", "US|GGXWDG_NGDP": "United States", "DE|GGXWDG_NGDP": "Germany", "TR|GGXWDG_NGDP": "Türkiye" }, note: "Gross government debt, % of GDP; IMF projections after 2025" },
+      { file: "asia-wdi", q: "How fast are the big Asian economies growing?", pick: ["CN|gdp_growth", "IN|gdp_growth", "JP|gdp_growth", "TR|gdp_growth"], years: 20, mode: "level", unit: "%",
+        names: { "CN|gdp_growth": "China", "IN|gdp_growth": "India", "JP|gdp_growth": "Japan", "TR|gdp_growth": "Türkiye" }, note: "Real GDP growth, % a year" }
     ];
 
     /* Plain-English name and question for every file in the catalogue. Each line is a
@@ -529,10 +542,11 @@
       if (a >= 10) return v.toLocaleString("en-GB", { maximumFractionDigits: 1 });
       return v.toLocaleString("en-GB", { maximumFractionDigits: 2 });
     }
-    function svgFor(title, vis, suffix, unit) {
-      /* A narrow screen gets a narrower viewBox so the 11px labels do not shrink to nothing. */
-      var narrow = window.innerWidth < 700;
-      var W = narrow ? 400 : 660, H = narrow ? 210 : 200, L = narrow ? 40 : 52, R = 10, T = 10, B = 22, iw = W - L - R, ih = H - T - B;
+    function svgFor(title, vis, suffix, unit, opts) {
+      /* A narrow screen gets a narrower viewBox so the 11px labels do not shrink to nothing;
+         a featured card is drawn at about one CSS pixel per unit, so the labels stay 11px. */
+      var narrow = window.innerWidth < 700, mini = !!(opts && opts.mini);
+      var W = mini ? 380 : narrow ? 400 : 660, H = mini ? 180 : narrow ? 210 : 200, L = mini ? 38 : narrow ? 40 : 52, R = 10, T = 10, B = 22, iw = W - L - R, ih = H - T - B;
       if (!vis.length) return "<svg class='fig' viewBox='0 0 " + W + " " + H + "'><text x='" + (W / 2) + "' y='" + (H / 2) + "' text-anchor='middle' font-size='13' fill='currentColor' fill-opacity='.55'>Nothing selected — pick a line below.</text></svg>";
       var keys = {}, axis, idx = {};
       vis.forEach(function (s) { s.d.forEach(function (d) { keys[d] = 1; }); });
@@ -611,6 +625,27 @@
       var y = +d.slice(0, 4);
       if (!y) return null;
       return String(y - 1) + d.slice(4);
+    }
+
+    /* Index or yearly change on the whole series, then cut to the window, so the first
+       year in the window keeps its value (the card's own draw() does the same in draw). */
+    function featTransform(s, mode, from) {
+      var d = [], v = [], i, by = {};
+      if (mode === "yoy") {
+        for (i = 0; i < s.d.length; i++) by[s.d[i]] = s.v[i];
+        for (i = 0; i < s.d.length; i++) {
+          var prev = by[yearBefore(s.d[i])];
+          if (s.d[i] >= from && typeof prev === "number" && prev !== 0) { d.push(s.d[i]); v.push((s.v[i] / prev - 1) * 100); }
+        }
+        return { n: s.n, d: d, v: v };
+      }
+      var base = null;
+      for (i = 0; i < s.d.length; i++) {
+        if (s.d[i] < from) continue;
+        if (mode === "index") { if (base === null) base = s.v[i]; if (!base) continue; d.push(s.d[i]); v.push(s.v[i] / base * 100); }
+        else { d.push(s.d[i]); v.push(s.v[i]); }
+      }
+      return { n: s.n, d: d, v: v };
     }
 
     /* ---------- sparklines ---------- */
@@ -1149,10 +1184,10 @@
       var minY = DS.reduce(function (a, d) { return Math.min(a, d.f); }, 9999);
       var maxY = DS.reduce(function (a, d) { return Math.max(a, d.t); }, 0);
       var obs = (cat.totals && cat.totals.observations) || DS.reduce(function (a, d) { return a + d.obs; }, 0);
-      [[chartable, "datasets you can chart right here", ""],
-       [commas(series), "individual series inside them", "blue"],
-       [commas(obs), "numbers in the whole collection", "green"],
-       [minY + "–" + maxY, "years covered, from the oldest CO₂ reading to the IMF's last projection", ""]
+      [[chartable, "datasets to chart", ""],
+       [commas(series), "series", "blue"],
+       [commas(obs), "numbers", "green"],
+       [minY + "–" + maxY, "years, from the oldest CO₂ reading to the IMF's last projection", ""]
       ].forEach(function (o) {
         var d = document.createElement("div");
         d.className = "s " + o[2];
@@ -1164,17 +1199,39 @@
         " single-year snapshots. Not listed at all: " + undated + " probes and study outputs with no dated series; those are on the " +
         "<a href='data.html'>data page</a>.";
 
-      /* --- start here --- */
+      /* --- start here: six charts drawn from the files --- */
+      startsEl.innerHTML = "";
       STARTS.forEach(function (st) {
         var d = BY[st.file];
         if (!d) return;
-        var b = document.createElement("button");
-        b.type = "button"; b.className = "start";
-        b.innerHTML = "<span class='q'>" + esc(st.q) + "</span>" +
-          "<span class='m'>" + esc(d.title) + " · " + d.f + "–" + d.t + " · " + d.n + " series</span>" +
-          "<span class='go'>Show me &rarr;</span>";
-        b.addEventListener("click", function () { openRow(st.file, st.pick); });
-        startsEl.appendChild(b);
+        var el = document.createElement("article");
+        el.className = "feat";
+        el.innerHTML = "<div class='fhead'><span class='eyebrow'>" + esc(d.subj) + "</span><h3>" + esc(st.q) + "</h3></div>" +
+          "<div class='ffig'><p class='loading'>Drawing…</p></div><div class='fleg'></div>" +
+          "<div class='ffoot'><span class='fnote'>" + esc(d.title) + "</span><button type='button' class='open'>Take it apart &rarr;</button></div>";
+        var open = function () { openRow(st.file, st.pick); };
+        el.querySelector(".open").addEventListener("click", open);
+        el.querySelector(".fhead").addEventListener("click", open);
+        startsEl.appendChild(el);
+        loadFile(st.file).then(function (series) {
+          var lines = st.pick.filter(function (n) { return series[n]; }).map(function (n) {
+            var dates = Object.keys(series[n]).sort();
+            return { n: n, d: dates, v: dates.map(function (x) { return series[n][x]; }) };
+          }).filter(function (x) { return x.d.length > 1; });
+          var last = lines.reduce(function (a, x) { var l = x.d[x.d.length - 1]; return l > a ? l : a; }, "");
+          var from = st.years ? String(+last.slice(0, 4) - st.years) : "0";
+          lines = lines.map(function (x) { return featTransform(x, st.mode, from); }).filter(function (x) { return x.d.length > 1; });
+          var unit = st.mode === "yoy" ? "%" : st.unit || "";
+          el.querySelector(".ffig").innerHTML = svgFor(st.q, lines, st.mode === "level" ? "" : st.mode, unit, { mini: true });
+          el.querySelector(".fleg").innerHTML = lines.map(function (x, i) {
+            var lv = x.v[x.v.length - 1];
+            return "<span style='color:" + COLORS[i % COLORS.length] + "'><i></i>" + esc((st.names && st.names[x.n]) || label(x.n)) + " <b>" + esc(fmt(lv) + unit) + "</b></span>";
+          }).join("");
+          var first = lines.reduce(function (a, x) { return x.d[0] < a ? x.d[0] : a; }, "9999");
+          el.querySelector(".fnote").textContent = (st.note || d.unit || "") + (st.mode === "index" ? ", 100 at " + first : "") + " · " + first + " to " + last;
+        }, function () {
+          el.querySelector(".ffig").innerHTML = "<p class='err'>Could not load " + esc(d.title) + ".</p>";
+        });
       });
 
       /* --- filters --- */
@@ -1208,7 +1265,7 @@
       var guideEl = document.getElementById("guide");
       guideEl.innerHTML = order.filter(function (s) { return s !== "Reference files" && subjCount[s]; }).map(function (s) {
         var names = DS.filter(function (d) { return d.subj === s && !d.snap; }).sort(function (a, b) { var ra = RANK[a.name], rb = RANK[b.name]; if (ra == null) ra = 999; if (rb == null) rb = 999; return ra - rb; }).slice(0, 3).map(function (d) { return d.title; });
-        return "<div class='g'><b>" + esc(s) + "<small>" + subjCount[s] + "</small></b><span>" + esc(names.join(" · ")) + (subjCount[s] > 3 ? " · …" : "") + "</span><button type='button' data-subj='" + esc(s) + "'>Browse the charts →</button></div>";
+        return "<div class='g'><b>" + esc(s) + "<small>" + subjCount[s] + "</small></b><span>" + esc(names.join(" · ")) + (subjCount[s] > 3 ? " · …" : "") + "</span><button type='button' data-subj='" + esc(s) + "'>Browse<span class='more'> the charts</span> →</button></div>";
       }).join("");
       guideEl.hidden = false;
       guideEl.addEventListener("click", function (ev) {
