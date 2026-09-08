@@ -1,5 +1,5 @@
 /* "Ask the data": a question box that talks to the Worker's /v1/ask, which asks Claude with the
-   site's own tools attached and streams the answer back as server-sent events. Ten questions a
+   site's own tools attached and streams the answer back as server-sent events. Five questions a
    day per visitor; past that the box points at the free route, connecting the server to your
    own Claude. Drop <div id="ask"></div> on a page and include this script. */
 (function () {
@@ -42,7 +42,7 @@
     "<div class='ask'>" +
       "<div class='ask-head'><h2 class='sec'>Ask the data</h2>" +
         "<span class='ask-quota' id='ask-quota'>checking…</span></div>" +
-      "<p class='sec-note'>Type a question in English or Turkish. The assistant looks the answer up in the datasets and live providers on this site, quotes the source, and draws a chart when one helps. It is Claude Opus 5 with this site's tools; ten questions a day per visitor.</p>" +
+      "<p class='sec-note'>Type a question in English or Turkish. The assistant looks the answer up in the datasets and live providers on this site, quotes the source, and draws a chart when one helps. It is Claude Opus 5 with this site's tools; five questions a day per visitor.</p>" +
       "<div class='ask-thread' id='ask-thread' hidden></div>" +
       "<form class='ask-form' id='ask-form'>" +
         "<textarea id='ask-q' rows='2' maxlength='1000' placeholder='e.g. How has Turkish inflation compared with the euro area since 2020?'></textarea>" +
@@ -59,7 +59,7 @@
   function showQuota(remaining, perDay, enabled) {
     if (enabled === false) { quotaEl.textContent = "assistant off"; quotaEl.title = "The server has no API key set, so the box is idle."; return; }
     if (remaining == null) { quotaEl.textContent = ""; return; }
-    quotaEl.textContent = remaining + " of " + (perDay || 10) + " questions left today";
+    quotaEl.textContent = remaining + " of " + (perDay || 5) + " questions left today";
     if (remaining <= 0) limitReached();
   }
   function limitReached() {
@@ -101,7 +101,7 @@
           if (d.type === "content_block_start" && d.content_block) {
             var b = d.content_block;
             if (b.type === "mcp_tool_use" || b.type === "server_tool_use" || b.type === "tool_use") { tools++; statusEl.textContent = toolLabel(b.name) + "…"; }
-            else if (b.type === "text") statusEl.textContent = "writing…";
+            else if (b.type === "text") { statusEl.textContent = "writing…"; if (text && !/\n$/.test(text)) { text += "\n\n"; render(); } }
           } else if (d.type === "content_block_delta" && d.delta) {
             if (d.delta.type === "text_delta") { text += d.delta.text; render(); }
           } else if (d.type === "message_delta" && d.delta && d.delta.stop_reason) stop = d.delta.stop_reason;
