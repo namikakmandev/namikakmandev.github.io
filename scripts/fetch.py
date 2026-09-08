@@ -843,9 +843,38 @@ def main():
             print(f"[FAIL] {e['name']}: {type(ex).__name__}: {ex}")
             failed.append(e["name"])
     os.makedirs(os.path.join(ROOT, "data"), exist_ok=True)
-    json.dump(report, open(os.path.join(ROOT, "data", "_fetch-report.json"), "w"), indent=1)
+    # The report is cumulative. A run that touches one source must not erase what the last
+    # run recorded about the others: build_catalog.py reads this to flag degraded datasets,
+    # so replacing the whole file would quietly mark every source healthy again.
+    report_path = os.path.join(ROOT, "data", "_fetch-report.json")
+    this_run = dict(report)
+    merged = {}
+    if os.path.exists(report_path):
+        try:
+            prev = json.load(open(report_path))
+            if isinstance(prev, dict):
+                merged.update(prev)
+        except Exception:  # noqa: BLE001 — an unreadable report is not fatal
+            pass
+    stamp = time.strftime("%Y-%m-%d", time.gmtime())
+    for name, entry in report.items():
+        if isinstance(entry, dict):
+            entry = dict(entry, ran_at=stamp)
+        merged[name] = entry
+    # Drop sources that no longer exist in the config, so the file does not grow forever.
+    live = {e["name"] for e in cfg["sources"]}
+    merged = {k: v for k, v in merged.items() if k in live}
+    report.clear()
+    report.update(merged)
+    json.dump(merged, open(report_path, "w"), indent=1)
     print("\n" + json.dumps(report, indent=1, default=str)[:3000])
-    degraded = sorted(n for n, r in report.items() if isinstance(r, dict) and r.get("ok") is False)
+    # The exit code is about this run, not about a failure some earlier run recorded and
+    # nobody has fixed yet: otherwise every run would be red until the oldest one is.
+    degraded = sorted(n for n, r in this_run.items() if isinstance(r, dict) and r.get("ok") is False)
+    stale = sorted(n for n, r in merged.items()
+                   if n not in this_run and isinstance(r, dict) and r.get("ok") is False)
+    if stale:
+        print(f"\nstill degraded from an earlier run, not touched by this one: {stale}")
     if failed:
         print(f"\n{len(failed)} source(s) failed: {failed}")
     if degraded:
