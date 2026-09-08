@@ -158,21 +158,12 @@
         and charted in your browser. Every dataset below says, in a line, what question it answers. Nothing to install,
         no account, no sign-in.</p>
 
-        <div class="stats" id="stats"></div>
-        <p class="sec-note" id="scope"></p>
-
-        <ul class="steps">
-          <li><b>1</b><span>Pick a dataset — each one names the question it answers.</span></li>
-          <li><b>2</b><span>Choose the lines and the years; switch between actual values, an index and year-on-year change.</span></li>
-          <li><b>3</b><span>Open it as a link you can send to anyone.</span></li>
-        </ul>
-
         <h2 class="sec">Start here</h2>
         <p class="sec-note">Four questions this collection answers straight away. Each one opens a chart you can then take apart.</p>
         <div class="starts" id="starts"></div>
 
         <h2 class="sec">Find a dataset</h2>
-        <p class="sec-note">Pick a subject, search for a word, or narrow to a country and the years it has to cover.</p>
+        <p class="sec-note">Pick a subject, search for a word or a country, or narrow to the years it has to cover. Every chart can be switched to an index or year-on-year change and opened as a link.</p>
         <div class="tiles" id="tiles"></div>
         <div class="filters">
           <label>Search<input id="q" type="search" placeholder="cattle, inflation, house prices, pharma…" /></label>
@@ -181,6 +172,15 @@
         </div>
         <p><span class="count" id="count"></span> <button type="button" class="reset" id="reset" hidden>clear filters</button></p>
         <div id="browse"><p class="loading">Loading the catalogue…</p></div>
+
+        <div class="stats" id="stats"></div>
+        <p class="sec-note" id="scope"></p>
+
+        <ul class="steps">
+          <li><b>1</b><span>Pick a dataset — each one names the question it answers.</span></li>
+          <li><b>2</b><span>Choose the lines and the years; switch between actual values, an index and year-on-year change.</span></li>
+          <li><b>3</b><span>Open it as a link you can send to anyone.</span></li>
+        </ul>
 
         <div class="footnote">
           <p>Charts are drawn in your browser from the JSON files in
@@ -381,7 +381,8 @@
     function commas(n) { return Number(n).toLocaleString("en-GB"); }
 
     /* ---------- read any dataset shape, as the server does ---------- */
-    var DATE = /^\d{4}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
+    /* a bare four-digit key must be a year: HS product codes (2937, 3004) are not dates */
+    var DATE = /^(1[0-9]|20|21)\d{2}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
     var META = ["source","source_url","source_file","fetched_by","fetched_at","config","note","generated_by","base","meta","unit","hicp_source","cpi_source","_readme","as_of","question","definition","scope_note","encoding","excludes","basis","dimension_order","window","log","runs","errors","updated","asof"];
     var CONTAINER = ["series","shares","regions","countries","groups"];
     function isObj(v) { return v && typeof v === "object" && !Array.isArray(v); }
@@ -473,8 +474,8 @@
     var API = "https://econ-mcp.akmannamik83.workers.dev";
     function fmt(v) {
       var a = Math.abs(v);
-      if (a >= 1e9) return (v / 1e9).toFixed(1) + "bn";
-      if (a >= 1e6) return (v / 1e6).toFixed(1) + "m";
+      if (a >= 1e9) return (v / 1e9).toFixed(1).replace(/\.0$/, "") + "bn";
+      if (a >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, "") + "m";
       if (a >= 1000) return v.toLocaleString("en-GB", { maximumFractionDigits: 0 });
       if (a >= 10) return v.toLocaleString("en-GB", { maximumFractionDigits: 1 });
       return v.toLocaleString("en-GB", { maximumFractionDigits: 2 });
@@ -490,6 +491,10 @@
       axis.forEach(function (d, i) { idx[d] = i; });
       var lo = Infinity, hi = -Infinity;
       vis.forEach(function (s) { s.v.forEach(function (v) { if (v < lo) lo = v; if (v > hi) hi = v; }); });
+      /* The left margin must fit the longest tick label ("1,200bn"): a fixed 40 clipped
+         the leading digit on a phone. About 6.3 units per 11px character. */
+      var widest = nice(lo, hi).reduce(function (w, t) { return Math.max(w, (fmt(t) + (unit || "")).length); }, 0);
+      L = Math.max(L, Math.ceil(widest * 6.3) + 10); iw = W - L - R;
       var pad = (hi - lo) * 0.08 || Math.abs(hi) * 0.08 || 1; lo -= pad; hi += pad;
       if (lo > 0 && lo < (hi - lo) * 0.15) lo = 0;
       var ticks = nice(lo, hi);
@@ -524,10 +529,33 @@
     }
 
     /* 'AT|CP00' reads as 'Austria · CP00'; a bare code as the country name. */
+    /* Lower-case with accents stripped, so a search matches however the country is spelt. */
+    function fold(s) { return String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+    var ALIAS = { "Türkiye": "turkey turkiye", "United States": "usa america", "United Kingdom": "uk britain", "European Union": "eu europe", "Czechia": "czech", "South Korea": "korea" };
+    /* Indicator codes the pipe-keyed datasets carry, so a pill says "Real GDP growth" and not NGDP_RPCH. */
+    var CODES = { NGDP_RPCH: "Real GDP growth, %", PCPIPCH: "Inflation, average, %", PCPIEPCH: "Inflation, end of period, %", LUR: "Unemployment rate, %",
+      GGXWDG_NGDP: "Government gross debt, % of GDP", GGXCNL_NGDP: "Government net lending, % of GDP", BCA_NGDPD: "Current account, % of GDP",
+      NGDPDPC: "GDP per person, USD", NGDPD: "GDP, USD", NID_NGDP: "Investment, % of GDP", NGSD_NGDP: "National saving, % of GDP",
+      "BS-ESI-I": "Economic sentiment indicator", "BS-ICI-BAL": "Industrial confidence", "BS-CSMCI-BAL": "Consumer confidence", "BS-SCI-BAL": "Services confidence" };
     function label(name) {
-      var m = /^([A-Z]{2,3})(?:[|.](.+))?$/.exec(name);
-      if (m && NAMES[m[1]]) return NAMES[m[1]] + (m[2] ? " · " + m[2] : "");
+      var m = /^([A-Z]{2,3}|EU27_2020|EA20|EA19)(?:[|.](.+))?$/.exec(name);
+      var head = m && (NAMES[m[1]] || (m[1] === "EU27_2020" ? "European Union" : /^EA/.test(m[1]) ? "Euro area" : null));
+      if (head) return head + (m[2] ? " · " + (CODES[m[2]] || m[2].replace(/_/g, " ")) : "");
       return name;
+    }
+    /* Which lines to draw first. A file keyed country|indicator has hundreds of series, and the
+       first four alphabetically are four unrelated indicators for one country on one axis; one
+       indicator across a few countries is what anyone would want to see. */
+    function defaultPick(full) {
+      var piped = full.filter(function (s) { return s.n.indexOf("|") > 0; });
+      if (piped.length < full.length / 2) return full.slice(0, 4).map(function (s) { return s.n; });
+      var byInd = {};
+      piped.forEach(function (s) { var ind = s.n.split("|").slice(1).join("|"); (byInd[ind] = byInd[ind] || []).push(s); });
+      var inds = Object.keys(byInd).sort(function (a, b) { return byInd[b].length - byInd[a].length; });
+      var pref = ["TR", "US", "DE", "EU", "EU27_2020", "GB", "FR", "CN", "JP", "PL"];
+      var rank = function (s) { var i = pref.indexOf(s.n.split("|")[0]); return i < 0 ? 99 : i; };
+      var list = byInd[inds[0]].slice().sort(function (a, b) { return rank(a) - rank(b) || b.d.length - a.d.length; });
+      return list.slice(0, 4).map(function (s) { return s.n; });
     }
     /* the same date one year earlier, in whatever shape the dataset uses */
     function yearBefore(d) {
@@ -620,7 +648,7 @@
       ];
       if (ppUnit) modes.push({ k: "pp", l: "Per person" });
       var chosen = {};
-      (card.pick && card.pick.filter(function (n) { return card.series[n]; }).length ? card.pick : full.slice(0, 4).map(function (s) { return s.n; }))
+      (card.pick && card.pick.filter(function (n) { return card.series[n]; }).length ? card.pick : defaultPick(full))
         .forEach(function (n) { if (card.series[n]) chosen[n] = true; });
       var state = { preset: 0, from: yF, to: yL, mode: "level" };
       var pop = null;
@@ -630,7 +658,13 @@
       /* What the axis is in. A chart of numbers nobody can name the unit of is not a
          chart anyone can quote. */
       function unitOf(name) {
-        if (card.units && card.units[name]) return card.units[name];
+        var u = card.units;
+        if (u) {
+          if (u[name]) return u[name];
+          /* country|indicator keys: the map may be by indicator alone */
+          var parts = String(name).split("|");
+          if (parts.length > 1) { var tail = parts.slice(1).join("|"); if (u[tail]) return u[tail]; if (u[parts[0]]) return u[parts[0]]; }
+        }
         return card.unit || "";
       }
       function unitLine(vis) {
@@ -1047,6 +1081,11 @@
           keys: ((d.series_keys || []).join(" ") + " " + (d.series_key_parts || []).join(" ")).toLowerCase(),
           c: countriesOf(d), subj: SUBJ_OF[name] || "Reference files" };
       }).map(function (d) {
+        /* "germany" must find the German series, and Turkey, Turkiye and Türkiye are one word. */
+        var aliases = d.c.map(function (c) { return ALIAS[c] || ""; }).join(" ");
+        d.hay = fold(d.name + " " + d.title + " " + d.q + " " + d.src + " " + d.unit + " " + d.keys + " " + d.c.join(" ") + " " + aliases);
+        return d;
+      }).map(function (d) {
         /* one value per series in a single year: a snapshot, not something to plot over time */
         d.snap = d.f > 0 && d.f === d.t && d.obs <= d.n;
         return d;
@@ -1141,7 +1180,7 @@
             (snapshot ? "" : "<span class='spark' data-spark='" + esc(d.name) + "'></span>") +
             "<span class='meta'>" + (d.f === d.t ? d.f : d.f + "–" + d.t) + " · " + d.n + " series · " + commas(d.obs) + " points</span>" +
             (snapshot
-              ? "<span class='meta'>one year only &mdash; <a href='data.html'>see the catalogue</a></span>"
+              ? "<span class='meta'>one year only &mdash; <a href='https://github.com/namikakmandev/namikakmandev.github.io/blob/main/data/" + esc(d.name) + ".json'>open the file</a></span>"
               : "<button type='button' class='go' data-open='" + esc(d.name) + "'>Chart it</button>") +
             "</div><div class='slot' hidden></div>";
           g.appendChild(item);
@@ -1164,7 +1203,7 @@
           DS.filter(function (d) { return d.subj === subj; }).forEach(function (d) {
             // The series names inside a dataset are part of what a search is for: someone
             // typing "wheat" means the series, not the file name.
-            var hit = (!term || (d.name + " " + d.title + " " + d.q + " " + d.src + " " + d.unit + " " + d.keys).toLowerCase().indexOf(term) >= 0) &&
+            var hit = (!term || d.hay.indexOf(fold(term)) >= 0) &&
                       (!country || d.c.indexOf(country) >= 0) && (d.f <= b && d.t >= a) &&
                       (!subject || d.subj === subject);
             rowEls[d.name].hidden = !hit; if (hit) vis++;
@@ -1257,9 +1296,14 @@
       if (!m) return;
       var name = decodeURIComponent(m[1]);
       var row = document.querySelector('[data-open="' + name.replace(/"/g, '') + '"]');
-      if (!row) return;
-      row.click();
-      setTimeout(function () { row.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
+      if (row) {
+        row.click();
+        setTimeout(function () { row.scrollIntoView({ behavior: "smooth", block: "center" }); }, 150);
+        return;
+      }
+      /* a single-year file has no chart to open; at least land on its row */
+      var item = rowEls[name];
+      if (item) { item.classList.add("open"); item.scrollIntoView({ behavior: "smooth", block: "center" }); }
     }
     fetch("data/_catalog.json", { cache: "no-cache" })
       .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })

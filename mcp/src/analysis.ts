@@ -8,7 +8,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { DataError, type Series, caveatsFor, datasetName, extractSeries, loadCatalog, loadDataset, sourceFor } from "./data.js";
 import { PROVIDERS, providerInfo, type ProviderEnv } from "./providers.js";
-import { SeriesRefSchema, align, detectFrequency, futureDates, resolve, type Resolved, type SeriesRef } from "./resolve.js";
+import { SeriesRefSchema, align, detectFrequency, futureDates, noteGaps, resolve, type Resolved, type SeriesRef } from "./resolve.js";
 import { apply, clip, round, toPoints, type Transform } from "./transform.js";
 import * as S from "./stats.js";
 import { SERVER_BUILD } from "./version.js";
@@ -241,7 +241,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
           hint: "Call again with 'series' set to one of these keys, or narrow with params.",
         });
       }
-      const r = await resolve({ provider, id, params, series, start, end, frequency, transform, base }, "", env);
+      const r = await resolve({ provider, id, params, series, start, end, frequency, transform, base }, "", env, res);
       let pts = toPoints(round(r.series));
       if (last_n) pts = pts.slice(-last_n);
       return text({ ...meta(r), provider, id, series: series ?? keys[0], url: res.url, frequency, n: pts.length, first: pts[0]?.[0], last: pts[pts.length - 1]?.[0], points: pts });
@@ -356,9 +356,10 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       try { first = S.adf(S.diff(v), spec === "ct" ? "c" : spec, lags ?? "auto"); } catch { /* short */ }
       const order = integrationOrder(level, first);
       const kp = S.kpss(v, spec === "ct" ? "ct" : "c");
-      const kpssOut = { trend: kp.trend, lags: kp.lags, statistic: r3(kp.statistic), critical: kp.critical, reject_stationarity_at: kp.reject_stationarity_at,
+      const kpssOut = { trend: kp.trend, lags: kp.lags, bandwidth: kp.bandwidth, statistic: r3(kp.statistic), critical: kp.critical, reject_stationarity_at: kp.reject_stationarity_at,
         degenerate: kp.degenerate,
-        null_hypothesis: "The series is stationary. Rejecting means a unit root." };
+        null_hypothesis: "The series is stationary. Rejecting means a unit root.",
+        caveat: "KPSS over-rejects on persistent stationary series even with the bandwidth chosen from the data: at first-order autocorrelation 0.9 it calls a stationary series a unit root roughly a quarter of the time. When ADF rejects clearly and KPSS rejects only at 10%, believe the ADF." };
       const adfSaysStationary = !!level.reject_unit_root_at, kpssSaysStationary = !kp.reject_stationarity_at;
       const joint = kp.degenerate ? `KPSS could not be computed: ${kp.degenerate} Read the ADF result alone.`
         : adfSaysStationary && kpssSaysStationary ? "Both tests agree: stationary."
@@ -392,7 +393,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     wrap(async ({ y, x, x_lags, trend, hac_lags }) => {
       const ry = await get(y);
       const rx = await Promise.all(x.map(get));
-      const { dates, columns } = align([ry.series, ...rx.map((r) => r.series)]);
+      const aligned = align([ry.series, ...rx.map((r) => r.series)]), { dates, columns } = aligned; noteGaps(aligned, ry);
       if (dates.length < 8) return fail(`Only ${dates.length} shared dates between the series. Check frequencies (use frequency='annual_mean' to align monthly with annual) and windows.`);
       const names = ["const"];
       const rows: number[][] = [];
@@ -494,7 +495,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ a, b, lags }) => {
       const ra = await get(a), rb = await get(b);
-      const { dates, columns } = align([ra.series, rb.series]);
+      const aligned = align([ra.series, rb.series]), { dates, columns } = aligned; noteGaps(aligned, ra);
       if (dates.length < 3 * lags + 8) return fail(`Only ${dates.length} shared dates; need at least ${3 * lags + 8} for ${lags} lags.`);
       const [va, vb] = columns;
       const ab = S.granger(vb, va, lags), ba = S.granger(va, vb, lags);
@@ -522,7 +523,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ a, b, include_residuals }) => {
       const ra = await get(a), rb = await get(b);
-      const { dates, columns } = align([ra.series, rb.series]);
+      const aligned = align([ra.series, rb.series]), { dates, columns } = aligned; noteGaps(aligned, ra);
       if (dates.length < 30) return fail(`Only ${dates.length} shared dates; cointegration tests need 30 or more.`);
       const [va, vb] = columns;
       const eg = S.engleGranger(va, vb);
@@ -567,7 +568,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ a, b, max_lag }) => {
       const ra = await get(a), rb = await get(b);
-      const { dates, columns } = align([ra.series, rb.series]);
+      const aligned = align([ra.series, rb.series]), { dates, columns } = aligned; noteGaps(aligned, ra);
       if (dates.length < max_lag * 2 + 10) return fail(`Only ${dates.length} shared dates for max_lag ${max_lag}.`);
       const cc = S.crossCorrelation(columns[0], columns[1], max_lag);
       const best = cc.reduce((p, q) => (Math.abs(q.r) > Math.abs(p.r) ? q : p));
@@ -693,16 +694,22 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const seasonalOk = f.period > 1 && v.length >= 3 * f.period;
       const m = method === "auto" ? (seasonalOk ? "holt_winters" : "holt") : method;
       let forecast: number[], fitted: number[], sdv: number, detail: Record<string, unknown>;
+      // How the h-step error grows. sqrt(h) is the random-walk rate; an autoregression's own
+      // psi weights level off when it mean-reverts, and by h=4 the sqrt(h) band covers 99.7%.
+      let scaleAt = (i: number) => Math.sqrt(i + 1);
+      const psiScale = (psi: number[]) => { const cum: number[] = []; let acc = 0; for (const w of psi) { acc += w * w; cum.push(Math.sqrt(acc)); } return (i: number) => cum[Math.min(i, cum.length - 1)]; };
       if (m === "arima") {
         const am = arima_order ? S.arima(v, arima_order[0], arima_order[1], arima_order[2], horizon) : S.autoArima(v, horizon);
         forecast = am.forecast; sdv = am.resid_sd;
+        scaleAt = psiScale(S.psiWeights(am.ar, am.ma, am.d, horizon));
         detail = { method: `ARIMA(${am.p},${am.d},${am.q})${arima_order ? "" : ", order by AIC"}`, const: r4(am.const), ar: am.ar.map(r4), ma: am.ma.map(r4), aic: r3(am.aic),
-          note: "Conditional sum of squares estimate; the MA polynomial is not constrained to be invertible. Compare with Holt-Winters before trusting a long horizon." };
+          note: "Conditional sum of squares estimate; orders whose AR or MA polynomial is explosive are excluded from the automatic choice, and candidates are scored on a common sample. Compare with Holt-Winters before trusting a long horizon." };
         // fitted on the differenced scale is not comparable to levels; report in-sample fit on differences only
         fitted = v.map(() => NaN);
       } else if (m === "ar") {
         const ar = S.arForecast(v, ar_order, horizon);
         forecast = ar.forecast; fitted = ar.fitted; sdv = ar.resid_sd;
+        scaleAt = psiScale(S.psiWeights(ar.coef.slice(1), [], 0, horizon));
         detail = { method: `AR(${ar_order})`, coefficients: ar.coef.map(r4), aic: r3(ar.aic) };
         fitted = [...new Array(ar_order).fill(NaN), ...fitted];
       } else {
@@ -712,7 +719,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         detail = { method: per > 1 ? `Holt-Winters additive, period ${per}` : "Holt linear trend", alpha: hw.alpha, beta: hw.beta, gamma: hw.gamma, level: r4(hw.level), trend_per_period: r4(hw.trend) };
       }
       const ape = v.map((x, i) => (Number.isFinite(fitted[i]) && x !== 0 ? Math.abs((x - fitted[i]) / x) : NaN)).filter(Number.isFinite);
-      const fc = future.map((d, i) => ({ date: d, value: r4(forecast[i]), lo95: r4(forecast[i] - 1.96 * sdv * Math.sqrt(i + 1)), hi95: r4(forecast[i] + 1.96 * sdv * Math.sqrt(i + 1)) }));
+      const fc = future.map((d, i) => ({ date: d, value: r4(forecast[i]), lo95: r4(forecast[i] - 1.96 * sdv * scaleAt(i)), hi95: r4(forecast[i] + 1.96 * sdv * scaleAt(i)) }));
       const lastD = dates[dates.length - 1], lastV = r4(v[v.length - 1]) as number;
       // The chart joins the forecast to the last actual; the band starts at zero width there. Only finite rows go into the link.
       const finite = fc.filter((p) => p.value !== null && p.lo95 !== null && p.hi95 !== null);
@@ -728,7 +735,10 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         forecast: fc,
         chart_url: chartUrl(origin, chartSpec),
         chart_note: "The chart redraws the actual series from live data; the forecast and band are the numbers above, fixed in the link.",
-        caveat: "The band grows with the square root of the horizon from the residual spread. It ignores parameter uncertainty and regime change, so treat it as a floor on the real uncertainty.",
+        caveat: (m === "ar" || m === "arima"
+          ? "The band follows the model's own error accumulation (its psi weights), so it levels off for a mean-reverting series and grows like a random walk's only when the model says so. "
+          : "The band grows with the square root of the horizon from the residual spread, which is the random-walk rate: right for a drifting level, too wide for a series that mean-reverts. ")
+          + "It ignores parameter uncertainty and regime change.",
       });
     }),
   );
@@ -744,7 +754,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     wrap(async ({ y, x, date, max_breaks }) => {
       const ry = await get(y);
       const rx = x ? await get(x) : null;
-      const { dates, columns } = align(rx ? [ry.series, rx.series] : [ry.series]);
+      const aligned = align(rx ? [ry.series, rx.series] : [ry.series]), { dates, columns } = aligned; noteGaps(aligned, ry);
       if (dates.length < 20) return fail(`Only ${dates.length} observations; need 20 or more.`);
       const yv = columns[0];
       const X = rx ? columns[1].map((v) => [1, v]) : yv.map(() => [1]);
@@ -752,15 +762,22 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         const b = dates.findIndex((d) => d >= date);
         if (b < 0) return fail(`Date ${date} is after the sample end ${dates[dates.length - 1]}`);
         const c = S.chow(yv, X, b);
+        // The same correction the scan applies: on a persistent series the raw Chow F finds
+        // a break at a chosen date two times in three when there is none.
+        const lam = S.hacInflation(yv, X);
+        const Fc = c.F / lam, pc = S.fUpperP(Fc, c.k, yv.length - 2 * c.k);
         const before = yv.slice(0, b), after = yv.slice(b);
         const stepChart: PlotSpec = {
           series: [inline(ry.label, dates, yv), inline("mean each side of the break", dates, dates.map((_, t) => (t < b ? S.mean(before) : S.mean(after))))],
           title: `${ry.label}: level before and after ${dates[b]}`, api: self,
         };
-        return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "Chow", break_date: dates[b], F: r3(c.F), p: r4(c.p), n_before: c.n1, n_after: c.n2,
+        return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "Chow, serial-correlation corrected", break_date: dates[b], F: r3(Fc), p: r4(pc), F_uncorrected: r3(c.F), p_uncorrected: r4(c.p),
+          serial_correlation_correction: r3(lam), n_before: c.n1, n_after: c.n2,
           chart_url: chartUrl(origin, stepChart),
           chart_note: "The chart draws the series with the average on each side of the tested date. Give the user the link.",
-          mean_before: r4(S.mean(before)), mean_after: r4(S.mean(after)), verdict: c.p < 0.05 ? "Break at this date (5%)" : "No evidence of a break at this date" });
+          mean_before: r4(S.mean(before)), mean_after: r4(S.mean(after)),
+          verdict: pc < 0.05 ? "Break at this date (5%)" : c.p < 0.05 ? "Undecided: the raw test finds a break, but after allowing for the series' own persistence it does not" : "No evidence of a break at this date",
+          caveat: "F is divided by the ratio of the long-run to the short-run residual variance (Andrews bandwidth), because persistence alone manufactures breaks: without it a stationary series with autocorrelation 0.9 fails this test two times in three. A date chosen after looking at the chart is not a hypothesis either; the scan without a date is the honest test." });
       }
       const k = X[0].length;
       const s = S.supF(yv, X);
@@ -855,7 +872,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const r = await get(series);
       const ro = other ? await get(other) : null;
       if (stat === "corr" && !ro) return fail("stat=corr needs 'other'");
-      const { dates, columns } = align(ro ? [r.series, ro.series] : [r.series]);
+      const aligned = align(ro ? [r.series, ro.series] : [r.series]), { dates, columns } = aligned; noteGaps(aligned, r);
       if (dates.length < window + 2) return fail(`Only ${dates.length} observations for window ${window}`);
       const out: Array<[string, number | null]> = [];
       for (let t = window - 1; t < dates.length; t++) {
@@ -899,7 +916,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       const condSd = g.cond_variance.map(Math.sqrt);
       const last = v[v.length - 1] - g.mean;
       const hNext = g.omega + g.alpha * last * last + g.beta * g.cond_variance[g.cond_variance.length - 1];
-      const nonStationary = g.persistence >= 0.99;
+      const nonStationary = g.identified && g.persistence >= 0.99;
       const uncSd = Math.sqrt(g.unconditional_variance);
       const volDates = dates.slice(-last_n), volPath = condSd.slice(-last_n);
       const volChart: PlotSpec = {
@@ -911,14 +928,15 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         chart_url: chartUrl(origin, volChart),
         chart_note: "The chart is the conditional volatility path against its unconditional level: the clustering the model is about is visible there, not in the parameters.",
         arch_lm: { statistic: r3(g.arch_lm.statistic), p: r4(g.arch_lm.p), lags: g.arch_lm.lags, clustering: g.arch_lm.p < 0.05 },
-        garch: { omega: r4(g.omega), alpha: r4(g.alpha), beta: r4(g.beta), persistence: r4(g.persistence), loglik: r3(g.loglik), aic: r3(g.aic), bic: r3(g.bic) },
+        garch: { omega: r4(g.omega), alpha: r4(g.alpha), beta: r4(g.beta), persistence: g.identified ? r4(g.persistence) : null, identified: g.identified, loglik: r3(g.loglik), aic: r3(g.aic), bic: r3(g.bic),
+          ...(g.identified ? {} : { note: "alpha is at zero, so beta and the persistence are not identified: only the unconditional variance is. The fitted beta is where the optimiser stopped, not an estimate." }) },
         unconditional_sd: r4(uncSd),
         unconditional_sd_annualised: annualise && Number.isFinite(g.unconditional_variance) ? r4(Math.sqrt(g.unconditional_variance * perYear)) : null,
         forecast_next_sd: r4(Math.sqrt(hNext)),
         conditional_sd: pointsOut(dates.slice(-last_n), condSd.slice(-last_n)),
         reading: [
           g.arch_lm.p < 0.05 ? "Volatility clusters: calm and turbulent periods persist, so a constant-variance model understates risk in the turbulent ones." : "No significant ARCH effect: a constant variance is an adequate description; the GARCH parameters below carry little information.",
-          `Shock half-life: about ${r3(Math.log(0.5) / Math.log(Math.max(Math.min(g.persistence, 0.9999), 1e-6)))} periods (persistence ${r4(g.persistence)}).`,
+          g.identified ? `Shock half-life: about ${r3(Math.log(0.5) / Math.log(Math.max(Math.min(g.persistence, 0.9999), 1e-6)))} periods (persistence ${r4(g.persistence)}).` : "No ARCH coefficient to speak of, so persistence and half-life are not defined for this series.",
           nonStationary ? "Persistence at or above 0.99: variance is close to integrated (IGARCH); the unconditional level is not meaningful." : "",
           `Current conditional volatility ${r4(condSd[condSd.length - 1])} vs unconditional ${r4(uncSd)}: ${condSd[condSd.length - 1] > uncSd ? "above" : "below"} normal.`,
         ].filter(Boolean).join(" "),
@@ -940,7 +958,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ y, x, quantiles }) => {
       const ry = await get(y); const rx = await Promise.all(x.map(get));
-      const { dates, columns } = align([ry.series, ...rx.map((r) => r.series)]);
+      const aligned = align([ry.series, ...rx.map((r) => r.series)]), { dates, columns } = aligned; noteGaps(aligned, ry);
       if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
       const Y = columns[0], X = dates.map((_, t) => [1, ...rx.map((__, j) => columns[j + 1][t])]);
       const names = ["const", ...rx.map((r) => r.label)];
@@ -979,7 +997,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ series, components, last_n }) => {
       const rs = await Promise.all(series.map(get));
-      const { dates, columns } = align(rs.map((r) => r.series));
+      const aligned = align(rs.map((r) => r.series)), { dates, columns } = aligned; noteGaps(aligned, rs[0]);
       if (dates.length < rs.length + 10) return fail(`Only ${dates.length} shared dates for ${rs.length} series.`);
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
       const p = S.pca(Y);
@@ -1122,7 +1140,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ series, lags, deterministic }) => {
       const rs = await Promise.all(series.map(get));
-      const { dates, columns } = align(rs.map((r) => r.series));
+      const aligned = align(rs.map((r) => r.series)), { dates, columns } = aligned; noteGaps(aligned, rs[0]);
       if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
       const j = S.johansen(Y, lags, deterministic);
@@ -1178,7 +1196,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ series, lags, rank, deterministic }) => {
       const rs = await Promise.all(series.map(get));
-      const { dates, columns } = align(rs.map((r) => r.series));
+      const aligned = align(rs.map((r) => r.series)), { dates, columns } = aligned; noteGaps(aligned, rs[0]);
       if (dates.length < 30) return fail(`Only ${dates.length} shared dates; need 30 or more.`);
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
       let m: S.VecmResult;
@@ -1245,7 +1263,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ series, lags, max_lags, horizon, identification, sign_restrictions, shock_names, bootstrap }) => {
       const rs = await Promise.all(series.map(get));
-      const { dates, columns } = align(rs.map((r) => r.series));
+      const aligned = align(rs.map((r) => r.series)), { dates, columns } = aligned; noteGaps(aligned, rs[0]);
       if (dates.length < 40) return fail(`Only ${dates.length} shared dates; need 40 or more.`);
       const Y = dates.map((_, t) => columns.map((c) => c[t]));
       const p = lags ?? S.varSelectLag(Y, max_lags);
@@ -1354,7 +1372,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     },
     wrap(async ({ nominal, deflator, base }) => {
       const rn = await get(nominal), rd = await get(deflator);
-      const { dates, columns } = align([rn.series, rd.series]);
+      const aligned = align([rn.series, rd.series]), { dates, columns } = aligned; noteGaps(aligned, rn);
       if (!dates.length) return fail("No shared dates between the nominal series and the deflator.");
       const b = base ?? dates[dates.length - 1];
       const bi = dates.indexOf(b);
@@ -1455,7 +1473,10 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         return Number.isFinite(e) ? (e as number) : sd * Math.sqrt(i + 1);
       };
       const bandFromBacktest = !!chosenScore && chosenScore.byH.every((x) => Number.isFinite(x));
-      const rows = future.map((d, i) => ({ date: d, value: r4(fc[i]), lo95: r4(fc[i] - 1.96 * bandAt(i)), hi95: r4(fc[i] + 1.96 * bandAt(i)) }));
+      // The error at each horizon is measured from about a dozen overlapping test dates, so the
+      // multiplier is a t quantile on those, not 1.96 on infinity.
+      const zq = origIdx.length > 2 ? S.tCritical(0.05, origIdx.length - 1) : 1.96;
+      const rows = future.map((d, i) => ({ date: d, value: r4(fc[i]), lo95: r4(fc[i] - zq * bandAt(i)), hi95: r4(fc[i] + zq * bandAt(i)) }));
       const finite = rows.filter((x) => x.value !== null && x.lo95 !== null && x.hi95 !== null);
       const chartSpec: PlotSpec = {
         series: [series, { points: [[lastD, r4(last) as number], ...finite.map((x) => [x.date, x.value as number] as [string, number])], label: `${r.label}, ${detail}` }],
@@ -1480,9 +1501,9 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         used: { method: chosen, what_it_does: label[chosen], overridden: method !== "auto" },
         forecast: rows,
         chart_url: chartUrl(origin, chartSpec),
-        reading: `Over ${origIdx.length} test dates, ${label[best.method]} forecast ${H} ${f.frequency === "annual" ? "years" : f.frequency === "quarterly" ? "quarters" : "periods"} ahead with a typical error of ${r4(best.rmse)}${naive && naive !== best ? `, against ${r4(naive.rmse)} for assuming no change` : ""}. ${method !== "auto" ? `You asked for ${label[chosen]}, so that is what the forecast below uses.` : ""} ${r.label} was ${r4(last)} in ${lastD}; the forecast for ${rows[rows.length - 1].date} is ${rows[rows.length - 1].value}, and nineteen times in twenty it should land between ${rows[rows.length - 1].lo95} and ${rows[rows.length - 1].hi95}.`.replace(/\s+/g, " ").trim(),
+        reading: `Over ${origIdx.length} test dates, ${label[best.method]} forecast ${H} ${f.frequency === "annual" ? "years" : f.frequency === "quarterly" ? "quarters" : "periods"} ahead with a typical error of ${r4(best.rmse)}${naive && naive !== best ? `, against ${r4(naive.rmse)} for assuming no change` : ""}. ${method !== "auto" ? `You asked for ${label[chosen]}, so that is what the forecast below uses.` : ""} ${r.label} was ${r4(last)} in ${lastD}; the forecast for ${rows[rows.length - 1].date} is ${rows[rows.length - 1].value}, and about nine times in ten it should land between ${rows[rows.length - 1].lo95} and ${rows[rows.length - 1].hi95}.`.replace(/\s+/g, " ").trim(),
         caveat: (bandFromBacktest
-          ? "The band is this method's own out-of-sample error at each horizon, measured at the test dates above, so it is what actually happened rather than a model's opinion of itself. "
+          ? "The band is this method's own out-of-sample error at each horizon, measured at the test dates above, so it is what actually happened rather than a model's opinion of itself. It is labelled 95% but held about 85 to 90% of the time in simulation, because the errors come from a dozen overlapping test dates and the winning method was chosen on those same errors: read it as a nine-in-ten band. "
           : "The band could not be measured out of sample at every horizon, so where it could not it falls back to the spread of the fitted residuals scaled by the square root of the horizon, which is usually too narrow. ")
           + "It still assumes the future behaves like the sample: a policy change, a drought or a war is outside it. Test dates overlap, so the comparison between methods is sharper than the significance test.",
       });
@@ -1614,7 +1635,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     wrap(async ({ y, x, controls, horizon, lags }) => {
       const ry = await get(y), rx = await get(x);
       const rc = await Promise.all((controls ?? []).map(get));
-      const { dates, columns } = align([ry.series, rx.series, ...rc.map((c) => c.series)]);
+      const aligned = align([ry.series, rx.series, ...rc.map((c) => c.series)]), { dates, columns } = aligned; noteGaps(aligned, ry);
       if (dates.length < 40) return fail(`Only ${dates.length} shared dates; need 40 or more.`);
       const f = detectFrequency(dates);
       const p = lags ?? (f.frequency === "annual" ? 2 : 4);
@@ -1676,7 +1697,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
     wrap(async ({ y, x, instruments, exog, hac_lags }) => {
       const ry = await get(y);
       const rx = await Promise.all(x.map(get)), rz = await Promise.all(instruments.map(get)), rw = await Promise.all((exog ?? []).map(get));
-      const { dates, columns } = align([ry.series, ...rx.map((r) => r.series), ...rz.map((r) => r.series), ...rw.map((r) => r.series)]);
+      const aligned = align([ry.series, ...rx.map((r) => r.series), ...rz.map((r) => r.series), ...rw.map((r) => r.series)]), { dates, columns } = aligned; noteGaps(aligned, ry);
       if (dates.length < 20) return fail(`Only ${dates.length} shared dates across y, x, instruments and controls; need 20 or more.`);
       const T = dates.length;
       const col = (i: number) => columns[i];

@@ -55,8 +55,9 @@ export interface Catalog {
   datasets: CatalogEntry[];
 }
 
-// YYYY, YYYY-MM, YYYY-MM-DD, and Eurostat's YYYY-Qn / YYYY-Sn. All sort lexically.
-const DATE = /^\d{4}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
+// YYYY, YYYY-MM, YYYY-MM-DD, and Eurostat's YYYY-Qn / YYYY-Sn. All sort lexically. The year
+// is bounded so a dictionary keyed by HS product codes (2937, 3004) is not read as a series.
+const DATE = /^(1[0-9]|20|21)\d{2}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
 const TTL_MS = 10 * 60 * 1000;
 
 // Keys that describe a dataset rather than contain one.
@@ -232,7 +233,17 @@ export function describeSeries(all: Map<string, Series>): SeriesInfo[] {
  *  dataset-wide one, and neither is guessed. */
 export function unitFor(entry: CatalogEntry | undefined, series?: string): string | null {
   if (!entry) return null;
-  if (series && entry.units && entry.units[series]) return entry.units[series];
+  const u = entry.units;
+  if (series && u) {
+    if (u[series]) return u[series];
+    // country|indicator keys: a map by indicator alone serves every country
+    const parts = series.split("|");
+    if (parts.length > 1) {
+      const tail = parts.slice(1).join("|");
+      if (u[tail]) return u[tail];
+      if (u[parts[0]]) return u[parts[0]];
+    }
+  }
   return entry.unit ?? null;
 }
 

@@ -5,9 +5,9 @@
   "datasets": 115,
   "by_provenance": {
    "pipeline": 75,
-   "script": 31,
+   "script": 32,
    "manual": 1,
-   "unattributed": 8
+   "unattributed": 7
   },
   "observations": 409533
  },
@@ -373,10 +373,11 @@
    "series_keys": [],
    "last_commit": "2026-09-05T13:55:36+00:00",
    "provenance": "script",
-   "producer": "build_broiler_parity_pl.py",
+   "producer": "build_broiler_parity_pl.py, build_catalog.py",
    "auto_refresh": false,
-   "source": null,
-   "note": null
+   "source": "Eurostat sts_inppd_m, Poland: producer prices for C1012 (poultry meat) and C1091 (prepared feeds), monthly",
+   "note": null,
+   "unit": "parity = chicken-meat PPI over feed PPI; the two indices are 2015 = 100"
   },
   {
    "file": "data/cattle-eu.json",
@@ -395,10 +396,15 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "deck_data.py, fetch_cattle_data.py",
+   "producer": "build_catalog.py, deck_data.py, fetch_cattle_data.py",
    "auto_refresh": false,
    "source": "EC agri-food data portal: young bulls R3 EU avg (EUR/100kg) + feed grain MS avg (EUR/t), monthly means of weekly quotes",
-   "note": null
+   "note": null,
+   "units": {
+    "beef_r3_eur_100kg": "EUR per 100 kg carcass weight",
+    "feed_eur_t": "EUR per tonne",
+    "parity_beef_over_feed": "ratio (EUR/100kg over EUR/t)"
+   }
   },
   {
    "file": "data/cattle-il-alt.json",
@@ -417,10 +423,15 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "deck_data.py, fetch_cattle_data.py, gen_parity_deck_html.py",
+   "producer": "build_catalog.py, deck_data.py, fetch_cattle_data.py, gen_parity_deck_html.py",
    "auto_refresh": false,
    "source": "Israel CBS index API: beef fresh PPI (id 180073) / agricultural input fodder index (id 180195), chained to the newest base across CBS rebasings",
-   "note": "robustness pair, TR-parallel: 180073 processing & preserving of meat / 180195 prepared animal feeds \u2014 never merged into cattle-parity.json"
+   "note": "robustness pair, TR-parallel: 180073 processing & preserving of meat / 180195 prepared animal feeds \u2014 never merged into cattle-parity.json",
+   "units": {
+    "beef_ppi": "price index, chained to the latest CBS base",
+    "fodder_idx": "price index, chained to the latest CBS base",
+    "parity_beef_over_fodder": "ratio of the two indices"
+   }
   },
   {
    "file": "data/cattle-il.json",
@@ -439,10 +450,15 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "deck_data.py, fetch_cattle_data.py",
+   "producer": "build_catalog.py, deck_data.py, fetch_cattle_data.py",
    "auto_refresh": false,
    "source": "Israel CBS index API: beef fresh PPI (id 190030) / agricultural input fodder index (id 260030), chained to the newest base across CBS rebasings",
-   "note": null
+   "note": null,
+   "units": {
+    "beef_ppi": "price index, chained to the latest CBS base",
+    "fodder_idx": "price index, chained to the latest CBS base",
+    "parity_beef_over_fodder": "ratio of the two indices"
+   }
   },
   {
    "file": "data/cattle-parity.json",
@@ -462,10 +478,11 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "fetch_cattle_data.py",
+   "producer": "build_catalog.py, fetch_cattle_data.py",
    "auto_refresh": false,
-   "source": null,
-   "note": null
+   "source": "FRED/BLS (US), EC agri-food data portal (EU), TCMB EVDS (TR), Israel CBS (IL): meat and feed price indices, monthly",
+   "note": null,
+   "unit": "index, 2016 = 100 (meat price over feed price, and the two indices behind it)"
   },
   {
    "file": "data/cattle-tr.json",
@@ -484,10 +501,15 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "deck_data.py, fetch_cattle_data.py",
+   "producer": "build_catalog.py, deck_data.py, fetch_cattle_data.py",
    "auto_refresh": false,
    "source": "TCMB EVDS / T\u00dc\u0130K Y\u0130-\u00dcFE: TP.TUFE1YI.T17 (korunmu\u015f et ve et \u00fcr\u00fcnleri), TP.TUFE1YI.T25 (haz\u0131r hayvan yemleri)",
-   "note": null
+   "note": null,
+   "units": {
+    "meat_ppi": "producer price index, 2003 = 100",
+    "feed_ppi": "producer price index, 2003 = 100",
+    "parity_meat_over_feed": "ratio of the two indices"
+   }
   },
   {
    "file": "data/cattle-us.json",
@@ -506,10 +528,15 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "deck_data.py, fetch_cattle_data.py",
+   "producer": "build_catalog.py, deck_data.py, fetch_cattle_data.py",
    "auto_refresh": false,
    "source": "FRED/BLS producer price indexes: WPU0131 (slaughter cattle), WPU012202 (corn)",
-   "note": null
+   "note": null,
+   "units": {
+    "cattle_ppi": "producer price index, 1982 = 100",
+    "corn_ppi": "producer price index, 1982 = 100",
+    "parity_cattle_over_corn": "ratio of the two indices"
+   }
   },
   {
    "file": "data/central-bank-assets.json",
@@ -535,12 +562,12 @@
    "provider": "fred",
    "auto_refresh": true,
    "source": "Federal Reserve H.4.1, ECB and Bank of Japan balance sheets via FRED: WALCL, ECBASSETSW, JPNASSETS, WRESBAL, M2SL, CURRCIR",
-   "note": "Different currencies and units: the Fed and ECB in millions of their own currency, the Bank of Japan in hundred millions of yen. Compare shapes or rebase, never levels across banks. Fed and ECB are weekly, the rest monthly",
+   "note": "Different currencies and units: the Fed and ECB in millions of their own currency, the Bank of Japan in hundred millions of yen, US M2 and currency in billions. Compare shapes or rebase, never levels across banks. The Fed and ECB publish weekly; this file keeps the last observation of each month so everything is monthly",
    "units": {
     "fed_total_assets": "million USD",
     "ecb_total_assets": "million EUR",
     "boj_total_assets": "100 million yen",
-    "fed_reserves_of_banks": "billion USD",
+    "fed_reserves_of_banks": "million USD",
     "us_m2": "billion USD",
     "us_currency_in_circulation": "billion USD"
    }
@@ -710,10 +737,11 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "fetch_cattle_data.py",
+   "producer": "build_catalog.py, fetch_cattle_data.py",
    "auto_refresh": false,
-   "source": null,
-   "note": "denominator = maize/corn everywhere (robustness check)"
+   "source": "FRED/BLS WPU0131 and WPU012202 (US), EC agri-food data portal (EU), monthly",
+   "note": "denominator = maize/corn everywhere (robustness check)",
+   "unit": "index, 2016 = 100 (meat price over corn price)"
   },
   {
    "file": "data/cpi-eu.json",
@@ -776,10 +804,11 @@
    "series_keys": [],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "ecb_forecaster_skill.py",
+   "producer": "build_catalog.py, ecb_forecaster_skill.py",
    "auto_refresh": false,
-   "source": null,
-   "note": "Forecasters are anonymous; the ECB publishes them only by number and this makes no attempt to identify them."
+   "source": "ECB Survey of Professional Forecasters, scored against ECB HICP outturns",
+   "note": "Forecasters are anonymous; the ECB publishes them only by number and this makes no attempt to identify them.",
+   "unit": "score and rank per forecaster; see the note for the construction"
   },
   {
    "file": "data/ecb-spf-results.json",
@@ -809,10 +838,11 @@
    "series_keys": [],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "ecb_spf_calibration.py, fetch_ecb_spf.py",
+   "producer": "build_catalog.py, ecb_spf_calibration.py, fetch_ecb_spf.py",
    "auto_refresh": false,
    "source": "ECB Survey of Professional Forecasters, and ECB HICP",
-   "note": "Individual forecaster probability distributions over euro-area inflation, by target year and survey round, published openly by the ECB. The top bucket is open-ended at 4.0% or more."
+   "note": "Individual forecaster probability distributions over euro-area inflation, by target year and survey round, published openly by the ECB. The top bucket is open-ended at 4.0% or more.",
+   "unit": "probability, percent, that euro-area inflation falls in the bucket; actual_hicp in percent"
   },
   {
    "file": "data/elec-eu.json",
@@ -1186,7 +1216,84 @@
    "auto_refresh": true,
    "source": "European Commission business and consumer surveys via Eurostat ei_bssi_m_r2, seasonally adjusted, monthly: economic sentiment indicator (long-run mean 100), industrial, consumer and services confidence balances",
    "note": "ESI is an index around 100; the confidence indicators are percentage balances around zero. T\u00fcrkiye is covered by the EC survey programme",
-   "unit": "balance of responses in percentage points: the share answering positively minus the share answering negatively, so it runs negative in bad times and has no 100 base"
+   "units": {
+    "EU27_2020|BS-ESI-I": "index, long-run mean 100",
+    "EU27_2020|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "EU27_2020|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "EU27_2020|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "DE|BS-ESI-I": "index, long-run mean 100",
+    "DE|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "DE|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "DE|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "FR|BS-ESI-I": "index, long-run mean 100",
+    "FR|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "FR|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "FR|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "IT|BS-ESI-I": "index, long-run mean 100",
+    "IT|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "IT|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "IT|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "ES|BS-ESI-I": "index, long-run mean 100",
+    "ES|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "ES|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "ES|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "NL|BS-ESI-I": "index, long-run mean 100",
+    "NL|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "NL|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "NL|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "PL|BS-ESI-I": "index, long-run mean 100",
+    "PL|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "PL|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "PL|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "BE|BS-ESI-I": "index, long-run mean 100",
+    "BE|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "BE|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "BE|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "AT|BS-ESI-I": "index, long-run mean 100",
+    "AT|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "AT|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "AT|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "SE|BS-ESI-I": "index, long-run mean 100",
+    "SE|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "SE|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "SE|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "CZ|BS-ESI-I": "index, long-run mean 100",
+    "CZ|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "CZ|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "CZ|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "HU|BS-ESI-I": "index, long-run mean 100",
+    "HU|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "HU|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "HU|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "RO|BS-ESI-I": "index, long-run mean 100",
+    "RO|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "RO|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "RO|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "PT|BS-ESI-I": "index, long-run mean 100",
+    "PT|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "PT|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "PT|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "IE|BS-ESI-I": "index, long-run mean 100",
+    "IE|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "IE|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "IE|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "DK|BS-ESI-I": "index, long-run mean 100",
+    "DK|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "DK|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "DK|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "FI|BS-ESI-I": "index, long-run mean 100",
+    "FI|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "FI|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "FI|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "EL|BS-ESI-I": "index, long-run mean 100",
+    "EL|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "EL|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "EL|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "TR|BS-ESI-I": "index, long-run mean 100",
+    "TR|BS-ICI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "TR|BS-CSMCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero",
+    "TR|BS-SCI-BAL": "balance of responses in percentage points (positive minus negative answers), around zero"
+   }
   },
   {
    "file": "data/eu-gva-sectors.json",
@@ -2206,7 +2313,7 @@
    "provider": "eurostat",
    "auto_refresh": true,
    "source": "Eurostat HICP item weights \u2014 share of veterinary and pet services in each country's consumption basket",
-   "note": "HICP item weights, per-mille of total basket: CP0934 pets and related products, CP0935 veterinary and other services for pets. Dataset serves no 2026 (checked in discover \u2014 ECOICOP2 rebase); weights for 2026+ need the successor dataset once Eurostat publishes it.",
+   "note": "HICP item weights, per-mille of total basket: CP0934 pets and related products, CP0935 veterinary and other services for pets. Dataset serves no 2026 (checked in discover \u2014 ECOICOP2 rebase); weights for 2026+ need the successor dataset once Eurostat publishes it. A stored 0 means the country did not collect that item's weight in that year (Kosovo throughout, Iceland to 2021), not a zero share",
    "unit": "per mille of the consumption basket"
   },
   {
@@ -2846,7 +2953,7 @@
    "provider": "eurostat",
    "auto_refresh": true,
    "source": "Eurostat nasa_10_nf_tr \u2014 gross national income (B5G), total economy",
-   "note": "GNI minus GDP is net primary income from abroad: negative where foreign-owned profits are repatriated out, positive where a country's firms earn abroad",
+   "note": "GNI minus GDP is net primary income from abroad: negative where foreign-owned profits are repatriated out, positive where a country's firms earn abroad. B5G is a balance, so the PAID and RECV keys carry the same figure; read either",
    "unit": "million national currency"
   },
   {
@@ -3270,9 +3377,22 @@
    "producer": "imf-weo",
    "provider": "imf",
    "auto_refresh": true,
-   "source": "IMF World Economic Outlook via the IMF Data API (latest release), 30 economies plus World: real GDP growth (NGDP_RPCH), inflation average and end-period (PCPIPCH, PCPIEPCH), unemployment (LUR), government gross debt and net lending % GDP (GGXWDG_NGDP, GGXCNL_NGDP), current account % GDP (BCA_NGDPD), GDP per capita and GDP in USD (NGDPDPC, NGDPD), investment and saving % GDP (NID_NGDP, NGSD_NGDP)",
-   "note": "Series keys are country|indicator. Actuals through the release's last actual year, IMF projections after it (usually five years ahead); the two are not distinguished in the file, so treat the last five or six years as forecasts. Percent for rates, USD billions for NGDPD, USD for NGDPDPC",
-   "unit": "varies by indicator: percent for growth and inflation, percent of GDP for balances, USD for per-capita levels"
+   "source": "IMF World Economic Outlook via the IMF Data API (latest release), 30 economies: real GDP growth (NGDP_RPCH), inflation average and end-period (PCPIPCH, PCPIEPCH), unemployment (LUR), government gross debt and net lending % GDP (GGXWDG_NGDP, GGXCNL_NGDP), current account % GDP (BCA_NGDPD), GDP per capita and GDP in USD (NGDPDPC, NGDPD), investment and saving % GDP (NID_NGDP, NGSD_NGDP)",
+   "note": "Series keys are country|indicator. Actuals through the release's last actual year, IMF projections after it (usually five years ahead); the two are not distinguished in the file, so treat the last five or six years as forecasts. Percent for rates, USD (full dollars, not billions) for NGDPD, USD for NGDPDPC",
+   "unit": "varies by indicator; see units",
+   "units": {
+    "NGDP_RPCH": "percent change on a year earlier",
+    "PCPIPCH": "percent change on a year earlier, period average",
+    "PCPIEPCH": "percent change on a year earlier, end of period",
+    "LUR": "percent of the labour force",
+    "GGXWDG_NGDP": "percent of GDP",
+    "GGXCNL_NGDP": "percent of GDP",
+    "BCA_NGDPD": "percent of GDP",
+    "NID_NGDP": "percent of GDP",
+    "NGSD_NGDP": "percent of GDP",
+    "NGDPDPC": "current US dollars per person",
+    "NGDPD": "current US dollars (full dollars, not billions)"
+   }
   },
   {
    "file": "data/lci-eu.json",
@@ -3391,11 +3511,11 @@
    "coverage": null,
    "series_keys": [],
    "last_commit": "2026-09-05T12:40:32+00:00",
-   "provenance": "unattributed",
-   "producer": null,
+   "provenance": "script",
+   "producer": "build_catalog.py",
    "auto_refresh": false,
-   "source": null,
-   "note": "No script writes this file and it is not in data-sources.json. Provenance unknown \u2014 verify or remove."
+   "source": "TARS\u0130M annual reports (T\u00fcrkiye), USDA RMA (USA) and ENESA (Spain) livestock insurance statistics",
+   "note": null
   },
   {
    "file": "data/livestock-ins-usa.json",
@@ -3574,9 +3694,22 @@
    "producer": "macro-external",
    "provider": "worldbank",
    "auto_refresh": true,
-   "source": "World Bank World Development Indicators: trade balance, current account, exports and imports, reserves, external and government debt, broad money, FDI, remittances and the real effective exchange rate, 30 economies",
-   "note": "Series keys are country|indicator. Annual, and the World Bank lags one to two years; external debt is reported only by low and middle income countries, so it is empty for the advanced economies here",
-   "unit": "percent of GDP for balances and debt, USD for reserves, remittances and FDI, months of imports for reserve cover, index for the real effective exchange rate"
+   "source": "World Bank World Development Indicators: trade balance, current account, exports and imports, reserves, external debt, broad money, FDI, remittances and the real effective exchange rate, 30 economies",
+   "note": "Series keys are country|indicator. Annual, and the World Bank lags one to two years; external debt is reported only by low and middle income countries, so it is empty for the advanced economies here. Government debt is not here: the WDI series is central government only and covers a third of these countries in odd years; use imf-weo GGXWDG_NGDP for general government gross debt. Broad money is missing for euro-area members (the ECB reports it for the area) and the REER for T\u00fcrkiye",
+   "unit": "varies by indicator; see units",
+   "units": {
+    "trade_balance_pct_gdp": "percent of GDP",
+    "current_account_pct_gdp": "percent of GDP",
+    "exports_pct_gdp": "percent of GDP",
+    "imports_pct_gdp": "percent of GDP",
+    "broad_money_pct_gdp": "percent of GDP",
+    "reserves_usd": "current US dollars",
+    "external_debt_usd": "current US dollars",
+    "fdi_net_inflow_usd": "current US dollars",
+    "remittances_usd": "current US dollars",
+    "reserves_months_of_imports": "months of imports",
+    "real_effective_exchange_rate": "index, 2010 = 100"
+   }
   },
   {
    "file": "data/manuf-gva.json",
@@ -3768,8 +3901,8 @@
    "producer": "meat-cpi-us",
    "provider": "fred",
    "auto_refresh": true,
-   "source": "BLS CPI via FRED, NSA, US city average: SAF112 meats/poultry/fish/eggs, SAF1121 meats/poultry/fish, SAF11 food at home, all items",
-   "note": "US basket differs from EU CP0112 (includes fish; SAF112 also eggs) \u2014 the closer candidate that resolves wins, and the basket difference is stated wherever shown. Per-series 404s tolerated.",
+   "source": "BLS CPI via FRED, NSA, US city average: SAF112 meats/poultry/fish/eggs, SAF11 food at home, all items",
+   "note": "US basket differs from EU CP0112: SAF112 includes fish and eggs, and FRED does not carry the narrower SAF1121 (meats, poultry, fish), so the basket difference is stated wherever shown",
    "unit": "index, 1982-84 = 100"
   },
   {
@@ -4041,10 +4174,11 @@
    "series_keys": [],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "pharma_eroom.py",
+   "producer": "build_catalog.py, pharma_eroom.py",
    "auto_refresh": false,
-   "source": null,
-   "note": null
+   "source": "scripts/pharma_eroom.py over data/pharma-eroom.json",
+   "note": null,
+   "unit": "approvals per billion USD of R&D (constant dollars) and fitted halving times in years"
   },
   {
    "file": "data/pharma-eroom.json",
@@ -4056,7 +4190,7 @@
    "series_keys": [],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "fetch_pharma.py, pharma_eroom.py",
+   "producer": "build_catalog.py, fetch_pharma.py, pharma_eroom.py",
    "auto_refresh": false,
    "source": null,
    "note": null
@@ -4435,10 +4569,11 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "pharma_share_stan.py",
+   "producer": "build_catalog.py, pharma_share_stan.py",
    "auto_refresh": false,
-   "source": null,
-   "note": "ISIC C21 value added as % of total-economy value added. OECD STAN DF_STAN_2025, current prices, national currency. Only countries the Eurostat set lacks or truncates."
+   "source": "OECD STAN DF_STAN_2025, ISIC C21, current prices",
+   "note": "ISIC C21 value added as % of total-economy value added. OECD STAN DF_STAN_2025, current prices, national currency. Only countries the Eurostat set lacks or truncates.",
+   "unit": "percent of total-economy value added; pharma_va in million national currency"
   },
   {
    "file": "data/pharma-share.json",
@@ -4485,10 +4620,11 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "pharma_share.py",
+   "producer": "build_catalog.py, pharma_share.py",
    "auto_refresh": false,
-   "source": null,
-   "note": "C21 gross value added as % of GDP / total GVA / manufacturing GVA. Eurostat nama_10_a64 + nama_10_gdp, current prices, national currency."
+   "source": "Eurostat nama_10_a64 and nama_10_gdp, C21 pharmaceuticals, current prices",
+   "note": "C21 gross value added as % of GDP / total GVA / manufacturing GVA. Eurostat nama_10_a64 + nama_10_gdp, current prices, national currency.",
+   "unit": "percent (share of GDP, of total GVA and of manufacturing GVA); pharma_gva in million national currency"
   },
   {
    "file": "data/pharma-therapeutic.json",
@@ -4508,10 +4644,11 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "pharma_therapeutic.py",
+   "producer": "build_catalog.py, pharma_therapeutic.py",
    "auto_refresh": false,
-   "source": null,
-   "note": "Exports to world, EUR, 2024, Eurostat Comext DS-045409. Classes are HS 6-digit; 'not published' is the residual between the HS4 chapter total and the published detail."
+   "source": "Eurostat Comext DS-045409, HS 6-digit pharmaceutical classes",
+   "note": "Exports to world, EUR, 2024, Eurostat Comext DS-045409. Classes are HS 6-digit; 'not published' is the residual between the HS4 chapter total and the published detail.",
+   "unit": "EUR (total_bn in billions) for 2024 exports to the world"
   },
   {
    "file": "data/pl-anchor-chicken.json",
@@ -4783,10 +4920,11 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "price_leverage.py",
+   "producer": "build_catalog.py, price_leverage.py",
    "auto_refresh": false,
-   "source": null,
-   "note": null
+   "source": "Damodaran industry margin editions, aggregated by scripts/price_leverage.py",
+   "note": null,
+   "unit": "percent: operating margin and its year-on-year change, by region and industry edition"
   },
   {
    "file": "data/price-leverage.json",
@@ -5048,12 +5186,11 @@
    "producer": "tr-cpi-ppi",
    "provider": "evds",
    "auto_refresh": true,
-   "source": "TCMB EVDS, T\u00dc\u0130K price indices: CPI general, food, core B and C, services and rent on the 2025=100 base (TP.TUKFIY2025.*, TP.FE25.*), back-cast to 2005; CPI general (TP.FG.J0) and domestic PPI (TP.TUFE1YI.T1) on the 2003=100 base; CPI annual change (TP.FE.OKTG01)",
-   "note": "Use 'cpi' (2025=100, from 2005-01) as the deflator. The 2003=100 CPI stops at 2026-01 with the 2026 rebase; the PPI is still published on the 2003 base. Core B excludes unprocessed food, energy, alcohol, tobacco and gold; core C also excludes all food",
+   "source": "TCMB EVDS, T\u00dc\u0130K price indices: CPI general, food, core B and C, services and rent on the 2025=100 base (TP.TUKFIY2025.*, TP.FE25.*), back-cast to 2005; CPI general (TP.FG.J0) and domestic PPI (TP.TUFE1YI.T1) on the 2003=100 base",
+   "note": "Use 'cpi' (2025=100, from 2005-01) as the deflator. The 2003=100 CPI stops at 2026-01 with the 2026 rebase; the PPI is still published on the 2003 base. Core B excludes unprocessed food, energy, alcohol, tobacco and gold; core C also excludes all food. For annual inflation apply transform=yoy to 'cpi'; the EVDS code once stored here as cpi_yoy (TP.FE.OKTG01) is the 2003=100 index again, not a change",
    "units": {
     "cpi_2003": "index, 2003 = 100 (legacy series, ends 2026-01)",
     "ppi_2003": "index, 2003 = 100 (legacy series)",
-    "cpi_yoy": "percent change on a year earlier",
     "cpi": "index, 2025 = 100",
     "cpi_food": "index, 2025 = 100",
     "cpi_core_b": "index, 2025 = 100",
@@ -5082,7 +5219,7 @@
    "provider": "evds",
    "auto_refresh": true,
    "source": "TCMB EVDS indicative buying rates, monthly averages of daily quotes",
-   "note": "TRY per unit of foreign currency. 2005 redenomination removed six zeros; EVDS serves the series on the new lira throughout",
+   "note": "TRY per unit of foreign currency. EVDS serves the pre-2005 history in old lira (1,393,340 per dollar in December 2004); the fetch divides those months by a million so the series is on today's lira throughout",
    "unit": "Turkish lira per unit of foreign currency"
   },
   {
@@ -5479,10 +5616,11 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "fetch_vetcost_data.py",
+   "producer": "build_catalog.py, fetch_vetcost_data.py",
    "auto_refresh": false,
    "source": "Eurostat aact_eaa01 veterinary expenses, million EUR at current prices; ALL livestock, not cattle only",
-   "note": null
+   "note": null,
+   "unit": "million EUR at current prices, all livestock"
   },
   {
    "file": "data/vetcost-report.json",
@@ -5517,10 +5655,11 @@
    ],
    "last_commit": "2026-09-05T12:40:32+00:00",
    "provenance": "script",
-   "producer": "fetch_vetcost_data.py",
+   "producer": "build_catalog.py, fetch_vetcost_data.py",
    "auto_refresh": false,
    "source": "USDA ERS commodity costs and returns, cow-calf, U.S. total",
-   "note": null
+   "note": null,
+   "unit": "dollars per cow"
   },
   {
    "file": "data/wb-commodities.json",
@@ -5606,7 +5745,73 @@
    "auto_refresh": true,
    "source": "World Bank Commodity Price Data (the Pink Sheet), monthly nominal US dollar prices",
    "note": "Nominal USD. Units differ by commodity (USD/bbl, USD/mt, USD/kg, USD/troy oz); see the Pink Sheet header. Feed inputs (maize, soybean meal), fertilizers (urea, DAP, potash) and metals are the engineering and chemistry inputs. Woodpulp is not on the monthly sheet; the Pink Sheet publishes it annually only.",
-   "unit": "nominal USD; the unit differs by commodity (per barrel, per tonne, per kilogram, per troy ounce) \u2014 see the Pink Sheet header"
+   "units": {
+    "crude_brent": "nominal USD per barrel",
+    "natgas_eur": "nominal USD per million BTU",
+    "coal_aus": "nominal USD per metric ton",
+    "maize": "nominal USD per metric ton",
+    "wheat_us_hrw": "nominal USD per metric ton",
+    "soybeans": "nominal USD per metric ton",
+    "soybean_meal": "nominal USD per metric ton",
+    "rice_thai": "nominal USD per metric ton",
+    "sugar_world": "nominal USD per kilogram",
+    "beef": "nominal USD per kilogram",
+    "chicken": "nominal USD per kilogram",
+    "lamb": "nominal USD per kilogram",
+    "fish_meal": "nominal USD per metric ton",
+    "barley": "nominal USD per metric ton",
+    "sorghum": "nominal USD per metric ton",
+    "cocoa": "nominal USD per kilogram",
+    "coffee_arabica": "nominal USD per kilogram",
+    "cotton_a": "nominal USD per kilogram",
+    "rubber_tsr20": "nominal USD per kilogram",
+    "natgas_us": "nominal USD per million BTU",
+    "palm_oil": "nominal USD per metric ton",
+    "urea": "nominal USD per metric ton",
+    "dap": "nominal USD per metric ton",
+    "tsp": "nominal USD per metric ton",
+    "potash": "nominal USD per metric ton",
+    "phosphate_rock": "nominal USD per metric ton",
+    "aluminum": "nominal USD per metric ton",
+    "copper": "nominal USD per metric ton",
+    "iron_ore": "nominal USD per dry metric ton unit",
+    "lead": "nominal USD per metric ton",
+    "tin": "nominal USD per metric ton",
+    "nickel": "nominal USD per metric ton",
+    "zinc": "nominal USD per metric ton",
+    "gold": "nominal USD per troy ounce",
+    "silver": "nominal USD per troy ounce",
+    "platinum": "nominal USD per troy ounce",
+    "crude_avg": "nominal USD per barrel",
+    "crude_wti": "nominal USD per barrel",
+    "crude_dubai": "nominal USD per barrel",
+    "coal_sa": "nominal USD per metric ton",
+    "natgas_jp": "nominal USD per million BTU",
+    "natgas_index": "index, 2010 = 100 (natural gas composite)",
+    "wheat_us_srw": "nominal USD per metric ton",
+    "soybean_oil": "nominal USD per metric ton",
+    "sunflower_oil": "nominal USD per metric ton",
+    "rapeseed_oil": "nominal USD per metric ton",
+    "groundnut_oil": "nominal USD per metric ton",
+    "coconut_oil": "nominal USD per metric ton",
+    "palm_kernel_oil": "nominal USD per metric ton",
+    "coffee_robusta": "nominal USD per kilogram",
+    "tea_avg": "nominal USD per kilogram",
+    "tea_mombasa": "nominal USD per kilogram",
+    "tea_colombo": "nominal USD per kilogram",
+    "sugar_eu": "nominal USD per kilogram",
+    "sugar_us": "nominal USD per kilogram",
+    "banana_eu": "nominal USD per kilogram",
+    "banana_us": "nominal USD per kilogram",
+    "orange": "nominal USD per kilogram",
+    "shrimp": "nominal USD per kilogram",
+    "tobacco": "nominal USD per metric ton",
+    "logs_cameroon": "nominal USD per cubic metre",
+    "logs_malaysia": "nominal USD per cubic metre",
+    "sawnwood_cameroon": "nominal USD per cubic metre",
+    "sawnwood_malaysia": "nominal USD per cubic metre",
+    "plywood": "US cents per sheet"
+   }
   },
   {
    "file": "data/wb-commodity-indices.json",
