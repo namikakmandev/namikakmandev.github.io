@@ -803,6 +803,15 @@ def run(entry):
     # downstream. Drop them, then put last month's values back for whatever failed, so a
     # timeout costs freshness rather than the series itself.
     data = {k: v for k, v in data.items() if k not in errs}
+    # Optional rescaling of a stretch of history, for a source that changes unit part way
+    # (EVDS serves pre-2005 lira with six extra zeros): [{before: 'YYYY-MM', factor: 1e-6}].
+    for rule in entry.get("rescale", []):
+        before, factor = str(rule["before"]), float(rule["factor"])
+        keys = rule.get("keys") or list(data)
+        for k in keys:
+            v = data.get(k)
+            if isinstance(v, dict):
+                data[k] = {t: (x * factor if isinstance(x, (int, float)) and str(t) < before else x) for t, x in v.items()}
     out_path = os.path.join(ROOT, entry["out"])
     carried = []
     if errs and os.path.exists(out_path):
@@ -810,8 +819,13 @@ def run(entry):
             prev = json.load(open(out_path)).get("series") or {}
         except Exception:  # noqa: BLE001 — an unreadable previous file is not fatal
             prev = {}
+        # Only keys this config still asks for come back, and never a stored error dict:
+        # an old {"error": ...} block would otherwise be re-embalmed on every run.
+        wanted = set(entry["series"]) if isinstance(entry.get("series"), dict) else None
         for k, v in prev.items():
             if k.startswith("_error|") or k in data or not isinstance(v, dict) or not v:
+                continue
+            if "error" in v or (wanted is not None and k not in wanted):
                 continue
             data[k] = v
             carried.append(k)

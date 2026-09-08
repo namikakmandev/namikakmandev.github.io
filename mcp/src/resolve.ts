@@ -8,8 +8,8 @@
  */
 import { z } from "zod";
 import { DataError, type Series, caveatsFor, extractSeries, loadCatalog, loadDataset, datasetName, sourceFor } from "./data.js";
-import { PROVIDERS, type ProviderEnv } from "./providers.js";
-import { apply, clip, resample, type Frequency, type Transform } from "./transform.js";
+import { PROVIDERS, type FetchResult, type ProviderEnv } from "./providers.js";
+import { apply, baseFor, clip, resample, type Frequency, type Transform } from "./transform.js";
 
 export const SeriesRefSchema = z.object({
   dataset: z.string().optional().describe("Local dataset name, e.g. 'us-prices'"),
@@ -42,7 +42,7 @@ export function labelOf(ref: SeriesRef): string {
   return "inline";
 }
 
-export async function resolve(ref: SeriesRef, origin: string, env: ProviderEnv): Promise<Resolved> {
+export async function resolve(ref: SeriesRef, origin: string, env: ProviderEnv, fetched?: FetchResult): Promise<Resolved> {
   let raw: Series | undefined;
   let source: string | null = null;
   let caveats: string[] = [];
@@ -64,7 +64,7 @@ export async function resolve(ref: SeriesRef, origin: string, env: ProviderEnv):
   } else if (ref.provider) {
     if (!ref.id) throw new DataError(`Provider ${ref.provider} needs an id`);
     const p = PROVIDERS[ref.provider];
-    const res = await p.fetch(ref.id, ref.params ?? {}, env);
+    const res = fetched ?? await p.fetch(ref.id, ref.params ?? {}, env);
     const keys = Object.keys(res.series);
     const pick = ref.series ?? (keys.length === 1 ? keys[0] : undefined);
     if (!pick) throw new DataError(`${ref.provider}:${ref.id} returned ${keys.length} series. Choose one with 'series': ${keys.slice(0, 30).join(", ")}`);
@@ -77,17 +77,14 @@ export async function resolve(ref: SeriesRef, origin: string, env: ProviderEnv):
   }
 
   const transform = (ref.transform ?? "none") as Transform;
-  let s = clip(raw, ref.start ? yearEarlier(ref.start, transform) : undefined, ref.end);
+  // Resample and transform over the full history, then cut: a difference needs the point
+  // before the window and an annual mean needs the whole year, not the part after 'start'.
+  let s = clip(raw, undefined, ref.end);
   s = resample(s, (ref.frequency ?? "native") as Frequency);
-  s = apply(s, transform, ref.base);
+  s = apply(s, transform, baseFor(s, ref.base, ref.start));
   s = clip(s, ref.start, ref.end);
   if (!Object.keys(s).length) throw new DataError(`${label}: no observations after windowing ${ref.start ?? ""}..${ref.end ?? ""}`);
   return { label, series: s, source, caveats, transform };
-}
-
-function yearEarlier(start: string, transform: string): string {
-  if (transform !== "yoy") return start;
-  return String(Number(start.slice(0, 4)) - 1).padStart(4, "0") + start.slice(4);
 }
 
 /** Inner join on dates. Returns aligned arrays in date order. */

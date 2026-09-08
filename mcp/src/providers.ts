@@ -73,10 +73,13 @@ export async function fetchWithTimeout(url: string, init: RequestInit = {}, ms =
     return await fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
   } catch (e) {
     const name = e instanceof Error ? e.name : "";
+    const host = new URL(url).host;
     if (name === "TimeoutError" || name === "AbortError") {
-      throw new DataError(`${new URL(url).host} did not answer within ${Math.round(ms / 1000)} seconds. It may be slow or down; narrow the request (fewer countries, a shorter window) or try again.`);
+      throw new DataError(`${host} did not answer within ${Math.round(ms / 1000)} seconds. It may be slow or down; narrow the request (fewer countries, a shorter window) or try again.`);
     }
-    throw e;
+    // DNS, TLS and reset failures otherwise surface as a bare 'fetch failed' with no host in it.
+    const detail = e instanceof Error ? (e.cause instanceof Error ? e.cause.message : e.message) : String(e);
+    throw new DataError(`Could not reach ${host}: ${detail}. The host may be down or refusing connections; try again shortly.`);
   }
 }
 
@@ -109,7 +112,10 @@ async function getText(url: string, headers: Record<string, string> = {}): Promi
   const body = await res.text();
   const head = body.trimStart().slice(0, 15).toLowerCase();
   if (head.startsWith("<!doctype") || head.startsWith("<html")) {
-    throw new DataError(`${new URL(url).host} answered with a web page instead of data. For EVDS this usually means the key was rejected; check it at evds2.tcmb.gov.tr.`);
+    const host = new URL(url).host;
+    const why = host.includes("tcmb.gov.tr") ? "For EVDS this usually means the key was rejected; check it at evds2.tcmb.gov.tr."
+      : "Usually a wrong series id or a moved endpoint, so the host served its landing or error page.";
+    throw new DataError(`${host} answered with a web page instead of data. ${why} The page says: ${htmlText(body).slice(0, 160) || "(nothing legible)"}`);
   }
   cachePut(url, body);
   return body;
@@ -539,20 +545,28 @@ const owid: Provider = {
     const header = rows[0].map((h) => h.trim());
     const lower = header.map((h) => h.toLowerCase());
     const ei = lower.indexOf("entity"), yi = lower.indexOf("year"), ci = lower.indexOf("code");
-    const vi = header.findIndex((_, i) => i !== ei && i !== yi && i !== ci);
-    if (ei < 0 || yi < 0 || vi < 0) throw new DataError(`Unexpected OWID columns: ${header.join(", ")}`);
+    // A by-type chart (meat consumption by kind) has one value column per type; keeping
+    // only the first would hand back poultry labelled as the entity's total.
+    const vis = header.map((_, i) => i).filter((i) => i !== ei && i !== yi && i !== ci);
+    if (ei < 0 || yi < 0 || !vis.length) throw new DataError(`Unexpected OWID columns: ${header.join(", ")}`);
     const want = params.entities ? new Set(params.entities.split(";").map((s) => s.trim().toLowerCase())) : null;
     const series: Record<string, Series> = {};
     for (const r of rows.slice(1)) {
       const name = r[ei]?.trim();
       if (!name || (want && !want.has(name.toLowerCase()))) continue;
       const d = normDate(r[yi] ?? "");
-      const v = num(r[vi]);
-      if (d && v !== null) (series[name] ??= {})[d] = v;
+      if (!d) continue;
+      for (const vi of vis) {
+        const v = num(r[vi]);
+        if (v !== null) (series[vis.length > 1 ? `${name}|${header[vi]}` : name] ??= {})[d] = v;
+      }
     }
     if (!Object.keys(series).length) throw new DataError(`No rows matched entities '${params.entities}' in ${id}`);
-    return { provider: "owid", id, source: `Our World in Data: ${header[vi]} (${id})`, url, series,
-      notes: ["Series keys are entity names as OWID spells them ('United States', 'European Union (27)', 'Turkey'). OWID re-publishes upstream sources; cite the original named on the chart page."] };
+    return { provider: "owid", id, source: `Our World in Data: ${vis.map((i) => header[i]).join(", ")} (${id})`, url, series,
+      notes: [vis.length > 1
+        ? `This chart has ${vis.length} value columns (${vis.map((i) => header[i]).join(", ")}), so series keys are 'entity|column'.`
+        : "Series keys are entity names as OWID spells them ('United States', 'European Union (27)', 'Turkey').",
+        "OWID re-publishes upstream sources; cite the original named on the chart page."] };
   },
   async search(query) { return curatedSearch(owid.curated, query); },
 };
@@ -810,24 +824,35 @@ const fao: Provider = {
     const distinct = dimNames.map((d) => new Set(rows.map((r) => String(r[d] ?? ""))));
     const keyDims = dimNames.filter((_, i) => distinct[i].size > 1);
     const series: Record<string, Series> = {};
-    const units = new Set<string>();
+    const unitsByKey = new Map<string, Set<string>>();
+    // Monthly domains (food price indices) also carry an annual average row coded 7021;
+    // it must not land in the same series as the twelve months it averages.
+    const hasMonthly = rows.some((r) => FAO_MONTHS[String(r["Months Code"] ?? "")]);
     for (const r of rows) {
       const v = num(r.Value as string);
       if (v === null) continue;
       const y = String(r.Year ?? r["Year Code"] ?? "").trim();
       if (!/^\d{4}$/.test(y)) continue;
       const mc = String(r["Months Code"] ?? "");
-      const date = FAO_MONTHS[mc] ? `${y}-${FAO_MONTHS[mc]}` : y;   // 7021 and the like mark annual values
-      if (!date) continue;
-      const key = keyDims.length ? keyDims.map((d) => String(r[d])).join("|") : `${r.Area}|${r.Item}|${r.Element}`;
+      const monthly = Boolean(FAO_MONTHS[mc]);
+      const date = monthly ? `${y}-${FAO_MONTHS[mc]}` : y;
+      let key = keyDims.length ? keyDims.map((d) => String(r[d])).join("|") : `${r.Area}|${r.Item}|${r.Element}`;
+      if (hasMonthly && !monthly) key += "|annual average";
       (series[key] ??= {})[date] = v;
-      if (r.Unit) units.add(String(r.Unit));
+      if (r.Unit) (unitsByKey.get(key) ?? unitsByKey.set(key, new Set()).get(key)!).add(String(r.Unit));
     }
     if (!Object.keys(series).length) throw new DataError(`FAOSTAT rows for ${domain} carried no numeric values`);
     const src = `FAOSTAT ${domain} (${FAO_DOMAINS[domain]?.split(":")[0] ?? domain})`;
+    const unitSets = [...unitsByKey.values()].map((u) => [...u].map(faoUnit).join(", "));
+    const oneUnit = new Set(unitSets).size <= 1;
+    const unitNote = oneUnit
+      ? `Units: ${unitSets[0] || "as published"}.`
+      : `Units differ by series: ${[...unitsByKey].slice(0, 20).map(([k, u]) => `${k} in ${[...u].map(faoUnit).join(", ")}`).join("; ")}${unitsByKey.size > 20 ? "; ..." : ""}.`;
     return { provider: "fao", id: domain, source: src, url: FAO_BASE + "en/" + path, series,
-      notes: [`Units: ${[...units].map(faoUnit).join(", ") || "as published"}. FAOSTAT figures are official, semi-official, estimated or imputed by country and year; the flags are on the FAOSTAT site.`,
-        keyDims.length ? `Series keys are ${keyDims.join("|")} labels.` : "Single series: area, item and element were all fixed.", ...(elementNote ? [elementNote] : [])] };
+      notes: [`${unitNote} FAOSTAT figures are official, semi-official, estimated or imputed by country and year; the flags are on the FAOSTAT site.`,
+        keyDims.length ? `Series keys are ${keyDims.join("|")} labels.` : "Single series: area, item and element were all fixed.",
+        ...(hasMonthly ? ["Monthly rows are keyed YYYY-MM; FAOSTAT's annual average for the same series is kept apart under '|annual average'."] : []),
+        ...(elementNote ? [elementNote] : [])] };
   },
   async search(query, env) {
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -1173,15 +1198,18 @@ async function secResolveCik(token: string, env: ProviderEnv): Promise<{ cik: st
  * years comparable with everyone else.
  */
 function secPeriod(f: SecFact, annual: boolean): string | null {
+  const end = f.end;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) return null;
+  // Annual figures are labelled by the year the fiscal period ends in; the SEC's calendar
+  // frames (CY2020Q4I) would file a September year-end under the wrong quarter's label.
+  if (annual) return end.slice(0, 4);
   const fr = f.frame;
   if (fr) {
     const m = /^CY(\d{4})(?:Q([1-4]))?I?$/.exec(fr);
-    if (m) return annual ? (m[2] ? null : m[1]) : m[2] ? `${m[1]}-Q${m[2]}` : `${m[1]}-Q4`;
+    if (m) return m[2] ? `${m[1]}-Q${m[2]}` : `${m[1]}-Q4`;
   }
-  const end = f.end;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) return null;
   const y = end.slice(0, 4), q = Math.min(4, Math.floor((Number(end.slice(5, 7)) - 1) / 3) + 1);
-  return annual ? y : `${y}-Q${q}`;
+  return `${y}-Q${q}`;
 }
 
 /** Roughly how long a fact covers, in days; instants come back as 0. */
@@ -1198,11 +1226,18 @@ function secSpanDays(f: SecFact): number {
  */
 function secSeriesFrom(facts: SecFact[], annual: boolean): Series {
   const instant = facts.every((f) => !f.start);
-  const wanted = facts.filter((f) => {
+  let wanted = facts.filter((f) => {
     if (instant) return true;
     const d = secSpanDays(f);
     return annual ? d >= 330 && d <= 400 : d >= 60 && d <= 120;
   });
+  // A balance has no duration to filter on, so the fiscal-year-end one is the fact a 10-K
+  // reports (fp FY); without this, a filer whose year ends in September gets its December
+  // quarter's balance labelled as the year's.
+  if (instant && annual) {
+    const fy = wanted.filter((f) => f.fp === "FY" || String(f.form ?? "").startsWith("10-K"));
+    if (fy.length) wanted = fy;
+  }
   const best = new Map<string, SecFact>();
   for (const f of wanted) {
     const key = secPeriod(f, annual);
@@ -1298,7 +1333,7 @@ const sec: Provider = {
       url, series,
       notes: [
         group ? `Series keys are XBRL tags from the ${what.replace("_", " ")}; a filer that does not report a tag is simply absent.` : "One series, keyed by its XBRL tag.",
-        annual ? "Fiscal-year figures, labelled by calendar year." : "Quarterly figures, labelled by the calendar quarter the period ends in, so filers with odd fiscal years stay comparable.",
+        annual ? "Fiscal-year figures, labelled by the calendar year the fiscal year ends in (Apple's September 2024 year is '2024'); balance-sheet items are the fiscal year-end balance." : "Quarterly figures, labelled by the calendar quarter the period ends in, so filers with odd fiscal years stay comparable.",
         `Values in ${unit}, as filed. Where a figure was restated, the most recently filed version is used, so history changes as companies refile.`,
         "Balance-sheet items are stocks at the period end; income and cash-flow items are flows over the period. Do not mix the two in one ratio without checking.",
         "Coverage starts around 2009, when XBRL tagging became mandatory. Tag choice varies by industry: banks, insurers and REITs use different elements from manufacturers.",

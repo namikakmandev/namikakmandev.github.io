@@ -241,7 +241,7 @@ export function registerProviders(server: McpServer, env: ProviderEnv) {
           hint: "Call again with 'series' set to one of these keys, or narrow with params.",
         });
       }
-      const r = await resolve({ provider, id, params, series, start, end, frequency, transform, base }, "", env);
+      const r = await resolve({ provider, id, params, series, start, end, frequency, transform, base }, "", env, res);
       let pts = toPoints(round(r.series));
       if (last_n) pts = pts.slice(-last_n);
       return text({ ...meta(r), provider, id, series: series ?? keys[0], url: res.url, frequency, n: pts.length, first: pts[0]?.[0], last: pts[pts.length - 1]?.[0], points: pts });

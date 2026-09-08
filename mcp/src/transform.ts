@@ -8,6 +8,12 @@ import { DataError } from "./data.js";
 export type Transform = "none" | "pct_change" | "yoy" | "diff" | "rebase" | "log";
 export type Frequency = "native" | "annual_mean" | "annual_last";
 
+/** Where a rebase lands when the caller named a window but no base: the first point at or after 'start'. */
+export function baseFor(s: Series, base: string | undefined, start: string | undefined): string | undefined {
+  if (base || !start) return base;
+  return Object.keys(s).sort().find((k) => k >= start);
+}
+
 export function clip(s: Series, start?: string, end?: string, lastN?: number): Series {
   let keys = Object.keys(s).sort();
   if (start) keys = keys.filter((k) => k >= start);

@@ -55,8 +55,9 @@ export interface Catalog {
   datasets: CatalogEntry[];
 }
 
-// YYYY, YYYY-MM, YYYY-MM-DD, and Eurostat's YYYY-Qn / YYYY-Sn. All sort lexically.
-const DATE = /^\d{4}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
+// YYYY, YYYY-MM, YYYY-MM-DD, and Eurostat's YYYY-Qn / YYYY-Sn. All sort lexically. The year
+// is bounded so a dictionary keyed by HS product codes (2937, 3004) is not read as a series.
+const DATE = /^(1[0-9]|20|21)\d{2}(-(\d{2}|Q\d|S\d))?(-\d{2})?$/;
 const TTL_MS = 10 * 60 * 1000;
 
 // Keys that describe a dataset rather than contain one.
