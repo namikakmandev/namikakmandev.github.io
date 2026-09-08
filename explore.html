@@ -623,6 +623,23 @@
 
       var el = document.createElement("div");
       el.className = "card";
+      /* What the axis is in. A chart of numbers nobody can name the unit of is not a
+         chart anyone can quote. */
+      function unitOf(name) {
+        if (card.units && card.units[name]) return card.units[name];
+        return card.unit || "";
+      }
+      function unitLine(vis) {
+        if (state.mode === "index") return "";
+        if (state.mode === "yoy") return "percent change on a year earlier";
+        if (state.mode === "pp") return "";
+        var seen = {};
+        vis.forEach(function (x) { var u = unitOf(x.n); if (u) seen[u] = 1; });
+        var us = Object.keys(seen);
+        if (!us.length) return "";
+        if (us.length === 1) return us[0];
+        return "mixed units on one axis \u2014 " + us.join("; ") + ". The heights are not comparable; switch to an index, or chart one unit at a time.";
+      }
       el.innerHTML = (card.note ? "<p class='note'>" + esc(card.note) + "</p>" : "") +
         "<div class='ctrl'><span class='lbl'>Period</span><span class='seg js-seg'></span>" +
         "<select class='js-from' aria-label='From year'></select><span class='asof'>to</span><select class='js-to' aria-label='To year'></select></div>" +
@@ -749,10 +766,14 @@
         return { n: s.n, d: d, v: v };
       }
       function hintText(vis) {
+        var u = unitLine(vis);
+        var measured = u ? (/mixed units/.test(u) ? "<b>" + esc(u) + "</b> " : "Measured in <b>" + esc(u) + "</b>. ") : "";
         if (state.mode === "index") return "<b>Index:</b> every line is set to 100 at its first year in this window, so you are comparing how much each has moved, not how big it is.";
         if (state.mode === "yoy") return "<b>Change on a year earlier:</b> each point is the percentage difference from the same month, quarter or year twelve months before.";
         if (state.mode === "pp") return "<b>Per person:</b> each value divided by that country's population in the same year (World Bank, in <code>data/population.json</code>) — read as " + esc(ppUnit) + ".";
-        return "<b>Actual values</b> in the units the source publishes. Switch to an index to compare countries of very different size.";
+        // Telling someone to index a series that is already an index is noise.
+        var already = /^index\b|\bindex,/i.test(u);
+        return measured + (/mixed units/.test(u) || already ? "" : "Switch to an index to compare lines of very different size.");
       }
       function draw() {
         var a = String(state.from), b = String(state.to + 1);
@@ -849,7 +870,8 @@
         return { name: name, title: info ? info[0] : pretty(name), q: info ? info[1] : fallbackQ(src, name),
           n: d.series || 0, obs: d.observations || 0, bytes: d.bytes || 0, prov: d.provenance || "",
           f: +String(cov.first || "").slice(0, 4) || 0, t: +String(cov.last || "").slice(0, 4) || 0,
-          src: src, c: countriesOf(d), subj: SUBJ_OF[name] || "Reference files" };
+          src: src, unit: d.unit || "", units: d.units || null, kind: d.kind || "",
+          c: countriesOf(d), subj: SUBJ_OF[name] || "Reference files" };
       }).map(function (d) {
         /* one value per series in a single year: a snapshot, not something to plot over time */
         d.snap = d.f > 0 && d.f === d.t && d.obs <= d.n;
@@ -1006,7 +1028,7 @@
         var d = BY[name];
         slot.innerHTML = "";
         try {
-          makeCard(slot, { file: name, title: d.title, note: d.src, series: series, pick: pick,
+          makeCard(slot, { file: name, title: d.title, note: d.src, unit: d.unit, units: d.units, series: series, pick: pick,
             close: function () { closeRow(name); } });
         } catch (e) {
           slot.innerHTML = "<div class='card'><p class='note'>" + esc(e.message) + "</p></div>";

@@ -178,6 +178,14 @@ def main():
                      provider=s.get("provider"), auto_refresh=True,
                      source=s.get("source") or obj.get("source"),
                      note=s.get("note"))
+            # What the numbers are measured in. Without this nobody can put a figure in
+            # front of a client and say what it is.
+            if s.get("unit"):
+                e["unit"] = s["unit"]
+            if s.get("units"):
+                e["units"] = s["units"]
+            if s.get("kind"):
+                e["kind"] = s["kind"]
             # A source whose last refresh lost part of itself must not be indexed as
             # healthy: without this, a missing indicator is indistinguishable from one
             # the dataset never carried.

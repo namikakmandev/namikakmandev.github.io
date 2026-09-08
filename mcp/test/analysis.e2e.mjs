@@ -763,6 +763,25 @@ await check("sec: a company balance sheet by quarter, restatements resolved, tic
   assert.deepEqual(byName.matches.map((m) => m.id), ["IBM:balance_sheet", "IBM:income_statement", "IBM:cash_flow"], JSON.stringify(byName.matches));
 });
 
+await check("every number says what it is measured in", async () => {
+  // A figure nobody can name the unit of cannot go in front of a client.
+  const d = await call("describe_dataset", { dataset: "energy-spot" });
+  assert.match(String(d.unit), /differs by series/);
+  const brent = d.series.find((x) => x.id === "brent_usd_bbl");
+  assert.equal(brent.unit, "USD per barrel");
+  assert.equal(d.series.find((x) => x.id === "henry_hub_usd_mmbtu").unit, "USD per million BTU");
+  // one unit for the whole dataset, and it reaches get_series
+  const one = await call("describe_dataset", { dataset: "tr-house-prices" });
+  assert.equal(one.unit, "index, 2023 = 100");
+  const g = await call("get_series", { dataset: "energy-spot", series: "brent_usd_bbl", last_n: 3 });
+  assert.equal(g.unit, "USD per barrel");
+  // a transform changes the unit, and says so rather than repeating the level's
+  const y = await call("get_series", { dataset: "energy-spot", series: "brent_usd_bbl", transform: "yoy", last_n: 3 });
+  assert.equal(y.unit, "percent change");
+  const diff = await call("get_series", { dataset: "energy-spot", series: "brent_usd_bbl", transform: "diff", last_n: 3 });
+  assert.match(diff.unit, /change in USD per barrel/);
+});
+
 await check("World Bank: a paged answer is read to the end, not truncated at page one", async () => {
   const j = await call("fetch_external", { provider: "worldbank", id: "PAGED", params: { country: "TUR" }, series: "TUR" });
   assert.deepEqual(j.points, [["2020", 10], ["2021", 20]], "both pages, in date order");

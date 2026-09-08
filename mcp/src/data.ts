@@ -35,6 +35,11 @@ export interface CatalogEntry {
   as_of?: string;
   refresh?: string;
   series_keys?: string[];
+  /** What the numbers are measured in: one unit for the dataset, or one per series. */
+  unit?: string;
+  units?: Record<string, string>;
+  /** reference data, a study output, or a one-off probe of what a source publishes. */
+  kind?: string;
   /** Set by build_catalog.py when the last refresh of this source came back incomplete. */
   degraded?: { failed: string[]; carried_over: number; empty: string[] };
   error?: string;
@@ -219,6 +224,14 @@ export function describeSeries(all: Map<string, Series>): SeriesInfo[] {
 }
 
 /** Caveats travel with the data: from the catalog, from the file itself, from provenance. */
+/** The unit a given series is in, from the catalogue: the per-series map wins over the
+ *  dataset-wide one, and neither is guessed. */
+export function unitFor(entry: CatalogEntry | undefined, series?: string): string | null {
+  if (!entry) return null;
+  if (series && entry.units && entry.units[series]) return entry.units[series];
+  return entry.unit ?? null;
+}
+
 export function caveatsFor(entry: CatalogEntry | undefined, dataset: Json): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -229,6 +242,7 @@ export function caveatsFor(entry: CatalogEntry | undefined, dataset: Json): stri
     add(entry.note);
     if (entry.provenance === "manual") add(`Pulled by hand, as of ${entry.as_of ?? "unknown"}. ${entry.refresh ?? ""}`.trim());
     if (entry.provenance === "unattributed") add("No script produces this file. Provenance unknown. Verify before use.");
+    if (entry.kind === "probe") add("A probe of what a source publishes, kept as a record of the check. Not a series to quote.");
     if (!entry.auto_refresh && entry.provenance !== "manual") add("Not on the refresh schedule. Check last_commit before treating it as current.");
     if (entry.degraded) {
       const d = entry.degraded;
