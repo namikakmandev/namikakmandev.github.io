@@ -764,17 +764,22 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       }
       const k = X[0].length;
       const s = S.supF(yv, X);
-      // The scan uses the homoskedastic Chow statistic, which assumes the errors are not
-      // serially correlated. They usually are, and persistence alone manufactures breaks:
-      // at AR(1) phi 0.7 a series with no break is called broken about four times in five.
+      // The raw Chow statistic assumes the errors are not serially correlated. They
+      // usually are, and persistence alone manufactures breaks: uncorrected, a series
+      // with no break at all is called broken 46% of the time at first-order
+      // autocorrelation 0.5 and 98% at 0.9. Dividing by the ratio of the long-run to the
+      // short-run residual variance is the HAC Wald statistic for a break in a mean, and
+      // brings those to 6% and 13% while leaving a real break found every time.
+      const lambda = S.hacInflation(yv, X);
+      const supHac = s.best.F / lambda;
       let persistence: number | null = null;
       try {
         const resid = rx ? S.ols(yv, X).resid : yv.map((v) => v - S.mean(yv));
         persistence = S.autocorr(resid, 1);
       } catch { /* leave it unknown */ }
       const persistent = persistence !== null && Math.abs(persistence) > 0.3;
-      const top = [...s.scan].sort((p, q) => q.F - p.F).slice(0, 5).map((e) => ({ date: dates[e.index], F: r3(e.F) }));
-      const crit = S.supFCritical(k), rej = S.supFReject(s.best.F, k);
+      const top = [...s.scan].sort((p, q) => q.F - p.F).slice(0, 5).map((e) => ({ date: dates[e.index], sup_F: r3(e.F / lambda) }));
+      const crit = S.supFCritical(k), rej = S.supFReject(supHac, k), rejRaw = S.supFReject(s.best.F, k);
       const segOut = (seg: S.BreakSegment) => ({ from: dates[seg.start], to: dates[seg.end], n: seg.n, mean_y: r4(seg.mean_y), ...(rx ? { intercept: r4(seg.beta[0]), slope: r4(seg.beta[1]) } : {}) });
       let multiple: Record<string, unknown> | undefined;
       const seq = max_breaks > 1 ? S.sequentialBreaks(yv, X, max_breaks) : null;
@@ -793,7 +798,7 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
       // line would vanish at the foot of the chart. Shading everything below it instead
       // means the eye reads "out of the shade" as "a break", at any scale.
       const scanChart: PlotSpec = {
-        series: [inline("sup-F at each candidate date", scanDates, s.scan.map((e) => e.F))],
+        series: [inline("sup-F at each candidate date", scanDates, s.scan.map((e) => e.F / lambda))],
         bands: [inlineBand(0, `below this, no break at 5% (${r3(crit["5%"])})`, scanDates, s.scan.map(() => 0), s.scan.map(() => crit["5%"]))],
         title: `${ry.label}: where a break is most likely`, api: self,
       };
@@ -807,22 +812,32 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         series: [inline(ry.label, dates, yv), inline(rx ? "fit inside each segment" : "level inside each segment", dates, dates.map((_, t) => stepAt(t)))],
         title: `${ry.label}: ${segs.length} segment${segs.length > 1 ? "s" : ""}`, api: self,
       };
-      return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "sup-F scan (Quandt-Andrews), 15% trimming", most_likely_break: dates[s.best.break_index], sup_F: r3(s.best.F),
+      return text({ y: meta(ry), x: rx ? meta(rx) : undefined, test: "sup-F scan (Quandt-Andrews), 15% trimming, corrected for serial correlation", most_likely_break: dates[s.best.break_index], sup_F: r3(supHac),
+        sup_F_uncorrected: r3(s.best.F),
+        serial_correlation_correction: { factor: r3(lambda),
+          reject_uncorrected_at: rejRaw,
+          note: lambda <= 1.2
+            ? "These errors carry little serial correlation, so the correction barely moves the statistic."
+            : rejRaw && !rej
+            ? `Divided by ${r3(lambda)}, the ratio of the long-run to the short-run residual variance. Uncorrected this would have been called a break, and the correction is why it is not: errors this persistent produce a break where nothing changed almost every time. The correction is estimated on a single fit across the whole sample, so a break that is large next to the noise inflates it too, and the reading is the same either way. Difference the series and run this again: a real break survives that.`
+            : `Divided by ${r3(lambda)}, the ratio of the long-run to the short-run residual variance, because these errors are serially correlated and the raw statistic would otherwise mistake persistence for a break.` },
         chart_url: chartUrl(origin, scanChart),
         segments_chart_url: chartUrl(origin, segChart),
         chart_note: "chart_url is the F statistic at every candidate date against its 5% line, so the reader sees how sharp the break is. segments_chart_url draws the series with the level or the fit inside each segment.",
         sup_F_critical: { "10%": r3(crit["10%"]), "5%": r3(crit["5%"]), "1%": r3(crit["1%"]) }, reject_no_break_at: rej,
         chow_p_at_that_date: r4(s.best.p), candidates: top,
         segments: rej && rej !== "10%" ? single.segments.map(segOut) : undefined,
-        multiple_breaks: multiple,
-        verdict: rej === null ? "No break: the largest F in the scan is below Andrews' 10% critical value, so the sample can be treated as one regime."
+        multiple_breaks: multiple ? { ...multiple, basis: "Sequential search on the uncorrected statistic. It locates the dates well; whether each clears significance is the corrected statistic's question, not this one's." } : undefined,
+        verdict: rej === null && rejRaw
+          ? `Undecided. The largest statistic in the scan, ${r3(s.best.F)}, is far above Andrews' critical values, but these residuals are persistent enough (${r3(lambda)} times the short-run variance) that the correction pulls it to ${r3(supHac)}, below the 10% line. A series that steps between levels and a series that wanders look alike to this test. The most likely date is still ${dates[s.best.break_index]}${multiple ? `, and the sequential search puts breaks at ${(multiple.breaks as Array<{ date: string }>).map((b) => b.date).join(", ")}` : ""}; to settle it, difference the series or model the persistence and run this again.`
+          : rej === null ? "No break: the largest corrected F in the scan is below Andrews' 10% critical value, so the sample can be treated as one regime."
           : rej === "10%" ? "Weak evidence of a break (10% only); do not split the sample on this alone."
           : `Break at ${dates[s.best.break_index]} (sup-F ${r3(s.best.F)} beats the ${rej} critical value ${r3(crit[rej])}).${multiple ? ` Sequential search: ${(multiple.breaks as unknown[]).length} break(s), ${multiple.stopped}.` : " Set max_breaks above 1 to look for more."}`,
         residual_persistence: persistence === null ? undefined : {
           first_order_autocorrelation: r3(persistence),
-          warning: persistent
-            ? `The residuals carry autocorrelation of ${r3(persistence)}, and this scan assumes none. A series that persistent produces a 'break' even when nothing changed: at 0.7 the false alarm rate is about 78%, at 0.9 about 98%, against a nominal 5%. Difference the series, or model the persistence first, before believing a date below.`
-            : "Low enough that the scan's no-autocorrelation assumption is reasonable.",
+          note: persistent
+            ? `The residuals carry autocorrelation of ${r3(persistence)}, which is what the correction above is for. It does not fully cure a near-unit-root series: around 0.9 the test still calls one sample in eight a break when nothing changed, so difference the series if the date matters.`
+            : "Low enough that the correction barely applies.",
         },
         caveat: "Sup-F critical values are Andrews (1993) asymptotics with 15% trimming, simulated for this k; the plain Chow p-value at a data-chosen date overstates significance and is shown only for reference. The sequential search tests each segment on its own, so a break found late in the sequence has a weaker basis than the first. Breaks in the mean of a trending or non-stationary series are found everywhere; difference or detrend first." });
     }),
@@ -1267,7 +1282,8 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         if (bootstrap > 0) {
           try {
             const bb = S.varBootstrap(Y, p, horizon, identification, bootstrap);
-            bands = { kind: `residual bootstrap, ${bb.reps} replications, 16th/84th and 5th/95th percentiles`, horizons: bb.lo16.map((lo, h) => ({ h,
+            bands = { kind: `residual bootstrap with Kilian bias correction, ${bb.reps} replications, 16th/84th and 5th/95th percentiles`,
+              measured_coverage: "Against a known VAR(1) with 150 observations these bands contained the true response 88% of the time at a nominal 90%, and 66% at a nominal 68%. Read them as approximate.", horizons: bb.lo16.map((lo, h) => ({ h,
               lo16: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(lo[ri][si])]))])),
               hi84: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(bb.hi84[h][ri][si])]))])),
               lo05: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(bb.lo05[h][ri][si])]))])),
@@ -1276,6 +1292,8 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         }
       }
       // Which responses are distinguishable from zero at the 68% level, by shock and series
+      // Not a 5% test: it is where the 68% band clears zero, which is a weaker statement
+      // and one these bands are only approximately calibrated for.
       const significant: string[] = [];
       if (bands) {
         const hs = bands.horizons as Array<Record<string, Record<string, Record<string, number | null>>>>;
@@ -1315,7 +1333,8 @@ export function registerAnalysis(server: McpServer, origin: string, env: Provide
         impulse_responses: { note: identification === "cholesky" ? "Response of row series to a one-standard-deviation orthogonalised shock in column; ordering matters for contemporaneous effects." : "Response of row series to a one-standard-deviation structural shock in column.", horizons: grid(irf) },
         cumulative_responses_at_horizon: Object.fromEntries(names.map((rn, ri) => [rn, Object.fromEntries(shocks.map((sn, si) => [sn, r4(cumulative[horizon][ri][si])]))])),
         response_bands: bands,
-        significant_at_68pct: significant.length ? significant : bands ? ["none: no response is distinguishable from zero even at the 68% level"] : undefined,
+        responses_whose_68pct_band_clears_zero: significant.length ? significant : bands ? ["none: every band contains zero at every horizon"] : undefined,
+        band_reading: bands ? "A band clearing zero at the 68% level is the usual convention for reading impulse responses, and it is weaker than a 5% test: roughly a one-standard-error interval, approximately calibrated. Do not report it as significance." : undefined,
         variance_decomposition_at_horizon: Object.fromEntries(names.map((vn, vi) => [vn, Object.fromEntries(shocks.map((sn, si) => [sn, r3(fevd[horizon][vi][si])]))])),
         warnings,
         caveat: identification === "long_run" ? "Long-run restrictions are only as good as the assumption that shocks after the first have no permanent effect on the earlier series; they are fragile when the VAR's lag polynomial is close to a unit root (very persistent series), where Psi(1) is poorly estimated. Series must be stationary; for level effects pass differences and read cumulative_responses_at_horizon."

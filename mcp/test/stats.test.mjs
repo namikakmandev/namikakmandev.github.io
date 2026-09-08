@@ -572,5 +572,37 @@ check("KPSS refuses to judge a series with no variance rather than rejecting it"
   assert.ok(Number.isFinite(S.kpss(ok, "c").statistic));
 });
 
+check("the break scan is corrected for serial correlation, and keeps its power", () => {
+  // Persistence alone manufactures breaks in the uncorrected statistic: at first-order
+  // autocorrelation 0.7 a series with no break at all is called broken four times in five.
+  const r = rng(11);
+  const crit = S.supFCritical(1)["5%"];
+  const rate = (phi) => {
+    let raw = 0, hac = 0, N = 120;
+    for (let k = 0; k < N; k++) {
+      const y = [0];
+      for (let i = 1; i < 200; i++) y.push(phi * y[i - 1] + r.normal());
+      const X = y.map(() => [1]);
+      const s = S.supF(y, X);
+      if (s.best.F > crit) raw++;
+      if (s.best.F / S.hacInflation(y, X) > crit) hac++;
+    }
+    return { raw: raw / N, hac: hac / N };
+  };
+  const p7 = rate(0.7);
+  assert.ok(p7.raw > 0.5, `uncorrected should fail badly here, got ${p7.raw}`);
+  assert.ok(p7.hac < 0.2, `corrected false-break rate ${p7.hac} is too high`);
+  // and a real break is still found every time
+  let found = 0, N = 60;
+  for (let k = 0; k < N; k++) {
+    const y = [];
+    for (let i = 0; i < 200; i++) y.push((i < 100 ? 0 : 1.5) + r.normal());
+    const X = y.map(() => [1]);
+    const s = S.supF(y, X);
+    if (s.best.F / S.hacInflation(y, X) > crit) found++;
+  }
+  assert.ok(found / N > 0.9, `power against a real break fell to ${found / N}`);
+});
+
 console.log(failures ? `\n${failures} failing` : "\nall passing");
 process.exit(failures ? 1 : 0);

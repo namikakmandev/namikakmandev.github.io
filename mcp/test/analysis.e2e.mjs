@@ -495,7 +495,9 @@ await check("var_model on growth rates gives IRFs, FEVD and block Granger tests"
   const sh = j.shocks; assert.equal(sh.length, 2);
   const h0 = j.response_bands.horizons[0];
   assert.ok(h0.lo16[j.series[0].label][sh[0]] <= h0.hi84[j.series[0].label][sh[0]], "band ordered");
-  assert.ok(Array.isArray(j.significant_at_68pct));
+  assert.ok(Array.isArray(j.responses_whose_68pct_band_clears_zero));
+  assert.match(j.band_reading, /weaker than a 5% test/, "the band is not reported as significance");
+  assert.match(j.response_bands.kind, /Kilian bias correction/);
   assert.equal(j.impact_matrix.matrix[j.series[0].label][sh[1]], 0, "Cholesky: first series does not respond to the second shock on impact");
   assert.equal(j.long_run_effects, null);
 });
@@ -650,7 +652,13 @@ await check("structural_break judges the scan against sup-F critical values and 
   assert.deepEqual(m.multiple_breaks.breaks.map((b) => b.date), ["1994-03", "1998-05"]);
   assert.equal(m.multiple_breaks.segments.length, 3);
   assert.ok(Math.abs(m.multiple_breaks.segments[1].mean_y - m.multiple_breaks.segments[0].mean_y - 3) < 0.3);
-  assert.match(m.verdict, /Sequential search: 2 break/);
+  // Three distinct levels make the single-fit residuals look like a random walk, so the
+  // serial-correlation correction cannot separate a real break from persistence here.
+  // The tool must say that rather than pick a side: the dates are still reported.
+  assert.ok(m.serial_correlation_correction.factor > 5, JSON.stringify(m.serial_correlation_correction));
+  assert.match(m.verdict, /Undecided/);
+  assert.match(m.verdict, /1994-03, 1998-05/, "and it still names where the breaks are");
+  assert.ok(m.sup_F_uncorrected > m.sup_F * 5, "the uncorrected statistic is reported next to it");
   const rel = await call("structural_break", { y: { ...CATTLE, transform: "pct_change", start: "1990-01" }, x: { ...CORN, transform: "pct_change", start: "1990-01" }, max_breaks: 2 });
   assert.ok(rel.multiple_breaks.segments.every((sg) => "slope" in sg), "relation breaks report slopes per segment");
 });
