@@ -2721,6 +2721,478 @@
         "reserves_months_of_imports": "months of imports",
         "real_effective_exchange_rate": "index, 2010 = 100"
       }
+    },
+    {
+      "name": "us-transport",
+      "provider": "fred",
+      "series": {
+        "tsi_total": "TSITTL",
+        "tsi_freight": "TSIFRGHT",
+        "tsi_passenger": "TSIPSNGR",
+        "vehicle_miles_m": "TRFVOLUSM227NFWA",
+        "air_rpm_k": "AIRRPMTSI",
+        "rail_carloads": "RAILFRTCARLOADSD11",
+        "vehicle_sales_m": "TOTALSA"
+      },
+      "out": "data/us-transport.json",
+      "source": "US Bureau of Transportation Statistics and BEA via FRED, monthly: Transportation Services Index total (TSITTL), freight (TSIFRGHT) and passenger (TSIPSNGR), vehicle miles travelled (TRFVOLUSM227NFWA), airline revenue passenger miles (AIRRPMTSI), rail freight carloads (RAILFRTCARLOADSD11), total light-vehicle sales (TOTALSA)",
+      "note": "The three TSI series are seasonally adjusted indices with 2000 = 100; the rest are physical volumes, so compare shapes or use an index. Vehicle miles are not seasonally adjusted and swing with the season; vehicle sales are an annualised monthly rate in millions of units",
+      "units": {
+        "tsi_total": "index, 2000 = 100",
+        "tsi_freight": "index, 2000 = 100",
+        "tsi_passenger": "index, 2000 = 100",
+        "vehicle_miles_m": "million vehicle-miles a month, not seasonally adjusted",
+        "air_rpm_k": "thousand revenue passenger miles a month",
+        "rail_carloads": "carloads a month",
+        "vehicle_sales_m": "million units a year, seasonally adjusted annual rate"
+      }
+    },
+    {
+      "name": "wb-transport",
+      "provider": "worldbank",
+      "countries": {
+        "TR": "TUR",
+        "US": "USA",
+        "DE": "DEU",
+        "FR": "FRA",
+        "GB": "GBR",
+        "ES": "ESP",
+        "IT": "ITA",
+        "NL": "NLD",
+        "CN": "CHN",
+        "IN": "IND",
+        "JP": "JPN",
+        "KR": "KOR",
+        "AE": "ARE",
+        "BR": "BRA",
+        "RU": "RUS",
+        "EG": "EGY",
+        "SG": "SGP",
+        "GR": "GRC"
+      },
+      "indicators": {
+        "air_passengers_m": "IS.AIR.PSGR",
+        "air_freight_mtkm": "IS.AIR.GOOD.MT.K1",
+        "container_teu_m": "IS.SHP.GOOD.TU",
+        "rail_pkm_m": "IS.RRS.PASG.KM",
+        "rail_freight_mtkm": "IS.RRS.GOOD.MT.K6"
+      },
+      "scale": {
+        "air_passengers_m": 1e-06,
+        "container_teu_m": 1e-06
+      },
+      "start": 1970,
+      "out": "data/wb-transport.json",
+      "source": "World Bank World Development Indicators (ICAO and UNCTAD data), annual: air passengers carried by airlines registered in the country, air freight in million tonne-km, container port traffic in TEU, rail passenger-km and rail freight tonne-km",
+      "note": "Series keys are country|indicator. Air passengers are counted by the airline's country of registration, not where the flight was: Türkiye's number is largely Turkish Airlines wherever it flies. Rail series stop around 2020-21 in the WDI; air and ports run to 2023-24",
+      "units": {
+        "air_passengers_m": "million passengers a year",
+        "air_freight_mtkm": "million tonne-km a year",
+        "container_teu_m": "million TEU a year",
+        "rail_pkm_m": "million passenger-km a year",
+        "rail_freight_mtkm": "million tonne-km a year"
+      }
+    },
+    {
+      "name": "eu-air-passengers",
+      "provider": "eurostat",
+      "dataset": "avia_paoc",
+      "params": {
+        "freq": "M",
+        "unit": "PAS",
+        "tra_meas": "PAS_CRD",
+        "schedule": "TOTAL",
+        "tra_cov": [
+          "TOTAL",
+          "INTL",
+          "NAT"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "IE",
+          "LU",
+          "CY",
+          "MT",
+          "NO",
+          "CH",
+          "TR",
+          "IS"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "tra_cov"
+      ],
+      "out": "data/eu-air-passengers.json",
+      "source": "Eurostat avia_paoc: passengers carried, all schedules, by reporting country and coverage (total, international, national), monthly",
+      "note": "Series keys are country|coverage. Passengers carried counts each passenger once per flight stage at the reporting country's airports; a Frankfurt–Istanbul passenger appears in both Germany's and Türkiye's totals. Türkiye reports from 2017. Not seasonally adjusted: compare a month with the same month a year earlier",
+      "unit": "passengers a month"
+    },
+    {
+      "name": "eu-car-registrations",
+      "provider": "eurostat",
+      "dataset": "road_eqr_carpda",
+      "params": {
+        "unit": "NR",
+        "mot_nrg": [
+          "TOTAL",
+          "PET",
+          "DIE",
+          "ELC",
+          "ELC_PET_HYB",
+          "ELC_PET_PI"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "IE",
+          "LU",
+          "CY",
+          "MT",
+          "NO",
+          "CH",
+          "TR",
+          "IS",
+          "UK"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "mot_nrg"
+      ],
+      "out": "data/eu-car-registrations.json",
+      "source": "Eurostat road_eqr_carpda: new passenger car registrations by motor energy, annual",
+      "note": "Series keys are country|fuel: TOTAL all fuels, PET petrol, DIE diesel, ELC battery electric, ELC_PET_HYB petrol hybrid, ELC_PET_PI plug-in petrol hybrid. Divide ELC by TOTAL for the electric share. The hybrid split exists only from 2017 and some countries report it late; the UK stops after 2019",
+      "unit": "cars registered in the year"
+    },
+    {
+      "name": "electricity-mix",
+      "provider": "owid",
+      "slug": "electricity-prod-source-stacked",
+      "entities": {
+        "Turkey": "TR",
+        "United States": "US",
+        "Germany": "DE",
+        "France": "FR",
+        "Spain": "ES",
+        "Italy": "IT",
+        "Poland": "PL",
+        "United Kingdom": "GB",
+        "Netherlands": "NL",
+        "China": "CN",
+        "India": "IN",
+        "Japan": "JP",
+        "European Union (27)": "EU",
+        "World": "WLD"
+      },
+      "columns": {
+        "coal_generation__twh": "coal",
+        "gas_generation__twh": "gas",
+        "oil_generation__twh": "oil",
+        "nuclear_generation__twh": "nuclear",
+        "hydro_generation__twh": "hydro",
+        "wind_generation__twh": "wind",
+        "solar_generation__twh": "solar",
+        "bioenergy_stacked_generation__twh": "bioenergy",
+        "other_renewables_generation__twh": "other_renewables"
+      },
+      "out": "data/electricity-mix.json",
+      "source": "Ember Yearly Electricity Data and the Energy Institute Statistical Review, via Our World in Data: electricity generated by source, TWh, annual",
+      "note": "Series keys are country|source. Generation, not capacity and not consumption: a country that imports power shows less here than it uses. Coal, gas and oil start in 1985 for most countries; the renewables and nuclear columns reach back to 1965. The last year is often Ember's provisional figure",
+      "unit": "TWh generated in the year"
+    },
+    {
+      "name": "renewables-share",
+      "provider": "owid",
+      "slug": "share-electricity-renewables",
+      "entities": {
+        "Turkey": "TR",
+        "United States": "US",
+        "Germany": "DE",
+        "France": "FR",
+        "Spain": "ES",
+        "Italy": "IT",
+        "Poland": "PL",
+        "United Kingdom": "GB",
+        "Netherlands": "NL",
+        "Denmark": "DK",
+        "Norway": "NO",
+        "China": "CN",
+        "India": "IN",
+        "Japan": "JP",
+        "Brazil": "BR",
+        "European Union (27)": "EU",
+        "World": "WLD"
+      },
+      "out": "data/renewables-share.json",
+      "source": "Ember and the Energy Institute via Our World in Data: share of electricity generated from renewables (hydro, wind, solar, bioenergy, other), annual",
+      "note": "A share of generation, so a dry year moves a hydro-heavy country (Türkiye, Norway, Brazil) even when nothing was built. Nuclear is not counted as renewable",
+      "unit": "% of electricity generated"
+    },
+    {
+      "name": "eu-renewables-share",
+      "provider": "eurostat",
+      "dataset": "nrg_ind_ren",
+      "params": {
+        "unit": "PC",
+        "nrg_bal": [
+          "REN",
+          "REN_ELC",
+          "REN_TRA",
+          "REN_HEAT_CL"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "IE",
+          "LU",
+          "CY",
+          "MT",
+          "NO",
+          "IS",
+          "EU27_2020"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "nrg_bal"
+      ],
+      "out": "data/eu-renewables-share.json",
+      "source": "Eurostat nrg_ind_ren: share of energy from renewable sources, the official figure behind the EU targets, annual since 2004",
+      "note": "Series keys are country|measure: REN overall (gross final energy consumption), REN_ELC electricity, REN_TRA transport, REN_HEAT_CL heating and cooling. The Renewable Energy Directive's accounting rules, so the electricity share differs from Ember's generation share in renewables-share. Türkiye is not in this table",
+      "unit": "% of gross final energy consumption"
+    },
+    {
+      "name": "tr-electricity",
+      "provider": "evds",
+      "series": {
+        "production": "TP.ELEKTUKETIM.URT",
+        "consumption": "TP.ELEKTUKETIM.TKT1",
+        "imports": "TP.ELEKTUKETIM.ITH",
+        "exports": "TP.ELEKTUKETIM.IHR"
+      },
+      "start": "01-01-2016",
+      "frequency": 5,
+      "aggregation": "sum",
+      "rescale": [
+        {
+          "before": "9999",
+          "factor": 0.001
+        }
+      ],
+      "out": "data/tr-electricity.json",
+      "source": "TEİAŞ daily electricity balance via TCMB EVDS (TP.ELEKTUKETIM.*), summed to calendar months by EVDS: production, consumption, imports and exports",
+      "note": "EVDS publishes MWh a day; this file holds GWh a month. The current month is partial until the month ends. Consumption exceeds production by roughly the net import; the renewable/non-renewable split in EVDS starts only in 2026 and is not stored",
+      "unit": "GWh in the month"
+    },
+    {
+      "name": "eu-tourism-nights",
+      "provider": "eurostat",
+      "dataset": "tour_occ_nim",
+      "params": {
+        "unit": "NR",
+        "nace_r2": "I551-I553",
+        "c_resid": [
+          "TOTAL",
+          "FOR",
+          "DOM"
+        ],
+        "geo": [
+          "DE",
+          "FR",
+          "IT",
+          "ES",
+          "NL",
+          "BE",
+          "AT",
+          "PL",
+          "CZ",
+          "HU",
+          "RO",
+          "PT",
+          "DK",
+          "SE",
+          "FI",
+          "EL",
+          "SK",
+          "SI",
+          "HR",
+          "BG",
+          "LT",
+          "LV",
+          "EE",
+          "IE",
+          "LU",
+          "CY",
+          "MT",
+          "NO",
+          "CH",
+          "TR",
+          "IS",
+          "UK"
+        ]
+      },
+      "group_dims": [
+        "geo",
+        "c_resid"
+      ],
+      "out": "data/eu-tourism-nights.json",
+      "source": "Eurostat tour_occ_nim: nights spent at hotels, holiday and short-stay accommodation and campsites, by residents and foreign visitors, monthly",
+      "note": "Series keys are country|residence: TOTAL, FOR foreign visitors, DOM residents. Nights, not arrivals, and only in registered accommodation: short-term rentals are largely outside it. Türkiye reports from 2018. Strong seasonality: compare year on year or use annual sums",
+      "unit": "nights a month"
+    },
+    {
+      "name": "tr-tourism-arrivals",
+      "provider": "evds",
+      "series": {
+        "total": "TP.URISTSAYIL.TOPLAM",
+        "istanbul": "TP.URISTSAYIL.ISTANBUL",
+        "antalya": "TP.URISTSAYIL.ANTALYA",
+        "mugla": "TP.URISTSAYIL.MUGLA",
+        "izmir": "TP.URISTSAYIL.IZMIR",
+        "ankara": "TP.URISTSAYIL.ANKARA",
+        "edirne": "TP.URISTSAYIL.EDIRNE",
+        "nevsehir": "TP.URISTSAYIL.NEVSEHIR"
+      },
+      "start": "01-01-1990",
+      "out": "data/tr-tourism-arrivals.json",
+      "source": "Ministry of Culture and Tourism border statistics via TCMB EVDS (TP.URISTSAYIL.*): foreign visitors arriving, by province of entry, monthly",
+      "note": "Arrivals at the border, counted by the province of the crossing: Antalya and Muğla are the resort airports, Edirne the road border from Bulgaria and Greece. Foreign visitors only; Turkish citizens living abroad are not in it. EVDS files the group as an archive but it is still updated",
+      "unit": "visitors a month"
+    },
+    {
+      "name": "ai-investment",
+      "provider": "owid",
+      "slug": "private-investment-in-artificial-intelligence",
+      "entities": {
+        "United States": "US",
+        "China": "CN",
+        "Europe": "EU",
+        "World": "WLD"
+      },
+      "out": "data/ai-investment.json",
+      "source": "Stanford AI Index (Quid data) via Our World in Data: private investment in AI companies by region, annual",
+      "note": "Private investment means venture and private equity deals, not corporate spending on chips and data centres, so hyperscaler capital expenditure is not in it. Europe is Quid's region, not the EU. Nominal US dollars; the 2025 figure is a partial-year count",
+      "unit": "billion US dollars, nominal"
+    },
+    {
+      "name": "ai-investment-type",
+      "provider": "owid",
+      "slug": "corporate-investment-in-artificial-intelligence-by-type",
+      "entities": {
+        "Total": "total",
+        "Private investment": "private",
+        "Merger/acquisition": "m_and_a",
+        "Minority stake": "minority",
+        "Public offering": "ipo"
+      },
+      "out": "data/ai-investment-type.json",
+      "source": "Stanford AI Index via Our World in Data: world corporate investment in AI by deal type, annual",
+      "note": "World totals only. The merger/acquisition line is lumpy: one large deal moves a year",
+      "unit": "billion US dollars, nominal"
+    },
+    {
+      "name": "ai-systems",
+      "provider": "owid",
+      "slug": "cumulative-number-of-large-scale-ai-systems-by-country",
+      "entities": {
+        "United States": "US",
+        "China": "CN",
+        "United Kingdom": "GB",
+        "Germany": "DE",
+        "France": "FR",
+        "Israel": "IL",
+        "Japan": "JP",
+        "South Korea": "KR",
+        "Canada": "CA",
+        "United Arab Emirates": "AE",
+        "Saudi Arabia": "SA",
+        "Multinational": "MULTI",
+        "All large-scale AI systems": "ALL"
+      },
+      "out": "data/ai-systems.json",
+      "source": "Epoch AI via Our World in Data: cumulative number of large-scale AI systems (training compute above 10^23 FLOP) by the country of the developing organisation, annual",
+      "note": "Cumulative counts, so every line only rises. Country is where the organisation is based; a model trained by a multinational team is under Multinational. Epoch's catalogue is curated, not exhaustive",
+      "unit": "systems, cumulative"
+    },
+    {
+      "name": "us-chips",
+      "provider": "fred",
+      "series": {
+        "semiconductors_ip": "IPG3344S",
+        "electronics_ip": "IPG334S"
+      },
+      "out": "data/us-chips.json",
+      "source": "Federal Reserve industrial production via FRED, monthly, seasonally adjusted: semiconductors and other electronic components (NAICS 3344) and computer and electronic products (NAICS 334)",
+      "note": "Volume indices, 2017 = 100, and for semiconductors the Fed's quality adjustment makes the index rise with chip performance, not only with units shipped",
+      "units": {
+        "semiconductors_ip": "index, 2017 = 100",
+        "electronics_ip": "index, 2017 = 100"
+      }
     }
   ]
 }
