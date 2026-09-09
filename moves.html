@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>What moved — Namık Akman</title>
+  <meta name="description" content="The ten most unusual year-on-year moves across the data collection this month, found by the data itself: each with its chart, its source and the series it came from." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#f4f4f1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <link rel="stylesheet" href="css/data-look.css?v=1" />
+  <style>
+    .study { padding: 30px 0 72px; }
+    .study .container { max-width: 980px; }
+    .study .back { color: var(--text-dim); font-size: .86rem; }
+    .study h1 { font-size: clamp(2.1rem, 4.4vw, 3.1rem); margin: 12px 0 10px; }
+    .study .lede { color: var(--text-dim); font-size: 1.02rem; line-height: 1.55; margin-bottom: 10px; max-width: 62ch; }
+    .stamp { font-family: var(--mono); font-size: .78rem; color: var(--text-dim); border-top: 1px solid var(--text); border-bottom: 1px solid var(--border); padding: 10px 0; margin: 14px 0 30px; display: flex; flex-wrap: wrap; gap: 6px 28px; }
+    .stamp b { color: var(--text); font-weight: 500; }
+
+    .move { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 10px 28px; padding: 22px 0; border-bottom: 1px solid var(--border); align-items: start; }
+    .move:first-of-type { border-top: 1px solid var(--text); }
+    .move .n { font-family: var(--mono); font-size: .78rem; color: var(--text-dim); }
+    .move .subj { display: inline-block; font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); margin-left: 10px; }
+    .move h2 { font-family: var(--display); font-weight: 600; font-size: 1.35rem; line-height: 1.2; letter-spacing: -.01em; margin: 6px 0 8px; text-wrap: balance; }
+    .move h2 .up { color: var(--accent-2); } .move h2 .dn { color: var(--loss); }
+    .move p { margin: 0 0 8px; font-size: .97rem; line-height: 1.55; max-width: 60ch; }
+    .move .src { color: var(--text-dim); font-size: .8rem; line-height: 1.45; max-width: 64ch; }
+    .move .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .move .acts a { font-size: .82rem; font-weight: 600; color: var(--accent); }
+    .move .acts a.key { background: var(--text); color: var(--bg); padding: 6px 13px; border-radius: 999px; text-decoration: none; }
+    .move .acts a.key:hover { background: var(--accent); color: #fff; }
+    .fig { min-width: 0; }
+    .fig svg { width: 100%; height: auto; display: block; font-family: var(--mono); }
+    .fig .cap { font-family: var(--mono); font-size: .72rem; color: var(--text-dim); margin-top: 4px; display: flex; justify-content: space-between; gap: 8px; }
+    .fig .cap b { color: var(--text); font-weight: 500; }
+    @media (max-width: 760px) { .move { grid-template-columns: 1fr; } .fig { order: 2; } }
+
+    .method { margin-top: 34px; color: var(--text-dim); font-size: .88rem; line-height: 1.55; max-width: 72ch; }
+    .method h2 { font-family: var(--display); font-size: 1.3rem; color: var(--text); margin: 0 0 8px; }
+    .method a { color: var(--accent); }
+    .loading { color: var(--text-dim); padding: 26px 0; }
+  </style>
+</head>
+<body class="tool-light data-look">
+  <header class="site-header">
+    <div class="container nav">
+      <a href="index.html" class="brand">Namık <span>Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="explore.html">Data</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="explore.html" class="back">&larr; Explore the data</a>
+        <h1>What moved</h1>
+        <p class="lede">The ten most unusual year-on-year moves across the whole collection, found by the data itself
+        after each refresh. Nothing here is chosen by hand: a move is listed when it is far outside that series' own
+        history of yearly changes, and every line names the dataset it came from.</p>
+        <div class="stamp" id="stamp"></div>
+        <div id="list"><p class="loading">Reading this month's note…</p></div>
+
+        <div class="method">
+          <h2>How the list is made</h2>
+          <p>After every data refresh, <code>scripts/whats_moving.py</code> takes each series in the collection whose latest
+          observation is recent, compares it with the value a year earlier, and expresses the difference as a percentage
+          for a level and as points for something that is already a rate, a share or a balance. It then asks how unusual
+          that change is against the series' own record of yearly changes, and ranks by that. A series that swings by
+          thirty percent every year does not make the list for doing it again; one that never moves and just did, does.
+          At most two entries per dataset and four per subject, so one release cannot fill the page.</p>
+          <p>The sentences are templates filled from the numbers. Read the source line under each: a "biggest rise in
+          the record" for a young series is a smaller claim than the same words for one that starts in 1921.
+          The full note is in <a href="data/_moves.json">data/_moves.json</a>.</p>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="js/main.js" defer></script>
+  <script>
+  (function () {
+    "use strict";
+    var COLORS = ["#1c63c9", "#d9541e", "#138a5a", "#7b3fd1", "#b7791f", "#c2306a"];
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function fmtDate(d) {
+      var m; d = String(d);
+      if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d))) return +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1];
+      if ((m = /^(\d{4})-(\d{2})$/.exec(d))) return MONTHS[+m[2] - 1] + " " + m[1];
+      if ((m = /^(\d{4})-Q([1-4])$/.exec(d))) return "Q" + m[2] + " " + m[1];
+      if ((m = /^(\d{4})-S([12])$/.exec(d))) return "H" + m[2] + " " + m[1];
+      return d;
+    }
+    function fmt(v) {
+      var a = Math.abs(v);
+      if (a >= 1e9) return (v / 1e9).toFixed(1).replace(/\.0$/, "") + "bn";
+      if (a >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, "") + "m";
+      if (a >= 1000) return v.toLocaleString("en-GB", { maximumFractionDigits: 0 });
+      if (a >= 10) return v.toLocaleString("en-GB", { maximumFractionDigits: 1 });
+      return v.toLocaleString("en-GB", { maximumFractionDigits: 2 });
+    }
+    function nice(lo, hi) {
+      if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
+      var raw = (hi - lo) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+      var step = (r >= 5 ? 10 : r >= 2.5 ? 5 : r >= 2 ? 2.5 : r >= 1 ? 2 : 1) * mag, t = [];
+      for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10));
+      return t;
+    }
+    /* Three years of the series, the last point marked, the year-ago point marked hollow. */
+    function svgFor(item, color) {
+      var pts = item.history, W = 320, H = 150, L = 40, R = 10, T = 10, B = 20, iw = W - L - R, ih = H - T - B;
+      var lo = Infinity, hi = -Infinity;
+      pts.forEach(function (p) { if (p[1] < lo) lo = p[1]; if (p[1] > hi) hi = p[1]; });
+      var ticks = nice(lo, hi); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+      var widest = ticks.reduce(function (w, t) { return Math.max(w, fmt(t).length); }, 0);
+      L = Math.max(L, Math.ceil(widest * 6.3) + 10); iw = W - L - R;
+      var x = function (i) { return L + (i / Math.max(pts.length - 1, 1)) * iw; };
+      var y = function (v) { return T + (hi - v) / ((hi - lo) || 1) * ih; };
+      var s = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + esc(item.label + ", " + fmtDate(pts[0][0]) + " to " + fmtDate(pts[pts.length - 1][0])) + "'>";
+      ticks.forEach(function (t) {
+        s += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + y(t).toFixed(1) + "' y2='" + y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".35" : ".12") + "'/>" +
+          "<text x='" + (L - 6) + "' y='" + (y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t)) + "</text>";
+      });
+      var d = "";
+      pts.forEach(function (p, i) { d += (i ? "L" : "M") + x(i).toFixed(1) + " " + y(p[1]).toFixed(1); });
+      s += "<path d='" + d + "' fill='none' stroke='" + color + "' stroke-width='2' stroke-linejoin='round' stroke-linecap='round'/>";
+      var ago = -1; pts.forEach(function (p, i) { if (p[0] === item.year_ago.date) ago = i; });
+      if (ago >= 0) s += "<circle cx='" + x(ago).toFixed(1) + "' cy='" + y(pts[ago][1]).toFixed(1) + "' r='3.5' fill='var(--surface)' stroke='" + color + "' stroke-width='2'/>";
+      s += "<circle cx='" + x(pts.length - 1).toFixed(1) + "' cy='" + y(pts[pts.length - 1][1]).toFixed(1) + "' r='3.5' fill='" + color + "'/>";
+      s += "<text x='" + L + "' y='" + (H - 5) + "' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmtDate(pts[0][0])) + "</text>";
+      s += "<text x='" + (W - R) + "' y='" + (H - 5) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmtDate(pts[pts.length - 1][0])) + "</text>";
+      return s + "</svg>";
+    }
+    function headline(it) {
+      var up = it.change > 0;
+      var amt = it.is_rate ? (fmt(Math.abs(it.change)) + (it.in_points ? " points" : "")) : (fmt(Math.abs(it.change)) + "%");
+      var what = it.title + (it.label && it.label.toLowerCase() !== it.title.toLowerCase() ? ": " + it.label : "");
+      return esc(what) + " <span class='" + (up ? "up" : "dn") + "'>" + (up ? "▲" : "▼") + " " + esc(amt) + "</span>";
+    }
+    fetch("data/_moves.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(function (m) {
+      var items = m.items || [];
+      document.getElementById("stamp").innerHTML = "<span>Written <b>" + esc(m.generated) + "</b></span><span><b>" + items.length + "</b> picks from <b>" + esc(String(m.candidates)) + "</b> candidate series</span><span>Next refresh on the 1st of the month</span>";
+      if (!items.length) { document.getElementById("list").innerHTML = "<p class='loading'>Nothing unusual moved since the last refresh.</p>"; return; }
+      document.getElementById("list").innerHTML = items.map(function (it, i) {
+        var col = COLORS[i % COLORS.length];
+        var val = fmt(it.latest.value) + (it.in_points ? "%" : "");
+        var agoVal = it.year_ago.value == null ? "" : fmt(it.year_ago.value) + (it.in_points ? "%" : "");
+        return "<section class='move'><div>" +
+          "<span class='n'>" + (i + 1) + " of " + items.length + "</span><span class='subj'>" + esc(it.subject) + "</span>" +
+          "<h2>" + headline(it) + "</h2>" +
+          "<p>" + esc(it.sentence.replace(/^[^:]+:\s*/, "").replace(/^\w/, function (c) { return c.toUpperCase(); })) + "</p>" +
+          "<div class='src'>" + esc(it.unit ? it.unit + ". " : "") + esc(it.source) + "</div>" +
+          "<div class='acts'><a class='key' href='explore.html#open=" + encodeURIComponent(it.dataset) + "'>Take it apart →</a>" +
+          "<a href='" + esc(it.chart) + "'>Open as a chart</a></div>" +
+          "</div><div class='fig'>" + svgFor(it, col) +
+          "<div class='cap'><span>○ " + esc(fmtDate(it.year_ago.date)) + " <b>" + esc(agoVal) + "</b></span><span>● " + esc(fmtDate(it.latest.date)) + " <b>" + esc(val) + "</b></span></div></div></section>";
+      }).join("");
+    }).catch(function (e) {
+      document.getElementById("list").innerHTML = "<p class='loading'>The note could not be read: " + esc(e.message) + ".</p>";
+    });
+  })();
+  </script>
+</body>
+</html>
