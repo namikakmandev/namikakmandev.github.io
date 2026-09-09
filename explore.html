@@ -272,6 +272,20 @@
     /* Plain-English name and question for every file in the catalogue. Each line is a
        restatement of that dataset's own `source`/`note` in data/_catalog.json — no new facts. */
     var INFO = {
+      "us-transport": ["US transport activity", "How much is moving in America — freight, passengers, road miles, flights, rail cars and car sales, month by month?"],
+      "wb-transport": ["Air, sea and rail by country", "Which countries fly, ship and rail the most, and how fast is each growing since 1970?"],
+      "eu-air-passengers": ["Air passengers in Europe", "How many people fly from each European country each month, at home and abroad?"],
+      "eu-car-registrations": ["New cars by fuel in Europe", "How fast are electric cars taking over from petrol and diesel, country by country?"],
+      "electricity-mix": ["Where electricity comes from", "How much power does each country make from coal, gas, nuclear, hydro, wind and solar?"],
+      "renewables-share": ["Renewables' share of electricity", "What share of each country's electricity is renewable, and who is moving fastest?"],
+      "eu-renewables-share": ["EU renewable energy targets", "How far is each EU country along the official renewables share, in power, heat and transport?"],
+      "tr-electricity": ["Türkiye's electricity balance", "How much power does Türkiye make and use each month, and how much crosses the border?"],
+      "eu-tourism-nights": ["Tourist nights in Europe", "How many nights do visitors spend in each country's hotels and campsites, and who are they?"],
+      "tr-tourism-arrivals": ["Foreign visitors to Türkiye", "How many foreigners arrive each month, and through which gateway — Istanbul, Antalya, Muğla or the land border?"],
+      "ai-investment": ["Private investment in AI", "How much venture money goes into AI companies in the US, China and Europe each year?"],
+      "ai-investment-type": ["AI deals by type", "Is the money in AI coming as venture rounds, acquisitions, minority stakes or listings?"],
+      "ai-systems": ["Large AI models by country", "Which countries have built the most large-scale AI systems, and how fast is the count growing?"],
+      "us-chips": ["US chip production", "Is America making more semiconductors and electronics, month by month?"],
       "asia-wdi": ["Asian and Middle Eastern economies", "How fast is each economy growing, and what are its inflation, unemployment and income per head?"],
       "bigmac-eur": ["Big Mac index against the euro", "Is a currency cheap or dear against the euro, measured by the price of one burger?"],
       "bigmac-src-eur": ["Big Mac prices in euros", "What does a Big Mac actually cost, in euros, in each euro-area country?"],
@@ -408,7 +422,10 @@
       ["Industry and trade", ["eu-gva-sectors", "eu-ipi-sectors", "us-ip-sectors", "chem-eng-exports", "hs6-check", "hs6-probe", "hs6-probe2"]],
       ["Money, markets and climate", ["wb-commodities", "popular-markets", "climate-co2", "climate-temp", "fx-eur", "fx-eur-m",
         "tr-fx-monthly", "tr-rates", "price-leverage", "price-leverage-results"]],
-      ["Energy costs", ["energy-spot", "energy-household-eu", "gas-household-eu", "elec-eu", "gas-eu", "wb-commodity-indices"]],
+      ["Energy", ["electricity-mix", "renewables-share", "tr-electricity", "eu-renewables-share", "energy-spot", "energy-household-eu", "gas-household-eu", "elec-eu", "gas-eu", "wb-commodity-indices"]],
+      ["Transport", ["us-transport", "eu-car-registrations", "wb-transport", "eu-air-passengers"]],
+      ["Tourism and travel", ["tr-tourism-arrivals", "eu-tourism-nights"]],
+      ["AI and computing", ["ai-investment", "ai-systems", "ai-investment-type", "us-chips"]],
       ["Money and central banks", ["central-bank-assets", "tr-cb-balance", "macro-external"]],
       ["Reference files", ["europe-map", "tr-series-candidates", "yatirim-radar"]]
     ];
@@ -428,7 +445,7 @@
     };
     var SPARK_MAX_BYTES = 320000;   /* bigger files are not fetched just to draw a thumbnail */
 
-    var NAMES = {"AE":"United Arab Emirates","AL":"Albania","AR":"Argentina","AT":"Austria","AU":"Australia","BA":"Bosnia and Herzegovina","BD":"Bangladesh","BE":"Belgium","BG":"Bulgaria","BR":"Brazil","CA":"Canada","CH":"Switzerland","CN":"China","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","EE":"Estonia","EG":"Egypt","EL":"Greece","ES":"Spain","FI":"Finland","FR":"France","GB":"United Kingdom","HR":"Croatia","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IR":"Iran","IS":"Iceland","IT":"Italy","JP":"Japan","KR":"South Korea","KZ":"Kazakhstan","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MD":"Moldova","ME":"Montenegro","MK":"North Macedonia","MT":"Malta","MX":"Mexico","MY":"Malaysia","NG":"Nigeria","NL":"Netherlands","NO":"Norway","PH":"Philippines","PK":"Pakistan","PL":"Poland","PT":"Portugal","RO":"Romania","RS":"Serbia","RU":"Russia","SA":"Saudi Arabia","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","TH":"Thailand","TR":"Türkiye","UA":"Ukraine","UK":"United Kingdom","US":"United States","UZ":"Uzbekistan","VN":"Vietnam","ZA":"South Africa","EU":"European Union",
+    var NAMES = {"AE":"United Arab Emirates","AL":"Albania","AR":"Argentina","AT":"Austria","AU":"Australia","BA":"Bosnia and Herzegovina","BD":"Bangladesh","BE":"Belgium","BG":"Bulgaria","BR":"Brazil","CA":"Canada","CH":"Switzerland","CN":"China","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","EE":"Estonia","EG":"Egypt","EL":"Greece","ES":"Spain","FI":"Finland","FR":"France","GB":"United Kingdom","HR":"Croatia","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IR":"Iran","IS":"Iceland","IT":"Italy","JP":"Japan","KR":"South Korea","KZ":"Kazakhstan","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MD":"Moldova","ME":"Montenegro","MK":"North Macedonia","MT":"Malta","MX":"Mexico","MY":"Malaysia","NG":"Nigeria","NL":"Netherlands","NO":"Norway","PH":"Philippines","PK":"Pakistan","PL":"Poland","PT":"Portugal","RO":"Romania","RS":"Serbia","RU":"Russia","SA":"Saudi Arabia","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","TH":"Thailand","TR":"Türkiye","UA":"Ukraine","UK":"United Kingdom","US":"United States","UZ":"Uzbekistan","VN":"Vietnam","ZA":"South Africa","EU":"European Union","WLD":"World","GR":"Greece","ALL":"All countries",
       "ARE":"United Arab Emirates","ARG":"Argentina","AUS":"Australia","AZE":"Azerbaijan","BRA":"Brazil","CAN":"Canada","CHE":"Switzerland","CHL":"Chile","CHN":"China","COL":"Colombia","CZE":"Czechia","DNK":"Denmark","EGY":"Egypt","GBR":"United Kingdom","HKG":"Hong Kong","HUN":"Hungary","IDN":"Indonesia","IND":"India","ISR":"Israel","JPN":"Japan","KOR":"South Korea","MEX":"Mexico","MYS":"Malaysia","NOR":"Norway","NZL":"New Zealand","PAK":"Pakistan","PER":"Peru","POL":"Poland","ROU":"Romania","RUS":"Russia","SAU":"Saudi Arabia","SGP":"Singapore","SWE":"Sweden","THA":"Thailand","TUR":"Türkiye","TWN":"Taiwan","UKR":"Ukraine","URY":"Uruguay","USA":"United States","VNM":"Vietnam","ZAF":"South Africa",
       "TRY":"Türkiye","USD":"United States","GBP":"United Kingdom","CHF":"Switzerland","SEK":"Sweden","NOK":"Norway","DKK":"Denmark","PLN":"Poland","CZK":"Czechia","HUF":"Hungary","RON":"Romania"};
 
@@ -599,7 +616,12 @@
     var CODES = { NGDP_RPCH: "Real GDP growth, %", PCPIPCH: "Inflation, average, %", PCPIEPCH: "Inflation, end of period, %", LUR: "Unemployment rate, %",
       GGXWDG_NGDP: "Government gross debt, % of GDP", GGXCNL_NGDP: "Government net lending, % of GDP", BCA_NGDPD: "Current account, % of GDP",
       NGDPDPC: "GDP per person, USD", NGDPD: "GDP, USD", NID_NGDP: "Investment, % of GDP", NGSD_NGDP: "National saving, % of GDP",
-      "BS-ESI-I": "Economic sentiment indicator", "BS-ICI-BAL": "Industrial confidence", "BS-CSMCI-BAL": "Consumer confidence", "BS-SCI-BAL": "Services confidence" };
+      "BS-ESI-I": "Economic sentiment indicator", "BS-ICI-BAL": "Industrial confidence", "BS-CSMCI-BAL": "Consumer confidence", "BS-SCI-BAL": "Services confidence",
+      coal: "Coal", gas: "Gas", oil: "Oil", nuclear: "Nuclear", hydro: "Hydro", wind: "Wind", solar: "Solar", bioenergy: "Bioenergy", other_renewables: "Other renewables",
+      TOTAL: "Total", INTL: "International", NAT: "Domestic", FOR: "Foreign visitors", DOM: "Residents",
+      PET: "Petrol", DIE: "Diesel", ELC: "Battery electric", ELC_PET_HYB: "Petrol hybrid", ELC_PET_PI: "Plug-in hybrid",
+      REN: "All energy", REN_ELC: "Electricity", REN_TRA: "Transport", REN_HEAT_CL: "Heating and cooling",
+      air_passengers_m: "Air passengers, millions", air_freight_mtkm: "Air freight, million tonne-km", container_teu_m: "Container traffic, million TEU", rail_pkm_m: "Rail, million passenger-km", rail_freight_mtkm: "Rail freight, million tonne-km" };
     function label(name) {
       var m = /^([A-Z]{2,3}|EU27_2020|EA20|EA19)(?:[|.](.+))?$/.exec(name);
       var head = m && (NAMES[m[1]] || (m[1] === "EU27_2020" ? "European Union" : /^EA/.test(m[1]) ? "Euro area" : null));

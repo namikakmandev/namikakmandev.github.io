@@ -137,7 +137,16 @@ def owid(entry):
                               "n_entities": len(ents), "entities_sample": ents[:60]}}
     ent_col = "entity" if "entity" in cols else "Entity"
     yr_col = "year" if "year" in cols else "Year"
-    valcol = next(c for c in cols if c.lower() not in ("entity", "code", "year"))
+    # One value column by default. A stacked chart (electricity by source) has several:
+    # entry['columns'] {csv column: suffix} keeps each as '<entity key>|<suffix>', the
+    # same country|indicator shape the WDI and WEO files use.
+    if entry.get("columns"):
+        missing = [c for c in entry["columns"] if c not in cols]
+        if missing:
+            raise RuntimeError(f"OWID columns not in {entry['slug']}: {missing}; have {cols}")
+        valcols = [(c, "|" + suffix) for c, suffix in entry["columns"].items()]
+    else:
+        valcols = [(next(c for c in cols if c.lower() not in ("entity", "code", "year")), "")]
     want = entry.get("entities") or {}
     out = defaultdict(dict)
     for row in rdr:
@@ -145,10 +154,11 @@ def owid(entry):
         key = want.get(name)
         if not key:
             continue
-        try:
-            out[key][int(row[yr_col])] = float(row[valcol])
-        except (ValueError, TypeError, KeyError):
-            continue
+        for valcol, suffix in valcols:
+            try:
+                out[key + suffix][int(row[yr_col])] = float(row[valcol])
+            except (ValueError, TypeError, KeyError):
+                continue
     return dict(out)
 
 
