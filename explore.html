@@ -811,6 +811,7 @@
         "<button type='button' class='act ghost js-csv'>Download CSV</button>" +
         "<button type='button' class='act ghost js-mine'>Add my numbers</button>" +
         "<button type='button' class='act ghost js-analyse'>Analyse</button>" +
+        "<button type='button' class='act ghost js-explain' title='The assistant reads this dataset: what it measures, its source, its breaks, what the latest numbers say and what not to conclude'>Explain this dataset</button>" +
         "<a class='js-link' target='_blank' rel='noopener'>Open as a shareable chart &rarr;</a>" +
         "<span class='asof js-asof'></span><button type='button' class='drop'>close</button></div>";
       host.appendChild(el);
@@ -844,6 +845,10 @@
       function analyseRefs(vis) {
         return vis.map(function (x) { return { dataset: card.file, series: x.n }; });
       }
+      el.querySelector(".js-explain").addEventListener("click", function () {
+        var vis = lastDrawn.filter(function (x) { return chosen[x.n]; }).map(function (x) { return x.n; });
+        if (window.askData) window.askData.explain(card.file, card.title, vis);
+      });
       el.querySelector(".js-analyse").addEventListener("click", function () {
         if (anaEl) { anaEl.hidden = !anaEl.hidden; return; }
         anaEl = document.createElement("div");
