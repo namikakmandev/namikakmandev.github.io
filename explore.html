@@ -107,6 +107,13 @@
     .tile b { color: var(--text-dim); font-weight: 400; font-size: .72rem; }
     .tile[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
     .tile[aria-pressed="true"] b { color: rgba(244,244,241,.7); }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin: -4px 0 14px; }
+    .tags .lbl { font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); margin-right: 4px; }
+    .tag { background: transparent; border: 1px solid var(--border); border-radius: 999px; color: var(--text-dim); font: inherit; font-size: .76rem; padding: 3px 10px; cursor: pointer; display: inline-flex; gap: 6px; align-items: baseline; }
+    .tag:hover { color: var(--text); border-color: var(--text); }
+    .tag b { font-family: var(--mono); font-weight: 400; font-size: .68rem; }
+    .tag[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .tag[aria-pressed="true"] b { color: rgba(255,255,255,.75); }
     .filters { display: grid; grid-template-columns: 2fr 1.3fr 1.2fr; gap: 10px; margin-bottom: 10px; }
     @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
     .filters label { display: flex; flex-direction: column; gap: 5px; font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-dim); }
@@ -228,6 +235,7 @@
         <h2 class="sec">Find a dataset</h2>
         <p class="sec-note">Pick a subject, search for a word or a country, or narrow to the years it has to cover. Every chart can be switched to an index or year-on-year change and opened as a link.</p>
         <div class="tiles" id="tiles"></div>
+        <div class="tags" id="tags"></div>
         <div class="filters">
           <label>Search<input id="q" type="search" placeholder="cattle, inflation, house prices, pharma…" /></label>
           <label>Country<select id="country"></select></label>
@@ -460,7 +468,7 @@
         resetEl = document.getElementById("reset"),
         qEl = document.getElementById("q"), countryEl = document.getElementById("country"),
         fromEl = document.getElementById("from"), toEl = document.getElementById("to");
-    var DS = [], BY = {}, subject = "";
+    var DS = [], BY = {}, subject = "", activeTags = [];
     function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
     function commas(n) { return Number(n).toLocaleString("en-GB"); }
 
@@ -1144,6 +1152,27 @@
     });
 
     /* ---------- catalogue ---------- */
+    /* Cross-cutting tags, derived from what the catalogue already knows: how often a
+       dataset is published, how far back it goes, whose numbers it holds, whether it
+       carries projections. */
+    var EU_MEMBERS = ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden", "European Union"];
+    var TAG_ORDER = ["Monthly", "Quarterly", "Yearly", "Daily", "Türkiye", "Europe", "United States", "World", "Projections", "Long run"];
+    function tagsOf(d) {
+      var t = [];
+      var l = d.last;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(l)) t.push("Daily");
+      else if (/^\d{4}-\d{2}$/.test(l)) t.push("Monthly");
+      else if (/^\d{4}-Q\d$/.test(l)) t.push("Quarterly");
+      else if (/^\d{4}-S\d$/.test(l)) t.push("Quarterly");
+      else if (/^\d{4}$/.test(l)) t.push("Yearly");
+      if (d.c.indexOf("Türkiye") >= 0) t.push("Türkiye");
+      if (d.c.some(function (c) { return EU_MEMBERS.indexOf(c) >= 0; })) t.push("Europe");
+      if (d.c.indexOf("United States") >= 0) t.push("United States");
+      if (d.c.indexOf("World") >= 0 || /world|global/i.test(d.title)) t.push("World");
+      if (FORECASTY[d.name]) t.push("Projections");
+      if (d.t - d.f >= 50) t.push("Long run");
+      return t;
+    }
     function countriesOf(entry) {
       var out = {}, keys = entry.series_keys || [];
       keys.forEach(function (k) {
@@ -1190,7 +1219,11 @@
           f: +String(cov.first || "").slice(0, 4) || 0, t: +String(cov.last || "").slice(0, 4) || 0,
           src: src, unit: d.unit || "", units: d.units || null, kind: d.kind || "",
           keys: ((d.series_keys || []).join(" ") + " " + (d.series_key_parts || []).join(" ")).toLowerCase(),
-          c: countriesOf(d), subj: SUBJ_OF[name] || "Reference files" };
+          c: countriesOf(d), subj: SUBJ_OF[name] || "Reference files",
+          last: String(cov.last || ""), lc: d.last_commit || "" };
+      }).map(function (d) {
+        d.tags = tagsOf(d);
+        return d;
       }).map(function (d) {
         /* "germany" must find the German series, and Turkey, Turkiye and Türkiye are one word. */
         var aliases = d.c.map(function (c) { return ALIAS[c] || ""; }).join(" ");
@@ -1296,6 +1329,20 @@
       tile("", "All subjects", DS.length);
       order.forEach(function (s) { if (subjCount[s]) tile(s, s, subjCount[s]); });
 
+      /* --- narrow by: tags that cut across the subjects --- */
+      var tagCount = {};
+      DS.forEach(function (d) { d.tags.forEach(function (t) { tagCount[t] = (tagCount[t] || 0) + 1; }); });
+      var tagsEl = document.getElementById("tags");
+      tagsEl.innerHTML = "<span class='lbl'>Narrow by</span>" + TAG_ORDER.filter(function (t) { return tagCount[t]; }).map(function (t) {
+        return "<button type='button' class='tag' data-tag='" + esc(t) + "' aria-pressed='false'>" + esc(t) + "<b>" + tagCount[t] + "</b></button>";
+      }).join("");
+      tagsEl.addEventListener("click", function (ev) {
+        var b = ev.target.closest("[data-tag]"); if (!b) return;
+        var t = b.getAttribute("data-tag"), i = activeTags.indexOf(t);
+        if (i >= 0) activeTags.splice(i, 1); else activeTags.push(t);
+        apply();
+      });
+
       /* --- what's inside: a subject, its count, three named datasets --- */
       var guideEl = document.getElementById("guide");
       guideEl.innerHTML = order.filter(function (s) { return s !== "Reference files" && subjCount[s]; }).map(function (s) {
@@ -1359,7 +1406,8 @@
             // typing "wheat" means the series, not the file name.
             var hit = (!term || d.hay.indexOf(fold(term)) >= 0) &&
                       (!country || d.c.indexOf(country) >= 0) && (d.f <= b && d.t >= a) &&
-                      (!subject || d.subj === subject);
+                      (!subject || d.subj === subject) &&
+                      activeTags.every(function (t) { return d.tags.indexOf(t) >= 0; });
             rowEls[d.name].hidden = !hit; if (hit) vis++;
           });
           g.hidden = vis === 0;
@@ -1370,13 +1418,16 @@
         Array.prototype.forEach.call(tilesEl.children, function (b2) {
           b2.setAttribute("aria-pressed", String(b2.getAttribute("data-subj") === subject));
         });
-        var filtered = !!(term || country || subject || a !== minY || b !== maxY);
+        Array.prototype.forEach.call(document.querySelectorAll("#tags [data-tag]"), function (b2) {
+          b2.setAttribute("aria-pressed", String(activeTags.indexOf(b2.getAttribute("data-tag")) >= 0));
+        });
+        var filtered = !!(term || country || subject || activeTags.length || a !== minY || b !== maxY);
         resetEl.hidden = !filtered;
         countEl.textContent = shown === DS.length ? DS.length + " datasets" : shown + " of " + DS.length + " datasets match";
       }
       [qEl, countryEl, fromEl, toEl].forEach(function (e) { e.addEventListener("input", apply); e.addEventListener("change", apply); });
       resetEl.addEventListener("click", function () {
-        qEl.value = ""; countryEl.value = ""; fromEl.value = minY; toEl.value = maxY; subject = ""; apply();
+        qEl.value = ""; countryEl.value = ""; fromEl.value = minY; toEl.value = maxY; subject = ""; activeTags = []; apply();
       });
       apply();
     }
