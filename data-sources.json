@@ -3046,8 +3046,9 @@
       ],
       "out": "data/tr-electricity.json",
       "source": "TEİAŞ daily electricity balance via TCMB EVDS (TP.ELEKTUKETIM.*), summed to calendar months by EVDS: production, consumption, imports and exports",
-      "note": "EVDS publishes MWh a day; this file holds GWh a month. The current month is partial until the month ends. Consumption exceeds production by roughly the net import; the renewable/non-renewable split in EVDS starts only in 2026 and is not stored",
-      "unit": "GWh in the month"
+      "note": "EVDS publishes MWh a day; this file holds GWh a month. The current month is left out until it is complete. Consumption exceeds production by roughly the net import; the renewable/non-renewable split in EVDS starts only in 2026 and is not stored",
+      "unit": "GWh in the month",
+      "drop_current_period": true
     },
     {
       "name": "eu-tourism-nights",
@@ -3136,8 +3137,14 @@
       },
       "out": "data/ai-investment.json",
       "source": "Stanford AI Index (Quid data) via Our World in Data: private investment in AI companies by region, annual",
-      "note": "Private investment means venture and private equity deals, not corporate spending on chips and data centres, so hyperscaler capital expenditure is not in it. Europe is Quid's region, not the EU. Nominal US dollars; the 2025 figure is a partial-year count",
-      "unit": "billion US dollars, nominal"
+      "note": "Private investment means venture and private equity deals, not corporate spending on chips and data centres, so hyperscaler capital expenditure is not in it. Europe is Quid's region, not the EU. Nominal US dollars; the 2025 figure is a partial-year count. OWID publishes plain dollars; stored here in billions",
+      "unit": "billion US dollars, nominal",
+      "rescale": [
+        {
+          "before": "9999",
+          "factor": 1e-09
+        }
+      ]
     },
     {
       "name": "ai-investment-type",
@@ -3152,8 +3159,14 @@
       },
       "out": "data/ai-investment-type.json",
       "source": "Stanford AI Index via Our World in Data: world corporate investment in AI by deal type, annual",
-      "note": "World totals only. The merger/acquisition line is lumpy: one large deal moves a year",
-      "unit": "billion US dollars, nominal"
+      "note": "World totals only. The merger/acquisition line is lumpy: one large deal moves a year. OWID publishes plain dollars; stored here in billions",
+      "unit": "billion US dollars, nominal",
+      "rescale": [
+        {
+          "before": "9999",
+          "factor": 1e-09
+        }
+      ]
     },
     {
       "name": "ai-systems",
