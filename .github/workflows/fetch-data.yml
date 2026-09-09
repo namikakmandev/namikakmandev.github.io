@@ -36,6 +36,9 @@ jobs:
       - name: Rebuild catalog
         if: ${{ always() }}
         run: python scripts/build_catalog.py
+      - name: What moved
+        if: ${{ always() }}
+        run: python scripts/whats_moving.py
       - name: Commit
         if: ${{ always() && inputs.mode != 'discover' }}
         run: |
