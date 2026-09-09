@@ -822,6 +822,13 @@ def run(entry):
             v = data.get(k)
             if isinstance(v, dict):
                 data[k] = {t: (x * factor if isinstance(x, (int, float)) and str(t) < before else x) for t, x in v.items()}
+    # A monthly sum of daily data is a partial month until the month ends, and it draws as
+    # a cliff. entry['drop_current_period'] removes any key that is this month or later.
+    if entry.get("drop_current_period"):
+        this_month = time.strftime("%Y-%m", time.gmtime())
+        for k, v in data.items():
+            if isinstance(v, dict):
+                data[k] = {t: x for t, x in v.items() if str(t)[:7] < this_month}
     out_path = os.path.join(ROOT, entry["out"])
     carried = []
     if errs and os.path.exists(out_path):

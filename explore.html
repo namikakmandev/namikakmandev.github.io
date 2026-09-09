@@ -55,17 +55,16 @@
     .feat .err { margin: 0; }
 
     /* ---------- what's inside: eight subjects in one ruled block ---------- */
-    .guide { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--text); border-bottom: 1px solid var(--border); margin: 12px 0 10px; }
+    .guide { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--text); margin: 12px 0 10px; }
     .guide .g { padding: 12px 14px 12px 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-    .guide .g:nth-last-child(-n+4) { border-bottom: 0; }
     .guide .g b { font-family: var(--display); font-size: 1.02rem; font-weight: 600; line-height: 1.25; }
     .guide .g b small { color: var(--text-dim); font-weight: 400; font-size: .74rem; margin-left: 7px; }
     .guide .g span { color: var(--text-dim); font-size: .8rem; line-height: 1.45; }
     .guide .g button { align-self: flex-start; margin-top: auto; padding: 4px 0 0; background: transparent; border: 0; color: var(--accent); font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
     .guide .g button:hover { text-decoration: underline; }
-    @media (max-width: 900px) { .guide { grid-template-columns: repeat(2, 1fr); } .guide .g:nth-last-child(-n+4) { border-bottom: 1px solid var(--border); } .guide .g:nth-last-child(-n+2) { border-bottom: 0; } }
+    @media (max-width: 900px) { .guide { grid-template-columns: repeat(2, 1fr); } }
     /* a phone gets the names and counts only: eight rows, one screen, not three */
-    @media (max-width: 480px) { .guide { grid-template-columns: 1fr; } .guide .g { padding: 9px 0; flex-direction: row; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--border) !important; } .guide .g:last-child { border-bottom: 0 !important; } .guide .g > span { display: none; } .guide .g b { font-size: .98rem; } .guide .g button { margin: 0 0 0 auto; padding: 0; white-space: nowrap; } .guide .g button .more { display: none; } }
+    @media (max-width: 480px) { .guide { grid-template-columns: 1fr; } .guide .g { padding: 9px 0; flex-direction: row; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--border) !important; } .guide .g > span { display: none; } .guide .g b { font-size: .98rem; } .guide .g button { margin: 0 0 0 auto; padding: 0; white-space: nowrap; } .guide .g button .more { display: none; } }
     .steps3 { list-style: none; margin: 0 0 22px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--text-dim); font-size: .84rem; }
     .steps3 li { display: flex; gap: 8px; align-items: baseline; }
     .steps3 b { color: var(--accent); font-family: var(--mono); }
@@ -265,8 +264,8 @@
         names: { turkey: "Türkiye", istanbul: "Istanbul", ankara: "Ankara", izmir: "Izmir" }, note: "Index, 2023 = 100, current prices" },
       { file: "imf-weo", q: "Whose government debt is heaviest, and where is it heading?", pick: ["JP|GGXWDG_NGDP", "US|GGXWDG_NGDP", "DE|GGXWDG_NGDP", "TR|GGXWDG_NGDP"], years: 15, mode: "level", unit: "%",
         names: { "JP|GGXWDG_NGDP": "Japan", "US|GGXWDG_NGDP": "United States", "DE|GGXWDG_NGDP": "Germany", "TR|GGXWDG_NGDP": "Türkiye" }, note: "Gross government debt, % of GDP; IMF projections after 2025" },
-      { file: "asia-wdi", q: "How fast are the big Asian economies growing?", pick: ["CN|gdp_growth", "IN|gdp_growth", "JP|gdp_growth", "TR|gdp_growth"], years: 20, mode: "level", unit: "%",
-        names: { "CN|gdp_growth": "China", "IN|gdp_growth": "India", "JP|gdp_growth": "Japan", "TR|gdp_growth": "Türkiye" }, note: "Real GDP growth, % a year" }
+      { file: "electricity-mix", q: "Where does Türkiye's electricity come from?", pick: ["TR|coal", "TR|gas", "TR|hydro", "TR|wind", "TR|solar"], years: 25, mode: "level",
+        names: { "TR|coal": "Coal", "TR|gas": "Gas", "TR|hydro": "Hydro", "TR|wind": "Wind", "TR|solar": "Solar" }, note: "TWh generated in the year, Ember" }
     ];
 
     /* Plain-English name and question for every file in the catalogue. Each line is a
