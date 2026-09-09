@@ -5,7 +5,7 @@
 (function () {
   "use strict";
   var host = document.getElementById("ask");
-  if (!host) return;
+  if (!host) { window.askData = { explain: function () {} }; return; }
   var API = (host.getAttribute("data-api") || "https://econ-mcp.akmannamik83.workers.dev").replace(/\/$/, "");
   var CONNECT = host.getAttribute("data-connect") || "econ-mcp.html#connect";
   var history = [];      // [{role, content}] sent back so a follow-up can say "and for Germany?"
@@ -77,10 +77,13 @@
 
   /* Parse Anthropic's server-sent events as they arrive. Text deltas go on the page; a
      tool-use block becomes a short status line; the stop reason ends the turn. */
-  function ask(question) {
+  /* opts.mode "advisor" with opts.dataset and opts.series asks the server to read one
+     dataset for the visitor; shown is what the visitor sees in their own bubble. */
+  function ask(question, opts) {
+    opts = opts || {};
     if (busy || !question) return;
     busy = true; go.disabled = true;
-    bubble("me", esc(question));
+    bubble("me", esc(opts.shown || question));
     var ans = bubble("bot", "<div class='ask-status'>thinking…</div><div class='ask-text'></div>");
     var statusEl = ans.querySelector(".ask-status"), textEl = ans.querySelector(".ask-text");
     var text = "", stop = null, tools = 0;
@@ -89,9 +92,12 @@
       busy = false; if (!qEl.disabled) go.disabled = false;
       if (errMsg) { statusEl.innerHTML = "<span class='ask-err'>" + esc(errMsg) + "</span>"; return; }
       statusEl.textContent = stop === "pause_turn" ? "stopped at the tool-call limit for one question; ask a narrower follow-up" : stop === "max_tokens" ? "the answer hit its length limit" : stop === "refusal" ? "the model declined this one" : (tools ? tools + " tool call" + (tools > 1 ? "s" : "") : "");
-      if (text.trim()) { history.push({ role: "user", content: question }, { role: "assistant", content: text }); if (history.length > 6) history = history.slice(-6); }
+      if (text.trim() && opts.mode !== "advisor") { history.push({ role: "user", content: question }, { role: "assistant", content: text }); if (history.length > 6) history = history.slice(-6); }
     }
-    fetch(API + "/v1/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: question, history: history }) })
+    var body = opts.mode === "advisor"
+      ? { mode: "advisor", dataset: opts.dataset, series: opts.series || [], lang: /^tr/i.test(navigator.language || "") ? "tr" : "en" }
+      : { question: question, history: history };
+    fetch(API + "/v1/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
       .then(function (r) {
         if (!r.ok) return r.json().then(function (j) { if (r.status === 429) { showQuota(0, j.per_day); } throw new Error(j.error || ("HTTP " + r.status)); });
         var rem = r.headers.get("x-ask-remaining"); if (rem !== null && rem !== "") showQuota(+rem);
@@ -122,6 +128,16 @@
       })
       .catch(function (e) { finish(e.message || String(e)); });
   }
+
+  /* Pages call this from a chart card: read this dataset for me. */
+  window.askData = {
+    explain: function (dataset, title, series) {
+      if (qEl.disabled) { host.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+      host.scrollIntoView({ behavior: "smooth", block: "start" });
+      ask("explain " + dataset, { mode: "advisor", dataset: dataset, series: series || [],
+        shown: "Explain " + (title || dataset) + (series && series.length ? " (" + series.slice(0, 4).join(", ") + (series.length > 4 ? ", …" : "") + ")" : "") });
+    }
+  };
 
   form.addEventListener("submit", function (ev) { ev.preventDefault(); var q = qEl.value.trim(); if (!q) return; qEl.value = ""; ask(q); });
   qEl.addEventListener("keydown", function (ev) { if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event("submit", { cancelable: true })); } });

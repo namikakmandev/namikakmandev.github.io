@@ -1,6 +1,6 @@
 // The daily question counters behind /v1/ask, exercised without a runtime.
 import assert from "node:assert/strict";
-import { emptyQuota, takeQuota, refundQuota, quotaView, PER_VISITOR_PER_DAY, SITE_PER_DAY, today } from "../dist/ask.js";
+import { emptyQuota, takeQuota, refundQuota, quotaView, PER_VISITOR_PER_DAY, SITE_PER_DAY, today, advisorQuestion } from "../dist/ask.js";
 
 let failures = 0;
 function check(name, fn) {
@@ -50,6 +50,13 @@ check("a refund gives the question back, never below zero, never across days", (
 check("today is a UTC calendar date", () => {
   assert.match(today(Date.UTC(2026, 8, 8, 23, 59)), /^2026-09-08$/);
   assert.match(today(Date.UTC(2026, 8, 9, 0, 0)), /^2026-09-09$/);
+});
+
+check("the advisor question names the dataset and the series on screen, in either language", () => {
+  const q = advisorQuestion("tr-cpi-ppi", ["cpi", "cpi_food"]);
+  assert.match(q, /"tr-cpi-ppi"/); assert.match(q, /cpi, cpi_food/); assert.match(q, /should not be used for/);
+  const t = advisorQuestion("tr-cpi-ppi", [], "tr");
+  assert.match(t, /veri setini/); assert.doesNotMatch(t, /Bakılan/);
 });
 
 if (failures) { console.log(`\n${failures} failing`); process.exit(1); }

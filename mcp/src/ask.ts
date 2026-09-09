@@ -120,7 +120,42 @@ How to work:
 - Never invent a number. If the data is not there, say so and say where it might be found.
 - Answer in the visitor's language (Turkish or English). Be brief: a few sentences and the key figures, not an essay. Use plain text with short paragraphs; links as [text](url).`;
 
-interface AskBody { question?: string; history?: Array<{ role: "user" | "assistant"; content: string }> }
+/**
+ * The advisor reads a dataset the way a careful colleague would before anyone quotes it:
+ * what it measures, in what unit and on what base, where it comes from and how fresh it
+ * is, where it breaks, what the latest numbers say, and what it must not be used for.
+ */
+const ADVISOR = `You are the data advisor on Namık Akman's economics data site (namikakmandev.github.io). A visitor is looking at one dataset and wants to understand it before using it. You have the econ tools: describe_dataset, get_caveats, get_series, describe_stats, search_datasets and the rest.
+
+How to work:
+- Call describe_dataset for the dataset, then get_caveats, then get_series with last_n (about 8 for annual data, 15 for monthly) for the series the visitor is looking at. At most six tool calls.
+- Then write the reading, in this order, with short headings in bold:
+  1. What it measures: the object being counted and the unit, in one or two sentences a non-economist can follow. Name the base period of an index.
+  2. Where it comes from and how fresh it is: the source, the frequency, the last observation, and whether the tail is provisional or projected.
+  3. How to read it: every caveat that changes the reading (a base change, a survey break, a currency, seasonality, a definitional quirk). Say which comparisons are safe and which are not.
+  4. What the latest numbers say: the last value with its date, the change on a year earlier, and where that sits against the series' own history. Numbers only from the tool results, each with its date.
+  5. Do not use it for: two or three things a reader might be tempted to conclude that this data cannot support.
+  6. Worth asking next: two questions this dataset can answer well, phrased so the visitor can type them into the box.
+- Never invent a number or a source. If the catalogue note is silent on something, say the note is silent.
+- Answer in the visitor's language (Turkish or English). Keep it to about 250 words; plain text with short paragraphs; links as [text](url).`;
+
+/** The question the page sends when the visitor presses "Explain this dataset". Exported for tests. */
+export function advisorQuestion(dataset: string, series: string[], lang: "en" | "tr" = "en"): string {
+  const shown = series.length ? (lang === "tr" ? ` Bakılan seriler: ${series.join(", ")}.` : ` The series on screen: ${series.join(", ")}.`) : "";
+  return lang === "tr"
+    ? `"${dataset}" veri setini açıkla: neyi ölçüyor, birimi ve kaynağı, kırılmalar ve uyarılar, son rakamlar ne söylüyor, ne için kullanılmamalı.${shown}`
+    : `Explain the dataset "${dataset}": what it measures, its unit and source, the breaks and caveats, what the latest numbers say, and what it should not be used for.${shown}`;
+}
+
+interface AskBody {
+  question?: string;
+  history?: Array<{ role: "user" | "assistant"; content: string }>;
+  /** "advisor" reads one dataset for the visitor instead of answering a free question. */
+  mode?: "ask" | "advisor";
+  dataset?: string;
+  series?: string[];
+  lang?: "en" | "tr";
+}
 
 export async function handleAskRequest(request: Request, env: AskEnv, mcpUrl: string): Promise<Response> {
   const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type" };
@@ -137,10 +172,14 @@ export async function handleAskRequest(request: Request, env: AskEnv, mcpUrl: st
 
   let body: AskBody;
   try { body = (await request.json()) as AskBody; } catch { return json({ error: "The body is not JSON" }, 400); }
-  const question = String(body.question ?? "").trim();
+  const advisor = body.mode === "advisor";
+  const dataset = String(body.dataset ?? "").trim().slice(0, 80);
+  const shown = (Array.isArray(body.series) ? body.series : []).filter((x) => typeof x === "string").map((x) => x.slice(0, 80)).slice(0, 8);
+  if (advisor && !/^[a-z0-9][a-z0-9-]*$/.test(dataset)) return json({ error: "The advisor needs a dataset name" }, 400);
+  const question = advisor ? advisorQuestion(dataset, shown, body.lang === "tr" ? "tr" : "en") : String(body.question ?? "").trim();
   if (!question) return json({ error: "Ask something" }, 400);
   if (question.length > MAX_QUESTION_CHARS) return json({ error: `Keep a question under ${MAX_QUESTION_CHARS} characters` }, 400);
-  const history = (Array.isArray(body.history) ? body.history : [])
+  const history = (advisor ? [] : Array.isArray(body.history) ? body.history : [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
     .slice(-MAX_HISTORY_TURNS)
     .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
@@ -165,7 +204,7 @@ export async function handleAskRequest(request: Request, env: AskEnv, mcpUrl: st
     model: ASK_MODEL,
     max_tokens: MAX_TOKENS,
     stream: true,
-    system: SYSTEM,
+    system: advisor ? ADVISOR : SYSTEM,
     messages: [...history, { role: "user", content: question }],
     mcp_servers: [mcpServer],
     tools: [{ type: "mcp_toolset", mcp_server_name: "econ" }],
