@@ -34,6 +34,18 @@
     .brief .fig .cap { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .76rem; color: var(--text-dim); margin-top: 6px; }
     .brief .fig .cap i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
     .brief .fig .open { font-size: .78rem; font-weight: 600; }
+    .brief h1 + p { font-size: 1.12rem; color: var(--text-dim); line-height: 1.5; max-width: 60ch; }
+    /* Today in the data: a grid of stories, each a chart with a short caption. The lead spans both columns. */
+    .brief .front { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 26px; margin: 12px 0 8px; }
+    @media (max-width: 700px) { .brief .front { grid-template-columns: 1fr; } }
+    .brief .piece { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .brief .piece.lead { grid-column: 1 / -1; }
+    .brief .piece h3 { margin: 0; font-size: 1.12rem; line-height: 1.25; text-wrap: balance; }
+    .brief .piece.lead h3 { font-size: 1.4rem; }
+    .brief .piece .fig { margin: 0; max-width: none; }
+    .brief .piece p { max-width: none; font-size: .92rem; line-height: 1.55; color: var(--text); margin: 0; }
+    .brief .piece.lead p { max-width: 70ch; font-size: 1rem; }
+    .brief .desk li { font-size: .92rem; } .brief .desk li b { font-family: var(--mono); font-weight: 600; font-size: .86em; }
     .side .box { border-top: 1px solid var(--text); padding-top: 10px; margin-bottom: 26px; }
     .side h4 { font-family: var(--display); font-size: 1rem; font-weight: 600; margin: 0 0 8px; }
     .side ul { list-style: none; margin: 0; padding: 0; }
@@ -96,13 +108,13 @@
     function loadFile(name) { if (!files[name]) files[name] = fetch("data/" + name + ".json", { cache: "force-cache" }).then(function (r) { if (!r.ok) throw new Error(name); return r.json(); }).then(function (j) { return j.series || {}; }); return files[name]; }
     function yoy(pts) { var by = {}; pts.forEach(function (p) { by[p[0]] = p[1]; }); return pts.map(function (p) { var b = by[String(+p[0].slice(0, 4) - 1) + p[0].slice(4)]; return b ? [p[0], (p[1] / b - 1) * 100] : null; }).filter(Boolean); }
     /* Draw a chart.html spec inline when every series is a stored dataset; live pulls stay a link. */
-    function drawSpec(spec, host, url) {
+    function drawSpec(spec, host, url, W, H) {
       var refs = (spec.series || []).filter(function (r) { return r.dataset && r.series; });
       if (!refs.length || refs.length !== (spec.series || []).length) { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; return; }
       Promise.all(refs.map(function (r) { return loadFile(r.dataset).then(function (s) { var ser = s[r.series] || {}; var pts = Object.keys(ser).sort().filter(function (d) { return (!r.start || d >= r.start) && (!r.end || d <= r.end); }).map(function (d) { return [d, ser[d]]; }); if (r.transform === "yoy") pts = yoy(pts); if (r.transform === "rebase" && pts.length && pts[0][1]) pts = pts.map(function (p) { return [p[0], p[1] / pts[0][1] * 100]; }); return { label: r.label || (r.series), pts: pts }; }); })).then(function (lines) {
         lines = lines.filter(function (l) { return l.pts.length > 1; });
         if (!lines.length) { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; return; }
-        var W = 560, H = 220, L = 44, R = 10, T = 12, B = 22, lo = Infinity, hi = -Infinity, x0 = Infinity, x1 = -Infinity;
+        W = W || 560; H = H || 220; var L = 44, R = 18, T = 12, B = 22, lo = Infinity, hi = -Infinity, x0 = Infinity, x1 = -Infinity;
         lines.forEach(function (l) { l.pts.forEach(function (p) { var x = xOf(p[0]); if (!isFinite(x)) return; if (x < x0) x0 = x; if (x > x1) x1 = x; if (p[1] < lo) lo = p[1]; if (p[1] > hi) hi = p[1]; }); });
         var ticks = nice(lo, hi); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
         var widest = ticks.reduce(function (w, t) { return Math.max(w, fmt(t).length); }, 0); L = Math.max(L, Math.ceil(widest * 6.4) + 10);
@@ -115,12 +127,46 @@
         host.innerHTML = s + "</svg><div class='cap'>" + lines.map(function (l, i) { var last = l.pts[l.pts.length - 1]; return "<span><i style='background:" + COLORS[i % COLORS.length] + "'></i>" + esc(l.label) + " <b>" + esc(fmt(last[1])) + "</b> " + esc(fmtDate(last[0])) + "</span>"; }).join("") + "<a class='open' href='" + esc(url) + "'>Open the chart →</a></div>";
       }).catch(function () { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; });
     }
+    /* A paragraph that opens with a chart link: the link is the chart, whatever follows it is the caption. */
+    function chartLink(el) { var a = el.querySelector("a[href*='chart.html#']"); return a && a === el.firstElementChild && el.textContent.trim().indexOf(a.textContent.trim()) === 0 ? a : null; }
+    /* "Today in the data" written as ### title / [chart](url) / caption becomes a grid of stories:
+       the chart drawn large, the title above, the caption under it. Older issues without that shape
+       are left as prose. */
+    function layoutStories(host) {
+      var h2 = Array.prototype.filter.call(host.querySelectorAll("h2"), function (h) { return /today in the data/i.test(h.textContent); })[0];
+      if (!h2) return;
+      var stories = [], cur = null, n = h2.nextSibling, nodes = [];
+      while (n && n.tagName !== "H2") { nodes.push(n); n = n.nextSibling; }
+      nodes.forEach(function (el) {
+        if (el.tagName === "H3") { cur = { title: el, link: null, rest: [] }; stories.push(cur); return; }
+        if (!cur) return;
+        var a = el.tagName === "P" ? chartLink(el) : null;
+        if (a && !cur.link) { cur.link = a; a.remove(); if (el.textContent.trim()) cur.rest.push(el); else el.remove(); } else cur.rest.push(el);
+      });
+      Array.prototype.forEach.call(host.querySelectorAll("h2"), function (h) { if (/numbers desk/i.test(h.textContent)) { var e = h.nextSibling; while (e && e.tagName !== "H2") { if (e.tagName === "UL") e.classList.add("desk"); e = e.nextSibling; } } });
+      stories = stories.filter(function (st) { return st.link; });
+      if (stories.length < 2) return;
+      var grid = document.createElement("div"); grid.className = "front";
+      stories.forEach(function (st, i) {
+        var box = document.createElement("div"); box.className = "piece" + (i === 0 ? " lead" : "");
+        box.appendChild(st.title);
+        var fig = document.createElement("div"); fig.className = "fig"; box.appendChild(fig);
+        st.rest.forEach(function (el) { box.appendChild(el); });
+        var href = st.link.getAttribute("href"), spec = decode((/chart\.html#([A-Za-z0-9_\-]+)/.exec(href) || [])[1] || "");
+        if (spec && spec.series) { if (!spec.title) spec.title = st.link.textContent; drawSpec(spec, fig, href, i === 0 ? 760 : 380, i === 0 ? 270 : 210); }
+        else fig.innerHTML = "<a class='open' href='" + esc(href) + "'>" + esc(st.link.textContent) + " →</a>";
+        grid.appendChild(box);
+      });
+      nodes.forEach(function (el) { if (el.parentNode === host) el.remove(); });
+      h2.parentNode.insertBefore(grid, h2.nextSibling);
+    }
     function render(issue) {
       document.getElementById("date").textContent = fmtDate(issue.date) + " · written " + (issue.generated_at || "").replace("T", " ").replace("Z", " UTC");
       document.title = issue.headline + " — The daily brief";
       var host = document.getElementById("brief");
       host.innerHTML = window.mdLite(issue.text);
-      // charts: each chart.html link in the text becomes an inline drawing when it can be drawn from the files
+      layoutStories(host);
+      // charts: any remaining chart.html link in the text becomes an inline drawing when it can be drawn from the files
       Array.prototype.forEach.call(host.querySelectorAll("a[href*='chart.html#']"), function (a) {
         var m = /chart\.html#([A-Za-z0-9_\-]+)/.exec(a.getAttribute("href")); if (!m) return;
         var spec = decode(m[1]); if (!spec || !spec.series) return;
