@@ -299,6 +299,12 @@
       "ai-investment-type": ["AI deals by type", "Is the money in AI coming as venture rounds, acquisitions, minority stakes or listings?"],
       "ai-systems": ["Large AI models by country", "Which countries have built the most large-scale AI systems, and how fast is the count growing?"],
       "us-chips": ["US chip production", "Is America making more semiconductors and electronics, month by month?"],
+      "oil-production": ["Oil production by country", "Who pumps the oil, and how has that changed since 1900?"],
+      "gas-production": ["Gas production by country", "Who produces the natural gas, and is Türkiye's Black Sea field showing yet?"],
+      "coal-production": ["Coal production by country", "Who still digs coal, and is it rising or falling?"],
+      "us-mining-ip": ["US mining output", "Is American mining making more — oil and gas, metal ores, everything else — month by month?"],
+      "wb-resource-rents": ["Living off the ground", "How much of each economy is oil, gas, coal and mineral rent, and how much of its exports is fuel and ore?"],
+      "eu-mining-ipi": ["Mining output in Europe", "Is mining and quarrying, and metal-making, producing more or less, country by country?"],
       "asia-wdi": ["Asian and Middle Eastern economies", "How fast is each economy growing, and what are its inflation, unemployment and income per head?"],
       "bigmac-eur": ["Big Mac index against the euro", "Is a currency cheap or dear against the euro, measured by the price of one burger?"],
       "bigmac-src-eur": ["Big Mac prices in euros", "What does a Big Mac actually cost, in euros, in each euro-area country?"],
@@ -439,6 +445,7 @@
       ["Transport", ["us-transport", "eu-car-registrations", "wb-transport", "eu-air-passengers"]],
       ["Tourism and travel", ["tr-tourism-arrivals", "eu-tourism-nights"]],
       ["AI and computing", ["ai-investment", "ai-systems", "ai-investment-type", "us-chips"]],
+      ["Mining, oil and gas", ["oil-production", "gas-production", "coal-production", "wb-resource-rents", "us-mining-ip", "eu-mining-ipi"]],
       ["Money and central banks", ["central-bank-assets", "tr-cb-balance", "macro-external"]],
       ["Reference files", ["europe-map", "tr-series-candidates", "yatirim-radar"]]
     ];
@@ -458,7 +465,7 @@
     };
     var SPARK_MAX_BYTES = 320000;   /* bigger files are not fetched just to draw a thumbnail */
 
-    var NAMES = {"AE":"United Arab Emirates","AL":"Albania","AR":"Argentina","AT":"Austria","AU":"Australia","BA":"Bosnia and Herzegovina","BD":"Bangladesh","BE":"Belgium","BG":"Bulgaria","BR":"Brazil","CA":"Canada","CH":"Switzerland","CN":"China","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","EE":"Estonia","EG":"Egypt","EL":"Greece","ES":"Spain","FI":"Finland","FR":"France","GB":"United Kingdom","HR":"Croatia","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IR":"Iran","IS":"Iceland","IT":"Italy","JP":"Japan","KR":"South Korea","KZ":"Kazakhstan","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MD":"Moldova","ME":"Montenegro","MK":"North Macedonia","MT":"Malta","MX":"Mexico","MY":"Malaysia","NG":"Nigeria","NL":"Netherlands","NO":"Norway","PH":"Philippines","PK":"Pakistan","PL":"Poland","PT":"Portugal","RO":"Romania","RS":"Serbia","RU":"Russia","SA":"Saudi Arabia","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","TH":"Thailand","TR":"Türkiye","UA":"Ukraine","UK":"United Kingdom","US":"United States","UZ":"Uzbekistan","VN":"Vietnam","ZA":"South Africa","EU":"European Union","WLD":"World","GR":"Greece","ALL":"All countries",
+    var NAMES = {"AE":"United Arab Emirates","AL":"Albania","AR":"Argentina","AT":"Austria","AU":"Australia","BA":"Bosnia and Herzegovina","BD":"Bangladesh","BE":"Belgium","BG":"Bulgaria","BR":"Brazil","CA":"Canada","CH":"Switzerland","CN":"China","CY":"Cyprus","CZ":"Czechia","DE":"Germany","DK":"Denmark","EE":"Estonia","EG":"Egypt","EL":"Greece","ES":"Spain","FI":"Finland","FR":"France","GB":"United Kingdom","HR":"Croatia","HU":"Hungary","ID":"Indonesia","IE":"Ireland","IL":"Israel","IN":"India","IR":"Iran","IS":"Iceland","IT":"Italy","JP":"Japan","KR":"South Korea","KZ":"Kazakhstan","LT":"Lithuania","LU":"Luxembourg","LV":"Latvia","MD":"Moldova","ME":"Montenegro","MK":"North Macedonia","MT":"Malta","MX":"Mexico","MY":"Malaysia","NG":"Nigeria","NL":"Netherlands","NO":"Norway","PH":"Philippines","PK":"Pakistan","PL":"Poland","PT":"Portugal","RO":"Romania","RS":"Serbia","RU":"Russia","SA":"Saudi Arabia","SE":"Sweden","SG":"Singapore","SI":"Slovenia","SK":"Slovakia","TH":"Thailand","TR":"Türkiye","UA":"Ukraine","UK":"United Kingdom","US":"United States","UZ":"Uzbekistan","VN":"Vietnam","ZA":"South Africa","EU":"European Union","WLD":"World","GR":"Greece","ALL":"All countries","AZ":"Azerbaijan","QA":"Qatar","IQ":"Iraq","KW":"Kuwait","DZ":"Algeria","CO":"Colombia","PE":"Peru","CD":"DR Congo","CL":"Chile",
       "ARE":"United Arab Emirates","ARG":"Argentina","AUS":"Australia","AZE":"Azerbaijan","BRA":"Brazil","CAN":"Canada","CHE":"Switzerland","CHL":"Chile","CHN":"China","COL":"Colombia","CZE":"Czechia","DNK":"Denmark","EGY":"Egypt","GBR":"United Kingdom","HKG":"Hong Kong","HUN":"Hungary","IDN":"Indonesia","IND":"India","ISR":"Israel","JPN":"Japan","KOR":"South Korea","MEX":"Mexico","MYS":"Malaysia","NOR":"Norway","NZL":"New Zealand","PAK":"Pakistan","PER":"Peru","POL":"Poland","ROU":"Romania","RUS":"Russia","SAU":"Saudi Arabia","SGP":"Singapore","SWE":"Sweden","THA":"Thailand","TUR":"Türkiye","TWN":"Taiwan","UKR":"Ukraine","URY":"Uruguay","USA":"United States","VNM":"Vietnam","ZAF":"South Africa",
       "TRY":"Türkiye","USD":"United States","GBP":"United Kingdom","CHF":"Switzerland","SEK":"Sweden","NOK":"Norway","DKK":"Denmark","PLN":"Poland","CZK":"Czechia","HUF":"Hungary","RON":"Romania"};
 
@@ -634,6 +641,8 @@
       TOTAL: "Total", INTL: "International", NAT: "Domestic", FOR: "Foreign visitors", DOM: "Residents",
       PET: "Petrol", DIE: "Diesel", ELC: "Battery electric", ELC_PET_HYB: "Petrol hybrid", ELC_PET_PI: "Plug-in hybrid",
       REN: "All energy", REN_ELC: "Electricity", REN_TRA: "Transport", REN_HEAT_CL: "Heating and cooling",
+      B: "Mining and quarrying", B06: "Oil and gas extraction", B07: "Metal ores", B08: "Other mining and quarrying", C24: "Basic metals",
+      rents_total_pct_gdp: "All resource rents, % of GDP", rents_oil_pct_gdp: "Oil rents, % of GDP", rents_gas_pct_gdp: "Gas rents, % of GDP", rents_coal_pct_gdp: "Coal rents, % of GDP", rents_minerals_pct_gdp: "Mineral rents, % of GDP", ores_metals_pct_exports: "Ores and metals, % of exports", fuels_pct_exports: "Fuels, % of exports",
       air_passengers_m: "Air passengers, millions", air_freight_mtkm: "Air freight, million tonne-km", container_teu_m: "Container traffic, million TEU", rail_pkm_m: "Rail, million passenger-km", rail_freight_mtkm: "Rail freight, million tonne-km" };
     function label(name) {
       var m = /^([A-Z]{2,3}|EU27_2020|EA20|EA19)(?:[|.](.+))?$/.exec(name);
