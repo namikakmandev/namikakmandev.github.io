@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The daily brief — Namık Akman</title>
+  <meta name="description" content="The front page of the data: a brief written every morning from the collection's own numbers, with the day's charts, forecasts and correlations from the toolkit, and what the next releases will settle. Back issues kept." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#f4f4f1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <link rel="stylesheet" href="css/data-look.css?v=1" />
+  <style>
+    .study { padding: 30px 0 72px; }
+    .study .container { max-width: 1040px; }
+    .study .back { color: var(--text-dim); font-size: .86rem; }
+    .mast { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; border-bottom: 2px solid var(--text); padding: 14px 0 8px; margin-top: 8px; }
+    .mast .paper { font-family: var(--display); font-weight: 600; font-size: 1.35rem; letter-spacing: -.01em; }
+    .mast .paper small { font-family: var(--mono); font-weight: 400; font-size: .74rem; color: var(--text-dim); margin-left: 12px; letter-spacing: 0; }
+    .mast .date { font-family: var(--mono); font-size: .8rem; color: var(--text-dim); }
+    .grid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 34px; margin-top: 20px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .brief h1 { font-family: var(--display); font-weight: 600; font-size: clamp(1.8rem, 3.6vw, 2.6rem); line-height: 1.12; letter-spacing: -.015em; margin: 8px 0 18px; max-width: 26ch; text-wrap: balance; }
+    .brief h2 { font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 30px 0 8px; padding-top: 10px; border-top: 1px solid var(--text); }
+    .brief h3 { font-family: var(--display); font-weight: 600; font-size: 1.08rem; margin: 18px 0 6px; }
+    .brief p { max-width: 66ch; line-height: 1.62; margin: 0 0 12px; font-size: 1rem; }
+    .brief ul { max-width: 66ch; margin: 4px 0 12px 20px; padding: 0; } .brief li { margin-bottom: 6px; line-height: 1.55; }
+    .brief a { color: var(--accent); }
+    .brief code { font-family: var(--mono); font-size: .86em; background: rgba(22,25,31,.06); padding: 1px 5px; border-radius: 4px; }
+    .brief .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px 10px; margin: 8px 0 14px; max-width: 66ch; }
+    .brief .fig svg { width: 100%; height: auto; display: block; font-family: var(--mono); }
+    .brief .fig .cap { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .76rem; color: var(--text-dim); margin-top: 6px; }
+    .brief .fig .cap i { display: inline-block; width: 10px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+    .brief .fig .open { font-size: .78rem; font-weight: 600; }
+    .side .box { border-top: 1px solid var(--text); padding-top: 10px; margin-bottom: 26px; }
+    .side h4 { font-family: var(--display); font-size: 1rem; font-weight: 600; margin: 0 0 8px; }
+    .side ul { list-style: none; margin: 0; padding: 0; }
+    .side li { border-bottom: 1px solid var(--border); padding: 7px 0; font-size: .86rem; line-height: 1.4; }
+    .side li a { color: var(--text); text-decoration: none; } .side li a:hover { color: var(--accent); }
+    .side li .d { display: block; font-family: var(--mono); font-size: .72rem; color: var(--text-dim); }
+    .side li.cur a { color: var(--accent); }
+    .side .meta { font-family: var(--mono); font-size: .74rem; color: var(--text-dim); line-height: 1.6; }
+    .side .how { font-size: .84rem; color: var(--text-dim); line-height: 1.5; }
+    .side .how a { color: var(--accent); }
+    .empty { color: var(--text-dim); padding: 26px 0; max-width: 60ch; line-height: 1.55; }
+  </style>
+</head>
+<body class="tool-light data-look">
+  <header class="site-header">
+    <div class="container nav">
+      <a href="index.html" class="brand">Namık <span>Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="explore.html">Data</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="explore.html" class="back">&larr; Explore the data</a>
+        <div class="mast"><span class="paper">The daily brief<small>written from the data every morning</small></span><span class="date" id="date"></span></div>
+        <div class="grid">
+          <div class="brief" id="brief"><p class="empty">Reading today's brief…</p></div>
+          <aside class="side">
+            <div class="box"><h4>Back issues</h4><ul id="issues"></ul></div>
+            <div class="box"><h4>This issue</h4><div class="meta" id="meta"></div></div>
+            <div class="box"><h4>How it is written</h4><div class="how">Each morning, after the data refreshes, the site's assistant reads the <a href="moves.html">what moved</a> note, checks the numbers with the same tools the <a href="explore.html">explorer</a> uses, runs the toolkit's forecasts and correlations, and writes this page. Every number carries its date and dataset; causes are flagged as things to check, not facts. A correlation that does not clear its band is said not to. <a href="data/briefs/index.json">All issues</a>.</div></div>
+          </aside>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="js/main.js" defer></script>
+  <script src="js/md.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var COLORS = ["#1c63c9", "#d9541e", "#138a5a", "#7b3fd1", "#b7791f", "#c2306a"];
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function fmt(v) { var a = Math.abs(v); if (a >= 1e9) return (v / 1e9).toFixed(1).replace(/\.0$/, "") + "bn"; if (a >= 1e6) return (v / 1e6).toFixed(1).replace(/\.0$/, "") + "m"; if (a >= 1000) return v.toLocaleString("en-GB", { maximumFractionDigits: 0 }); if (a >= 10) return v.toLocaleString("en-GB", { maximumFractionDigits: 1 }); return v.toLocaleString("en-GB", { maximumFractionDigits: 2 }); }
+    function fmtDate(d) { var m; d = String(d); if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d))) return +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1]; if ((m = /^(\d{4})-(\d{2})$/.exec(d))) return MONTHS[+m[2] - 1] + " " + m[1]; if ((m = /^(\d{4})-Q([1-4])$/.exec(d))) return "Q" + m[2] + " " + m[1]; return d; }
+    function nice(lo, hi) { if (!(hi > lo)) { hi = lo + 1; lo -= 1; } var raw = (hi - lo) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag; var step = (r >= 5 ? 10 : r >= 2.5 ? 5 : r >= 2 ? 2.5 : r >= 1 ? 2 : 1) * mag, t = []; for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10)); return t; }
+    function xOf(d) { var m; if ((m = /^(\d{4})$/.exec(d))) return +m[1] + 0.5; if ((m = /^(\d{4})-Q([1-4])$/.exec(d))) return +m[1] + (+m[2] - 0.5) / 4; if ((m = /^(\d{4})-S([12])$/.exec(d))) return +m[1] + (+m[2] - 0.5) / 2; if ((m = /^(\d{4})-(\d{2})$/.exec(d))) return +m[1] + (+m[2] - 0.5) / 12; if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d))) return +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365; return NaN; }
+    function decode(b64) { try { var s = b64.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; var bin = atob(s), bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return JSON.parse(new TextDecoder().decode(bytes)); } catch (e) { return null; } }
+    var files = {};
+    function loadFile(name) { if (!files[name]) files[name] = fetch("data/" + name + ".json", { cache: "force-cache" }).then(function (r) { if (!r.ok) throw new Error(name); return r.json(); }).then(function (j) { return j.series || {}; }); return files[name]; }
+    function yoy(pts) { var by = {}; pts.forEach(function (p) { by[p[0]] = p[1]; }); return pts.map(function (p) { var b = by[String(+p[0].slice(0, 4) - 1) + p[0].slice(4)]; return b ? [p[0], (p[1] / b - 1) * 100] : null; }).filter(Boolean); }
+    /* Draw a chart.html spec inline when every series is a stored dataset; live pulls stay a link. */
+    function drawSpec(spec, host, url) {
+      var refs = (spec.series || []).filter(function (r) { return r.dataset && r.series; });
+      if (!refs.length || refs.length !== (spec.series || []).length) { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; return; }
+      Promise.all(refs.map(function (r) { return loadFile(r.dataset).then(function (s) { var ser = s[r.series] || {}; var pts = Object.keys(ser).sort().filter(function (d) { return (!r.start || d >= r.start) && (!r.end || d <= r.end); }).map(function (d) { return [d, ser[d]]; }); if (r.transform === "yoy") pts = yoy(pts); if (r.transform === "rebase" && pts.length && pts[0][1]) pts = pts.map(function (p) { return [p[0], p[1] / pts[0][1] * 100]; }); return { label: r.label || (r.series), pts: pts }; }); })).then(function (lines) {
+        lines = lines.filter(function (l) { return l.pts.length > 1; });
+        if (!lines.length) { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; return; }
+        var W = 560, H = 220, L = 44, R = 10, T = 12, B = 22, lo = Infinity, hi = -Infinity, x0 = Infinity, x1 = -Infinity;
+        lines.forEach(function (l) { l.pts.forEach(function (p) { var x = xOf(p[0]); if (!isFinite(x)) return; if (x < x0) x0 = x; if (x > x1) x1 = x; if (p[1] < lo) lo = p[1]; if (p[1] > hi) hi = p[1]; }); });
+        var ticks = nice(lo, hi); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+        var widest = ticks.reduce(function (w, t) { return Math.max(w, fmt(t).length); }, 0); L = Math.max(L, Math.ceil(widest * 6.4) + 10);
+        var iw = W - L - R, ih = H - T - B, X = function (x) { return L + (x - x0) / ((x1 - x0) || 1) * iw; }, Y = function (v) { return T + (hi - v) / ((hi - lo) || 1) * ih; };
+        var s = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + esc(spec.title || "chart") + "'>";
+        ticks.forEach(function (t) { s += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + Y(t).toFixed(1) + "' y2='" + Y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".35" : ".12") + "'/><text x='" + (L - 6) + "' y='" + (Y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t)) + "</text>"; });
+        var span = x1 - x0, step = span > 40 ? 10 : span > 20 ? 5 : span > 8 ? 2 : 1;
+        for (var y = Math.ceil(x0); y <= x1; y++) if (y % step === 0) s += "<text x='" + X(y + 0.5).toFixed(1) + "' y='" + (H - 6) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + y + "</text>";
+        lines.forEach(function (l, i) { var d = ""; l.pts.forEach(function (p) { var x = xOf(p[0]); if (!isFinite(x)) return; d += (d ? "L" : "M") + X(x).toFixed(1) + " " + Y(p[1]).toFixed(1); }); s += "<path d='" + d + "' fill='none' stroke='" + COLORS[i % COLORS.length] + "' stroke-width='2' stroke-linejoin='round'/>"; });
+        host.innerHTML = s + "</svg><div class='cap'>" + lines.map(function (l, i) { var last = l.pts[l.pts.length - 1]; return "<span><i style='background:" + COLORS[i % COLORS.length] + "'></i>" + esc(l.label) + " <b>" + esc(fmt(last[1])) + "</b> " + esc(fmtDate(last[0])) + "</span>"; }).join("") + "<a class='open' href='" + esc(url) + "'>Open the chart →</a></div>";
+      }).catch(function () { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; });
+    }
+    function render(issue) {
+      document.getElementById("date").textContent = fmtDate(issue.date) + " · written " + (issue.generated_at || "").replace("T", " ").replace("Z", " UTC");
+      document.title = issue.headline + " — The daily brief";
+      var host = document.getElementById("brief");
+      host.innerHTML = window.mdLite(issue.text);
+      // charts: each chart.html link in the text becomes an inline drawing when it can be drawn from the files
+      Array.prototype.forEach.call(host.querySelectorAll("a[href*='chart.html#']"), function (a) {
+        var m = /chart\.html#([A-Za-z0-9_\-]+)/.exec(a.getAttribute("href")); if (!m) return;
+        var spec = decode(m[1]); if (!spec || !spec.series) return;
+        var fig = document.createElement("div"); fig.className = "fig";
+        var p = a.closest("p, li") || a; p.parentNode.insertBefore(fig, p.nextSibling);
+        drawSpec(spec, fig, a.getAttribute("href"));
+      });
+      var u = issue.usage || {};
+      document.getElementById("meta").innerHTML = ["tool calls: " + (issue.tool_calls || 0), "words: " + issue.text.split(/\s+/).length, u.input_tokens ? "tokens in: " + u.input_tokens.toLocaleString("en-GB") : "", u.output_tokens ? "tokens out: " + u.output_tokens.toLocaleString("en-GB") : "", issue.seconds ? "took: " + issue.seconds + " s" : "", "from the note of " + issue.moves_generated, issue.model || ""].filter(Boolean).join("<br>");
+    }
+    var want = (/[?&]d=(\d{4}-\d{2}-\d{2})/.exec(location.search) || [])[1];
+    fetch(want ? "data/briefs/" + want + ".json" : "data/_brief.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(render).catch(function (e) {
+      document.getElementById("brief").innerHTML = "<p class='empty'>No brief yet" + (want ? " for " + esc(want) : "") + ". The first one is written on the next morning refresh." + "</p>";
+    });
+    fetch("data/briefs/index.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : { issues: [] }; }).then(function (ix) {
+      var ul = document.getElementById("issues");
+      ul.innerHTML = (ix.issues || []).slice(0, 30).map(function (i) { return "<li class='" + (i.date === want ? "cur" : "") + "'><a href='brief.html?d=" + esc(i.date) + "'>" + esc(i.headline) + "<span class='d'>" + esc(fmtDate(i.date)) + "</span></a></li>"; }).join("") || "<li>No back issues yet.</li>";
+    }).catch(function () {});
+  })();
+  </script>
+</body>
+</html>
