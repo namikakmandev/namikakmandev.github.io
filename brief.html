@@ -120,7 +120,7 @@
           var ser = s[r.series] || {}; var pts = Object.keys(ser).sort().filter(function (d) { return (!r.start || d >= r.start) && (!r.end || d <= r.end); }).map(function (d) { return [d, ser[d]]; });
           if (r.transform === "yoy") pts = yoy(pts); if (r.transform === "rebase" && pts.length && pts[0][1]) pts = pts.map(function (p) { return [p[0], p[1] / pts[0][1] * 100]; });
           /* a forecast chart shows the recent past, so the path ahead and its band can be read */
-          if (hasBands && !r.start && pts.length) { var keep = recent(pts[pts.length - 1][0]); if (pts.length > keep) pts = pts.slice(-keep); }
+          if (hasBands && pts.length) { var keep = recent(pts[pts.length - 1][0]); if (pts.length > keep) pts = pts.slice(-keep); }
           return { label: r.label || r.series, pts: pts };
         });
       })).then(function (lines) {
