@@ -15,6 +15,7 @@ export const SITE_PER_DAY = 300;
 const MAX_QUESTION_CHARS = 1000;
 const MAX_HISTORY_TURNS = 6;
 const MAX_TOKENS = 4000;
+const BRIEF_MAX_TOKENS = 9000;
 
 export interface AskEnv {
   ANTHROPIC_API_KEY?: string;
@@ -139,6 +140,40 @@ How to work:
 - Never invent a number or a source. If the catalogue note is silent on something, say the note is silent.
 - Answer in the visitor's language (Turkish or English). Keep it to about 250 words; plain text with short paragraphs; links as [text](url).`;
 
+/**
+ * The front page: a daily brief written from the morning's data. The caller (the fetch
+ * workflow) sends the "what moved" note as context; the model reads it, verifies with the
+ * tools, adds forecasts and correlations from the toolkit, and writes two to three pages.
+ */
+const BRIEF = `You write the daily brief for Namık Akman's economics data site (namikakmandev.github.io): a data newspaper's front page, written once each morning from the collection's own numbers. You have the econ tools: get_series, describe_dataset, get_caveats, plot, forecast, compare_series, cross_correlation, describe_stats, search_datasets and the rest.
+
+You are given, as context, today's "what moved" note: the ten most unusual year-on-year moves across the collection, each with dataset, series, latest value, the change and how unusual it is. Start from it. Verify anything you quote beyond it with get_series (use last_n so results stay small). At most sixteen tool calls.
+
+Write in this order, with these markdown headings:
+
+# <a headline of at most twelve words, about the day's most important move>
+
+## Today in the data
+Four to six short paragraphs. Each takes one or two of the moves, gives the number with its date and its source, says what usually goes with such a move in the rest of the collection (check it with a second series where you can), and says plainly when a move is small in absolute terms or comes from a young series. Causes are hypotheses to check, never facts: write "worth checking against" not "because of".
+
+## Charts
+Call plot for three charts that carry the story (each up to four series, a sensible start date) and list them as markdown links "[title](chart_url)" with one line under each saying what to look at.
+
+## Numbers desk
+Two subsections.
+### Forecasts
+Call forecast (method auto, horizon 3 for monthly, 2 for annual) for two or three of the headline series. Report each as: the last observation with its date, the point forecast for the horizon end, the band, and the method the tool chose. Say what the band means in one clause. A forecast of a regulated or administered series is a projection of its past, say so.
+### Correlations
+Pick two pairs the moves suggest (the same measure in two countries, or a price and the thing it feeds into) and call cross_correlation or compare_series on year-on-year changes where the tool allows. Report r, the lag if any, and whether it clears the confidence band the tool returns; if it does not, say "not distinguishable from zero" and stop there. Never present a levels correlation between two trending series as a finding.
+
+## What to watch
+Three to five bullets on what the next releases in this collection will settle, each naming the dataset. The context lists which monthly series are due.
+
+## Sources
+One line per dataset used: publisher and code as the tool's source field gives them, and the last observation date.
+
+Rules: every number carries its date and its dataset; nothing is invented; if a tool fails, say what could not be checked. About 1,300 to 1,700 words. Plain prose, no bullet lists outside What to watch, no tables. Write in English.`;
+
 /** The question the page sends when the visitor presses "Explain this dataset". Exported for tests. */
 export function advisorQuestion(dataset: string, series: string[], lang: "en" | "tr" = "en"): string {
   const shown = series.length ? (lang === "tr" ? ` Bakılan seriler: ${series.join(", ")}.` : ` The series on screen: ${series.join(", ")}.`) : "";
@@ -150,8 +185,10 @@ export function advisorQuestion(dataset: string, series: string[], lang: "en" | 
 interface AskBody {
   question?: string;
   history?: Array<{ role: "user" | "assistant"; content: string }>;
-  /** "advisor" reads one dataset for the visitor instead of answering a free question. */
-  mode?: "ask" | "advisor";
+  /** "advisor" reads one dataset for the visitor; "brief" writes the daily front page from the context. */
+  mode?: "ask" | "advisor" | "brief";
+  /** brief only: today's what-moved note and the list of series due, as JSON text. */
+  context?: string;
   dataset?: string;
   series?: string[];
   lang?: "en" | "tr";
@@ -173,13 +210,18 @@ export async function handleAskRequest(request: Request, env: AskEnv, mcpUrl: st
   let body: AskBody;
   try { body = (await request.json()) as AskBody; } catch { return json({ error: "The body is not JSON" }, 400); }
   const advisor = body.mode === "advisor";
+  const brief = body.mode === "brief";
+  const context = brief ? String(body.context ?? "").slice(0, 40000) : "";
+  if (brief && !context) return json({ error: "The brief needs its context: the what-moved note" }, 400);
   const dataset = String(body.dataset ?? "").trim().slice(0, 80);
   const shown = (Array.isArray(body.series) ? body.series : []).filter((x) => typeof x === "string").map((x) => x.slice(0, 80)).slice(0, 8);
   if (advisor && !/^[a-z0-9][a-z0-9-]*$/.test(dataset)) return json({ error: "The advisor needs a dataset name" }, 400);
-  const question = advisor ? advisorQuestion(dataset, shown, body.lang === "tr" ? "tr" : "en") : String(body.question ?? "").trim();
+  const question = advisor ? advisorQuestion(dataset, shown, body.lang === "tr" ? "tr" : "en")
+    : brief ? `Write today's brief. Today is ${today()}. Context follows.\n\n${context}`
+    : String(body.question ?? "").trim();
   if (!question) return json({ error: "Ask something" }, 400);
   if (question.length > MAX_QUESTION_CHARS) return json({ error: `Keep a question under ${MAX_QUESTION_CHARS} characters` }, 400);
-  const history = (advisor ? [] : Array.isArray(body.history) ? body.history : [])
+  const history = (advisor || brief ? [] : Array.isArray(body.history) ? body.history : [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
     .slice(-MAX_HISTORY_TURNS)
     .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
@@ -202,9 +244,9 @@ export async function handleAskRequest(request: Request, env: AskEnv, mcpUrl: st
 
   const payload = {
     model: ASK_MODEL,
-    max_tokens: MAX_TOKENS,
+    max_tokens: brief ? BRIEF_MAX_TOKENS : MAX_TOKENS,
     stream: true,
-    system: advisor ? ADVISOR : SYSTEM,
+    system: brief ? BRIEF : advisor ? ADVISOR : SYSTEM,
     messages: [...history, { role: "user", content: question }],
     mcp_servers: [mcpServer],
     tools: [{ type: "mcp_toolset", mcp_server_name: "econ" }],

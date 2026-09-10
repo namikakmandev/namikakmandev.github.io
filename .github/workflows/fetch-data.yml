@@ -45,6 +45,14 @@ jobs:
       - name: What moved
         if: ${{ always() }}
         run: python scripts/whats_moving.py
+      # The front page: the site's own assistant writes the brief from today's note. A bad
+      # morning at the model leaves yesterday's brief in place and never blocks the commit.
+      - name: Daily brief
+        if: ${{ always() && inputs.mode != 'discover' }}
+        continue-on-error: true
+        env:
+          WORKER_URL: https://econ-mcp.akmannamik83.workers.dev
+        run: python scripts/daily_brief.py
       - name: Commit
         if: ${{ always() && inputs.mode != 'discover' }}
         run: |
