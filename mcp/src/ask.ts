@@ -220,7 +220,8 @@ export async function handleAskRequest(request: Request, env: AskEnv, mcpUrl: st
     : brief ? `Write today's brief. Today is ${today()}. Context follows.\n\n${context}`
     : String(body.question ?? "").trim();
   if (!question) return json({ error: "Ask something" }, 400);
-  if (question.length > MAX_QUESTION_CHARS) return json({ error: `Keep a question under ${MAX_QUESTION_CHARS} characters` }, 400);
+  // The brief's question carries the whole note as context; the length rule is for visitors' questions.
+  if (!brief && question.length > MAX_QUESTION_CHARS) return json({ error: `Keep a question under ${MAX_QUESTION_CHARS} characters` }, 400);
   const history = (advisor || brief ? [] : Array.isArray(body.history) ? body.history : [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim())
     .slice(-MAX_HISTORY_TURNS)

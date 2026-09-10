@@ -112,7 +112,15 @@ def main():
     started = time.time()
     try:
         text, charts, usage, tools, stop = stream_brief(context)
-    except (urllib.error.URLError, urllib.error.HTTPError, RuntimeError, TimeoutError) as e:
+    except urllib.error.HTTPError as e:
+        detail = ""
+        try:
+            detail = e.read().decode("utf-8", "replace")[:300]
+        except Exception:
+            pass
+        print(f"[warn] brief not written: HTTP {e.code} {detail}", file=sys.stderr)
+        return 0
+    except (urllib.error.URLError, RuntimeError, TimeoutError) as e:
         print(f"[warn] brief not written: {e}", file=sys.stderr)
         return 0
     if len(text.strip()) < 800:
