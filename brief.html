@@ -107,15 +107,31 @@
     var files = {};
     function loadFile(name) { if (!files[name]) files[name] = fetch("data/" + name + ".json", { cache: "force-cache" }).then(function (r) { if (!r.ok) throw new Error(name); return r.json(); }).then(function (j) { return j.series || {}; }); return files[name]; }
     function yoy(pts) { var by = {}; pts.forEach(function (p) { by[p[0]] = p[1]; }); return pts.map(function (p) { var b = by[String(+p[0].slice(0, 4) - 1) + p[0].slice(4)]; return b ? [p[0], (p[1] / b - 1) * 100] : null; }).filter(Boolean); }
-    /* Draw a chart.html spec inline when every series is a stored dataset; live pulls stay a link. */
+    /* Draw a chart.html spec inline when every series is a stored dataset or inline points (a forecast
+       path); live pulls stay a link. Bands (forecast intervals) are shaded behind their series. */
+    function recent(d) { if (/^\d{4}$/.test(d)) return 12; if (/^\d{4}-Q/.test(d)) return 20; if (/^\d{4}-S/.test(d)) return 12; if (/^\d{4}-\d{2}$/.test(d)) return 36; return 250; }
     function drawSpec(spec, host, url, W, H) {
-      var refs = (spec.series || []).filter(function (r) { return r.dataset && r.series; });
-      if (!refs.length || refs.length !== (spec.series || []).length) { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; return; }
-      Promise.all(refs.map(function (r) { return loadFile(r.dataset).then(function (s) { var ser = s[r.series] || {}; var pts = Object.keys(ser).sort().filter(function (d) { return (!r.start || d >= r.start) && (!r.end || d <= r.end); }).map(function (d) { return [d, ser[d]]; }); if (r.transform === "yoy") pts = yoy(pts); if (r.transform === "rebase" && pts.length && pts[0][1]) pts = pts.map(function (p) { return [p[0], p[1] / pts[0][1] * 100]; }); return { label: r.label || (r.series), pts: pts }; }); })).then(function (lines) {
+      var all = spec.series || [], link = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>";
+      if (!all.length || !all.every(function (r) { return (r.dataset && r.series) || (r.points && r.points.length); })) { host.innerHTML = link; return; }
+      var hasBands = !!(spec.bands && spec.bands.length);
+      Promise.all(all.map(function (r, i) {
+        if (r.points) return Promise.resolve({ label: /, forecast$/.test(r.label || "") ? "forecast" : r.label || "series " + (i + 1), pts: r.points.map(function (p) { return [String(p[0]), +p[1]]; }).filter(function (p) { return isFinite(p[1]); }), dashed: true });
+        return loadFile(r.dataset).then(function (s) {
+          var ser = s[r.series] || {}; var pts = Object.keys(ser).sort().filter(function (d) { return (!r.start || d >= r.start) && (!r.end || d <= r.end); }).map(function (d) { return [d, ser[d]]; });
+          if (r.transform === "yoy") pts = yoy(pts); if (r.transform === "rebase" && pts.length && pts[0][1]) pts = pts.map(function (p) { return [p[0], p[1] / pts[0][1] * 100]; });
+          /* a forecast chart shows the recent past, so the path ahead and its band can be read */
+          if (hasBands && !r.start && pts.length) { var keep = recent(pts[pts.length - 1][0]); if (pts.length > keep) pts = pts.slice(-keep); }
+          return { label: r.label || r.series, pts: pts };
+        });
+      })).then(function (lines) {
+        lines.forEach(function (l, i) { l.i = i; });
+        var bands = (spec.bands || []).map(function (b) { return { si: b.series || 0, pts: (b.points || []).map(function (p) { return [String(p[0]), +p[1], +p[2]]; }).filter(function (p) { return isFinite(p[1]) && isFinite(p[2]); }) }; }).filter(function (b) { return b.pts.length > 1; });
         lines = lines.filter(function (l) { return l.pts.length > 1; });
-        if (!lines.length) { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; return; }
+        if (!lines.length) { host.innerHTML = link; return; }
         W = W || 560; H = H || 220; var L = 44, R = 18, T = 12, B = 22, lo = Infinity, hi = -Infinity, x0 = Infinity, x1 = -Infinity;
-        lines.forEach(function (l) { l.pts.forEach(function (p) { var x = xOf(p[0]); if (!isFinite(x)) return; if (x < x0) x0 = x; if (x > x1) x1 = x; if (p[1] < lo) lo = p[1]; if (p[1] > hi) hi = p[1]; }); });
+        function take(x, v) { if (!isFinite(x)) return; if (x < x0) x0 = x; if (x > x1) x1 = x; if (v < lo) lo = v; if (v > hi) hi = v; }
+        lines.forEach(function (l) { l.pts.forEach(function (p) { take(xOf(p[0]), p[1]); }); });
+        bands.forEach(function (b) { b.pts.forEach(function (p) { take(xOf(p[0]), p[1]); take(xOf(p[0]), p[2]); }); });
         var ticks = nice(lo, hi); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
         var widest = ticks.reduce(function (w, t) { return Math.max(w, fmt(t).length); }, 0); L = Math.max(L, Math.ceil(widest * 6.4) + 10);
         var iw = W - L - R, ih = H - T - B, X = function (x) { return L + (x - x0) / ((x1 - x0) || 1) * iw; }, Y = function (v) { return T + (hi - v) / ((hi - lo) || 1) * ih; };
@@ -123,9 +139,13 @@
         ticks.forEach(function (t) { s += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + Y(t).toFixed(1) + "' y2='" + Y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".35" : ".12") + "'/><text x='" + (L - 6) + "' y='" + (Y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t)) + "</text>"; });
         var span = x1 - x0, step = span > 40 ? 10 : span > 20 ? 5 : span > 8 ? 2 : 1;
         for (var y = Math.ceil(x0); y <= x1; y++) if (y % step === 0) s += "<text x='" + X(y + 0.5).toFixed(1) + "' y='" + (H - 6) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + y + "</text>";
-        lines.forEach(function (l, i) { var d = ""; l.pts.forEach(function (p) { var x = xOf(p[0]); if (!isFinite(x)) return; d += (d ? "L" : "M") + X(x).toFixed(1) + " " + Y(p[1]).toFixed(1); }); s += "<path d='" + d + "' fill='none' stroke='" + COLORS[i % COLORS.length] + "' stroke-width='2' stroke-linejoin='round'/>"; });
-        host.innerHTML = s + "</svg><div class='cap'>" + lines.map(function (l, i) { var last = l.pts[l.pts.length - 1]; return "<span><i style='background:" + COLORS[i % COLORS.length] + "'></i>" + esc(l.label) + " <b>" + esc(fmt(last[1])) + "</b> " + esc(fmtDate(last[0])) + "</span>"; }).join("") + "<a class='open' href='" + esc(url) + "'>Open the chart →</a></div>";
-      }).catch(function () { host.innerHTML = "<a class='open' href='" + esc(url) + "'>Open the chart →</a>"; });
+        bands.forEach(function (b) {
+          var fwd = "", back = ""; b.pts.forEach(function (p) { var x = xOf(p[0]); if (!isFinite(x)) return; fwd += (fwd ? "L" : "M") + X(x).toFixed(1) + " " + Y(p[1]).toFixed(1); back = "L" + X(x).toFixed(1) + " " + Y(p[2]).toFixed(1) + back; });
+          var c = COLORS[b.si % COLORS.length]; s += "<path d='" + fwd + back + "Z' fill='" + c + "' fill-opacity='.15' stroke='" + c + "' stroke-opacity='.35' stroke-width='1'/>";
+        });
+        lines.forEach(function (l) { var d = ""; l.pts.forEach(function (p) { var x = xOf(p[0]); if (!isFinite(x)) return; d += (d ? "L" : "M") + X(x).toFixed(1) + " " + Y(p[1]).toFixed(1); }); s += "<path d='" + d + "' fill='none' stroke='" + COLORS[l.i % COLORS.length] + "' stroke-width='2' stroke-linejoin='round'" + (l.dashed ? " stroke-dasharray='5 4'" : "") + "/>"; });
+        host.innerHTML = s + "</svg><div class='cap'>" + lines.map(function (l) { var last = l.pts[l.pts.length - 1]; return "<span><i style='background:" + COLORS[l.i % COLORS.length] + "'></i>" + esc(l.label) + " <b>" + esc(fmt(last[1])) + "</b> " + esc(fmtDate(last[0])) + "</span>"; }).join("") + (bands.length ? "<span><i style='background:" + COLORS[bands[0].si % COLORS.length] + ";opacity:.3;height:8px'></i>95% band</span>" : "") + link + "</div>";
+      }).catch(function () { host.innerHTML = link; });
     }
     /* A paragraph that opens with a chart link: the link is the chart, whatever follows it is the caption. */
     function chartLink(el) { var a = el.querySelector("a[href*='chart.html#']"); return a && a === el.firstElementChild && el.textContent.trim().indexOf(a.textContent.trim()) === 0 ? a : null; }
@@ -133,8 +153,10 @@
        the chart drawn large, the title above, the caption under it. Older issues without that shape
        are left as prose. */
     function layoutStories(host) {
-      var h2 = Array.prototype.filter.call(host.querySelectorAll("h2"), function (h) { return /today in the data/i.test(h.textContent); })[0];
-      if (!h2) return;
+      Array.prototype.forEach.call(host.querySelectorAll("h2"), function (h) { if (/numbers desk|correlations/i.test(h.textContent)) { var e = h.nextSibling; while (e && e.tagName !== "H2") { if (e.tagName === "UL") e.classList.add("desk"); e = e.nextSibling; } } });
+      Array.prototype.filter.call(host.querySelectorAll("h2"), function (h) { return /today in the data|forecasts/i.test(h.textContent); }).forEach(layoutSection);
+    }
+    function layoutSection(h2) {
       var stories = [], cur = null, n = h2.nextSibling, nodes = [];
       while (n && n.tagName !== "H2") { nodes.push(n); n = n.nextSibling; }
       nodes.forEach(function (el) {
@@ -143,21 +165,20 @@
         var a = el.tagName === "P" ? chartLink(el) : null;
         if (a && !cur.link) { cur.link = a; a.remove(); if (el.textContent.trim()) cur.rest.push(el); else el.remove(); } else cur.rest.push(el);
       });
-      Array.prototype.forEach.call(host.querySelectorAll("h2"), function (h) { if (/numbers desk/i.test(h.textContent)) { var e = h.nextSibling; while (e && e.tagName !== "H2") { if (e.tagName === "UL") e.classList.add("desk"); e = e.nextSibling; } } });
       stories = stories.filter(function (st) { return st.link; });
       if (stories.length < 2) return;
       var grid = document.createElement("div"); grid.className = "front";
       stories.forEach(function (st, i) {
-        var box = document.createElement("div"); box.className = "piece" + (i === 0 ? " lead" : "");
+        var lead = i === 0 && stories.length % 2 === 1, box = document.createElement("div"); box.className = "piece" + (lead ? " lead" : "");
         box.appendChild(st.title);
         var fig = document.createElement("div"); fig.className = "fig"; box.appendChild(fig);
         st.rest.forEach(function (el) { box.appendChild(el); });
         var href = st.link.getAttribute("href"), spec = decode((/chart\.html#([A-Za-z0-9_\-]+)/.exec(href) || [])[1] || "");
-        if (spec && spec.series) { if (!spec.title) spec.title = st.link.textContent; drawSpec(spec, fig, href, i === 0 ? 760 : 380, i === 0 ? 270 : 210); }
+        if (spec && spec.series) { if (!spec.title) spec.title = st.link.textContent; drawSpec(spec, fig, href, lead ? 760 : 380, lead ? 270 : 210); }
         else fig.innerHTML = "<a class='open' href='" + esc(href) + "'>" + esc(st.link.textContent) + " →</a>";
         grid.appendChild(box);
       });
-      nodes.forEach(function (el) { if (el.parentNode === host) el.remove(); });
+      nodes.forEach(function (el) { if (el.parentNode === h2.parentNode) el.remove(); });
       h2.parentNode.insertBefore(grid, h2.nextSibling);
     }
     function render(issue) {
