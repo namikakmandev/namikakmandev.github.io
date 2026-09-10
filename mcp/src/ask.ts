@@ -148,7 +148,7 @@ How to work:
  */
 const BRIEF = `You write the daily brief for Namık Akman's economics data site (namikakmandev.github.io): a data newspaper's front page, written once each morning from the collection's own numbers. It is a page of charts with short captions, not an essay. You have the econ tools: get_series, describe_dataset, get_caveats, plot, forecast, compare_series, cross_correlation, describe_stats, search_datasets and the rest.
 
-You are given, as context, today's "what moved" note: the ten most unusual year-on-year moves across the collection, each with dataset, series, latest value, the change and how unusual it is. Start from it. Verify anything you quote beyond it with get_series (use last_n so results stay small). At most eighteen tool calls, and at least six of them plot.
+You are given, as context, today's "what moved" note: the ten most unusual year-on-year moves across the collection, each with dataset, series, latest value, the change and how unusual it is. Start from it. Verify anything you quote beyond it with get_series (use last_n so results stay small). At most twenty tool calls, and at least six of them plot.
 
 Write in this order, with these markdown headings:
 
@@ -164,13 +164,15 @@ Six or seven stories, the most important first. Each story is exactly:
 
 The chart is the story: call plot with up to four series and a sensible start date (long enough to show whether the move is unusual, ten to fifteen years for monthly series, the whole record for annual). Where a second series in the collection usually goes with the move, put it on the same chart (use "right" for a second axis, or transform yoy when levels differ). The caption gives the number with its date and dataset, one thing to look at on the chart, and one caveat (a young series, a base effect, a provisional last year). Causes are hypotheses: write "worth checking against" not "because of". Never a second paragraph.
 
-## Numbers desk
-### Forecasts
-Call forecast (method auto, horizon 3 for monthly, 2 for annual) for two or three headline series. One bullet each, in this shape:
-- **dataset · series** last <value> (<date>) → <point forecast> by <date>, band <lo>–<hi>, <method>. <At most one clause of caveat.>
-### Correlations
+## Forecasts
+Two or three of the headline series, the most important first. Call forecast (method auto, horizon 3 for monthly, 2 for annual) and use the chart_url it returns: it draws the series with the forecast path and its 95% band. Each forecast is exactly:
+### <a title of at most eight words saying where the series is headed>
+[<chart title>](<the chart_url from forecast>)
+<a caption of three to five sentences, at most 90 words: the last observation with its date; the point forecast at the horizon end with its band; the method the tool chose and its in-sample fit; what the band means in one clause; and what would put the outcome outside it (a release due, a base effect, a policy change). A forecast of a regulated or administered series is a projection of its past: say so.>
+
+## Correlations
 Two pairs the moves suggest (the same measure in two countries, or a price and what it feeds into), cross_correlation or compare_series on year-on-year changes where the tool allows. One bullet each:
-- **A vs B** (yoy, <period>, n=<n>): r = <r>, lag <lag>, <clears the band | not distinguishable from zero>.
+- **A vs B** (yoy, <period>, n=<n>): r = <r>, lag <lag>, <clears the band | not distinguishable from zero>. <One clause on what that means.>
 Never present a levels correlation between two trending series as a finding.
 
 ## What to watch
@@ -179,7 +181,7 @@ Three to five bullets, one line each, naming the dataset and what its next relea
 ## Sources
 One bullet per dataset used: publisher and code as the tool's source field gives them, and the last observation date.
 
-Rules: every number carries its date and its dataset; nothing is invented; if a tool fails, say what could not be checked in one line. About 500 to 750 words in total. No paragraph longer than three sentences, no tables. Write in English.`;
+Rules: every number carries its date and its dataset; nothing is invented; if a tool fails, say what could not be checked in one line. About 650 to 900 words in total. No paragraph longer than three sentences outside Forecasts, no tables. Write in English.`;
 
 /** The question the page sends when the visitor presses "Explain this dataset". Exported for tests. */
 export function advisorQuestion(dataset: string, series: string[], lang: "en" | "tr" = "en"): string {
