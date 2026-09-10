@@ -291,7 +291,17 @@ def main():
         if len(picks) >= TOP_N:
             break
 
+    # Which of these were not in the previous note: the page marks them, so a daily
+    # reader sees at a glance what changed since yesterday.
+    out_path = os.path.join(ROOT, "data", "_moves.json")
+    previous = set()
+    try:
+        for it in json.load(open(out_path)).get("items", []):
+            previous.add((it.get("dataset"), it.get("series"), it.get("latest", {}).get("date")))
+    except Exception:
+        pass
     for c in picks:
+        c["new"] = (c["dataset"], c["series"], c["latest"]["date"]) not in previous
         c["sentence"] = sentence(c)
         c["chart"] = chart_link(c)
         c["z"] = round(c["z"], 2)
@@ -303,15 +313,16 @@ def main():
                    "year-on-year moves across the collection, ranked by how far each is from that "
                    "series' own history of yearly changes. Sentences are templates filled from the numbers.",
         "generated": time.strftime("%Y-%m-%d", now),
+        "new_since_previous": sum(1 for c in picks if c["new"]),
         "candidates": len(candidates),
         "items": picks,
     }
-    with open(os.path.join(ROOT, "data", "_moves.json"), "w", encoding="utf-8") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
         f.write("\n")
     if want_print:
         for i, c in enumerate(picks, 1):
-            print(f"{i:2}. [{c['subject']}] {c['sentence']}")
+            print(f"{i:2}. {'NEW ' if c['new'] else '    '}[{c['subject']}] {c['sentence']}")
     print(f"{len(picks)} picks from {len(candidates)} candidates -> data/_moves.json")
 
 

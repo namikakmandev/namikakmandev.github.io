@@ -10,7 +10,8 @@ on:
         description: "discover = kaynağın gerçek yapısını dök, ayrıştırma"
         default: ""
   schedule:
-    - cron: "17 5 1 * *"   # her ayın 1'i
+    - cron: "17 5 1 * *"   # her ayın 1'i: her kaynak
+    - cron: "23 6 * * *"   # her gün: yalnız günlük ve aylık seriler (scripts/daily_set.py), sonra "what moved"
 
 permissions:
   contents: write
@@ -30,7 +31,12 @@ jobs:
           EVDS_KEY: ${{ secrets.EVDS_KEY }}
           FAOSTAT_USER: ${{ secrets.FAOSTAT_USER }}
           FAOSTAT_PASSWORD: ${{ secrets.FAOSTAT_PASSWORD }}
-        run: python scripts/fetch.py ${{ inputs.only }}
+        run: |
+          if [ "${{ github.event.schedule }}" = "23 6 * * *" ]; then
+            python scripts/fetch.py $(python scripts/daily_set.py)
+          else
+            python scripts/fetch.py ${{ inputs.only }}
+          fi
       # Both of these run even when the fetch reports a degraded source, so the data that
       # did come back is still published; the run stays red so the failure is visible.
       - name: Rebuild catalog
