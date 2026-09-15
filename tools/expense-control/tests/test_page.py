@@ -160,6 +160,28 @@ def main():
                 "Seyahat & Konak")
             page.fill("#filterText", "")
 
+            print("\nsorting and grouping")
+            amounts = lambda: page.evaluate(
+                "[...document.querySelectorAll('#txnTable tbody tr:not(.grp) td:nth-child(4)')].map(td => td.textContent)")
+            check("default order is newest first",
+                  page.evaluate("[...document.querySelectorAll('#txnTable tbody tr td:first-child')].map(td => td.textContent)")[:2],
+                  ["2026-01-21", "2026-01-09"])
+            page.click("#txnTable th[data-sort=amount]")
+            check("amount header sorts largest first", amounts()[0], "23.022,30")
+            page.click("#txnTable th[data-sort=amount]")
+            check("second click flips the direction", amounts()[0], "-149.340,29")
+            page.select_option("#groupBy", "category")
+            groups = page.evaluate("[...document.querySelectorAll('#txnTable tbody tr.grp td')].map(td => td.textContent)")
+            check("grouped by category with subtotals", any(g.startswith("Kategori: Giyim & Aksesuar") and "harcama" in g for g in groups), True)
+            # BARBOUR was moved to Seyahat & Konak a few steps up, which makes it the largest group
+            check("largest group first", groups[0].startswith("Kategori: Seyahat & Konak"), True)
+            check("group count shown", "grup" in page.inner_text("#txnCount"), True)
+            page.select_option("#groupBy", "month")
+            months_seen = page.evaluate("[...document.querySelectorAll('#txnTable tbody tr.grp td')].map(td => td.textContent.slice(0, 11))")
+            check("grouped by month, newest first", months_seen, ["Ay: 2026-01", "Ay: 2025-12"])
+            page.select_option("#groupBy", "")
+            page.click("#txnTable th[data-sort=date]")
+
             print("\nspreadsheet budget import")
             page.click("button[data-tab=ekle]")
             page.set_input_files("#xlsxInput", str(budget))

@@ -78,6 +78,12 @@ tr.s-over td:first-child,tr.s-unbudgeted td:first-child{font-weight:600}
 .log .good{color:var(--ok)}
 .saved{font-size:12px;color:var(--mut)}
 td select,td input{padding:4px 6px;font-size:13px;border-radius:6px}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--fg)}
+th.sortable[data-dir="asc"]::after{content:" ▲";font-size:9px}
+th.sortable[data-dir="desc"]::after{content:" ▼";font-size:9px}
+tr.grp td{background:var(--soft);font-weight:600;font-size:12.5px;padding-top:6px;padding-bottom:6px}
+tr.grp td .sum{float:right;font-variant-numeric:tabular-nums;font-weight:500;color:var(--mut)}
 .card-box{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:16px 18px}
 .card-box+.card-box{margin-top:12px}
 .card-box h3{margin:0 0 6px;font-size:14px}
@@ -118,11 +124,19 @@ td select,td input{padding:4px 6px;font-size:13px;border-radius:6px}
     <div class="row" style="margin-bottom:12px">
       <input id="filterText" placeholder="Ara (işyeri, açıklama)" style="flex:1;min-width:180px">
       <select id="filterCat"><option value="">Tüm kategoriler</option></select>
+      <select id="groupBy">
+        <option value="">Gruplama yok</option>
+        <option value="category">Kategoriye göre</option>
+        <option value="merchant">İşyerine göre</option>
+        <option value="month">Aya göre</option>
+      </select>
       <button class="ghost" id="exportCsv">CSV indir</button>
     </div>
+    <p class="note" style="margin-top:-4px">Sütun başlığına tıklayarak sıralayın; tekrar tıklayınca yön değişir.</p>
     <div class="wrap"><table id="txnTable"><thead><tr>
-      <th>Tarih</th><th>Açıklama</th><th>Kategori</th><th class="n">Tutar</th>
-      <th>Taksit</th><th>Kaynak</th><th></th></tr></thead><tbody></tbody></table></div>
+      <th data-sort="date" class="sortable">Tarih</th><th data-sort="description" class="sortable">Açıklama</th>
+      <th data-sort="category" class="sortable">Kategori</th><th data-sort="amount" class="n sortable">Tutar</th>
+      <th>Taksit</th><th data-sort="statement" class="sortable">Kaynak</th><th></th></tr></thead><tbody></tbody></table></div>
     <p class="note" id="txnCount"></p>
   </section>
 
@@ -1088,6 +1102,20 @@ function renderPickers() {
   $('filterCat').innerHTML = '<option value="">Tüm kategoriler</option>' + options;
 }
 
+/* Per-viewer list state: how the transactions are sorted and grouped. Never
+   saved — it is a way of looking, not part of the record. */
+const LIST = { sortKey: 'date', sortDir: -1, group: '' };
+const GROUP_LABEL = { category: 'Kategori', merchant: 'İşyeri', month: 'Ay' };
+const groupKeyOf = (t, mode) =>
+  mode === 'month' ? t.date.slice(0, 7) : mode === 'merchant' ? (t.merchant || t.description) : t.category;
+
+function compareTxns(a, b) {
+  const k = LIST.sortKey;
+  let va = a[k], vb = b[k];
+  if (typeof va === 'number' || typeof vb === 'number') return ((va || 0) - (vb || 0)) * LIST.sortDir;
+  return String(va || '').localeCompare(String(vb || ''), 'tr') * LIST.sortDir;
+}
+
 function renderTxns() {
   const term = squeeze($('filterText').value).toLowerCase();
   const cat = $('filterCat').value;
@@ -1095,7 +1123,12 @@ function renderTxns() {
   const rows = VAULT.transactions.filter(t =>
     (!cat || t.category === cat) &&
     (!term || (t.description + ' ' + t.merchant).toLowerCase().includes(term)));
-  $('txnTable').querySelector('tbody').innerHTML = rows.map((t) => {
+
+  document.querySelectorAll('#txnTable th.sortable').forEach(th =>
+    th.dataset.sort === LIST.sortKey ? th.setAttribute('data-dir', LIST.sortDir > 0 ? 'asc' : 'desc')
+                                     : th.removeAttribute('data-dir'));
+
+  const rowHtml = t => {
     const idx = VAULT.transactions.indexOf(t);
     const inst = t.installment_total ? t.installment_no + '/' + t.installment_total : '';
     return '<tr><td>' + esc(t.date) + '</td><td>' + esc(t.description) + '</td>' +
@@ -1104,8 +1137,32 @@ function renderTxns() {
       '</select></td><td class="n' + (t.amount < 0 ? ' neg' : '') + '">' + money(t.amount) + '</td>' +
       '<td>' + inst + '</td><td>' + esc(t.statement || '') + '</td>' +
       '<td><button class="ghost del" data-idx="' + idx + '">Sil</button></td></tr>';
-  }).join('');
-  $('txnCount').textContent = rows.length + ' / ' + VAULT.transactions.length + ' işlem';
+  };
+
+  let html;
+  if (!LIST.group) {
+    html = rows.slice().sort(compareTxns).map(rowHtml).join('');
+  } else {
+    // groups ordered by their spend, largest first (or by month when grouping by month);
+    // rows inside each group follow the chosen sort
+    const groups = new Map();
+    for (const t of rows) {
+      const key = groupKeyOf(t, LIST.group);
+      if (!groups.has(key)) groups.set(key, { rows: [], spend: 0, net: 0 });
+      const g = groups.get(key);
+      g.rows.push(t); g.net += t.amount; if (t.amount > 0) g.spend += t.amount;
+    }
+    const ordered = [...groups.entries()].sort((a, b) =>
+      LIST.group === 'month' ? b[0].localeCompare(a[0]) : b[1].spend - a[1].spend);
+    html = ordered.map(([key, g]) =>
+      '<tr class="grp"><td colspan="7">' + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(key) +
+      ' · ' + g.rows.length + ' işlem' +
+      '<span class="sum">harcama ' + money(g.spend) + (g.net !== g.spend ? ' · net ' + money(g.net) : '') + '</span></td></tr>' +
+      g.rows.sort(compareTxns).map(rowHtml).join('')).join('');
+  }
+  $('txnTable').querySelector('tbody').innerHTML = html;
+  $('txnCount').textContent = rows.length + ' / ' + VAULT.transactions.length + ' işlem' +
+    (LIST.group ? ' · ' + new Set(rows.map(t => groupKeyOf(t, LIST.group))).size + ' grup' : '');
 }
 
 function budgetMonths() {
@@ -1136,6 +1193,14 @@ document.querySelectorAll('.tabs button').forEach(btn => btn.addEventListener('c
 }));
 $('filterText').addEventListener('input', renderTxns);
 $('filterCat').addEventListener('change', renderTxns);
+$('groupBy').addEventListener('change', e => { LIST.group = e.target.value; renderTxns(); });
+$('txnTable').querySelector('thead').addEventListener('click', e => {
+  const th = e.target.closest('th.sortable');
+  if (!th) return;
+  if (LIST.sortKey === th.dataset.sort) LIST.sortDir = -LIST.sortDir;
+  else { LIST.sortKey = th.dataset.sort; LIST.sortDir = th.dataset.sort === 'amount' || th.dataset.sort === 'date' ? -1 : 1; }
+  renderTxns();
+});
 $('txnTable').addEventListener('change', async e => {
   if (!e.target.classList.contains('catSel')) return;
   VAULT.transactions[+e.target.dataset.idx].category = e.target.value;
