@@ -1360,15 +1360,28 @@ $('exportVault').addEventListener('click', () =>
 $('pickVault').addEventListener('click', () => $('vaultInput').click());
 $('vaultInput').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
-  try {
-    const restored = await unseal(JSON.parse(await file.text()), PASSWORD);
-    const result = addTransactions(restored.transactions || []);
-    VAULT.budget = Object.assign({}, restored.budget || {}, VAULT.budget);
-    await save(); renderAll();
-    log('Yedek geri yüklendi: ' + result.added + ' işlem eklendi.', 'good');
-  } catch (err) {
-    alert('Yedek açılamadı. Yedek başka bir şifreyle oluşturulmuş olabilir.');
+  let blob;
+  try { blob = JSON.parse(await file.text()); }
+  catch (err) { alert('Bu bir yedek dosyası değil.'); return; }
+  let restored = null;
+  try { restored = await unseal(blob, PASSWORD); }
+  catch (err) {
+    // made under a different password (an old one, or one given with the file)
+    const other = prompt('Yedek bu kasanın şifresiyle açılmadı. Yedeğin kendi şifresi:');
+    if (other === null) return;
+    try { restored = await unseal(blob, other); }
+    catch (err2) { alert('Yedek açılamadı — şifre yanlış.'); return; }
   }
+  const result = addTransactions(restored.transactions || []);
+  VAULT.budget = Object.assign({}, restored.budget || {}, VAULT.budget);
+  if (restored.totalBudget && !(VAULT.totalBudget && Object.keys(VAULT.totalBudget).length)) {
+    VAULT.totalBudget = restored.totalBudget;
+    VAULT.totalBudgetLabel = restored.totalBudgetLabel || 'bütçe';
+  }
+  await save(); renderAll();
+  document.querySelector('.tabs button[data-tab=ozet]').click();
+  log('Yedek geri yüklendi: ' + result.added + ' işlem eklendi' +
+      (restored.totalBudget ? ', bütçe satırı «' + (restored.totalBudgetLabel || '') + '»' : '') + '.', 'good');
 });
 $('changePw').addEventListener('click', async () => {
   const a = $('npw').value, b = $('npw2').value, err = $('pwErr');
