@@ -89,6 +89,34 @@ tr.grp td .sum{float:right;font-variant-numeric:tabular-nums;font-weight:500;col
 .card-box h3{margin:0 0 6px;font-size:14px}
 .card-box p{margin:0 0 12px;color:var(--mut);font-size:12.5px}
 @media(max-width:640px){#app{padding:16px 12px 50px}header h1{font-size:17px}}
+
+/* @viz-start — category identity colours (validated 8-slot categorical palette) and small charts */
+:root{--cat1:#2a78d6;--cat2:#eb6834;--cat3:#1baf7a;--cat4:#eda100;--cat5:#e87ba4;--cat6:#008300;--cat7:#4a3aa7;--cat8:#e34948;--catx:#9A9DA6;--bar:#2a78d6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--cat1:#3987e5;--cat2:#d95926;--cat3:#199e70;--cat4:#c98500;--cat5:#d55181;--cat6:#008300;--cat7:#9085e9;--cat8:#e66767;--catx:#6A6E78;--bar:#3987e5}}
+:root[data-theme="dark"]{--cat1:#3987e5;--cat2:#d95926;--cat3:#199e70;--cat4:#c98500;--cat5:#d55181;--cat6:#008300;--cat7:#9085e9;--cat8:#e66767;--catx:#6A6E78;--bar:#3987e5}
+.chip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;
+  background:color-mix(in srgb,var(--c) 18%,transparent);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
+  font-size:13px;line-height:1;margin-right:7px;vertical-align:middle;flex:none}
+.chip.lg{width:28px;height:28px;font-size:16px;border-radius:9px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:6px;vertical-align:middle}
+.kpi{border-top:3px solid var(--kc,var(--line))}
+.share{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px;margin:6px 0 10px}
+.share span{display:block;background:var(--c);min-width:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--mut)}
+.legend b{color:var(--fg);font-weight:500}
+.legend em{font-style:normal;font-variant-numeric:tabular-nums;margin-left:4px}
+.viz{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.viz svg{display:block;width:100%;height:auto;overflow:visible}
+.viz .lbl{font-size:11px;fill:var(--mut)}
+.viz .val{font-size:11px;fill:var(--fg);font-weight:600}
+.viz .grid{stroke:var(--line);stroke-width:1}
+.viz .bar{fill:var(--bar)}
+.viz .bar:hover{filter:brightness(1.12)}
+.viz .budget{stroke:var(--fg);stroke-width:2;opacity:.75}
+.viz .budget.over{stroke:var(--over);opacity:1}
+.viz-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media (max-width:720px){.viz-grid{grid-template-columns:1fr}}
+/* @viz-end */
 </style></head><body>
 
 <div id="lock"><div class="card">
@@ -977,6 +1005,87 @@ for (const id of ['pw', 'pw2'])
 $('lockNow').addEventListener('click', () => location.reload());
 
 /* ------------------------------------------------------------------ render */
+
+/* Category identity: a glyph for every category, and a fixed colour slot for the
+   eight that carry most of the spend. Colour follows the category, never its
+   rank, so a category keeps its hue whatever the month looks like; the rest
+   share one neutral and are told apart by their glyph. */
+const CATEGORY_META = {
+  'Market':            { icon: '🛒', slot: 1 },
+  'Yeme-Icme':         { icon: '🍽️', slot: 2 },
+  'Seyahat & Konak':   { icon: '✈️', slot: 3 },
+  'Egitim':            { icon: '🎓', slot: 4 },
+  'Giyim & Aksesuar':  { icon: '👗', slot: 5 },
+  'Ulasim':            { icon: '🚕', slot: 6 },
+  'Online Alisveris':  { icon: '🛍️', slot: 7 },
+  'Kisisel Bakim':     { icon: '💅', slot: 8 },
+  'Kultur & Eglence':  { icon: '🎟️' },
+  'Abonelik & Dijital':{ icon: '📺' },
+  'Saglik':            { icon: '🩺' },
+  'Evcil Hayvan':      { icon: '🐾' },
+  'Faiz & Ucret':      { icon: '🏦' },
+  'Ev & Yasam':        { icon: '🏠' },
+  'Elektronik':        { icon: '💻' },
+  'Telekom':           { icon: '📱' },
+  'Fatura & Enerji':   { icon: '💡' },
+  'Sigorta':           { icon: '🛡️' },
+  'Vergi & Resmi':     { icon: '🏛️' },
+  'Yakit':             { icon: '⛽' },
+  'Nakit Avans':       { icon: '💵' },
+  'Kart Odemesi':      { icon: '💳' },
+  'Diger':             { icon: '📦' }
+};
+const catMeta = c => CATEGORY_META[c] || { icon: '🏷️' };
+const catColor = c => { const m = catMeta(c); return m.slot ? 'var(--cat' + m.slot + ')' : 'var(--catx)'; };
+const chip = (c, lg) => '<span class="chip' + (lg ? ' lg' : '') + '" style="--c:' + catColor(c) + '" title="' + esc(c) + '">' + catMeta(c).icon + '</span>';
+const catLabel = c => chip(c) + esc(c);
+
+/* Share of spend by category: the coloured eight as their own segments, the rest folded into one. */
+function shareBar(byCategory, total) {
+  if (!total) return '';
+  const rows = byCategory.map(([c, a]) => ({ c, a, slot: catMeta(c).slot }));
+  const coloured = rows.filter(r => r.slot).sort((x, y) => y.a - x.a);
+  const rest = rows.filter(r => !r.slot).reduce((s, r) => s + r.a, 0);
+  const segs = coloured.map(r => ({ label: r.c, a: r.a, color: catColor(r.c), icon: catMeta(r.c).icon }));
+  if (rest > 0) segs.push({ label: 'Diğer kategoriler', a: rest, color: 'var(--catx)', icon: '📦' });
+  return '<div class="share">' +
+    segs.map(g => '<span style="--c:' + g.color + ';flex:' + g.a.toFixed(2) + '" title="' +
+      esc(g.label) + ' · ' + money(g.a) + '"></span>').join('') + '</div>' +
+    '<div class="legend">' + segs.map(g => '<span><span class="dot" style="--c:' + g.color + '"></span>' +
+      g.icon + ' <b>' + esc(g.label) + '</b><em>' + pct2(g.a / total * 100) + '</em></span>').join('') + '</div>';
+}
+
+/* Spend by month as bars, with that month's budget as a tick where one exists. One series, one scale. */
+function monthBars(byMonth, budget) {
+  if (!byMonth.length) return '';
+  const W = 640, H = 180, padL = 8, padR = 8, padT = 22, padB = 26;
+  const max = Math.max(...byMonth.map(([, a]) => a), ...byMonth.map(([m]) => budget[m] || 0)) || 1;
+  const n = byMonth.length, slot = (W - padL - padR) / n, bw = Math.max(6, slot - 6);
+  const y = v => padT + (H - padT - padB) * (1 - v / max);
+  const maxMonth = byMonth.reduce((best, cur) => cur[1] > best[1] ? cur : best, byMonth[0])[0];
+  let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Aylık harcama">';
+  for (let i = 1; i <= 3; i++) {
+    const gy = y(max * i / 4);
+    svg += '<line class="grid" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + gy.toFixed(1) + '" y2="' + gy.toFixed(1) + '"/>';
+  }
+  svg += '<line class="grid" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(0) + '" y2="' + y(0) + '"/>';
+  byMonth.forEach(([m, a], i) => {
+    const x = padL + i * slot + (slot - bw) / 2, top = y(a), h = Math.max(0, y(0) - top);
+    svg += '<g><title>' + esc(m) + ' · ' + money(a) + (budget[m] ? ' · bütçe ' + money(budget[m]) : '') + '</title>' +
+      '<rect class="bar" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="4"/>' +
+      (h > 4 ? '<rect class="bar" x="' + x.toFixed(1) + '" y="' + (y(0) - Math.min(4, h)).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.min(4, h).toFixed(1) + '"/>' : '');
+    if (budget[m]) {
+      const by = y(budget[m]);
+      svg += '<line class="budget' + (a > budget[m] ? ' over' : '') + '" x1="' + (x - 3).toFixed(1) + '" x2="' + (x + bw + 3).toFixed(1) + '" y1="' + by.toFixed(1) + '" y2="' + by.toFixed(1) + '"/>';
+    }
+    if (m === maxMonth)
+      svg += '<text class="val" x="' + (x + bw / 2).toFixed(1) + '" y="' + (top - 6).toFixed(1) + '" text-anchor="middle">' + money(a) + '</text>';
+    svg += '<text class="lbl" x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(m.slice(2)) + '</text></g>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+
 function renderAll() { renderSummary(); renderTxns(); renderBudget(); renderPickers();
   $('savedAt').textContent = VAULT.updated
     ? 'son kayıt ' + new Date(VAULT.updated).toLocaleString('tr-TR') : ''; }
@@ -990,10 +1099,17 @@ function renderSummary() {
     return;
   }
   let html = '<div class="kpis">' +
-    kpi('Toplam harcama', money(r.totalSpend)) +
-    kpi('İade / ödeme', money(r.totalCredits)) +
-    kpi('Kalan taksit · ' + r.openPlans + ' plan', money(r.outstanding)) +
-    kpi('Dönem', period) + '</div>';
+    kpi('Toplam harcama', money(r.totalSpend), 'var(--acc)') +
+    kpi('İade / ödeme', money(r.totalCredits), 'var(--ok)') +
+    kpi('Kalan taksit · ' + r.openPlans + ' plan', money(r.outstanding), 'var(--watch)') +
+    kpi('Dönem', period, 'var(--catx)') + '</div>';
+
+  const budgetByMonth = (VAULT && VAULT.totalBudget) || {};
+  html += '<div class="viz-grid">' +
+    '<div class="viz"><h2 style="margin:0 0 6px">Harcamanın dağılımı</h2>' + shareBar(r.byCategory, r.totalSpend) + '</div>' +
+    '<div class="viz"><h2 style="margin:0 0 6px">Aylık harcama' +
+      (Object.keys(budgetByMonth).length ? ' <span class="badge">çizgi: bütçe</span>' : '') + '</h2>' +
+      monthBars(r.byMonth, budgetByMonth) + '</div></div>';
 
   if (r.variance.length) {
     const note = r.scope.mode === 'months'
@@ -1002,16 +1118,16 @@ function renderSummary() {
     html += '<h2>Bütçe vs gerçekleşen' + note + '</h2><div class="wrap"><table><thead><tr>' +
       '<th>Kalem</th><th class="n">Bütçe</th><th class="n">Gerçekleşen</th><th class="n">Fark</th>' +
       '<th>Kullanım</th><th>Durum</th></tr></thead><tbody>' +
-      r.variance.map(v => '<tr class="s-' + v.status.toLowerCase() + '"><td>' + esc(v.label) + '</td>' +
+      r.variance.map(v => '<tr class="s-' + v.status.toLowerCase() + '"><td>' + catLabel(v.label) + '</td>' +
         '<td class="n">' + money(v.budget) + '</td><td class="n">' + money(v.actual) + '</td>' +
         '<td class="n">' + money(v.diff) + '</td><td class="meter">' +
         (v.used === null ? '' : '<span style="width:' + Math.min(v.used, 100) + '%"></span>') + '<em>' +
         (v.used === null ? '—' : pct2(v.used)) + '</em></td>' +
         '<td><span class="badge ' + v.status.toLowerCase() + '">' + v.status + '</span></td></tr>').join('') +
       '</tbody></table></div>';
-  } else {
-    html += '<h2>Bütçe</h2><p class="note">Bütçe girilmemiş — “Bütçe” sekmesinden kategori başına ' +
-      'aylık tutar yazın, karşılaştırma burada görünsün.</p>';
+  } else if (!r.totalLine) {
+    html += '<h2>Bütçe</h2><p class="note">Bütçe girilmemiş — “Bütçe” bölümünden kategori başına ' +
+      'aylık tutar yazın ya da “İçe aktar” ile bütçe tablosunu yükleyin; karşılaştırma burada görünür.</p>';
   }
 
   if (r.totalLine) {
@@ -1061,7 +1177,7 @@ function renderSummary() {
 
   html += '<h2>Kategori bazında</h2><div class="wrap"><table><thead><tr><th>Kategori</th>' +
     '<th class="n">Tutar</th><th class="n">Pay</th></tr></thead><tbody>' +
-    r.byCategory.map(([c, a]) => '<tr><td>' + esc(c) + '</td><td class="n">' + money(a) +
+    r.byCategory.map(([c, a]) => '<tr><td>' + catLabel(c) + '</td><td class="n">' + money(a) +
       '</td><td class="n">' + pct2(a / (r.totalSpend || 1) * 100) + '</td></tr>').join('') +
     '</tbody></table></div>';
 
@@ -1072,7 +1188,7 @@ function renderSummary() {
 
   html += '<h2>En çok harcanan işyerleri</h2><div class="wrap"><table><thead><tr><th>İşyeri</th>' +
     '<th>Kategori</th><th class="n">Adet</th><th class="n">Tutar</th></tr></thead><tbody>' +
-    r.topMerchants.map(m => '<tr><td>' + esc(m.merchant) + '</td><td>' + esc(m.category) +
+    r.topMerchants.map(m => '<tr><td>' + esc(m.merchant) + '</td><td>' + catLabel(m.category) +
       '</td><td class="n">' + m.count + '</td><td class="n">' + money(m.amount) + '</td></tr>').join('') +
     '</tbody></table></div>';
 
@@ -1088,7 +1204,7 @@ function renderSummary() {
   }
   $('tab-ozet').innerHTML = html;
 }
-const kpi = (label, value) => '<div class="kpi"><span>' + esc(label) + '</span><b>' + esc(value) + '</b></div>';
+const kpi = (label, value, color) => '<div class="kpi" style="--kc:' + (color || 'var(--line)') + '"><span>' + esc(label) + '</span><b>' + esc(value) + '</b></div>';
 
 function allCategories() {
   return [...new Set(CATEGORY_NAMES
@@ -1132,7 +1248,7 @@ function renderTxns() {
     const idx = VAULT.transactions.indexOf(t);
     const inst = t.installment_total ? t.installment_no + '/' + t.installment_total : '';
     return '<tr><td>' + esc(t.date) + '</td><td>' + esc(t.description) + '</td>' +
-      '<td><select data-idx="' + idx + '" class="catSel">' +
+      '<td>' + chip(t.category) + '<select data-idx="' + idx + '" class="catSel">' +
       cats.map(c => '<option' + (c === t.category ? ' selected' : '') + '>' + esc(c) + '</option>').join('') +
       '</select></td><td class="n' + (t.amount < 0 ? ' neg' : '') + '">' + money(t.amount) + '</td>' +
       '<td>' + inst + '</td><td>' + esc(t.statement || '') + '</td>' +
@@ -1155,7 +1271,7 @@ function renderTxns() {
     const ordered = [...groups.entries()].sort((a, b) =>
       LIST.group === 'month' ? b[0].localeCompare(a[0]) : b[1].spend - a[1].spend);
     html = ordered.map(([key, g]) =>
-      '<tr class="grp"><td colspan="7">' + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(key) +
+      '<tr class="grp"><td colspan="7">' + (LIST.group === 'category' ? chip(key) : '') + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(key) +
       ' · ' + g.rows.length + ' işlem' +
       '<span class="sum">harcama ' + money(g.spend) + (g.net !== g.spend ? ' · net ' + money(g.net) : '') + '</span></td></tr>' +
       g.rows.sort(compareTxns).map(rowHtml).join('')).join('');
@@ -1204,6 +1320,8 @@ $('txnTable').querySelector('thead').addEventListener('click', e => {
 $('txnTable').addEventListener('change', async e => {
   if (!e.target.classList.contains('catSel')) return;
   VAULT.transactions[+e.target.dataset.idx].category = e.target.value;
+  const glyph = e.target.previousElementSibling;
+  if (glyph && glyph.classList.contains('chip')) glyph.outerHTML = chip(e.target.value);
   await save(); renderSummary(); renderPickers();
 });
 $('txnTable').addEventListener('click', async e => {

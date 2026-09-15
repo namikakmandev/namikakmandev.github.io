@@ -1,0 +1,75 @@
+<main>
+<header class="top">
+  <h1>Harcama Kontrolü</h1>
+  <span class="who" id="who">Ebru'nun kartı · 5549 60** **** 3053</span>
+  <span class="saved" id="savedAt"></span>
+</header>
+<nav class="jump">
+  <a href="#tab-ozet">Özet</a><a href="#taahhut">Taahhütler</a><a href="#tab-islemler">İşlemler</a>
+  <a href="#tab-butce">Bütçe</a><a href="#tab-ekle">Veri ekle</a>
+</nav>
+<div class="readonly" id="ro" hidden>Bu görünüm salt okunur: değişiklikler kaydedilmez.</div>
+
+<section id="tab-ozet"></section>
+
+<section id="tab-islemler">
+  <h2>İşlemler</h2>
+  <div class="row" style="margin-bottom:12px">
+    <input id="filterText" placeholder="Ara (işyeri, açıklama)" style="flex:1;min-width:180px">
+    <select id="filterCat"><option value="">Tüm kategoriler</option></select>
+    <select id="groupBy">
+      <option value="">Gruplama yok</option>
+      <option value="category">Kategoriye göre</option>
+      <option value="merchant">İşyerine göre</option>
+      <option value="month">Aya göre</option>
+    </select>
+  </div>
+  <p class="note" style="margin-top:-4px">Sütun başlığına tıklayarak sıralayın; tekrar tıklayınca yön değişir.</p>
+  <div class="wrap" style="max-height:520px;overflow:auto"><table id="txnTable"><thead><tr>
+    <th data-sort="date" class="sortable">Tarih</th><th data-sort="description" class="sortable">Açıklama</th>
+    <th data-sort="category" class="sortable">Kategori</th><th data-sort="amount" class="n sortable">Tutar</th>
+    <th>Taksit</th><th data-sort="statement" class="sortable">Kaynak</th><th></th></tr></thead><tbody></tbody></table></div>
+  <p class="note" id="txnCount"></p>
+</section>
+
+<section id="tab-butce">
+  <h2>Kategori bütçesi</h2>
+  <p class="note">İsteğe bağlı. “Aylık” kutusu tüm aylara uygulanır; tek bir ayı değiştirmek için o ayın kutusunu düzenleyin.
+    Kart toplamı için bütçe satırı “Veri ekle” bölümünden Excel ile yüklenir.</p>
+  <div class="wrap"><table id="budgetTable"></table></div>
+  <div class="row" style="margin-top:12px">
+    <input id="newCat" placeholder="Yeni kategori adı">
+    <button class="ghost" id="addCat">Kategori ekle</button>
+  </div>
+</section>
+
+<section id="tab-ekle">
+  <h2>Veri ekle</h2>
+  <h3 style="font:600 14px var(--sans);margin:14px 0 6px">Ekstre PDF</h3>
+  <div class="drop" id="drop">
+    Yeni ayın ekstresini buraya bırakın veya <button class="ghost" id="pickPdf">dosya seçin</button>
+    <div style="margin-top:10px"><input id="pdfPw" type="password" placeholder="PDF şifresi (varsa)"></div>
+  </div>
+  <input type="file" id="pdfInput" accept="application/pdf" multiple hidden>
+  <p class="note" id="pdfNote"></p>
+
+  <h3 style="font:600 14px var(--sans);margin:18px 0 6px">CSV</h3>
+  <div class="row"><button class="ghost" id="pickCsv">CSV seç</button><input type="file" id="csvInput" accept=".csv,text/csv" hidden></div>
+
+  <h3 style="font:600 14px var(--sans);margin:18px 0 6px">Bütçe tablosu (Excel)</h3>
+  <p class="note">Aylık bütçenizi .xlsx dosyasından okur; uygulamadan önce ne bulduğunu gösterir.</p>
+  <div class="row"><button class="ghost" id="pickXlsx">Excel dosyası seç</button><input type="file" id="xlsxInput" accept=".xlsx,.xlsm" hidden></div>
+  <div id="xlsxPreview" hidden class="card-box" style="margin-top:12px"></div>
+
+  <h3 style="font:600 14px var(--sans);margin:18px 0 6px">Tek işlem</h3>
+  <div class="card-box"><div class="row">
+    <input id="mDate" type="date" style="min-width:150px">
+    <input id="mDesc" placeholder="Açıklama / işyeri" style="flex:1;min-width:170px">
+    <input id="mAmount" type="number" step="0.01" placeholder="Tutar" style="width:130px">
+    <select id="mCat"></select>
+    <button id="addManual">Ekle</button>
+  </div><p class="note" style="margin:10px 0 0">İade veya kart ödemesi için tutarı eksi girin.</p></div>
+
+  <div class="log" id="log" hidden></div>
+</section>
+</main>

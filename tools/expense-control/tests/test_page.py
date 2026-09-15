@@ -172,9 +172,10 @@ def main():
             check("second click flips the direction", amounts()[0], "-149.340,29")
             page.select_option("#groupBy", "category")
             groups = page.evaluate("[...document.querySelectorAll('#txnTable tbody tr.grp td')].map(td => td.textContent)")
-            check("grouped by category with subtotals", any(g.startswith("Kategori: Giyim & Aksesuar") and "harcama" in g for g in groups), True)
+            check("grouped by category with subtotals", any("Kategori: Giyim & Aksesuar" in g and "harcama" in g for g in groups), True)
             # BARBOUR was moved to Seyahat & Konak a few steps up, which makes it the largest group
-            check("largest group first", groups[0].startswith("Kategori: Seyahat & Konak"), True)
+            check("largest group first", "Kategori: Seyahat & Konak" in groups[0], True)
+            check("group header carries the category glyph", groups[0].startswith("✈"), True)
             check("group count shown", "grup" in page.inner_text("#txnCount"), True)
             page.select_option("#groupBy", "month")
             months_seen = page.evaluate("[...document.querySelectorAll('#txnTable tbody tr.grp td')].map(td => td.textContent.slice(0, 11))")
