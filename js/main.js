@@ -178,16 +178,17 @@ document.querySelectorAll(".story-video").forEach((v) => {
     const chips = [];
     const fx = r.fx || {};
     const m = r.market || {};
-    if (fx.USDTRY) chips.push({ v: fx.USDTRY.toFixed(2), l: "USD / TRY", s: "ECB · " + (r.fxAsof || ""), h: "assetix.html" });
-    if (fx.EURTRY) chips.push({ v: fx.EURTRY.toFixed(2), l: "EUR / TRY", s: "ECB · " + (r.fxAsof || ""), h: "assetix.html" });
+    // Each chip opens the history behind the number in the explorer, not a generic page.
+    if (fx.USDTRY) chips.push({ v: fx.USDTRY.toFixed(2), l: "USD / TRY", s: "ECB · " + (r.fxAsof || ""), h: "explore.html#open=tr-fx-monthly" });
+    if (fx.EURTRY) chips.push({ v: fx.EURTRY.toFixed(2), l: "EUR / TRY", s: "ECB · " + (r.fxAsof || ""), h: "explore.html#open=tr-fx-monthly" });
     if (fx.GBPTRY) chips.push({ v: fx.GBPTRY.toFixed(2), l: "GBP / TRY", s: "ECB · " + (r.fxAsof || ""), h: "assetix.html" });
-    if (r.rate && r.rate.value != null) chips.push({ v: r.rate.value.toFixed(1) + "%", l: "TCMB policy rate", s: "TCMB · " + (r.rate.asof || ""), h: "assetix.html" });
-    if (m.deposit) chips.push({ v: m.deposit.value.toFixed(1) + "%", l: "TL deposit rate", s: "TCMB · " + m.deposit.asof, h: "assetix.html" });
-    if (m.loan_home) chips.push({ v: m.loan_home.value.toFixed(1) + "%", l: "TL housing loan rate", s: "TCMB · " + m.loan_home.asof, h: "assetix.html" });
-    if (m.loan_comm) chips.push({ v: m.loan_comm.value.toFixed(1) + "%", l: "TL commercial loan rate", s: "TCMB · " + m.loan_comm.asof, h: "assetix.html" });
-    if (m.tufe) chips.push({ v: "+" + m.tufe.yoy.toFixed(1) + "%", l: "TR inflation · CPI YoY", s: "TÜİK · " + m.tufe.asof, h: "assetix.html" });
-    if (m.kfe_tr) chips.push({ v: "+" + m.kfe_tr.yoy.toFixed(1) + "%", l: "TR house prices · YoY", s: "TCMB KFE · " + m.kfe_tr.asof, h: "assetix.html" });
-    if (m.kfe_ist) chips.push({ v: "+" + m.kfe_ist.yoy.toFixed(1) + "%", l: "Istanbul house prices · YoY", s: "TCMB KFE · " + m.kfe_ist.asof, h: "assetix.html" });
+    if (r.rate && r.rate.value != null) chips.push({ v: r.rate.value.toFixed(1) + "%", l: "TCMB policy rate", s: "TCMB · " + (r.rate.asof || ""), h: "explore.html#open=tr-rates" });
+    if (m.deposit) chips.push({ v: m.deposit.value.toFixed(1) + "%", l: "TL deposit rate", s: "TCMB · " + m.deposit.asof, h: "explore.html#open=tr-rates" });
+    if (m.loan_home) chips.push({ v: m.loan_home.value.toFixed(1) + "%", l: "TL housing loan rate", s: "TCMB · " + m.loan_home.asof, h: "explore.html#open=tr-rates" });
+    if (m.loan_comm) chips.push({ v: m.loan_comm.value.toFixed(1) + "%", l: "TL commercial loan rate", s: "TCMB · " + m.loan_comm.asof, h: "explore.html#open=tr-rates" });
+    if (m.tufe) chips.push({ v: "+" + m.tufe.yoy.toFixed(1) + "%", l: "TR inflation · CPI YoY", s: "TÜİK · " + m.tufe.asof, h: "explore.html#open=tr-cpi-ppi" });
+    if (m.kfe_tr) chips.push({ v: "+" + m.kfe_tr.yoy.toFixed(1) + "%", l: "TR house prices · YoY", s: "TCMB KFE · " + m.kfe_tr.asof, h: "explore.html#open=tr-house-prices" });
+    if (m.kfe_ist) chips.push({ v: "+" + m.kfe_ist.yoy.toFixed(1) + "%", l: "Istanbul house prices · YoY", s: "TCMB KFE · " + m.kfe_ist.asof, h: "explore.html#open=tr-house-prices" });
     try {
       const us = await (await fetch("https://namikakmandev.github.io/commercial-finance-tools/data/us.json", { cache: "no-store" })).json();
       const ppiYoy = (id) => {

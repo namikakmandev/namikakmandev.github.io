@@ -6,6 +6,9 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { buildServer, SERVER_NAME, SERVER_VERSION } from "./server.js";
 import { handleAnalyzeRequest, handleSeriesRequest } from "./api.js";
+import { AskQuota, handleAskRequest, ASK_MODEL, PER_VISITOR_PER_DAY } from "./ask.js";
+
+export { AskQuota };
 
 export interface Env {
   /** Where the curated datasets live. Defaults to the portfolio site when unset. */
@@ -23,6 +26,10 @@ export interface Env {
   FAOSTAT_USER?: string;
   FAOSTAT_PASSWORD?: string;
   FAOSTAT_API_TOKEN?: string;
+  /** Optional. Switches on /v1/ask, the website's question box; the owner pays per question. */
+  ANTHROPIC_API_KEY?: string;
+  /** The daily question counters behind /v1/ask. Declared in wrangler.jsonc. */
+  ASK_QUOTA?: DurableObjectNamespace;
 }
 
 function providerEnv(env: Env) {
@@ -72,7 +79,8 @@ export default {
         data_origin: origin,
         auth: env.MCP_API_KEYS ? "bearer" : "none",
         providers: { fred: "fetch keyless, search " + (env.FRED_API_KEY ? "enabled" : "starter list"), eurostat: "open", worldbank: "open", ecb: "open", oecd: "open", owid: "open", evds: env.EVDS_API_KEY ? "enabled" : "needs EVDS_API_KEY", bis: "open", fao: env.FAOSTAT_API_TOKEN || (env.FAOSTAT_USER && env.FAOSTAT_PASSWORD) ? "enabled" : "needs FAOSTAT_USER and FAOSTAT_PASSWORD", imf: "open", weather: "open", sec: "open" },
-        http: { series: new URL("/v1/series?s=" + encodeURIComponent('{"series":[{"dataset":"us-prices","series":"cattle_ppi","start":"2020"}]}'), url).href, analyze: new URL("/v1/analyze", url).href, chart: origin + "/chart.html" },
+        http: { series: new URL("/v1/series?s=" + encodeURIComponent('{"series":[{"dataset":"us-prices","series":"cattle_ppi","start":"2020"}]}'), url).href, analyze: new URL("/v1/analyze", url).href, chart: origin + "/chart.html",
+          ask: env.ANTHROPIC_API_KEY ? `${new URL("/v1/ask", url).href} (${ASK_MODEL}, ${PER_VISITOR_PER_DAY} questions per visitor per day)` : "off: no ANTHROPIC_API_KEY" },
         docs: "https://github.com/namikakmandev/namikakmandev.github.io/tree/main/mcp",
       });
     }
@@ -91,6 +99,10 @@ export default {
       return json(body, status);
     }
 
+    if (url.pathname === "/v1/ask" || url.pathname === "/v1/ask/quota") {
+      return handleAskRequest(request, env, new URL("/mcp", url).href);
+    }
+
     if (url.pathname === "/mcp") {
       if (!authorized(request, env)) {
         return withCors(new Response("Unauthorized", { status: 401, headers: { "www-authenticate": "Bearer" } }));
@@ -105,6 +117,6 @@ export default {
       return withCors(res);
     }
 
-    return json({ error: "not found", try: ["/", "/mcp", "/health", "/v1/series?s=...", "/v1/analyze"] }, 404);
+    return json({ error: "not found", try: ["/", "/mcp", "/health", "/v1/series?s=...", "/v1/analyze", "/v1/ask"] }, 404);
   },
 } satisfies ExportedHandler<Env>;

@@ -236,8 +236,11 @@ await check("structural_break scans and tests a date", async () => {
   const scan = await call("structural_break", { y: { ...CPI, start: "2015-01", transform: "yoy" } });
   assert.match(scan.most_likely_break, /^\d{4}-\d{2}$/);
   const at = await call("structural_break", { y: { ...CPI, start: "2015-01", transform: "yoy" }, date: "2021-03" });
-  assert.equal(at.test, "Chow");
-  assert.ok(at.p < 0.05);
+  assert.match(at.test, /^Chow/);
+  // the 2021 inflation surge is a real break: it survives the serial-correlation correction
+  assert.ok(at.serial_correlation_correction >= 1, `correction ${at.serial_correlation_correction}`);
+  assert.ok(at.p_uncorrected < 0.05);
+  assert.ok(at.p < 0.05, `corrected p ${at.p}`);
 });
 
 await check("rolling correlation over 36 months", async () => {

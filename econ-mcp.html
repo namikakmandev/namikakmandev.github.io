@@ -52,6 +52,32 @@
     pre.code code { color: var(--text); }
 
     .prov { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin: 14px 0 8px; }
+    /* Ask the data */
+    .ask { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius, 14px); padding: 16px 18px 14px; margin: 6px 0 26px; }
+    .ask-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .ask-head .sec { margin: 0 0 6px; }
+    .ask-quota { color: var(--text-dim); font-size: .78rem; white-space: nowrap; }
+    .ask-form { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
+    .ask-form textarea { flex: 1; resize: vertical; min-height: 44px; font: inherit; font-size: .93rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; }
+    .ask-form textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .ask-go { background: var(--accent); color: #fff; border: 0; font: inherit; font-weight: 600; font-size: .9rem; padding: 0 18px; border-radius: 10px; cursor: pointer; }
+    .ask-go[disabled] { opacity: .5; cursor: default; }
+    .ask-examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .ask-eg { background: transparent; border: 1px solid var(--border); color: var(--text-dim); font: inherit; font-size: .78rem; padding: 4px 10px; border-radius: 999px; cursor: pointer; text-align: left; }
+    .ask-eg:hover { color: var(--text); border-color: var(--accent); }
+    .ask-thread { display: flex; flex-direction: column; gap: 10px; margin: 8px 0 12px; }
+    .ask-msg { border-radius: 12px; padding: 10px 14px; font-size: .92rem; line-height: 1.55; max-width: 60ch; }
+    .ask-msg.me { align-self: flex-end; background: rgba(47,155,255,.14); border: 1px solid rgba(47,155,255,.35); }
+    .ask-msg.bot { align-self: stretch; max-width: none; background: var(--surface-2); border: 1px solid var(--border); }
+    .ask-msg p { margin: 0 0 8px; } .ask-msg p:last-child { margin-bottom: 0; } .ask-msg ul { margin: 4px 0 8px 18px; } .ask-msg a { color: var(--accent); }
+    .ask-msg code { font-size: .85em; background: rgba(127,127,127,.15); padding: 1px 5px; border-radius: 5px; }
+    .ask-status { color: var(--text-dim); font-size: .76rem; margin-bottom: 4px; min-height: 1em; }
+    .ask-err { color: var(--loss, #e5484d); }
+    .ask-limit { background: rgba(255,101,0,.10); border: 1px solid rgba(255,101,0,.35); border-radius: 10px; padding: 9px 12px; font-size: .86rem; margin-top: 10px; }
+    .ask-limit a { color: var(--accent); }
+    @media (max-width: 560px) { .ask-form { flex-direction: column; } .ask-go { padding: 10px; } }
+    .ask .sec { font-size: 1.15rem; font-weight: 700; margin: 0; }
+    .ask .sec-note { color: var(--text-dim); font-size: .88rem; margin-bottom: 12px; max-width: 72ch; }
     .prov .p { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; }
     .prov .p h4 { font-size: .92rem; margin: 0 0 4px; }
     .prov .p .cov { color: var(--text-dim); font-size: .8rem; line-height: 1.45; }
@@ -127,7 +153,9 @@
           <div class="k"><div class="l">Analysis tools</div><div class="v">20</div><div class="d">econometrics, dependency-free</div></div>
         </div>
 
-        <h2>Connect</h2>
+        <div id="ask" data-connect="#connect"></div>
+
+        <h2 id="connect">Connect</h2>
         <h3>Claude.ai and Claude Desktop</h3>
         <p>Settings, Connectors, <b>Add custom connector</b>, and paste the endpoint above.</p>
         <h3>Claude Code</h3>
@@ -217,6 +245,7 @@
   </main>
 
   <script src="js/main.js" defer></script>
+  <script src="js/ask.js" defer></script>
   <script>
   (function () {
     "use strict";

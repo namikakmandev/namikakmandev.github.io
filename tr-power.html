@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Türkiye's power price and the renewables build-out — Namık Akman</title>
+  <meta name="description" content="Türkiye's electricity from renewables rose from a quarter to over two fifths since 2008. The industrial power price, in 2025 lira, did not fall: it tracks the European gas price and the lira. A study from the committed data, with every number reproducible." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#f4f4f1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <link rel="stylesheet" href="css/data-look.css?v=1" />
+  <style>
+    .study { padding: 30px 0 72px; }
+    .study .container { max-width: 980px; }
+    .study .back { color: var(--text-dim); font-size: .86rem; }
+    .study .eyebrow { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .09em; color: var(--text-dim); margin-top: 14px; }
+    .study h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); margin: 6px 0 12px; max-width: 24ch; }
+    .study .lede { color: var(--text); font-size: 1.08rem; line-height: 1.55; margin-bottom: 8px; max-width: 64ch; }
+    .study .sub { color: var(--text-dim); font-size: .95rem; line-height: 1.55; margin-bottom: 18px; max-width: 64ch; }
+    .facts { display: flex; flex-wrap: wrap; gap: 6px 34px; border-top: 1px solid var(--text); border-bottom: 1px solid var(--border); padding: 12px 0; margin: 4px 0 34px; font-family: var(--mono); font-size: .8rem; color: var(--text-dim); }
+    .facts b { color: var(--text); font-weight: 500; font-size: 1.1rem; margin-right: 6px; }
+    h2 { font-family: var(--display); font-weight: 600; font-size: 1.5rem; letter-spacing: -.01em; line-height: 1.2; margin: 40px 0 6px; max-width: 30ch; text-wrap: balance; }
+    h2 small { display: block; font-family: var(--font); font-weight: 400; font-size: .9rem; color: var(--text-dim); margin-top: 4px; letter-spacing: 0; }
+    p { max-width: 66ch; line-height: 1.6; }
+    .study p { margin: 0 0 12px; }
+    .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px 12px; margin: 14px 0 8px; }
+    .fig svg { width: 100%; height: auto; display: block; font-family: var(--mono); }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--text-dim); margin-top: 8px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 10px; height: 3px; border-radius: 2px; background: currentColor; }
+    .legend i.dash { background: repeating-linear-gradient(90deg, currentColor 0 3px, transparent 3px 5px); }
+    .src { font-size: .76rem; color: var(--text-dim); margin-top: 6px; line-height: 1.45; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+    table.t { border-collapse: collapse; font-family: var(--mono); font-size: .82rem; margin: 10px 0 14px; width: 100%; max-width: 640px; }
+    table.t th, table.t td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    table.t th:first-child, table.t td:first-child { text-align: left; }
+    table.t th { color: var(--text-dim); font-weight: 500; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; }
+    table.t td.bad { color: var(--loss); } table.t td.good { color: var(--accent-2); }
+    @media (max-width: 700px) { table.t { display: block; overflow-x: auto; white-space: nowrap; } }
+    .verdict { border-top: 2px solid var(--text); margin-top: 40px; padding-top: 6px; }
+    .verdict h2 { margin-top: 12px; }
+    .rows { display: grid; gap: 12px; margin-top: 14px; }
+    .row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .row b.who { font-family: var(--display); font-size: 1.05rem; line-height: 1.25; }
+    .row .do { font-weight: 600; }
+    .row .if { color: var(--text-dim); font-size: .86rem; margin-top: 4px; }
+    .row .badge { display: inline-block; font-family: var(--mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; margin-bottom: 6px; }
+    .badge.no { background: rgba(198,40,40,.1); color: var(--loss); } .badge.yes { background: rgba(19,138,90,.12); color: var(--accent-2); } .badge.watch { background: rgba(217,84,30,.12); color: var(--accent-3); }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+    .care { margin-top: 36px; font-size: .88rem; color: var(--text-dim); line-height: 1.55; max-width: 76ch; }
+    .care h2 { font-size: 1.25rem; color: var(--text); }
+    .care ul { margin: 6px 0 12px 18px; padding: 0; }
+    .care li { margin-bottom: 6px; }
+    .care code { font-family: var(--mono); font-size: .84em; }
+    .care a { color: var(--accent); }
+  </style>
+</head>
+<body class="tool-light data-look">
+  <header class="site-header">
+    <div class="container nav">
+      <a href="index.html" class="brand">Namık <span>Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="explore.html">Data</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="explore.html" class="back">&larr; Explore the data</a>
+        <span class="eyebrow">Türkiye · electricity · 2008 to 2025</span>
+        <h1>Türkiye built the renewables. The power price followed the gas market.</h1>
+        <p class="lede">Renewables' share of Turkish electricity went from a sixth in 2008 to over two fifths in 2025, and solar
+        alone now makes more power than the whole wind and solar fleet did in 2020. The price an industrial user pays, in
+        lira of 2025, is no lower than it was in 2008. It moved with the European gas price and the lira, not with the share.</p>
+        <p class="sub">Every figure below is recomputed from the committed data files by <code>scripts/tr_power_study.py</code>.
+        Money is in lira at 2025 prices (TÜİK CPI) or in euro at the half-year rate; the deflator and the breaks are listed at the end.</p>
+        <div class="facts" id="facts"></div>
+
+        <h2>Where Türkiye's electricity comes from<small>Generation by source, TWh a year, 2000 to 2025. Ember via Our World in Data.</small></h2>
+        <p>Gas was the largest source in 2010, close to half of generation. By 2025 it made a fifth. What replaced it was not only
+        renewables: coal generation more than doubled, and coal is now the biggest single source. Wind and solar went from
+        nothing to a fifth. Hydro is the swing: a dry 2025 took it to a sixth of generation, matching the 2014 low, and gas filled the gap.</p>
+        <div class="fig"><div id="fig-mix"></div><div class="legend" id="leg-mix"></div>
+          <div class="src">Generation, not consumption; Türkiye is a small net importer. 2025 is Ember's provisional year. Source: electricity-mix (Ember Yearly Electricity Data via Our World in Data), TR|coal … TR|solar, TWh.</div></div>
+        <table class="t" id="shares"></table>
+
+        <h2>The share rose. The real price did not fall.<small>Renewables' share of generation against the industrial power price in lira of 2025, 2008 to 2025.</small></h2>
+        <p>The industrial price (Eurostat's band for a mid-size user, before VAT) was flat in real terms for a decade, about
+        three lira of 2025 per kilowatt-hour. It rose from 2019, spiked in the second half of 2022 to more than three times
+        its 2010 level, and fell back to four lira by 2025. Across the same years the renewables share climbed from 17% to 43%. If the build-out
+        lowered the price, this series does not show it: the correlation between the two is positive, and once the sample is
+        discounted for how slowly both series move it is not distinguishable from zero.</p>
+        <div class="two">
+          <div class="fig"><div id="fig-share"></div><div class="legend"><span><i style="color:#138a5a"></i>Renewables share of generation, %</span></div>
+            <div class="src">renewables-share, TR. Ember via OWID. Nuclear is not counted as renewable; hydro is, which is why dry years dip.</div></div>
+          <div class="fig"><div id="fig-price"></div><div class="legend"><span><i style="color:#1c63c9"></i>Industrial price, TRY of 2025 per kWh</span><span><i style="color:#d9541e"></i>Same price in euro</span></div>
+            <div class="src">elec-eu, TR: Eurostat nrg_pc_205 band IC, excl. VAT and recoverable taxes, half-yearly. Deflated by TÜİK CPI (2025 = 100); euro at the half-year mean EUR/TRY.</div></div>
+        </div>
+        <table class="t" id="test"></table>
+
+        <h2>What the price did follow<small>The Turkish real industrial price and the European natural-gas price, annual, 2008 to 2025.</small></h2>
+        <p>Set the price against the European gas price and the shape matches: the 2019 climb, the 2022 spike, the fall
+        after. Türkiye imports almost all of its gas and much of its coal, and the plants that set the marginal price burn
+        them. The level correlation is strong and survives the autocorrelation discount; year-to-year changes are noisier,
+        which is what a regulated tariff that lags the market looks like.</p>
+        <div class="fig"><div id="fig-gas"></div><div class="legend"><span><i style="color:#1c63c9"></i>Industrial price, TRY of 2025 per kWh, annual mean</span><span><i style="color:#7b3fd1"></i>European natural gas, USD per MMBtu, annual mean</span></div>
+          <div class="src">wb-commodities natgas_eur (World Bank Pink Sheet), annual means of monthly prices. Each series is drawn as an index, 2010 = 100, so the two units share one axis.</div></div>
+
+        <h2>Households saw something else entirely<small>Household price in euro, all taxes, against the industrial price in euro, 2008 to 2025.</small></h2>
+        <p>The household tariff, in euro, is below where it was in 2008 and less than half its 2013 level. That is not the
+        renewables either: it is a regulated tariff that was held while the lira fell, which is a policy choice and a subsidy,
+        and it barely moved in 2022 while the market-facing industrial band more than doubled. Read the household line as
+        policy, not as a market price.</p>
+        <div class="fig"><div id="fig-hh"></div><div class="legend"><span><i style="color:#d9541e"></i>Industrial, EUR per kWh, before VAT</span><span><i style="color:#b7791f"></i>Household, EUR per kWh, all taxes</span></div>
+          <div class="src">energy-household-eu, TR: Eurostat nrg_pc_204 band DC, all taxes included, euro. elec-eu, TR converted at the half-year mean EUR/TRY.</div></div>
+
+        <div class="verdict">
+          <h2>What to do with this</h2>
+          <div class="rows">
+            <div class="row"><div><span class="badge no">Not supported</span><b class="who">An industrial buyer in Türkiye</b></div>
+              <div><div class="do">Budget 2026 power on the lira and the imported gas price, not on the renewables share.</div>
+                <div class="if">What would change it: a wholesale price series (EPİAŞ day-ahead) parting from the gas price for two consecutive years. It is not in this collection yet.</div></div></div>
+            <div class="row"><div><span class="badge yes">Supported</span><b class="who">An investor in Turkish generation</b></div>
+              <div><div class="do">Solar is the growth source: it added more TWh in 2025 than any other. Coal is the base; gas is the swing when hydro fails, as in 2025.</div>
+                <div class="if">What would change it: two wet years in a row, or a carbon price on coal. Watch hydro's share, printed above, each spring.</div></div></div>
+            <div class="row"><div><span class="badge watch">Read as policy</span><b class="who">Anyone quoting household prices</b></div>
+              <div><div class="do">Do not compare Turkish household tariffs with European ones as market prices; they are administered and lag the lira.</div>
+                <div class="if">What would change it: a tariff reform that indexes households to cost, which would show as the household line converging on the industrial one.</div></div></div>
+          </div>
+        </div>
+
+        <div class="care">
+          <h2>Read with care</h2>
+          <ul>
+            <li><b>Deflator.</b> Lira prices are divided by TÜİK's consumer price index, 2025 = 100 (dataset tr-cpi-ppi, series cpi, half-year means). Euro prices use the half-year mean EUR/TRY (tr-fx-monthly, eur_try). A different deflator, the domestic PPI, would flatten the 2022 spike less, since producer prices rose faster than consumer prices that year.</li>
+            <li><b>What the price is.</b> Eurostat's band IC is a mid-size industrial consumer (500 to 1 999 MWh a year) excluding VAT and other recoverable taxes, in national currency. It is a published tariff band, not the wholesale market price, and Turkish tariffs are set by the regulator in steps: half-yearly points can lag the market by a period.</li>
+            <li><b>The test.</b> Eighteen annual points of two slow-moving series. The effective sample after the lag-1 autocorrelation discount is about six for the share and thirteen for the gas price; p_adj is read at that size. A correlation is not a cause either way: the gas result says the price moved with the fuel, not that renewables had no effect on what the price would otherwise have been. That counterfactual needs a market-price series and a merit-order model, neither of which is here.</li>
+            <li><b>Breaks.</b> None known in the price series; the 2022 values are real, not a break. Ember's 2025 is provisional. The renewables share counts hydro, so it falls in dry years without any plant closing.</li>
+            <li><b>Not measured.</b> Wholesale prices, installed capacity, generation cost by source, subsidies to the household tariff. The household conclusion rests on the tariff moving against the market band, not on a subsidy figure.</li>
+            <li><b>Reproduce it.</b> <code>python3 scripts/tr_power_study.py</code> rewrites <a href="data/tr-power-study.json">data/tr-power-study.json</a> from data/electricity-mix.json, data/renewables-share.json, data/elec-eu.json, data/energy-household-eu.json, data/tr-cpi-ppi.json, data/tr-fx-monthly.json and data/wb-commodities.json. This page draws from that file and nothing else. Data cut-off: the refresh date printed at the top.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="js/main.js" defer></script>
+  <script>
+  (function () {
+    "use strict";
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function fmt(v, d) { if (v == null) return "·"; if (d == null) d = Math.abs(v) < 1 && v !== 0 ? 2 : 1; return v.toLocaleString("en-GB", { maximumFractionDigits: d, minimumFractionDigits: 0 }); }
+    function nice(lo, hi, want) {
+      if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
+      var raw = (hi - lo) / (want || 4), mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+      var step = (r >= 5 ? 10 : r >= 2.5 ? 5 : r >= 2 ? 2.5 : r >= 1 ? 2 : 1) * mag, t = [];
+      for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10));
+      return t;
+    }
+    function xOf(d) {
+      var m;
+      if ((m = /^(\d{4})$/.exec(d))) return +m[1] + 0.5;
+      if ((m = /^(\d{4})-S([12])$/.exec(d))) return +m[1] + (+m[2] - 0.5) / 2;
+      return NaN;
+    }
+    /* lines: [{name, color, pts: [[date, value]], dash}] ; opts: {unit, zero} */
+    function chart(hostId, lines, opts) {
+      opts = opts || {};
+      var host = document.getElementById(hostId), W = 640, H = 240, L = 44, R = 12, T = 12, B = 24;
+      var narrow = host.clientWidth && host.clientWidth < 420; if (narrow) { W = 400; H = 220; }
+      var x0 = Infinity, x1 = -Infinity, lo = Infinity, hi = -Infinity;
+      lines.forEach(function (l) { l.pts.forEach(function (p) { if (p[1] == null) return; var x = xOf(p[0]); if (x < x0) x0 = x; if (x > x1) x1 = x; if (p[1] < lo) lo = p[1]; if (p[1] > hi) hi = p[1]; }); });
+      if (opts.zero !== false && lo > 0) lo = 0;
+      var ticks = nice(lo, hi); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+      var widest = ticks.reduce(function (w, t) { return Math.max(w, (fmt(t) + (opts.unit || "")).length); }, 0);
+      L = Math.max(L, Math.ceil(widest * 6.6) + 12);
+      var iw = W - L - R, ih = H - T - B;
+      var X = function (x) { return L + (x - x0) / ((x1 - x0) || 1) * iw; }, Y = function (v) { return T + (hi - v) / ((hi - lo) || 1) * ih; };
+      var s = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + esc(lines.map(function (l) { return l.name; }).join(", ")) + "'>";
+      ticks.forEach(function (t) {
+        s += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + Y(t).toFixed(1) + "' y2='" + Y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".35" : ".12") + "'/>" +
+          "<text x='" + (L - 7) + "' y='" + (Y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t) + (opts.unit || "")) + "</text>";
+      });
+      var span = x1 - x0, step = span > 20 ? 5 : span > 10 ? 3 : 2;
+      for (var y = Math.ceil(x0); y <= x1; y++) if (y % step === 0) s += "<text x='" + X(y + 0.5).toFixed(1) + "' y='" + (H - 6) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + y + "</text>";
+      lines.forEach(function (l) {
+        var d = "";
+        l.pts.forEach(function (p) { if (p[1] == null) return; var x = xOf(p[0]); d += (d ? "L" : "M") + X(x).toFixed(1) + " " + Y(p[1]).toFixed(1); });
+        s += "<path d='" + d + "' fill='none' stroke='" + l.color + "' stroke-width='2'" + (l.dash ? " stroke-dasharray='5 4'" : "") + " stroke-linejoin='round' stroke-linecap='round'/>";
+        var last = l.pts.filter(function (p) { return p[1] != null; }).slice(-1)[0];
+        if (last) s += "<circle cx='" + X(xOf(last[0])).toFixed(1) + "' cy='" + Y(last[1]).toFixed(1) + "' r='3.2' fill='" + l.color + "'/>";
+      });
+      host.innerHTML = s + "</svg>";
+    }
+    var C = { coal: "#16191f", gas: "#7b3fd1", hydro: "#1c63c9", wind: "#138a5a", solar: "#b7791f", bioenergy: "#c2306a", other_renewables: "#5d6470" };
+    var NAMES = { coal: "Coal", gas: "Gas", hydro: "Hydro", wind: "Wind", solar: "Solar", bioenergy: "Bioenergy", other_renewables: "Geothermal and other" };
+
+    fetch("data/tr-power-study.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (S) {
+      var last = S.price[S.price.length - 1], first = S.price[0];
+      var sh = S.shares;
+      document.getElementById("facts").innerHTML =
+        "<span><b>" + fmt(sh["2025"].renewables_ember, 0) + "%</b>renewables share, 2025 (" + fmt(S.renewables_share[8] ? S.renewables_share.filter(function (p) { return p[0] === "2008"; })[0][1] : 0, 0) + "% in 2008)</span>" +
+        "<span><b>" + fmt(last.industrial_try_2025, 2) + "</b>TRY of 2025 per kWh, industrial, " + esc(last.period.replace("-S", " H")) + " (" + fmt(first.industrial_try_2025, 2) + " in " + esc(first.period.replace("-S", " H")) + ")</span>" +
+        "<span><b>" + fmt(sh["2025"].total_twh, 0) + " TWh</b>generated in 2025 (" + fmt(sh["2010"].total_twh, 0) + " in 2010)</span>" +
+        "<span><b>r = " + fmt(S.test.share_vs_real_price_levels.r, 2) + "</b>share vs real price, n_eff " + fmt(S.test.share_vs_real_price_levels.n_eff, 1) + ", p_adj " + fmt(S.test.share_vs_real_price_levels.p_adj, 2) + "</span>";
+
+      var order = ["coal", "gas", "hydro", "wind", "solar", "bioenergy", "other_renewables"];
+      chart("fig-mix", order.map(function (k) { return { name: NAMES[k], color: C[k], pts: S.generation_twh[k] }; }), { unit: "" });
+      document.getElementById("leg-mix").innerHTML = order.map(function (k) { return "<span><i style='color:" + C[k] + "'></i>" + NAMES[k] + "</span>"; }).join("");
+      document.getElementById("shares").innerHTML = "<tr><th>Share of generation, %</th><th>2010</th><th>2015</th><th>2020</th><th>2025</th></tr>" +
+        [["Coal", "coal"], ["Gas", "gas"], ["Hydro", "hydro"], ["Wind and solar", "wind_solar"], ["All renewables (Ember)", "renewables_ember"], ["Total, TWh", "total_twh"]].map(function (r) {
+          return "<tr><td>" + r[0] + "</td>" + ["2010", "2015", "2020", "2025"].map(function (y) { return "<td>" + fmt(sh[y][r[1]], r[1] === "total_twh" ? 0 : 1) + "</td>"; }).join("") + "</tr>";
+        }).join("");
+
+      chart("fig-share", [{ name: "Renewables share", color: "#138a5a", pts: S.renewables_share.filter(function (p) { return p[0] >= "2008"; }) }], { unit: "%" });
+      chart("fig-price", [
+        { name: "Industrial, TRY of 2025", color: "#1c63c9", pts: S.price.map(function (p) { return [p.period, p.industrial_try_2025]; }) },
+        { name: "Industrial, EUR ×10", color: "#d9541e", pts: S.price.map(function (p) { return [p.period, p.industrial_eur * 10]; }), dash: true }
+      ], { unit: "" });
+      document.querySelector("#fig-price").insertAdjacentHTML("afterend", "<div class='src'>The euro line is drawn at ten times its value so both fit one axis: 0.089 EUR reads as 0.89.</div>");
+
+      var t = S.test, rows = [["Renewables share vs real price, levels", t.share_vs_real_price_levels], ["Renewables share vs real price, yearly changes", t.share_vs_real_price_changes], ["European gas price vs real price, levels", t.gas_vs_real_price_levels], ["European gas price vs real price, yearly changes", t.gas_vs_real_price_changes]];
+      document.getElementById("test").innerHTML = "<tr><th>" + esc(t.years[0] + " to " + t.years[1] + ", annual") + "</th><th>r</th><th>n</th><th>n_eff</th><th>p_adj</th><th>verdict</th></tr>" + rows.map(function (r) {
+        var ok = r[1].p_adj < 0.05;
+        return "<tr><td>" + esc(r[0]) + "</td><td>" + fmt(r[1].r, 2) + "</td><td>" + r[1].n + "</td><td>" + fmt(r[1].n_eff, 1) + "</td><td>" + fmt(r[1].p_adj, 3) + "</td><td class='" + (ok ? "good" : "bad") + "'>" + (ok ? "holds" : "not distinguishable from zero") + "</td></tr>";
+      }).join("");
+
+      // gas vs real price, both as an index 2010 = 100
+      var byY = {}; S.price.forEach(function (p) { (byY[p.period.slice(0, 4)] = byY[p.period.slice(0, 4)] || []).push(p.industrial_try_2025); });
+      var yrs = Object.keys(byY).filter(function (y) { return byY[y].length === 2 && S.gas_eur_usd_mmbtu[y] != null && y >= "2008"; }).sort();
+      var p10 = byY["2010"] ? (byY["2010"][0] + byY["2010"][1]) / 2 : 1, g10 = S.gas_eur_usd_mmbtu["2010"] || 1;
+      chart("fig-gas", [
+        { name: "Industrial real price, 2010 = 100", color: "#1c63c9", pts: yrs.map(function (y) { return [y, (byY[y][0] + byY[y][1]) / 2 / p10 * 100]; }) },
+        { name: "European gas, 2010 = 100", color: "#7b3fd1", pts: yrs.map(function (y) { return [y, S.gas_eur_usd_mmbtu[y] / g10 * 100]; }), dash: true }
+      ], { unit: "" });
+
+      chart("fig-hh", [
+        { name: "Industrial, EUR", color: "#d9541e", pts: S.price.map(function (p) { return [p.period, p.industrial_eur]; }) },
+        { name: "Household, EUR", color: "#b7791f", pts: S.price.map(function (p) { return [p.period, p.household_eur]; }) }
+      ], { unit: "" });
+    }).catch(function (e) { document.getElementById("facts").textContent = "The study file could not be read: " + e.message; });
+  })();
+  </script>
+</body>
+</html>

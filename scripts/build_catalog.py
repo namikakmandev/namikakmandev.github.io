@@ -36,6 +36,39 @@ MANUAL = {
     },
 }
 
+# Units and sources for files that other scripts write. Those scripts do not go through
+# data-sources.json, so without this the catalogue has no idea what their numbers are
+# measured in, and a chart of them cannot say either.
+SIDECAR = {
+    "data/cattle-parity.json": {"unit": "index, 2016 = 100 (meat price over feed price, and the two indices behind it)",
+                                "source": "FRED/BLS (US), EC agri-food data portal (EU), TCMB EVDS (TR), Israel CBS (IL): meat and feed price indices, monthly"},
+    "data/corn-parity.json": {"unit": "index, 2016 = 100 (meat price over corn price)",
+                              "source": "FRED/BLS WPU0131 and WPU012202 (US), EC agri-food data portal (EU), monthly"},
+    "data/cattle-us.json": {"units": {"cattle_ppi": "producer price index, 1982 = 100", "corn_ppi": "producer price index, 1982 = 100", "parity_cattle_over_corn": "ratio of the two indices"}},
+    "data/cattle-tr.json": {"units": {"meat_ppi": "producer price index, 2003 = 100", "feed_ppi": "producer price index, 2003 = 100", "parity_meat_over_feed": "ratio of the two indices"}},
+    "data/cattle-eu.json": {"units": {"beef_r3_eur_100kg": "EUR per 100 kg carcass weight", "feed_eur_t": "EUR per tonne", "parity_beef_over_feed": "ratio (EUR/100kg over EUR/t)"}},
+    "data/cattle-il.json": {"units": {"beef_ppi": "price index, chained to the latest CBS base", "fodder_idx": "price index, chained to the latest CBS base", "parity_beef_over_fodder": "ratio of the two indices"}},
+    "data/cattle-il-alt.json": {"units": {"beef_ppi": "price index, chained to the latest CBS base", "fodder_idx": "price index, chained to the latest CBS base", "parity_beef_over_fodder": "ratio of the two indices"}},
+    "data/broiler-parity-pl.json": {"unit": "parity = chicken-meat PPI over feed PPI; the two indices are 2015 = 100",
+                                    "source": "Eurostat sts_inppd_m, Poland: producer prices for C1012 (poultry meat) and C1091 (prepared feeds), monthly"},
+    "data/vetcost-us.json": {"unit": "US dollars per cow per year (production rows are head per 100 cows)"},
+    "data/vetcost-eu-tr.json": {"unit": "million EUR at current prices, all livestock"},
+    "data/ecb-spf.json": {"unit": "probability, percent, that euro-area inflation falls in the bucket; actual_hicp in percent"},
+    "data/ecb-forecaster-skill.json": {"unit": "score and rank per forecaster; see the note for the construction",
+                                       "source": "ECB Survey of Professional Forecasters, scored against ECB HICP outturns"},
+    "data/pharma-share.json": {"unit": "percent (share of GDP, of total GVA and of manufacturing GVA); pharma_gva in million national currency",
+                               "source": "Eurostat nama_10_a64 and nama_10_gdp, C21 pharmaceuticals, current prices"},
+    "data/pharma-share-stan.json": {"unit": "percent of total-economy value added; pharma_va in million national currency",
+                                    "source": "OECD STAN DF_STAN_2025, ISIC C21, current prices"},
+    "data/pharma-therapeutic.json": {"unit": "EUR (total_bn in billions) for 2024 exports to the world",
+                                     "source": "Eurostat Comext DS-045409, HS 6-digit pharmaceutical classes"},
+    "data/pharma-eroom-results.json": {"unit": "approvals per billion USD of R&D (constant dollars) and fitted halving times in years",
+                                       "source": "scripts/pharma_eroom.py over data/pharma-eroom.json"},
+    "data/price-leverage-results.json": {"unit": "percent: operating margin and its year-on-year change, by region and industry edition",
+                                         "source": "Damodaran industry margin editions, aggregated by scripts/price_leverage.py"},
+    "data/livestock-ins-tarsim.json": {"source": "TARSİM annual reports (Türkiye), USDA RMA (USA) and ENESA (Spain) livestock insurance statistics"},
+}
+
 # YYYY, YYYY-MM, YYYY-MM-DD, and Eurostat's YYYY-Qn / YYYY-Sn
 DATE = re.compile(r"^\d{4}(-(\d{2}|Q\d|S\d))?(-\d{2})?$")
 
@@ -224,10 +257,16 @@ def main():
         else:
             scripts = producer_script(base)
             if scripts:                                     # another script writes it
+                side = SIDECAR.get(rel, {})
                 e.update(provenance="script", producer=", ".join(scripts),
                          auto_refresh=False,
-                         source=obj.get("source") if isinstance(obj, dict) else None,
+                         source=(obj.get("source") if isinstance(obj, dict) else None) or side.get("source"),
                          note=obj.get("note") if isinstance(obj, dict) else None)
+                unit = (obj.get("unit") if isinstance(obj, dict) else None) or side.get("unit")
+                if unit:
+                    e["unit"] = unit
+                if side.get("units"):
+                    e["units"] = side["units"]
             else:                                           # nothing claims it
                 e.update(provenance="unattributed", producer=None, auto_refresh=False,
                          source=obj.get("source") if isinstance(obj, dict) else None,

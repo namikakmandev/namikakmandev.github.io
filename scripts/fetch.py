@@ -137,7 +137,16 @@ def owid(entry):
                               "n_entities": len(ents), "entities_sample": ents[:60]}}
     ent_col = "entity" if "entity" in cols else "Entity"
     yr_col = "year" if "year" in cols else "Year"
-    valcol = next(c for c in cols if c.lower() not in ("entity", "code", "year"))
+    # One value column by default. A stacked chart (electricity by source) has several:
+    # entry['columns'] {csv column: suffix} keeps each as '<entity key>|<suffix>', the
+    # same country|indicator shape the WDI and WEO files use.
+    if entry.get("columns"):
+        missing = [c for c in entry["columns"] if c not in cols]
+        if missing:
+            raise RuntimeError(f"OWID columns not in {entry['slug']}: {missing}; have {cols}")
+        valcols = [(c, "|" + suffix) for c, suffix in entry["columns"].items()]
+    else:
+        valcols = [(next(c for c in cols if c.lower() not in ("entity", "code", "year")), "")]
     want = entry.get("entities") or {}
     out = defaultdict(dict)
     for row in rdr:
@@ -145,10 +154,11 @@ def owid(entry):
         key = want.get(name)
         if not key:
             continue
-        try:
-            out[key][int(row[yr_col])] = float(row[valcol])
-        except (ValueError, TypeError, KeyError):
-            continue
+        for valcol, suffix in valcols:
+            try:
+                out[key + suffix][int(row[yr_col])] = float(row[valcol])
+            except (ValueError, TypeError, KeyError):
+                continue
     return dict(out)
 
 
@@ -803,6 +813,22 @@ def run(entry):
     # downstream. Drop them, then put last month's values back for whatever failed, so a
     # timeout costs freshness rather than the series itself.
     data = {k: v for k, v in data.items() if k not in errs}
+    # Optional rescaling of a stretch of history, for a source that changes unit part way
+    # (EVDS serves pre-2005 lira with six extra zeros): [{before: 'YYYY-MM', factor: 1e-6}].
+    for rule in entry.get("rescale", []):
+        before, factor = str(rule["before"]), float(rule["factor"])
+        keys = rule.get("keys") or list(data)
+        for k in keys:
+            v = data.get(k)
+            if isinstance(v, dict):
+                data[k] = {t: (x * factor if isinstance(x, (int, float)) and str(t) < before else x) for t, x in v.items()}
+    # A monthly sum of daily data is a partial month until the month ends, and it draws as
+    # a cliff. entry['drop_current_period'] removes any key that is this month or later.
+    if entry.get("drop_current_period"):
+        this_month = time.strftime("%Y-%m", time.gmtime())
+        for k, v in data.items():
+            if isinstance(v, dict):
+                data[k] = {t: x for t, x in v.items() if str(t)[:7] < this_month}
     out_path = os.path.join(ROOT, entry["out"])
     carried = []
     if errs and os.path.exists(out_path):
@@ -810,8 +836,13 @@ def run(entry):
             prev = json.load(open(out_path)).get("series") or {}
         except Exception:  # noqa: BLE001 — an unreadable previous file is not fatal
             prev = {}
+        # Only keys this config still asks for come back, and never a stored error dict:
+        # an old {"error": ...} block would otherwise be re-embalmed on every run.
+        wanted = set(entry["series"]) if isinstance(entry.get("series"), dict) else None
         for k, v in prev.items():
             if k.startswith("_error|") or k in data or not isinstance(v, dict) or not v:
+                continue
+            if "error" in v or (wanted is not None and k not in wanted):
                 continue
             data[k] = v
             carried.append(k)

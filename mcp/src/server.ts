@@ -8,7 +8,7 @@ import {
   type Catalog, type CatalogEntry, type Json, DataError,
   asText, caveatsFor, datasetName, describeSeries, dig, extractSeries, loadCatalog, loadDataset, sourceFor, unitFor,
 } from "./data.js";
-import { apply, clip, correlation, resample, round, toPoints, type Frequency, type Transform } from "./transform.js";
+import { apply, baseFor, clip, correlation, resample, round, toPoints, type Frequency, type Transform } from "./transform.js";
 import { registerAnalysis, registerProviders } from "./analysis.js";
 import type { ProviderEnv } from "./providers.js";
 
@@ -190,10 +190,10 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
       const s = all.get(series);
       if (!s) return fail(`No series '${series}' in ${dataset}. Available: ${[...all.keys()].slice(0, 40).join(", ")}${all.size > 40 ? ", ..." : ""}`);
       const entry = entryFor(cat, dataset);
-      // Window first so transforms see the full history they need (yoy needs the prior year).
-      let out = clip(s, start ? yearEarlier(start, transform) : undefined, end);
+      // Transform over the full history, then window: a change needs the point before 'start'.
+      let out = clip(s, undefined, end);
       out = resample(out, frequency as Frequency);
-      out = apply(out, transform as Transform, base);
+      out = apply(out, transform as Transform, baseFor(out, base, start));
       out = clip(out, start, end, last_n);
       const pts = toPoints(round(out));
       return text({
@@ -340,8 +340,3 @@ export function buildServer(origin: string, env: ProviderEnv = {}, self?: string
   return server;
 }
 
-/** For yoy the window must start a year earlier so the first point has a comparator. */
-function yearEarlier(start: string, transform: string): string {
-  if (transform !== "yoy") return start;
-  return String(Number(start.slice(0, 4)) - 1).padStart(4, "0") + start.slice(4);
-}
