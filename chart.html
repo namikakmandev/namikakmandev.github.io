@@ -315,6 +315,7 @@
       h += "<span class='sp'></span>";
       h += "<button id='b-tbl' title='Show every value as a table you can copy'>Table</button>";
       h += "<button id='b-csv' title='Download what is drawn as a spreadsheet file'>CSV</button>";
+      h += "<button id='b-png' title='Download the chart as an image, with its title and source, ready to post'>PNG</button>";
       h += "<button id='b-link' title='Copy a link to this exact view'>Copy link</button>";
       h += "</div>";
       h += "<p class='hint' id='hint'></p>";
@@ -339,6 +340,7 @@
       document.getElementById("b-reb").onclick = function () { state.rebase = true; draw(); };
       document.getElementById("b-tbl").onclick = function () { state.table = !state.table; draw(); };
       document.getElementById("b-csv").onclick = downloadCsv;
+      document.getElementById("b-png").onclick = downloadPng;
       document.getElementById("b-link").onclick = function () {
         var s = JSON.parse(JSON.stringify(spec)); if (state.scale === "log") s.scale = "log"; else delete s.scale;
         var hidden = Object.keys(state.hidden).filter(function (i) { return state.hidden[i]; }).map(Number);
@@ -546,6 +548,46 @@
       a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(lines.join("\n"));
       a.download = (spec.title || "chart").replace(/[^\w.-]+/g, "_") + ".csv";
       document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    /* The chart as a picture: the drawn SVG on a paper ground with the title above, the key
+       and the sources below, rendered twice the size so it stays sharp when posted. */
+    function downloadPng() {
+      var svgEl = document.getElementById("chart"); if (!svgEl) return;
+      var btn = document.getElementById("b-png"), was = btn.textContent; btn.textContent = "Drawing…";
+      var cs = getComputedStyle(document.documentElement);
+      var tok = function (n, d) { return (cs.getPropertyValue(n) || d).trim() || d; };
+      var ink = tok("--text", "#16191f"), dim = tok("--text-dim", "#5d6470"), paper = tok("--surface", "#ffffff"), line = tok("--border", "#d9dcd4");
+      var vb = (svgEl.getAttribute("viewBox") || "0 0 1000 460").split(/\s+/).map(Number), W = vb[2], H = vb[3];
+      var vis = visible(), keyRows = vis.map(function (x) { return { c: x.s.color, t: x.s.label }; });
+      var srcs = []; DATA.forEach(function (d) { if (!d.error && d.source) { var t = d.source.split(/[;(]/)[0].trim(); if (t && srcs.indexOf(t) < 0) srcs.push(t); } });
+      var title = (spec.title || document.getElementById("title").textContent || "Chart").trim();
+      var e = function (t) { return String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+      var pad = 36, titleH = 58, keyH = keyRows.length ? 28 + 22 * Math.ceil(keyRows.length / 3) : 0, footH = 44;
+      var TW = W + pad * 2, TH = titleH + H + keyH + footH + pad;
+      var inner = new XMLSerializer().serializeToString(svgEl).replace(/<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+      var font = "'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace";
+      var out = "<svg xmlns='http://www.w3.org/2000/svg' width='" + TW + "' height='" + TH + "' viewBox='0 0 " + TW + " " + TH + "' font-family=\"" + font + "\" style='color:" + ink + "'>" +
+        "<rect width='100%' height='100%' fill='" + paper + "'/>" +
+        "<text x='" + pad + "' y='" + (pad + 4) + "' font-size='22' font-weight='600' fill='" + ink + "' font-family=\"Georgia, 'Times New Roman', serif\">" + e(title.length > 78 ? title.slice(0, 76) + "…" : title) + "</text>" +
+        "<g transform='translate(" + pad + "," + titleH + ")'>" + inner + "</g>";
+      keyRows.forEach(function (k, i) {
+        var col = i % 3, row = Math.floor(i / 3), x = pad + col * ((W) / 3), y = titleH + H + 22 + row * 22;
+        out += "<rect x='" + x + "' y='" + (y - 9) + "' width='14' height='4' rx='2' fill='" + k.c + "'/><text x='" + (x + 20) + "' y='" + (y - 3) + "' font-size='13' fill='" + ink + "'>" + e(k.t.length > 44 ? k.t.slice(0, 42) + "…" : k.t) + "</text>";
+      });
+      var fy = titleH + H + keyH + 26;
+      out += "<line x1='" + pad + "' x2='" + (TW - pad) + "' y1='" + (fy - 16) + "' y2='" + (fy - 16) + "' stroke='" + line + "'/>" +
+        "<text x='" + pad + "' y='" + fy + "' font-size='12' fill='" + dim + "'>" + e(("Source: " + (srcs.join("; ") || "see the chart page")).slice(0, 150)) + "</text>" +
+        "<text x='" + (TW - pad) + "' y='" + fy + "' font-size='12' fill='" + dim + "' text-anchor='end'>namikakmandev.github.io</text></svg>";
+      var img = new Image(), scale = 2;
+      img.onload = function () {
+        var c = document.createElement("canvas"); c.width = TW * scale; c.height = TH * scale;
+        var ctx = c.getContext("2d"); ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
+        var done = function (url) { var a = document.createElement("a"); a.href = url; a.download = title.replace(/[^\w.-]+/g, "_").slice(0, 80) + ".png"; document.body.appendChild(a); a.click(); a.remove(); btn.textContent = was; };
+        try { c.toBlob(function (b) { if (b) done(URL.createObjectURL(b)); else done(c.toDataURL("image/png")); }, "image/png"); } catch (err) { done(c.toDataURL("image/png")); }
+      };
+      img.onerror = function () { btn.textContent = "Could not draw"; setTimeout(function () { btn.textContent = was; }, 1800); };
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(out);
     }
 
     function showHowTo(keepTitle) {
