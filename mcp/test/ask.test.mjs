@@ -1,6 +1,6 @@
 // The daily question counters behind /v1/ask, exercised without a runtime.
 import assert from "node:assert/strict";
-import { emptyQuota, takeQuota, refundQuota, quotaView, PER_VISITOR_PER_DAY, SITE_PER_DAY, today, advisorQuestion } from "../dist/ask.js";
+import { emptyQuota, takeQuota, refundQuota, quotaView, PER_VISITOR_PER_DAY, SITE_PER_DAY, today, advisorQuestion, briefQuestion } from "../dist/ask.js";
 
 let failures = 0;
 function check(name, fn) {
@@ -57,6 +57,18 @@ check("the advisor question names the dataset and the series on screen, in eithe
   assert.match(q, /"tr-cpi-ppi"/); assert.match(q, /cpi, cpi_food/); assert.match(q, /should not be used for/);
   const t = advisorQuestion("tr-cpi-ppi", [], "tr");
   assert.match(t, /veri setini/); assert.doesNotMatch(t, /Bakılan/);
+});
+
+check("the brief question carries the date and the note, and the reader's focus only when given", () => {
+  const plain = briefQuestion("{\"what_moved\":[]}", "", "2026-09-16");
+  assert.match(plain, /^Write today's brief\. Today is 2026-09-16\. Context follows\.\n\n\{"what_moved"/);
+  assert.doesNotMatch(plain, /focus/);
+  const focused = briefQuestion("{}", "  Turkish   inflation\n", "2026-09-16");
+  assert.match(focused, /focused on: "Turkish inflation"\./);
+  assert.match(focused, /Keep the shape and the headings/);
+  assert.ok(focused.indexOf("Context follows.\n\n{}") > 0);
+  const long = briefQuestion("{}", "x".repeat(500), "2026-09-16");
+  assert.ok(/focused on: "x{200}"\./.test(long), "the focus is cut at 200 characters");
 });
 
 if (failures) { console.log(`\n${failures} failing`); process.exit(1); }

@@ -16,6 +16,7 @@ const MAX_QUESTION_CHARS = 1000;
 const MAX_HISTORY_TURNS = 6;
 const MAX_TOKENS = 4000;
 const BRIEF_MAX_TOKENS = 9000;
+const MAX_FOCUS_CHARS = 200;
 
 export interface AskEnv {
   ANTHROPIC_API_KEY?: string;
@@ -191,6 +192,16 @@ export function advisorQuestion(dataset: string, series: string[], lang: "en" | 
     : `Explain the dataset "${dataset}": what it measures, its unit and source, the breaks and caveats, what the latest numbers say, and what it should not be used for.${shown}`;
 }
 
+/** The brief's user turn: the date, the what-moved note, and the reader's focus when the
+ *  button on the site was pressed with one. Exported for tests. */
+export function briefQuestion(context: string, focus = "", day = today()): string {
+  const f = focus.trim().replace(/\s+/g, " ").slice(0, MAX_FOCUS_CHARS);
+  const ask = f
+    ? ` The reader asked for a brief focused on: "${f}". Keep the shape and the headings; choose the stories, forecasts and correlations about that focus where the collection has them, say in the opening sentence what the focus is, and if the collection has little on it, say so in one line and fall back to the day's moves.`
+    : "";
+  return `Write today's brief. Today is ${day}.${ask} Context follows.\n\n${context}`;
+}
+
 interface AskBody {
   question?: string;
   history?: Array<{ role: "user" | "assistant"; content: string }>;
@@ -198,6 +209,8 @@ interface AskBody {
   mode?: "ask" | "advisor" | "brief";
   /** brief only: today's what-moved note and the list of series due, as JSON text. */
   context?: string;
+  /** brief only, optional: a subject, a country or a question the reader wants the brief centred on. */
+  focus?: string;
   dataset?: string;
   series?: string[];
   lang?: "en" | "tr";
@@ -226,7 +239,7 @@ export async function handleAskRequest(request: Request, env: AskEnv, mcpUrl: st
   const shown = (Array.isArray(body.series) ? body.series : []).filter((x) => typeof x === "string").map((x) => x.slice(0, 80)).slice(0, 8);
   if (advisor && !/^[a-z0-9][a-z0-9-]*$/.test(dataset)) return json({ error: "The advisor needs a dataset name" }, 400);
   const question = advisor ? advisorQuestion(dataset, shown, body.lang === "tr" ? "tr" : "en")
-    : brief ? `Write today's brief. Today is ${today()}. Context follows.\n\n${context}`
+    : brief ? briefQuestion(context, typeof body.focus === "string" ? body.focus : "")
     : String(body.question ?? "").trim();
   if (!question) return json({ error: "Ask something" }, 400);
   // The brief's question carries the whole note as context; the length rule is for visitors' questions.

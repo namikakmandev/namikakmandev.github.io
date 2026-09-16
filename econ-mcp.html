@@ -75,7 +75,17 @@
     .ask-err { color: var(--loss, #e5484d); }
     .ask-limit { background: rgba(255,101,0,.10); border: 1px solid rgba(255,101,0,.35); border-radius: 10px; padding: 9px 12px; font-size: .86rem; margin-top: 10px; }
     .ask-limit a { color: var(--accent); }
-    @media (max-width: 560px) { .ask-form { flex-direction: column; } .ask-go { padding: 10px; } }
+    .ask-brief { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+    .ask-briefme { background: rgba(47,155,255,.14); border: 1px solid rgba(47,155,255,.45); color: var(--accent); font: inherit; font-weight: 600; font-size: .86rem; padding: 7px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+    .ask-briefme:hover { background: rgba(47,155,255,.24); }
+    .ask-briefme[disabled] { opacity: .5; cursor: default; }
+    #ask-focus { flex: 1 1 240px; min-width: 180px; font: inherit; font-size: .86rem; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 7px 13px; }
+    #ask-focus:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .ask-msg.brief h3 { font-size: 1.25rem; line-height: 1.25; margin: 4px 0 8px; }
+    .ask-msg.brief h4 { font-size: 1rem; margin: 18px 0 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+    .ask-msg.brief h5 { font-size: .95rem; margin: 12px 0 2px; }
+    .ask-msg.brief h3 + p { color: var(--text-dim); }
+    @media (max-width: 560px) { .ask-form { flex-direction: column; } .ask-go { padding: 10px; } .ask-briefme { width: 100%; } }
     .ask .sec { font-size: 1.15rem; font-weight: 700; margin: 0; }
     .ask .sec-note { color: var(--text-dim); font-size: .88rem; margin-bottom: 12px; max-width: 72ch; }
     .prov .p { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; }
@@ -153,7 +163,7 @@
           <div class="k"><div class="l">Analysis tools</div><div class="v">20</div><div class="d">econometrics, dependency-free</div></div>
         </div>
 
-        <div id="ask" data-connect="#connect"></div>
+        <div id="ask" data-connect="#connect" data-brief="1"></div>
 
         <h2 id="connect">Connect</h2>
         <h3>Claude.ai and Claude Desktop</h3>
