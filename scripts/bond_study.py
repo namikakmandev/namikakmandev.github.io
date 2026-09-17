@@ -132,6 +132,13 @@ def main():
     y30 = tr["y30"]
     hi30 = highest_since(y30, last_d)
     peak30 = max((v, k) for k, v in y30.items() if k >= "2026-01-01")
+    peak30_since = highest_since(y30, peak30[1])
+    y10_since = highest_since(tr["y10"], last_d)
+    slope = {"now": round(at("y10", last_d) - at("y2", last_d), 2), "dec_2025": round(at("y10", ref) - at("y2", ref), 2)}
+    # Turkish rates, for the reader verdicts: what a lira deposit pays against a 5% Treasury
+    trr = series("tr-rates")
+    tr_last = max(trr["deposit_3m"])
+    tr_rates = {"last": tr_last, "deposit_3m": round(trr["deposit_3m"][tr_last], 1), "policy_rate": round(trr["policy_rate"][max(trr["policy_rate"])], 1)}
     daily = {k: [[d, tr[k][d]] for d in sorted(tr[k]) if d >= "2021-01-01"] for k in ("y2", "y10", "y30", "real10", "term_premium10")}
     # thin the daily lines to weekly points for the page (last observation of each week)
     def weekly(pts):
@@ -194,7 +201,8 @@ def main():
         "generated_from": {"long-yields": last_m, "us-treasury-daily": last_d, "us-fiscal": ly_i, "imf-weo": "actuals to " + WEO_LAST_ACTUAL + ", projections to 2031"},
         "yields": yields, "monthly": monthly,
         "curve": curve, "decomposition": decomposition,
-        "thirty_year": {"last": last_d, "value": at("y30", last_d), "highest_since": hi30, "peak_2026": {"date": peak30[1], "value": peak30[0]}},
+        "thirty_year": {"last": last_d, "value": at("y30", last_d), "highest_since": hi30, "peak_2026": {"date": peak30[1], "value": peak30[0], "highest_since": peak30_since}},
+        "ten_year_daily_highest_since": y10_since, "slope_2s10s": slope, "tr_rates": tr_rates,
         "daily": daily,
         "fiscal": fiscal, "weo": weo_out, "weo_last_actual": WEO_LAST_ACTUAL,
         "test": {
