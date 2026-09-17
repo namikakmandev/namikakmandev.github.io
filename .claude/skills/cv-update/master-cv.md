@@ -59,7 +59,7 @@ Paragraph two is the one that gets tailored. Approved ING variant (17 Sep 2026, 
 
 - JLT Sigorta ve Reasürans Brokerliği (insurance brokerage), Istanbul — Senior Finance Manager / Finance Manager / Management Accountant (2015–2019): budgeting, rolling forecasts, long-term plans; IFRS compliance and audit lead; all financial reporting to HQ and the Asia region.
 - The Business Year (international publishing), Istanbul — Finance Executive (2013–2015): forecasting and analysis for overseas projects; international billing and debt collection.
-- Scandinavian Service Partners, Stockholm — Project Leader / Accountant (2011–2013): led accounting-system implementations for ~€37.5M annual cash handling; restructured a ~€87.5M/yr card-reconciliation treaty with VISA, Amex and Diners; reported to the board.
+- Scandinavian Service Partners, Stockholm — Project Leader / Accountant (2011–2013) (the Swedish branch of SSP, the British travel-catering group; in prose say "the Swedish branch of SSP", never "a Stockholm service company"): led accounting-system implementations for ~€37.5M annual cash handling; restructured a ~€87.5M/yr card-reconciliation treaty with VISA, Amex and Diners; reported to the board.
 - MAPFRE (insurance), Istanbul — Motor Insurance Associate (2007–2009): actuarial calculations, annual reporting, new-product development. Career began with an internship at Allianz (2005).
 
 ## Digital & automation portfolio (pick and order per posting; all real, all public at namikakmandev.github.io)
