@@ -41,4 +41,5 @@ The sandbox cannot reach the Worker, the site, or most data providers. Verify li
 - Analysis tools take `SeriesRef` inputs (`{dataset, series}`, `{provider, id}`, `{points}`) so one implementation serves all data.
 - New provider: add to `mcp/src/providers.ts`, the enum in `mcp/src/resolve.ts` and both enums in `mcp/src/analysis.ts`, the root listing in `mcp/src/index.ts`, a fixture in `mcp/test/fixtures.mjs`, and an end-to-end check.
 - New stored dataset: an entry in `data-sources.json`, then dispatch the fetch workflow with `only` set to its name and read `data/_fetch-report.json`.
+- Job applications: the `cv-update` skill under `.claude/skills/` holds the canonical CV facts and the tailoring rules. Use it for any CV, fit-assessment or motivation-letter request; never rebuild the career history from the site.
 - Never paste keys or passwords into files or commits. Secrets live in the Cloudflare dashboard and GitHub Actions secrets.
