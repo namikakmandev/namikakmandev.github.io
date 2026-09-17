@@ -45,6 +45,10 @@ def fred(entry):
     those silently throws away all but the last observation of each month."""
     out = {}
     keep = bool(entry.get("keep_dates"))
+    # entry['date_keys'] = {series_key: 'year' | 'quarter'} keys an annual or quarterly FRED
+    # series as YYYY or YYYY-Qn, matching the other sources; the default month key would
+    # label a fiscal-year figure as January.
+    grain = entry.get("date_keys") or {}
     for key, sid in entry["series"].items():
         try:
             raw = get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}").decode()
@@ -56,7 +60,9 @@ def fred(entry):
             date = (row.get("DATE") or row.get("observation_date") or "").strip()
             val = (row.get(sid) or "").strip()
             if len(date) >= 7 and val not in ("", "."):
-                vals[date if keep else date[:7]] = float(val)
+                g = grain.get(key)
+                k = date[:4] if g == "year" else f"{date[:4]}-Q{(int(date[5:7]) - 1) // 3 + 1}" if g == "quarter" else date if keep else date[:7]
+                vals[k] = float(val)
         out[key] = vals
     return out
 
