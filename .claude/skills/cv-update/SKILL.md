@@ -50,6 +50,8 @@ sentences, one concrete example per claim, no stacked abstract nouns.
   "synergy", triads of adjectives, colon-plus-list sentences inside a paragraph.
 - Keep: the specific tool, the specific number, the specific market.
 - Read every summary sentence aloud; if it could be on any CV, rewrite it.
+- Plain is not casual. "Lands on my desk" and "do not have to wait for others" were
+  rejected as unprofessional. Formal register, first person, concrete nouns.
 
 ## 4. Workflow for a posting
 
