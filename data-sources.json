@@ -1252,6 +1252,113 @@
       }
     },
     {
+      "name": "house-prices",
+      "provider": "fred",
+      "series": {
+        "US|real": "QUSR628BIS",
+        "US|nominal": "QUSN628BIS",
+        "GB|real": "QGBR628BIS",
+        "GB|nominal": "QGBN628BIS",
+        "DE|real": "QDER628BIS",
+        "DE|nominal": "QDEN628BIS",
+        "FR|real": "QFRR628BIS",
+        "FR|nominal": "QFRN628BIS",
+        "IT|real": "QITR628BIS",
+        "IT|nominal": "QITN628BIS",
+        "ES|real": "QESR628BIS",
+        "ES|nominal": "QESN628BIS",
+        "NL|real": "QNLR628BIS",
+        "NL|nominal": "QNLN628BIS",
+        "JP|real": "QJPR628BIS",
+        "JP|nominal": "QJPN628BIS",
+        "TR|real": "QTRR628BIS",
+        "TR|nominal": "QTRN628BIS",
+        "PL|real": "QPLR628BIS",
+        "PL|nominal": "QPLN628BIS",
+        "CA|real": "QCAR628BIS",
+        "CA|nominal": "QCAN628BIS",
+        "AU|real": "QAUR628BIS",
+        "AU|nominal": "QAUN628BIS",
+        "KR|real": "QKRR628BIS",
+        "KR|nominal": "QKRN628BIS",
+        "CN|real": "QCNR628BIS",
+        "CN|nominal": "QCNN628BIS"
+      },
+      "date_keys": {
+        "US|real": "quarter",
+        "US|nominal": "quarter",
+        "GB|real": "quarter",
+        "GB|nominal": "quarter",
+        "DE|real": "quarter",
+        "DE|nominal": "quarter",
+        "FR|real": "quarter",
+        "FR|nominal": "quarter",
+        "IT|real": "quarter",
+        "IT|nominal": "quarter",
+        "ES|real": "quarter",
+        "ES|nominal": "quarter",
+        "NL|real": "quarter",
+        "NL|nominal": "quarter",
+        "JP|real": "quarter",
+        "JP|nominal": "quarter",
+        "TR|real": "quarter",
+        "TR|nominal": "quarter",
+        "PL|real": "quarter",
+        "PL|nominal": "quarter",
+        "CA|real": "quarter",
+        "CA|nominal": "quarter",
+        "AU|real": "quarter",
+        "AU|nominal": "quarter",
+        "KR|real": "quarter",
+        "KR|nominal": "quarter",
+        "CN|real": "quarter",
+        "CN|nominal": "quarter"
+      },
+      "out": "data/house-prices.json",
+      "source": "BIS residential property prices via FRED, quarterly, index 2010 = 100: nominal (Q..N628BIS) and real, deflated by each country's CPI (Q..R628BIS), for the US, UK, Germany, France, Italy, Spain, Netherlands, Japan, Türkiye, Poland, Canada, Australia, Korea and China",
+      "note": "Series keys are country|real and country|nominal. The BIS 'selected' series: one representative national index per country (all dwellings, whole country, existing and new where available), so the object differs a little across countries; the real index is the nominal one divided by CPI, which is what makes cross-country comparison honest. Index levels say nothing about affordability: use them for growth and for peaks. The Turkish nominal index is in the thousands because it starts in 2010 at 100 and the lira has inflated since; read TR|real. Coverage begins in the 1970s for the US, UK, Japan and Australia, 2005 to 2010 for Türkiye, China and Poland",
+      "units": {
+        "real": "index, 2010 = 100, CPI-deflated",
+        "nominal": "index, 2010 = 100, nominal"
+      },
+      "unit": "index, 2010 = 100"
+    },
+    {
+      "name": "us-housing",
+      "provider": "fred",
+      "series": {
+        "case_shiller": "CSUSHPINSA",
+        "median_price_usd": "MSPUS",
+        "rent_cpi": "CUSR0000SEHA",
+        "starts_k": "HOUST"
+      },
+      "date_keys": {
+        "median_price_usd": "quarter"
+      },
+      "out": "data/us-housing.json",
+      "source": "US housing via FRED: S&P CoreLogic Case-Shiller national home price index (CSUSHPINSA, monthly, Jan 2000 = 100, not seasonally adjusted), median sales price of houses sold (MSPUS, quarterly, USD), CPI rent of primary residence (CUSR0000SEHA, monthly, 1982-84 = 100, seasonally adjusted), housing starts (HOUST, monthly, thousands of units at an annual rate)",
+      "note": "Case-Shiller is a repeat-sales index and lags about two months; the median sales price is a mix-shifted number (bigger houses sell in some quarters) and is not a price index. Nominal, so deflate with us-prices cpi for real house prices. Case-Shiller from 1987, the median from 1963, rent from 1981, starts from 1959",
+      "units": {
+        "case_shiller": "index, Jan 2000 = 100",
+        "median_price_usd": "US dollars",
+        "rent_cpi": "index, 1982-84 = 100",
+        "starts_k": "thousand units a year, seasonally adjusted annual rate"
+      }
+    },
+    {
+      "name": "us-mortgage-rate",
+      "provider": "fred",
+      "series": {
+        "fixed_30y": "MORTGAGE30US",
+        "fixed_15y": "MORTGAGE15US"
+      },
+      "keep_dates": true,
+      "out": "data/us-mortgage-rate.json",
+      "source": "Freddie Mac Primary Mortgage Market Survey via FRED, weekly (Thursdays): average 30-year (MORTGAGE30US, from 1971) and 15-year (MORTGAGE15US, from 1991) fixed mortgage rates, percent",
+      "note": "Contract rate on conforming loans, weekly, full dates kept. It moves with the ten-year Treasury (us-treasury-daily y10) plus a spread that widened after 2022. Resample with frequency='annual_mean' before mixing with monthly data",
+      "unit": "percent a year"
+    },
+    {
       "name": "energy-household-eu",
       "provider": "eurostat",
       "dataset": "nrg_pc_204",
