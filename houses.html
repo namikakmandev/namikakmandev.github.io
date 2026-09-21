@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Real house prices: where the boom broke, and where it did not — Namık Akman</title>
+  <meta name="description" content="Fourteen countries' house prices after inflation, 1970 to 2026. Türkiye's real prices are down a fifth from the 2023 peak after the biggest rise of the group; Germany's and Canada's are down a fifth or more from 2022; the Netherlands, Australia and Poland sit at records. The US payment on a median house is up 70% on 2019. Tested against interest rates, the year-to-year link does not survive the sample discount. Every number recomputed from committed data." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="theme-color" content="#f4f4f1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=30" />
+  <link rel="stylesheet" href="css/data-look.css?v=1" />
+  <style>
+    .study { padding: 30px 0 72px; }
+    .study .container { max-width: 980px; }
+    .study .back { color: var(--text-dim); font-size: .86rem; }
+    .study .eyebrow { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .09em; color: var(--text-dim); margin-top: 14px; }
+    .study h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); margin: 6px 0 12px; max-width: 24ch; }
+    .study .lede { color: var(--text); font-size: 1.08rem; line-height: 1.55; margin-bottom: 8px; max-width: 64ch; }
+    .study .sub { color: var(--text-dim); font-size: .95rem; line-height: 1.55; margin-bottom: 18px; max-width: 64ch; }
+    .study .sub a { color: var(--accent); }
+    .facts { display: flex; flex-wrap: wrap; gap: 6px 34px; border-top: 1px solid var(--text); border-bottom: 1px solid var(--border); padding: 12px 0; margin: 4px 0 34px; font-family: var(--mono); font-size: .8rem; color: var(--text-dim); }
+    .facts b { color: var(--text); font-weight: 500; font-size: 1.1rem; margin-right: 6px; }
+    h2 { font-family: var(--display); font-weight: 600; font-size: 1.5rem; letter-spacing: -.01em; line-height: 1.2; margin: 40px 0 6px; max-width: 30ch; text-wrap: balance; }
+    h2 small { display: block; font-family: var(--font); font-weight: 400; font-size: .9rem; color: var(--text-dim); margin-top: 4px; letter-spacing: 0; }
+    p { max-width: 66ch; line-height: 1.6; }
+    .study p { margin: 0 0 12px; }
+    .fig { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px 12px; margin: 14px 0 8px; }
+    .fig svg { width: 100%; height: auto; display: block; font-family: var(--mono); }
+    .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--text-dim); margin-top: 8px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 10px; height: 3px; border-radius: 2px; background: currentColor; }
+    .legend i.dash { background: repeating-linear-gradient(90deg, currentColor 0 3px, transparent 3px 5px); }
+    .src { font-size: .76rem; color: var(--text-dim); margin-top: 6px; line-height: 1.45; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+    table.t { border-collapse: collapse; font-family: var(--mono); font-size: .82rem; margin: 10px 0 14px; width: 100%; max-width: 720px; }
+    table.t th, table.t td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    table.t th:first-child, table.t td:first-child { text-align: left; }
+    table.t th { color: var(--text-dim); font-weight: 500; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; }
+    table.t td.bad { color: var(--loss); } table.t td.good { color: var(--accent-2); } table.t td.dim { color: var(--text-dim); }
+    @media (max-width: 700px) { table.t { display: block; overflow-x: auto; white-space: nowrap; } }
+    .verdict { border-top: 2px solid var(--text); margin-top: 40px; padding-top: 6px; }
+    .verdict h2 { margin-top: 12px; }
+    .rows { display: grid; gap: 12px; margin-top: 14px; }
+    .row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .row b.who { font-family: var(--display); font-size: 1.05rem; line-height: 1.25; }
+    .row .do { font-weight: 600; }
+    .row .if { color: var(--text-dim); font-size: .86rem; margin-top: 4px; }
+    .row .badge { display: inline-block; font-family: var(--mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 999px; margin-bottom: 6px; }
+    .badge.no { background: rgba(198,40,40,.1); color: var(--loss); } .badge.yes { background: rgba(19,138,90,.12); color: var(--accent-2); } .badge.watch { background: rgba(217,84,30,.12); color: var(--accent-3); }
+    @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+    .care { margin-top: 36px; font-size: .88rem; color: var(--text-dim); line-height: 1.55; max-width: 76ch; }
+    .care h2 { font-size: 1.25rem; color: var(--text); }
+    .care ul { margin: 6px 0 12px 18px; padding: 0; }
+    .care li { margin-bottom: 6px; }
+    .care code { font-family: var(--mono); font-size: .84em; }
+    .care a { color: var(--accent); }
+  </style>
+</head>
+<body class="tool-light data-look">
+  <header class="site-header">
+    <div class="container nav">
+      <a href="index.html" class="brand">Namık <span>Akman</span></a>
+      <button class="nav-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="projects.html">Projects</a></li>
+        <li><a href="explore.html">Data</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <article class="study">
+      <div class="container">
+        <a href="explore.html" class="back">&larr; Explore the data</a>
+        <span class="eyebrow">Housing · fourteen countries · real prices, 2000 to Q1 2026 · Türkiye monthly to August 2026</span>
+        <h1>Real house prices: where the boom broke, and where it did not.</h1>
+        <p class="lede">Take inflation out and the world's house prices split three ways. Türkiye's are down 18% from their 2023 peak, after the
+        largest rise of any of fourteen countries since 2015; Istanbul and Izmir are down a quarter. Germany, Canada and China are down a fifth
+        or more from 2021 and 2022, Britain and France a tenth. The Netherlands, Australia and Poland stand at real records, Spain is up
+        a fifth since the rate shock, and the United States is within 3% of its peak with the payment on a median house 70% above 2019.
+        The obvious explanation, interest rates, does not survive a proper test in the US or in Türkiye through time; across six
+        countries since 2021 it lines up, as six points.</p>
+        <p class="sub">Every figure below is recomputed from the committed data files by <code>scripts/house_study.py</code>. Prices are deflated by each
+        country's CPI (the BIS real series), by the US CPI for Case-Shiller and the mortgage payment, and by TÜİK's CPI for the Turkish index; the deflators and the caveats are listed at the end.</p>
+        <div class="facts" id="facts"></div>
+
+        <h2>Fourteen countries, three stories<small>Residential property prices deflated by each country's CPI, index 2015 Q1 = 100, quarterly, 2000 to Q1 2026. BIS via FRED.</small></h2>
+        <p>The chart starts every country at 100 in 2015 so the last decade can be read in one frame. Türkiye is the outlier on both sides:
+        the steepest climb, to more than two and a half times the 2015 level in 2023, and the steepest fall since. Below it, three groups.
+        The countries whose real prices are still rising or at records, the Netherlands, Australia, Poland and Spain, and the United States,
+        which has gone sideways in real terms since 2022. The countries that have given back the pandemic gain and more: Germany, Canada,
+        Britain, France, Korea and China. And two that never recovered an older peak: Italy, still 28% below 2007, and Japan, 36% below 1991
+        even after a decade of gains.</p>
+        <div class="fig"><div id="fig-real"></div><div class="legend" id="leg-real"></div>
+          <div class="src">house-prices, series CC|real: BIS selected residential property prices, real (nominal index divided by CPI), one national index per country, rebased here to 2015 Q1 = 100. Japan's last quarter is Q4 2025.</div></div>
+        <table class="t" id="tab-real"></table>
+
+        <h2>Türkiye: the boom, the peak and the fall, city by city<small>TCMB residential property price index deflated by TÜİK's CPI, index January 2015 = 100, monthly, 2010 to August 2026.</small></h2>
+        <p>The monthly index says what the quarterly one cannot: the real peak was June 2023, the month the central bank began raising the
+        policy rate from 8.5%, and the fall since has been continuous. Nationally real prices are down 22% from that month; Istanbul, which
+        rose least, is down 27%; Izmir, which rose most, 26%; Ankara, 14%. The whole of the 2010s was a real decline, from 100 in 2015 to a
+        low in the mid-80s, before the 2020 to 2023 surge doubled prices in three years with deposit rates far below inflation. Since 2024
+        the three-month deposit rate has been above inflation; in August 2026 it was 44.1% against inflation of 31.5%, a real rate of
+        about 15 points, and real prices were falling 6.4% a year.</p>
+        <div class="two">
+          <div class="fig"><div id="fig-tr"></div><div class="legend"><span><i style="color:#16191f"></i>Türkiye</span><span><i style="color:#1c63c9"></i>Istanbul</span><span><i style="color:#d9541e"></i>Ankara</span><span><i style="color:#138a5a"></i>Izmir</span></div>
+            <div class="src">tr-house-prices (TP.KFE.TR, TR10, TR51, TR31, 2023 = 100) divided by tr-cpi-ppi cpi (2025 = 100), rebased to January 2015 = 100.</div></div>
+          <div class="fig"><div id="fig-trrate"></div><div class="legend"><span><i style="color:#16191f"></i>Real house prices, % change on a year earlier</span><span><i style="color:#7b3fd1"></i>Real 3-month deposit rate, points</span></div>
+            <div class="src">tr-rates deposit_3m minus CPI inflation over the previous twelve months (ex post). The house-price line is the national real index above, year on year.</div></div>
+        </div>
+        <table class="t" id="tab-tr"></table>
+
+        <h2>The United States: prices held, the payment did not<small>Case-Shiller national index deflated by CPI, price against rent, and the monthly payment on a median house, 1990 to Q2 2026.</small></h2>
+        <p>American real house prices peaked in May 2022 and have fallen only 4% since, which is nothing beside Canada next door. They stand
+        10% above the 2006 peak in real terms, and the ratio of prices to rents is 136 on a 2000 base against 149 at the 2006 top: high,
+        not at the old extreme. What changed is the cost of buying. The payment on 80% of the median house at the going 30-year rate was
+        $2,058 a month in the second quarter of 2026, against $1,204 at the end of 2019 and $1,411 at the end of 2021. In today's dollars
+        the 2019 figure is $1,557, so the real payment is up a third in six years and is back to its 2006 level of $2,086; only the
+        years around 1981, when mortgage rates passed 16%, put it clearly higher. The market has cleared by not trading: prices held,
+        volumes fell, and the payment did the adjusting.</p>
+        <div class="two">
+          <div class="fig"><div id="fig-us"></div><div class="legend"><span><i style="color:#1c63c9"></i>Real Case-Shiller, Jan 2000 = 100</span><span><i style="color:#d9541e"></i>Price to rent, Jan 2000 = 100</span></div>
+            <div class="src">us-housing case_shiller divided by us-prices cpi, and by us-housing rent_cpi (CPI rent of primary residence), both rebased to January 2000 = 100.</div></div>
+          <div class="fig"><div id="fig-pay"></div><div class="legend"><span><i style="color:#16191f"></i>Payment, USD a month, nominal</span><span><i style="color:#b7791f"></i>Same payment in dollars of Q2 2026</span></div>
+            <div class="src">30-year fixed loan for 80% of the median sale price (us-housing median_price_usd) at the quarter's mean Freddie Mac rate (us-mortgage-rate fixed_30y). A payment, not an affordability ratio: no income series is in the collection.</div></div>
+        </div>
+
+        <h2>Do interest rates explain it? Not year to year.<small>US real house prices against the 30-year mortgage rate, 1973 to 2025; Turkish real prices against the real deposit rate, 2011 to 2026; six countries since 2021.</small></h2>
+        <p>The claim everyone makes is that rates drive house prices. Tested the way this site tests everything, it fails to show up
+        where the data are longest. In the United States, the level of real prices against the level of the mortgage rate gives a large
+        negative correlation with an effective sample of two: both series are trends, and the number is meaningless. Year-to-year changes
+        give nothing at all, this year or with the rate change a year earlier. In Türkiye the fit looks dramatic, r = −0.77 between real
+        price growth and the real deposit rate, but both series move so slowly that fifteen years of monthly data carry four independent
+        observations, and it is not distinguishable from zero. Across six countries since the end of 2021, the cross-section runs the
+        expected way: the bigger the rise in the ten-year yield, the bigger the real fall, with Germany at one end and Japan at the other.
+        That is six points and is printed, not tested. The honest reading is that rates set the direction across countries in this cycle,
+        and that neither the American nor the Turkish record lets anyone claim more than that.</p>
+        <table class="t" id="tab-test"></table>
+        <table class="t" id="tab-cross"></table>
+
+        <div class="verdict">
+          <h2>What to do with this</h2>
+          <div class="rows">
+            <div class="row"><div><span class="badge watch">Read as arithmetic</span><b class="who">A Turkish household deciding whether to buy</b></div>
+              <div><div class="do">Real prices are 22% below the June 2023 peak and still falling 6% a year, while a deposit pays 15 points above inflation. Waiting has cost nothing in real terms since 2023, and the housing loan rate of 42% makes borrowing to buy a bet on the fall reversing. Watch the national real index each month; buy when it has risen for two consecutive quarters, not before.</div>
+                <div class="if">What would change it: the real deposit rate falling towards zero as the policy rate is cut faster than inflation, which is what preceded the 2020 surge. tr-rates and tr-cpi-ppi print both monthly.</div></div></div>
+            <div class="row"><div><span class="badge yes">Supported</span><b class="who">A cross-border investor comparing markets</b></div>
+              <div><div class="do">Sort markets by where they sit against their own real peak, not by nominal growth. Germany, Canada and China are 20 to 30% below their peaks; the Netherlands, Australia and Poland are at records; Italy and Japan never recovered old ones. The nominal indexes, especially Türkiye's, say nothing about this.</div>
+                <div class="if">What would change it: a country's real index turning up for four quarters from a trough, which Germany has shown since early 2024 and Britain since mid-2025. The table prints the trough date.</div></div></div>
+            <div class="row"><div><span class="badge no">Not supported as stated</span><b class="who">Anyone writing that "rates drive house prices"</b></div>
+              <div><div class="do">Say which claim you mean. As a year-to-year rule in the US it fails outright; as a Turkish rule it is four observations; as a cross-country statement about this cycle it holds, as six points. Quote the third and say it is six points.</div>
+                <div class="if">What would change it: a country in the six cutting rates and seeing its real prices turn within a year, ahead of the others. The next candidate is whichever central bank moves first.</div></div></div>
+          </div>
+        </div>
+
+        <div class="care">
+          <h2>Read with care</h2>
+          <ul>
+            <li><b>Deflators.</b> The BIS real series divides each national index by that country's CPI; Case-Shiller and the mortgage payment use the US CPI (us-prices cpi); the Turkish index uses TÜİK's CPI (tr-cpi-ppi cpi, 2025 = 100). A rent deflator would make the Turkish fall smaller, since rents rose faster than the CPI in 2023 and 2024.</li>
+            <li><b>Different objects.</b> The BIS "selected" series is one representative index per country: all dwellings for most, existing dwellings for some, and the Turkish one is the TCMB index also used in the monthly section, so the two Turkish figures differ only in frequency. Levels are not comparable across countries; only growth and peaks are.</li>
+            <li><b>The US payment.</b> Defined as 80% of the median sale price at the quarter's average 30-year rate over 30 years. The median sale price is mix-shifted (bigger houses sell in some quarters) and is not a price index. No income series is in the collection, so nothing here is an affordability ratio.</li>
+            <li><b>The tests.</b> Every correlation is printed with its effective sample size after the lag-1 autocorrelation discount, and p_adj is read at that size and multiplied by the number of lags tried. None of the time-series tests clears it. The six-country cross-section is not a test.</li>
+            <li><b>Breaks.</b> None known in the BIS series over the window shown; the Turkish KFE was rebased to 2023 = 100 in 2024 without a break. Japan's last quarter is Q4 2025.</li>
+            <li><b>Not measured.</b> Incomes, transaction volumes, mortgage credit, construction costs, rents outside the US, and migration, which is the usual explanation for the Netherlands, Australia and Poland. This page says where real prices are; it does not say why each country is where it is.</li>
+            <li><b>Reproduce it.</b> <code>python3 scripts/house_study.py</code> rewrites <a href="data/house-study.json">data/house-study.json</a> from data/house-prices.json, data/us-housing.json, data/us-mortgage-rate.json, data/us-prices.json, data/tr-house-prices.json, data/tr-cpi-ppi.json, data/tr-rates.json and data/long-yields.json. Data cut-off: BIS Q1 2026, Case-Shiller June 2026, mortgage rate 17 September 2026, Turkish index and CPI August 2026.</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <script src="js/main.js" defer></script>
+  <script>
+  (function () {
+    "use strict";
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function fmt(v, d) { if (v == null || v !== v) return "·"; if (d == null) d = Math.abs(v) < 1 && v !== 0 ? 2 : 1; return v.toLocaleString("en-GB", { maximumFractionDigits: d, minimumFractionDigits: 0 }); }
+    function signed(v, d) { return v == null ? "·" : (v > 0 ? "+" : "") + fmt(v, d); }
+    function fmtDate(d) { var m; d = String(d); if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d))) return +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1]; if ((m = /^(\d{4})-(\d{2})$/.exec(d))) return MONTHS[+m[2] - 1] + " " + m[1]; if ((m = /^(\d{4})-Q([1-4])$/.exec(d))) return "Q" + m[2] + " " + m[1]; return d; }
+    function nice(lo, hi, want) {
+      if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
+      var raw = (hi - lo) / (want || 4), mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+      var step = (r >= 5 ? 10 : r >= 2.5 ? 5 : r >= 2 ? 2.5 : r >= 1 ? 2 : 1) * mag, t = [];
+      for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10));
+      return t;
+    }
+    function xOf(d) {
+      var m;
+      if ((m = /^(\d{4})$/.exec(d))) return +m[1] + 0.5;
+      if ((m = /^(\d{4})-Q([1-4])$/.exec(d))) return +m[1] + (+m[2] - 0.5) / 4;
+      if ((m = /^(\d{4})-(\d{2})$/.exec(d))) return +m[1] + (+m[2] - 0.5) / 12;
+      if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d))) return +m[1] + (+m[2] - 1) / 12 + (+m[3] - 1) / 365;
+      return NaN;
+    }
+    function chart(hostId, lines, opts) {
+      opts = opts || {};
+      var host = document.getElementById(hostId), W = 640, H = 250, L = 44, R = 14, T = 12, B = 24;
+      var narrow = host.clientWidth && host.clientWidth < 420; if (narrow) { W = 400; H = 230; }
+      var x0 = Infinity, x1 = -Infinity, lo = Infinity, hi = -Infinity;
+      lines.forEach(function (l) { l.pts.forEach(function (p) { if (p[1] == null) return; var x = xOf(p[0]); if (x < x0) x0 = x; if (x > x1) x1 = x; if (p[1] < lo) lo = p[1]; if (p[1] > hi) hi = p[1]; }); });
+      if (opts.zero && lo > 0) lo = 0;
+      var ticks = nice(lo, hi); lo = Math.min(lo, ticks[0]); hi = Math.max(hi, ticks[ticks.length - 1]);
+      var widest = ticks.reduce(function (w, t) { return Math.max(w, (fmt(t) + (opts.unit || "")).length); }, 0);
+      L = Math.max(L, Math.ceil(widest * 6.6) + 12);
+      var iw = W - L - R, ih = H - T - B;
+      var X = function (x) { return L + (x - x0) / ((x1 - x0) || 1) * iw; }, Y = function (v) { return T + (hi - v) / ((hi - lo) || 1) * ih; };
+      var s = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + esc(lines.map(function (l) { return l.name; }).join(", ")) + "'>";
+      ticks.forEach(function (t) {
+        s += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + Y(t).toFixed(1) + "' y2='" + Y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 || (opts.base && t === opts.base) ? ".35" : ".12") + "'/>" +
+          "<text x='" + (L - 7) + "' y='" + (Y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t) + (opts.unit || "")) + "</text>";
+      });
+      var span = x1 - x0, step = span > 40 ? 10 : span > 20 ? 5 : span > 10 ? 3 : span > 5 ? 2 : 1;
+      for (var y = Math.ceil(x0); y <= x1; y++) if (y % step === 0) s += "<text x='" + X(y + 0.5).toFixed(1) + "' y='" + (H - 6) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + y + "</text>";
+      lines.forEach(function (l) {
+        var d = "";
+        l.pts.forEach(function (p) { if (p[1] == null) return; var x = xOf(p[0]); d += (d ? "L" : "M") + X(x).toFixed(1) + " " + Y(p[1]).toFixed(1); });
+        s += "<path d='" + d + "' fill='none' stroke='" + l.color + "' stroke-width='" + (l.width || 2) + "'" + (l.dash ? " stroke-dasharray='5 4'" : "") + (l.faint ? " stroke-opacity='.45'" : "") + " stroke-linejoin='round' stroke-linecap='round'/>";
+        var last = l.pts.filter(function (p) { return p[1] != null; }).slice(-1)[0];
+        if (last && !l.faint) s += "<circle cx='" + X(xOf(last[0])).toFixed(1) + "' cy='" + Y(last[1]).toFixed(1) + "' r='3.2' fill='" + l.color + "'/>";
+      });
+      host.innerHTML = s + "</svg>";
+    }
+    var NAMES = { TR: "Türkiye", NL: "Netherlands", AU: "Australia", PL: "Poland", US: "United States", CA: "Canada", DE: "Germany", JP: "Japan", GB: "United Kingdom", KR: "South Korea", ES: "Spain", FR: "France", IT: "Italy", CN: "China" };
+    var C = { TR: "#c2306a", NL: "#d9541e", AU: "#b7791f", PL: "#138a5a", US: "#1c63c9", CA: "#7b3fd1", DE: "#16191f", JP: "#5d6470", GB: "#1c63c9", KR: "#138a5a", ES: "#d9541e", FR: "#7b3fd1", IT: "#b7791f", CN: "#16191f" };
+    var HIGHLIGHT = ["TR", "NL", "US", "DE", "CA", "CN", "JP"];
+
+    fetch("data/house-study.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (S) {
+      var T = S.table, tr = S.tr.table.turkey, us = S.us.latest, t = S.test;
+      document.getElementById("facts").innerHTML =
+        "<span><b>" + signed(T.TR.from_peak_pct, 0) + "%</b>Türkiye real house prices from the " + esc(fmtDate(T.TR.peak)) + " peak (" + signed(T.TR.since_2015_pct, 0) + "% since 2015)</span>" +
+        "<span><b>" + signed(T.DE.from_peak_pct, 0) + "% / " + signed(T.CA.from_peak_pct, 0) + "%</b>Germany and Canada from their peaks, Q1 2026</span>" +
+        "<span><b>3 at records</b>Netherlands, Australia, Poland, real, Q1 2026</span>" +
+        "<span><b>$" + fmt(us.payment.nominal, 0) + "</b>a month on a median US house, " + esc(fmtDate(us.payment.quarter)) + " ($" + fmt(us.payment.q4_2019, 0) + " in Q4 2019)</span>" +
+        "<span><b>r = " + fmt(t.us_real_price_change_vs_rate_change.r, 2) + "</b>US real price change vs mortgage-rate change, n_eff " + fmt(t.us_real_price_change_vs_rate_change.n_eff, 0) + "</span>";
+
+      var order = S.countries;
+      chart("fig-real", order.map(function (c) { return { name: NAMES[c], color: C[c], pts: S.real_2015[c], faint: HIGHLIGHT.indexOf(c) < 0, width: HIGHLIGHT.indexOf(c) < 0 ? 1.4 : 2 }; }), { unit: "", base: 100 });
+      document.getElementById("leg-real").innerHTML = order.map(function (c) { return "<span" + (HIGHLIGHT.indexOf(c) < 0 ? " style='opacity:.6'" : "") + "><i style='color:" + C[c] + "'></i>" + NAMES[c] + "</span>"; }).join("");
+      document.getElementById("tab-real").innerHTML = "<tr><th>Real house prices</th><th>Since 2015</th><th>Since Q4 2021</th><th>Peak</th><th>From peak</th><th>Trough since</th><th>Record from</th></tr>" +
+        order.map(function (c) { var r = T[c]; var cls = r.from_peak_pct <= -15 ? "bad" : r.from_peak_pct === 0 ? "good" : ""; return "<tr><td>" + NAMES[c] + "</td><td>" + signed(r.since_2015_pct, 0) + "%</td><td>" + signed(r.since_2021q4_pct, 0) + "%</td><td class='dim'>" + esc(fmtDate(r.peak)) + "</td><td class='" + cls + "'>" + (r.from_peak_pct === 0 ? "at peak" : signed(r.from_peak_pct, 0) + "%") + "</td><td class='dim'>" + (r.from_peak_pct === 0 ? "·" : esc(fmtDate(r.trough_since_peak)) + " (" + signed(r.peak_to_trough_pct, 0) + "%)") + "</td><td class='dim'>" + esc(r.first.slice(0, 4)) + "</td></tr>"; }).join("");
+
+      var K = S.tr.real_kfe_2015, KC = { turkey: "#16191f", istanbul: "#1c63c9", ankara: "#d9541e", izmir: "#138a5a" };
+      chart("fig-tr", ["turkey", "istanbul", "ankara", "izmir"].map(function (k) { return { name: k, color: KC[k], pts: K[k] }; }), { unit: "", base: 100 });
+      chart("fig-trrate", [{ name: "Real house prices, yoy %", color: "#16191f", pts: S.tr.real_kfe_yoy }, { name: "Real deposit rate", color: "#7b3fd1", pts: S.tr.real_deposit_rate, dash: true }], { unit: "", zero: true });
+      var TT = S.tr.table, TN = { turkey: "Türkiye", istanbul: "Istanbul", ankara: "Ankara", izmir: "Izmir" };
+      document.getElementById("tab-tr").innerHTML = "<tr><th>Real index, Jan 2015 = 100</th><th>" + esc(fmtDate(TT.turkey.last)) + "</th><th>Peak</th><th>Peak level</th><th>From peak</th><th>Since 2015</th><th>2010s low</th></tr>" +
+        ["turkey", "istanbul", "ankara", "izmir"].map(function (k) { var r = TT[k]; return "<tr><td>" + TN[k] + "</td><td>" + fmt(r.value, 0) + "</td><td class='dim'>" + esc(fmtDate(r.peak)) + "</td><td class='dim'>" + fmt(r.peak_value, 0) + "</td><td class='bad'>" + signed(r.from_peak_pct, 0) + "%</td><td>" + signed(r.since_2015_pct, 0) + "%</td><td class='dim'>" + fmt(r.low_2010s, 0) + "</td></tr>"; }).join("");
+
+      chart("fig-us", [{ name: "Real Case-Shiller", color: "#1c63c9", pts: S.us.case_shiller_real_2000 }, { name: "Price to rent", color: "#d9541e", pts: S.us.price_to_rent_2000 }], { unit: "", base: 100 });
+      chart("fig-pay", [{ name: "Payment, nominal", color: "#16191f", pts: S.us.payment_nominal }, { name: "Payment, real", color: "#b7791f", pts: S.us.payment_real, dash: true }], { unit: "", zero: true });
+
+      var rows = [["US: real prices vs mortgage rate, levels, annual", t.us_real_price_vs_mortgage_rate_levels], ["US: real price change vs rate change, same year", t.us_real_price_change_vs_rate_change], ["US: real price change vs rate change a year earlier", t.us_real_price_change_vs_rate_change_lag1], ["Türkiye: real price growth vs real deposit rate, monthly", t.tr_real_price_yoy_vs_real_deposit_rate], ["Türkiye: same, deposit rate twelve months earlier", t.tr_real_price_yoy_vs_real_deposit_rate_lag12]];
+      document.getElementById("tab-test").innerHTML = "<tr><th>US " + esc(t.us_years[0] + " to " + t.us_years[1]) + "; Türkiye " + esc(fmtDate(t.tr_months[0]) + " to " + fmtDate(t.tr_months[1])) + "</th><th>r</th><th>n</th><th>n_eff</th><th>p_adj</th><th>verdict</th></tr>" + rows.map(function (r) {
+        var ok = r[1].p_adj < 0.05;
+        return "<tr><td>" + esc(r[0]) + "</td><td>" + fmt(r[1].r, 2) + "</td><td>" + r[1].n + "</td><td>" + fmt(r[1].n_eff, 1) + "</td><td>" + fmt(r[1].p_adj, 3) + "</td><td class='" + (ok ? "good" : "bad") + "'>" + (ok ? "holds" : "not distinguishable from zero") + "</td></tr>";
+      }).join("");
+      document.getElementById("tab-cross").innerHTML = "<tr><th>Six countries, Q4 2021 to Q1 2026</th><th>Real price change</th><th>10-year yield change, pts</th></tr>" +
+        t.cross_section.map(function (x) { return "<tr><td>" + NAMES[x.country] + "</td><td class='" + (x.real_price_change_pct < -5 ? "bad" : "") + "'>" + signed(x.real_price_change_pct, 1) + "%</td><td>" + signed(x.yield_change_pts, 2) + "</td></tr>"; }).join("") +
+        "<tr><td class='dim'>r across the six, printed not tested</td><td class='dim'>" + fmt(t.cross_r, 2) + "</td><td class='dim'>n = 6</td></tr>";
+    }).catch(function (e) { document.getElementById("facts").textContent = "The study file could not be read: " + e.message; });
+  })();
+  </script>
+</body>
+</html>
