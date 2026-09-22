@@ -4,7 +4,7 @@
    next — on any device — sees it. Nothing is stored in the browser. */
 let VAULT = null, ART = null, READ_ONLY = false;
 
-function emptyVault() { return { version: 1, transactions: [], budget: {}, updated: null }; }
+function emptyVault() { return { version: 2, transactions: [], budget: {}, cards: {}, budgets: {}, updated: null }; }
 
 async function loadVault() {
   try {
@@ -53,7 +53,7 @@ function addTransactions(list) {
 }
 (async () => {
   VAULT = await loadVault();
-  if (!VAULT.transactions) VAULT = Object.assign(emptyVault(), VAULT);
+  VAULT = migrateVault(Object.assign(emptyVault(), VAULT));
   renderAll();
 })();
 </script>

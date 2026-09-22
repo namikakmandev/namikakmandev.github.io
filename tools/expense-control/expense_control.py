@@ -82,9 +82,12 @@ def parse_amount(raw, style: str = "tr"):
     s = str(raw).strip().replace(" ", "").replace(" ", "")
     if not s:
         return None
+    if style == "tr" and s.endswith(",-"):
+        s = s[:-2] + ",00"                 # "TL.345,-" is whole lira, not a trailing minus
     negative = s.startswith("-") or s.endswith("-") or (s.startswith("(") and s.endswith(")"))
     s = s.strip("()+-")
     s = re.sub(r"(TL|TRY|USD|EUR|GBP|₺|\$|€|£)", "", s, flags=re.I)
+    s = s.lstrip(".")                      # "TL.345,00" leaves ".345,00" behind
     if style == "tr":
         s = s.replace(".", "").replace(",", ".")
     else:
@@ -472,7 +475,21 @@ def _peel_installment(text, inst_re):
     return paid, total, squeeze(text[: match.start()])
 
 
+def detect_rules(path: Path, password=None):
+    """Pick the rules file in rules/ whose `detect` pattern matches the statement."""
+    text = "\n".join(extract_pages(path, password))
+    for candidate in sorted((HERE / "rules").glob("*.json")):
+        rules = load_rules(candidate)
+        if rules.get("detect") and re.search(rules["detect"], text, re.I):
+            return rules, candidate.name
+    return None, None
+
+
 def parse_statement(path: Path, rules, password=None):
+    if rules == "auto":
+        rules, name = detect_rules(path, password)
+        if rules is None:
+            raise SystemExit(f"{path.name}: no rules file in rules/ recognises this statement")
     if rules.get("layout") == "columns" and path.suffix.lower() == ".pdf":
         return parse_columns(path, rules, password)
     pages = extract_pages(path, password)
@@ -489,11 +506,24 @@ def parse_statement(path: Path, rules, password=None):
     statement_year = None
     if header.get("statement_date"):
         statement_year = str(header["statement_date"])[:4]
+    card_re = re.compile(rules["card_marker"], re.I) if rules.get("card_marker") else None
+    orig_re = re.compile(rules["original_amount"], re.I) if rules.get("original_amount") else None
+    carried = None
+    if rules.get("carried_forward"):
+        found = re.search(rules["carried_forward"], text, re.I)
+        if found:
+            carried = abs(parse_amount(found.group(1), style) or 0)
+    current_card = header.get("card_number", "")
 
     transactions, missed = [], []
     for page_no, page in enumerate(pages, 1):
         for line_no, raw_line in enumerate(page.splitlines(), 1):
             line = squeeze(raw_line)
+            if card_re:
+                marker = card_re.search(line)
+                if marker:
+                    current_card = squeeze(marker.group(1))     # a statement can list a closed card too
+                    continue
             if not line or any(r.search(line) for r in skip_res):
                 continue
 
@@ -519,6 +549,14 @@ def parse_statement(path: Path, rules, password=None):
             description = squeeze(groups.get("description") or "")
             trailing = (groups.get("trailing") or "").strip()
 
+            original_amount = original_currency = None
+            if orig_re:
+                fx = orig_re.search(description)
+                if fx:
+                    original_currency = fx.group("currency").upper()
+                    original_amount = parse_amount(fx.group("amount"), style)
+                    description = squeeze(description[: fx.start()] + description[fx.end():])
+
             if paid is None and inst_re:
                 paid, total, description = _peel_installment(description, inst_re)
 
@@ -539,7 +577,9 @@ def parse_statement(path: Path, rules, password=None):
                 "currency": currency,
                 "installment_no": paid,
                 "installment_total": total,
-                "card": header.get("card_number", ""),
+                "original_amount": original_amount,
+                "original_currency": original_currency,
+                "card": current_card,
                 "statement": path.name,
                 "page": page_no,
                 "line": line_no,
@@ -553,7 +593,7 @@ def parse_statement(path: Path, rules, password=None):
         "unparsed_amount_lines": missed,
         "pages": len(pages),
         "empty_text": not text.strip(),
-        "reconciliation": None,
+        "reconciliation": reconcile(transactions, carried, header) if carried is not None else None,
     }
 
 
@@ -1239,7 +1279,7 @@ def write_transactions(transactions, out_dir: Path):
 def cmd_discover(args):
     out_dir = Path(args.out) / "discover"
     out_dir.mkdir(parents=True, exist_ok=True)
-    rules = load_rules(args.rules)
+    rules = load_rules(DEFAULT_STATEMENT_RULES if args.rules == "auto" else args.rules)
     txn_res = compile_all(rules.get("transaction"))
     inst_re = re.compile(rules["installment"], re.I) if rules.get("installment") else None
 
@@ -1300,7 +1340,7 @@ def _discover_workbook(path: Path, out_dir: Path):
 
 
 def _collect(args):
-    rules = load_rules(args.rules)
+    rules = "auto" if args.rules == "auto" else load_rules(args.rules)
     categorise = Categoriser(load_rules(args.categories))
     transactions, problems, reconciliations = [], [], []
 
@@ -1425,8 +1465,9 @@ def build_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__.split("Typical first run:")[-1])
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--rules", default=str(DEFAULT_STATEMENT_RULES),
-                        help="statement parsing rules (default: rules/garanti-bbva.json)")
+    common.add_argument("--rules", default="auto",
+                        help="statement rules file, or 'auto' (default): the file in rules/ whose "
+                             "'detect' pattern matches the statement")
     common.add_argument("--categories", default=str(DEFAULT_CATEGORY_RULES),
                         help="category keyword rules (default: rules/categories.json)")
     common.add_argument("--out", default=str(DEFAULT_OUT),

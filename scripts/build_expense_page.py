@@ -20,6 +20,7 @@ RULES = ROOT / "tools" / "expense-control" / "rules"
 
 BLOCKS = {
     "rules-statement": RULES / "garanti-bonus.json",
+    "rules-statement-teb": RULES / "teb-bonus.json",
     "rules-categories": RULES / "categories.json",
 }
 

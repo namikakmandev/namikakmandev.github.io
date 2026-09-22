@@ -116,6 +116,13 @@ tr.grp td .sum{float:right;font-variant-numeric:tabular-nums;font-weight:500;col
 .viz .budget.over{stroke:var(--over);opacity:1}
 .viz-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
 @media (max-width:720px){.viz-grid{grid-template-columns:1fr}}
+.owners{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.owners[hidden]{display:none}
+.owners button{background:var(--card);color:var(--fg);border:1px solid var(--line);font-weight:500;padding:7px 14px;border-radius:999px}
+.owners button[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink,#fff);border-color:var(--acc);font-weight:600}
+tr.drill,.legend .drill{cursor:pointer}
+tr.drill:hover td{background:var(--soft)}
+.legend .drill:hover b{text-decoration:underline}
 /* @viz-end */
 </style></head><body>
 
@@ -138,6 +145,7 @@ tr.grp td .sum{float:right;font-variant-numeric:tabular-nums;font-weight:500;col
     <button class="ghost" id="lockNow">Kilitle</button>
   </header>
 
+  <div class="owners" id="ownerBar" hidden></div>
   <div class="tabs" role="tablist">
     <button role="tab" data-tab="ozet" aria-selected="true">Özet</button>
     <button role="tab" data-tab="islemler" aria-selected="false">İşlemler</button>
@@ -157,6 +165,7 @@ tr.grp td .sum{float:right;font-variant-numeric:tabular-nums;font-weight:500;col
         <option value="category">Kategoriye göre</option>
         <option value="merchant">İşyerine göre</option>
         <option value="month">Aya göre</option>
+        <option value="owner">Kişiye göre</option>
       </select>
       <button class="ghost" id="exportCsv">CSV indir</button>
     </div>
@@ -164,7 +173,7 @@ tr.grp td .sum{float:right;font-variant-numeric:tabular-nums;font-weight:500;col
     <div class="wrap"><table id="txnTable"><thead><tr>
       <th data-sort="date" class="sortable">Tarih</th><th data-sort="description" class="sortable">Açıklama</th>
       <th data-sort="category" class="sortable">Kategori</th><th data-sort="amount" class="n sortable">Tutar</th>
-      <th>Taksit</th><th data-sort="statement" class="sortable">Kaynak</th><th></th></tr></thead><tbody></tbody></table></div>
+      <th>Taksit</th><th>Kişi</th><th data-sort="statement" class="sortable">Kaynak</th><th></th></tr></thead><tbody></tbody></table></div>
     <p class="note" id="txnCount"></p>
   </section>
 
@@ -246,8 +255,9 @@ tr.grp td .sum{float:right;font-variant-numeric:tabular-nums;font-weight:500;col
   </section>
 </div>
 
-<script id="rules-statement" type="application/json">{"issuer":"Garanti BBVA — Bonus kredi kartı ekstresi","layout":"columns","decimal_style":"tr","default_currency":"TRY","min_font_size":4.0,"row_tolerance":1.0,"column_tolerance":6,"description_span":[160,420],"credit_sign":"+","carried_forward":"DEV[İI]R ED[İI]LEN","installment_plan":"^(?P<unit>[\\d.]*\\d,\\d{2})x(?P<total>\\d{1,2})=(?P<gross>[\\d.]*\\d,\\d{2})$","installment_index":"^(?P<no>\\d{1,2})\\.\\s*Taksit$","header":{"statement_date":["Hesap\\s*Kesim\\s*Tarihi\\s*:?\\s*(\\d{1,2}\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\\s+\\d{4})"],"due_date":["Son\\s*[ÖO]deme\\s*Tarihi\\s*:?\\s*(\\d{1,2}\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\\s+\\d{4})"],"card_number":["Kart\\s*Numaras[ıi]\\s*(\\d{4}\\s*\\d{2}\\*{2}\\s*\\*{4}\\s*\\d{4})"],"card_holder":["Say[ıi]n\\s+([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ]*(?:\\s+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ]*){0,3})"],"period_total":["D[öo]nem\\s*Borcunuz\\s*([\\d.]*\\d,\\d{2})"],"minimum_payment":["Min\\.?\\s*[ÖO]deme\\s*Tutar[ıi]\\s*([\\d.]*\\d,\\d{2})"],"credit_limit":["Kart\\s*Limiti\\s*([\\d.]*\\d,\\d{2})"],"bonus_balance":["Harcanabilecek\\s*Toplam\\s*Bonus\\s*([\\d.]*\\d,\\d{2})"]}}</script>
-<script id="rules-categories" type="application/json">{"fallback":"Diger","rules":[{"category":"Kart Odemesi","patterns":["[ÖO]DEMEN[İI]Z\\s*[İI][ÇC][İI]N","TE[ŞS]EKK[ÜU]R EDER[İI]Z","KART [ÖO]DEMES[İI]","V[İI]RMAN"]},{"category":"Faiz & Ucret","patterns":["FA[İI]Z[İI]?\\b","GEC[İI]KME","KKDF","BSMV","A[İI]DAT","[ÜU]CRET","KOM[İI]SYON","D[ÖO]NEM FA[İI]Z"]},{"category":"Nakit Avans","patterns":["NAK[İI]T AVANS","PARA [ÇC]EKME"]},{"category":"Egitim","patterns":["[ÖO]ZEL E[ĞG][İI]T[İI]M","VES [İI]N E[ĞG][İI]T[İI]M","E[ĞG][İI]T[İI]M","OKUL","[ÜU]N[İI]VERS[İI]TE","KOLEJ","KRE[ŞS]","ANAOKUL","KURS","UDEMY","COURSERA","DERSHANE"]},{"category":"Giyim & Aksesuar","patterns":["ZARA","MASS[İI]MO ?DUTT","MANGO","UNIQLO","DIOR","BARBOUR","VAKKO","INTIMISSIMI","VEJA","JACADI","SAMSONITE","MOKA ?UN[İI]TED","BB PERAKENDE","BROOKS BROTHERS","[İI]PEKYOL","EREN PERAKENDE","LE PETIT SOUK","MOM AND CITY","CENDRILLON","URART","BEİJE","HOPPA BE[İI]JE","LC WAIK","BOYNER","KOTON","DEFACTO","MAV[İI]\\b","FLO\\b","S[İI]MONE A BORDEAUX","SEGM BHV","GL HAUSSMANN","PAR[İI]S OLS SARL","S[İI]STER\\b","LO4W"]},{"category":"Seyahat & Konak","patterns":["EKIES RESORT","MELIA","TOWN ?HOUSE","TOWN VALE","OD URLA","BOOKING","BKG ","AIRBNB","OTEL","HOTEL","RESORT","ETSTUR","JOLLY","SETUR","TATIL","G W MANAGEMENT"]},{"category":"Yakit","patterns":["SHELL","OPET","PETROL OF[İI]S[İI]","^BP ","TOTAL ENERG","AYTEM[İI]Z","ALPET","LUKOIL","AKARYAKIT","PETROL","BENZ[İI]N"]},{"category":"Ulasim","patterns":["TURK[İI]SH A[İI]RL","THY\\b","PEGASUS","AJET","TCDD","GARE ORLY","S[İI]TAX[İI]","TAKS[İI]","UBER","B[İI]TAKS[İI]","MART[İI]","HGS","OGS","[İI]ETT","[İI]STANBULKART","OTOPARK","ISPARK","YURT[İI][ÇC][İI] KARGO","KARGO","OBILET","ENUYGUN"]},{"category":"Yeme-Icme","patterns":["ALL DAY","KRONOTROP","GRILL TOWER","BRASSIRE","UNLU MAM[ÜU]L","LE GABRIELLE","K[ÖO]ZDE D[ÖO]NER","KIPOS BALIK","KASAP","C[İI][ĞG]ERC[İI]","LA BANQUETTE","LE BOURBON","SBX ","STARBUCKS","MIDPOINT","SOSA ","LARGANDO","[İI]SABELABBEY","LITTLE KOOK","AFOI LATSONA","TIGERMILK","FRITES","YEMEKSEPET[İI]","GET[İI]R","TRENDYOL GO","TRENDYOLGO","KAHVE","COFFEE","CAFE","KAFE","RESTAURANT","RESTORAN","LOKANTA","P[İI]DE","BURGER","P[İI]ZZA","MCDONALD","S[İI]M[İI]T SARAY","BAKERY","PATISSERIE"]},{"category":"Market","patterns":["TRENDYOL MARKET","ASYA PAZARI","K[ÖO]YDEN GELS[İI]N","BAEZ GIDA","METELEC GIDA","M[İI]GROS","CARREFOUR","A101","B[İI]M\\b","[ŞS]OK MARKET","MACROCENTER","GROSMARKET","TAR[İI]M KRED[İI]","MARKET","GIDA"]},{"category":"Kisisel Bakim","patterns":["EXCLUSIVE BEAUTY","BELLESA","G[ÜU]ZELL[İI]K","STUD[İI]O PARLA","MEDIK8","KUAF[ÖO]R","BERBER","GRAT[İI]S","WATSONS","ROSSMANN","SEPHORA","SPOR SALON","MACF[İI]T","FITNESS"]},{"category":"Saglik","patterns":["ACIBADEM","MED[İI]KAL","ECZANE","HASTANE","T[İI]P MERKEZ","POL[İI]KL[İI]N[İI]K","LABORATUV","D[İI][ŞS] HEK","OPT[İI]K","G[ÖO]ZL[ÜU]K","PS[İI]KOLOG"]},{"category":"Evcil Hayvan","patterns":["VETER[İI]NER","PET ?WAY","PET ?SHOP","PETLEBI","MAMA"]},{"category":"Kultur & Eglence","patterns":["STUBHUB","MUSEE","M[ÜU]ZE","B[İI]LET[İI]N[İI]AL","C[İI]NEVERSE","S[İI]NEMA","ETABLISSEMENT PUBLIC","IMMERSION","T[İI]YATRO","KONSER","TOYZZ","OYUNCAK"]},{"category":"Abonelik & Dijital","patterns":["HBOMAX","NETFLIX","SPOTIFY","YOUTUBE","DISNEY","APPLE\\.COM","ITUNES","ICLOUD","GOOGLE","AMAZON PRIME","BLU ?TV","EXXEN","OPENAI","ANTHROPIC","MICROSOFT","ADOBE","DROPBOX","PLAYSTATION","STEAM"]},{"category":"Online Alisveris","patterns":["TRENDYOL","HEPS[İI]BURADA","AMAZON","N11\\b","[ÇC][İI][ÇC]EKSEPET[İI]","SHOP[İI]ER","MORHIPO"]},{"category":"Ev & Yasam","patterns":["IKEA","KO[ÇC]TA[ŞS]","BAUHAUS","TEKZEN","ENGL[İI]SH HOME","MADAME COCO","KARACA","MOB[İI]LYA","YAPI MARKET","HAVUZ","TEM[İI]ZL[İI]K"]},{"category":"Elektronik","patterns":["MEDIAMARKT","MED[İI]A MARKT","TEKNOSA","VATAN B[İI]LG","APPLE STORE","SAMSUNG","ARCEL[İI]K","VESTEL"]},{"category":"Telekom","patterns":["TURKCELL","VODAFONE","T[ÜU]RK TELEKOM","SUPERONL[İI]NE","T[ÜU]RKNET","D-SMART","DIGITURK"]},{"category":"Fatura & Enerji","patterns":["ELEKTR[İI]K","DO[ĞG]AL ?GAZ","[İI]GDA[ŞS]","ENERJ[İI]SA","BEDA[ŞS]","AYEDA[ŞS]","[İI]SK[İI]","FATURA"]},{"category":"Sigorta","patterns":["S[İI]GORTA","ALLIANZ","AXA\\b","AKS[İI]GORTA","MAPFRE","KASKO","DASK","EMEKL[İI]L[İI]K"]},{"category":"Vergi & Resmi","patterns":["VERG[İI]","\\bGIB\\b","E-DEVLET","TAPU","TRAF[İI]K CEZA","MTV\\b","BELED[İI]YE","G[ÜU]MR[ÜU]KS[ÜU]Z"]}]}</script>
+<script id="rules-statement" type="application/json">{"issuer":"Garanti BBVA — Bonus kredi kartı ekstresi","layout":"columns","decimal_style":"tr","default_currency":"TRY","min_font_size":4.0,"row_tolerance":1.0,"column_tolerance":6,"description_span":[160,420],"credit_sign":"+","carried_forward":"DEV[İI]R ED[İI]LEN","installment_plan":"^(?P<unit>[\\d.]*\\d,\\d{2})x(?P<total>\\d{1,2})=(?P<gross>[\\d.]*\\d,\\d{2})$","installment_index":"^(?P<no>\\d{1,2})\\.\\s*Taksit$","header":{"statement_date":["Hesap\\s*Kesim\\s*Tarihi\\s*:?\\s*(\\d{1,2}\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\\s+\\d{4})"],"due_date":["Son\\s*[ÖO]deme\\s*Tarihi\\s*:?\\s*(\\d{1,2}\\s+[A-Za-zÇĞİÖŞÜçğıöşü]+\\s+\\d{4})"],"card_number":["Kart\\s*Numaras[ıi]\\s*(\\d{4}\\s*\\d{2}\\*{2}\\s*\\*{4}\\s*\\d{4})"],"card_holder":["Say[ıi]n\\s+([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ]*(?:\\s+[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ]*){0,3})"],"period_total":["D[öo]nem\\s*Borcunuz\\s*([\\d.]*\\d,\\d{2})"],"minimum_payment":["Min\\.?\\s*[ÖO]deme\\s*Tutar[ıi]\\s*([\\d.]*\\d,\\d{2})"],"credit_limit":["Kart\\s*Limiti\\s*([\\d.]*\\d,\\d{2})"],"bonus_balance":["Harcanabilecek\\s*Toplam\\s*Bonus\\s*([\\d.]*\\d,\\d{2})"]},"detect":"Bonus\\s*Trink|D[öo]nem\\s*Borcunuz|Harcanabilecek\\s*Toplam\\s*Bonus"}</script>
+<script id="rules-statement-teb" type="application/json">{"issuer":"TEB — Bonus kredi kartı ekstresi","layout":"lines","decimal_style":"tr","default_currency":"TRY","header":{"statement_date":["Hesap\\s*Kesim\\s*Tarihi\\s*:?\\s*(\\d{2}/\\d{2}/\\d{4})"],"due_date":["Son\\s*[ÖO]deme\\s*Tarihi\\s*:?\\s*(\\d{2}/\\d{2}/\\d{4})"],"card_number":["Kart\\s*Numaras[ıi]\\s*:?\\s*(\\d{6}\\*{6}\\d{4})"],"card_holder":["SAYIN\\s+([A-ZÇĞİÖŞÜ]+(?:\\s+[A-ZÇĞİÖŞÜ]+){0,3})"],"period_total":["D[öo]nem\\s*Borcu\\s*:?\\s*TL\\.([\\d.]*\\d,(?:\\d{2}|-))"],"minimum_payment":["Minimum\\s*[ÖO]deme\\s*Tutar[ıi]\\s*:?\\s*TL\\.([\\d.]*\\d,(?:\\d{2}|-))"],"credit_limit":["Kart\\s*Limiti\\s*:?\\s*TL\\.([\\d.]*\\d,(?:\\d{2}|-))"]},"card_marker":"Kart\\s*Numaras[ıi]\\s*:\\s*(\\d{6}\\*{6}\\d{4})\\s+BONUS","carried_forward":"[ÖO]nceki\\s*D[öo]nemden\\s*Devir\\s*Edilen\\s*Tutar\\s*(-?TL\\.[\\d.]*\\d,(?:\\d{2}|-))","original_amount":"\\(Yurt\\s*d[ıi][şs][ıi]\\s*i[şs]lem\\s*tutar[ıi]\\s*(?P<currency>[A-Z]{3})\\.(?P<amount>[\\d.]*\\d,(?:\\d{2}|-))\\)","installment":"\\((?P<total>\\d{1,2})/(?P<paid>\\d{1,2})\\.\\s*Taksit\\)\\s*$","transaction":["^(?P<date>\\d{2}/\\d{2}/\\d{4})\\s+(?:\\d{2}/\\d{2}\\s+)?(?P<description>\\S.*?)\\s+(?P<amount>-?TL\\.[\\d.]*\\d,(?:\\d{2}|-))(?:\\s+(?P<bonus>-?TL\\.[\\d.]*\\d,(?:\\d{2}|-)))?\\s*(?P<trailing>)$"],"skip_lines":["^\\s*$","BONUS\\s+BEDAVA\\s+ALI[SŞ]VERI[SŞ]","Devir\\s*Edilen","TOPLAM","Sayfa\\s*:","Hesap\\s*Kesim","Son\\s*[ÖO]deme","Faizi\\s*:","Limiti\\s*:"],"credit_markers":[],"detect":"KRED[İI]\\s*KART\\s*EKSTRE\\s*[ÖO]ZET[İI]|T[üu]rk\\s*Ekonomi\\s*Bankas[ıi]|CEPTETEB"}</script>
+<script id="rules-categories" type="application/json">{"fallback":"Diger","rules":[{"category":"Kart Odemesi","patterns":["[ÖO]DEMEN[İI]Z\\s*[İI][ÇC][İI]N","TE[ŞS]EKK[ÜU]R EDER[İI]Z","KART [ÖO]DEMES[İI]","V[İI]RMAN"]},{"category":"Faiz & Ucret","patterns":["FA[İI]Z[İI]?\\b","GEC[İI]KME","KKDF","BSMV","A[İI]DAT","[ÜU]CRET","KOM[İI]SYON","D[ÖO]NEM FA[İI]Z"]},{"category":"Nakit Avans","patterns":["NAK[İI]T AVANS","PARA [ÇC]EKME"]},{"category":"Bagis","patterns":["L[ÖO]SEV","BA[ĞG]I[ŞS]","DERNE[ĞG]","VAKF","VAKIF","K[İI]ZILAY","UNICEF","TEGV","TOG\\b","DARÜŞŞAFAKA","DAR[ÜU][ŞS][ŞS]AFAKA"]},{"category":"Egitim","patterns":["SPOR OKU","GALATASARAY SPOR","[ÖO]ZEL E[ĞG][İI]T[İI]M","VES [İI]N E[ĞG][İI]T[İI]M","E[ĞG][İI]T[İI]M","OKUL","[ÜU]N[İI]VERS[İI]TE","KOLEJ","KRE[ŞS]","ANAOKUL","KURS","UDEMY","COURSERA","DERSHANE"]},{"category":"Giyim & Aksesuar","patterns":["BEYMEN","DIVARESE","LACOSTE","GANT","UNDER ARMOUR","HUPALUPA","BAR[ÇC]IN SPOR","DUTY FREE","NIKE","ADIDAS","MUDO","ZARA","MASS[İI]MO ?DUTT","MANGO","UNIQLO","DIOR","BARBOUR","VAKKO","INTIMISSIMI","VEJA","JACADI","SAMSONITE","MOKA ?UN[İI]TED","BB PERAKENDE","BROOKS BROTHERS","[İI]PEKYOL","EREN PERAKENDE","LE PETIT SOUK","MOM AND CITY","CENDRILLON","URART","BEİJE","HOPPA BE[İI]JE","LC WAIK","BOYNER","KOTON","DEFACTO","MAV[İI]\\b","FLO\\b","S[İI]MONE A BORDEAUX","SEGM BHV","GL HAUSSMANN","PAR[İI]S OLS SARL","S[İI]STER\\b","LO4W"]},{"category":"Seyahat & Konak","patterns":["CLUBMARVY","CLUB MARVY","WATERLOO","ZAVENTEM","AIRPORT","HAVALIMANI","EKIES RESORT","MELIA","TOWN ?HOUSE","TOWN VALE","OD URLA","BOOKING","BKG ","AIRBNB","OTEL","HOTEL","RESORT","ETSTUR","JOLLY","SETUR","TATIL","G W MANAGEMENT"]},{"category":"Yakit","patterns":["SHELL","OPET","PETROL OF[İI]S[İI]","^BP ","TOTAL ENERG","AYTEM[İI]Z","ALPET","LUKOIL","AKARYAKIT","PETROL","BENZ[İI]N"]},{"category":"Ulasim","patterns":["TURK[İI]SH A[İI]RL","THY\\b","PEGASUS","AJET","TCDD","GARE ORLY","S[İI]TAX[İI]","TAKS[İI]","UBER","B[İI]TAKS[İI]","MART[İI]","HGS","OGS","[İI]ETT","[İI]STANBULKART","OTOPARK","ISPARK","YURT[İI][ÇC][İI] KARGO","KARGO","OBILET","ENUYGUN"]},{"category":"Yeme-Icme","patterns":["PANTAGRUEL","AUX CRUS","BOURGUIGNON","LE DERRIERE","CHOUCHOU","L'ALSACE","GRASSHOPPER","ESTIATORIO","\\bLPQ\\b","CASA MAMMA","NAKKA[ŞS]","KANAT[ÇC]I","KAHVALTI","BALIK[ÇC]I","BALIKCISI","BALIK[ÇC]ILIK","DARDENIA","KEBAP","MEYHANE","BISTRO","BRASSERIE","TRATTORIA","ATITAMOS","MANEJURLA","ALL DAY","KRONOTROP","GRILL TOWER","BRASSIRE","UNLU MAM[ÜU]L","LE GABRIELLE","K[ÖO]ZDE D[ÖO]NER","KIPOS BALIK","KASAP","C[İI][ĞG]ERC[İI]","LA BANQUETTE","LE BOURBON","SBX ","STARBUCKS","MIDPOINT","SOSA ","LARGANDO","[İI]SABELABBEY","LITTLE KOOK","AFOI LATSONA","TIGERMILK","FRITES","YEMEKSEPET[İI]","GET[İI]R","TRENDYOL GO","TRENDYOLGO","KAHVE","COFFEE","CAFE","KAFE","RESTAURANT","RESTORAN","LOKANTA","P[İI]DE","BURGER","P[İI]ZZA","MCDONALD","S[İI]M[İI]T SARAY","BAKERY","PATISSERIE"]},{"category":"Market","patterns":["[ŞS]OK-\\d","[ŞS]OK\\b","TEKEL","VINEYARD","ZEYT[İI]NL[İI]","BASERLER","MANAV","KASAP","[ŞS]ARK[ÜU]TER[İI]","TRENDYOL MARKET","ASYA PAZARI","K[ÖO]YDEN GELS[İI]N","BAEZ GIDA","METELEC GIDA","M[İI]GROS","CARREFOUR","A101","B[İI]M\\b","[ŞS]OK MARKET","MACROCENTER","GROSMARKET","TAR[İI]M KRED[İI]","MARKET","GIDA"]},{"category":"Kisisel Bakim","patterns":["EXCLUSIVE BEAUTY","BELLESA","G[ÜU]ZELL[İI]K","STUD[İI]O PARLA","MEDIK8","KUAF[ÖO]R","BERBER","GRAT[İI]S","WATSONS","ROSSMANN","SEPHORA","SPOR SALON","MACF[İI]T","FITNESS"]},{"category":"Saglik","patterns":["PROF\\.? ?DR","\\bDR\\.? ","DOKTOR","KL[İI]N[İI]K","ACIBADEM","MED[İI]KAL","ECZANE","HASTANE","T[İI]P MERKEZ","POL[İI]KL[İI]N[İI]K","LABORATUV","D[İI][ŞS] HEK","OPT[İI]K","G[ÖO]ZL[ÜU]K","PS[İI]KOLOG"]},{"category":"Evcil Hayvan","patterns":["PET ?EVC[İI]L","EVC[İI]L","PETSHOP","VETER[İI]NER","PET ?WAY","PET ?SHOP","PETLEBI","MAMA"]},{"category":"Kultur & Eglence","patterns":["BUBILET","B[İI]LETIX","PASSO","STUBHUB","MUSEE","M[ÜU]ZE","B[İI]LET[İI]N[İI]AL","C[İI]NEVERSE","S[İI]NEMA","ETABLISSEMENT PUBLIC","IMMERSION","T[İI]YATRO","KONSER","TOYZZ","OYUNCAK"]},{"category":"Abonelik & Dijital","patterns":["CLAUDE\\.AI","ANTHROPIC","HBOMAX","NETFLIX","SPOTIFY","YOUTUBE","DISNEY","APPLE\\.COM","ITUNES","ICLOUD","GOOGLE","AMAZON PRIME","BLU ?TV","EXXEN","OPENAI","MICROSOFT","ADOBE","DROPBOX","PLAYSTATION","STEAM"]},{"category":"Online Alisveris","patterns":["TRENDYOL","HEPS[İI]BURADA","AMAZON","N11\\b","[ÇC][İI][ÇC]EKSEPET[İI]","SHOP[İI]ER","MORHIPO"]},{"category":"Ev & Yasam","patterns":["KURU TEM[İI]ZLEME","TEM[İI]ZLEME","ANT[İI]QUA","ANTIKA","IKEA","KO[ÇC]TA[ŞS]","BAUHAUS","TEKZEN","ENGL[İI]SH HOME","MADAME COCO","KARACA","MOB[İI]LYA","YAPI MARKET","HAVUZ","TEM[İI]ZL[İI]K"]},{"category":"Elektronik","patterns":["AR[ÇC]EL[İI]K","DYSON","TOKEN [ÖO]DEME AR[ÇC]EL","MEDIAMARKT","MED[İI]A MARKT","TEKNOSA","VATAN B[İI]LG","APPLE STORE","SAMSUNG","ARCEL[İI]K","VESTEL"]},{"category":"Telekom","patterns":["TURKCELL","VODAFONE","T[ÜU]RK TELEKOM","SUPERONL[İI]NE","T[ÜU]RKNET","D-SMART","DIGITURK"]},{"category":"Fatura & Enerji","patterns":["ELEKTR[İI]K","DO[ĞG]AL ?GAZ","[İI]GDA[ŞS]","ENERJ[İI]SA","BEDA[ŞS]","AYEDA[ŞS]","[İI]SK[İI]","FATURA"]},{"category":"Sigorta","patterns":["S[İI]GORTA","ALLIANZ","AXA\\b","AKS[İI]GORTA","MAPFRE","KASKO","DASK","EMEKL[İI]L[İI]K"]},{"category":"Vergi & Resmi","patterns":["VERASET","HAR[ÇC]LAR","\\bVD\\b","VERG[İI] DA[İI]RES[İI]","NAK\\.VAS","NOTER","VERG[İI]","\\bGIB\\b","E-DEVLET","TAPU","TRAF[İI]K CEZA","MTV\\b","BELED[İI]YE","G[ÜU]MR[ÜU]KS[ÜU]Z"]}]}</script>
 <script src="assets/vendor/pdfjs/pdf.min.js"></script>
 <script>
 "use strict";
@@ -278,6 +288,8 @@ async function unseal(blob, pw) {
 
 /* ------------------------------------------------------------------- rules */
 const RULES = JSON.parse(document.getElementById('rules-statement').textContent);
+const RULES_TEB = JSON.parse(document.getElementById('rules-statement-teb').textContent);
+const RULE_SETS = [RULES, RULES_TEB].filter(r => r && r.layout);
 const CATS = JSON.parse(document.getElementById('rules-categories').textContent);
 const FALLBACK = CATS.fallback || 'Diger';
 const toRe = (p, f) => new RegExp(String(p).replace(/\(\?P</g, '(?<'), f);
@@ -310,10 +322,11 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 function parseAmount(raw) {
   if (raw === null || raw === undefined) return null;
   if (typeof raw === 'number') return raw;
-  let s = String(raw).replace(/[\s ]/g, '');
+  let s = String(raw).replace(/[\s\u00a0]/g, '');
   if (!s) return null;
+  if (s.endsWith(',-')) s = s.slice(0, -2) + ',00';        // "TL.345,-" is whole lira, not a minus
   const neg = s.startsWith('-') || s.endsWith('-') || (s.startsWith('(') && s.endsWith(')'));
-  s = s.replace(/[()+-]/g, '').replace(/(TL|TRY|USD|EUR|GBP|₺|\$|€|£)/gi, '');
+  s = s.replace(/[()+-]/g, '').replace(/(TL|TRY|USD|EUR|GBP|₺|\$|€|£)/gi, '').replace(/^\./, '');
   s = s.replace(/\./g, '').replace(',', '.');
   const v = parseFloat(s);
   if (isNaN(v)) return null;
@@ -350,56 +363,87 @@ function peelInstallment(text) {
 }
 
 /* ------------------------------------------------------ statement parsing */
-function parseStatementText(pages, sourceName) {
+const LINE_RULES = new Map();
+function compileLines(rules) {
+  if (LINE_RULES.has(rules)) return LINE_RULES.get(rules);
+  const c = {
+    txn: (rules.transaction || []).map(p => toRe(p, 'i')),
+    skip: (rules.skip_lines || []).map(p => toRe(p, 'i')),
+    credit: (rules.credit_markers || []).map(p => toRe(p, 'i')),
+    inst: rules.installment ? toRe(rules.installment, 'i') : null,
+    card: rules.card_marker ? toRe(rules.card_marker, 'i') : null,
+    orig: rules.original_amount ? toRe(rules.original_amount, 'i') : null,
+    carried: rules.carried_forward ? toRe(rules.carried_forward, 'i') : null
+  };
+  LINE_RULES.set(rules, c);
+  return c;
+}
+function peelWith(text, re) {
+  if (!re) return [null, null, text];
+  const m = re.exec(text);
+  if (!m || !m.groups) return [null, null, text];
+  const paid = parseInt(m.groups.paid, 10), total = parseInt(m.groups.total, 10);
+  if (!(total > 1 && total >= paid && paid >= 1)) return [null, null, text];
+  return [paid, total, squeeze(text.slice(0, m.index) + ' ' + text.slice(m.index + m[0].length))];
+}
+
+/* Line layout (TEB and the like): one regex per line, statement read top to bottom. */
+function parseStatementText(pages, sourceName, rules) {
+  rules = rules || RULES;
+  const c = compileLines(rules);
   const text = pages.join('\n');
   const header = {};
-  for (const [field, patterns] of Object.entries(RULES.header || {})) {
+  for (const [field, patterns] of Object.entries(rules.header || {}))
     for (const p of patterns) {
       const m = toRe(p, 'i').exec(text);
-      if (!m) continue;
-      header[field] = squeeze(m[1]);
-      break;
+      if (m) { header[field] = squeeze(m[1]); break; }
     }
-  }
   const year = header.statement_date ? (parseDate(header.statement_date) || '').slice(0, 4) : null;
+  let carried = null;
+  if (c.carried) { const m = c.carried.exec(text); if (m) carried = Math.abs(parseAmount(m[1]) || 0); }
+  let card = header.card_number || '';
   const out = [], missed = [];
   pages.forEach((page, pi) => {
     page.split('\n').forEach(rawLine => {
       let line = squeeze(rawLine);
-      if (!line || SKIP_RES.some(re => re.test(line))) return;
-      let [paid, total, stripped] = peelInstallment(line);
+      if (c.card) { const cm = c.card.exec(line); if (cm) { card = squeeze(cm[1]); return; } }
+      if (!line || c.skip.some(re => re.test(line))) return;
+      let [paid, total, stripped] = peelWith(line, c.inst);
       line = stripped;
       let match = null;
-      for (const re of TXN_RES) { match = re.exec(line); if (match) break; }
+      for (const re of c.txn) { match = re.exec(line); if (match) break; }
       if (!match || !match.groups) { if (AMOUNT_LIKE.test(line)) missed.push(line); return; }
       const g = match.groups;
       const when = parseDate(g.date || '', year);
       let amount = parseAmount(g.amount);
       if (!when || amount === null) { missed.push(line); return; }
       let description = squeeze(g.description || '');
-      if (paid === null) { const r = peelInstallment(description); paid = r[0]; total = r[1]; description = r[2]; }
-      if (amount > 0 && ((g.trailing || '').includes('-') || CREDIT_RES.some(re => re.test(description))))
+      let originalAmount = null, originalCurrency = null;
+      if (c.orig) {
+        const fx = c.orig.exec(description);
+        if (fx && fx.groups) {
+          originalCurrency = fx.groups.currency.toUpperCase();
+          originalAmount = parseAmount(fx.groups.amount);
+          description = squeeze(description.slice(0, fx.index) + ' ' + description.slice(fx.index + fx[0].length));
+        }
+      }
+      if (paid === null) { const r = peelWith(description, c.inst); paid = r[0]; total = r[1]; description = r[2]; }
+      if (amount > 0 && ((g.trailing || '').includes('-') || c.credit.some(re => re.test(description))))
         amount = -amount;
-      let currency = (g.currency || g.currency_after || RULES.default_currency || 'TRY').toUpperCase();
+      let currency = (g.currency || g.currency_after || rules.default_currency || 'TRY').toUpperCase();
       if (currency === 'TL') currency = 'TRY';
       out.push({
-        id: when + '|' + description + '|' + amount.toFixed(2) + '|' + (header.card_number || ''),
-        date: when, description, merchant: merchantOf(description),
-        category: categorise(description), amount: Math.round(amount * 100) / 100, currency,
-        installment_no: paid, installment_total: total, installment_gross: gross,
-        card: header.card_number || '', statement: sourceName, page: pi + 1
+        id: when + '|' + description + '|' + amount.toFixed(2) + '|' + card + '|' + sourceName + '|' + out.length,
+        date: when, description, merchant: merchantOf(description), category: categorise(description),
+        amount: round2(amount), currency, original_amount: originalAmount, original_currency: originalCurrency,
+        installment_no: paid, installment_total: total, card, statement: sourceName, page: pi + 1
       });
     });
   });
-  return { header, transactions: out, missed };
+  return { header, transactions: out, missed,
+           reconciliation: carried === null ? null : reconcile(out, carried, header) };
 }
 
-/* Positioned words out of a PDF.
-
-   pdf.js hands back text runs, not words, and the statement template paints
-   invisible ~2pt "bosluk" spacer glyphs that would otherwise glue themselves
-   onto the amount. So: drop anything below the size floor, then merge runs
-   that sit closer together than a space. */
 async function pdfToRows(buffer, password, minSize) {
   if (typeof pdfjsLib === 'undefined')
     throw new Error('PDF okuyucu yüklenemedi — CSV ile içe aktarın');
@@ -645,14 +689,15 @@ function buildReport(txns, budget) {
   outstanding = Object.values(schedule).reduce((s, r) => s + r.committed, 0);
   const pendingCredits = Object.values(schedule).reduce((s, r) => s + r.pending, 0);
   const openPlans = plans.filter(p => p.amount > 0 && p.installment_total > p.installment_no);
-  const totalBudget = (VAULT && VAULT.totalBudget) || null;
+  const budgetLine = currentBudgetLine();
+  const totalBudget = Object.keys(budgetLine.months).length ? budgetLine.months : null;
   let totalLine = null;
-  if (totalBudget && Object.keys(totalBudget).length) {
+  if (totalBudget) {
     const shared = months.filter(m => totalBudget[m] !== undefined);
     if (shared.length) {
       const rows = shared.map(m => varianceRow(m, Math.abs(totalBudget[m]), byMonth[m] || 0));
       totalLine = {
-        label: (VAULT.totalBudgetLabel || 'bütçe'),
+        label: budgetLine.label,
         rows,
         budgetTotal: round2(rows.reduce((s, r) => s + r.budget, 0)),
         actualTotal: round2(rows.reduce((s, r) => s + r.actual, 0))
@@ -953,7 +998,56 @@ function findBudgetTable(grids, yearHint) {
 /* ------------------------------------------------------------------- vault */
 let VAULT = null, PASSWORD = null;
 
-function emptyVault() { return { version: 1, transactions: [], budget: {}, updated: null }; }
+function emptyVault() { return { version: 2, transactions: [], budget: {}, cards: {}, budgets: {}, updated: null }; }
+
+/* Whose card a statement belongs to: the holder's first name from the header,
+   else the card's last four digits. "NAMIK" lower-cases to "namık" in Turkish. */
+function ownerFromHeader(header) {
+  const holder = squeeze(header.card_holder || '');
+  if (holder) {
+    const first = holder.split(' ')[0].toLocaleLowerCase('tr');
+    return first.charAt(0).toLocaleUpperCase('tr') + first.slice(1);
+  }
+  const num = (header.card_number || '').replace(/\D/g, '');
+  return num ? 'Kart ' + num.slice(-4) : 'Diğer';
+}
+function migrateVault(v) {
+  v.cards = v.cards || {};
+  v.budgets = v.budgets || {};
+  if (v.totalBudget && !Object.keys(v.budgets).length) {
+    const label = (v.totalBudgetLabel || 'Ebru kk').split(' ')[0].toLocaleLowerCase('tr');
+    v.budgets[label.charAt(0).toLocaleUpperCase('tr') + label.slice(1)] = v.totalBudget;
+  }
+  for (const t of v.transactions || []) if (t.card && !(t.card in v.cards)) v.cards[t.card] = 'Diğer';
+  return v;
+}
+const VIEW = { owner: 'Toplam' };
+const ownerOf = t => (VAULT.cards && VAULT.cards[t.card]) || 'Diğer';
+function owners() {
+  return [...new Set(Object.values(VAULT.cards || {}).concat(Object.keys(VAULT.budgets || {})))]
+    .sort((a, b) => a.localeCompare(b, 'tr'));
+}
+function visible() {
+  return VIEW.owner === 'Toplam' ? VAULT.transactions : VAULT.transactions.filter(t => ownerOf(t) === VIEW.owner);
+}
+/* The budget line for the current view: one person's, or everyone's added up. */
+function currentBudgetLine() {
+  const b = VAULT.budgets || {};
+  if (VIEW.owner !== 'Toplam') return { label: VIEW.owner + ' kk', months: b[VIEW.owner] || {} };
+  const months = {};
+  for (const line of Object.values(b)) for (const [m, v] of Object.entries(line)) months[m] = (months[m] || 0) + v;
+  return { label: 'Toplam', months };
+}
+function renderOwnerBar() {
+  const bar = $('ownerBar'); if (!bar) return;
+  const names = owners();
+  bar.hidden = names.length < 2 && !Object.keys(VAULT.budgets || {}).length;
+  const all = ['Toplam', ...names];
+  if (!all.includes(VIEW.owner)) VIEW.owner = 'Toplam';
+  bar.innerHTML = all.map(n => '<button type="button" data-owner="' + esc(n) + '"' +
+    (n === VIEW.owner ? ' aria-pressed="true"' : ' aria-pressed="false"') + '>' +
+    (n === 'Toplam' ? '👥 ' : '👤 ') + esc(n) + '</button>').join('');
+}
 
 async function save() {
   VAULT.updated = new Date().toISOString();
@@ -1051,7 +1145,7 @@ function shareBar(byCategory, total) {
   return '<div class="share">' +
     segs.map(g => '<span style="--c:' + g.color + ';flex:' + g.a.toFixed(2) + '" title="' +
       esc(g.label) + ' · ' + money(g.a) + '"></span>').join('') + '</div>' +
-    '<div class="legend">' + segs.map(g => '<span><span class="dot" style="--c:' + g.color + '"></span>' +
+    '<div class="legend">' + segs.map(g => '<span class="drill" data-cat="' + esc(g.label) + '"><span class="dot" style="--c:' + g.color + '"></span>' +
       g.icon + ' <b>' + esc(g.label) + '</b><em>' + pct2(g.a / total * 100) + '</em></span>').join('') + '</div>';
 }
 
@@ -1086,12 +1180,13 @@ function monthBars(byMonth, budget) {
   return svg;
 }
 
-function renderAll() { renderSummary(); renderTxns(); renderBudget(); renderPickers();
+function renderAll() { VAULT = migrateVault(VAULT); renderSummary(); renderTxns(); renderBudget(); renderPickers();
   $('savedAt').textContent = VAULT.updated
     ? 'son kayıt ' + new Date(VAULT.updated).toLocaleString('tr-TR') : ''; }
 
 function renderSummary() {
-  const r = buildReport(VAULT.transactions, VAULT.budget);
+  renderOwnerBar();
+  const r = buildReport(visible(), VAULT.budget);
   const period = r.months.length ? r.months[0] + ' – ' + r.months[r.months.length - 1] : '—';
   if (!r.count) {
     $('tab-ozet').innerHTML = '<div class="card-box"><h3>Henüz veri yok</h3>' +
@@ -1104,7 +1199,7 @@ function renderSummary() {
     kpi('Kalan taksit · ' + r.openPlans + ' plan', money(r.outstanding), 'var(--watch)') +
     kpi('Dönem', period, 'var(--catx)') + '</div>';
 
-  const budgetByMonth = (VAULT && VAULT.totalBudget) || {};
+  const budgetByMonth = currentBudgetLine().months;
   html += '<div class="viz-grid">' +
     '<div class="viz"><h2 style="margin:0 0 6px">Harcamanın dağılımı</h2>' + shareBar(r.byCategory, r.totalSpend) + '</div>' +
     '<div class="viz"><h2 style="margin:0 0 6px">Aylık harcama' +
@@ -1118,7 +1213,7 @@ function renderSummary() {
     html += '<h2>Bütçe vs gerçekleşen' + note + '</h2><div class="wrap"><table><thead><tr>' +
       '<th>Kalem</th><th class="n">Bütçe</th><th class="n">Gerçekleşen</th><th class="n">Fark</th>' +
       '<th>Kullanım</th><th>Durum</th></tr></thead><tbody>' +
-      r.variance.map(v => '<tr class="s-' + v.status.toLowerCase() + '"><td>' + catLabel(v.label) + '</td>' +
+      r.variance.map(v => '<tr class="s-' + v.status.toLowerCase() + ' drill" data-cat="' + esc(v.label) + '"><td>' + catLabel(v.label) + '</td>' +
         '<td class="n">' + money(v.budget) + '</td><td class="n">' + money(v.actual) + '</td>' +
         '<td class="n">' + money(v.diff) + '</td><td class="meter">' +
         (v.used === null ? '' : '<span style="width:' + Math.min(v.used, 100) + '%"></span>') + '<em>' +
@@ -1152,7 +1247,7 @@ function renderSummary() {
 
   const schedMonths = Object.keys(r.schedule);
   if (schedMonths.length) {
-    const tb = (VAULT && VAULT.totalBudget) || {};
+    const tb = currentBudgetLine().months;
     html += '<h2>Gelecek aylara şimdiden yazılmış taksitler</h2>' +
       '<p class="note">Açık planların kalan taksitleri, ay ay. Bütçe satırı varsa o ayın ne kadarının ' +
       'daha harcama yapılmadan dolduğu gösterilir.</p>' +
@@ -1175,9 +1270,9 @@ function renderSummary() {
           money(p.remaining) + '</td></tr>').join('') + '</tbody></table></div>';
   }
 
-  html += '<h2>Kategori bazında</h2><div class="wrap"><table><thead><tr><th>Kategori</th>' +
+  html += '<h2>Kategori bazında <span class="badge">satıra tıklayın: ayrıntı</span></h2><div class="wrap"><table><thead><tr><th>Kategori</th>' +
     '<th class="n">Tutar</th><th class="n">Pay</th></tr></thead><tbody>' +
-    r.byCategory.map(([c, a]) => '<tr><td>' + catLabel(c) + '</td><td class="n">' + money(a) +
+    r.byCategory.map(([c, a]) => '<tr class="drill" data-cat="' + esc(c) + '" title="Ayrıntı için tıklayın"><td>' + catLabel(c) + '</td><td class="n">' + money(a) +
       '</td><td class="n">' + pct2(a / (r.totalSpend || 1) * 100) + '</td></tr>').join('') +
     '</tbody></table></div>';
 
@@ -1221,9 +1316,10 @@ function renderPickers() {
 /* Per-viewer list state: how the transactions are sorted and grouped. Never
    saved — it is a way of looking, not part of the record. */
 const LIST = { sortKey: 'date', sortDir: -1, group: '' };
-const GROUP_LABEL = { category: 'Kategori', merchant: 'İşyeri', month: 'Ay' };
+const GROUP_LABEL = { category: 'Kategori', merchant: 'İşyeri', month: 'Ay', owner: 'Kişi' };
 const groupKeyOf = (t, mode) =>
-  mode === 'month' ? t.date.slice(0, 7) : mode === 'merchant' ? (t.merchant || t.description) : t.category;
+  mode === 'month' ? t.date.slice(0, 7) : mode === 'merchant' ? (t.merchant || t.description)
+  : mode === 'owner' ? ownerOf(t) : t.category;
 
 function compareTxns(a, b) {
   const k = LIST.sortKey;
@@ -1236,7 +1332,7 @@ function renderTxns() {
   const term = squeeze($('filterText').value).toLowerCase();
   const cat = $('filterCat').value;
   const cats = allCategories();
-  const rows = VAULT.transactions.filter(t =>
+  const rows = visible().filter(t =>
     (!cat || t.category === cat) &&
     (!term || (t.description + ' ' + t.merchant).toLowerCase().includes(term)));
 
@@ -1251,7 +1347,7 @@ function renderTxns() {
       '<td>' + chip(t.category) + '<select data-idx="' + idx + '" class="catSel">' +
       cats.map(c => '<option' + (c === t.category ? ' selected' : '') + '>' + esc(c) + '</option>').join('') +
       '</select></td><td class="n' + (t.amount < 0 ? ' neg' : '') + '">' + money(t.amount) + '</td>' +
-      '<td>' + inst + '</td><td>' + esc(t.statement || '') + '</td>' +
+      '<td>' + inst + '</td><td>' + esc(ownerOf(t)) + '</td><td>' + esc(t.statement || '') + '</td>' +
       '<td><button class="ghost del" data-idx="' + idx + '">Sil</button></td></tr>';
   };
 
@@ -1271,7 +1367,7 @@ function renderTxns() {
     const ordered = [...groups.entries()].sort((a, b) =>
       LIST.group === 'month' ? b[0].localeCompare(a[0]) : b[1].spend - a[1].spend);
     html = ordered.map(([key, g]) =>
-      '<tr class="grp"><td colspan="7">' + (LIST.group === 'category' ? chip(key) : '') + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(key) +
+      '<tr class="grp"><td colspan="8">' + (LIST.group === 'category' ? chip(key) : '') + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(key) +
       ' · ' + g.rows.length + ' işlem' +
       '<span class="sum">harcama ' + money(g.spend) + (g.net !== g.spend ? ' · net ' + money(g.net) : '') + '</span></td></tr>' +
       g.rows.sort(compareTxns).map(rowHtml).join('')).join('');
@@ -1282,7 +1378,7 @@ function renderTxns() {
 }
 
 function budgetMonths() {
-  const fromTxn = [...new Set(VAULT.transactions.map(t => t.date.slice(0, 7)))];
+  const fromTxn = [...new Set(visible().map(t => t.date.slice(0, 7)))];
   const fromBudget = [...new Set(Object.values(VAULT.budget).flatMap(v => Object.keys(v)))];
   let months = [...new Set(fromTxn.concat(fromBudget))].sort();
   if (!months.length) months = [new Date().toISOString().slice(0, 7)];
@@ -1310,6 +1406,28 @@ document.querySelectorAll('.tabs button').forEach(btn => btn.addEventListener('c
 $('filterText').addEventListener('input', renderTxns);
 $('filterCat').addEventListener('change', renderTxns);
 $('groupBy').addEventListener('change', e => { LIST.group = e.target.value; renderTxns(); });
+function showTransactions() {
+  const tab = document.querySelector('.tabs button[data-tab=islemler]');
+  if (tab) tab.click(); else location.hash = '#tab-islemler';
+}
+$('tab-ozet').addEventListener('click', e => {
+  const row = e.target.closest('[data-cat]');
+  if (!row) return;
+  const cat = row.dataset.cat;
+  if (cat === 'Diğer kategoriler') { $('filterCat').value = ''; }
+  else if ([...$('filterCat').options].some(o => o.value === cat)) $('filterCat').value = cat;
+  else return;
+  $('filterText').value = '';
+  $('groupBy').value = 'merchant'; LIST.group = 'merchant';
+  renderTxns(); showTransactions();
+  $('txnTable').scrollIntoView({ block: 'start', behavior: 'smooth' });
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest('#ownerBar button[data-owner]');
+  if (!b) return;
+  VIEW.owner = b.dataset.owner;
+  renderSummary(); renderTxns(); renderBudget();
+});
 $('txnTable').querySelector('thead').addEventListener('click', e => {
   const th = e.target.closest('th.sortable');
   if (!th) return;
@@ -1387,12 +1505,16 @@ async function ingestFiles(files) {
         log(file.name + ': ' + result.added + ' eklendi, ' + result.skipped + ' tekrar', 'good');
       } else {
         const buffer = await file.arrayBuffer();
-        let parsed;
-        if (RULES.layout === 'columns') {
-          parsed = parseColumns(await pdfToRows(buffer, $('pdfPw').value, RULES.min_font_size), file.name);
-        } else {
-          parsed = parseStatementText(await pdfToPages(buffer, $('pdfPw').value), file.name);
-        }
+        const rows = await pdfToRows(buffer, $('pdfPw').value, RULES.min_font_size || 4);
+        const textPages = rows.map(r => r.map(w => w.map(t => t.text).join(' ')).join('\n'));
+        const flat = textPages.join('\n');
+        const rules = RULE_SETS.find(r => r.detect && toRe(r.detect, 'i').test(flat)) || RULES;
+        const parsed = rules.layout === 'columns'
+          ? parseColumns(rows, file.name)
+          : parseStatementText(textPages, file.name, rules);
+        log(file.name + ': ' + (rules.issuer || 'ekstre') + ' düzeni tanındı');
+        const owner = ownerFromHeader(parsed.header);
+        for (const t of parsed.transactions) if (t.card && !VAULT.cards[t.card]) VAULT.cards[t.card] = owner;
         const result = addTransactions(parsed.transactions);
         log(file.name + ': ' + result.added + ' eklendi, ' + result.skipped + ' tekrar' +
           (parsed.missed.length ? ', ' + parsed.missed.length + ' satır çözümlenemedi' : ''),
@@ -1453,7 +1575,10 @@ function renderBudgetPreview() {
     'değiştirin: <input type="number" id="bYear" value="' + year + '" style="width:90px"></p>' +
     '<div class="row" style="margin:10px 0">' +
       '<label><input type="radio" name="bMode" value="line" checked> Tek satır — kart harcaması ' +
-      'bütçesi</label> <select id="bRow">' + rows + '</select>' +
+      'bütçesi</label> <select id="bRow">' + rows + '</select> <span class="note" style="margin:0">kimin:</span> ' +
+      '<select id="bOwner">' + [...new Set(owners().concat(['Ebru', 'Namık']))].map(n =>
+        '<option' + (n === (VIEW.owner === 'Toplam' ? '' : VIEW.owner) ? ' selected' : '') + '>' + esc(n) + '</option>').join('') +
+      '</select>' +
     '</div>' +
     '<div class="row" style="margin-bottom:12px">' +
       '<label><input type="radio" name="bMode" value="categories"> Her satır bir kategori ' +
@@ -1486,11 +1611,12 @@ async function applyBudget() {
   const mode = document.querySelector('input[name=bMode]:checked').value;
   if (mode === 'line') {
     const row = table.rows[+$('bRow').value];
-    VAULT.totalBudget = {};
+    const owner = $('bOwner').value;
+    VAULT.budgets = VAULT.budgets || {};
+    VAULT.budgets[owner] = {};
     for (const [month, value] of Object.entries(row.values))
-      VAULT.totalBudget[month] = Math.abs(value);
-    VAULT.totalBudgetLabel = row.label;
-    log('Bütçe satırı «' + row.label + '» uygulandı (' +
+      VAULT.budgets[owner][month] = Math.abs(value);
+    log('Bütçe satırı «' + row.label + '» ' + owner + ' için uygulandı (' +
         Object.keys(row.values).length + ' ay).', 'good');
   } else {
     for (const row of table.rows) {
@@ -1557,10 +1683,12 @@ $('vaultInput').addEventListener('change', async e => {
   }
   const result = addTransactions(restored.transactions || []);
   VAULT.budget = Object.assign({}, restored.budget || {}, VAULT.budget);
-  if (restored.totalBudget && !(VAULT.totalBudget && Object.keys(VAULT.totalBudget).length)) {
-    VAULT.totalBudget = restored.totalBudget;
-    VAULT.totalBudgetLabel = restored.totalBudgetLabel || 'bütçe';
+  VAULT.cards = Object.assign({}, restored.cards || {}, VAULT.cards || {});
+  VAULT.budgets = Object.assign({}, restored.budgets || {}, VAULT.budgets || {});
+  if (restored.totalBudget && !Object.keys(VAULT.budgets).length) {
+    VAULT.totalBudget = restored.totalBudget; VAULT.totalBudgetLabel = restored.totalBudgetLabel;
   }
+  migrateVault(VAULT);
   await save(); renderAll();
   document.querySelector('.tabs button[data-tab=ozet]').click();
   log('Yedek geri yüklendi: ' + result.added + ' işlem eklendi' +

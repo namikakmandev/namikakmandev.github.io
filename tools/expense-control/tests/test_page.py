@@ -125,6 +125,9 @@ def main():
             check("foreign original read", rows[("2026-01-21", "BARBOUR")][4:6], [438.0, "EUR"])
             check("undated fee row read", rows[("2026-01-09", "KKDF + BSMV")][0], 162.36)
             check("category assigned", rows[("2026-01-21", "BARBOUR")][1], "Giyim & Aksesuar")
+            check("card mapped to its holder", page.evaluate(
+                "Object.values(VAULT.cards).length === 1 && Object.values(VAULT.cards)[0] !== 'Diğer'"), True)
+            check("owner bar hidden while there is only one card holder", page.is_visible("#ownerBar"), False)
             report = page.evaluate("buildReport(VAULT.transactions, VAULT.budget)")
             check("instalments due = open debit plans only", report["outstanding"], 1613.0 * 2)
             check("reversal plan shown as pending credit", report["pendingCredits"], -1760.0 * 2)
@@ -192,13 +195,16 @@ def main():
             check("category rows read", labels[:2], ["Market", "Yakit"])
             check("total row skipped", "Toplam" in labels, False)
             page.select_option("#bRow", label="Market")
+            check("owner select offers both card holders",
+                  set(page.evaluate("[...document.querySelectorAll('#bOwner option')].map(o => o.value)")) >= {"Ebru", "Namık"}, True)
+            page.select_option("#bOwner", "Ebru")
             page.click("#bApply")
             page.wait_for_timeout(1500)
-            check("single budget row applied", page.evaluate("VAULT.totalBudgetLabel"), "Market")
-            check("months stored", page.evaluate("Object.keys(VAULT.totalBudget).length"), 3)
-            check("value is absolute", page.evaluate("VAULT.totalBudget['2025-12']"), 2000)
+            check("single budget row applied to the chosen owner", page.evaluate("Object.keys(VAULT.budgets)"), ["Ebru"])
+            check("months stored", page.evaluate("Object.keys(VAULT.budgets['Ebru']).length"), 3)
+            check("value is absolute", page.evaluate("VAULT.budgets['Ebru']['2025-12']"), 2000)
             check("bare month names wrap into the next year",
-                  sorted(page.evaluate("Object.keys(VAULT.totalBudget)")),
+                  sorted(page.evaluate("Object.keys(VAULT.budgets['Ebru'])")),
                   ["2025-12", "2026-01", "2026-02"])
 
             print("\nreport")
@@ -206,8 +212,42 @@ def main():
             page.wait_for_timeout(800)
             summary = page.inner_text("#tab-ozet").upper()
             check("monthly-vs-budget table rendered", "AYLIK TOPLAM VS BÜTÇE SATIRI" in summary, True)
-            check("budget row named", "MARKET" in summary, True)
+            check("Toplam view adds the budget lines up under one badge", "TOPLAM" in summary, True)
             check("no spurious UNBUDGETED table", "BÜTÇE VS GERÇEKLEŞEN" in summary, False)
+
+            print("\nowners")
+            check("owner bar shown once a second person exists", page.is_visible("#ownerBar"), True)
+            names = page.evaluate("[...document.querySelectorAll('#ownerBar button')].map(b => b.dataset.owner)")
+            check("Toplam first, then each person", names[0] == "Toplam" and "Ebru" in names and len(names) == 3, True)
+            check("Toplam pressed by default",
+                  page.get_attribute("#ownerBar button[data-owner=Toplam]", "aria-pressed"), "true")
+            page.click("#ownerBar button[data-owner=Ebru]")
+            page.wait_for_timeout(500)
+            check("Ebru has no card, so her view is empty", "Henüz veri yok" in page.inner_text("#tab-ozet"), True)
+            holder = [n for n in names if n not in ("Toplam", "Ebru")][0]
+            page.click(f"#ownerBar button[data-owner=\"{holder}\"]")
+            page.wait_for_timeout(500)
+            check("card holder's view carries the statement", page.evaluate("visible().length"), 10)
+            check("holder without a budget line shows no budget table",
+                  "AYLIK TOPLAM VS BÜTÇE" in page.inner_text("#tab-ozet").upper(), False)
+            page.click("#ownerBar button[data-owner=Toplam]")
+            page.wait_for_timeout(500)
+            check("Toplam adds every budget line up", page.evaluate("currentBudgetLine().months['2026-01']"), 2000)
+
+            print("\ndrill-down")
+            page.click("#tab-ozet tr.drill[data-cat='Giyim & Aksesuar']")
+            page.wait_for_timeout(600)
+            check("category row opens the transactions tab", page.is_visible("#tab-islemler"), True)
+            check("category filter set", page.input_value("#filterCat"), "Giyim & Aksesuar")
+            check("grouped by merchant for the detail view", page.input_value("#groupBy"), "merchant")
+            check("only that category listed",
+                  page.evaluate("[...new Set([...document.querySelectorAll('#txnTable tbody tr:not(.grp) select.catSel')].map(s => s.value))]"),
+                  ["Giyim & Aksesuar"])
+            check("person column filled", page.evaluate(
+                "document.querySelector('#txnTable tbody tr:not(.grp) td:nth-child(6)').textContent"), holder)
+            page.select_option("#filterCat", "")
+            page.select_option("#groupBy", "")
+            page.click("button[data-tab=ozet]")
 
             print("\npersistence and secrecy")
             page.reload()
@@ -221,7 +261,8 @@ def main():
             page.click("#lockBtn")
             page.wait_for_selector("#app:not([hidden])", timeout=15000)
             check("data survived reload", page.evaluate("VAULT.transactions.length"), 10)
-            check("budget survived reload", page.evaluate("VAULT.totalBudgetLabel"), "Market")
+            check("budget survived reload", page.evaluate("Object.keys(VAULT.budgets)"), ["Ebru"])
+            check("vault schema is v2", page.evaluate("VAULT.version"), 2)
             raw = page.evaluate("localStorage.getItem('harcama-vault-v1')")
             for secret in ("BARBOUR", "MOKAUNITED", "5549", "TEŞEKKÜR"):
                 check(f"'{secret}' not readable in storage", secret in raw, False)

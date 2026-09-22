@@ -1,0 +1,50 @@
+{
+  "issuer": "TEB — Bonus kredi kartı ekstresi",
+  "note": "Line layout: 'dd/mm/yyyy [dd/mm] DESCRIPTION [(total/no. Taksit)] [(Yurt dışı işlem tutarı EUR.5,20)] [-]TL.1.234,56 [TL.bonus]'. Whole-lira amounts are written 'TL.345,-'. Credits carry a leading minus. Verified against the statement's own 'Dönem Borcu' / 'GENEL TOPLAM'. 'BONUS BEDAVA ALIŞVERİŞ' rows carry their figure in the Bonus column (points spent), not the TL column, so they are skipped; the reconciliation proves it.",
+  "layout": "lines",
+  "decimal_style": "tr",
+  "default_currency": "TRY",
+  "header": {
+    "statement_date": [
+      "Hesap\\s*Kesim\\s*Tarihi\\s*:?\\s*(\\d{2}/\\d{2}/\\d{4})"
+    ],
+    "due_date": [
+      "Son\\s*[ÖO]deme\\s*Tarihi\\s*:?\\s*(\\d{2}/\\d{2}/\\d{4})"
+    ],
+    "card_number": [
+      "Kart\\s*Numaras[ıi]\\s*:?\\s*(\\d{6}\\*{6}\\d{4})"
+    ],
+    "card_holder": [
+      "SAYIN\\s+([A-ZÇĞİÖŞÜ]+(?:\\s+[A-ZÇĞİÖŞÜ]+){0,3})"
+    ],
+    "period_total": [
+      "D[öo]nem\\s*Borcu\\s*:?\\s*TL\\.([\\d.]*\\d,(?:\\d{2}|-))"
+    ],
+    "minimum_payment": [
+      "Minimum\\s*[ÖO]deme\\s*Tutar[ıi]\\s*:?\\s*TL\\.([\\d.]*\\d,(?:\\d{2}|-))"
+    ],
+    "credit_limit": [
+      "Kart\\s*Limiti\\s*:?\\s*TL\\.([\\d.]*\\d,(?:\\d{2}|-))"
+    ]
+  },
+  "card_marker": "Kart\\s*Numaras[ıi]\\s*:\\s*(\\d{6}\\*{6}\\d{4})\\s+BONUS",
+  "carried_forward": "[ÖO]nceki\\s*D[öo]nemden\\s*Devir\\s*Edilen\\s*Tutar\\s*(-?TL\\.[\\d.]*\\d,(?:\\d{2}|-))",
+  "original_amount": "\\(Yurt\\s*d[ıi][şs][ıi]\\s*i[şs]lem\\s*tutar[ıi]\\s*(?P<currency>[A-Z]{3})\\.(?P<amount>[\\d.]*\\d,(?:\\d{2}|-))\\)",
+  "installment": "\\((?P<total>\\d{1,2})/(?P<paid>\\d{1,2})\\.\\s*Taksit\\)\\s*$",
+  "transaction": [
+    "^(?P<date>\\d{2}/\\d{2}/\\d{4})\\s+(?:\\d{2}/\\d{2}\\s+)?(?P<description>\\S.*?)\\s+(?P<amount>-?TL\\.[\\d.]*\\d,(?:\\d{2}|-))(?:\\s+(?P<bonus>-?TL\\.[\\d.]*\\d,(?:\\d{2}|-)))?\\s*(?P<trailing>)$"
+  ],
+  "skip_lines": [
+    "^\\s*$",
+    "BONUS\\s+BEDAVA\\s+ALI[SŞ]VERI[SŞ]",
+    "Devir\\s*Edilen",
+    "TOPLAM",
+    "Sayfa\\s*:",
+    "Hesap\\s*Kesim",
+    "Son\\s*[ÖO]deme",
+    "Faizi\\s*:",
+    "Limiti\\s*:"
+  ],
+  "credit_markers": [],
+  "detect": "KRED[İI]\\s*KART\\s*EKSTRE\\s*[ÖO]ZET[İI]|T[üu]rk\\s*Ekonomi\\s*Bankas[ıi]|CEPTETEB"
+}
