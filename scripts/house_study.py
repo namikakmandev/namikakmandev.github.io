@@ -210,6 +210,27 @@ def main():
     us_same = test([dp[y] for y in ys], [dr[y] for y in ys], tests=2)
     us_lag = test([dp[ys[i]] for i in range(1, len(ys))], [dr[ys[i - 1]] for i in range(1, len(ys))], tests=2)
     us_levels = test([us_real_a[y] for y in years], [mr_a[y] for y in years])
+    # --- bond yields against house prices, six countries, quarterly -------------------------
+    # real house price growth over four quarters against the change in the ten-year yield over
+    # the same four quarters, and against the yield change four quarters earlier (two tests).
+    bonds = {}
+    for c in YIELD_COUNTRIES:
+        y_q = quarterly_mean(ly[c])
+        r_q = hp[f"{c}|real"]
+        g = yoy(r_q, 4)
+        dy = {}
+        qk = sorted(y_q)
+        for i in range(4, len(qk)):
+            dy[qk[i]] = y_q[qk[i]] - y_q[qk[i - 4]]
+        qs = [q for q in sorted(g) if q in dy and q >= "1990-Q1"]
+        same = test([g[q] for q in qs], [dy[q] for q in qs], tests=2)
+        lagq = {qk[i]: dy[qk[i - 4]] for i in range(8, len(qk)) if qk[i - 4] in dy}
+        qs2 = [q for q in qs if q in lagq]
+        lag = test([g[q] for q in qs2], [lagq[q] for q in qs2], tests=2)
+        lv_q = [q for q in sorted(r_q) if q in y_q and q >= "1990-Q1"]
+        lv = test([r_q[q] for q in lv_q], [y_q[q] for q in lv_q])
+        bonds[c] = {"quarters": [qs[0], qs[-1]], "levels": lv, "same": same, "lag4": lag,
+                    "scatter": [[round(dy[q], 2), round(g[q], 1)] for q in qs]}
     cross = []
     for c in YIELD_COUNTRIES:
         y = ly[c]
@@ -229,6 +250,7 @@ def main():
             "tr_real_price_yoy_vs_real_deposit_rate": tr_test_levels,
             "tr_real_price_yoy_vs_real_deposit_rate_lag12": tr_test_lag,
             "cross_section": cross, "cross_r": round(cross_r, 2),
+            "bonds": bonds,
             "note": "US: annual means of the BIS real index and the 30-year mortgage rate, year-on-year change in the first against the change in the second, same year and the rate change a year earlier (two lags tested, p_adj multiplied by two). Türkiye: real KFE growth over twelve months against the ex-post real three-month deposit rate, monthly, same month and twelve months earlier (two tests). Cross-section: six countries, printed not tested.",
         },
     }
