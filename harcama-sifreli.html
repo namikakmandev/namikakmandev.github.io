@@ -121,6 +121,12 @@ tr.grp td .sum{float:right;font-variant-numeric:tabular-nums;font-weight:500;col
 .owners button{background:var(--card);color:var(--fg);border:1px solid var(--line);font-weight:500;padding:7px 14px;border-radius:999px}
 .owners button[aria-pressed="true"]{background:var(--acc);color:var(--acc-ink,#fff);border-color:var(--acc);font-weight:600}
 tr.drill,.legend .drill{cursor:pointer}
+.kpi i{display:block;height:6px;border-radius:3px;background:var(--soft);margin-top:9px;overflow:hidden}
+.kpi i em{display:block;height:100%;background:var(--kc);border-radius:3px}
+.kpi small{display:block;color:var(--mut);font-size:11.5px;margin-top:5px;font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0}
+td.meter span.cat{background:var(--c)}
+td.chev{color:var(--mut);width:1ch;padding-left:0;font-size:16px}
+@media (max-width:640px){th,td{padding:7px 8px;font-size:12.5px}.hide-sm{display:none}.kpis{grid-template-columns:1fr 1fr;gap:8px}.kpi{padding:11px 12px}.kpi b{font-size:18px}td.meter{min-width:90px}tr.grp td{white-space:normal}tr.grp td .sum{float:none;display:block;margin-top:2px}}
 tr.drill:hover td{background:var(--soft)}
 .legend .drill:hover b{text-decoration:underline}
 /* @viz-end */
@@ -148,6 +154,7 @@ tr.drill:hover td{background:var(--soft)}
   <div class="owners" id="ownerBar" hidden></div>
   <div class="tabs" role="tablist">
     <button role="tab" data-tab="ozet" aria-selected="true">Özet</button>
+    <button role="tab" data-tab="taksit" aria-selected="false">Taksitler</button>
     <button role="tab" data-tab="islemler" aria-selected="false">İşlemler</button>
     <button role="tab" data-tab="butce" aria-selected="false">Bütçe</button>
     <button role="tab" data-tab="ekle" aria-selected="false">İçe aktar</button>
@@ -155,6 +162,7 @@ tr.drill:hover td{background:var(--soft)}
   </div>
 
   <section id="tab-ozet"></section>
+  <section id="tab-taksit" hidden></section>
 
   <section id="tab-islemler" hidden>
     <div class="row" style="margin-bottom:12px">
@@ -1131,8 +1139,29 @@ const CATEGORY_META = {
 };
 const catMeta = c => CATEGORY_META[c] || { icon: '🏷️' };
 const catColor = c => { const m = catMeta(c); return m.slot ? 'var(--cat' + m.slot + ')' : 'var(--catx)'; };
-const chip = (c, lg) => '<span class="chip' + (lg ? ' lg' : '') + '" style="--c:' + catColor(c) + '" title="' + esc(c) + '">' + catMeta(c).icon + '</span>';
-const catLabel = c => chip(c) + esc(c);
+const chip = (c, lg) => '<span class="chip' + (lg ? ' lg' : '') + '" style="--c:' + catColor(c) + '" title="' + esc(catName(c)) + '">' + catMeta(c).icon + '</span>';
+const CAT_TR = { 'Yeme-Icme': 'Yeme & İçme', 'Egitim': 'Eğitim', 'Ulasim': 'Ulaşım', 'Online Alisveris': 'Online Alışveriş',
+  'Kisisel Bakim': 'Kişisel Bakım', 'Kultur & Eglence': 'Kültür & Eğlence', 'Saglik': 'Sağlık', 'Faiz & Ucret': 'Faiz & Ücret',
+  'Ev & Yasam': 'Ev & Yaşam', 'Yakit': 'Yakıt', 'Kart Odemesi': 'Kart Ödemesi', 'Diger': 'Diğer', 'Bagis': 'Bağış' };
+const catName = c => CAT_TR[c] || c;
+const catLabel = c => chip(c) + esc(catName(c));
+const MONTHS_TR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+const monthName = ym => /^\d{4}-\d{2}$/.test(ym || '') ? MONTHS_TR[+ym.slice(5, 7) - 1] + ' ' + ym.slice(0, 4) : ym;
+const monthShort = ym => MONTHS_TR[+ym.slice(5, 7) - 1].slice(0, 3) + ' ' + ym.slice(2, 4);
+const STATUS_TR = { OK: 'Bütçede', WATCH: 'Sınırda', OVER: 'Aşıldı', UNBUDGETED: 'Bütçesiz', '-': '—' };
+const statusBadge = st => '<span class="badge ' + st.toLowerCase() + '">' + (STATUS_TR[st] || st) + '</span>';
+const lira = v => (v < 0 ? '-' : '') + Math.round(Math.abs(v)).toLocaleString('tr-TR') + ' TL';
+const pct0 = v => Math.round(v).toLocaleString('tr-TR') + '%';
+/* A stat tile with its budget as a meter underneath: how much of the month is spent. */
+function kpiBar(label, actual, budget, sub) {
+  const ratio = budget ? actual / budget : null;
+  const status = ratio === null ? '' : ratio > 1 ? 'over' : ratio > .85 ? 'watch' : 'ok';
+  const color = status ? 'var(--' + status + ')' : 'var(--acc)';
+  return '<div class="kpi" style="--kc:' + color + '"><span>' + esc(label) + '</span><b>' + esc(lira(actual)) + '</b>' +
+    (ratio === null ? '<small>' + esc(sub || 'bütçe girilmemiş') + '</small>'
+      : '<i><em style="width:' + Math.min(ratio * 100, 100).toFixed(0) + '%"></em></i><small>bütçe ' + esc(lira(budget)) +
+        ' · ' + esc(pct0(ratio * 100)) + (sub ? ' · ' + esc(sub) : '') + '</small>') + '</div>';
+}
 
 /* Share of spend by category: the coloured eight as their own segments, the rest folded into one. */
 function shareBar(byCategory, total) {
@@ -1144,9 +1173,9 @@ function shareBar(byCategory, total) {
   if (rest > 0) segs.push({ label: 'Diğer kategoriler', a: rest, color: 'var(--catx)', icon: '📦' });
   return '<div class="share">' +
     segs.map(g => '<span style="--c:' + g.color + ';flex:' + g.a.toFixed(2) + '" title="' +
-      esc(g.label) + ' · ' + money(g.a) + '"></span>').join('') + '</div>' +
+      esc(catName(g.label)) + ' · ' + money(g.a) + '"></span>').join('') + '</div>' +
     '<div class="legend">' + segs.map(g => '<span class="drill" data-cat="' + esc(g.label) + '"><span class="dot" style="--c:' + g.color + '"></span>' +
-      g.icon + ' <b>' + esc(g.label) + '</b><em>' + pct2(g.a / total * 100) + '</em></span>').join('') + '</div>';
+      g.icon + ' <b>' + esc(catName(g.label)) + '</b><em>' + pct2(g.a / total * 100) + '</em></span>').join('') + '</div>';
 }
 
 /* Spend by month as bars, with that month's budget as a tick where one exists. One series, one scale. */
@@ -1165,7 +1194,7 @@ function monthBars(byMonth, budget) {
   svg += '<line class="grid" x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(0) + '" y2="' + y(0) + '"/>';
   byMonth.forEach(([m, a], i) => {
     const x = padL + i * slot + (slot - bw) / 2, top = y(a), h = Math.max(0, y(0) - top);
-    svg += '<g><title>' + esc(m) + ' · ' + money(a) + (budget[m] ? ' · bütçe ' + money(budget[m]) : '') + '</title>' +
+    svg += '<g><title>' + esc(monthName(m)) + ' · ' + money(a) + (budget[m] ? ' · bütçe ' + money(budget[m]) : '') + '</title>' +
       '<rect class="bar" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="4"/>' +
       (h > 4 ? '<rect class="bar" x="' + x.toFixed(1) + '" y="' + (y(0) - Math.min(4, h)).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.min(4, h).toFixed(1) + '"/>' : '');
     if (budget[m]) {
@@ -1174,7 +1203,7 @@ function monthBars(byMonth, budget) {
     }
     if (m === maxMonth)
       svg += '<text class="val" x="' + (x + bw / 2).toFixed(1) + '" y="' + (top - 6).toFixed(1) + '" text-anchor="middle">' + money(a) + '</text>';
-    svg += '<text class="lbl" x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(m.slice(2)) + '</text></g>';
+    svg += '<text class="lbl" x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + esc(monthShort(m)) + '</text></g>';
   });
   svg += '</svg>';
   return svg;
@@ -1187,117 +1216,139 @@ function renderAll() { VAULT = migrateVault(VAULT); renderSummary(); renderTxns(
 function renderSummary() {
   renderOwnerBar();
   const r = buildReport(visible(), VAULT.budget);
-  const period = r.months.length ? r.months[0] + ' – ' + r.months[r.months.length - 1] : '—';
   if (!r.count) {
     $('tab-ozet').innerHTML = '<div class="card-box"><h3>Henüz veri yok</h3>' +
-      '<p>“İçe aktar” sekmesinden ekstre PDF’i, CSV veya tek işlem ekleyin.</p></div>';
+      '<p>“Veri ekle” sekmesinden ekstre PDF’i, CSV veya tek işlem ekleyin.</p></div>';
+    if ($('tab-taksit')) $('tab-taksit').innerHTML = '';
     return;
   }
-  let html = '<div class="kpis">' +
-    kpi('Toplam harcama', money(r.totalSpend), 'var(--acc)') +
-    kpi('İade / ödeme', money(r.totalCredits), 'var(--ok)') +
-    kpi('Kalan taksit · ' + r.openPlans + ' plan', money(r.outstanding), 'var(--watch)') +
-    kpi('Dönem', period, 'var(--catx)') + '</div>';
+  const line = currentBudgetLine(), budgetByMonth = line.months;
+  const last = r.months[r.months.length - 1], prev = r.months[r.months.length - 2];
+  const spendOf = m => (r.byMonth.find(x => x[0] === m) || [m, 0])[1];
+  const next3 = [1, 2, 3].map(k => shiftMonth(last, k)).reduce((sum, m) => sum + ((r.schedule[m] || {}).committed || 0), 0);
 
-  const budgetByMonth = currentBudgetLine().months;
+  let html = '<div class="kpis">' +
+    kpiBar('Son ay · ' + monthName(last), spendOf(last), budgetByMonth[last]) +
+    (prev ? kpiBar('Önceki ay · ' + monthName(prev), spendOf(prev), budgetByMonth[prev]) : '') +
+    (r.totalLine
+      ? kpiBar('Bütçe yılı · ' + r.totalLine.rows.length + ' ay', r.totalLine.actualTotal, r.totalLine.budgetTotal)
+      : kpi('Toplam harcama', lira(r.totalSpend), 'var(--acc)')) +
+    '<div class="kpi" style="--kc:var(--watch)"><span>Önümüzdeki 3 ay taksit</span><b>' + esc(lira(next3)) + '</b>' +
+      '<small>' + r.openPlans + ' açık plan · toplam ' + esc(lira(r.outstanding)) + '</small></div>' +
+    '</div>';
+
   html += '<div class="viz-grid">' +
     '<div class="viz"><h2 style="margin:0 0 6px">Harcamanın dağılımı</h2>' + shareBar(r.byCategory, r.totalSpend) + '</div>' +
     '<div class="viz"><h2 style="margin:0 0 6px">Aylık harcama' +
       (Object.keys(budgetByMonth).length ? ' <span class="badge">çizgi: bütçe</span>' : '') + '</h2>' +
       monthBars(r.byMonth, budgetByMonth) + '</div></div>';
 
-  if (r.variance.length) {
-    const note = r.scope.mode === 'months'
-      ? ' <span class="badge">' + esc(r.scope.months.join(', ')) + '</span>'
-      : (r.scope.budgetMonths.length ? ' <span class="badge over">ay örtüşmesi yok</span>' : '');
-    html += '<h2>Bütçe vs gerçekleşen' + note + '</h2><div class="wrap"><table><thead><tr>' +
-      '<th>Kalem</th><th class="n">Bütçe</th><th class="n">Gerçekleşen</th><th class="n">Fark</th>' +
-      '<th>Kullanım</th><th>Durum</th></tr></thead><tbody>' +
-      r.variance.map(v => '<tr class="s-' + v.status.toLowerCase() + ' drill" data-cat="' + esc(v.label) + '"><td>' + catLabel(v.label) + '</td>' +
-        '<td class="n">' + money(v.budget) + '</td><td class="n">' + money(v.actual) + '</td>' +
-        '<td class="n">' + money(v.diff) + '</td><td class="meter">' +
-        (v.used === null ? '' : '<span style="width:' + Math.min(v.used, 100) + '%"></span>') + '<em>' +
-        (v.used === null ? '—' : pct2(v.used)) + '</em></td>' +
-        '<td><span class="badge ' + v.status.toLowerCase() + '">' + v.status + '</span></td></tr>').join('') +
-      '</tbody></table></div>';
-  } else if (!r.totalLine) {
-    html += '<h2>Bütçe</h2><p class="note">Bütçe girilmemiş — “Bütçe” bölümünden kategori başına ' +
-      'aylık tutar yazın ya da “İçe aktar” ile bütçe tablosunu yükleyin; karşılaştırma burada görünür.</p>';
-  }
-
   if (r.totalLine) {
     const t = r.totalLine;
     const pct = t.budgetTotal ? (t.actualTotal / t.budgetTotal * 100) : null;
-    html += '<h2>Aylık toplam vs bütçe satırı <span class="badge">' + esc(t.label) + '</span></h2>' +
+    html += '<h2>Ay ay bütçe <span class="badge">' + esc(t.label) + '</span></h2>' +
       '<div class="wrap"><table><thead><tr><th>Ay</th><th class="n">Bütçe</th>' +
-      '<th class="n">Gerçekleşen</th><th class="n">Fark</th><th>Kullanım</th><th>Durum</th>' +
+      '<th class="n">Harcanan</th><th class="n hide-sm">Fark</th><th>Kullanım</th><th>Durum</th>' +
       '</tr></thead><tbody>' +
-      t.rows.map(v => '<tr class="s-' + v.status.toLowerCase() + '"><td>' + esc(v.label) + '</td>' +
+      t.rows.map(v => '<tr class="s-' + v.status.toLowerCase() + '"><td>' + esc(monthName(v.label)) + '</td>' +
         '<td class="n">' + money(v.budget) + '</td><td class="n">' + money(v.actual) + '</td>' +
-        '<td class="n">' + money(v.diff) + '</td><td class="meter">' +
+        '<td class="n hide-sm">' + money(v.diff) + '</td><td class="meter">' +
         (v.used === null ? '' : '<span style="width:' + Math.min(v.used, 100) + '%"></span>') +
         '<em>' + (v.used === null ? '—' : pct2(v.used)) + '</em></td>' +
-        '<td><span class="badge ' + v.status.toLowerCase() + '">' + v.status + '</span></td></tr>').join('') +
-      '<tr><td><b>TOPLAM</b></td><td class="n"><b>' + money(t.budgetTotal) + '</b></td>' +
-      '<td class="n"><b>' + money(t.actualTotal) + '</b></td><td class="n"><b>' +
+        '<td>' + statusBadge(v.status) + '</td></tr>').join('') +
+      '<tr><td><b>Toplam</b></td><td class="n"><b>' + money(t.budgetTotal) + '</b></td>' +
+      '<td class="n"><b>' + money(t.actualTotal) + '</b></td><td class="n hide-sm"><b>' +
       money(t.actualTotal - t.budgetTotal) + '</b></td><td class="meter"><em>' +
       (pct === null ? '—' : pct2(pct)) + '</em></td><td></td></tr>' +
       '</tbody></table></div>';
+  } else if (!r.variance.length) {
+    html += '<h2>Bütçe</h2><p class="note">Bütçe girilmemiş. “Veri ekle” bölümünden bütçe tablosunu yükleyin ' +
+      'ya da “Bütçe” sekmesinden kategori başına aylık tutar yazın; karşılaştırma burada görünür.</p>';
   }
 
-  const schedMonths = Object.keys(r.schedule);
-  if (schedMonths.length) {
-    const tb = currentBudgetLine().months;
-    html += '<h2>Gelecek aylara şimdiden yazılmış taksitler</h2>' +
-      '<p class="note">Açık planların kalan taksitleri, ay ay. Bütçe satırı varsa o ayın ne kadarının ' +
-      'daha harcama yapılmadan dolduğu gösterilir.</p>' +
-      '<div class="wrap"><table><thead><tr><th>Ay</th><th class="n">Taahhüt</th>' +
-      '<th class="n">Gelecek iade</th><th class="n">Bütçe</th><th>Bütçenin</th></tr></thead><tbody>' +
-      schedMonths.map(m => {
-        const row = r.schedule[m], bm = tb[m];
-        const share = bm ? row.committed / bm * 100 : null;
-        return '<tr><td>' + esc(m) + '</td><td class="n">' + money(row.committed) + '</td>' +
-          '<td class="n">' + (row.pending ? money(row.pending) : '') + '</td>' +
-          '<td class="n">' + (bm ? money(bm) : '—') + '</td><td class="meter">' +
-          (share === null ? '' : '<span style="width:' + Math.min(share, 100) + '%"></span>') +
-          '<em>' + (share === null ? '—' : pct2(share)) + '</em></td></tr>';
-      }).join('') + '</tbody></table></div>';
-    if (r.largestPlans.length)
-      html += '<h2>En büyük açık planlar</h2><div class="wrap"><table><thead><tr><th>İşyeri</th>' +
-        '<th class="n">Ödenen</th><th class="n">Aylık</th><th class="n">Kalan</th></tr></thead><tbody>' +
-        r.largestPlans.map(p => '<tr><td>' + esc(p.merchant) + '</td><td class="n">' + p.paid + '/' +
-          p.total + '</td><td class="n">' + money(p.amount) + '</td><td class="n">' +
-          money(p.remaining) + '</td></tr>').join('') + '</tbody></table></div>';
+  if (r.variance.length) {
+    const note = r.scope.mode === 'months'
+      ? ' <span class="badge">' + esc(r.scope.months.map(monthName).join(', ')) + '</span>'
+      : (r.scope.budgetMonths.length ? ' <span class="badge over">ay örtüşmesi yok</span>' : '');
+    html += '<h2>Kategori bütçeleri' + note + '</h2><div class="wrap"><table><thead><tr>' +
+      '<th>Kategori</th><th class="n">Bütçe</th><th class="n">Harcanan</th><th class="n hide-sm">Fark</th>' +
+      '<th>Kullanım</th><th>Durum</th><th></th></tr></thead><tbody>' +
+      r.variance.map(v => '<tr class="s-' + v.status.toLowerCase() + ' drill" data-cat="' + esc(v.label) + '"><td>' + catLabel(v.label) + '</td>' +
+        '<td class="n">' + money(v.budget) + '</td><td class="n">' + money(v.actual) + '</td>' +
+        '<td class="n hide-sm">' + money(v.diff) + '</td><td class="meter">' +
+        (v.used === null ? '' : '<span style="width:' + Math.min(v.used, 100) + '%"></span>') + '<em>' +
+        (v.used === null ? '—' : pct2(v.used)) + '</em></td>' +
+        '<td>' + statusBadge(v.status) + '</td><td class="chev">›</td></tr>').join('') +
+      '</tbody></table></div>';
   }
 
-  html += '<h2>Kategori bazında <span class="badge">satıra tıklayın: ayrıntı</span></h2><div class="wrap"><table><thead><tr><th>Kategori</th>' +
-    '<th class="n">Tutar</th><th class="n">Pay</th></tr></thead><tbody>' +
-    r.byCategory.map(([c, a]) => '<tr class="drill" data-cat="' + esc(c) + '" title="Ayrıntı için tıklayın"><td>' + catLabel(c) + '</td><td class="n">' + money(a) +
-      '</td><td class="n">' + pct2(a / (r.totalSpend || 1) * 100) + '</td></tr>').join('') +
+  const top = r.byCategory.length ? r.byCategory[0][1] : 1;
+  html += '<h2>Nereye gidiyor? <span class="badge">satıra tıklayın: işlemler</span></h2><div class="wrap"><table><thead><tr><th>Kategori</th>' +
+    '<th class="n">Tutar</th><th class="meter">Pay</th><th></th></tr></thead><tbody>' +
+    r.byCategory.map(([c, a]) => '<tr class="drill" data-cat="' + esc(c) + '" title="İşlemleri göster"><td>' + catLabel(c) + '</td><td class="n">' + money(a) +
+      '</td><td class="meter"><span class="cat" style="--c:' + catColor(c) + ';width:' + (a / top * 100).toFixed(0) + '%"></span><em>' +
+      pct2(a / (r.totalSpend || 1) * 100) + '</em></td><td class="chev">›</td></tr>').join('') +
     '</tbody></table></div>';
 
-  html += '<h2>Ay bazında</h2><div class="wrap"><table><thead><tr><th>Ay</th>' +
-    '<th class="n">Tutar</th></tr></thead><tbody>' +
-    r.byMonth.map(([m, a]) => '<tr><td>' + esc(m) + '</td><td class="n">' + money(a) + '</td></tr>').join('') +
-    '</tbody></table></div>';
-
-  html += '<h2>En çok harcanan işyerleri</h2><div class="wrap"><table><thead><tr><th>İşyeri</th>' +
+  html += '<h2>En çok harcanan yerler</h2><div class="wrap"><table><thead><tr><th>İşyeri</th>' +
     '<th>Kategori</th><th class="n">Adet</th><th class="n">Tutar</th></tr></thead><tbody>' +
-    r.topMerchants.map(m => '<tr><td>' + esc(m.merchant) + '</td><td>' + catLabel(m.category) +
+    r.topMerchants.slice(0, 10).map(m => '<tr><td>' + esc(m.merchant) + '</td><td>' + catLabel(m.category) +
       '</td><td class="n">' + m.count + '</td><td class="n">' + money(m.amount) + '</td></tr>').join('') +
     '</tbody></table></div>';
 
   if (r.unmatched.length) {
     const total = r.unmatched.reduce((s, u) => s + u.amount, 0);
-    html += '<h2>Kategorisiz (' + money(total) + ')</h2>' +
-      '<p class="note">“İşlemler” sekmesinden bunlara kategori atayabilirsiniz.</p>' +
+    html += '<h2>Kategorisi belirsiz <span class="badge">' + esc(lira(total)) + '</span></h2>' +
+      '<p class="note">Bu işyerlerinin kategorisini “İşlemler” sekmesindeki listeden seçebilirsiniz; seçim kaydedilir.</p>' +
       '<div class="wrap"><table><thead><tr><th>İşyeri</th><th class="n">Adet</th>' +
       '<th class="n">Tutar</th></tr></thead><tbody>' +
-      r.unmatched.slice(0, 20).map(u => '<tr><td>' + esc(u.merchant) + '</td><td class="n">' +
+      r.unmatched.slice(0, 10).map(u => '<tr><td>' + esc(u.merchant) + '</td><td class="n">' +
         u.count + '</td><td class="n">' + money(u.amount) + '</td></tr>').join('') +
       '</tbody></table></div>';
   }
   $('tab-ozet').innerHTML = html;
+  renderInstalments(r, last);
+}
+
+/* The instalments tab: what is already written into the coming months. */
+function renderInstalments(r, last) {
+  const el = $('tab-taksit'); if (!el) return;
+  const schedMonths = Object.keys(r.schedule).filter(m => m > last);
+  if (!schedMonths.length) {
+    el.innerHTML = '<div class="card-box"><h3>Açık taksit yok</h3><p>Gelecek aylara yazılmış taksit bulunmuyor.</p></div>';
+    return;
+  }
+  const tb = currentBudgetLine().months;
+  let html = '<div class="kpis">' +
+    kpi('Kalan taksit toplamı', lira(r.outstanding), 'var(--watch)') +
+    kpi('Açık plan', String(r.openPlans), 'var(--acc)') +
+    (r.pendingCredits ? kpi('Gelecek iadeler', lira(r.pendingCredits), 'var(--ok)') : '') + '</div>';
+  const shown = schedMonths.slice(0, 12), rest = schedMonths.slice(12);
+  html += '<h2>Ay ay taahhüt</h2>' +
+    '<p class="note">Açık planların kalan taksitleri. Bütçe satırı varsa, o ayın ne kadarının daha harcama yapılmadan dolduğu gösterilir.</p>' +
+    '<div class="wrap"><table><thead><tr><th>Ay</th><th class="n">Taksit</th>' +
+    '<th class="n hide-sm">Gelecek iade</th><th class="n">Bütçe</th><th>Bütçenin</th></tr></thead><tbody>' +
+    shown.map(m => {
+      const row = r.schedule[m], bm = tb[m];
+      const share = bm ? row.committed / bm * 100 : null;
+      return '<tr><td>' + esc(monthName(m)) + '</td><td class="n">' + money(row.committed) + '</td>' +
+        '<td class="n hide-sm">' + (row.pending ? money(row.pending) : '') + '</td>' +
+        '<td class="n">' + (bm ? money(bm) : '—') + '</td><td class="meter">' +
+        (share === null ? '' : '<span style="width:' + Math.min(share, 100) + '%"></span>') +
+        '<em>' + (share === null ? '—' : pct2(share)) + '</em></td></tr>';
+    }).join('') +
+    (rest.length ? '<tr><td>Sonraki ' + rest.length + ' ay</td><td class="n">' +
+      money(rest.reduce((s, m) => s + r.schedule[m].committed, 0)) + '</td><td class="n hide-sm">' +
+      (rest.some(m => r.schedule[m].pending) ? money(rest.reduce((s, m) => s + r.schedule[m].pending, 0)) : '') +
+      '</td><td class="n">—</td><td class="meter"><em>—</em></td></tr>' : '') +
+    '</tbody></table></div>';
+  if (r.largestPlans.length)
+    html += '<h2>En büyük açık planlar</h2><div class="wrap"><table><thead><tr><th>İşyeri</th>' +
+      '<th class="n">Ödenen</th><th class="n">Aylık</th><th class="n">Kalan</th></tr></thead><tbody>' +
+      r.largestPlans.map(p => '<tr><td>' + esc(p.merchant) + '</td><td class="n">' + p.paid + '/' +
+        p.total + '</td><td class="n">' + money(p.amount) + '</td><td class="n">' +
+        money(p.remaining) + '</td></tr>').join('') + '</tbody></table></div>';
+  el.innerHTML = html;
 }
 const kpi = (label, value, color) => '<div class="kpi" style="--kc:' + (color || 'var(--line)') + '"><span>' + esc(label) + '</span><b>' + esc(value) + '</b></div>';
 
@@ -1308,7 +1359,7 @@ function allCategories() {
 }
 function renderPickers() {
   const cats = allCategories();
-  const options = cats.map(c => '<option>' + esc(c) + '</option>').join('');
+  const options = cats.map(c => '<option value="' + esc(c) + '">' + esc(catName(c)) + '</option>').join('');
   $('mCat').innerHTML = options;
   $('filterCat').innerHTML = '<option value="">Tüm kategoriler</option>' + options;
 }
@@ -1343,9 +1394,9 @@ function renderTxns() {
   const rowHtml = t => {
     const idx = VAULT.transactions.indexOf(t);
     const inst = t.installment_total ? t.installment_no + '/' + t.installment_total : '';
-    return '<tr><td>' + esc(t.date) + '</td><td>' + esc(t.description) + '</td>' +
+    return '<tr><td>' + esc(t.date.slice(8, 10) + '.' + t.date.slice(5, 7) + '.' + t.date.slice(0, 4)) + '</td><td>' + esc(t.description) + '</td>' +
       '<td>' + chip(t.category) + '<select data-idx="' + idx + '" class="catSel">' +
-      cats.map(c => '<option' + (c === t.category ? ' selected' : '') + '>' + esc(c) + '</option>').join('') +
+      cats.map(c => '<option value="' + esc(c) + '"' + (c === t.category ? ' selected' : '') + '>' + esc(catName(c)) + '</option>').join('') +
       '</select></td><td class="n' + (t.amount < 0 ? ' neg' : '') + '">' + money(t.amount) + '</td>' +
       '<td>' + inst + '</td><td>' + esc(ownerOf(t)) + '</td><td>' + esc(t.statement || '') + '</td>' +
       '<td><button class="ghost del" data-idx="' + idx + '">Sil</button></td></tr>';
@@ -1367,7 +1418,7 @@ function renderTxns() {
     const ordered = [...groups.entries()].sort((a, b) =>
       LIST.group === 'month' ? b[0].localeCompare(a[0]) : b[1].spend - a[1].spend);
     html = ordered.map(([key, g]) =>
-      '<tr class="grp"><td colspan="8">' + (LIST.group === 'category' ? chip(key) : '') + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(key) +
+      '<tr class="grp"><td colspan="8">' + (LIST.group === 'category' ? chip(key) : '') + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(LIST.group === 'category' ? catName(key) : LIST.group === 'month' ? monthName(key) : key) +
       ' · ' + g.rows.length + ' işlem' +
       '<span class="sum">harcama ' + money(g.spend) + (g.net !== g.spend ? ' · net ' + money(g.net) : '') + '</span></td></tr>' +
       g.rows.sort(compareTxns).map(rowHtml).join('')).join('');
@@ -1388,8 +1439,8 @@ function renderBudget() {
   const months = budgetMonths(), cats = allCategories();
   $('budgetTable').innerHTML =
     '<thead><tr><th>Kategori</th><th class="n">Aylık</th>' +
-    months.map(m => '<th class="n">' + esc(m) + '</th>').join('') + '</tr></thead><tbody>' +
-    cats.map(c => '<tr><td>' + esc(c) + '</td>' +
+    months.map(m => '<th class="n">' + esc(monthShort(m)) + '</th>').join('') + '</tr></thead><tbody>' +
+    cats.map(c => '<tr><td>' + catLabel(c) + '</td>' +
       '<td class="n"><input type="number" step="1" class="bAll" data-cat="' + esc(c) +
       '" style="width:96px" placeholder="hepsi"></td>' +
       months.map(m => '<td class="n"><input type="number" step="1" class="bCell" data-cat="' +
@@ -1401,8 +1452,14 @@ function renderBudget() {
 /* ------------------------------------------------------------------ events */
 document.querySelectorAll('.tabs button').forEach(btn => btn.addEventListener('click', () => {
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b === btn)));
-  ['ozet', 'islemler', 'butce', 'ekle', 'ayarlar'].forEach(t => $('tab-' + t).hidden = t !== btn.dataset.tab);
+  document.querySelectorAll('section[id^="tab-"]').forEach(sec => sec.hidden = sec.id !== 'tab-' + btn.dataset.tab);
+  if (location.hash !== '#' + btn.dataset.tab) history.replaceState(null, '', '#' + btn.dataset.tab);
+  window.scrollTo({ top: 0 });
 }));
+{
+  const wanted = document.querySelector('.tabs button[data-tab="' + location.hash.replace(/^#(tab-)?/, '') + '"]');
+  if (wanted) wanted.click();
+}
 $('filterText').addEventListener('input', renderTxns);
 $('filterCat').addEventListener('change', renderTxns);
 $('groupBy').addEventListener('change', e => { LIST.group = e.target.value; renderTxns(); });

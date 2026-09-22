@@ -168,7 +168,7 @@ def main():
                 "[...document.querySelectorAll('#txnTable tbody tr:not(.grp) td:nth-child(4)')].map(td => td.textContent)")
             check("default order is newest first",
                   page.evaluate("[...document.querySelectorAll('#txnTable tbody tr td:first-child')].map(td => td.textContent)")[:2],
-                  ["2026-01-21", "2026-01-09"])
+                  ["21.01.2026", "09.01.2026"])
             page.click("#txnTable th[data-sort=amount]")
             check("amount header sorts largest first", amounts()[0], "23.022,30")
             page.click("#txnTable th[data-sort=amount]")
@@ -181,8 +181,8 @@ def main():
             check("group header carries the category glyph", groups[0].startswith("✈"), True)
             check("group count shown", "grup" in page.inner_text("#txnCount"), True)
             page.select_option("#groupBy", "month")
-            months_seen = page.evaluate("[...document.querySelectorAll('#txnTable tbody tr.grp td')].map(td => td.textContent.slice(0, 11))")
-            check("grouped by month, newest first", months_seen, ["Ay: 2026-01", "Ay: 2025-12"])
+            months_seen = page.evaluate("[...document.querySelectorAll('#txnTable tbody tr.grp td')].map(td => td.textContent.split(' · ')[0])")
+            check("grouped by month, newest first, Turkish names", months_seen, ["Ay: Ocak 2026", "Ay: Aralık 2025"])
             page.select_option("#groupBy", "")
             page.click("#txnTable th[data-sort=date]")
 
@@ -211,7 +211,13 @@ def main():
             page.click("button[data-tab=ozet]")
             page.wait_for_timeout(800)
             summary = page.inner_text("#tab-ozet").upper()
-            check("monthly-vs-budget table rendered", "AYLIK TOPLAM VS BÜTÇE SATIRI" in summary, True)
+            check("monthly budget table rendered", "AY AY BÜTÇE" in summary, True)
+            check("months carry Turkish names", "ARALIK 2025" in summary, True)
+            check("status words are Turkish", "BÜTÇEDE" in summary or "AŞILDI" in summary or "SINIRDA" in summary, True)
+            check("last-month tile leads the summary", page.inner_text("#tab-ozet .kpi:first-child span").upper().startswith("SON AY"), True)
+            page.click("button[data-tab=taksit]")
+            check("instalments tab shows the schedule", "AY AY TAAHHÜT" in page.inner_text("#tab-taksit").upper(), True)
+            page.click("button[data-tab=ozet]")
             check("Toplam view adds the budget lines up under one badge", "TOPLAM" in summary, True)
             check("no spurious UNBUDGETED table", "BÜTÇE VS GERÇEKLEŞEN" in summary, False)
 
@@ -229,7 +235,7 @@ def main():
             page.wait_for_timeout(500)
             check("card holder's view carries the statement", page.evaluate("visible().length"), 10)
             check("holder without a budget line shows no budget table",
-                  "AYLIK TOPLAM VS BÜTÇE" in page.inner_text("#tab-ozet").upper(), False)
+                  "AY AY BÜTÇE" in page.inner_text("#tab-ozet").upper(), False)
             page.click("#ownerBar button[data-owner=Toplam]")
             page.wait_for_timeout(500)
             check("Toplam adds every budget line up", page.evaluate("currentBudgetLine().months['2026-01']"), 2000)

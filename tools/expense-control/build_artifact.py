@@ -60,11 +60,6 @@ def main():
             + SHELL_JS.split("/* @render */")[1])
     page = page.replace("pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/vendor/pdfjs/pdf.worker.min.js';",
                         "pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';")
-    page = re.sub(r"document\.querySelectorAll\('\.tabs button'\)\.forEach\(btn => btn\.addEventListener\('click', \(\) => \{.*?\}\)\);\n", "", page, flags=re.S)
-    page = page.replace("document.querySelector('.tabs button[data-tab=ekle]').click();", "location.hash = '#tab-ekle';")
-    page = page.replace("document.querySelector('.tabs button[data-tab=ozet]').click();", "location.hash = '#tab-ozet';")
-    page = page.replace("html += '<h2>Gelecek aylara şimdiden yazılmış taksitler</h2>'",
-                        "html += '<h2 id=\"taahhut\">Gelecek aylara şimdiden yazılmış taksitler</h2>'")
     (out / "index.html").write_text(page, encoding="utf-8")
 
     if not a.no_data:

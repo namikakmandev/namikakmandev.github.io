@@ -4,17 +4,20 @@
   <span class="who" id="who">Namık ve Ebru'nun kartları</span>
   <span class="saved" id="savedAt"></span>
 </header>
-<nav class="jump">
-  <a href="#tab-ozet">Özet</a><a href="#taahhut">Taahhütler</a><a href="#tab-islemler">İşlemler</a>
-  <a href="#tab-butce">Bütçe</a><a href="#tab-ekle">Veri ekle</a>
-</nav>
+<div class="tabs" role="tablist">
+  <button role="tab" data-tab="ozet" aria-selected="true">Özet</button>
+  <button role="tab" data-tab="taksit" aria-selected="false">Taksitler</button>
+  <button role="tab" data-tab="islemler" aria-selected="false">İşlemler</button>
+  <button role="tab" data-tab="butce" aria-selected="false">Bütçe</button>
+  <button role="tab" data-tab="ekle" aria-selected="false">Veri ekle</button>
+</div>
 <div class="owners" id="ownerBar" hidden></div>
 <div class="readonly" id="ro" hidden>Bu görünüm salt okunur: değişiklikler kaydedilmez.</div>
 
 <section id="tab-ozet"></section>
+<section id="tab-taksit" hidden></section>
 
-<section id="tab-islemler">
-  <h2>İşlemler</h2>
+<section id="tab-islemler" hidden>
   <div class="row" style="margin-bottom:12px">
     <input id="filterText" placeholder="Ara (işyeri, açıklama)" style="flex:1;min-width:180px">
     <select id="filterCat"><option value="">Tüm kategoriler</option></select>
@@ -34,7 +37,7 @@
   <p class="note" id="txnCount"></p>
 </section>
 
-<section id="tab-butce">
+<section id="tab-butce" hidden>
   <h2>Kategori bütçesi</h2>
   <p class="note">İsteğe bağlı. “Aylık” kutusu tüm aylara uygulanır; tek bir ayı değiştirmek için o ayın kutusunu düzenleyin.
     Kart toplamı için bütçe satırı “Veri ekle” bölümünden Excel ile yüklenir.</p>
@@ -45,8 +48,7 @@
   </div>
 </section>
 
-<section id="tab-ekle">
-  <h2>Veri ekle</h2>
+<section id="tab-ekle" hidden>
   <h3 style="font:600 14px var(--sans);margin:14px 0 6px">Ekstre PDF</h3>
   <div class="drop" id="drop">
     Yeni ayın ekstresini buraya bırakın veya <button class="ghost" id="pickPdf">dosya seçin</button>
