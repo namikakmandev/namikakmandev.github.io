@@ -248,12 +248,12 @@
       var xs = [], ys = [];
       Object.keys(bonds).forEach(function (c) { bonds[c].scatter.forEach(function (p) { xs.push(p[0]); ys.push(p[1]); }); });
       var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
-      var xt = nice(x0, x1, 5), yt = nice(y0, y1, 4); x0 = Math.min(x0, xt[0]); x1 = Math.max(x1, xt[xt.length - 1]); y0 = Math.min(y0, yt[0]); y1 = Math.max(y1, yt[yt.length - 1]);
+      var xt = nice(x0, x1, 5), yt = nice(y0, y1, 6); x0 = Math.min(x0, xt[0]); x1 = Math.max(x1, xt[xt.length - 1]); y0 = Math.min(y0, yt[0]); y1 = Math.max(y1, yt[yt.length - 1]);
       var iw = W - L - R, ih = H - T - B, X = function (v) { return L + (v - x0) / (x1 - x0) * iw; }, Y = function (v) { return T + (y1 - v) / (y1 - y0) * ih; };
       var s = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='real house price growth against ten-year yield change'>";
       yt.forEach(function (t) { s += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + Y(t).toFixed(1) + "' y2='" + Y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".4" : ".12") + "'/><text x='" + (L - 7) + "' y='" + (Y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t, 0) + "%") + "</text>"; });
       xt.forEach(function (t) { s += "<line y1='" + T + "' y2='" + (H - B) + "' x1='" + X(t).toFixed(1) + "' x2='" + X(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".4" : ".12") + "'/><text y='" + (H - 12) + "' x='" + X(t).toFixed(1) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc((t > 0 ? "+" : "") + fmt(t, 1)) + "</text>"; });
-      s += "<text x='" + (W - R) + "' y='" + (H - 12) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>yield change, points</text>";
+      s += "<text x='" + (W - R) + "' y='" + (H - B - 8) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>10-year yield change over four quarters, points</text>";
       s += "<text x='" + (L + 6) + "' y='" + (T + 12) + "' font-size='11' fill='currentColor' fill-opacity='.6'>real house prices, % on a year earlier</text>";
       Object.keys(bonds).forEach(function (c) { bonds[c].scatter.forEach(function (p) { s += "<circle cx='" + X(p[0]).toFixed(1) + "' cy='" + Y(p[1]).toFixed(1) + "' r='2.6' fill='" + C[c] + "' fill-opacity='.55'/>"; }); });
       host.innerHTML = s + "</svg>";
