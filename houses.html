@@ -145,6 +145,19 @@
         <table class="t" id="tab-test"></table>
         <table class="t" id="tab-cross"></table>
 
+        <h2>Bond yields and house prices, six countries<small>Real house price growth over four quarters against the change in the ten-year government bond yield, quarterly, 1990 to Q1 2026.</small></h2>
+        <p>Bond prices move opposite to yields, so this is the bond-market test: does a rise in a country's ten-year yield go with a fall in
+        its real house prices? For the six countries with both series, the answer through time is no. Each point on the chart is one
+        country in one quarter: the yield's change over the past year on the horizontal axis, real house price growth over the same year on
+        the vertical. The cloud has no slope. Country by country, the same-year correlations sit between −0.12 and +0.20 and none clears its
+        band after the sample discount; the yield change a year earlier does no better. Japan is the one near miss, and its sign is
+        positive: yields and house prices rose together in the 1980s boom and fell together after. The level correlations in the last column
+        look large and are meaningless, with an effective sample near one, because both series trend for decades. What the bond market does
+        say about houses is in the cross-section since 2021: the countries whose yields rose most saw the biggest real falls, as six points.</p>
+        <div class="fig"><div id="fig-bonds"></div><div class="legend" id="leg-bonds"></div>
+          <div class="src">house-prices CC|real (BIS, CPI-deflated), growth over four quarters; long-yields (ten-year yields via FRED), quarterly means, change over four quarters. One point per country-quarter, 1990 to 2026.</div></div>
+        <table class="t" id="tab-bonds"></table>
+
         <div class="verdict">
           <h2>What to do with this</h2>
           <div class="rows">
@@ -166,7 +179,7 @@
             <li><b>Deflators.</b> The BIS real series divides each national index by that country's CPI; Case-Shiller and the mortgage payment use the US CPI (us-prices cpi); the Turkish index uses TÜİK's CPI (tr-cpi-ppi cpi, 2025 = 100). A rent deflator would make the Turkish fall smaller, since rents rose faster than the CPI in 2023 and 2024.</li>
             <li><b>Different objects.</b> The BIS "selected" series is one representative index per country: all dwellings for most, existing dwellings for some, and the Turkish one is the TCMB index also used in the monthly section, so the two Turkish figures differ only in frequency. Levels are not comparable across countries; only growth and peaks are.</li>
             <li><b>The US payment.</b> Defined as 80% of the median sale price at the quarter's average 30-year rate over 30 years. The median sale price is mix-shifted (bigger houses sell in some quarters) and is not a price index. No income series is in the collection, so nothing here is an affordability ratio.</li>
-            <li><b>The tests.</b> Every correlation is printed with its effective sample size after the lag-1 autocorrelation discount, and p_adj is read at that size and multiplied by the number of lags tried. None of the time-series tests clears it. The six-country cross-section is not a test.</li>
+            <li><b>The tests.</b> Every correlation is printed with its effective sample size after the lag-1 autocorrelation discount, and p_adj is read at that size and multiplied by the number of lags tried. None of the time-series tests clears it, including the six bond-yield tests. The six-country cross-section is not a test. Bond yields stand in for bond prices, which move the opposite way; no bond price index is in the collection.</li>
             <li><b>Breaks.</b> None known in the BIS series over the window shown; the Turkish KFE was rebased to 2023 = 100 in 2024 without a break. Japan's last quarter is Q4 2025.</li>
             <li><b>Not measured.</b> Incomes, transaction volumes, mortgage credit, construction costs, rents outside the US, and migration, which is the usual explanation for the Netherlands, Australia and Poland. This page says where real prices are; it does not say why each country is where it is.</li>
             <li><b>Reproduce it.</b> <code>python3 scripts/house_study.py</code> rewrites <a href="data/house-study.json">data/house-study.json</a> from data/house-prices.json, data/us-housing.json, data/us-mortgage-rate.json, data/us-prices.json, data/tr-house-prices.json, data/tr-cpi-ppi.json, data/tr-rates.json and data/long-yields.json. Data cut-off: BIS Q1 2026, Case-Shiller June 2026, mortgage rate 17 September 2026, Turkish index and CPI August 2026.</li>
@@ -228,8 +241,25 @@
       });
       host.innerHTML = s + "</svg>";
     }
+    /* one dot per country-quarter: x = yield change over four quarters, y = real house price growth over four quarters */
+    function scatter(hostId, bonds) {
+      var host = document.getElementById(hostId), W = 640, H = 300, L = 48, R = 14, T = 12, B = 30;
+      var narrow = host.clientWidth && host.clientWidth < 420; if (narrow) { W = 400; H = 260; }
+      var xs = [], ys = [];
+      Object.keys(bonds).forEach(function (c) { bonds[c].scatter.forEach(function (p) { xs.push(p[0]); ys.push(p[1]); }); });
+      var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+      var xt = nice(x0, x1, 5), yt = nice(y0, y1, 4); x0 = Math.min(x0, xt[0]); x1 = Math.max(x1, xt[xt.length - 1]); y0 = Math.min(y0, yt[0]); y1 = Math.max(y1, yt[yt.length - 1]);
+      var iw = W - L - R, ih = H - T - B, X = function (v) { return L + (v - x0) / (x1 - x0) * iw; }, Y = function (v) { return T + (y1 - v) / (y1 - y0) * ih; };
+      var s = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='real house price growth against ten-year yield change'>";
+      yt.forEach(function (t) { s += "<line x1='" + L + "' x2='" + (W - R) + "' y1='" + Y(t).toFixed(1) + "' y2='" + Y(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".4" : ".12") + "'/><text x='" + (L - 7) + "' y='" + (Y(t) + 4).toFixed(1) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc(fmt(t, 0) + "%") + "</text>"; });
+      xt.forEach(function (t) { s += "<line y1='" + T + "' y2='" + (H - B) + "' x1='" + X(t).toFixed(1) + "' x2='" + X(t).toFixed(1) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".4" : ".12") + "'/><text y='" + (H - 12) + "' x='" + X(t).toFixed(1) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + esc((t > 0 ? "+" : "") + fmt(t, 1)) + "</text>"; });
+      s += "<text x='" + (W - R) + "' y='" + (H - 12) + "' text-anchor='end' font-size='11' fill='currentColor' fill-opacity='.6'>yield change, points</text>";
+      s += "<text x='" + (L + 6) + "' y='" + (T + 12) + "' font-size='11' fill='currentColor' fill-opacity='.6'>real house prices, % on a year earlier</text>";
+      Object.keys(bonds).forEach(function (c) { bonds[c].scatter.forEach(function (p) { s += "<circle cx='" + X(p[0]).toFixed(1) + "' cy='" + Y(p[1]).toFixed(1) + "' r='2.6' fill='" + C[c] + "' fill-opacity='.55'/>"; }); });
+      host.innerHTML = s + "</svg>";
+    }
     var NAMES = { TR: "Türkiye", NL: "Netherlands", AU: "Australia", PL: "Poland", US: "United States", CA: "Canada", DE: "Germany", JP: "Japan", GB: "United Kingdom", KR: "South Korea", ES: "Spain", FR: "France", IT: "Italy", CN: "China" };
-    var C = { TR: "#c2306a", NL: "#d9541e", AU: "#b7791f", PL: "#138a5a", US: "#1c63c9", CA: "#7b3fd1", DE: "#16191f", JP: "#5d6470", GB: "#1c63c9", KR: "#138a5a", ES: "#d9541e", FR: "#7b3fd1", IT: "#b7791f", CN: "#16191f" };
+    var C = { TR: "#c2306a", NL: "#d9541e", AU: "#b7791f", PL: "#138a5a", US: "#1c63c9", CA: "#7b3fd1", DE: "#16191f", JP: "#138a5a", GB: "#d9541e", KR: "#138a5a", ES: "#d9541e", FR: "#7b3fd1", IT: "#b7791f", CN: "#16191f" };
     var HIGHLIGHT = ["TR", "NL", "US", "DE", "CA", "CN", "JP"];
 
     fetch("data/house-study.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (S) {
@@ -262,6 +292,11 @@
         var ok = r[1].p_adj < 0.05;
         return "<tr><td>" + esc(r[0]) + "</td><td>" + fmt(r[1].r, 2) + "</td><td>" + r[1].n + "</td><td>" + fmt(r[1].n_eff, 1) + "</td><td>" + fmt(r[1].p_adj, 3) + "</td><td class='" + (ok ? "good" : "bad") + "'>" + (ok ? "holds" : "not distinguishable from zero") + "</td></tr>";
       }).join("");
+      scatter("fig-bonds", S.test.bonds);
+      document.getElementById("leg-bonds").innerHTML = Object.keys(S.test.bonds).map(function (c) { return "<span><i style='color:" + C[c] + ";height:10px;width:10px;border-radius:50%'></i>" + NAMES[c] + "</span>"; }).join("");
+      var B = S.test.bonds;
+      document.getElementById("tab-bonds").innerHTML = "<tr><th>Real house price growth vs 10-year yield change</th><th>Same year r</th><th>n_eff</th><th>p_adj</th><th>Yield a year earlier r</th><th>p_adj</th><th>Levels r (n_eff)</th><th>verdict</th></tr>" +
+        Object.keys(B).map(function (c) { var b = B[c]; var ok = b.same.p_adj < 0.05 || b.lag4.p_adj < 0.05; return "<tr><td>" + NAMES[c] + " " + esc(b.quarters[0].slice(0, 4) + "–" + b.quarters[1].slice(0, 4)) + "</td><td>" + fmt(b.same.r, 2) + "</td><td>" + fmt(b.same.n_eff, 0) + "</td><td>" + fmt(b.same.p_adj, 2) + "</td><td>" + fmt(b.lag4.r, 2) + "</td><td>" + fmt(b.lag4.p_adj, 2) + "</td><td class='dim'>" + fmt(b.levels.r, 2) + " (" + fmt(b.levels.n_eff, 1) + ")</td><td class='" + (ok ? "good" : "bad") + "'>" + (ok ? "holds" : "not distinguishable from zero") + "</td></tr>"; }).join("");
       document.getElementById("tab-cross").innerHTML = "<tr><th>Six countries, Q4 2021 to Q1 2026</th><th>Real price change</th><th>10-year yield change, pts</th></tr>" +
         t.cross_section.map(function (x) { return "<tr><td>" + NAMES[x.country] + "</td><td class='" + (x.real_price_change_pct < -5 ? "bad" : "") + "'>" + signed(x.real_price_change_pct, 1) + "%</td><td>" + signed(x.yield_change_pts, 2) + "</td></tr>"; }).join("") +
         "<tr><td class='dim'>r across the six, printed not tested</td><td class='dim'>" + fmt(t.cross_r, 2) + "</td><td class='dim'>n = 6</td></tr>";
