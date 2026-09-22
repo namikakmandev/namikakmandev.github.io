@@ -251,9 +251,13 @@ def main():
                   ["Giyim & Aksesuar"])
             check("person column filled", page.evaluate(
                 "document.querySelector('#txnTable tbody tr:not(.grp) td:nth-child(6)').textContent"), holder)
-            page.select_option("#filterCat", "")
-            page.select_option("#groupBy", "")
-            page.click("button[data-tab=ozet]")
+            check("filter bar names the narrowing", "Giyim & Aksesuar" in page.inner_text("#filterBar"), True)
+            page.click("#filterBar tr.grp, #txnTable tbody tr.grp >> nth=0")
+            check("group header folds its rows", page.locator("#txnTable tbody tr[data-of='0'][hidden]").count() > 0, True)
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(300)
+            check("Escape returns to the summary", page.is_visible("#tab-ozet"), True)
+            check("Escape clears the filter", page.input_value("#filterCat") + page.input_value("#groupBy"), "")
 
             print("\npersistence and secrecy")
             page.reload()

@@ -126,6 +126,14 @@ tr.drill,.legend .drill{cursor:pointer}
 .kpi small{display:block;color:var(--mut);font-size:11.5px;margin-top:5px;font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0}
 td.meter span.cat{background:var(--c)}
 td.chev{color:var(--mut);width:1ch;padding-left:0;font-size:16px}
+.filterbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--soft);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:13.5px}
+.filterbar span{flex:1}
+.filterbar[hidden]{display:none}
+.filterbar button{padding:5px 10px;font-size:12.5px}
+tr.grp{cursor:pointer}
+tr.grp td::before{content:"▾ ";color:var(--mut)}
+tr.grp.closed td::before{content:"▸ "}
+tr[hidden]{display:none}
 @media (max-width:640px){th,td{padding:7px 8px;font-size:12.5px}.hide-sm{display:none}.kpis{grid-template-columns:1fr 1fr;gap:8px}.kpi{padding:11px 12px}.kpi b{font-size:18px}td.meter{min-width:90px}tr.grp td{white-space:normal}tr.grp td .sum{float:none;display:block;margin-top:2px}}
 tr.drill:hover td{background:var(--soft)}
 .legend .drill:hover b{text-decoration:underline}
@@ -178,6 +186,7 @@ tr.drill:hover td{background:var(--soft)}
       <button class="ghost" id="exportCsv">CSV indir</button>
     </div>
     <p class="note" style="margin-top:-4px">Sütun başlığına tıklayarak sıralayın; tekrar tıklayınca yön değişir.</p>
+    <div class="filterbar" id="filterBar" hidden></div>
     <div class="wrap"><table id="txnTable"><thead><tr>
       <th data-sort="date" class="sortable">Tarih</th><th data-sort="description" class="sortable">Açıklama</th>
       <th data-sort="category" class="sortable">Kategori</th><th data-sort="amount" class="n sortable">Tutar</th>
@@ -1417,16 +1426,58 @@ function renderTxns() {
     }
     const ordered = [...groups.entries()].sort((a, b) =>
       LIST.group === 'month' ? b[0].localeCompare(a[0]) : b[1].spend - a[1].spend);
-    html = ordered.map(([key, g]) =>
-      '<tr class="grp"><td colspan="8">' + (LIST.group === 'category' ? chip(key) : '') + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(LIST.group === 'category' ? catName(key) : LIST.group === 'month' ? monthName(key) : key) +
+    html = ordered.map(([key, g], gi) =>
+      '<tr class="grp" data-grp="' + gi + '"><td colspan="8">' + (LIST.group === 'category' ? chip(key) : '') + esc(GROUP_LABEL[LIST.group]) + ': ' + esc(LIST.group === 'category' ? catName(key) : LIST.group === 'month' ? monthName(key) : key) +
       ' · ' + g.rows.length + ' işlem' +
       '<span class="sum">harcama ' + money(g.spend) + (g.net !== g.spend ? ' · net ' + money(g.net) : '') + '</span></td></tr>' +
-      g.rows.sort(compareTxns).map(rowHtml).join('')).join('');
+      g.rows.sort(compareTxns).map(rowHtml).join('').replace(/<tr>/g, '<tr data-of="' + gi + '">')).join('');
   }
   $('txnTable').querySelector('tbody').innerHTML = html;
+  renderFilterBar(rows.length);
   $('txnCount').textContent = rows.length + ' / ' + VAULT.transactions.length + ' işlem' +
     (LIST.group ? ' · ' + new Set(rows.map(t => groupKeyOf(t, LIST.group))).size + ' grup' : '');
 }
+
+/* What the list is currently narrowed to, with one button to undo it. */
+function renderFilterBar(n) {
+  const bar = $('filterBar'); if (!bar) return;
+  const cat = $('filterCat').value, term = $('filterText').value.trim();
+  const active = cat || term || LIST.group;
+  bar.hidden = !active;
+  if (!active) return;
+  const parts = [];
+  if (cat) parts.push(chip(cat) + '<b>' + esc(catName(cat)) + '</b>');
+  if (term) parts.push('“' + esc(term) + '”');
+  if (LIST.group) parts.push(esc($('groupBy').selectedOptions[0].textContent.toLocaleLowerCase('tr')));
+  bar.innerHTML = '<span>' + parts.join(' · ') + ' · ' + n + ' işlem</span>' +
+    '<button class="ghost" id="clearFilter">✕ Filtreyi kaldır</button>' +
+    '<button class="ghost" id="backToSummary">← Özete dön</button>';
+}
+function clearFilter() {
+  $('filterCat').value = ''; $('filterText').value = '';
+  $('groupBy').value = ''; LIST.group = '';
+  renderTxns();
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('#clearFilter')) { clearFilter(); return; }
+  if (e.target.closest('#backToSummary')) {
+    clearFilter();
+    const tab = document.querySelector('.tabs button[data-tab=ozet]');
+    if (tab) tab.click();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.target.closest('input,select,textarea')) return;
+  const bar = $('filterBar');
+  if (bar && !bar.hidden) $('backToSummary').click();
+});
+/* Group headers fold their rows away. */
+$('txnTable').querySelector('tbody').addEventListener('click', e => {
+  if (e.target.closest('button,select,input')) return;
+  const g = e.target.closest('tr.grp'); if (!g) return;
+  const closed = g.classList.toggle('closed');
+  g.parentNode.querySelectorAll('tr[data-of="' + g.dataset.grp + '"]').forEach(r => r.hidden = closed);
+});
 
 function budgetMonths() {
   const fromTxn = [...new Set(visible().map(t => t.date.slice(0, 7)))];
