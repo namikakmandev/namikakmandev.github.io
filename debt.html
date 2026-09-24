@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Borrowing above growth: the rich world's debt arithmetic — Namık Akman</title>
-  <meta name="description" content="Six rich-world governments paid five to seven points less on their debt than their economies grew in 2021–23. The gap has closed: Italy already pays more than it grows, the IMF puts France, Britain and the US within half a point by 2031, and today's ten-year yields are above the IMF's 2031 growth in all six. The interest bill, r against g, and the budget each would need to hold its debt steady, recomputed from IMF data." />
+  <title>Inflation paid the debt: part two — Namık Akman</title>
+  <meta name="description" content="Part two of the bond study. From 2021 to 2025 inflation took 11 to 25 points of GDP off nine rich-world debt ratios while every government ran primary deficits. To 2031 interest becomes the biggest force raising debt in six of the nine. Old debt reprices to the market yield with a half-life of about five years; at today's yields the US, Britain, France and Italy pay more than they grow by 2031, against Italy alone on the IMF's path." />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#f4f4f1" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,9 +58,10 @@
     .care li { margin-bottom: 6px; }
     .care code { font-family: var(--mono); font-size: .84em; }
     .care a { color: var(--accent); }
+    .study table.t { display: block; overflow-x: auto; }
+    .ttl { font-family: var(--display); font-weight: 600; font-size: .95rem; margin-bottom: 2px; }
     .multi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
     .multi .fig { margin: 0; padding: 10px 10px 8px; }
-    .multi .ttl { font-family: var(--display); font-weight: 600; font-size: .95rem; margin-bottom: 2px; }
     @media (max-width: 860px) { .multi { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 520px) { .multi { grid-template-columns: 1fr; } }
   </style>
@@ -83,88 +84,108 @@
   <main>
     <article class="study">
       <div class="container">
-        <a href="explore.html" class="back">&larr; Explore the data</a>
-        <span class="eyebrow">Public debt · US, UK, France, Italy, Germany, Japan · 1995 to 2025 actual, IMF projections to 2031</span>
-        <h1>Borrowing above growth: the rich world's debt stops shrinking itself</h1>
-        <p class="lede">Through the 2010s five of the six big rich-world borrowers paid less on their debt than their economies grew, and in 2021–23
-        inflation made the gap enormous: nominal GDP outran the average interest rate by five to seven points a year, and debt ratios
-        fell without anyone repaying anything. That gap has almost closed. In 2025 Italy already paid more on its debt than its economy
-        grew; the IMF's own numbers put France, Britain and the United States within half a point of the line by 2031. And the
-        rate the market charges on new ten-year money is above the IMF's 2031 growth rate in all six. The stock is still cheap because
-        it was borrowed cheap. Every bond that matures is refinanced at a price growth does not cover.</p>
-        <p class="sub">A companion to <a href="bonds.html">Five per cent: the bond market reprices the state</a>, which covers the yields.
-        This page covers what the yields do to the stock: the interest bill, the rate paid on the debt against nominal growth, and the budget each
-        government would need to hold its debt ratio steady. Every figure is recomputed from the committed data by <code>scripts/debt_study.py</code>;
-        the sources and caveats are listed at the end.</p>
+        <a href="bonds.html" class="back">&larr; Part one: Five per cent, the bond market reprices the state</a>
+        <span class="eyebrow">Public debt, part two · US, UK, France, Italy, Germany, Japan, Spain, Netherlands, Australia · 1990 to 2025 actual, IMF projections to 2031</span>
+        <h1>Inflation paid down the rich world's debt. From here, interest adds to it.</h1>
+        <p class="lede">Part one showed the yields. This part follows them into the debt. Between 2021 and 2025 nine rich-world governments
+        cut their debt ratios, or held them, while running primary deficits over the five years taken together. Inflation did the work: it took 11 to 25
+        points of GDP off every one of the nine debt ratios. On the IMF's own projections that help shrinks to 2031. Interest becomes the largest
+        force pushing debt up in six of the nine, and the IMF's path has the rate paid on the debt rising more slowly than history says it will. Thirty years of
+        data say old debt reprices towards the market yield with a half-life of about five years. At today's yields and that speed,
+        four of the nine are paying more on their debt than their economies grow by 2031. The IMF's path has one.</p>
+        <p class="sub">The yields, the US interest bill and the six-country debt and deficit chart are in <a href="bonds.html">part one</a> and are not repeated here.
+        Every figure below is recomputed from the committed data by <code>scripts/debt_study.py</code>, from the IMF World Economic Outlook and the OECD
+        ten-year yields on FRED. The sources and caveats are listed at the end.</p>
         <div class="facts" id="facts"></div>
 
-        <h2>The stock<small>General government gross debt, per cent of GDP, 1995 to 2025 actual and IMF projections to 2031 (dashed). IMF World Economic Outlook.</small></h2>
-        <p>Debt ratios jumped in 2020 and then fell. The fall was mostly not paid for: inflation raised nominal GDP faster than
-        the interest bill, which the next sections show. From here the IMF has the US ratio rising every year, from 124% to 142% of GDP,
-        and Germany's from 63% to 74%. France rises to 121%. Britain and Italy stay flat, and Japan's falls, though from 207%.</p>
-        <div class="fig"><div id="fig-debt"></div><div class="legend" id="leg-debt"></div>
-          <div class="src">imf-weo: GGXWDG_NGDP. Actuals to 2025, IMF projections after (dashed). US general government, so about 25 points above the federal debt held by the public.</div></div>
+        <h2>Who cut the debt: inflation<small>Change in general government gross debt, points of GDP, summed over 2021–25 and over the IMF's 2026–31, split into its parts.</small></h2>
+        <p>A debt ratio moves for five reasons: the primary deficit (the budget before interest) adds to it, interest adds to it, real growth
+        shrinks it, inflation shrinks it, and a residual covers everything else, such as bank rescues, asset sales and exchange rates.
+        Taken over 2021–25 as a whole, every one of the nine ran primary deficits (Italy's surpluses came only in 2024–25), adding 3 points of GDP to the Dutch ratio and 23 to the American.
+        Real growth took some of that back. Inflation took more: 25 points off Japan's ratio, 25 off the United States', 20 off Italy's and
+        Spain's, 19 off Britain's. Take the inflation bar away and every one of the nine ratios would have risen over the five years. In the IMF's
+        projection to 2031, inflation's help per year falls in all nine, by between a fifth and a half, and interest is the largest force pushing debt up in six of the nine countries,
+        ahead of the primary deficit. The exceptions are Germany, Japan and the Netherlands, whose primary deficits stay larger.</p>
+        <div class="two">
+          <div class="fig"><div class="ttl">2021–25, actual</div><div id="fig-dyn-a"></div></div>
+          <div class="fig"><div class="ttl">2026–31, IMF projection</div><div id="fig-dyn-b"></div></div>
+        </div>
+        <div class="legend" id="leg-dyn"></div>
+        <div class="src">imf-weo. Primary = −GGXONLB_NGDP; interest = GGXONLB_NGDP − GGXCNL_NGDP; real growth and inflation split the growth term −g/(1+g) × last year's debt, using NGDP_RPCH for real growth and the growth of NGDP for nominal growth, so "inflation" is the GDP deflator. Residual = actual change in GGXWDG_NGDP minus the four. Points of GDP summed over the years in each window.</div>
+        <table class="t" id="tab-dyn"></table>
 
-        <h2>The bill<small>General government net interest, per cent of GDP: primary balance minus overall balance, 1995 to 2031. IMF World Economic Outlook.</small></h2>
-        <p>Interest is the part of the deficit that does not respond to policy this year. The US paid 3.65% of GDP in 2025, the most
-        in the IMF's series, which starts in 2001, and the IMF has it at 4.3% by 2031. Italy is at the same level and rises alongside, to 4.3%.
-        The steeper climbs are in the countries whose bills were smallest: France's has gone from 1.3% of GDP in 2020 to 2.0%, and
-        the IMF has it at 3.3% by 2031. Britain's has more than doubled since 2020, from 1.1% to 2.6%. Japan's rises from 0.2% to 1.7%, which is more than eightfold, though the Japanese figure is net of large
-        government asset income and understates what Tokyo pays on its bonds.</p>
-        <div class="fig"><div id="fig-interest"></div><div class="legend" id="leg-interest"></div>
-          <div class="src">imf-weo: GGXONLB_NGDP − GGXCNL_NGDP. That is interest paid minus interest received, so for governments with large financial assets (Japan) it is well below gross interest paid.</div></div>
-        <table class="t" id="tab-bill"></table>
+        <h2>The bill, against revenue and the 1990s<small>General government net interest as a share of general government revenue, per cent, 1990 to 2031.</small></h2>
+        <p>Measured against what governments collect rather than against GDP, the bill is larger. It is also the comparison that
+        tells you whether the rich world has been here before. It has. In 1993 Italy spent a quarter of its revenue on interest, and in
+        1996 Spain spent an eighth. Today the United States spends 11.8%, twice its share of 2015 and by far the largest
+        in the group, and the IMF has it at 14.0% by 2031, above Spain's 1990s mark. Britain, at 6.8%, is already above anything
+        its 1990s figures show. France goes from 3.8% to 6.2% and passes its 1996 level. Japan goes from 0.6% to 4.9%, which is also above its late-1990s
+        figure. Italy, at 7.5%, is less than a third of where it was.</p>
+        <div class="fig"><div id="fig-rev"></div><div class="legend" id="leg-rev"></div>
+          <div class="src">imf-weo: (GGXONLB_NGDP − GGXCNL_NGDP) ÷ GGR_NGDP. The IMF's US general government series start in 2001. Dashed after 2025. Net interest, so the Japanese figure understates what Tokyo pays on its bonds.</div></div>
+        <table class="t" id="tab-rev"></table>
 
-        <h2>The rate paid, against growth<small>Average rate paid on the debt (r) and nominal GDP growth (g), per cent a year, 2000 to 2031. The horizontal line is the ten-year yield in August 2026.</small></h2>
-        <p>What decides whether a debt ratio grows by itself is the gap between the average rate on the stock and nominal growth, r − g.
-        When it is negative a government can run a small primary deficit, meaning its budget before interest, and still watch the ratio fall.
-        In 2015–19 it averaged between −0.7 and −2.2 points everywhere except Italy, which was already at +0.75. In 2021–23 it averaged between −5 and −7 points
-        in five of the six countries, as inflation pushed up nominal GDP while the stock kept its old coupons. In 2025 it was back at
-        −0.3 in France and +0.2 in Italy. The dashed lines are the IMF's: r rises in every country as old bonds mature, g drifts down to
-        between 2.7% and 3.6%, and by 2031 the gap is between −0.7 and +0.6 points everywhere except Japan.</p>
-        <p>The horizontal line is the part the IMF's path does not show directly. It is what a new ten-year bond costs today, and in all six countries it
-        is above the growth rate the IMF expects in 2031: by 1.8 points in Britain, 1.1 to 1.3 in Italy, France and the US, and a few tenths
-        in Germany and Japan. The average rate climbs towards the new rate as the stock rolls over, whatever the IMF assumes.</p>
+        <h2>The rate paid, against growth<small>Average rate paid on the debt (r) and nominal GDP growth (g), per cent a year, 2000 to 2031. The red line is the ten-year yield in August 2026.</small></h2>
+        <p>Whether a debt ratio grows by itself depends on r − g, the gap between the average rate on the stock and nominal growth.
+        In 2021–23 that gap averaged between −5.3 and −8.4 points in eight of the nine countries, as inflation raised nominal GDP and the
+        stock kept its old coupons. By 2025 it had closed to −0.3 in France and turned positive, +0.2, in Italy. In every panel the red line,
+        today's ten-year yield, sits above the average rate. That is the gap the average rate now has to close.</p>
         <div class="multi" id="fig-rg"></div>
-        <div class="legend"><span><i style="color:#16191f"></i>r, average rate paid on the debt (country colour in each panel)</span><span><i style="color:#9aa0a6"></i>g, nominal GDP growth</span><span><i class="dash"></i>IMF projection</span><span><i class="dash" style="color:#c62828"></i>ten-year yield, Aug 2026</span></div>
-        <div class="src">r = net interest (% of GDP) × (1 + g) ÷ last year's gross debt (% of GDP). g = growth of NGDP, nominal GDP in national currency. Both from imf-weo. The yield is long-yields, monthly average for August 2026.</div>
+        <div class="legend"><span><i style="color:#16191f"></i>r, average rate paid on the debt (country colour)</span><span><i style="color:#9aa0a6"></i>g, nominal GDP growth</span><span><i class="dash"></i>IMF projection</span><span><i class="dash" style="color:#c62828"></i>ten-year yield, Aug 2026</span></div>
+        <div class="src">r = net interest (% of GDP) × (1 + g) ÷ last year's gross debt (% of GDP). g = growth of NGDP. Both imf-weo. Yield: long-yields, August 2026 monthly average.</div>
         <table class="t" id="tab-rg"></table>
 
-        <h2>What holding the ratio steady costs<small>Primary balance (the budget before interest), per cent of GDP, in 2031: what the IMF projects, what would hold debt steady at the IMF's rates, and what would hold it at today's yields.</small></h2>
-        <p>With r − g near zero, a government holds its debt ratio steady by roughly balancing its budget before interest. Italy
-        already does: a primary surplus of 0.5% of GDP in 2025, rising to 1.6% in the IMF's projection, which is why its ratio is flat
-        despite the highest rate in the group. The US does not come close. Its primary deficit is 3.2% of GDP in 2025 and 3.1% in 2031,
-        when 0.5% would hold the ratio at the IMF's rates. The last columns do the same sum with the whole stock paying today's
-        ten-year yield instead. This is arithmetic, not a forecast: it is where the requirement moves if yields stay where they are for a decade. On that basis
-        every one of the six needs a primary surplus, and the gap between the IMF's projected budget and the one needed is 4.6
-        points of GDP for the US, 2.7 for Japan, 2.4 for Germany, 1.0 for France, 0.4 for Britain and 0.1 for Italy.</p>
+        <h2>How fast the yield reaches the debt<small>Yearly change in the rate paid on the debt against the gap between the ten-year yield and last year's rate, 1996 to 2025, and where it leads by 2031.</small></h2>
+        <p>The question part one could not answer is how quickly a higher yield turns into a higher interest bill. There is no maturity data
+        here, but the speed can be measured from the result. Each year the average rate on the stock closes part of its gap to the
+        ten-year yield. Pooled across eight countries over thirty years, the share closed is 13% a year (standard error 2.3 points), a half-life
+        of five years. A check that removes the shared measurement error between the two sides of the regression gives a faster 17%, so five years is the slow end.
+        Italy's debt reprices fastest, at a two-year half-life, the Netherlands' and Australia's slowest. Japan's measured speed is close to zero,
+        because its central bank held the yield and its net interest is dominated by asset income, so it is left out of the pooled figure.</p>
+        <p>Apply that speed to today's yields and the IMF's 2031 rate on the debt is too low in all nine: by 0.8 points for the US, 1.0 for
+        Britain, 1.9 for Australia, 0.8 for Japan and 0.1 to 0.3 for France, Italy, Germany, Spain and the Netherlands. The IMF may be assuming yields fall
+        back. But if they stay where they are, the rate paid is above nominal growth in 2031 in the US, Britain, France and Italy,
+        against Italy alone on the IMF's path. That is what "flirting" means in numbers: four of the nine, the largest economy among them, cross
+        the line within five years unless yields come down.</p>
+        <div class="fig"><div id="fig-pt"></div>
+          <div class="legend"><span><i style="color:#9aa0a6"></i>g, IMF nominal growth 2031</span><span><i style="color:#1c63c9"></i>r, IMF 2031</span><span><i style="color:#c62828"></i>r 2031 if the ten-year stays at its August 2026 level</span></div>
+          <div class="src">The last dot runs the pooled speed (13% of the gap a year) for six years from the 2025 rate towards the August 2026 ten-year yield. An estimate applied as arithmetic, not a forecast.</div></div>
+        <table class="t" id="tab-pt"></table>
+
+        <h2>What holding the ratio steady costs<small>Primary balance, per cent of GDP, in 2031: the IMF's projection, what holds the debt ratio at the IMF's rates, and what holds it if the whole stock paid today's ten-year yield.</small></h2>
+        <p>With r close to g, a government holds its debt ratio by roughly balancing its budget before interest. At today's yields,
+        every country but Spain needs a primary surplus to do it. Spain is also the only one whose projected budget covers the need, because
+        the IMF has its nominal growth at 4.1%. Italy is 0.1 points of GDP short and Britain 0.4. The US is 4.6 points short, as its primary deficit of
+        3.1% in 2031 meets a required surplus of 1.5%. Japan is 2.7 short and Germany 2.4, as their primary deficits widen in the IMF's
+        projection. On the debt ratio, Japan and Italy lead the group. On the budget it takes to hold the ratio steady, the US leads by a distance.</p>
         <table class="t" id="tab-pb"></table>
 
         <div class="verdict">
           <h2>What to do with this</h2>
           <div class="rows">
-            <div class="row"><div><span class="badge yes">Supported</span><b class="who">Anyone writing that the rich world is flirting with a debt problem</b></div>
-              <div><div class="do">Say it this way: the average rate is still at or below growth, the marginal rate is above it, and the average is moving towards the marginal. That is what the data support. "Debt is unsustainable" is not, yet, in five of the six countries.</div>
-                <div class="if">What would change it: ten-year yields falling below the IMF's 2031 nominal growth, which is 2.7% for Italy and Japan, 2.8% for France and Germany, 3.2% for Britain and 3.6% for the US.</div></div></div>
-            <div class="row"><div><span class="badge watch">Watch</span><b class="who">Anyone ranking which country is most exposed</b></div>
-              <div><div class="do">Rank by the gap between the projected primary balance and the one needed, not by the debt ratio. On debt, Japan and Italy lead. On the gap, the US leads by a distance and Italy is the smallest.</div>
-                <div class="if">What would change it: a US budget that moves the primary balance towards zero. The IMF's current projection assumes none.</div></div></div>
-            <div class="row"><div><span class="badge no">Not supported</span><b class="who">"Inflation will take care of the debt"</b></div>
-              <div><div class="do">It did, once: 2021–23 had r − g of −5 to −7 points. It worked because the inflation was a surprise and the stock was locked in at old coupons. Markets now price inflation into new bonds, and inflation-linked and short-dated debt reprice straight away.</div>
-                <div class="if">What would change it: another round of inflation the bond market does not see coming. By construction that cannot be planned for.</div></div></div>
+            <div class="row"><div><span class="badge yes">Supported</span><b class="who">"The rich world is flirting with a debt problem"</b></div>
+              <div><div class="do">In numbers: the average rate is still at or below growth, the market rate is above it, and the average closes about 13% of that gap a year. At today's yields the US, Britain, France and Italy cross into r above g by 2031. "Unsustainable" is not supported yet.</div>
+                <div class="if">What would change it: ten-year yields falling below the IMF's 2031 nominal growth, which is 2.7% for Italy and Japan, 2.8% for France and Germany, 3.2% for Britain and the Netherlands, 3.6% for the US.</div></div></div>
+            <div class="row"><div><span class="badge no">Not supported</span><b class="who">"Governments paid down their pandemic debt"</b></div>
+              <div><div class="do">Every one of the nine ran a primary deficit over 2021–25 taken as a whole. The ratios fell because inflation and growth raised GDP. Without the inflation term every one of the nine would have risen.</div>
+                <div class="if">What would change it: nothing in the past data. For the future, the IMF has Italy, Britain, France and Spain moving to primary surpluses by 2031.</div></div></div>
+            <div class="row"><div><span class="badge watch">Watch</span><b class="who">Anyone reading the IMF's 2031 debt paths</b></div>
+              <div><div class="do">Check the interest assumption. At the historical repricing speed and today's yields the IMF's 2031 rate on the debt is low by 0.8 points for the US and 1.0 for Britain. On US gross debt of 142% of GDP, 0.8 points is about 1.1% of GDP a year in interest.</div>
+                <div class="if">What would change it: the October WEO, if it moves the rate paid up towards the market. The fetch picks up each new release.</div></div></div>
           </div>
         </div>
 
         <div class="care">
           <h2>Read with care</h2>
           <ul>
-            <li><b>Net, not gross, interest.</b> The IMF publishes the primary balance, and interest here is the primary balance minus the overall balance: interest paid minus interest received. For the US, Italy, France and Britain the two are close. For Japan they are not, because the government earns large income on its financial assets. Canada is left out for the same reason: its net interest is negative.</li>
-            <li><b>Net interest over gross debt.</b> The "rate paid" divides net interest by gross debt, so it understates the coupon, most for Japan and Germany. The net-debt version is in <a href="data/debt-study.json">data/debt-study.json</a> as <code>r_net_2025</code>. It is higher, but it tells the same story.</li>
-            <li><b>Projections.</b> The WEO file does not mark where actuals end. This page treats 2025 as the last actual year and draws 2026 to 2031 dashed. Those years are the IMF's fiscal and growth assumptions and are revised twice a year.</li>
-            <li><b>The "at today's yields" columns</b> apply one number, the August 2026 ten-year monthly average, to the whole stock, and set it against the IMF's 2031 growth. That is an identity, used to show where the requirement moves. Governments borrow across the curve, in bills and in inflation-linked bonds, and the stock reprices over years. The average maturity of the debt, which sets that pace, is not in the data here.</li>
-            <li><b>Growth is nominal.</b> g includes inflation, which is why it spiked in 2021–23. A fall in inflation lowers g straight away and lowers r only slowly, which is the risk this page describes.</li>
-            <li><b>Not measured.</b> Who holds the debt, central-bank balance sheets and their losses, maturity profiles, and contingent liabilities such as pensions and banks. The page shows the arithmetic of the stock. It does not predict a crisis or its timing.</li>
-            <li><b>Reproduce it.</b> <code>python3 scripts/debt_study.py</code> rewrites <a href="data/debt-study.json">data/debt-study.json</a> from data/imf-weo.json (GGXWDG_NGDP, GGXWDN_NGDP, GGXCNL_NGDP, GGXONLB_NGDP, NGDP) and data/long-yields.json.</li>
+            <li><b>Net interest.</b> Interest here is the primary balance minus the overall balance, so interest paid minus interest received. For the US, Italy, France, Britain and Spain the two are close. For Japan, Australia and the Netherlands, governments with large financial assets, net is well below gross. Canada and Korea are left out because their net interest is negative and their debt changes leave residuals of 14 to 30 points.</li>
+            <li><b>Net interest over gross debt</b> understates the coupon. The net-debt version is not used because several countries' net debt is small or has definitional breaks.</li>
+            <li><b>The pass-through is one estimate.</b> Ordinary least squares on 233 country-years, with a country intercept, of the yearly change in r on the gap between the annual-mean ten-year yield and last year's r. The per-country figures rest on 23 to 30 points and carry wide errors, which are printed. The ten-year yield stands in for the whole curve: governments also borrow in bills and in inflation-linked bonds, which reprice faster. Maturity has lengthened since the 1990s, which would slow repricing now.</li>
+            <li><b>"At today's yields"</b> holds the August 2026 monthly average for six years. That is arithmetic to show where the numbers move, not a forecast. The IMF's projections embed their own rate path, which the WEO does not publish in this file.</li>
+            <li><b>Projections.</b> The WEO file does not mark where actuals end. This page treats 2025 as the last actual year. 2026 to 2031 are the IMF's assumptions and are revised twice a year.</li>
+            <li><b>The inflation term</b> uses the GDP deflator, not consumer prices, and it is computed from the nominal and real growth rates the IMF publishes. The residual absorbs anything the identity misses, and it is printed.</li>
+            <li><b>Not measured.</b> Who holds the debt, central-bank balance sheets and their losses, maturity profiles, contingent liabilities. The page shows the arithmetic of the stock. It does not predict a crisis or its timing.</li>
+            <li><b>Reproduce it.</b> <code>python3 scripts/debt_study.py</code> rewrites <a href="data/debt-study.json">data/debt-study.json</a> from data/imf-weo.json (GGXWDG_NGDP, GGXCNL_NGDP, GGXONLB_NGDP, GGR_NGDP, NGDP, NGDP_RPCH) and data/long-yields.json.</li>
           </ul>
         </div>
       </div>
@@ -179,7 +200,7 @@
     function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
     function fmt(v, d) { if (v == null || v !== v) return "·"; if (d == null) d = Math.abs(v) < 1 && v !== 0 ? 2 : 1; return v.toLocaleString("en-GB", { maximumFractionDigits: d, minimumFractionDigits: 0 }); }
     function fix2(v) { return v == null || v !== v ? "·" : (+v).toFixed(2); }
-    function signed(v, d) { return (v > 0 ? "+" : "") + (d === 2 ? fix2(v) : fmt(v, d)); }
+    function signed(v, d) { return v == null ? "·" : (v > 0 ? "+" : "") + (d === 2 ? fix2(v) : d === 1 ? (+v).toFixed(1) : fmt(v, d)); }
     function fmtDate(d) { var m; d = String(d); if ((m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d))) return +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1]; if ((m = /^(\d{4})-(\d{2})$/.exec(d))) return MONTHS[+m[2] - 1] + " " + m[1]; if ((m = /^(\d{4})-Q([1-4])$/.exec(d))) return "Q" + m[2] + " " + m[1]; return d; }
     function nice(lo, hi, want) {
       if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
@@ -234,32 +255,85 @@
       });
       host.innerHTML = s + "</svg>";
     }
-    var C = { US: "#1c63c9", GB: "#d9541e", FR: "#7b3fd1", IT: "#b7791f", DE: "#16191f", JP: "#138a5a" };
-    var NAMES = { US: "United States", GB: "United Kingdom", FR: "France", IT: "Italy", DE: "Germany", JP: "Japan" };
-    var ORDER = ["US", "GB", "FR", "IT", "DE", "JP"];
-    function legend(id) { document.getElementById(id).innerHTML = ORDER.map(function (c) { return "<span><i style='color:" + C[c] + "'></i>" + NAMES[c] + "</span>"; }).join("") + "<span><i class='dash'></i>IMF projection</span>"; }
-    function cls(v, bad) { return v == null ? "dim" : bad(v) ? "bad" : ""; }
+    var C = { US: "#1c63c9", GB: "#d9541e", FR: "#7b3fd1", IT: "#b7791f", DE: "#16191f", JP: "#138a5a", ES: "#0e8a99", NL: "#5f6b7a", AU: "#b83280" };
+    var NAMES = { US: "United States", GB: "United Kingdom", FR: "France", IT: "Italy", DE: "Germany", JP: "Japan", ES: "Spain", NL: "Netherlands", AU: "Australia" };
+    var PARTS = [["c_primary", "Primary deficit", "#1c63c9"], ["c_interest", "Interest", "#d9541e"], ["c_real", "Real growth", "#138a5a"], ["c_inflation", "Inflation", "#7b3fd1"], ["c_residual", "Residual", "#9aa0a6"]];
+    function legend(id, list) { document.getElementById(id).innerHTML = list.map(function (c) { return "<span><i style='color:" + C[c] + "'></i>" + NAMES[c] + "</span>"; }).join("") + "<span><i class='dash'></i>IMF projection</span>"; }
+    function cls(v) { return v == null ? "dim" : v > 0 ? "bad" : ""; }
+
+    /* diverging stacked bars, one row per country; rows: [{label, parts: [[value, color]], net}] */
+    function bars(hostId, rows, lo, hi) {
+      var W = 460, rowH = 26, T = 8, B = 22, L = 104, R = 12, H = T + B + rows.length * rowH;
+      var X = function (v) { return L + (v - lo) / (hi - lo) * (W - L - R); };
+      var s = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='debt change by component'>";
+      nice(lo, hi, 5).forEach(function (t) {
+        s += "<line x1='" + X(t).toFixed(1) + "' x2='" + X(t).toFixed(1) + "' y1='" + T + "' y2='" + (H - B) + "' stroke='currentColor' stroke-opacity='" + (t === 0 ? ".45" : ".1") + "'/>" +
+          "<text x='" + X(t).toFixed(1) + "' y='" + (H - 6) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + (t > 0 ? "+" : "") + fmt(t) + "</text>";
+      });
+      rows.forEach(function (r, i) {
+        var y = T + i * rowH + 5, h = rowH - 10, pos = 0, neg = 0;
+        s += "<text x='" + (L - 8) + "' y='" + (y + h / 2 + 4) + "' text-anchor='end' font-size='11.5' fill='currentColor'>" + esc(r.label) + "</text>";
+        r.parts.forEach(function (p) {
+          var v = p[0]; if (!v) return;
+          var a = v > 0 ? pos : neg + v; if (v > 0) pos += v; else neg += v;
+          s += "<rect x='" + X(a).toFixed(1) + "' y='" + y + "' width='" + Math.max(0.5, X(a + Math.abs(v)) - X(a)).toFixed(1) + "' height='" + h + "' fill='" + p[1] + "'/>";
+        });
+        s += "<path d='M" + X(r.net).toFixed(1) + " " + (y - 3) + "l5 " + (h / 2 + 3) + "l-5 " + (h / 2 + 3) + "l-5 " + (-h / 2 - 3) + "z' fill='#fff' stroke='#16191f' stroke-width='1.6'/>";
+      });
+      document.getElementById(hostId).innerHTML = s + "</svg>";
+    }
+    /* dot plot: rows [{label, dots: [[value, color, filled]]}] */
+    function dots(hostId, rows) {
+      var W = 640, rowH = 28, T = 8, B = 24, L = 110, R = 14, H = T + B + rows.length * rowH, lo = Infinity, hi = -Infinity;
+      rows.forEach(function (r) { r.dots.forEach(function (d) { if (d[0] < lo) lo = d[0]; if (d[0] > hi) hi = d[0]; }); });
+      var ticks = nice(Math.min(0, lo), hi, 5), st = ticks[1] - ticks[0]; while (ticks[ticks.length - 1] < hi) ticks.push(+(ticks[ticks.length - 1] + st).toFixed(10)); lo = ticks[0]; hi = ticks[ticks.length - 1];
+      var X = function (v) { return L + (v - lo) / (hi - lo) * (W - L - R); };
+      var s = "<svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='rate on the debt in 2031 against growth'>";
+      ticks.forEach(function (t) { s += "<line x1='" + X(t).toFixed(1) + "' x2='" + X(t).toFixed(1) + "' y1='" + T + "' y2='" + (H - B) + "' stroke='currentColor' stroke-opacity='.1'/><text x='" + X(t).toFixed(1) + "' y='" + (H - 6) + "' text-anchor='middle' font-size='11' fill='currentColor' fill-opacity='.6'>" + fmt(t) + "%</text>"; });
+      rows.forEach(function (r, i) {
+        var y = T + i * rowH + rowH / 2, vs = r.dots.map(function (d) { return d[0]; });
+        s += "<text x='" + (L - 10) + "' y='" + (y + 4) + "' text-anchor='end' font-size='11.5' fill='currentColor'>" + esc(r.label) + "</text>" +
+          "<line x1='" + X(Math.min.apply(null, vs)).toFixed(1) + "' x2='" + X(Math.max.apply(null, vs)).toFixed(1) + "' y1='" + y + "' y2='" + y + "' stroke='currentColor' stroke-opacity='.25' stroke-width='2'/>";
+        r.dots.forEach(function (d) { s += "<circle cx='" + X(d[0]).toFixed(1) + "' cy='" + y + "' r='5.5' fill='" + d[1] + "' stroke='#fff' stroke-width='1.2'/>"; });
+      });
+      document.getElementById(hostId).innerHTML = s + "</svg>";
+    }
 
     fetch("data/debt-study.json", { cache: "no-cache" }).then(function (r) { return r.json(); }).then(function (S) {
-      var K = S.countries, LA = S.weo_last_actual, us = K.US;
+      var K = S.countries, LA = S.weo_last_actual, P = S.pass_through_pooled;
+      var ORDER = S.core.concat(S.more).filter(function (c) { return K[c]; });
       var ym = K.US.ten_year.last;
-      var above = ORDER.filter(function (c) { return K[c].yield_minus_g2031 > 0; }).length;
-      var cheap = ORDER.map(function (c) { return K[c].r_minus_g_2021_23; });
+      var infl = ORDER.map(function (c) { return K[c].dynamics["2021-25"].c_inflation; });
+      var intLead = ORDER.filter(function (c) { var d = K[c].dynamics["2026-31"]; return d.c_interest > d.c_primary; }).length;
+      var cross = ORDER.filter(function (c) { return K[c].r_minus_g_2031_at_market > 0; }).length;
+      var crossImf = ORDER.filter(function (c) { return K[c].r_minus_g_2031 > 0; }).length;
       document.getElementById("facts").innerHTML =
-        "<span><b>" + fmt(us.interest_2025, 2) + "%</b>of GDP: US general government net interest, " + LA + ", highest in the IMF series</span>" +
-        "<span><b>" + signed(Math.max.apply(null, cheap), 1) + " to " + signed(Math.min.apply(null, cheap), 1) + "</b>r − g, 2021–23 average, six countries</span>" +
-        "<span><b>" + signed(K.IT.r_minus_g_2025, 2) + "</b>Italy's r − g in " + LA + ", the one already above zero</span>" +
-        "<span><b>" + above + " of 6</b>ten-year yield (" + esc(fmtDate(ym)) + ") above the IMF's 2031 nominal growth</span>" +
-        "<span><b>" + fmt(-us.gap_at_market, 1) + " pts</b>of GDP: US budget gap to hold its debt at today's yield</span>";
+        "<span><b>" + fmt(Math.max.apply(null, infl), 0) + " to " + fmt(Math.min.apply(null, infl), 0) + " pts</b>inflation's cut to debt ratios, 2021–25, nine countries</span>" +
+        "<span><b>" + intLead + " of " + ORDER.length + "</b>where interest is the biggest force raising debt, 2026–31 (IMF)</span>" +
+        "<span><b>" + fmt(K.US.interest_rev_2025, 1) + "%</b>of US government revenue spent on net interest, " + LA + "</span>" +
+        "<span><b>" + fmt(P.half_life, 0) + " years</b>half-life of the gap between the ten-year yield and the rate paid</span>" +
+        "<span><b>" + cross + " of " + ORDER.length + "</b>with r above g by 2031 at today's yields (IMF path: " + crossImf + ")</span>";
 
-      chart("fig-debt", ORDER.map(function (c) { return { name: NAMES[c], color: C[c], pts: K[c].series.debt, dashFrom: LA }; }), { unit: "%", zero: true });
-      legend("leg-debt");
-      chart("fig-interest", ORDER.map(function (c) { return { name: NAMES[c], color: C[c], pts: K[c].series.interest, dashFrom: LA }; }), { unit: "%", zero: true });
-      legend("leg-interest");
-      document.getElementById("tab-bill").innerHTML = "<tr><th>Net interest, % of GDP</th><th>Low since 2015</th><th>" + LA + "</th><th>2031 (IMF)</th><th>If the stock paid the 10-year*</th></tr>" +
-        ORDER.map(function (c) { var k = K[c]; return "<tr><td>" + NAMES[c] + "</td><td class='dim'>" + fix2(k.interest_low.value) + " (" + k.interest_low.year + ")</td><td>" + fix2(k.interest_2025) + "</td><td>" + fix2(k.interest_2031) + "</td><td class='dim'>" + fix2(k.interest_if_repriced) + "</td></tr>"; }).join("") +
-        "<tr><td colspan='5' class='dim' style='text-align:left;white-space:normal'>* " + LA + " gross debt × the " + esc(fmtDate(ym)) + " ten-year yield. An identity, not a forecast, and on gross debt, so not comparable with the net figures to its left for Japan.</td></tr>";
+      // 1. debt dynamics
+      ["2021-25", "2026-31"].forEach(function (w, j) {
+        var lo = 0, hi = 0;
+        ORDER.forEach(function (c) { var d = K[c].dynamics[w], p = 0, n = 0; PARTS.forEach(function (q) { var v = d[q[0]] || 0; if (v > 0) p += v; else n += v; }); if (p > hi) hi = p; if (n < lo) lo = n; });
+        bars(j ? "fig-dyn-b" : "fig-dyn-a", ORDER.map(function (c) { var d = K[c].dynamics[w]; return { label: NAMES[c], net: d.d_change, parts: PARTS.map(function (q) { return [d[q[0]], q[2]]; }) }; }), Math.floor(lo / 10) * 10, Math.ceil(hi / 10) * 10);
+      });
+      document.getElementById("leg-dyn").innerHTML = PARTS.map(function (q) { return "<span><i style='color:" + q[2] + ";height:8px'></i>" + q[1] + "</span>"; }).join("") + "<span>◇ net change in the ratio</span>";
+      document.getElementById("tab-dyn").innerHTML = "<tr><th>Points of GDP, 2021–25</th><th>Debt 2020 → 2025</th><th>Primary</th><th>Interest</th><th>Real growth</th><th>Inflation</th><th>Residual</th><th>Without inflation</th></tr>" +
+        ORDER.map(function (c) { var d = K[c].dynamics["2021-25"];
+          return "<tr><td>" + NAMES[c] + "</td><td>" + fmt(d.from, 0) + " → " + fmt(d.to, 0) + "</td><td>" + signed(d.c_primary, 1) + "</td><td>" + signed(d.c_interest, 1) + "</td><td>" + signed(d.c_real, 1) + "</td><td class='good'>" + signed(d.c_inflation, 1) + "</td><td class='dim'>" + signed(d.c_residual, 1) + "</td><td class='bad'>" + signed(d.d_change - d.c_inflation, 1) + "</td></tr>"; }).join("");
 
+      // 2. interest against revenue
+      var REV = ["US", "IT", "ES", "GB", "FR", "JP"];
+      chart("fig-rev", REV.map(function (c) { return { name: NAMES[c], color: C[c], pts: K[c].series.interest_rev, dashFrom: LA }; }), { unit: "%", zero: true });
+      legend("leg-rev", REV);
+      document.getElementById("tab-rev").innerHTML = "<tr><th>Net interest, % of revenue</th><th>1990s peak</th><th>Low since 2015</th><th>" + LA + "</th><th>2031 (IMF)</th><th>% of GDP, " + LA + "</th></tr>" +
+        ORDER.map(function (c) { var k = K[c], p = k.interest_90s_peak;
+          return "<tr><td>" + NAMES[c] + "</td><td class='dim'>" + (p ? fmt(p.rev, 1) + " (" + p.year + ")" : "·") + "</td><td class='dim'>" + fmt(k.interest_low.rev, 1) + " (" + k.interest_low.year + ")</td><td>" + fmt(k.interest_rev_2025, 1) + "</td><td class='" + (p && k.interest_rev_2031 > p.rev ? "bad" : "") + "'>" + fmt(k.interest_rev_2031, 1) + "</td><td>" + fix2(k.interest_2025) + "</td></tr>"; }).join("");
+
+      // 3. r against g
       var host = document.getElementById("fig-rg");
       host.innerHTML = ORDER.map(function (c) { return "<div class='fig'><div class='ttl'>" + NAMES[c] + "</div><div id='rg-" + c + "'></div></div>"; }).join("");
       ORDER.forEach(function (c) {
@@ -269,13 +343,22 @@
           { name: "r", color: C[c], pts: k.series.r.filter(cut), dashFrom: LA, width: 2.2 }
         ], { unit: "%", zero: true, w: 340, h: 230, marks: k.ten_year ? [{ y: k.ten_year.value, color: "#c62828", label: "10-yr " + fix2(k.ten_year.value) + "%" }] : [] });
       });
-      document.getElementById("tab-rg").innerHTML = "<tr><th>r − g, points</th><th>2015–19</th><th>2021–23</th><th>" + LA + "</th><th>2031 (IMF)</th><th>r " + LA + "</th><th>10-year, " + esc(fmtDate(ym)) + "</th><th>10-year − g 2031</th></tr>" +
-        ORDER.map(function (c) { var k = K[c], pos = function (v) { return v > 0; };
-          return "<tr><td>" + NAMES[c] + "</td><td class='" + cls(k.r_minus_g_2015_19, pos) + "'>" + signed(k.r_minus_g_2015_19, 2) + "</td><td class='good'>" + signed(k.r_minus_g_2021_23, 2) + "</td><td class='" + cls(k.r_minus_g_2025, pos) + "'>" + signed(k.r_minus_g_2025, 2) + "</td><td class='" + cls(k.r_minus_g_2031, pos) + "'>" + signed(k.r_minus_g_2031, 2) + "</td><td>" + fix2(k.r_2025) + "</td><td>" + fix2(k.ten_year.value) + "</td><td class='bad'>" + signed(k.yield_minus_g2031, 2) + "</td></tr>"; }).join("");
+      document.getElementById("tab-rg").innerHTML = "<tr><th>r − g, points</th><th>2015–19</th><th>2021–23</th><th>" + LA + "</th><th>2031 (IMF)</th><th>r " + LA + "</th><th>10-year, " + esc(fmtDate(ym)) + "</th></tr>" +
+        ORDER.map(function (c) { var k = K[c];
+          return "<tr><td>" + NAMES[c] + "</td><td class='" + cls(k.r_minus_g_2015_19) + "'>" + signed(k.r_minus_g_2015_19, 2) + "</td><td class='good'>" + signed(k.r_minus_g_2021_23, 2) + "</td><td class='" + cls(k.r_minus_g_2025) + "'>" + signed(k.r_minus_g_2025, 2) + "</td><td class='" + cls(k.r_minus_g_2031) + "'>" + signed(k.r_minus_g_2031, 2) + "</td><td>" + fix2(k.r_2025) + "</td><td>" + fix2(k.ten_year.value) + "</td></tr>"; }).join("");
 
+      // 4. pass-through
+      dots("fig-pt", ORDER.map(function (c) { var k = K[c]; return { label: NAMES[c], dots: [[k.g_2031, "#9aa0a6"], [k.r_2031, "#1c63c9"], [k.r_2031_at_market, "#c62828"]] }; }));
+      document.getElementById("tab-pt").innerHTML = "<tr><th>Pass-through</th><th>Gap closed a year</th><th>s.e.</th><th>Half-life, yrs</th><th>r 2031 IMF</th><th>r 2031 at 10-yr</th><th>r − g 2031 at 10-yr</th></tr>" +
+        ORDER.map(function (c) { var k = K[c], t = k.pass_through;
+          return "<tr><td>" + NAMES[c] + (c === "JP" ? "*" : "") + "</td><td>" + fix2(t.lambda) + "</td><td class='dim'>" + fix2(t.se) + "</td><td>" + (t.half_life > 30 ? "·" : fmt(t.half_life, 1)) + "</td><td>" + fix2(k.r_2031) + "</td><td>" + fix2(k.r_2031_at_market) + "</td><td class='" + cls(k.r_minus_g_2031_at_market) + "'>" + signed(k.r_minus_g_2031_at_market, 2) + "</td></tr>"; }).join("") +
+        "<tr><td><b>Pooled, " + P.countries.length + " countries</b></td><td><b>" + fix2(P.lambda) + "</b></td><td class='dim'>" + fix2(P.se) + "</td><td><b>" + fmt(P.half_life, 1) + "</b></td><td colspan='3' class='dim' style='text-align:left'>n = " + P.n + "; IV check: " + fix2(P.lambda_iv) + ", half-life " + fmt(P.half_life_iv, 1) + "</td></tr>" +
+        "<tr><td colspan='7' class='dim' style='text-align:left;white-space:normal'>Estimated on 1996–2025 (US 2003–2025, where the IMF's general government series allow). * Japan is outside the pooled estimate; its 2031 figure at today's yield uses the pooled speed.</td></tr>";
+
+      // 5. holding the ratio
       document.getElementById("tab-pb").innerHTML = "<tr><th>Primary balance, % of GDP</th><th>" + LA + "</th><th>2031 (IMF)</th><th>Holds debt, IMF rates</th><th>Holds debt, today's 10-year</th><th>Gap at today's 10-year</th></tr>" +
         ORDER.map(function (c) { var k = K[c];
-          return "<tr><td>" + NAMES[c] + "</td><td class='dim'>" + signed(k.primary_2025, 2) + "</td><td>" + signed(k.primary_2031, 2) + "</td><td>" + signed(k.stabilising_2031, 2) + "</td><td>" + signed(k.stabilising_at_market, 2) + "</td><td class='" + (k.gap_at_market < -1 ? "bad" : "") + "'>" + signed(k.gap_at_market, 2) + "</td></tr>"; }).join("") +
+          return "<tr><td>" + NAMES[c] + "</td><td class='dim'>" + signed(k.primary_2025, 2) + "</td><td>" + signed(k.primary_2031, 2) + "</td><td>" + signed(k.stabilising_primary_2031, 2) + "</td><td>" + signed(k.stabilising_at_market, 2) + "</td><td class='" + (k.gap_at_market < -1 ? "bad" : k.gap_at_market > 0 ? "good" : "") + "'>" + signed(k.gap_at_market, 2) + "</td></tr>"; }).join("") +
         "<tr><td colspan='6' class='dim' style='text-align:left;white-space:normal'>Holds debt = (r − g) ÷ (1 + g) × debt, with the IMF's 2031 r, g and debt, or with r set to the " + esc(fmtDate(ym)) + " ten-year yield. A negative gap means the IMF's projected budget lets the ratio rise.</td></tr>";
     }).catch(function (e) { document.getElementById("facts").textContent = "The study file could not be read: " + e.message; });
   })();
