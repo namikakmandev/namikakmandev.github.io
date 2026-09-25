@@ -10,6 +10,12 @@
   <meta property="og:title" content="The Pricing Game — Can You Run Pricing for a Year?" />
   <meta property="og:description" content="Cost spikes, price wars, a discounter entering your market. 12 months, three rivals, one price and one strategic move per month. Beat the budget." />
   <meta property="og:url" content="https://namikakmandev.github.io/pricing-game.html" />
+  <meta property="og:image" content="https://namikakmandev.github.io/assets/pricing-game-og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="The Pricing Game — Can You Run Pricing for a Year?" />
+  <meta name="twitter:image" content="https://namikakmandev.github.io/assets/pricing-game-og.png" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <meta name="theme-color" content="#2F9BFF" />
   <style>
@@ -46,8 +52,9 @@
     .muted { color: var(--text-dim); font-size: .9rem; line-height: 1.5; }
 
     .event-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
-    .event-icon { font-size: 2.1rem; }
-    .event-month { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--orange); font-weight: 700; }
+    .event-head > div { min-width: 0; }
+    .event-icon { font-size: 2.1rem; flex: 0 0 auto; }
+    .event-month { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--orange); font-weight: 700; line-height: 1.35; }
     .event-title { font-size: 1.25rem; font-weight: 800; }
     .event-text { color: var(--text-dim); font-size: .92rem; line-height: 1.45; }
     .event-hint { margin-top: 8px; font-size: .8rem; color: var(--text-dim); }
@@ -86,13 +93,16 @@
     .zone-bar { height: 5px; border-radius: 3px; overflow: hidden; display: flex; }
     .zone-loss { background: rgba(229,72,77,.65); }
     .zone-ok   { background: rgba(74,84,105,.9); flex: 1; }
-    .zone-mark { position: absolute; top: 7px; transform: translateX(-50%); font-size: .62rem; color: var(--text-dim); white-space: nowrap; }
+    .zone-mark { position: absolute; top: 7px; transform: translateX(-50%); font-size: .66rem; color: var(--text-dim); white-space: nowrap; }
     .zone-mark::before { content: "▲"; display: block; text-align: center; font-size: .56rem; }
     .zone-mark.cost { transform: none; }                     /* cost sits at the left edge: anchor label to the left */
     .zone-mark.cost::before { color: var(--loss); text-align: left; padding-left: 1px; }
     .zone-mark.comp::before { color: var(--orange); }
+    .zone-mark.comp.row2 { padding-top: 26px; }               /* rival marker close to cost: text drops to a 2nd row */
+    .zone-mark.comp.row2::before { position: absolute; top: 0; left: 50%; transform: translateX(-50%); }
+    .zone-wrap.tall { margin-bottom: 58px; }
 
-    .margin-note { font-size: .8rem; margin: 2px 0 12px; min-height: 1.1em; color: var(--text-dim); }
+    .margin-note { font-size: .8rem; margin: 4px 0 12px; min-height: 1.1em; color: var(--text-dim); }
     .btn { display: inline-block; background: var(--blue); color: #fff; border: none; border-radius: 10px;
            padding: 12px 24px; font-size: .98rem; font-weight: 700; cursor: pointer; font-family: var(--font); }
     .btn:hover { filter: brightness(1.1); }
@@ -138,9 +148,12 @@
     .pl-row { display: flex; justify-content: space-between; padding: 2px 0; color: var(--text-dim); font-variant-numeric: tabular-nums; }
     .pl-row.total { border-top: 1px solid var(--border); margin-top: 3px; padding-top: 5px; color: var(--text); font-weight: 700; }
 
-    canvas { width: 100%; height: 190px; display: block; margin-top: 6px; }
-    .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .76rem; color: var(--text-dim); margin-top: 6px; }
-    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+    canvas { width: 100%; height: 190px; display: block; margin-top: 4px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .76rem; color: var(--text-dim); margin-top: 8px; }
+    .legend span { display: inline-flex; align-items: center; white-space: nowrap; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; flex: 0 0 auto; }
+    .end-actions { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .end-actions .btn { text-align: center; }
 
     /* ---------- Intro & end ---------- */
     .final-title { font-size: 1.55rem; font-weight: 800; margin: 6px 0; }
@@ -180,9 +193,14 @@
       .kpi .val { font-size: .78rem; }
       .kpi .lbl { font-size: .52rem; }
       .kpi .delta { font-size: .56rem; }
+      .event-head { gap: 10px; }
+      .event-icon { font-size: 1.8rem; }
+      .event-month { font-size: .64rem; letter-spacing: .04em; }
+      .event-title { font-size: 1.15rem; line-height: 1.2; }
       .card { padding: 13px; }
       .r-stats { grid-template-columns: repeat(4, 1fr); }
-      .facts { grid-template-columns: repeat(4, 1fr); }
+      .facts { grid-template-columns: 1fr 1fr 1.3fr 1fr; }
+      .fact { padding: 6px 4px; }
       .fact .val { font-size: .74rem; }
       .fact .lbl { font-size: .54rem; }
       .price-big { font-size: 1.6rem; min-width: 94px; }
@@ -197,11 +215,23 @@
       .price-row { display: grid; grid-template-columns: 40px 1fr 40px; gap: 8px; margin: 8px 0 4px; }
       .price-row .price-big { grid-column: 1 / -1; }
       input[type=range] { min-width: 0; }
-      .legend { gap: 8px 12px; }
+      .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; font-size: .74rem; }
       .zone-wrap { margin-bottom: 32px; }
       .margin-note { margin-bottom: 8px; }
+      .final-title { font-size: 1.35rem; }
+      .final-score { font-size: .9rem; }
+      .end-actions .btn { flex: 1 1 calc(50% - 5px); padding: 12px 10px; font-size: .92rem; white-space: nowrap; }
+      .end-actions .btn.ghost { flex-basis: 100%; }
       .chars { grid-template-columns: 1fr; gap: 7px; }
       .char { padding: 9px 12px; }
+    }
+    /* narrow phones: 6 KPI cells in one row are unreadable — go 3 x 2 */
+    @media (max-width: 480px) {
+      .kpis { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+      .kpi { padding: 5px 4px; }
+      .kpi .val { font-size: .9rem; }
+      .kpi .lbl { font-size: .58rem; }
+      .kpi .delta { font-size: .62rem; white-space: nowrap; }
     }
   </style>
 </head>
@@ -227,6 +257,7 @@
       <span class="ichip">📊 Budget +10%</span>
       <span class="ichip">🎯 Coach grades every month</span>
     </div>
+    <div class="muted hidden" id="introBest" style="margin-top:10px; font-size:.84rem"></div>
     <div style="margin-top:14px"><button class="btn" onclick="showChars()">Choose your manager &rarr;</button>
       <span class="keyhint">or press Enter</span></div>
     <details class="how">
@@ -351,6 +382,7 @@
     <div class="final-score" id="endScore"></div>
     <div class="mtitle">Final market standings</div>
     <div id="marketRowsEnd"></div>
+    <div class="mtitle">Your year, month by month</div>
     <canvas id="endChart" width="820" height="190"></canvas>
     <div class="legend">
       <span><i style="background:var(--green)"></i>Monthly profit</span>
@@ -359,7 +391,8 @@
       <span><i style="background:repeating-linear-gradient(90deg,#f5f7fb 0 3px,transparent 3px 5px)"></i>Budget</span>
     </div>
     <ul class="lessons" id="endLessons"></ul>
-    <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap">
+    <div class="end-actions">
+      <button class="btn green" id="shareBtn" onclick="shareResult()">Share my result</button>
       <button class="btn" onclick="location.reload()">Play again</button>
       <a class="btn ghost" href="projects.html">See the real pricing tools &rarr;</a>
     </div>
@@ -694,6 +727,11 @@ function beginMonth() {
   $('zoneLoss').style.width = pct(S.cost) + '%';
   $('markCost').style.left = pct(S.cost) + '%';
   $('markComp').style.left = pct(Math.min(...actR.map(r => r.price))) + '%';
+  // labels overlap when cost and cheapest rival sit close: stack the rival label on a second row
+  const mc = $('markCost'), mk = $('markComp');
+  mk.classList.remove('row2'); mk.parentElement.classList.remove('tall');
+  const a = mc.getBoundingClientRect(), b = mk.getBoundingClientRect();
+  if (b.left < a.right + 6 && b.right > a.left - 6) { mk.classList.add('row2'); mk.parentElement.classList.add('tall'); }
 
   const slider = $('priceSlider');
   slider.value = S.lastPrice.toFixed(1);
@@ -744,7 +782,7 @@ function lockPrice() {
   const ev = events[month];
   const price = parseFloat($('priceSlider').value);
   const choice = ev.choices[chosenOpt];
-  const prev = { share: S.share, trust: S.trust, cost: S.cost };
+  const prev = { share: S.share, trust: S.trust, cost: S.cost, price: S.lastPrice };
   const best = bestMoveThisMonth(ev, choice);
   const playerHorizon = horizonProfit(JSON.stringify(S), ev, price, choice);
   const r = runMonth(S, ev, price, choice);
@@ -801,6 +839,7 @@ function lockPrice() {
     bl.innerHTML = '<span class="ic">🎯</span><span>Best price <strong>$' + best.bestP.toFixed(2) + '</strong> (' + dir +
       ') — you captured ' + Math.round(capture) + '% of the possible. <span class="grade">' + grade + '</span></span>';
     S.captures = S.captures || []; S.captures.push(capture);
+    S.capMonths = S.capMonths || []; S.capMonths.push({ m: month, title: ev.title, capture, grade });
   }
 
   // one-line commentary
@@ -858,6 +897,23 @@ function commentary(ev, r, prev) {
     return { tone: 'good', text: 'You refused to chase BrewCo’s discount. They are funding their own promotion.' };
   if ((ev.id === 'boom' || ev.id === 'holiday' || ev.id === 'viral') && r.profit > 140000)
     return { tone: 'good', text: 'You used the demand wave instead of just riding it. This is when pricing power is cheapest.' };
+  const change = prev.price ? (r.price - prev.price) / prev.price : 0;
+  if (ev.id === 'comp_cut' && change < -0.03 && r.price <= brewPrice * 1.02)
+    return { tone: 'bad', text: 'You followed BrewCo down. Their promo ends next quarter — your new price anchor doesn’t.' };
+  if (ev.id === 'entrant' && r.price < 9.0)
+    return { tone: 'bad', text: 'You moved toward Kaffa’s price. A discounter can always go lower — that is the one fight you cannot win.' };
+  if (ev.id === 'shortage' && Math.abs(change) <= 0.05)
+    return { tone: 'good', text: 'You held price through the shortage. That restraint is worth more than this month’s margin — trust compounds.' };
+  if (ev.id === 'cost_relief' && Math.abs(change) <= 0.02)
+    return { tone: 'good', text: 'Costs fell, price held: pure margin, and nobody noticed. This is how pricing quietly earns its keep.' };
+  if (ev.id === 'cost_relief' && change < -0.03)
+    return { tone: 'bad', text: 'You passed the cost saving on. Customers never asked for it — that margin was yours to keep.' };
+  if (ev.id === 'award' && change >= 0.04)
+    return { tone: 'good', text: 'You cashed the award in while it was fresh. Awards fade; the price anchor stays.' };
+  if (ev.id === 'recession' && change > 0.03)
+    return { tone: 'bad', text: 'A price rise in a recession, with shoppers comparing harder — share is leaving faster than margin arrives.' };
+  if ((ev.id === 'boom' || ev.id === 'holiday') && change < 0.02)
+    return { tone: 'neutral', text: 'Demand up, price unchanged — the cheapest price increase of the year went unused.' };
   if (r.profit < 0)
     return { tone: 'bad', text: 'A loss month: this price, move and volume don’t cover the fixed costs. Something has to give.' };
   if (r.profit > 100000)
@@ -901,17 +957,22 @@ function updateMarket(container) {
 /* ---------------- Chart (end screen) ---------------- */
 function drawChart(canvasId) {
   const cv = $(canvasId), ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height, pad = 28;
+  // size the bitmap to the rendered width (x device pixels) so labels stay legible when the card is 320px wide
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = cv.clientWidth || 820, cssH = cv.clientHeight || 190;
+  cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = cssW, H = cssH, pad = 28, padTop = 10, plotH = H - pad - padTop;
   ctx.clearRect(0, 0, W, H);
   ctx.strokeStyle = '#4a5469'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(pad, H - pad); ctx.lineTo(W - 8, H - pad); ctx.stroke();
 
   const h = S.history;
   const slotW = (W - pad - 16) / 12;
-  const maxP = Math.max(150000, ...h.map(x => Math.abs(x.profit)));
+  const maxP = Math.max(Math.max(...BUDGET) * 1.3, ...h.map(x => Math.abs(x.profit)));   // scale: at least 30% above the highest budget month
   const zeroY = H - pad;
   h.forEach((x, i) => {
-    const bh = Math.abs(x.profit) / maxP * (H - 2 * pad) * 0.9;
+    const bh = Math.abs(x.profit) / maxP * plotH * 0.92;
     ctx.fillStyle = x.profit >= 0 ? 'rgba(25,195,125,.75)' : 'rgba(229,72,77,.75)';
     ctx.fillRect(pad + i * slotW + slotW * 0.18, x.profit >= 0 ? zeroY - bh : zeroY, slotW * 0.42, Math.max(bh, 1));
   });
@@ -920,7 +981,7 @@ function drawChart(canvasId) {
     ctx.strokeStyle = '#2f9bff'; ctx.lineWidth = 2.5; ctx.beginPath();
     h.forEach((x, i) => {
       const px = pad + i * slotW + slotW * 0.5;
-      const py = (H - pad) - x.share * (H - 2 * pad);
+      const py = (H - pad) - x.share * plotH;
       i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
     });
     ctx.stroke();
@@ -928,7 +989,7 @@ function drawChart(canvasId) {
     ctx.strokeStyle = '#ff6500'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath();
     h.forEach((x, i) => {
       const px = pad + i * slotW + slotW * 0.5;
-      const py = (H - pad) - (x.price - 6) / 12 * (H - 2 * pad);
+      const py = (H - pad) - (x.price - 6) / 12 * plotH;
       i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
     });
     ctx.stroke(); ctx.setLineDash([]);
@@ -936,7 +997,7 @@ function drawChart(canvasId) {
 
   ctx.strokeStyle = '#f5f7fb'; ctx.lineWidth = 1.6; ctx.setLineDash([3, 2]);
   for (let i = 0; i < 12; i++) {
-    const by = zeroY - BUDGET[i] / maxP * (H - 2 * pad) * 0.9;
+    const by = zeroY - BUDGET[i] / maxP * plotH * 0.92;
     ctx.beginPath();
     ctx.moveTo(pad + i * slotW + slotW * 0.10, by);
     ctx.lineTo(pad + i * slotW + slotW * 0.68, by);
@@ -944,9 +1005,11 @@ function drawChart(canvasId) {
   }
   ctx.setLineDash([]);
 
-  ctx.fillStyle = '#c6cdda'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-  for (let i = 0; i < 12; i++) ctx.fillText(i + 1, pad + i * slotW + slotW * 0.5, H - pad + 14);
+  ctx.fillStyle = '#c6cdda'; ctx.font = '11px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center';
+  for (let i = 0; i < 12; i++) ctx.fillText(i + 1, pad + i * slotW + slotW * 0.5, H - pad + 17);
 }
+// keep the end chart crisp when the phone rotates / window resizes
+window.addEventListener('resize', () => { if (!$('end').classList.contains('hidden')) drawChart('endChart'); });
 
 /* ---------------- End screen ---------------- */
 function endGame() {
@@ -966,6 +1029,15 @@ function endGame() {
   else if (S.cumProfit < totBud * 1.15) title = 'Head of Pricing — you beat the budget.';
   else                                  title = 'Chief Pricing Officer — budget beaten by 15%+. An outstanding year.';
   $('endTitle').textContent = title;
+  S.rank = title.split(' — ')[0];
+  let newBest = false;
+  try {
+    const prevBest = JSON.parse(localStorage.getItem('pg_best') || 'null');
+    if (!prevBest || S.cumProfit > prevBest.profit) {
+      localStorage.setItem('pg_best', JSON.stringify({ profit: S.cumProfit, char: CHAR.name, rank: S.rank }));
+      newBest = !!prevBest;
+    }
+  } catch (e) {}
   const vBud = S.cumProfit - totBud, vLY = S.cumProfit - totLY;
   $('endScore').innerHTML =
     'Played as <strong style="color:var(--text)">' + CHAR.icon + ' ' + CHAR.name + '</strong><br>' +
@@ -986,6 +1058,12 @@ function endGame() {
     L.push('Pricing sharpness: you captured ' + Math.round(avg) + '% of each month’s best possible profit on average' +
            (avg >= 90 ? ' — excellent instincts.' : avg >= 75 ? ' — solid.' : ' — replay and watch the 🎯 line.'));
   }
+  if (S.capMonths && S.capMonths.length) {
+    const weak = S.capMonths.reduce((a, b) => b.capture < a.capture ? b : a);
+    if (weak.capture < 90)
+      L.push('Weakest month: ' + MONTHS[weak.m] + ' (' + weak.title + ') — grade ' + weak.grade + ', ' + Math.round(weak.capture) +
+             '% of the possible. Replay it and try the other direction on price.');
+  }
   const movePct = S.maxPts ? Math.round(S.pts / S.maxPts * 100) : 0;
   L.push('Strategic moves: ' + movePct + '% of the available points' +
          (movePct >= 85 ? ' — you read the situations very well.' : movePct >= 65 ? ' — decent instincts.' : ' — the moves matter as much as the price.'));
@@ -997,9 +1075,38 @@ function endGame() {
   if (S.flags.gouged) L.push('You raised prices during the shortage. It paid once and taxed you for months.');
   if (S.flags.belowCost) L.push('You priced below cost at least once. Volume is vanity, margin is sanity.');
   if (!S.flags.gouged && S.trust >= 75) L.push('You ended with high customer trust — next year’s price increases just got easier.');
+  if (newBest) L.push('New personal best on this device.');
   L.push('The real version of this game runs inside companies every day — with more zeros. That’s the job.');
   $('endLessons').innerHTML = L.map(x => '<li>' + x + '</li>').join('');
 }
+
+function shareResult() {
+  const totBud = sumTo(BUDGET, 12);
+  const verdict = S.cumProfit >= totBud ? 'beat the budget by ' + moneyK(S.cumProfit - totBud) : 'missed the budget by ' + moneyK(totBud - S.cumProfit);
+  const text = 'I played The Pricing Game as ' + CHAR.name + ': ' + moneyK(S.cumProfit) + ' full-year profit vs ' + moneyK(benchmark) +
+               ' on autopilot — I ' + verdict + '. Rank: ' + S.rank + '. Can you do better?';
+  const url = 'https://namikakmandev.github.io/pricing-game.html';
+  const btn = $('shareBtn');
+  const done = msg => { btn.textContent = msg; setTimeout(() => { btn.textContent = 'Share my result'; }, 2200); };
+  if (navigator.share) {
+    navigator.share({ title: 'The Pricing Game', text, url }).then(() => done('Shared ✓')).catch(() => {});
+    return;
+  }
+  const full = text + ' ' + url;
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(full).then(() => done('Copied — paste it anywhere ✓'), () => done('Copy failed'));
+  else done('Copy not supported here');
+}
+
+// intro: personal best on this device
+(function showIntroBest() {
+  try {
+    const best = JSON.parse(localStorage.getItem('pg_best') || 'null');
+    if (best && best.profit > 0) {
+      $('introBest').textContent = '🏅 Your best on this device: ' + moneyK(best.profit) + ' as ' + best.char + ' (' + best.rank + ').';
+      $('introBest').classList.remove('hidden');
+    }
+  } catch (e) {}
+})();
 
 // keyboard flow: Enter = choose manager / start / lock / next
 document.addEventListener('keydown', e => {
