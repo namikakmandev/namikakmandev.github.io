@@ -82,13 +82,14 @@
                 color: var(--text); font-size: 1rem; font-weight: 700; cursor: pointer; }
     .step-btn:hover { border-color: var(--blue); }
 
-    .zone-wrap { position: relative; margin: 0 2px 22px; }
+    .zone-wrap { position: relative; margin: 0 2px 34px; }
     .zone-bar { height: 5px; border-radius: 3px; overflow: hidden; display: flex; }
     .zone-loss { background: rgba(229,72,77,.65); }
     .zone-ok   { background: rgba(74,84,105,.9); flex: 1; }
     .zone-mark { position: absolute; top: 7px; transform: translateX(-50%); font-size: .62rem; color: var(--text-dim); white-space: nowrap; }
     .zone-mark::before { content: "▲"; display: block; text-align: center; font-size: .56rem; }
-    .zone-mark.cost::before { color: var(--loss); }
+    .zone-mark.cost { transform: none; }                     /* cost sits at the left edge: anchor label to the left */
+    .zone-mark.cost::before { color: var(--loss); text-align: left; padding-left: 1px; }
     .zone-mark.comp::before { color: var(--orange); }
 
     .margin-note { font-size: .8rem; margin: 2px 0 12px; min-height: 1.1em; color: var(--text-dim); }
@@ -193,8 +194,11 @@
       .r-stats .res { padding: 5px; }
       .mrow { grid-template-columns: 88px 48px 1fr 42px; gap: 5px; font-size: .74rem; padding: 2px 0; }
       .r-big { font-size: 2rem; }
-      .price-row { margin: 8px 0 4px; gap: 8px; }
-      .zone-wrap { margin-bottom: 18px; }
+      .price-row { display: grid; grid-template-columns: 40px 1fr 40px; gap: 8px; margin: 8px 0 4px; }
+      .price-row .price-big { grid-column: 1 / -1; }
+      input[type=range] { min-width: 0; }
+      .legend { gap: 8px 12px; }
+      .zone-wrap { margin-bottom: 32px; }
       .margin-note { margin-bottom: 8px; }
       .chars { grid-template-columns: 1fr; gap: 7px; }
       .char { padding: 9px 12px; }
@@ -234,9 +238,10 @@
       <p>Each brand gets an attractiveness score from its brand strength minus a price-sensitivity penalty, and market
       share is split between the brands with a logit (softmax) choice model — with a one-month lag, because customers
       don't all switch at once. A customer trust index (0–100) scales your demand: sharp hikes hurt it, hikes during a
-      shortage hurt it badly, stable pricing rebuilds it. Strategic moves change trust, brand strength, demand or cash.
+      shortage hurt it badly, stable pricing rebuilds it up to 85 — above that only real gestures (quality, loyalty,
+      awards) keep it, otherwise it fades a point a month. Strategic moves change trust, brand strength, demand or cash.
       BrewCo reacts to being undercut; a recession makes everyone more price-sensitive.
-      Profit = (price − unit cost) × volume − $120k fixed costs ± one-off campaign costs. The autopilot benchmark plays
+      Profit = (price − unit cost) × volume − $110k fixed costs ± one-off campaign costs. The autopilot benchmark plays
       the identical year at a frozen $10.00 with the neutral move every month. The 🎯 coach judges your price on a
       4-month view, so it never rewards unsustainable gouging.</p>
     </details>
@@ -279,7 +284,7 @@
 
       <div class="facts">
         <div class="fact"><div class="lbl">Unit cost</div><div class="val" id="fCost">$6.00</div></div>
-        <div class="fact"><div class="lbl">Fixed / mo</div><div class="val">$120k</div></div>
+        <div class="fact"><div class="lbl">Fixed / mo</div><div class="val">$110k</div></div>
         <div class="fact"><div class="lbl">Rivals</div><div class="val" id="fComp">$10.50 · $13.50</div></div>
         <div class="fact"><div class="lbl">Budget / mo</div><div class="val" id="fBud">$42k</div></div>
       </div>
@@ -476,14 +481,14 @@ const NO_CHOICE = { fx: {} };
    preHint shows the coach's best price BEFORE locking (guided mode). ---------------- */
 const CHARACTERS = [
   { id:'brand', icon:'🎩', name:'The Brand Builder', tag:'"Premium is a promise."',
-    stats:[{t:'Trust 78',c:'good'},{t:'Brand +8%',c:'good'},{t:'Cost $6.40',c:'bad'}],
-    mod: s => { s.trust = 78; s.eq += 0.08; s.cost = 6.4; } },
+    stats:[{t:'Trust 80',c:'good'},{t:'Brand +10%',c:'good'},{t:'Cost $6.30',c:'bad'}],
+    mod: s => { s.trust = 80; s.eq += 0.10; s.cost = 6.3; } },
   { id:'operator', icon:'🔧', name:'The Operator', tag:'"Costs win wars."',
-    stats:[{t:'Cost $5.60',c:'good'},{t:'Trust 64',c:'bad'},{t:'Brand −6%',c:'bad'}],
-    mod: s => { s.trust = 64; s.eq -= 0.06; s.cost = 5.6; } },
+    stats:[{t:'Cost $5.70',c:'good'},{t:'Trust 64',c:'bad'},{t:'Brand −8%',c:'bad'}],
+    mod: s => { s.trust = 64; s.eq -= 0.08; s.cost = 5.7; } },
   { id:'marketer', icon:'📣', name:'The Marketer', tag:'"Attention is cheap fuel."',
-    stats:[{t:'Campaigns −40% cost',c:'good'},{t:'Brand +4%',c:'good'}],
-    mod: s => { s.eq += 0.04; s.campDisc = 0.6; } },
+    stats:[{t:'Campaigns −20% cost',c:'good'},{t:'Brand +1%',c:'good'}],
+    mod: s => { s.eq += 0.01; s.campDisc = 0.8; } },
   { id:'analyst', icon:'🧠', name:'The Analyst', tag:'"Numbers first." (guided mode)',
     stats:[{t:'Coach hints BEFORE you lock',c:'info'},{t:'No stat bonuses',c:'bad'}],
     mod: s => {}, preHint: true },
@@ -510,7 +515,7 @@ function initState(char) {
   return s;
 }
 
-const FIXED = 120000;
+const FIXED = 110000;
 const clampT = v => Math.max(0, Math.min(100, v));
 const attract = (eq, price, PSENS) => eq - PSENS * (price / 10);
 
@@ -530,7 +535,8 @@ function runMonth(s, ev, price, choice) {
   const grace = fx.hikeGrace && change <= 0.20;
   if (ev.shortage && change > 0.05)              { dTrust = -15; out.gouged = true; }
   else if (change > 0.12 && !grace)              { dTrust = -8;  out.sharpHike = true; }
-  else if (Math.abs(change) <= 0.04)             { dTrust = +2; }
+  else if (Math.abs(change) <= 0.04)             { dTrust = s.trust < 85 ? +2 : 0; }
+  if (s.trust > 85 && dTrust >= 0 && !(fx.trust > 0)) dTrust -= 1;   // fame fades: above 85 only real gestures keep it
   s.trust = clampT(s.trust + dTrust);
   out.dTrust = dTrust + (fx.trust || 0);
 
@@ -950,15 +956,16 @@ function endGame() {
   updateMarket($('marketRowsEnd'));
   drawChart('endChart');
 
-  const ratio = S.cumProfit / benchmark;
-  let title;
-  if (S.cumProfit <= 0)          title = 'Pricing Intern — the year ended in the red.';
-  else if (ratio < 1.0)          title = 'Pricing Analyst — the autopilot beat you.';
-  else if (ratio < 1.15)         title = 'Pricing Manager — you beat the autopilot.';
-  else if (ratio < 1.4)          title = 'Head of Pricing — clearly better than autopilot.';
-  else                           title = 'Chief Pricing Officer — an outstanding year.';
-  $('endTitle').textContent = title;
   const totBud = sumTo(BUDGET, 12), totLY = sumTo(LY_PROFIT, 12);
+  // rank ladder: every rung is a real yardstick — red, autopilot, last year, budget, budget +15%
+  let title;
+  if (S.cumProfit <= 0)                 title = 'Pricing Intern — the year ended in the red.';
+  else if (S.cumProfit < benchmark)     title = 'Pricing Analyst — the autopilot beat you.';
+  else if (S.cumProfit < totLY)         title = 'Pricing Manager — you beat the autopilot, but not last year.';
+  else if (S.cumProfit < totBud)        title = 'Senior Pricing Manager — you grew the business, but missed budget.';
+  else if (S.cumProfit < totBud * 1.15) title = 'Head of Pricing — you beat the budget.';
+  else                                  title = 'Chief Pricing Officer — budget beaten by 15%+. An outstanding year.';
+  $('endTitle').textContent = title;
   const vBud = S.cumProfit - totBud, vLY = S.cumProfit - totLY;
   $('endScore').innerHTML =
     'Played as <strong style="color:var(--text)">' + CHAR.icon + ' ' + CHAR.name + '</strong><br>' +
