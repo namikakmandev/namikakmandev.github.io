@@ -92,7 +92,11 @@ open files in the sandbox; Chromium is the PDF route. Check the page count with
 `grep -c '/Type /Page' file.pdf` and the look with a Chromium `--screenshot`.
 Two A4 pages is the target; three means cut, not shrink.
 
-## 6. Version log
+## 6. Dates and weekdays
+
+Never state a weekday from memory. Run `python3 -c "import datetime; print(datetime.date(Y,M,D).strftime('%A'))"` before writing one into a reply, a letter or the log. A wrong weekday in a confirmation mail to a recruiter reads as carelessness; it happened once with the medac invitation.
+
+## 7. Version log
 
 Keep `master-cv.md`'s log current: date, target company and role, what was
 reframed. It lets the next session answer "what did we send Pfizer" without the
