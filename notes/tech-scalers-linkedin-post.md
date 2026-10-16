@@ -1,9 +1,31 @@
 # The AI boom stopped paying for itself — LinkedIn assets
 
-Text-only post on the hyperscalers' cash: operating cash flow against capital
+Post on the hyperscalers' cash: operating cash flow against capital
 expenditure in each company's latest reported quarter, as of 16 October 2026.
-No chart or carousel yet; the figures below are enough to build one
-(four bars, operating cash flow against capex, one per company).
+
+## What to upload
+
+**One file: `notes/tech-scalers-post.mp4`**, a 48-second silent video, 4:5
+(1080×1350), with the copy below as the body. Nine beats: the hook, the
+arithmetic (cash in, minus capex, equals free cash flow), one card per company
+with both bars on one $0 to $60B scale and the free cash flow figure, a
+four-row summary around zero, the 2026 estimate for all five hyperscalers
+against their operating cash flow with the financing that fills the gap, and
+the closing two sentences with the source line.
+
+It is silent by design: LinkedIn autoplays muted and every figure is on
+screen. Rebuild it with:
+
+```
+node scripts/render_canvas_film.js film/tech-scalers.html notes/tech-scalers-post.mp4
+```
+
+The scene is `film/tech-scalers.html`, a deterministic canvas animation
+(`window.__seek(t)` draws any frame). Open it in a browser and press space to
+preview. Its figures are typed in the `CO` block at the top of the script;
+change them there and re-render. `--stills 3.5,15.5 <dir>` writes PNG frames
+for a check, and any of those frames works as a static image post. Fonts:
+Inter and Inter Display, the only families installed on the render machine.
 
 **One link in the body, if any:** none. The post stands on company filings.
 

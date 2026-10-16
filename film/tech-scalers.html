@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<title>The AI boom stopped paying for itself — film scene</title>
+<style>
+*{margin:0}
+html,body{height:100%;background:#000;overflow:hidden}
+#stage{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+canvas#c{display:block;background:#1a1a19}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c" width="1080" height="1350"></canvas></div>
+<script>
+/* ============================================================
+   "The AI boom just stopped paying for itself"
+   LinkedIn feed video, 4:5, 1080×1350, 48 s, silent.
+   Deterministic: window.__seek(t) draws the frame at t seconds;
+   scripts/render_canvas_film.js walks t frame by frame into ffmpeg.
+   Figures: notes/tech-scalers-linkedin-post.md (figure check table).
+   ============================================================ */
+const W=1080,H=1350,DUR=48;
+window.__W=W;window.__H=H;window.__DUR=DUR;
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+
+/* dark-surface palette from the dataviz reference: blue = cash in,
+   orange = capex (categorical slots 1 and 2); red/aqua carry the sign of
+   free cash flow beside a minus sign and a word, never colour alone. */
+const COL={bg:'#1a1a19',ink:'#f0efec',ink2:'#c3c2b7',ink3:'#8f8e86',rule:'#383835',
+  cash:'#3987e5',capex:'#d95926',neg:'#e66767',pos:'#199e70'};
+const DISPLAY='"Inter Display", Inter, system-ui, sans-serif';
+const BODY='Inter, system-ui, sans-serif';
+
+const CO=[
+  {name:'Alphabet', q:'April to June 2026', cash:39.1, capex:44.9, fcf:-5.9,
+   note:'Its first negative quarter since it listed in 2004.'},
+  {name:'Amazon', q:'April to June 2026', cash:45.4, capex:54.2, fcf:-8.8,
+   note:'Plus $13.6B of new long-term debt in the same quarter.'},
+  {name:'Oracle', q:'June to August 2026', cash:23.1, capex:28.5, fcf:-5.4,
+   note:'Fifth negative quarter in a row. Half the cash in was customer prepayments.'},
+  {name:'Microsoft', q:'April to June 2026', cash:55.4, capex:35.8, fcf:19.6,
+   note:'The exception. Still positive, but 23% lower than a year earlier.'},
+];
+const SCALE_MAX=60;   // one scale for all four cards, $B
+
+/* ---------- timeline (seconds) ---------- */
+const T={hook:[0,5], formula:[5,11], cards:[[11,16.5],[16.5,22],[22,27.5],[27.5,33]],
+  summary:[33,37.5], year:[37.5,42.5], close:[42.5,48]};
+
+/* ---------- helpers ---------- */
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const easeIO=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+const easeO=p=>1-Math.pow(1-p,3);
+const fadeIn=(t,a,d=.35)=>easeO(seg(t,a,a+d));
+const sceneAlpha=(t,[s,e])=>Math.min(easeO(seg(t,s,s+.35)),1-easeO(seg(t,e-.3,e)));
+const money=(v,d=1)=>(v<0?'−':'')+'$'+Math.abs(v).toFixed(d)+'B';
+
+function font(weight,size,fam=BODY){ctx.font=`${weight} ${size}px ${fam}`;}
+function text(s,x,y,{weight=400,size=36,fam=BODY,color=COL.ink,align='left',alpha=1,spacing=0}={}){
+  ctx.save();ctx.globalAlpha*=alpha;font(weight,size,fam);ctx.fillStyle=color;ctx.textAlign=align;
+  ctx.textBaseline='alphabetic';ctx.letterSpacing=spacing+'px';ctx.fillText(s,x,y);ctx.restore();
+}
+function wrap(s,maxW,weight,size,fam=BODY){
+  font(weight,size,fam);const words=s.split(' ');const lines=[];let line='';
+  for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>maxW&&line){lines.push(line);line=w;}else line=test;}
+  if(line)lines.push(line);return lines;
+}
+function paragraph(s,x,y,maxW,{weight=400,size=36,fam=BODY,color=COL.ink,lineH=1.3,alpha=1,align='left'}={}){
+  const lines=wrap(s,maxW,weight,size,fam);
+  lines.forEach((l,i)=>text(l,x,y+i*size*lineH,{weight,size,fam,color,alpha,align}));
+  return y+lines.length*size*lineH;
+}
+function rrect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function rule(x1,x2,y,alpha=1){ctx.save();ctx.globalAlpha*=alpha;ctx.strokeStyle=COL.rule;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();ctx.restore();}
+function kicker(s,y,alpha=1){text(s.toUpperCase(),M,y,{weight:500,size:24,color:COL.ink3,alpha,spacing:2.5});}
+function footer(alpha=1){text('namikakmandev.github.io',M,H-M+10,{weight:400,size:24,color:COL.ink3,alpha});}
+
+const M=84, PW=W-2*M;
+
+/* a horizontal bar with a label above and the value at its right end */
+function bar(y,label,value,color,progress,{alpha=1,h=52,max=SCALE_MAX,decimals=1}={}){
+  const p=easeO(progress);
+  text(label,M,y,{weight:500,size:30,color:COL.ink2,alpha});
+  const w=PW*(value/max)*p;
+  ctx.save();ctx.globalAlpha*=alpha;ctx.fillStyle=COL.rule;rrect(M,y+18,PW,h,4);ctx.fill();
+  ctx.fillStyle=color;rrect(M,y+18,Math.max(w,6),h,4);ctx.fill();ctx.restore();
+  text(money(value*p,decimals),W-M,y,{weight:600,size:34,color:COL.ink,align:'right',alpha});
+  return y+18+h;
+}
+
+/* ---------- scenes ---------- */
+function hook(t){
+  const a=sceneAlpha(t,T.hook);if(a<=0)return;
+  ctx.save();ctx.globalAlpha=a;
+  kicker('Four hyperscalers · latest reported quarter',M+20,fadeIn(t,.2));
+  const lines=['The AI boom','just stopped','paying for itself.'];
+  lines.forEach((l,i)=>{const p=fadeIn(t,.6+i*.45,.6);
+    text(l,M,520+i*112-(1-p)*24,{weight:600,size:104,fam:DISPLAY,alpha:p});});
+  paragraph('For two decades the core business threw off so much cash that even enormous investment left billions over. That era is ending this year.',
+    M,960,PW,{size:38,color:COL.ink2,alpha:fadeIn(t,2.6,.6)});
+  footer(a);ctx.restore();
+}
+
+function formula(t){
+  const a=sceneAlpha(t,T.formula);if(a<=0)return;const s=T.formula[0];
+  ctx.save();ctx.globalAlpha=a;
+  kicker('The arithmetic',M+20);
+  text('One number decides it.',M,250,{weight:600,size:72,fam:DISPLAY});
+  const rows=[['Cash from operations',COL.cash,'what the business brings in'],
+    ['−  Capital expenditure',COL.capex,'servers, chips, data centres'],
+    ['=  Free cash flow',null,'what is left to repay debt, buy back stock, or keep']];
+  rows.forEach((r,i)=>{const p=fadeIn(t,s+.5+i*.7,.5);const y=400+i*190;
+    ctx.save();ctx.globalAlpha*=p;
+    if(r[1]){ctx.fillStyle=r[1];rrect(M,y-46,14,62,4);ctx.fill();}
+    else{ctx.strokeStyle=COL.ink;ctx.lineWidth=3;rrect(M+1,y-45,12,60,4);ctx.stroke();}
+    ctx.restore();
+    text(r[0],M+40,y,{weight:600,size:50,fam:DISPLAY,alpha:p});
+    text(r[2],M+40,y+52,{size:30,color:COL.ink2,alpha:p});
+  });
+  rule(M,W-M,1000,fadeIn(t,s+3));
+  paragraph('In their latest reported quarters, three of the four biggest data-centre builders came out below zero. Same scale on every bar that follows: $0 to $60 billion.',
+    M,1060,PW,{size:36,color:COL.ink2,alpha:fadeIn(t,s+3.1,.6)});
+  footer(a);ctx.restore();
+}
+
+function card(t,i){
+  const [s,e]=T.cards[i];const a=sceneAlpha(t,[s,e]);if(a<=0)return;const c=CO[i];
+  ctx.save();ctx.globalAlpha=a;
+  kicker(`${i+1} of 4 · ${c.q}`,M+20);
+  text(c.name,M,270,{weight:600,size:96,fam:DISPLAY});
+  let y=390;
+  y=bar(y,'Cash from operations',c.cash,COL.cash,seg(t,s+.3,s+1.5))+70;
+  y=bar(y,'Capital expenditure',c.capex,COL.capex,seg(t,s+.8,s+2.0))+70;
+  /* tick marks for the shared scale */
+  ctx.save();ctx.globalAlpha*=.9;[0,20,40,60].forEach(v=>{const x=M+PW*v/SCALE_MAX;
+    ctx.strokeStyle=COL.rule;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y-40);ctx.lineTo(x,y-28);ctx.stroke();
+    text(v===0?'$0':'$'+v+'B',x,y,{size:22,color:COL.ink3,align:v===60?'right':(v===0?'left':'center')});});ctx.restore();
+  const p=fadeIn(t,s+2.3,.5);const pv=easeO(seg(t,s+2.3,s+3.2));
+  rule(M,W-M,y+50,p);
+  text('Free cash flow',M,y+140,{weight:500,size:34,color:COL.ink2,alpha:p});
+  const v=c.fcf*pv;
+  text(money(v),W-M,y+150,{weight:700,size:124,fam:DISPLAY,color:c.fcf<0?COL.neg:COL.pos,align:'right',alpha:p});
+  text(c.fcf<0?'negative':'positive',W-M,y+200,{weight:500,size:28,color:c.fcf<0?COL.neg:COL.pos,align:'right',alpha:p,spacing:2});
+  paragraph(c.note,M,y+290,PW,{size:36,color:COL.ink,alpha:fadeIn(t,s+3.1,.6)});
+  footer(a);ctx.restore();
+}
+
+function summary(t){
+  const a=sceneAlpha(t,T.summary);if(a<=0)return;const s=T.summary[0];
+  ctx.save();ctx.globalAlpha=a;
+  kicker('Free cash flow · latest reported quarter',M+20);
+  text('Three of the four, below zero.',M,270,{weight:600,size:72,fam:DISPLAY});
+  /* names in a left column; zero line at half width; ±$20B fills the right half.
+     Negative bars grow leftwards from zero, their value sits just right of
+     the zero line so it never meets the name. */
+  const x0=M+PW*.5, maxAbs=20, half=PW*.5-70;
+  const top=400,rowH=150;
+  ctx.save();ctx.strokeStyle=COL.ink3;ctx.lineWidth=2;ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(x0,top-30);ctx.lineTo(x0,top+rowH*4-40);ctx.stroke();ctx.restore();
+  text('$0',x0,top-44,{size:22,color:COL.ink3,align:'center'});
+  CO.forEach((c,i)=>{const p=easeO(seg(t,s+.4+i*.45,s+1.2+i*.45));const y=top+i*rowH;
+    ctx.save();ctx.globalAlpha*=p;
+    text(c.name,M,y+40,{weight:600,size:40,fam:DISPLAY});
+    const w=half*Math.abs(c.fcf)/maxAbs*p;ctx.fillStyle=c.fcf<0?COL.neg:COL.pos;
+    if(c.fcf<0)rrect(x0-w,y+8,w,44,4);else rrect(x0,y+8,w,44,4);ctx.fill();
+    text(money(c.fcf*p),c.fcf<0?x0+16:x0+w+16,y+40,{weight:600,size:36,color:COL.ink,align:'left'});
+    ctx.restore();});
+  paragraph('Alphabet, Amazon and Microsoft: quarter to 30 June 2026. Oracle: quarter to 31 August 2026. Free cash flow as each company defines it.',
+    M,1080,PW,{size:30,color:COL.ink2,alpha:fadeIn(t,s+2.4,.6)});
+  footer(a);ctx.restore();
+}
+
+function year(t){
+  const a=sceneAlpha(t,T.year);if(a<=0)return;const s=T.year[0];
+  ctx.save();ctx.globalAlpha=a;
+  kicker('All five hyperscalers · 2026 estimate',M+20);
+  text('This year, the spending',M,250,{weight:600,size:72,fam:DISPLAY});
+  text('matches the cash.',M,336,{weight:600,size:72,fam:DISPLAY});
+  let y=470;
+  y=bar(y,'Capital spending, 2026',820,COL.capex,seg(t,s+.4,s+1.6),{max:900,decimals:0})+70;
+  y=bar(y,'Cash from operations, 2026',750,COL.cash,seg(t,s+.9,s+2.1),{max:900,decimals:0})+40;
+  y=paragraph('Microsoft, Amazon, Alphabet, Meta and Oracle. UBP estimate, September 2026.',M,y+20,PW,{size:26,color:COL.ink3,alpha:fadeIn(t,s+1.8)});
+  rule(M,W-M,y+40,fadeIn(t,s+2.2));
+  const p=fadeIn(t,s+2.3,.6);
+  text('The gap is closed with debt and equity.',M,y+120,{weight:600,size:46,fam:DISPLAY,alpha:p});
+  const facts=['Alphabet, one quarter: $49.6B of new equity and $20.3B of bonds.',
+    'Amazon, one quarter: $13.6B of new long-term debt.',
+    'Oracle, one quarter: $19.9B of stock sold.'];
+  let fy=y+200;
+  facts.forEach((f,i)=>{fy=paragraph(f,M,fy,PW,{size:34,color:COL.ink2,alpha:fadeIn(t,s+2.7+i*.4,.5)})+22;});
+  footer(a);ctx.restore();
+}
+
+function close(t){
+  const a=sceneAlpha(t,T.close);if(a<=0)return;const s=T.close[0];
+  ctx.save();ctx.globalAlpha=a;
+  kicker('What changes',M+20);
+  paragraph('A self-funded buildout can slow down quietly.',M,330,PW,{weight:600,size:66,fam:DISPLAY,lineH:1.15,alpha:fadeIn(t,s+.3,.6)});
+  paragraph('A leveraged one needs the AI revenue to show up, on a schedule.',M,560,PW,{weight:600,size:66,fam:DISPLAY,lineH:1.15,alpha:fadeIn(t,s+1.6,.6)});
+  text('Worth watching which happens first.',M,900,{weight:500,size:44,color:COL.ink2,alpha:fadeIn(t,s+3.2,.6)});
+  rule(M,W-M,1000,fadeIn(t,s+3.6));
+  paragraph('Sources: company 10-Q and 10-K filings and earnings materials for the quarters ended 30 June 2026 (Alphabet, Amazon, Microsoft) and 31 August 2026 (Oracle). 2026 estimate: Union Bancaire Privée, September 2026. Figures and checks: namikakmandev.github.io, notes/tech-scalers-linkedin-post.md',
+    M,1050,PW,{size:24,color:COL.ink3,lineH:1.4,alpha:fadeIn(t,s+3.7,.6)});
+  ctx.restore();
+}
+
+/* ---------- frame ---------- */
+window.__seek=function(t){
+  ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;
+  ctx.fillStyle=COL.bg;ctx.fillRect(0,0,W,H);
+  hook(t);formula(t);for(let i=0;i<4;i++)card(t,i);summary(t);year(t);close(t);
+};
+window.__seek(0);
+/* preview in a browser: press space to play */
+let playing=false,t0=0;
+addEventListener('keydown',e=>{if(e.code==='Space'){playing=!playing;t0=performance.now();}});
+(function loop(){if(playing){const t=((performance.now()-t0)/1000)%DUR;window.__seek(t);}requestAnimationFrame(loop);})();
+</script>
+</body>
+</html>
