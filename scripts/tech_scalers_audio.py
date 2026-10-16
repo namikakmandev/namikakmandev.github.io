@@ -132,6 +132,7 @@ def main():
         mix[i0:i1] += audio[: i1 - i0]
         mask[i0:i1] = 1
     mix *= 0.85 / (np.max(np.abs(mix)) + 1e-9)
+    write_wav(OUT_WAV.replace(".wav", "-voice.wav"), mix)   # narration alone, for checking
     mix += pad_bed(total, mask)
     write_wav(OUT_WAV, mix)
     json.dump({"scenes": scenes, "total": total, "audio": os.path.relpath(OUT_WAV, ROOT),
