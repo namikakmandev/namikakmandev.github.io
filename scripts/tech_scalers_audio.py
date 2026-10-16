@@ -12,6 +12,9 @@ so nothing is licensed or fetched. Writes:
 Then: node scripts/render_canvas_film.js film/tech-scalers.html out.mp4 \
           --cues film/tech-scalers-cues.json --audio film/tech-scalers-audio.wav
 
+With --music-only no line is spoken: each scene runs for its "min" (sized for
+reading) and the track is the pad alone. Piper is not needed for that.
+
 Needs: ffprobe on PATH, numpy, and Piper (pip install piper-tts) with a voice:
   PIPER=/path/to/piper  PIPER_MODEL=/path/to/en-us-lessac-medium.onnx
 The voice tarballs live on github.com/rhasspy/piper/releases (v0.0.2).
@@ -110,15 +113,19 @@ def main():
     spec = json.load(open(SPEC))
     voice = spec["voice"]
     lead, tail = spec.get("lead", 0.3), spec.get("tail", 0.5)
+    music_only = "--music-only" in sys.argv
     tmp = tempfile.mkdtemp(prefix="tech-scalers-tts-")
     clips, scenes = [], []
     t0 = 0.0
     for sc in spec["scenes"]:
-        path = os.path.join(tmp, sc["key"] + ".wav")
-        speak(sc["line"], voice, path)
-        audio = read_wav(path)
-        dur = len(audio) / SR
-        length = max(float(sc["min"]), lead + dur + tail)
+        if music_only:
+            audio, dur, length = np.zeros(0, dtype=np.float32), 0.0, float(sc["min"])
+        else:
+            path = os.path.join(tmp, sc["key"] + ".wav")
+            speak(sc["line"], voice, path)
+            audio = read_wav(path)
+            dur = len(audio) / SR
+            length = max(float(sc["min"]), lead + dur + tail)
         clips.append((t0 + lead, audio))
         scenes.append([sc["key"], round(length, 2)])
         print(f"{sc['key']:10s} speech {dur:5.2f}s  scene {length:5.2f}s  starts {t0:6.2f}s")
@@ -131,11 +138,14 @@ def main():
         i0 = int(start * SR); i1 = min(n, i0 + len(audio))
         mix[i0:i1] += audio[: i1 - i0]
         mask[i0:i1] = 1
-    mix *= 0.85 / (np.max(np.abs(mix)) + 1e-9)
-    write_wav(OUT_WAV.replace(".wav", "-voice.wav"), mix)   # narration alone, for checking
+    if not music_only:
+        mix *= 0.85 / (np.max(np.abs(mix)) + 1e-9)
+        write_wav(OUT_WAV.replace(".wav", "-voice.wav"), mix)   # narration alone, for checking
     mix += pad_bed(total, mask)
+    if music_only:   # the bed is the whole track: bring it to a normal level
+        mix *= 0.3 / (np.max(np.abs(mix)) + 1e-9)
     write_wav(OUT_WAV, mix)
-    json.dump({"scenes": scenes, "total": total, "audio": os.path.relpath(OUT_WAV, ROOT),
+    json.dump({"scenes": scenes, "total": total, "audio": os.path.relpath(OUT_WAV, ROOT), "voice": not music_only,
                "sample_rate": SR, "source": os.path.relpath(SPEC, ROOT)}, open(OUT_CUES, "w"), indent=1)
     print(f"total {total}s -> {os.path.relpath(OUT_WAV, ROOT)}, {os.path.relpath(OUT_CUES, ROOT)}")
 
