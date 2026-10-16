@@ -85,6 +85,33 @@ Inter and Inter Display, the only families installed on the render machine.
 
 ---
 
+## Post copy, short (with the video, ~150 words)
+
+```
+📉 The AI boom just stopped paying for itself.
+
+For 20 years, big tech's cash covered any investment with billions to spare. Not this year.
+
+Free cash flow (cash from operations minus capex), latest reported quarter:
+
+🔴 Alphabet: $39.1B in, $44.9B out → –$5.9B. First negative quarter since its 2004 listing.
+🔴 Amazon: $45.4B in, $54.2B out → –$8.8B, plus $13.6B of new long-term debt.
+🔴 Oracle: $23.1B in, $28.5B out → –$5.4B. Fifth negative quarter in a row.
+🟢 Microsoft: $55.4B in, $35.8B out → +$19.6B. The exception, 23% below a year ago.
+
+🏗️ Across the five hyperscalers, 2026 capex is estimated at ~$820B against ~$750B of operating cash flow. The gap is being closed with debt and equity: Alphabet raised $70B in one quarter, Oracle sold $20B of stock.
+
+⚖️ A self-funded buildout can slow down quietly. A leveraged one needs the AI revenue to show up, on a schedule.
+
+👀 Worth watching which happens first.
+
+Sources: company 10-Q/10-K filings, quarters to 30 Jun 2026 (Alphabet, Amazon, Microsoft) and 31 Aug 2026 (Oracle). 2026 estimate: UBP, Sep 2026.
+
+#AI #CapEx #FreeCashFlow #Hyperscalers
+```
+
+---
+
 ## Post copy (corrected, ~230 words)
 
 The AI boom just stopped paying for itself.
