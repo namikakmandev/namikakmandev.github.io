@@ -64,7 +64,7 @@ if (!scene) { console.error('usage: render_canvas_film.js <scene.html> <out.mp4>
     ...audioIn,
     '-shortest',
     '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
-    '-c:a', 'aac', '-b:a', audioPath ? '128k' : '64k', '-ar', '48000',
+    '-c:a', 'aac', '-b:a', audioPath ? '160k' : '64k', '-ar', '48000', '-ac', '2',
     '-movflags', '+faststart',
     out,
   ], { stdio: ['pipe', 'inherit', 'inherit'] });
