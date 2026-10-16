@@ -5,26 +5,39 @@ expenditure in each company's latest reported quarter, as of 16 October 2026.
 
 ## What to upload
 
-**One file: `notes/tech-scalers-post.mp4`**, a 48-second silent video, 4:5
-(1080×1350), with the copy below as the body. Nine beats: the hook, the
-arithmetic (cash in, minus capex, equals free cash flow), one card per company
-with both bars on one $0 to $60B scale and the free cash flow figure, a
-four-row summary around zero, the 2026 estimate for all five hyperscalers
-against their operating cash flow with the financing that fills the gap, and
-the closing two sentences with the source line.
+**One file: `notes/tech-scalers-post.mp4`**, a 77-second narrated video, 4:5
+(1080×1350), with the copy below as the body. Five beats: the hook; the
+arithmetic (cash in, minus capex, equals free cash flow); one chart with all
+four companies side by side on a $0 to $60B scale, the free cash flow figure
+under each, then each company lit in turn with its caption; the 2026 estimate
+for all five hyperscalers against their operating cash flow with the financing
+that fills the gap; and the closing two sentences with the source line.
 
-It is silent by design: LinkedIn autoplays muted and every figure is on
-screen. Rebuild it with:
+The voice is Piper's en-us-lessac-medium, the English voice of the cattle
+film, over a quiet synthesised pad. Every figure is also on screen, so the
+video still works muted, which is how LinkedIn autoplays it. Rebuild in two
+steps:
 
 ```
-node scripts/render_canvas_film.js film/tech-scalers.html notes/tech-scalers-post.mp4
+PIPER=/path/to/piper PIPER_MODEL=/path/to/en-us-lessac-medium.onnx \
+  python3 scripts/tech_scalers_audio.py
+node scripts/render_canvas_film.js film/tech-scalers.html notes/tech-scalers-post.mp4 \
+  --cues film/tech-scalers-cues.json --audio film/tech-scalers-audio.wav
 ```
+
+The first step speaks every line of `film/tech-scalers-narration.json`,
+sizes each scene to its narration, and writes the mixed track plus
+`film/tech-scalers-cues.json` (the scene lengths, committed; the .wav is not).
+Piper installs with `pip install piper-tts`; the voice tarball is
+`voice-en-us-lessac-medium.tar.gz` on github.com/rhasspy/piper/releases
+(v0.0.2). To change a line, edit the JSON and run both steps again.
 
 The scene is `film/tech-scalers.html`, a deterministic canvas animation
 (`window.__seek(t)` draws any frame). Open it in a browser and press space to
-preview. Its figures are typed in the `CO` block at the top of the script;
-change them there and re-render. `--stills 3.5,15.5 <dir>` writes PNG frames
-for a check, and any of those frames works as a static image post. Fonts:
+preview. Its figures and captions are typed in the `CO` block at the top of
+the script; change them there and re-render. `--stills 26.3,51 <dir>` writes
+PNG frames for a check, and the frame at the end of the "fcf" cue (all four
+companies, free cash flow under each) works as a static image post. Fonts:
 Inter and Inter Display, the only families installed on the render machine.
 
 **One link in the body, if any:** none. The post stands on company filings.

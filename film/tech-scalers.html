@@ -16,13 +16,15 @@ canvas#c{display:block;background:#1a1a19}
 <script>
 /* ============================================================
    "The AI boom just stopped paying for itself"
-   LinkedIn feed video, 4:5, 1080×1350, 48 s, silent.
+   LinkedIn feed video, 4:5, 1080×1350, narrated.
    Deterministic: window.__seek(t) draws the frame at t seconds;
    scripts/render_canvas_film.js walks t frame by frame into ffmpeg.
-   Figures: notes/tech-scalers-linkedin-post.md (figure check table).
+   Scene lengths come from the narration: scripts/tech_scalers_audio.py
+   writes film/tech-scalers-cues.json and the renderer passes it to
+   window.__setScenes. Figures: notes/tech-scalers-linkedin-post.md.
    ============================================================ */
-const W=1080,H=1350,DUR=48;
-window.__W=W;window.__H=H;window.__DUR=DUR;
+const W=1080,H=1350;
+window.__W=W;window.__H=H;
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 
 /* dark-surface palette from the dataviz reference: blue = cash in,
@@ -34,25 +36,27 @@ const DISPLAY='"Inter Display", Inter, system-ui, sans-serif';
 const BODY='Inter, system-ui, sans-serif';
 
 const CO=[
-  {name:'Alphabet', q:'April to June 2026', cash:39.1, capex:44.9, fcf:-5.9,
-   note:'Its first negative quarter since it listed in 2004.'},
-  {name:'Amazon', q:'April to June 2026', cash:45.4, capex:54.2, fcf:-8.8,
-   note:'Plus $13.6B of new long-term debt in the same quarter.'},
-  {name:'Oracle', q:'June to August 2026', cash:23.1, capex:28.5, fcf:-5.4,
-   note:'Fifth negative quarter in a row. Half the cash in was customer prepayments.'},
-  {name:'Microsoft', q:'April to June 2026', cash:55.4, capex:35.8, fcf:19.6,
-   note:'The exception. Still positive, but 23% lower than a year earlier.'},
+  {key:'alphabet', name:'Alphabet', cash:39.1, capex:44.9, fcf:-5.9,
+   caption:'Alphabet: $39.1B in, $44.9B out. Its first negative quarter since it listed in 2004.'},
+  {key:'amazon', name:'Amazon', cash:45.4, capex:54.2, fcf:-8.8,
+   caption:'Amazon: $45.4B in, $54.2B out, and $13.6B of new long-term debt in the same quarter.'},
+  {key:'oracle', name:'Oracle', cash:23.1, capex:28.5, fcf:-5.4,
+   caption:'Oracle: $23.1B in, $28.5B out. Fifth negative quarter in a row. Half the cash in was customer prepayments.'},
+  {key:'microsoft', name:'Microsoft', cash:55.4, capex:35.8, fcf:19.6,
+   caption:'Microsoft, the exception: $55.4B in, $35.8B out. Still positive, 23% below a year earlier.'},
 ];
-const SCALE_MAX=60;   // one scale for all four cards, $B
+const SCALE_MAX=60;   // one scale for all four, $B
 
-/* ---------- timeline (seconds) ---------- */
-const T={hook:[0,5], formula:[5,11], cards:[[11,16.5],[16.5,22],[22,27.5],[27.5,33]],
-  summary:[33,37.5], year:[37.5,42.5], close:[42.5,48]};
+/* ---------- timeline: [key, seconds] in order; the cues file overrides ---------- */
+let SCENES=[['hook',8],['arith',7],['chart',7],['fcf',3],['alphabet',6],['amazon',6],['oracle',7],['microsoft',6],['year',12],['close',10]];
+let T={};
+function build(){let t=0;T={};for(const [k,d] of SCENES){T[k]=[t,t+d];t+=d;}window.__DUR=t;}
+window.__setScenes=l=>{SCENES=l;build();};
+build();
 
 /* ---------- helpers ---------- */
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const seg=(t,a,b)=>clamp((t-a)/(b-a));
-const easeIO=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
 const easeO=p=>1-Math.pow(1-p,3);
 const fadeIn=(t,a,d=.35)=>easeO(seg(t,a,a+d));
 const sceneAlpha=(t,[s,e])=>Math.min(easeO(seg(t,s,s+.35)),1-easeO(seg(t,e-.3,e)));
@@ -74,6 +78,8 @@ function paragraph(s,x,y,maxW,{weight=400,size=36,fam=BODY,color=COL.ink,lineH=1
   return y+lines.length*size*lineH;
 }
 function rrect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+/* a bar anchored to the baseline: square bottom, 4px rounded top */
+function topRect(x,y,w,h,r){r=Math.min(r,h/2);ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);ctx.lineTo(x+w,y+h);ctx.closePath();}
 function rule(x1,x2,y,alpha=1){ctx.save();ctx.globalAlpha*=alpha;ctx.strokeStyle=COL.rule;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();ctx.restore();}
 function kicker(s,y,alpha=1){text(s.toUpperCase(),M,y,{weight:500,size:24,color:COL.ink3,alpha,spacing:2.5});}
 function footer(alpha=1){text('namikakmandev.github.io',M,H-M+10,{weight:400,size:24,color:COL.ink3,alpha});}
@@ -97,22 +103,22 @@ function hook(t){
   ctx.save();ctx.globalAlpha=a;
   kicker('Four hyperscalers · latest reported quarter',M+20,fadeIn(t,.2));
   const lines=['The AI boom','just stopped','paying for itself.'];
-  lines.forEach((l,i)=>{const p=fadeIn(t,.6+i*.45,.6);
+  lines.forEach((l,i)=>{const p=fadeIn(t,.5+i*.45,.6);
     text(l,M,520+i*112-(1-p)*24,{weight:600,size:104,fam:DISPLAY,alpha:p});});
-  paragraph('For two decades the core business threw off so much cash that even enormous investment left billions over. That era is ending this year.',
+  paragraph('For twenty years the core business threw off so much cash that even enormous investment left billions over. This year, that stops.',
     M,960,PW,{size:38,color:COL.ink2,alpha:fadeIn(t,2.6,.6)});
   footer(a);ctx.restore();
 }
 
-function formula(t){
-  const a=sceneAlpha(t,T.formula);if(a<=0)return;const s=T.formula[0];
+function arith(t){
+  const a=sceneAlpha(t,T.arith);if(a<=0)return;const s=T.arith[0];
   ctx.save();ctx.globalAlpha=a;
   kicker('The arithmetic',M+20);
   text('One number decides it.',M,250,{weight:600,size:72,fam:DISPLAY});
   const rows=[['Cash from operations',COL.cash,'what the business brings in'],
     ['−  Capital expenditure',COL.capex,'servers, chips, data centres'],
     ['=  Free cash flow',null,'what is left to repay debt, buy back stock, or keep']];
-  rows.forEach((r,i)=>{const p=fadeIn(t,s+.5+i*.7,.5);const y=400+i*190;
+  rows.forEach((r,i)=>{const p=fadeIn(t,s+.4+i*.7,.5);const y=400+i*190;
     ctx.save();ctx.globalAlpha*=p;
     if(r[1]){ctx.fillStyle=r[1];rrect(M,y-46,14,62,4);ctx.fill();}
     else{ctx.strokeStyle=COL.ink;ctx.lineWidth=3;rrect(M+1,y-45,12,60,4);ctx.stroke();}
@@ -120,55 +126,58 @@ function formula(t){
     text(r[0],M+40,y,{weight:600,size:50,fam:DISPLAY,alpha:p});
     text(r[2],M+40,y+52,{size:30,color:COL.ink2,alpha:p});
   });
-  rule(M,W-M,1000,fadeIn(t,s+3));
-  paragraph('In their latest reported quarters, three of the four biggest data-centre builders came out below zero. Same scale on every bar that follows: $0 to $60 billion.',
-    M,1060,PW,{size:36,color:COL.ink2,alpha:fadeIn(t,s+3.1,.6)});
+  rule(M,W-M,1000,fadeIn(t,s+2.6));
+  paragraph('Next: the four biggest data-centre builders, their latest reported quarter, on one scale.',
+    M,1060,PW,{size:36,color:COL.ink2,alpha:fadeIn(t,s+2.7,.6)});
   footer(a);ctx.restore();
 }
 
-function card(t,i){
-  const [s,e]=T.cards[i];const a=sceneAlpha(t,[s,e]);if(a<=0)return;const c=CO[i];
-  ctx.save();ctx.globalAlpha=a;
-  kicker(`${i+1} of 4 · ${c.q}`,M+20);
-  text(c.name,M,270,{weight:600,size:96,fam:DISPLAY});
-  let y=390;
-  y=bar(y,'Cash from operations',c.cash,COL.cash,seg(t,s+.3,s+1.5))+70;
-  y=bar(y,'Capital expenditure',c.capex,COL.capex,seg(t,s+.8,s+2.0))+70;
-  /* tick marks for the shared scale */
-  ctx.save();ctx.globalAlpha*=.9;[0,20,40,60].forEach(v=>{const x=M+PW*v/SCALE_MAX;
-    ctx.strokeStyle=COL.rule;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y-40);ctx.lineTo(x,y-28);ctx.stroke();
-    text(v===0?'$0':'$'+v+'B',x,y,{size:22,color:COL.ink3,align:v===60?'right':(v===0?'left':'center')});});ctx.restore();
-  const p=fadeIn(t,s+2.3,.5);const pv=easeO(seg(t,s+2.3,s+3.2));
-  rule(M,W-M,y+50,p);
-  text('Free cash flow',M,y+140,{weight:500,size:34,color:COL.ink2,alpha:p});
-  const v=c.fcf*pv;
-  text(money(v),W-M,y+150,{weight:700,size:124,fam:DISPLAY,color:c.fcf<0?COL.neg:COL.pos,align:'right',alpha:p});
-  text(c.fcf<0?'negative':'positive',W-M,y+200,{weight:500,size:28,color:c.fcf<0?COL.neg:COL.pos,align:'right',alpha:p,spacing:2});
-  paragraph(c.note,M,y+290,PW,{size:36,color:COL.ink,alpha:fadeIn(t,s+3.1,.6)});
-  footer(a);ctx.restore();
+/* the board: all four companies at once, from the chart cue to the end of
+   the last company cue; the caption and the highlight change per cue */
+function activeCompany(t){
+  for(let i=0;i<CO.length;i++){const [s,e]=T[CO[i].key];if(t>=s&&t<e)return i;}
+  return -1;
 }
-
-function summary(t){
-  const a=sceneAlpha(t,T.summary);if(a<=0)return;const s=T.summary[0];
+function board(t){
+  const span=[T.chart[0],T.microsoft[1]];const a=sceneAlpha(t,span);if(a<=0)return;const s=T.chart[0];
   ctx.save();ctx.globalAlpha=a;
-  kicker('Free cash flow · latest reported quarter',M+20);
-  text('Three of the four, below zero.',M,270,{weight:600,size:72,fam:DISPLAY});
-  /* names in a left column; zero line at half width; ±$20B fills the right half.
-     Negative bars grow leftwards from zero, their value sits just right of
-     the zero line so it never meets the name. */
-  const x0=M+PW*.5, maxAbs=20, half=PW*.5-70;
-  const top=400,rowH=150;
-  ctx.save();ctx.strokeStyle=COL.ink3;ctx.lineWidth=2;ctx.setLineDash([6,8]);ctx.beginPath();ctx.moveTo(x0,top-30);ctx.lineTo(x0,top+rowH*4-40);ctx.stroke();ctx.restore();
-  text('$0',x0,top-44,{size:22,color:COL.ink3,align:'center'});
-  CO.forEach((c,i)=>{const p=easeO(seg(t,s+.4+i*.45,s+1.2+i*.45));const y=top+i*rowH;
-    ctx.save();ctx.globalAlpha*=p;
-    text(c.name,M,y+40,{weight:600,size:40,fam:DISPLAY});
-    const w=half*Math.abs(c.fcf)/maxAbs*p;ctx.fillStyle=c.fcf<0?COL.neg:COL.pos;
-    if(c.fcf<0)rrect(x0-w,y+8,w,44,4);else rrect(x0,y+8,w,44,4);ctx.fill();
-    text(money(c.fcf*p),c.fcf<0?x0+16:x0+w+16,y+40,{weight:600,size:36,color:COL.ink,align:'left'});
-    ctx.restore();});
-  paragraph('Alphabet, Amazon and Microsoft: quarter to 30 June 2026. Oracle: quarter to 31 August 2026. Free cash flow as each company defines it.',
-    M,1080,PW,{size:30,color:COL.ink2,alpha:fadeIn(t,s+2.4,.6)});
+  kicker('Latest quarter · Apr–Jun 2026 · Oracle Jun–Aug',M+20);
+  text('Four builders, one scale.',M,232,{weight:600,size:64,fam:DISPLAY});
+  /* legend */
+  const ly=300;
+  [[COL.cash,'Cash from operations',M],[COL.capex,'Capital expenditure',M+400]].forEach(([c,l,x])=>{
+    ctx.fillStyle=c;rrect(x,ly-20,22,22,4);ctx.fill();
+    text(l,x+36,ly,{size:28,color:COL.ink2});});
+  /* plot */
+  /* axis labels sit left of the plot so no bar can reach them */
+  const top=390,base=880,PH=base-top,PL=M+78,gw=(W-M-PL)/4,bw=84,gap=10;
+  [0,20,40,60].forEach(v=>{const y=base-PH*v/SCALE_MAX;rule(PL,W-M,y,v===0?1:.55);
+    text('$'+v+'B',PL-16,y+8,{size:22,color:COL.ink3,align:'right'});});
+  const g1=easeO(seg(t,s+.4,s+1.9)), g2=easeO(seg(t,s+.9,s+2.4));
+  const active=activeCompany(t);
+  const pf=fadeIn(t,T.fcf[0]+.15,.5), pv=easeO(seg(t,T.fcf[0]+.15,T.fcf[0]+1.1));
+  CO.forEach((c,i)=>{
+    const cx=PL+gw*i+gw/2;const dim=(active>=0&&active!==i)?.35:1;
+    ctx.save();ctx.globalAlpha*=dim;
+    const x1=cx-bw-gap/2, x2=cx+gap/2;
+    const h1=PH*c.cash/SCALE_MAX*g1, h2=PH*c.capex/SCALE_MAX*g2;
+    ctx.fillStyle=COL.cash;topRect(x1,base-h1,bw,h1,4);ctx.fill();
+    ctx.fillStyle=COL.capex;topRect(x2,base-h2,bw,h2,4);ctx.fill();
+    if(g1>0)text(money(c.cash*g1),x1+bw/2,base-h1-14,{weight:500,size:24,color:COL.ink2,align:'center'});
+    if(g2>0)text(money(c.capex*g2),x2+bw/2,base-h2-14,{weight:500,size:24,color:COL.ink2,align:'center'});
+    text(c.name,cx,base+52,{weight:600,size:34,fam:DISPLAY,align:'center'});
+    text(money(c.fcf*pv),cx,base+132,{weight:700,size:48,fam:DISPLAY,color:c.fcf<0?COL.neg:COL.pos,align:'center',alpha:pf});
+    text('free cash flow',cx,base+166,{weight:500,size:20,color:COL.ink3,align:'center',alpha:pf,spacing:1});
+    ctx.restore();
+  });
+  /* caption */
+  const cy=base+250;
+  if(active>=0){const c=CO[active];const [cs,ce]=T[c.key];
+    const ca=Math.min(fadeIn(t,cs+.1,.4),1-easeO(seg(t,ce-.25,ce)));
+    paragraph(c.caption,M,cy,PW,{size:36,alpha:ca});}
+  else if(t>=T.fcf[0]){const [fs,fe]=T.fcf;
+    const ca=Math.min(fadeIn(t,fs+.2,.5),1-easeO(seg(t,fe-.25,fe)));
+    text('Three of the four, below zero.',M,cy+10,{weight:600,size:50,fam:DISPLAY,alpha:ca});}
   footer(a);ctx.restore();
 }
 
@@ -189,7 +198,7 @@ function year(t){
     'Amazon, one quarter: $13.6B of new long-term debt.',
     'Oracle, one quarter: $19.9B of stock sold.'];
   let fy=y+200;
-  facts.forEach((f,i)=>{fy=paragraph(f,M,fy,PW,{size:34,color:COL.ink2,alpha:fadeIn(t,s+2.7+i*.4,.5)})+22;});
+  facts.forEach((f,i)=>{fy=paragraph(f,M,fy,PW,{size:34,color:COL.ink2,alpha:fadeIn(t,s+4.5+i*.5,.5)})+22;});
   footer(a);ctx.restore();
 }
 
@@ -198,11 +207,11 @@ function close(t){
   ctx.save();ctx.globalAlpha=a;
   kicker('What changes',M+20);
   paragraph('A self-funded buildout can slow down quietly.',M,330,PW,{weight:600,size:66,fam:DISPLAY,lineH:1.15,alpha:fadeIn(t,s+.3,.6)});
-  paragraph('A leveraged one needs the AI revenue to show up, on a schedule.',M,560,PW,{weight:600,size:66,fam:DISPLAY,lineH:1.15,alpha:fadeIn(t,s+1.6,.6)});
-  text('Worth watching which happens first.',M,900,{weight:500,size:44,color:COL.ink2,alpha:fadeIn(t,s+3.2,.6)});
-  rule(M,W-M,1000,fadeIn(t,s+3.6));
+  paragraph('A leveraged one needs the AI revenue to show up, on a schedule.',M,560,PW,{weight:600,size:66,fam:DISPLAY,lineH:1.15,alpha:fadeIn(t,s+2.4,.6)});
+  text('Worth watching which happens first.',M,900,{weight:500,size:44,color:COL.ink2,alpha:fadeIn(t,s+5.2,.6)});
+  rule(M,W-M,1000,fadeIn(t,s+5.6));
   paragraph('Sources: company 10-Q and 10-K filings and earnings materials for the quarters ended 30 June 2026 (Alphabet, Amazon, Microsoft) and 31 August 2026 (Oracle). 2026 estimate: Union Bancaire Privée, September 2026. Figures and checks: namikakmandev.github.io, notes/tech-scalers-linkedin-post.md',
-    M,1050,PW,{size:24,color:COL.ink3,lineH:1.4,alpha:fadeIn(t,s+3.7,.6)});
+    M,1050,PW,{size:24,color:COL.ink3,lineH:1.4,alpha:fadeIn(t,s+5.7,.6)});
   ctx.restore();
 }
 
@@ -210,13 +219,13 @@ function close(t){
 window.__seek=function(t){
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;
   ctx.fillStyle=COL.bg;ctx.fillRect(0,0,W,H);
-  hook(t);formula(t);for(let i=0;i<4;i++)card(t,i);summary(t);year(t);close(t);
+  hook(t);arith(t);board(t);year(t);close(t);
 };
 window.__seek(0);
 /* preview in a browser: press space to play */
 let playing=false,t0=0;
 addEventListener('keydown',e=>{if(e.code==='Space'){playing=!playing;t0=performance.now();}});
-(function loop(){if(playing){const t=((performance.now()-t0)/1000)%DUR;window.__seek(t);}requestAnimationFrame(loop);})();
+(function loop(){if(playing){const t=((performance.now()-t0)/1000)%window.__DUR;window.__seek(t);}requestAnimationFrame(loop);})();
 </script>
 </body>
 </html>
