@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="description" content="Who designs, equips, makes, packages and sells the world's chips, step by step, filterable by chip type. Measured data only." />
+<meta property="og:title" content="Where chips are made" />
+<meta property="og:image" content="https://namikakmandev.github.io/assets/linkedin/chips-sales-factories.png" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<title>Where Chips Are Made &mdash; Nam&#305;k Akman</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: the poster's five-step ring around a central verdict; a segmented filter swaps chip type. Dark-only by choice, matching the LinkedIn series. */
+:root{
+  color-scheme:dark;
+  --bg:#0B1E3A; --bg-glow:#12305A; --panel:#132B4F; --panel-2:#0F2648; --line:#2B4A73; --track:#3D6190;
+  --fg:#F3F6FB; --muted:#93A8C4; --us:#5AABFF; --asia:#F5953A; --mixed:#B9A7FF;
+  --catch-bg:#2A1E14; --on-accent:#0B1E3A;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding-block:36px 44px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:26px}
+
+header{display:flex;flex-direction:column;gap:10px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,5.6vw,56px);line-height:1.02;margin:0;letter-spacing:-.015em}
+h1 .l2{display:block;color:var(--asia)}
+.lede{color:var(--muted);margin:0;font-size:16px}
+
+.controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 24px}
+.filters{display:inline-flex;flex-wrap:wrap;gap:4px;background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:5px}
+.filters button{font:600 14.5px var(--f-body);color:var(--muted);background:transparent;border:0;border-radius:10px;padding:10px 16px;cursor:pointer;display:flex;align-items:baseline;gap:7px}
+.filters button:hover{color:var(--fg);background:var(--panel)}
+.filters button[aria-pressed="true"]{background:var(--asia);color:var(--on-accent)}
+.filters button:focus-visible{outline:2px solid var(--us);outline-offset:2px}
+.filters small{font:500 11.5px var(--f-mono);opacity:.75}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--muted)}
+.legend span{display:flex;align-items:center;gap:7px}
+.legend i{width:14px;height:14px;border-radius:4px;border:2.5px solid}
+
+/* ring */
+.ring{position:relative;display:flex;flex-direction:column;gap:30px}
+.ring svg.track{display:none}
+.card{position:relative;background:var(--panel);border:2.5px solid var(--c);border-radius:20px;padding:30px 20px 18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.card[data-ctrl="us"]{--c:var(--us)} .card[data-ctrl="asia"]{--c:var(--asia)} .card[data-ctrl="mixed"]{--c:var(--mixed)}
+.flags{position:absolute;top:-17px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.flags img{width:34px;height:34px;display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.stage{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:.03em;text-transform:uppercase;color:var(--c)}
+.stage b{font-weight:800;margin-right:6px}
+.who{color:var(--muted);font-size:13.5px}
+.fig{font-family:var(--f-display);font-weight:800;font-size:44px;line-height:1.05;display:flex;align-items:baseline;justify-content:center;gap:14px;margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.fig .then{color:var(--muted)} .fig .arrow{font-size:30px;color:var(--fg)} .fig .now{color:var(--c)}
+.fig.word{font-size:40px;color:var(--c)}
+.fig .pre{font-size:.45em;color:var(--fg);align-self:center;letter-spacing:.04em}
+.fig .yr{font-size:.4em;color:var(--muted);font-weight:600}
+.bar .s{display:none}
+.loop-arrow{display:none}
+.note{font-weight:600;font-size:14px;line-height:1.35;max-width:30ch}
+.bar{display:flex;width:100%;height:24px;border-radius:6px;overflow:hidden;font:600 12px var(--f-mono);margin-top:6px}
+.bar span{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden}
+.cap{font-size:12.5px;line-height:1.4;color:var(--fg);opacity:.88;max-width:32ch;margin-top:4px}
+.same{font:600 10.5px var(--f-mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+
+.verdict{order:-1;background:var(--panel-2);border:1.5px solid var(--line);border-radius:20px;padding:22px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.verdict .k{font:600 11px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.verdict p{margin:0;font-family:var(--f-display);font-weight:800;font-size:22px;line-height:1.2;text-wrap:balance}
+.verdict .u{color:var(--us);display:block} .verdict .a{color:var(--asia);display:block}
+
+.catch{background:var(--catch-bg);border:2px solid var(--asia);border-radius:18px;padding:20px 24px;display:flex;flex-direction:column;gap:6px;font-size:17px;line-height:1.4}
+.catch b{font-family:var(--f-display);font-weight:800}
+.catch .o{color:var(--asia);font-family:var(--f-display);font-weight:700}
+.sources{font-size:12px;color:var(--muted);line-height:1.65}
+.sources a{color:var(--muted)}
+
+.ring svg.loop{display:none}
+@media (max-width:919px){
+  .ring{display:grid;grid-template-columns:1fr 1fr;gap:34px 14px;padding-block:18px}
+  .ring svg.loop{display:block;position:absolute;left:24%;right:24%;top:9%;bottom:9%;width:52%;height:82%;z-index:0}
+  .card,.verdict{z-index:1}
+  .card{padding:24px 10px 12px;border-radius:16px}
+  .card[data-step="design"]{grid-column:1/-1;grid-row:1;justify-self:center;width:min(100%,340px)}
+  .card[data-step="sell"]{grid-column:1;grid-row:2}
+  .card[data-step="tools"]{grid-column:2;grid-row:2}
+  .verdict{grid-column:1/-1;grid-row:3;justify-self:center;order:0;width:190px;height:190px;border-radius:50%;padding:18px;border:2px solid var(--line)}
+  .verdict p{font-size:16px}
+  .card[data-step="pack"]{grid-column:1;grid-row:4}
+  .card[data-step="make"]{grid-column:2;grid-row:4}
+  .flags{top:-14px;gap:5px} .flags img{width:28px;height:28px}
+  .stage{font-size:14px} .who{font-size:11.5px}
+  .fig{font-size:28px;gap:6px} .fig .arrow{font-size:18px} .fig.word{font-size:24px}
+  .note{font-size:12px} .cap{font-size:11px} .same{font-size:9.5px}
+  .bar{height:20px;font-size:10px}
+  .bar .f{display:none} .bar .s{display:inline}
+  .loop-arrow{display:block;position:absolute;z-index:2;color:#5F86B8;font-size:16px;line-height:1;transform:translate(-50%,-50%)}
+  .verdict .k{font-size:9.5px;letter-spacing:.1em}
+}
+@media (min-width:920px){
+  .ring{display:block;height:900px;background:radial-gradient(circle at 50% 50%,var(--bg-glow) 0,transparent 38%)}
+  .ring svg.track{display:block;position:absolute;inset:0;width:100%;height:100%}
+  .card{position:absolute;width:30%;transform:translate(-50%,-50%)}
+  .card[data-step="design"]{left:50%;top:14%}
+  .card[data-step="tools"]{left:84%;top:40%}
+  .card[data-step="make"]{left:71%;top:82%}
+  .card[data-step="pack"]{left:29%;top:82%}
+  .card[data-step="sell"]{left:16%;top:40%}
+  .verdict{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);width:250px;height:250px;border-radius:50%;padding:30px;border:2px solid var(--line);background:var(--panel-2)}
+  .verdict p{font-size:20px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .card,.verdict{animation:in .35s ease both}
+  @keyframes in{from{opacity:.4}to{opacity:1}}
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <a href="chips-sales-factories.html" style="color:var(--muted);font-size:14px;text-decoration:none">&larr; Back to the study</a>
+  <header>
+    <div class="eyebrow">Semiconductors · who controls each step of a chip's journey</div>
+    <h1 id="headline">America designs the chip. <span class="l2">Asia makes it. America sells it.</span></h1>
+    <p class="lede">Pick a chip type to see how the journey changes. Measured data only, no forecasts.</p>
+  </header>
+
+  <div class="controls">
+    <div class="filters" role="group" aria-label="Chip type">
+      <button id="f-all" data-cat="all" aria-pressed="true">All chips</button>
+      <button id="f-advanced" data-cat="advanced" aria-pressed="false">Advanced logic <small>&lt;10 nm</small></button>
+      <button id="f-memory" data-cat="memory" aria-pressed="false">Memory <small>DRAM</small></button>
+      <button id="f-mature" data-cat="mature" aria-pressed="false">Mature chips <small>28 nm+</small></button>
+    </div>
+    <div class="legend">
+      <span><i style="border-color:var(--us)"></i>US &amp; allies</span>
+      <span><i style="border-color:var(--asia)"></i>Asia</span>
+      <span><i style="border-color:var(--mixed)"></i>Many countries</span>
+    </div>
+  </div>
+
+  <div class="ring">
+    <svg class="track" viewBox="0 0 1000 900" preserveAspectRatio="none" aria-hidden="true">
+      <defs><marker id="ah" markerUnits="userSpaceOnUse" markerWidth="18" markerHeight="18" refX="9" refY="9" orient="auto"><path d="M0,1 L18,9 L0,17 z" fill="#3D6190"/></marker></defs>
+      <g fill="none" stroke="#3D6190" stroke-width="5" stroke-linecap="round" marker-end="url(#ah)">
+        <path d="M660,120 Q800,140 845,220"/>
+        <path d="M880,480 Q885,560 840,610"/>
+        <path d="M545,740 L462,740"/>
+        <path d="M160,610 Q115,560 120,480"/>
+        <path d="M155,220 Q200,140 340,120"/>
+      </g>
+    </svg>
+    <svg class="loop" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><rect x="2" y="2" width="96" height="96" rx="18" fill="none" stroke="#3D6190" stroke-width="4" stroke-dasharray="10 8" vector-effect="non-scaling-stroke"/></svg>
+    <span class="loop-arrow" style="left:76%;top:62%" aria-hidden="true">▼</span><span class="loop-arrow" style="left:50%;top:91%" aria-hidden="true">◀</span><span class="loop-arrow" style="left:24%;top:60%" aria-hidden="true">▲</span>
+    <div id="steps" style="display:contents"></div>
+  </div>
+
+  <div class="catch">
+    <div><b>The catch:</b> all chipmaking capacity below 10 nm sat in Taiwan (69%) and Korea (31%) in 2022, and the US share of world chipmaking capacity fell from 37% (1990) to 10% (2022).</div>
+    <div class="o">In 2022 Washington signed the $52.7B CHIPS Act to shore up the weak link.</div>
+  </div>
+
+  <div class="sources">
+    Sources:
+    <a href="https://www.semiconductors.org/wp-content/uploads/2026/07/SIA_2026_State-of-the-Semiconductor-Industry.pdf" target="_blank" rel="noopener">SIA State of the Industry 2026</a> (US firms 53.4% of sales, 2025) ·
+    <a href="https://www.upi.com/Archives/1989/01/03/Survey-semiconductor-industry-grew-329-percent-in-1988/7929599806800/" target="_blank" rel="noopener">UPI 1989</a> (1988 sales shares) ·
+    <a href="https://iconnect007.com/article/132647/fabless-suppliers-hold-record-348-share-of-global-ic-sales/132650/ein" target="_blank" rel="noopener">IC Insights</a> (fabless share) ·
+    <a href="https://csmonitor.com/1990/0206/fjapel.html" target="_blank" rel="noopener">VLSI Research via CSM 1990</a> (equipment, 1989) ·
+    <a href="https://www.semiconductors.org/wp-content/uploads/2021/05/BCG-x-SIA-Strengthening-the-Global-Semiconductor-Value-Chain-April-2021_1.pdf" target="_blank" rel="noopener">SIA/BCG 2021</a> (assembly &amp; test) ·
+    <a href="https://www.semiconductors.org/wp-content/uploads/2024/05/Report_Emerging-Resilience-in-the-Semiconductor-Supply-Chain.pdf" target="_blank" rel="noopener">SIA/BCG 2024</a> (capacity by chip type, 2022) ·
+    <a href="https://itif.org/publications/2022/04/01/nearly-93-percent-of-dram-chips-are-produced-in-south-korea-china-and-taiwan/" target="_blank" rel="noopener">CSET via ITIF 2022</a> (Korea's DRAM share) · <a href="https://www.semiconductors.org/wp-content/uploads/2022/05/SIA-2022-Factbook_May-2022.pdf" target="_blank" rel="noopener">SIA 2022 Factbook</a> (US capacity 37% in 1990) · <a href="https://iconnect007.com/article/132963/fact-sheet-chips-and-science-act-will-lower-costs-create-jobs-strengthen-supply-chains-and-counter-china/132966/flex" target="_blank" rel="noopener">White House fact sheet</a> (CHIPS Act $52.7B).
+    Simplified flow for a typical chip; flags by Twemoji (CC-BY 4.0).
+  </div>
+</div>
+
+<script>
+const FLAG={"us": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAABmJLR0QA/wD/AP+gvaeTAAADFUlEQVR4nO3bz0uTcRwH8Pfnu+E2ooM3PRTPsyQpECMjHYVOKmigRR2EAm9BRNoxiKhEwumpLvUn2MFD8Az6cWvgFpRQkZfKpnaqywabNMv2fLu4mj3L7zZyzzf3eZ3k+exhn+fDl8/eYwgwxhhjjDHGqkd/XugNjXTYHs8FSPsYQAaAHfVs6OrnZD3fDgBlAKSklHGPl+4NvH+Z2lAt/hGJjPpyOXEHUl4EIOrc5S/1H9AGNkk5lU8FbwxhpoDiICKRUV8uS48h5SU3h6MBIYmu+YOLD8fW5yAAYCVLdwH0u92dNgiDB9u6bgEA9YZGOmwhXpeeHMNogYTE8tKXsvdvZd2KjdX8XP9YQQjR7tllhK4D6Cle7Qt3Ynj4BHq69+Pb9zXHQ1Ra7+7eV1P93Pnw1jxu9YSU8ruAlMdLryZm52GarTDMFiRm5x13VVo3zdaa6po56QWwu/SK39+Eyeg0ACAQ8CGX+4pq6oGAD1OTD2qua8ago0euSOWrtngnlXL5Y97Bq3pBX7gTg4MhEAhWLIn4szdl6wAQiz2vuq47ZeYp3TnJxLbfOQ7KE1S6M/x+H9bWtvXOcSi7gzgH/eY4QZXuFALBspKIxzfWw/0HMDDQ89f7VXXdOHZQpTvFMFuQKLuT3iK46f2b13XjOEGqnaHOST5Eo9MgIvj9TVhZyVdV1w3nIIWKcxBqzDkNk4NqzTkNlYMa4LuXA+cgBccJUuUUzkHKHNPgOUidYzgHuUq3HNTIP/FUhAekwANSoHQ6rdUO0g2fIAUekAIPSIGsPYd4B22CT5ACD0iBB6TAOUiBT5ACD0iBB6TAOUiBT5ACD0iBB6RA6XQ6C2Cn241oKisALLvdhcY+CSJ66nYXGntCmUzGkFJ+qOR3+gZTEELs9TY3Ny9ZbV0TkHTT7Y50Igm3Ty/MpQQArC4ExyERc7spXRBgvVqYG0fxY34IM4XVlHmGpIwCsN1u0EU2gIn8R/Ps2PocHP+SabUfNumHvCxhRwAyAQRcabV+8oBcBPAIXs/9U+9eLLrdEGOMMcYYY/+/n8t8G+DISCjhAAAAAElFTkSuQmCC", "nl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAABmJLR0QA/wD/AP+gvaeTAAAB6ElEQVR4nO3bPWuTURjG8f+5n9SCxoDoZqkdMhSkCDo6+VKKq0NXhxa6l/gdBBEdFDq0u2OnBmIVv0DBoYmTUNJRmkEj1qRPjoMvWKneuHiO9vqNyXLx5+R5IHBARERERET+XPj5g/WJ6ZlRhUUiNyJMBTiVZtrfEeFDgB1C2KRk9fbu6+0fv/8eaKNeH/84HHsYiEuAJVmbXgmsHFSL5fl2e8C3QBv1+vj+sNIErqVemIkXB9Xi1ny7PTCA/cHYI8U55HrRLx8AhPWJ6ZlRwatj/LP6lXIU7ZKNKiwqzpEKC6MFI3Iz9ZKMzRowmXpFxi4YUE29ImOn9exxKJBDgRwK5FAghwI5FMihQA4FcoRerxdTj8iZTpBDgRwK5FAghwI5FMihQA4FciiQQ4EcCuRQIIcCORTIoUCOMDV3X/8H/YZOkEOBHArkUCCHAjkUyKFADgVyKJDDgPepR2TsnQG7qVfkKkLXID5LPSRXBi0rYlj9estFDitLC2v2pnV3OxBWUq/JTuRJt9noGMDJWn85EJ+n3pSLCJtn92oNgALgbedlef7y1aeDTyfOBLhyjF//JZHH5/Zqd7a2loYcdSVzcu7eRQu2EGOY5cuVzP/6qkKEPrBj0CotrHWbjU7qTSIiIiIi/77PtiFsGhisWrEAAAAASUVORK5CYII=", "jp": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAABmJLR0QA/wD/AP+gvaeTAAADxElEQVR4nO2bz28UZRjHP89g9aCS7WxbMNjaoKLW/kiVeCCmQSwH+Q88eNom6oEmkmCIUWPwR4IJShCSmlhPHvwLNFbQGiKJxlYpZDFwAAuESNmZpuqlpX087LYlXcpWdp55t/b9HGcy3/eb7+77zLzvzAMej8fj8Xg8Ho/nvyNLD0RR1KGqfSLyPNAK3OvGWmr8A1xU1WMi8lkYhmduPrkQkKreE8fxx8DLQODEqntmgYH6+vo9IjLNfEClcL4GnnPtsBZQ1e/CMHxBRKYDgDiOD/lwFhGRHXEcHwSQKIo6gN/W8LRajllV7QpUtc+Hc0vWBUGQC0Sk17WTWkVVdwZAi2sjNcxDAXCfaxc1zP2+9lTAB1QBH1AF7nI2siqaP4cMn4SRMXSiAH9OFM9tbEIaQtjahW7fhrRtcWZToijSVEdUhaEf0E8G4Y/LK7umtRnpz0FvD0jZ+tqUdAO6dAV9/T048/udXd/Zhhx4Ex58IGlny5JeDRo9DS/tvvNwAMby6IuvoD+NJunstqQSkP78K5rbgxbi6sUmp+DVffDLqSSsVcQ+oMtXYe9+uHEjOc2ZGfS1t9HxK8lpLoNtQKro3v0QTSavPTkFb3xQLPqG2Ab0zXB1NacSp/Jw/ISdvmlAquiRz83kF4Y5PGiqbxaQ5s+t/DmnGi6Mw9nzZvJmAcn3P1pJlzN80kzaboqNnjaTLmNkzEzaLqBr182kl6LzazgD7GrQRMFKuhzDH8PuH5TmojKwG8suoIbQTLqMxgYzabu72IZGK+nysZpWYUA83WkmvRQ1HMuuSG/fZiVdhux41kzbboo98Si0NlvJL7K5BR572Eze9C4m/Tkz+QX6+0zlbVfzvT3Q2Wan391uOr0wD0gE+fAtCDPJa2fWI+/vM3/est9R3LQROfgO1NUlp1lXhxx6F5o3Jae5DOls2m/tQgY/QrL11Wtl1sPAgdQeI9J7q9HdDl8cha4qalJ3O/Llp8gz3Uk6uy1uXhweP1HcCbwwvrJrNrfA7hzS22Ptroz0A7qZs+eLm10jY+i164uvnjc0Ik0N6FMdxbvU4484s+g2oFWA/7qjAj6gCviAKhAAf7k2UcNMBcAl1y5qmPFAVb917aJWEZEhiaKovdSKsM61oRpjVlU7g1J/1IBrN7WGqh7NZrP5+Xaou6Mo+qrURLfmEZFjmUxml4jMBKUD02EY7gKOlJrK1iqzqnp4Phxu1ZJZKBSeDIIgp6o7Sy2Z//dWhb+BiyIyNDc3N5jNZvOuDXk8Ho/H4/F4PKuffwFjqR2sWArK0wAAAABJRU5ErkJggg==", "tw": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAABmJLR0QA/wD/AP+gvaeTAAAFIklEQVR4nO3bX0xTVxwH8O+57aCMAgUmGy0M/7SJpICZQqKt/GnRkBgYf3whc4kPLBvExIc9+Wh88EmzRadRJ8YHM5ZsVDARkfFvVWBMSLSBiulUhBYKIihrKWB7zx6A2CDztgb6x5zP2709997f/d57Ts5t7gUYhmEYhmEYhvEfeXvV2UyA+wZAIYDNAKIDUQiPI4E4zFqcAIYp0MoBlwkw4P2jV0BnIgHxDwD9DgAX6CqDGJA3DwUucMD3BFjEmyDORAKiWwCtCUY4IUREgCMUuEWBCLwJQ/QjAN377lWtThhevxpDgp4HTmMpoLOZAL71dcvERMlLsmrkamg4MO69TAhoYmLkzLqVGwQEqKGAmlsekH3uVjJZhPPu3fLulZBSU6MnlMrY3WlpMSsh0ebmkraEhCjHBtUeKCIeqOIAus+frR4/nlVkZ38qb2srMxICHD68/R8A5NAh1ZOlcIrbCwoUSovlZerG1R4YBNgvBojfJ9LXN/lMp5PnlJVtud/YOCzv739uslqd8oqKrfeLij7f091t71ueIoS7NDGAGKFWNTXqv3Jz5Qu1tQ8/6ey0bT92rCfJ4Xg9WVOTOVdevpmLjY2Mn51dmDEYns7v3Pnbc6lUvEkkIh6dLuVhVVX61J07Nsn584O7A3NO6yqGAOeoDw1pe3vpnzqdosDheD20Y8evSQMDXzmjokRv3X0ul2dUrf4lxmSqtEulH23v6LAaCwtv5FK61qT0jRCZB73F14CwElJdnSXq+PEcqVwerf6/hlarc+DEiXvOykrlwr59N/KoD0f4EAKCWMy509NldpOpMkWobUZG3dijR6+S3G5e7Mu+QzUgoeL59PR489GjWRMVFVvjeZ7Skyf7FwEIBpSfLx/p7CybkEjEEqNxbPLq1aGY69efZvkaWKgQmv9wlPKSublF9/y820Ep5Sml7xxLVlBKQCmI282LZ2cXxHb7XBTP07B7jHmfLjZhMlUqhNp+KF3M5ytKCHD7dnG3RpNsGxtzDr6r7eioY3Dv3uSRlpaSLkLg8wUIRT4FRAhoW9uXRr0+Je/0aW1sbm6D3OXyjK7V1uXyjObnN8hPndLKdDpFfnt7qTGcQ/IpoOpqde/4+JxHr28YiIv7WaVQfGzXaH7nL10y90xNuR4sLvIjU1OuBxcvmnu02npPaqrULpNdVhUWNprHxuZQXZ3Ru/GnsjH8GoNWdHVVGDWaz3IOHmweslhexaWkRDtsNmeMUimbqa8vSu/utt/Tag15/uwz7Mcgb9nZSWkdHba/DYYnX5SWbrE1NRVnlZRsGTcYHu+8efNZ765dm9LWv9Tg8DugbdtibV1d48N6fWMeAFy5YlYBoNeuDSkBoLj4ZkFrq/WpShVn3YiCA83vLpaYGDkzPb0g8362sli+7lGpru3xakYTEiSvpqfnZb7uN1S7mN+z2hcvFuJXrysra0petYr4E04oW5eZ7eDg9Ifw38+awm7qH2gsIAGER/jOcgOB3UECWEACWEACWEACWEACWEACWEACWEACWEACWEACWEACWEACWEACWEACWEACWEACWEACOAD/BruIEDbLAVjzJQQGADDCUeCPYFcRqijQQiiQQYH7AETBLijEeAiQxRFggAIXgl1NqKHAOQKYyfJCBAWalj+iY4BWAhwgwGsOS28wLBLgAAV+AuAJdnVB5KHAmZVwsNYnmRRQ80AVAfYvf28hDUqpgeNY/iSzhQNqCWAOdkEMwzAMwzAME/7+AyfF0RZrPm2IAAAAAElFTkSuQmCC", "kr": "data:image/png;base64,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", "cn": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAABmJLR0QA/wD/AP+gvaeTAAAD40lEQVR4nO3bz08cZRzH8ff3mZndZXexgIhotTQNGCw0Xoy91J+VGPFPMJ5oaoyHpo018WgvXjT+iE16KCf/BaORUvXqwUSNVBNSJYU2Yghs2ZX9MTvzeNgWQZedWeIws+V5nQjPMM93Pjzznd0nGTAMwzAMwzAMo33y719cH+09JuhTIpzUcBjIxVPanvlLYMGHWY1cHv5l7eetg5sBzQ+Ttp0DH2rkdUDFUmr8POBSWRXOjc1R425A88OkVarnS9E8H3eFSSCarzeswstjc9QUgHIOfGTC+YcWXujSPR8AyPXR3mMi+od9fFvtxPNEPaEEfcqE05Rla39KaeHFuCtJKg0TSuBQlJNYfX6Up4/akA3kozhz/qSL86BPasRj+d1sFFPshe7Ieo+7pOh5tUrmqMd9r9Q6tsvZkZzVgvSIR3HWQZeE0lUHOvROiyYgD9Y/TyFpTeqQj1/5zzeajrGrhZ9+zCM94gUep6tCdd7azRSJsauAcs+65J5zdz2jc7Bxv0kHZNd+QAryJ+rkT9R3F68PA2+XeeB8mcx48CqMW9uXmBmvY/X7WP0+mfF6W38rNvRNVXCOeOSedqmvtTv73mu7Seefcbf9XPkp/Cl0HVanM6isprZo4TyscW+0W8Hekt8e79HNBux+n97XqkhGIw5IunFYetRHZRo/+xWh+mtjEeqqoF3QFWHtszT1lZ0XZ+qwR22hAxpQq4AAnEc9Bt6pkBoK1yvcJcWf73V1zMWH0bIHuYsWt85mKc44gScqfetw60zungqHoBW0Vfdkjf43K03HVi5mKH6R+r9rS4TQT7Ha7zsf2mqsGXuwc753hL6y7FM796FWY1uJApXX3H+6gjPobzb+JAsf0PHGZx7vtrB8IcvyhSzebdk2FjhZXjNwvkz2eJ2H3t8gPZr8lRTqQ4w96JMa8tj4zmbl467NYG6+kaf/TOOC7UGf+h+t8/bWhdI3Dqpb4xWEyo/Jb+ihmnT3hAsKil81f5p1v+SCD8UrwU875xEf96bCOejjLiV/kyhUQGKBDmgzYY7pRKH+hWEufKdjOnxPOqINs3tnTzq6nWKzJ92K2ZMOsN/3pMPat3vS+4kJKIAJKIAJKIAJKIAJKIAJKIAJKIAJKIAJKIAJKIACinEXkWDrSsNi3FUk2A0FXIm7isQSZpRGLt95y8XYzrNETas770ddiruaxNFcHJpbvaYAyqpwDrgad00JMruaK7zF3cf82By1sipMIny6z283D80nq9nC5JPf49Lslcz5o31jtvanNEzQeCUzklcVEqQELCDMWKKmh+ZWr8VdkGEYhmEYhmF0vr8BnrhCvX77180AAAAASUVORK5CYII=", "eu": "data:image/png;base64,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"};
+const US="us",ASIA="asia",MIX="mixed";
+const C={asia:"#F5953A",asia2:"#F8BA80",grey:"#4A6688",us:"#5AABFF"};
+const common={
+  tools:{n:2,stage:"Tools",flags:["us","nl","jp"],who:"US software · US, Dutch & Japanese machines",ctrl:US,fig:{then:"47%",yr:"1989"},cap:"US firms' share of world chip equipment. No reliable current figure is published",same:true},
+  pack:{n:4,stage:"Package & test",flags:["cn","tw"],who:"China & Taiwan",ctrl:ASIA,fig:{then:">60%"},cap:"China & Taiwan share of world assembly & test capacity, 2019",same:true},
+  sell:{n:5,stage:"Sell",flags:["us"],who:"US companies pay the factory, then sell",ctrl:US,fig:{then:"37%",now:"53%"},cap:"Share of world chip sales: North American firms 1988 → US-based firms 2025 (two surveys)",same:true,allchip:true}
+};
+const CATS={
+  all:{
+    design:{n:1,stage:"Design",flags:["us"],who:"Nvidia · Apple · AMD · Qualcomm",ctrl:US,fig:{then:"14%",now:"35%"},cap:"Design-only (fabless) firms worldwide, share of world IC sales, 2003 → 2021"},
+    make:{n:3,stage:"Make",flags:["tw","kr","cn"],who:"Taiwan · Korea · China",ctrl:ASIA,fig:{pre:"US",then:"37%",now:"10%",nowc:"var(--us)"},cap:"US share of world chipmaking capacity, 1990 → 2022"},
+    verdict:["All chips",'<span class="u">The US keeps the margin.</span> <span class="a">Asia holds the factory.</span>']
+  },
+  advanced:{
+    design:{n:1,stage:"Design",flags:["us"],who:"Nvidia · Apple · AMD · Qualcomm",ctrl:US,word:"US firms",note:"AI accelerators and flagship phone processors",cap:"No share figure is published for this step"},
+    make:{n:3,stage:"Make",flags:["tw","kr"],who:"Taiwan · Korea",ctrl:ASIA,word:"US: 0%",bar:[["Taiwan 69%",69,C.asia,"TW 69%"],["Korea 31%",31,C.asia2,"KR 31%"]],cap:"Share of chips below 10 nm, 2022"},
+    verdict:["Advanced logic",'<span class="u">US designs.</span> <span class="a">Taiwan and Korea build all of it.</span>']
+  },
+  memory:{
+    design:{n:1,stage:"Design",flags:["kr","us"],who:"Samsung · SK hynix · Micron",ctrl:ASIA,word:"Korea",note:"Memory makers design and build their own chips, so the cycle does not split",cap:"Two of the three big makers are Korean"},
+    make:{n:3,stage:"Make",flags:["kr"],who:"South Korea leads",ctrl:ASIA,word:"US: 3%",bar:[["Korea ~half",50,C.asia,"KR ~½"],["Rest of world",47,C.grey,"Rest"],["",3,C.us,""]],cap:"Korea ~half (CSET, early 2022); US 3% (SIA/BCG, 2022)"},
+    verdict:["Memory · DRAM",'<span class="a">Korea designs and builds.</span> <span class="u">Only 3% of capacity is in the US.</span>']
+  },
+  mature:{
+    design:{n:1,stage:"Design",flags:["us","eu","jp","cn"],who:"US, European, Japanese & Chinese firms",ctrl:MIX,word:"Shared",note:"Often by firms that design and build their own chips",cap:"No share figure is published for this step"},
+    make:{n:3,stage:"Make",flags:["cn"],who:"China leads",ctrl:ASIA,word:"China: 33%",bar:[["China 33%",33,C.asia,"CN 33%"],["Rest of the world 67%",67,C.grey,"Rest 67%"]],cap:"Share of world capacity for 28 nm and older chips, 2022"},
+    verdict:["Mature chips",'<span class="a">One in three is made in China.</span> Cars, appliances, grids.']
+  }
+};
+const HEAD={all:["America designs the chip.","Asia makes it. America sells it."],advanced:["America designs the most advanced chips.","Taiwan and Korea make all of them."],memory:["In memory, the split disappears.","Korea designs and builds."],mature:["The everyday chips are everyone's.","China makes one in three."]};
+const ORDER=["design","tools","make","pack","sell"];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function card(key,d,cat){
+  const flags=d.flags.map(f=>`<img src="${FLAG[f]}" alt="${f.toUpperCase()} flag">`).join("");
+  let big;
+  if(d.fig){const pre=d.fig.pre?`<span class="pre">${d.fig.pre}</span>`:"";const yr=d.fig.yr?`<span class="yr">(${d.fig.yr})</span>`:"";const nc=d.fig.nowc?` style="color:${d.fig.nowc}"`:"";big=d.fig.now?`<div class="fig">${pre}<span class="then">${d.fig.then}</span><span class="arrow">→</span><span class="now"${nc}>${d.fig.now}</span></div>`:`<div class="fig"><span class="now">${esc(d.fig.then)}</span>${yr}</div>`}
+  else big=`<div class="fig word">${esc(d.word)}</div>`;
+  const note=d.note?`<div class="note">${esc(d.note)}</div>`:"";
+  const bar=d.bar?`<div class="bar" role="img" aria-label="${esc(d.bar.map(b=>b[0]).filter(Boolean).join(', '))}">${d.bar.map(b=>`<span style="width:${b[1]}%;background:${b[2]};color:${b[2]===C.grey?'#F3F6FB':'#0B1E3A'}">${b[1]>=12?`<span class="f">${esc(b[0])}</span><span class="s">${esc(b[3]||"")}</span>`:""}</span>`).join("")}</div>`:"";
+  const same=d.same&&cat!=="all"?`<div class="same">${d.allchip?"All-chip figure · no split by type":"Same for all chip types"}</div>`:"";
+  return `<article class="card" data-step="${key}" data-ctrl="${d.ctrl}"><div class="flags">${flags}</div><div class="stage"><b>${d.n}</b>${esc(d.stage)}</div><div class="who">${esc(d.who)}</div>${big}${note}${bar}<div class="cap">${esc(d.cap)}</div>${same}</article>`;
+}
+function render(cat){
+  if(!CATS[cat])cat="all";
+  const c=CATS[cat];
+  document.getElementById("steps").innerHTML=ORDER.map(k=>card(k,c[k]||common[k],cat)).join("")+`<div class="verdict"><div class="k">${esc(c.verdict[0])}</div><p>${c.verdict[1]}</p></div>`;
+  const h=HEAD[cat];document.getElementById("headline").innerHTML=`${esc(h[0])} <span class="l2">${esc(h[1])}</span>`;
+  document.querySelectorAll(".filters button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.cat===cat?"true":"false"));
+}
+document.querySelectorAll(".filters button").forEach(b=>b.addEventListener("click",()=>{
+  const cat=b.dataset.cat; render(cat);
+  try{history.replaceState(null,"",cat==="all"?location.pathname+location.search:"#"+cat)}catch(e){location.hash=cat==="all"?"":cat}
+}));
+window.addEventListener("hashchange",()=>render(location.hash.slice(1)||"all"));
+render(location.hash.slice(1)||"all");
+</script>
+
+</body>
+</html>
