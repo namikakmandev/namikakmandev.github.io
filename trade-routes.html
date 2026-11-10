@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="description" content="A 90-second animated map of the world's trade routes from 2000 BC to today: Bronze Age tin caravans, the Silk Road, the monsoon, the treasure fleets, Suez, Panama and the container lanes." />
+<meta property="og:title" content="4,000 years of trade routes in 90 seconds" />
+<meta property="og:image" content="https://namikakmandev.github.io/assets/trade-routes/poster.png" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<meta name="theme-color" content="#0B1E3A" />
+<title>4,000 Years of Trade Routes &mdash; Nam&#305;k Akman</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* A film, not a dashboard: one stage (year, chapter, map) and a transport bar. Dark-only by choice, matching chip-journey.html. */
+:root{
+  color-scheme:dark;
+  --bg:#0B1E3A; --panel:#132B4F; --panel-2:#0F2648; --line:#2B4A73; --sea:#0C2142; --land:#1A3A66; --coast:#31598C;
+  --fg:#F3F6FB; --muted:#93A8C4; --c-sea:#5AABFF; --c-land:#F5953A;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
+a{color:var(--c-sea)}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 44px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+.back{font-size:13.5px;color:var(--muted);text-decoration:none}
+.back:hover{color:var(--fg)}
+header{display:flex;flex-direction:column;gap:8px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,5vw,50px);line-height:1.04;margin:0;letter-spacing:-.015em;text-wrap:balance}
+h1 span{color:var(--c-land)}
+.lede{color:var(--muted);margin:0;font-size:16px;max-width:70ch}
+
+.stage{background:var(--panel-2);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.hud{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 26px;align-items:center;padding:14px 22px 12px}
+.year{font-family:var(--f-display);font-weight:800;font-size:clamp(34px,5.4vw,62px);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;min-width:5.6ch}
+.year small{font-size:.42em;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-left:.18em}
+.chap{min-height:5.6em;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.chap b{font-family:var(--f-display);font-weight:700;font-size:clamp(16px,1.9vw,21px);line-height:1.2}
+.chap b i{font-style:normal;font-family:var(--f-mono);font-weight:500;font-size:.62em;letter-spacing:.08em;color:var(--muted);margin-right:.7em;vertical-align:.12em}
+.chap p{margin:3px 0 0;color:var(--muted);font-size:14px;line-height:1.42;max-width:74ch}
+.legend{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend i{width:22px;height:3px;border-radius:2px;background:var(--c)}
+.map{position:relative;aspect-ratio:2/1;background:var(--sea);border-block:1px solid var(--line)}
+.map canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bar{display:flex;align-items:center;gap:12px;padding:10px 16px}
+.bar button{font:600 13px var(--f-body);color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:10px;height:38px;min-width:38px;padding:0 12px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.bar button:hover{background:#1A3761}
+.bar button:focus-visible,.chips button:focus-visible,.routes button:focus-visible{outline:2px solid var(--c-sea);outline-offset:2px}
+#play{background:var(--c-land);border-color:var(--c-land);color:#0B1E3A;min-width:86px}
+#play:hover{background:#FFA654}
+.scrub{position:relative;flex:1;min-width:0;height:38px;display:flex;align-items:center}
+.scrub input{width:100%;margin:0;accent-color:var(--c-land);cursor:pointer;position:relative;z-index:1}
+.ticks{position:absolute;left:8px;right:8px;top:4px;height:6px;pointer-events:none}
+.ticks i{position:absolute;top:0;width:1px;height:6px;background:var(--muted);opacity:.55}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 14px}
+.chips button{font:500 12.5px var(--f-body);color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer}
+.chips button:hover{color:var(--fg)}
+.chips button[aria-current="true"]{color:#0B1E3A;background:var(--fg);border-color:var(--fg)}
+.stage:fullscreen{border-radius:0;border:0;justify-content:center;background:var(--bg)}
+.stage:fullscreen .map{aspect-ratio:auto;flex:1;min-height:0}
+
+h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:14px 0 0}
+.routes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px}
+.routes button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:14px minmax(0,1fr);gap:2px 10px;padding:9px 6px;border-top:1px solid var(--line);width:100%}
+.routes button:hover{background:var(--panel-2)}
+.routes i{width:12px;height:3px;border-radius:2px;background:var(--c);margin-top:9px}
+.routes b{font-weight:600;font-size:14.5px}
+.routes b small{font:500 11.5px var(--f-mono);color:var(--muted);margin-left:8px;white-space:nowrap}
+.routes span{grid-column:2;color:var(--muted);font-size:13px;line-height:1.4}
+.notes{color:var(--muted);font-size:13px;line-height:1.55;border-top:1px solid var(--line);padding-top:14px;max-width:86ch}
+@media (max-width:760px){
+  .hud{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px 10px}
+  .chap{grid-column:1/-1;grid-row:2;min-height:8.6em;justify-content:flex-start}
+  .legend{font-size:11.5px}
+  .map{aspect-ratio:3/2}
+  .bar{gap:8px;padding:8px 10px}
+  #speed,#full{padding:0 8px}
+  .chips{padding:0 10px 12px}
+  .routes{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="projects.html">&larr; Projects</a>
+  <header>
+    <div class="eyebrow">Animated map &middot; 2000 BC &rarr; today</div>
+    <h1>4,000 years of trade routes <span>in 90 seconds</span></h1>
+    <p class="lede">From donkey caravans carrying tin to Anatolia to the container lanes of today. Each line appears when the route opens and fades when it dies; what stays behind is a faint trace of everything that came before.</p>
+  </header>
+
+  <section class="stage" id="stage" aria-label="Animated map of trade routes">
+    <div class="hud">
+      <div class="year" id="year" aria-live="off">2000<small>BC</small></div>
+      <div class="chap"><b id="chapT"></b><p id="chapP"></p></div>
+      <div class="legend" aria-hidden="true">
+        <span style="--c:var(--c-sea)"><i></i>Sea and river</span>
+        <span style="--c:var(--c-land)"><i></i>Caravan, road, rail</span>
+      </div>
+    </div>
+    <div class="map"><canvas id="cv" role="img" aria-label="World map on which trade routes appear and fade in chronological order. The full list of routes follows below."></canvas></div>
+    <div class="bar">
+      <button id="play" type="button">Pause</button>
+      <div class="scrub"><div class="ticks" id="ticks"></div><input id="seek" type="range" min="0" max="90" step="0.05" value="0" aria-label="Timeline" /></div>
+      <button id="speed" type="button" aria-label="Playback speed">1&times;</button>
+      <button id="full" type="button" aria-label="Full screen">&#x26F6;</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <h2>The routes, in order of appearance</h2>
+  <div class="routes" id="routes"></div>
+
+  <p class="notes">
+    How to read it: lines are schematic, drawn through the main ports and caravan towns rather than along surveyed tracks, and most dates are conventional round figures (a route rarely opens or closes in a single year). Coastlines are today's. The list is a selection: regional networks such as the Grand Canal, the Tea Horse Road, the Mississippian and Mesoamerican exchange systems and Pacific voyaging are left out for legibility, not importance. Figures quoted: Atlantic slave trade embarkations and arrivals from the <a href="https://www.slavevoyages.org/" target="_blank" rel="noopener">SlaveVoyages</a> database; Inca road length from <a href="https://whc.unesco.org/en/list/1459/" target="_blank" rel="noopener">UNESCO</a>; seaborne share of trade from <a href="https://unctad.org/topic/transport-and-trade-logistics/review-of-maritime-transport" target="_blank" rel="noopener">UNCTAD</a>; Hormuz oil share from the <a href="https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints" target="_blank" rel="noopener">US EIA</a>. Coastline: Natural Earth (public domain).
+  </p>
+</div>
+
+<script src="assets/trade-routes/land.js"></script>
+<script>
+(() => {
+'use strict';
+/* ---------- time: years are warped so every era gets screen time ---------- */
+const TK = [[-2000,0],[-1200,13],[-500,20],[1,28],[500,33],[1000,40],[1400,48],[1500,55],[1800,66],[1900,72],[1950,76],[2011,81.5],[2025,83.5]];
+const HOLD = 6.5, DUR = TK[TK.length-1][1]+HOLD;   // the last frame holds while the final captions clear
+const lerp = (a,b,u) => a+(b-a)*u, clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+function T(y){ if(y<=TK[0][0]) return 0; for(let i=1;i<TK.length;i++) if(y<=TK[i][0]){const a=TK[i-1],b=TK[i];return lerp(a[1],b[1],(y-a[0])/(b[0]-a[0]));} return TK[TK.length-1][1]; }
+function Y(t){ if(t<=0) return TK[0][0]; for(let i=1;i<TK.length;i++) if(t<=TK[i][1]){const a=TK[i-1],b=TK[i];return lerp(a[0],b[0],(t-a[1])/(b[1]-a[1]));} return TK[TK.length-1][0]; }
+
+const CHAPTERS = [
+  {y:-2000, t:'Bronze Age exchange', p:'Bronze needs tin, and tin is rare. Donkey caravans and plank-built boats tie Mesopotamia, Anatolia, Egypt and the Indus into one market for metals, stone and cloth.'},
+  {y:-1200, t:'Iron Age seafarers and caravans', p:'Around 1180 BC the palace economies of the eastern Mediterranean collapse. Phoenician ships and Arabian camel caravans rebuild long-distance trade from the edges.'},
+  {y:-500, t:'Empires connect Eurasia', p:'Persia, Han China and Rome make roads and sea lanes safe. Silk moves west overland, and the monsoon carries pepper to Roman Egypt.'},
+  {y:500, t:'Caliphate, Tang and the Norse', p:'Muslim and Chinese merchants sail the whole Indian Ocean, camels cross the Sahara for gold, and Norse traders row Russia’s rivers to Constantinople.'},
+  {y:1000, t:'The medieval world system', p:'Venice, the Hansa, Cairo, Mali, the Swahili coast and China trade in one chain. Under the Mongols the Silk Road peaks, and in 1347 it carries the plague west.'},
+  {y:1450, t:'The oceans open', p:'Iberian ships join every inhabited continent. American silver pays for Asian goods, and 12.5 million Africans are shipped across the Atlantic in chains.'},
+  {y:1800, t:'Steam, canals and rail', p:'Steamships and railways stop waiting for the wind. Suez in 1869 and Panama in 1914 remove the two longest detours on the globe.'},
+  {y:1945, t:'Oil and the box', p:'Gulf tankers and the standard shipping container make sea freight almost free. The map of trade settles into a few very dense lanes.'}
+];
+
+/* ---------- camera: [year, centre lon, centre lat, lon span, lat span] ---------- */
+const CAM = [[-2000,52,29,86,40],[-1700,52,29,86,40],[-1550,45,33,102,50],[-1150,45,33,104,52],[-1050,40,32,112,54],[-250,40,32,112,54],[-130,58,30,152,66],[550,58,30,152,66],[800,58,20,178,84],[1420,58,20,178,84],[1470,10,10,360,146],[2025,10,10,360,146]];
+
+/* ---------- shared sea lanes (lon, lat) ---------- */
+const SCS = [[111.8,17.5],[110.6,13],[108,9.5],[105.5,6],[104.8,2.4],[104.1,1.25]];                 // South China Sea, north to south
+const MAL = [[103.4,1.15],[102.3,1.9],[101.2,2.6],[100.2,3.6],[99,4.8],[97.5,6],[95,6.2]];           // Malacca Strait, east to west
+const BAY = [[88,6],[81.5,5.5]];                                                                      // Bay of Bengal to south of Sri Lanka
+const RED = [[43.35,12.55],[42.4,14],[40,17.5],[37.8,21.2],[35.5,24.8],[33.6,27.8],[32.55,29.95]];   // Red Sea, south to north
+const MED = [[32.3,31.4],[27,33],[20,34.7],[14.6,35.7],[11.6,37.4],[5,37.7],[-1,36.5],[-5.6,35.95]]; // Port Said to Gibraltar
+const CHN = [[-9.5,36.5],[-10.5,40],[-10,44.5],[-6,48.7],[-2,50.1],[1.5,51.05]];                    // Iberia to the Dover Strait
+const rev = a => a.slice().reverse();
+
+/* s/e = years the line switches on/off in the film; when = the period as a historian would write it.
+   k: 'sea' | 'land'. at = where the caption sits. c = [name, lon, lat, side]. */
+const ROUTES = [
+ {n:'Gulf route to the Indus', when:'c. 2500–1750 BC', s:-2000, e:-1750, k:'sea', g:'Copper, carnelian, timber and grain between Ur, Dilmun and Meluhha',
+  p:[[[46.1,30.96],[48.6,29.6],[50.6,26.7],[53.5,25.9],[56,26.65],[56.9,26.45],[58.2,25],[61.5,24.6],[65.5,24.4],[67.5,24],[68.1,27.3]]], at:[62,20.3],
+  c:[['Ur',46.1,30.96,'l'],['Dilmun',50.6,26.2,'l'],['Mohenjo-daro',68.1,27.3,'r']]},
+ {n:'Lapis lazuli road', when:'before 2000–1200 BC', s:-1960, e:-1200, k:'land', g:'Blue stone from one valley in Badakhshan, 2,500 km to the temples of Sumer',
+  p:[[[70.8,36.2],[66.9,36.7],[61.8,37.3],[54.4,36.2],[48.5,34.8],[46.1,30.96]]], at:[60,42.5],
+  c:[['Badakhshan mines',70.8,36.2,'r']]},
+ {n:'Assyrian tin caravans', when:'c. 1950–1750 BC', s:-1900, e:-1750, k:'land', g:'Tin and textiles by donkey to Kanesh; silver and gold back to Assur',
+  p:[[[43.26,35.46],[41,36.9],[38.8,37.2],[37,37.9],[35.63,38.85]]], at:[30,41.5],
+  c:[['Assur',43.26,35.46,'r'],['Kanesh',35.63,38.85,'l']]},
+ {n:'Egypt’s voyages to Punt', when:'c. 2000–1150 BC', s:-1850, e:-1150, k:'sea', g:'Incense, myrrh, ebony and gold down the Red Sea',
+  p:[[[32.65,25.7],[34.3,26.55],[35.6,24.7],[37.7,21.3],[40,17.5],[42.3,14.2],[43.35,12.55],[44.6,11.7]]], at:[21,19],
+  c:[['Thebes',32.65,25.7,'l'],['Punt',44.6,11.7,'r']]},
+ {n:'Late Bronze Age sea circuit', when:'c. 1600–1180 BC', s:-1600, e:-1180, k:'sea', g:'Copper ingots, tin, glass and ivory: the cargo of the Uluburun wreck',
+  p:[[[31.2,31.7],[33.8,32.6],[35.3,34.6],[35.6,35.6],[34.6,34.75],[32.6,34.4],[31,35.6],[29.7,36],[27.6,35.7],[25.6,36.1],[23.6,36.5],[22.9,37.4],[23.4,35.2],[24.6,34.5],[27.6,32.8],[31.2,31.7]]], at:[13,33],
+  c:[['Ugarit',35.78,35.6,'r'],['Mycenae',22.76,37.73,'l'],['Cyprus',33.2,35,'t']]},
+ {n:'Amber Road', when:'c. 1600 BC–AD 400', s:-1560, e:400, k:'land', g:'Baltic amber south to the Adriatic and on to Mycenae and Rome',
+  p:[[[18.9,54.4],[18,51.8],[17.3,49.6],[16.9,48.1],[15,46.4],[13.4,45.77]]], at:[30,50],
+  c:[['Baltic coast',18.9,54.4,'r'],['Adriatic',13.4,45.77,'l']]},
+ {n:'Phoenician sea lanes', when:'c. 1100–146 BC', s:-1100, e:-146, k:'sea', g:'Purple dye, cedar and glass out; Spanish silver and Atlantic tin back',
+  p:[[[35.2,33.27],[33,33.9],[29,34.1],[24.5,34.3],[19,35.2],[14.5,35.4],[11.4,37.55],[10.4,36.95],[9.2,37.7],[4,37.4],[-0.5,36.3],[-3.5,36.1],[-5.5,35.95],[-6.3,36.5]]], at:[14,27],
+  c:[['Tyre',35.2,33.27,'r'],['Carthage',10.3,36.85,'b'],['Gadir',-6.3,36.5,'t']]},
+ {n:'Incense Route', when:'c. 1000 BC–AD 300', s:-1000, e:300, k:'land', g:'Frankincense and myrrh by camel from South Arabia to Gaza',
+  p:[[[54.1,17],[48.5,15.2],[45.33,15.42],[44.2,17.5],[41.5,20.5],[39.6,24.47],[37.9,26.6],[35.44,30.33],[34.45,31.5]]], at:[57,24],
+  c:[['Marib',45.33,15.42,'b'],['Petra',35.44,30.33,'r'],['Dhofar',54.1,17,'r']]},
+ {n:'Persian Royal Road', when:'c. 500–330 BC', s:-500, e:-330, k:'land', g:'Sardis to Susa: about 2,700 km, a week by royal relay courier',
+  p:[[[28.04,38.49],[30.5,38.8],[32,39.65],[34.6,39.8],[38.3,38.35],[40.2,37.9],[43.1,36.35],[44,36.2],[45.5,34.2],[48.26,32.19]]], at:[38,43.2],
+  c:[['Sardis',28.04,38.49,'l'],['Susa',48.26,32.19,'r']]},
+ {n:'Silk Road', when:'c. 130 BC–AD 1453', s:-130, e:1453, k:'land', g:'Silk, horses, glass and paper, and with them Buddhism, Islam and the plague',
+  p:[[[108.9,34.3],[103.8,36.06],[98.5,39.75],[94.66,40.14],[89.2,42.9],[83,41.7],[76,39.47],[71.8,40.4],[66.97,39.65],[64.4,39.77],[61.83,37.66],[58.8,36.3],[54.4,36.1],[51.4,35.6],[48.5,34.8],[44.55,33.1],[40.7,34.8],[38.27,34.55],[36.16,36.2]],
+     [[94.66,40.14],[88.5,39],[79.9,37.1],[77.2,38.4],[76,39.47]]], at:[84,50],
+  c:[['Chang’an',108.9,34.3,'r'],['Dunhuang',94.66,40.14,'t'],['Kashgar',76,39.47,'b'],['Samarkand',66.97,39.65,'t'],['Ctesiphon',44.55,33.1,'b'],['Antioch',36.16,36.2,'l']]},
+ {n:'Monsoon route to India', when:'c. 100 BC–AD 400', s:-100, e:400, k:'sea', g:'Pepper, pearls and gems for Roman gold, forty days on the summer wind',
+  p:[[[35.47,23.9],[37.8,21.2],[40,17.5],[42.4,14],[43.35,12.55],[45.5,12.1],[52,13.5],[60,12.8],[68,11.5],[75.4,10.4],[76.2,10.2]],
+     [[45.5,12.1],[52,14.2],[60,17.5],[67,20.5],[72.3,21.4]]], at:[58,7.5],
+  c:[['Berenice',35.47,23.9,'l'],['Muziris',76.2,10.2,'r'],['Barygaza',72.6,21.6,'r']]},
+ {n:'Roman grain fleets', when:'30 BC–AD 440', s:-30, e:440, k:'sea', g:'Egyptian and African wheat to feed a city of a million',
+  p:[[[29.9,31.2],[26,33.5],[21,35.2],[17.5,36.5],[16,37.3],[15.7,38.1],[15.3,39.5],[14.3,40.6],[13,41.2],[12.25,41.7]],
+     [[10.4,37],[11.4,38.6],[11.9,40.5],[12.25,41.7]]], at:[10,28.5],
+  c:[['Alexandria',29.9,31.2,'b'],['Rome',12.45,41.9,'t']]},
+ {n:'Maritime Silk Road', when:'c. AD 650–1500', s:650, e:1500, k:'sea', g:'Porcelain, silk, spices and incense between Guangzhou, Calicut, Basra and Cairo',
+  p:[[[113.5,22.6],[113.6,21],...SCS,...MAL,...BAY,[78,7.3],[76,10],[75.78,11.25],[73,14],[68,19],[62,23.6],[58.6,25.2],[56.9,26.5],[56,26.7],[54,26.2],[52.3,27.5],[50.2,29],[48.6,29.8],[47.8,30.5]],
+     [[75.78,11.25],[65,12.8],[55,13.3],[45.5,12.1],...RED]], at:[95,25.5],
+  c:[['Guangzhou',113.3,23.1,'r'],['Srivijaya',104.75,-2.99,'r'],['Calicut',75.78,11.25,'r'],['Siraf',52.3,27.6,'t'],['Basra',47.8,30.5,'l'],['Cairo',31.24,30.04,'l']]},
+ {n:'Trans-Saharan caravans', when:'c. AD 700–1600', s:700, e:1600, k:'land', g:'West African gold north, Saharan salt south, and enslaved people both ways',
+  p:[[[-5,34.03],[-4.28,31.28],[-5,23.6],[-4.5,19.5],[-3,16.77],[0,16.27]],
+     [[13.19,32.89],[9.5,30.13],[8.5,23.5],[7.99,16.97],[0,16.27]]], at:[-22,26],
+  c:[['Sijilmasa',-4.28,31.28,'l'],['Taghaza',-5,23.6,'l'],['Timbuktu',-3,16.77,'l'],['Gao',0,16.27,'r'],['Tripoli',13.19,32.89,'r']]},
+ {n:'Varangian river road', when:'c. AD 800–1100', s:830, e:1100, k:'sea', g:'Furs, wax and slaves down the Dnieper; Arab silver and Greek silk back',
+  p:[[[17.55,59.33],[19.5,59.6],[23,59.7],[27,59.9],[29.8,60],[32.3,60],[31.28,58.52],[31,56.5],[31.4,54.6],[30.52,50.45],[32,49.2],[34.9,48.4],[33.5,46.8],[31.8,46.4],[30.5,44.5],[28.9,42.5],[29,41.1]]], at:[50,54],
+  c:[['Birka',17.55,59.33,'l'],['Novgorod',31.28,58.52,'r'],['Kiev',30.52,50.45,'r'],['Constantinople',28.97,41.01,'b']]},
+ {n:'Swahili coast', when:'c. AD 900–1505', s:950, e:1505, k:'sea', g:'Gold from Great Zimbabwe and ivory for Indian cloth and Chinese porcelain',
+  p:[[[35.3,-20.3],[38,-18],[41,-14.5],[40.9,-10.5],[40,-8.9],[40.2,-6],[40.1,-4],[41.8,-1.8],[45.7,1.9],[50,6.5],[51.7,9.6],[51.8,12],[52.6,13.6],[60,17.3],[67,20.4],[72.4,21.6]]], at:[59,-12],
+  c:[['Sofala',34.8,-20.2,'l'],['Kilwa',39.5,-8.95,'l'],['Mogadishu',45.34,2.04,'l'],['Cambay',72.6,22.3,'r']]},
+ {n:'Venetian and Genoese galleys', when:'c. AD 1100–1500', s:1100, e:1500, k:'sea', g:'Spices and silk west from Alexandria and the Black Sea; silver and wool east',
+  p:[[[12.6,45.3],[13.6,44.3],[15.5,42.7],[17.8,41],[19,39.8],[19.8,38.2],[21,36.4],[22.6,35.85],[23.3,35],[26,33.2],[29.9,31.25]],
+     [[22.6,35.85],[24.2,37],[25.3,38.6],[25.8,39.7],[26.2,40.05],[26.8,40.45],[27.6,40.75],[28.95,41],[29.15,41.3],[31,42.6],[33.5,44.2],[35.38,45]],
+     [[8.93,44.4],[9.6,43.2],[10.8,41.6],[12.5,40.2],[14.6,38.9],[15.6,38.2],[16.6,37.3],[21,36.4]]], at:[-14,44],
+  c:[['Venice',12.34,45.44,'t'],['Genoa',8.93,44.4,'l'],['Caffa',35.38,45,'r']]},
+ {n:'Hanseatic League', when:'1241–c. 1600', s:1241, e:1600, k:'sea', g:'Furs, wax, grain, timber, stockfish and cloth across the Baltic and North Sea',
+  p:[[[31.28,58.52],[31.4,59.9],[29.9,59.95],[27,59.85],[24.75,59.55],[22.5,59.4],[20.5,58.6],[18.6,57.7],[17.6,56.3],[15.3,55.6],[13.3,54.9],[11.6,54.3],[10.69,53.87],[9.99,53.55],[8.7,53.95],[7.9,54.1],[6.2,53.8],[4.5,53.1],[3.4,52],[3,51.6],[3.22,51.25]],
+     [[3,51.6],[1.7,51.55],[0.7,51.5],[-0.08,51.5]],
+     [[5.32,60.39],[4.5,59.3],[5.2,57.6],[6.8,55.6],[7.9,54.1]]], at:[47,57],
+  c:[['Lübeck',10.69,53.87,'b'],['Bruges',3.22,51.25,'b'],['Bergen',5.32,60.39,'l'],['London',-0.08,51.5,'l']]},
+ {n:'Zheng He’s treasure fleets', when:'1405–1433', s:1405, e:1433, k:'sea', g:'Seven Ming expeditions to Calicut, Hormuz and East Africa, then China turns inward',
+  p:[[[118.8,32.05],[121.9,31.3],[122.6,28],[119.7,24.4],[117.5,22],[113.6,20],...SCS,...MAL,...BAY,[78,7.3],[76,10],[75.78,11.25],[72,14.5],[66,19.5],[61.5,23.7],[58.6,25.2],[56.9,26.5],[56.3,27.05]],
+     [[78,7.3],[73,4.5],[60,1.5],[47,0.8],[41.2,-2.4],[40.3,-3.2]]], at:[136,12],
+  c:[['Nanjing',118.8,32.05,'r'],['Hormuz',56.3,27.05,'t'],['Malindi',40.12,-3.22,'l']]},
+ {n:'Inca road system', when:'c. 1438–1533', s:1466, e:1533, k:'land', g:'About 30,000 km of state roads with relay runners and no wheel',
+  p:[[[-78.5,-0.2],[-79,-2.9],[-78.5,-7.16],[-77,-9.9],[-75.2,-12.07],[-71.97,-13.52],[-68.7,-16.5],[-66.5,-19.5],[-65.4,-24.8],[-68.8,-32.9],[-70.65,-33.45]]], at:[-112,-14],
+  c:[['Quito',-78.5,-0.2,'l'],['Cusco',-71.97,-13.52,'r']]},
+ {n:'Spain’s Atlantic fleets', when:'1492–1790', s:1492, e:1790, k:'sea', g:'Columbus’s track becomes the treasure fleets: silver from Potosí and Zacatecas',
+  p:[[[-6.3,36.5],[-10,33.5],[-16.5,27.5],[-28,21],[-45,17],[-58,15.5],[-61.3,15.3],[-67,16.3],[-72,16.5],[-78,17],[-83.5,19.5],[-86,21.6],[-90.5,22.6],[-94.5,20.6],[-96.1,19.2]],
+     [[-96.1,19.2],[-93,22.9],[-87,23.7],[-82.4,23.35],[-80.4,24.2],[-79.7,25.6],[-79.5,27.6],[-78,31],[-71,36],[-55,39.5],[-40,39.6],[-28.5,38.9],[-17,37.6],[-9.5,36.7],[-6.3,36.5]],
+     [[-72,16.5],[-76,13],[-79.65,9.7]]], at:[-46,49],
+  c:[['Seville',-5.99,37.39,'r'],['Havana',-82.36,23.13,'t'],['Veracruz',-96.1,19.2,'l'],['Portobelo',-79.65,9.55,'b']]},
+ {n:'Cape Route to India', when:'1498–1869', s:1498, e:1869, k:'sea', g:'Pepper, cinnamon and cloves by sea, cutting out Venice and Cairo',
+  p:[[[-9.14,38.71],[-11.5,36.5],[-16.8,30],[-19.5,22],[-24,15],[-25,6],[-27,-4],[-30,-15],[-27,-27],[-15,-34.5],[0,-37],[12,-37.5],[19.5,-36.2],[27,-35],[33.5,-30],[36,-26.5],[38,-22.5],[41.4,-16.5],[41.6,-11],[41.2,-6],[40.6,-3.3],[47,1.5],[57,6.5],[68,10],[75.78,11.25],[73.4,13.5],[73.6,15.45]],
+     [[75.78,11.25],[76,10],[78,7.3],...rev(BAY),...rev(MAL),...rev(SCS),[113.6,21.9],[117.5,22.2],[119.7,24.5],[123,28.5],[127.5,31.4],[129.7,32.6]]], at:[73,-26],
+  c:[['Lisbon',-9.14,38.71,'r'],['Cape of Good Hope',18.47,-34.36,'t'],['Goa',73.75,15.45,'r'],['Malacca',102.25,2.19,'b'],['Macau',113.54,22.2,'r'],['Nagasaki',129.87,32.75,'r']]},
+ {n:'Atlantic slave trade', when:'c. 1526–1867', s:1532, e:1867, k:'sea', g:'12.5 million Africans embarked; about 10.7 million survived the crossing',
+  p:[[[13.2,-8.8],[5,-9.6],[-15,-11],[-30,-12.6],[-38.3,-13]],
+     [[2.09,6.2],[1.5,4.5],[-8,2.6],[-20,5],[-35,9.5],[-50,13],[-60.6,14.3],[-68,16],[-76.8,17.7]],
+     [[-17.6,14.67],[-30,17.5],[-50,21.5],[-65,24.5],[-74,28.5],[-79.2,32.3],[-79.8,32.75]]], at:[-60,-26],
+  c:[['Luanda',13.2,-8.8,'r'],['Ouidah',2.09,6.36,'r'],['Gorée',-17.4,14.67,'r'],['Salvador',-38.5,-12.97,'l'],['Kingston',-76.8,17.97,'l'],['Charleston',-79.93,32.78,'l']]},
+ {n:'Manila galleon', when:'1565–1815', s:1565, e:1815, k:'sea', g:'Mexican silver for Chinese silk and porcelain: the loop that closed the globe',
+  p:[[[-99.9,16.85],[-110,13.6],[-130,12.6],[-160,12.6],[-190,13],[-215.2,13.45],[-232,13.2],[-235.6,12.7],[-237.6,12.9],[-239,13.6],[-239.3,14.4]],
+     [[-235.6,12.7],[-231,22],[-218,33],[-200,38.5],[-175,40.5],[-150,40],[-130,38.4],[-124,35],[-118.5,30],[-112.8,23.5],[-106.5,19.3],[-101,17],[-99.9,16.85]]], at:[-150,-8],
+  c:[['Acapulco',-99.9,16.85,'r'],['Manila',120.97,14.6,'l']]},
+ {n:'Dutch East India route', when:'1602–1799', s:1602, e:1799, k:'sea', g:'Nutmeg, cloves and pepper, riding the Roaring Forties to Batavia',
+  p:[[[4.9,52.4],[3.6,52.6],[2.4,51.6],[1.5,51.05],[-2,50],[-6,48.5],[-11.5,44],[-14,36],[-19.5,26],[-22.5,14],[-22,2],[-25,-12],[-23,-26],[-9,-33],[8,-34.2],[18.2,-34.2],[20,-37.5],[40,-40.5],[65,-40.5],[90,-38],[102,-28],[104.3,-12],[105.3,-6.7],[106.8,-5.9]],
+     [[106.8,-5.9],[110,-5.4],[114,-5.8],[118,-6.2],[124,-5.4],[128.2,-3.9]]], at:[72,-47],
+  c:[['Amsterdam',4.9,52.37,'r'],['Cape Town',18.42,-33.92,'t'],['Batavia',106.85,-6.1,'l'],['Spice Islands',128.2,-3.7,'r']]},
+ {n:'North Atlantic steam lane', when:'1838 →', s:1838, e:null, k:'sea', g:'Emigrants west; cotton, grain and meat east, on a timetable',
+  p:[[[-3,53.42],[-4.6,53.7],[-5.6,52.2],[-7,51],[-10.5,50.7],[-25,50.3],[-40,47.4],[-52,44],[-65,41.6],[-72,40.4],[-74,40.6]]], at:[-46,56],
+  c:[['Liverpool',-3,53.42,'r'],['New York',-74,40.7,'l']]},
+ {n:'Suez Canal lane', when:'1869 →', s:1869, e:null, k:'sea', g:'London to Bombay roughly 40% shorter than round the Cape',
+  p:[[[0.5,51.5],[1.5,51.05],...rev(CHN).slice(1),[-8.5,36.2],...rev(MED),...rev(RED),[45.2,12.1],[52,13.4],[62,16],[72.6,18.9]],
+     [[52,13.4],[65,9.5],[79.6,5.7],...rev(BAY).slice(1),...rev(MAL),[103.85,1.2],[104.8,2.4],[106.5,6],[110,11.5],[112.5,17],[114.2,22.1]]], at:[76,44],
+  c:[['Port Said',32.3,31.26,'t'],['Aden',45.03,12.8,'t'],['Bombay',72.83,18.95,'r'],['Singapore',103.85,1.29,'b'],['Hong Kong',114.17,22.3,'r']]},
+ {n:'Trans-Siberian Railway', when:'1904 →', s:1904, e:null, k:'land', g:'9,289 km of track from Moscow to the Pacific',
+  p:[[[37.62,55.75],[50.1,53.2],[61.4,55.15],[73.4,54.99],[82.9,55.03],[92.9,56],[104.3,52.3],[107.5,51.8],[113.5,52.03],[121,53.8],[127.5,50.6],[135.07,48.48],[131.9,43.12]]], at:[86,71],
+  c:[['Moscow',37.62,55.75,'l'],['Vladivostok',131.9,43.12,'r']]},
+ {n:'Panama Canal lane', when:'1914 →', s:1914, e:null, k:'sea', g:'New York to San Francisco about 13,000 km shorter than round Cape Horn',
+  p:[[[-74,40.5],[-73,36],[-72.3,28],[-72.6,23.6],[-73.9,20.2],[-75.5,17],[-78.5,11.5],[-79.9,9.4],[-79.5,8.8],[-80.6,6.6],[-83,6.4],[-88,10.6],[-97,14],[-106,18.4],[-112.5,23],[-117,29],[-118.4,33.6],[-121.5,35],[-122.7,37.7]]], at:[-126,5],
+  c:[['Panama',-79.52,8.98,'r'],['San Francisco',-122.42,37.77,'l']]},
+ {n:'Gulf oil tankers', when:'c. 1950 →', s:1950, e:null, k:'sea', g:'About a fifth of the world’s oil leaves through the Strait of Hormuz',
+  p:[[[50.2,26.7],[52,26.2],[54.5,26],[56,26.65],[56.9,26.45],[58.2,25],[61,22.5],[66,15],[76,7],[80.5,5.2],[88,5.6],...rev(MAL),[104.1,1.25],[105.5,4],[110,10.5],[115,17],[119.5,21.2],[124,24.5],[131,30],[137,33.4],[139.7,35]],
+     [[58.2,25],[60.5,20],[55.5,9],[48,-5],[42.6,-14],[38.2,-23],[33.8,-30],[27,-35.4],[19,-36.8],[10,-28],[-5,-10],[-17.5,8],[-19.5,22],[-14.5,36],[-11,44],[-6,48.9],[-2,50.2],[1.5,51.1],[3.4,51.95],[4.1,51.95]]], at:[80,-14],
+  c:[['Ras Tanura',50.2,26.7,'l'],['Strait of Hormuz',56.4,26.6,'t'],['Tokyo',139.7,35.5,'r'],['Rotterdam',4.1,51.95,'r']]},
+ {n:'Container lanes', when:'1956 →', s:1968, e:null, k:'sea', g:'Over 80% of world trade by volume now moves by sea, most of it in boxes',
+  p:[[[122.2,31],[128,30.2],[134,31.8],[142,35.2],[160,43],[180,47],[200,47],[220,43],[235,36.5],[241.7,33.7]],
+     [[122.2,31],[123,27.2],[119.7,24.4],[116,21],[112.5,17],[110,11.5],[106.5,6],[104.8,2.4],[103.85,1.2],...MAL,[88,6],[80.5,5.4],[73,7.6],[60,11.6],[52,13.3],[45.2,12.1],...RED,...MED,...CHN,[3.4,51.9],[4.1,51.95]]], at:[163,61],
+  c:[['Shanghai',121.6,31.2,'l'],['Los Angeles',-118.3,33.7,'r'],['Rotterdam',4.1,51.95,'r'],['Singapore',103.85,1.29,'b']]},
+ {n:'China–Europe rail freight', when:'2011 →', s:2011, e:null, k:'land', g:'Chongqing to Duisburg in about two weeks: the Silk Road returns on rails',
+  p:[[[106.55,29.56],[104.07,30.67],[103.8,36.06],[94.5,40.5],[87.6,43.8],[82.6,45.2],[71.4,51.17],[55.1,51.8],[50.1,53.2],[37.62,55.75],[27.56,53.9],[23.7,52.1],[19.46,51.76],[13.4,52.5],[6.76,51.43]]], at:[76,70],
+  c:[['Chongqing',106.55,29.56,'r'],['Duisburg',6.76,51.43,'l']]}
+];
+
+/* ---------- geometry ---------- */
+const KX = Math.cos(35*Math.PI/180), W360 = 360*KX;
+function smooth(pts){                                       // Catmull-Rom through the waypoints, in map units
+  const P = pts.map(p => [p[0]*KX, -p[1]]), out = [], n = P.length;
+  for(let i=0;i<n-1;i++){
+    const p0=P[Math.max(0,i-1)], p1=P[i], p2=P[i+1], p3=P[Math.min(n-1,i+2)];
+    const steps = Math.max(2, Math.ceil(Math.hypot(p2[0]-p1[0],p2[1]-p1[1])/0.8));
+    for(let s=0;s<steps;s++){
+      const u=s/steps,u2=u*u,u3=u2*u;
+      out.push([0.5*(2*p1[0]+(p2[0]-p0[0])*u+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*u2+(3*p1[0]-p0[0]-3*p2[0]+p3[0])*u3),
+                0.5*(2*p1[1]+(p2[1]-p0[1])*u+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*u2+(3*p1[1]-p0[1]-3*p2[1]+p3[1])*u3)]);
+    }
+  }
+  out.push(P[n-1]);
+  const cum=[0]; for(let i=1;i<out.length;i++) cum.push(cum[i-1]+Math.hypot(out[i][0]-out[i-1][0],out[i][1]-out[i-1][1]));
+  return {pt:out, cum, len:cum[cum.length-1]};
+}
+ROUTES.forEach((r,i) => {
+  r.i=i; r.ts=T(r.s); r.te = r.e==null ? Infinity : T(r.e);
+  r.paths=r.p.map(smooth);
+  const xs=r.paths.flatMap(p=>p.pt.map(q=>q[0])); r.wrap = Math.min(...xs) < -180*KX || Math.max(...xs) > 180*KX;
+});
+const landPath = new Path2D();
+for(const ring of (window.TRADE_LAND||[])){                // rings that cross the antimeridian are unwrapped, then put back in the copy they mostly belong to; the map is drawn three times side by side
+  const xs=[ring[0]]; let off=0, sum=ring[0];
+  for(let i=2;i<ring.length;i+=2){ const d=ring[i]-ring[i-2]; if(d>180) off-=360; else if(d<-180) off+=360; xs.push(ring[i]+off); sum+=ring[i]+off; }
+  const shift=-360*Math.round(sum/xs.length/360);
+  landPath.moveTo((xs[0]+shift)*KX,-ring[1]); for(let i=1;i<xs.length;i++) landPath.lineTo((xs[i]+shift)*KX,-ring[2*i+1]);
+  landPath.closePath();
+}
+
+const CAMT = CAM.map(c => [T(c[0]),c[1],c[2],c[3],c[4]]);
+function camera(t){
+  let i=1; while(i<CAMT.length-1 && t>CAMT[i][0]) i++;
+  const a=CAMT[i-1], b=CAMT[i]; let u=clamp((t-a[0])/((b[0]-a[0])||1),0,1); u=u*u*(3-2*u);
+  return {lon:lerp(a[1],b[1],u), lat:lerp(a[2],b[2],u), w:lerp(a[3],b[3],u), h:lerp(a[4],b[4],u)};
+}
+
+/* ---------- drawing ---------- */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = {sea:css('--c-sea'), land:css('--c-land'), fg:css('--fg'), muted:css('--muted'), landFill:css('--land'), coast:css('--coast'), seaBg:css('--sea')};
+let W=0,H=0,DPR=1;
+function resize(){ const r=cv.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1); W=r.width; H=r.height; cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); draw(); }
+
+function trace(path, f){                                    // the first fraction f of a path
+  const pt=path.pt, cum=path.cum, L=f*path.len; ctx.moveTo(pt[0][0],pt[0][1]);
+  for(let i=1;i<pt.length;i++){
+    if(cum[i]<=L){ ctx.lineTo(pt[i][0],pt[i][1]); continue; }
+    const u=(L-cum[i-1])/((cum[i]-cum[i-1])||1); ctx.lineTo(lerp(pt[i-1][0],pt[i][0],u), lerp(pt[i-1][1],pt[i][1],u)); break;
+  }
+}
+function along(path, f){
+  const L=f*path.len, cum=path.cum; let lo=0, hi=cum.length-1;
+  while(hi-lo>1){ const m=(lo+hi)>>1; if(cum[m]<=L) lo=m; else hi=m; }
+  const u=(L-cum[lo])/((cum[hi]-cum[lo])||1); return [lerp(path.pt[lo][0],path.pt[hi][0],u), lerp(path.pt[lo][1],path.pt[hi][1],u)];
+}
+function wrapText(text, maxW){ const words=text.split(' '), lines=[]; let cur=''; for(const w of words){ const nx=cur?cur+' '+w:w; if(ctx.measureText(nx).width>maxW && cur){ lines.push(cur); cur=w; } else cur=nx; } if(cur) lines.push(cur); return lines; }
+const hit = (a,b) => a.x<b.x+b.w && b.x<a.x+a.w && a.y<b.y+b.h && b.y<a.y+a.h;
+
+let t=0;
+function draw(){
+  if(!W) return;
+  const cam=camera(t), s=Math.min(W/(cam.w*KX), H/cam.h), ox=W/2-cam.lon*KX*s, oy=H/2+cam.lat*s;
+  const SX = x => ox+x*s, SY = y => oy+y*s;                 // map units to CSS px
+  const offs=[-W360,0,W360].filter(o => SX(o+180*KX)>0 && SX(o-180*KX)<W);
+  ctx.setTransform(DPR,0,0,DPR,0,0); ctx.fillStyle=COL.seaBg; ctx.fillRect(0,0,W,H);
+
+  for(const o of offs){
+    ctx.setTransform(DPR*s,0,0,DPR*s,DPR*(ox+o*s),DPR*oy);
+    ctx.fillStyle=COL.landFill; ctx.fill(landPath,'evenodd');
+    ctx.strokeStyle=COL.coast; ctx.lineWidth=0.7/s; ctx.lineJoin='round'; ctx.stroke(landPath);
+  }
+
+  const small = W<620, fs = clamp(W/88,10.5,14.5);
+  const live=[];                                            // routes that have started
+  for(const r of ROUTES){ if(t<r.ts) continue;
+    r.grow = clamp((t-r.ts)/2.2,0,1); r.on = 1-clamp((t-r.te)/1.6,0,1);
+    const dt=t-r.ts; r.tag = t>=r.te ? 0 : clamp(dt/0.35,0,1)*(1-clamp((dt-5.6)/0.8,0,1));
+    live.push(r);
+  }
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  for(const pass of ['ghost','glow','core']){
+    for(const r of live){
+      if(pass!=='ghost' && r.on<=0) continue;
+      const ro = r.wrap ? offs.concat(offs.map(o=>o+W360), offs.map(o=>o-W360)).filter((v,i,a)=>a.indexOf(v)===i) : offs;
+      for(const o of ro){
+        ctx.setTransform(DPR*s,0,0,DPR*s,DPR*(ox+o*s),DPR*oy);
+        ctx.beginPath(); for(const p of r.paths) trace(p,r.grow);
+        ctx.strokeStyle=COL[r.k];
+        if(pass==='ghost'){ ctx.globalAlpha=0.26; ctx.lineWidth=1/s; }
+        else if(pass==='glow'){ ctx.globalAlpha=0.2*r.on; ctx.lineWidth=(small?4.5:6.5)/s; }
+        else { ctx.globalAlpha=0.95*r.on; ctx.lineWidth=(small?1.5:2)/s; }
+        ctx.stroke();
+      }
+    }
+  }
+  /* cargo: dots travelling along the routes that are open */
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  for(const r of live){ if(r.on<=0 || r.grow<1) continue;
+    const ro = r.wrap ? [-W360,0,W360] : offs;
+    for(const p of r.paths){
+      const n=Math.max(1,Math.round(p.len/26));
+      for(let k=0;k<n;k++){
+        const f=((t*5.2/p.len)+(k/n)+r.i*0.137)%1, q=along(p,f), edge=Math.min(1,f*12,(1-f)*12);
+        for(const o of ro){ const x=SX(q[0]+o), y=SY(q[1]); if(x<-5||x>W+5||y<-5||y>H+5) continue;
+          ctx.globalAlpha=r.on*edge; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,small?1.5:2.1,0,6.2832); ctx.fill(); }
+      }
+    }
+  }
+  /* towns */
+  const seen=new Set(), townLabels=[];
+  for(const r of live){ for(const c of r.c){
+    for(const o of offs){ const x=SX(c[1]*KX+o), y=SY(-c[2]); if(x<0||x>W||y<0||y>H) continue;
+      const a = r.on>0 ? Math.min(1,r.grow*1.6) : 0.3;
+      ctx.globalAlpha=a; ctx.fillStyle=COL.seaBg; ctx.strokeStyle=r.on>0?COL.fg:COL[r.k]; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.arc(x,y,r.on>0?(small?2.2:3):1.6,0,6.2832); ctx.fill(); ctx.stroke();
+      if(r.tag>0.02 && !seen.has(c[0])){ seen.add(c[0]); townLabels.push({name:c[0],x,y,side:c[3],a:r.tag}); }
+    }
+  }}
+  /* captions: one per route for its first six seconds, nudged apart if they collide */
+  const boxes=[]; ctx.textBaseline='alphabetic';
+  for(const r of live){ if(r.tag<=0.02) continue;
+    let ax=SX(r.at[0]*KX); const ay=SY(-r.at[1]);
+    if(ax<-20) ax+=W360*s; else if(ax>W+20) ax-=W360*s;
+    ctx.font=`700 ${fs+1}px Archivo, sans-serif`; const wn=ctx.measureText(r.n).width;
+    ctx.font=`500 ${fs-2}px "IBM Plex Mono", monospace`; const ww=ctx.measureText(r.when).width;
+    ctx.font=`400 ${fs-1}px "IBM Plex Sans", sans-serif`; const gl = small ? [] : wrapText(r.g, Math.max(wn, 215));
+    const wg=Math.max(0,...gl.map(l=>ctx.measureText(l).width));
+    const pad=8, lh=fs+3, w=Math.max(wn,ww,wg)+pad*2+4, h=pad*2+(fs+2)+(fs+1)+gl.length*lh-2;
+    const b={x:clamp(ax-w/2,6,W-w-6), y:clamp(ay-h/2,6,H-h-6), w, h};
+    for(let k=0;k<8 && boxes.some(o=>hit(b,o));k++){ b.y += (k%2?-1:1)*(k+1)*(h+6)/2; b.y=clamp(b.y,6,H-h-6); }
+    boxes.push(b);
+    ctx.globalAlpha=r.tag*0.86; ctx.fillStyle='#081830'; ctx.beginPath(); ctx.roundRect(b.x,b.y,b.w,b.h,7); ctx.fill();
+    ctx.globalAlpha=r.tag; ctx.fillStyle=COL[r.k]; ctx.beginPath(); ctx.roundRect(b.x,b.y,4,b.h,[7,0,0,7]); ctx.fill();
+    let y=b.y+pad+fs; const x=b.x+pad+4;
+    ctx.fillStyle=COL.fg; ctx.font=`700 ${fs+1}px Archivo, sans-serif`; ctx.fillText(r.n,x,y); y+=fs+2;
+    ctx.fillStyle=COL[r.k]; ctx.font=`500 ${fs-2}px "IBM Plex Mono", monospace`; ctx.fillText(r.when,x,y); y+=lh;
+    ctx.fillStyle=COL.muted; ctx.font=`400 ${fs-1}px "IBM Plex Sans", sans-serif`; for(const l of gl){ ctx.fillText(l,x,y); y+=lh; }
+  }
+  ctx.font=`500 ${fs-1.5}px "IBM Plex Sans", sans-serif`; ctx.lineJoin='round';
+  for(const L of townLabels){
+    const w=ctx.measureText(L.name).width, g=7; let x=L.x+g, y=L.y+4;
+    if(L.side==='l') x=L.x-g-w; else if(L.side==='t'){ x=L.x-w/2; y=L.y-g-2; } else if(L.side==='b'){ x=L.x-w/2; y=L.y+g+fs-2; }
+    const b={x:x-2,y:y-fs,w:w+4,h:fs+4}; if(b.x<2||b.x+b.w>W-2||b.y<2||b.y+b.h>H-2||boxes.some(o=>hit(b,o))) continue; boxes.push(b);
+    ctx.globalAlpha=L.a; ctx.strokeStyle='#081830'; ctx.lineWidth=3.2; ctx.strokeText(L.name,x,y); ctx.fillStyle=COL.fg; ctx.fillText(L.name,x,y);
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ---------- transport ---------- */
+const $ = id => document.getElementById(id);
+const yearEl=$('year'), chapT=$('chapT'), chapP=$('chapP'), seek=$('seek'), playB=$('play'), speedB=$('speed');
+let playing=false, speed=1, last=0, chapI=-1, yearTxt='';
+function fmtYear(y){ const r=Math.round(y); if(r<1) return [String(Math.max(1,-r)),'BC']; return r<1000 ? [String(r),'AD'] : [String(r),'']; }
+function hud(){
+  const y=Y(t), f=fmtYear(y), txt=f.join(' ');
+  if(txt!==yearTxt){ yearTxt=txt; yearEl.innerHTML=f[0]+(f[1]?`<small>${f[1]}</small>`:''); }
+  let ci=0; for(let i=0;i<CHAPTERS.length;i++) if(y>=CHAPTERS[i].y-0.001) ci=i;
+  if(ci!==chapI){ chapI=ci; const c=CHAPTERS[ci], end=CHAPTERS[ci+1]?CHAPTERS[ci+1].y:null;
+    const span = fmtYear(c.y).filter(Boolean).join(' ')+' – '+(end==null?'today':fmtYear(end).filter(Boolean).join(' '));
+    chapT.innerHTML=`<i>${span.toUpperCase()}</i>${c.t}`; chapP.textContent=c.p;
+    document.querySelectorAll('#chips button').forEach((b,i)=>b.setAttribute('aria-current', i===ci ? 'true':'false'));
+  }
+  seek.value=t; seek.setAttribute('aria-valuetext', txt);
+}
+function setPlaying(p){ playing=p; playB.textContent = p ? 'Pause' : (t>=DUR ? 'Replay' : 'Play'); if(p){ last=performance.now(); requestAnimationFrame(tick); } }
+function tick(now){
+  if(!playing) return;
+  t=Math.min(DUR, t+Math.min(0.1,(now-last)/1000)*speed); last=now;
+  hud(); draw();
+  if(t>=DUR) setPlaying(false); else requestAnimationFrame(tick);
+}
+function go(nt){ t=clamp(nt,0,DUR); hud(); draw(); if(!playing) playB.textContent = t>=DUR ? 'Replay' : 'Play'; }
+playB.addEventListener('click', () => { if(!playing && t>=DUR) t=0; setPlaying(!playing); });
+seek.addEventListener('input', () => go(+seek.value));
+speedB.addEventListener('click', () => { speed = speed===1 ? 2 : speed===2 ? 0.5 : 1; speedB.innerHTML = (speed===0.5?'&frac12;':speed)+'&times;'; });
+$('full').addEventListener('click', () => { const st=$('stage'); if(document.fullscreenElement) document.exitFullscreen(); else if(st.requestFullscreen) st.requestFullscreen(); });
+cv.addEventListener('click', () => playB.click());
+document.addEventListener('keydown', e => { if(e.target.closest('button,input,a')) return; if(e.code==='Space'){ e.preventDefault(); playB.click(); } else if(e.code==='ArrowRight') go(t+2); else if(e.code==='ArrowLeft') go(t-2); });
+
+$('chips').innerHTML = CHAPTERS.map(c => `<button type="button">${c.t}</button>`).join('');
+document.querySelectorAll('#chips button').forEach((b,i) => b.addEventListener('click', () => go(T(CHAPTERS[i].y))));
+$('ticks').innerHTML = CHAPTERS.slice(1).map(c => `<i style="left:${(T(c.y)/DUR*100).toFixed(2)}%"></i>`).join('');
+seek.max=DUR;
+$('routes').innerHTML = ROUTES.map((r,i) => `<button type="button" data-i="${i}" style="--c:var(--c-${r.k})"><i></i><b>${r.n}<small>${r.when}</small></b><span>${r.g}</span></button>`).join('');
+$('routes').addEventListener('click', e => { const b=e.target.closest('button'); if(!b) return; go(ROUTES[+b.dataset.i].ts+2.6); $('stage').scrollIntoView({behavior:'smooth',block:'nearest'}); });
+
+window.tradeFilm = {seek:go, duration:DUR, yearToTime:T};
+new ResizeObserver(resize).observe(cv);
+const q=new URLSearchParams(location.search);
+if(q.has('t')) t=clamp(+q.get('t')||0,0,DUR);
+hud(); resize();
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+setPlaying(!q.has('t') && q.get('autoplay')!=='0' && !matchMedia('(prefers-reduced-motion: reduce)').matches);
+})();
+</script>
+</body>
+</html>
