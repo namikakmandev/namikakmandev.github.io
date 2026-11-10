@@ -16,7 +16,7 @@
 :root{
   color-scheme:dark;
   --bg:#0B1E3A; --panel:#132B4F; --panel-2:#0F2648; --line:#2B4A73; --sea:#0C2142; --land:#1A3A66; --coast:#31598C;
-  --fg:#F3F6FB; --muted:#93A8C4; --c-sea:#5AABFF; --c-land:#F5953A;
+  --fg:#F3F6FB; --muted:#93A8C4; --c-sea:#5AABFF; --c-land:#F5953A; --c-air:#D9A8FF;
   --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
   --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
@@ -104,6 +104,7 @@ h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:14px 0 0}
       <div class="legend" aria-hidden="true">
         <span style="--c:var(--c-sea)"><i></i>Sea and river</span>
         <span style="--c:var(--c-land)"><i></i>Caravan, road, rail</span>
+        <span style="--c:var(--c-air)"><i></i>Air</span>
       </div>
     </div>
     <div class="map"><canvas id="cv" role="img" aria-label="World map on which trade routes appear and fade in chronological order. The full list of routes follows below."></canvas></div>
@@ -121,7 +122,7 @@ h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:14px 0 0}
   <div class="routes" id="routes"></div>
 
   <p class="notes">
-    How to read it: lines are schematic, drawn through the main ports and caravan towns rather than along surveyed tracks, and most dates are conventional round figures (a route rarely opens or closes in a single year). Coastlines are today's. The list is a selection: regional networks such as the Grand Canal, the Tea Horse Road, the Mississippian and Mesoamerican exchange systems and Pacific voyaging are left out for legibility, not importance. Figures quoted: Atlantic slave trade embarkations and arrivals from the <a href="https://www.slavevoyages.org/" target="_blank" rel="noopener">SlaveVoyages</a> database; Inca road length from <a href="https://whc.unesco.org/en/list/1459/" target="_blank" rel="noopener">UNESCO</a>; seaborne share of trade from <a href="https://unctad.org/topic/transport-and-trade-logistics/review-of-maritime-transport" target="_blank" rel="noopener">UNCTAD</a>; Hormuz oil share from the <a href="https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints" target="_blank" rel="noopener">US EIA</a>. Coastline: Natural Earth (public domain).
+    How to read it: lines are schematic, drawn through the main ports and caravan towns rather than along surveyed tracks, and most dates are conventional round figures (a route rarely opens or closes in a single year). Coastlines are today's. The list is a selection: regional networks such as the Grand Canal, the Tea Horse Road, the Mississippian and Mesoamerican exchange systems and Pacific voyaging are left out for legibility, not importance. Figures quoted: Atlantic slave trade embarkations and arrivals from the <a href="https://www.slavevoyages.org/" target="_blank" rel="noopener">SlaveVoyages</a> database; Inca road length from <a href="https://whc.unesco.org/en/list/1459/" target="_blank" rel="noopener">UNESCO</a>; air freight's share of trade from <a href="https://www.iata.org/en/programs/cargo/" target="_blank" rel="noopener">IATA</a>; seaborne share of trade from <a href="https://unctad.org/topic/transport-and-trade-logistics/review-of-maritime-transport" target="_blank" rel="noopener">UNCTAD</a>; Hormuz oil share from the <a href="https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints" target="_blank" rel="noopener">US EIA</a>. Coastline: Natural Earth (public domain).
   </p>
 </div>
 
@@ -160,7 +161,7 @@ const CHN = [[-9.5,36.5],[-10.5,40],[-10,44.5],[-6,48.7],[-2,50.1],[1.5,51.05]];
 const rev = a => a.slice().reverse();
 
 /* s/e = years the line switches on/off in the film; when = the period as a historian would write it.
-   k: 'sea' | 'land'. at = where the caption sits. c = [name, lon, lat, side]. */
+   k: 'sea' | 'land' | 'air' (drawn dashed). at = where the caption sits. c = [name, lon, lat, side]. */
 const ROUTES = [
  {n:'Gulf route to the Indus', when:'c. 2500–1750 BC', s:-2000, e:-1750, k:'sea', g:'Copper, carnelian, timber and grain between Ur, Dilmun and Meluhha',
   p:[[[46.1,30.96],[48.6,29.6],[50.6,26.7],[53.5,25.9],[56,26.65],[56.9,26.45],[58.2,25],[61.5,24.6],[65.5,24.4],[67.5,24],[68.1,27.3]]], at:[62,20.3],
@@ -275,6 +276,12 @@ const ROUTES = [
   p:[[[122.2,31],[128,30.2],[134,31.8],[142,35.2],[160,43],[180,47],[200,47],[220,43],[235,36.5],[241.7,33.7]],
      [[122.2,31],[123,27.2],[119.7,24.4],[116,21],[112.5,17],[110,11.5],[106.5,6],[104.8,2.4],[103.85,1.2],...MAL,[88,6],[80.5,5.4],[73,7.6],[60,11.6],[52,13.3],[45.2,12.1],...RED,...MED,...CHN,[3.4,51.9],[4.1,51.95]]], at:[163,61],
   c:[['Shanghai',121.6,31.2,'l'],['Los Angeles',-118.3,33.7,'r'],['Rotterdam',4.1,51.95,'r'],['Singapore',103.85,1.29,'b']]},
+ {n:'Air freight lanes', when:'1970s →', s:1973, e:null, k:'air', g:'Under 1% of world trade by weight, about a third by value',
+  p:[[[113.9,22.3],[121.8,31.1],[150,50],[180,58],[210,61.2],[240,52],[258,43],[270,35.05]],
+     [[113.9,22.3],[95,26],[75,27],[55.4,25.25],[40,37],[25,45],[8.57,50.03]],
+     [[8.57,50.03],[0,53],[-20,57],[-45,55],[-62,48],[-73.8,40.6],[-90,35.05]],
+     [[-80.3,25.8],[-74.1,4.7],[-60,-8],[-47.1,-23]]], at:[20,72],
+  c:[['Hong Kong',113.9,22.3,'r'],['Anchorage',-150,61.2,'t'],['Memphis',-90,35.05,'b'],['Dubai',55.4,25.25,'b'],['Frankfurt',8.57,50.03,'t']]},
  {n:'China–Europe rail freight', when:'2011 →', s:2011, e:null, k:'land', g:'Chongqing to Duisburg in about two weeks: the Silk Road returns on rails',
   p:[[[106.55,29.56],[104.07,30.67],[103.8,36.06],[94.5,40.5],[87.6,43.8],[82.6,45.2],[71.4,51.17],[55.1,51.8],[50.1,53.2],[37.62,55.75],[27.56,53.9],[23.7,52.1],[19.46,51.76],[13.4,52.5],[6.76,51.43]]], at:[76,70],
   c:[['Chongqing',106.55,29.56,'r'],['Duisburg',6.76,51.43,'l']]}
@@ -324,7 +331,7 @@ function camera(t){
 /* ---------- drawing ---------- */
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const COL = {sea:css('--c-sea'), land:css('--c-land'), fg:css('--fg'), muted:css('--muted'), landFill:css('--land'), coast:css('--coast'), seaBg:css('--sea')};
+const COL = {sea:css('--c-sea'), land:css('--c-land'), air:css('--c-air'), fg:css('--fg'), muted:css('--muted'), landFill:css('--land'), coast:css('--coast'), seaBg:css('--sea')};
 let W=0,H=0,DPR=1;
 function resize(){ const r=cv.getBoundingClientRect(); DPR=Math.min(2,window.devicePixelRatio||1); W=r.width; H=r.height; cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR); draw(); }
 
@@ -376,7 +383,7 @@ function draw(){
         if(pass==='ghost'){ ctx.globalAlpha=0.26; ctx.lineWidth=1/s; }
         else if(pass==='glow'){ ctx.globalAlpha=0.2*r.on; ctx.lineWidth=(small?4.5:6.5)/s; }
         else { ctx.globalAlpha=0.95*r.on; ctx.lineWidth=(small?1.5:2)/s; }
-        ctx.stroke();
+        ctx.setLineDash(r.k==='air' && pass!=='glow' ? [7/s,5/s] : []); ctx.stroke(); ctx.setLineDash([]);
       }
     }
   }

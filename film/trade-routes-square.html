@@ -34,7 +34,7 @@ const CAPS=[
  ['Spain',18.9,21.9,'Columbus’s track becomes the silver fleets'],
  ['Atlantic slave trade',21.9,25.4,'12.5 million embarked. 10.7 million survived.'],
  ['Suez Canal',26.5,29.3,'London to Bombay: 40% shorter than via the Cape'],
- ['Container lanes',29.3,ENDCARD,'Today over 80% of world trade moves by sea',0,'Sea lanes today']
+ ['Air freight',29.3,ENDCARD,'Under 1% of trade by weight. A third by value.',0]
 ];
 /* Sea cargo per year, million tonnes. 1970 onwards is UNCTAD's count of goods loaded (Review of Maritime Transport);
    1840 and 1950 are the round figures usually quoted from Stopford, Maritime Economics. Nothing before 1840 is measured:
@@ -169,6 +169,12 @@ const ROUTES = [
   p:[[[122.2,31],[128,30.2],[134,31.8],[142,35.2],[160,43],[180,47],[200,47],[220,43],[235,36.5],[241.7,33.7]],
      [[122.2,31],[123,27.2],[119.7,24.4],[116,21],[112.5,17],[110,11.5],[106.5,6],[104.8,2.4],[103.85,1.2],...MAL,[88,6],[80.5,5.4],[73,7.6],[60,11.6],[52,13.3],[45.2,12.1],...RED,...MED,...CHN,[3.4,51.9],[4.1,51.95]]], at:[163,61],
   c:[['Shanghai',121.6,31.2,'l'],['Los Angeles',-118.3,33.7,'r'],['Rotterdam',4.1,51.95,'r'],['Singapore',103.85,1.29,'b']]},
+ {n:'Air freight lanes', when:'1970s →', s:1973, e:null, k:'air', g:'Under 1% of world trade by weight, about a third by value',
+  p:[[[113.9,22.3],[121.8,31.1],[150,50],[180,58],[210,61.2],[240,52],[258,43],[270,35.05]],
+     [[113.9,22.3],[95,26],[75,27],[55.4,25.25],[40,37],[25,45],[8.57,50.03]],
+     [[8.57,50.03],[0,53],[-20,57],[-45,55],[-62,48],[-73.8,40.6],[-90,35.05]],
+     [[-80.3,25.8],[-74.1,4.7],[-60,-8],[-47.1,-23]]], at:[20,72],
+  c:[['Hong Kong',113.9,22.3,'r'],['Anchorage',-150,61.2,'t'],['Memphis',-90,35.05,'b'],['Dubai',55.4,25.25,'b'],['Frankfurt',8.57,50.03,'t']]},
  {n:'China–Europe rail freight', when:'2011 →', s:2011, e:null, k:'land', g:'Chongqing to Duisburg in about two weeks: the Silk Road returns on rails',
   p:[[[106.55,29.56],[104.07,30.67],[103.8,36.06],[94.5,40.5],[87.6,43.8],[82.6,45.2],[71.4,51.17],[55.1,51.8],[50.1,53.2],[37.62,55.75],[27.56,53.9],[23.7,52.1],[19.46,51.76],[13.4,52.5],[6.76,51.43]]], at:[76,70],
   c:[['Chongqing',106.55,29.56,'r'],['Duisburg',6.76,51.43,'l']]}
@@ -206,8 +212,8 @@ for(const ring of (window.TRADE_LAND||[])){                // rings that cross t
 
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 const W=1080, H=1080, MAPT=250, MAPH=640, BY=MAPT+MAPH;
-const C={bg:'#0B1E3A', sea:'#0C2142', land:'#1A3A66', coast:'#31598C', line:'#2B4A73', fg:'#F3F6FB', soft:'#D5DEEC', muted:'#93A8C4', seaR:'#5AABFF', landR:'#F5953A'};
-const col=r=>r.k==='sea'?C.seaR:C.landR;
+const C={bg:'#0B1E3A', sea:'#0C2142', land:'#1A3A66', coast:'#31598C', line:'#2B4A73', fg:'#F3F6FB', soft:'#D5DEEC', muted:'#93A8C4', seaR:'#5AABFF', landR:'#F5953A', airR:'#D9A8FF'};
+const col=r=>r.k==='sea'?C.seaR:r.k==='air'?C.airR:C.landR;
 const OFFS=[-W360,0,W360];
 const VIEW_OLD={lon:57.5,lat:25,S:W/(155*KX)}, VIEW_ALL={lon:10,lat:10,S:W/W360};
 function trace(path,f){ const pt=path.pt,cum=path.cum,L=f*path.len; ctx.moveTo(pt[0][0],pt[0][1]);
@@ -239,7 +245,7 @@ function render(f){
     const hot = cap && cap.r===r;
     for(const o of OFFS){ ctx.setTransform(S,0,0,S,OX+o*S,OY); ctx.beginPath(); for(const p of r.paths) trace(p,r.grow); ctx.strokeStyle=col(r);
       if(pass==='ghost'){ctx.globalAlpha=lerp(0.3,mode==='end'?0.7:0.92,legacy);ctx.lineWidth=lerp(1.3,2.2,legacy)/S;} else if(pass==='glow'){ctx.globalAlpha=(hot?0.42:0.2)*r.on;ctx.lineWidth=(hot?14:8)/S;} else {ctx.globalAlpha=0.96*r.on;ctx.lineWidth=(hot?4:2.6)/S;}
-      ctx.stroke(); } }
+      ctx.setLineDash(r.k==='air'&&pass!=='glow'?[9/S,6/S]:[]); ctx.stroke(); ctx.setLineDash([]); } }
   ctx.setTransform(1,0,0,1,0,0);
   for(const r of live){ if(r.on<=0||r.grow<1) continue;
     for(const p of r.paths){ const n=Math.max(1,Math.round(p.len/26));
@@ -273,11 +279,11 @@ function render(f){
     ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.fillStyle=C.muted;
     [0,4,8,12].forEach(g=>{ const x=BX+BW*g*1000/MAXV; ctx.fillRect(x,156,1.5,8); ctx.textAlign=g?'center':'left'; ctx.fillText(g? g+' bn':'0',x,186); }); ctx.textAlign='left';
     if(endA>0){ ctx.globalAlpha=endA; ctx.fillStyle=C.soft; ctx.font='600 30px Archivo, sans-serif'; ctx.fillText('Namık Akman',56,212);
-      ctx.fillStyle=C.muted; ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.textAlign='right'; ctx.fillText('Ship \u2248 200,000 t \u00b7 camel load \u2248 200 kg \u00b7 cargo: UNCTAD',W-56,226); ctx.textAlign='left'; }
+      ctx.fillStyle=C.muted; ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.textAlign='right'; ctx.fillText('Ship \u2248 200,000 t \u00b7 camel load \u2248 200 kg \u00b7 cargo: UNCTAD \u00b7 air: IATA',W-56,226); ctx.textAlign='left'; }
     /* colour key, inside the map */
     ctx.globalAlpha=yearA*(1-endA); ctx.textAlign='right'; ctx.font='500 24px "IBM Plex Sans", sans-serif';
-    ctx.fillStyle='rgba(8,24,48,.72)'; ctx.beginPath(); ctx.roundRect(W-318,MAPT+14,304,84,10); ctx.fill();
-    [['Sea and river',C.seaR,MAPT+48],['Caravan, road, rail',C.landR,MAPT+82]].forEach(l=>{ ctx.fillStyle=C.soft; ctx.fillText(l[0],W-30,l[2]); const w=ctx.measureText(l[0]).width; ctx.fillStyle=l[1]; ctx.fillRect(W-30-w-48,l[2]-11,36,6); });
+    ctx.fillStyle='rgba(8,24,48,.72)'; ctx.beginPath(); ctx.roundRect(W-318,MAPT+14,304,118,10); ctx.fill();
+    [['Sea and river',C.seaR,MAPT+48],['Caravan, road, rail',C.landR,MAPT+82],['Air',C.airR,MAPT+116]].forEach(l=>{ ctx.fillStyle=C.soft; ctx.fillText(l[0],W-30,l[2]); const w=ctx.measureText(l[0]).width; ctx.fillStyle=l[1]; ctx.fillRect(W-30-w-48,l[2]-11,36,6); });
     ctx.textAlign='left'; }
   ctx.globalAlpha=1;
 
