@@ -7,7 +7,7 @@
 <style>html,body{margin:0;background:#0B1E3A}canvas{display:block;width:1080px;height:1080px}</style>
 </head>
 <body>
-<!-- The 35-second square cut for LinkedIn. Route data is copied from trade-routes.html by the generator; scripts/render_trade_routes_film.js
+<!-- The 40-second square cut for LinkedIn. Route data is copied from trade-routes.html by the generator; scripts/render_trade_routes_film.js
      calls window.film.render(seconds) once per frame and ffmpeg joins the frames. Open with ?play to preview in real time. -->
 <canvas id="cv" width="1080" height="1080"></canvas>
 <script src="../assets/trade-routes/land.js"></script>
@@ -15,25 +15,35 @@
 (() => {
 'use strict';
 const lerp=(a,b,u)=>a+(b-a)*u, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-/* film clock: 0-2 s the finished map, 2-3 s rewind, 3-31.6 s the story, then the closing line to 35 s */
-const HOOK=2, REW=1, START=HOOK+REW, TOTAL=35;
-const TK=[[-2000,0],[-1200,3.5],[-500,6],[1,9],[500,11],[1000,13.5],[1400,16],[1500,19],[1800,24.5],[1900,26.5],[1950,27.3],[2025,28.6]];
-const TEND=TK[TK.length-1][1];
+/* film clock: 0-2.5 s the finished map, 2.5-3.5 s rewind, then the story (TK, in story seconds), then the closing line */
+const HOOK=2.5, REW=1, START=HOOK+REW, TOTAL=40.5;
+const TK=[[-2000,0],[-1200,2.4],[-500,4],[1,7],[500,9.2],[1000,12],[1400,15.2],[1500,19.2],[1800,25],[1900,27.2],[1950,28.2],[2026,29.6]];
+const TEND=TK[TK.length-1][1], ENDCARD=32.1;
 function T(y){ if(y<=TK[0][0]) return 0; for(let i=1;i<TK.length;i++) if(y<=TK[i][0]){const a=TK[i-1],b=TK[i];return lerp(a[1],b[1],(y-a[0])/(b[0]-a[0]));} return TEND; }
 function Y(t){ if(t<=0) return TK[0][0]; for(let i=1;i<TK.length;i++) if(t<=TK[i][1]){const a=TK[i-1],b=TK[i];return lerp(a[0],b[0],(t-a[1])/(b[1]-a[1]));} return TK[TK.length-1][0]; }
-const ERAS=[[-2000,'Bronze Age exchange'],[-1200,'Iron Age seafarers and caravans'],[-500,'Empires connect Eurasia'],[500,'Caliphate, Tang and the Norse'],[1000,'The medieval world system'],[1450,'The oceans open'],[1800,'Steam, canals and rail'],[1945,'Oil and the box']];
-/* the nine routes that get a caption: [route name starts with, show from, to (story seconds), line, which of its paths the marker sits on] */
+const ERAS=[[-2000,'Bronze Age exchange'],[-1200,'Iron Age seafarers and caravans'],[-500,'Empires connect Eurasia'],[650,'Caliphate, Tang and the Norse'],[1000,'The medieval world system'],[1450,'The oceans open'],[1800,'Steam, canals and rail'],[1945,'Tankers and containers']];
+/* the routes that get a caption: [route name starts with, show from, to (story seconds), line, path the marker sits on, title override].
+   Every caption stays up about three seconds and the band is never left empty for long. */
 const CAPS=[
- ['Gulf route',0.2,3.4,'Copper and carnelian by boat between Mesopotamia and the Indus'],
- ['Phoenician',3.9,6.6,'Purple dye and cedar out; Spanish silver and Atlantic tin back'],
- ['Silk Road',8.3,11.2,'Silk, horses, glass and paper across 6,000 km of Asia'],
- ['Maritime Silk Road',11.7,13.9,'Porcelain, spices and incense from Guangzhou to Basra and Cairo'],
- ['Trans-Saharan',14,16.2,'West African gold north, Saharan salt south, by camel'],
- ['Spain',18.8,21,'Columbus’s track becomes the silver treasure fleets'],
- ['Atlantic slave trade',21,23.4,'12.5 million Africans embarked. About 10.7 million survived the crossing'],
- ['Suez Canal',25.9,27.7,'London to Bombay roughly 40% shorter than round the Cape'],
- ['Container lanes',27.8,29.4,'Over 80% of world trade by volume now moves by sea',1]
+ ['Gulf route',0.1,3,'Copper and carnelian, Mesopotamia to the Indus'],
+ ['Phoenician',3,6,'Purple dye and cedar out; silver and tin back'],
+ ['Silk Road',6.3,9.6,'Silk, horses, glass and paper across 6,000 km'],
+ ['Maritime Silk Road',10,12.8,'Porcelain and spices, Guangzhou to Basra'],
+ ['Trans-Saharan',12.8,15.4,'Gold north, salt south, by camel'],
+ ['Zheng He',15.4,18.4,'Seven Ming fleets reach East Africa. Then China turns inward'],
+ ['Spain',18.9,21.9,'Columbus’s track becomes the silver fleets'],
+ ['Atlantic slave trade',21.9,25.4,'12.5 million embarked. 10.7 million survived.'],
+ ['Suez Canal',26.5,29.3,'London to Bombay: 40% shorter than via the Cape'],
+ ['Container lanes',29.3,ENDCARD,'Today over 80% of world trade moves by sea',0,'Sea lanes today']
 ];
+/* Sea cargo per year, million tonnes. 1970 onwards is UNCTAD's count of goods loaded (Review of Maritime Transport);
+   1840 and 1950 are the round figures usually quoted from Stopford, Maritime Economics. Nothing before 1840 is measured:
+   Rome's whole grain supply, the largest bulk trade of antiquity, is put at 0.15-0.4 million tonnes a year, so the bar
+   is drawn as a sliver and labelled "under 20 million". The scale is linear on purpose. */
+const CARGO=[[1840,20],[1950,500],[1970,2605],[1980,3704],[1990,4008],[2000,5984],[2019,11000],[2023,12292],[2026,12300]];
+function cargo(y){ if(y<CARGO[0][0]) return null; for(let i=1;i<CARGO.length;i++) if(y<=CARGO[i][0]){ const a=CARGO[i-1],b=CARGO[i]; return Math.exp(lerp(Math.log(a[1]),Math.log(b[1]),(y-a[0])/(b[0]-a[0]))); } return CARGO[CARGO.length-1][1]; }
+/* camera: the Old World fills the frame until the 1460s, then the view pulls back to the whole globe as the oceans open */
+const ZOOM0=T(1455), ZOOM1=T(1505);
 /* ---------- shared sea lanes (lon, lat) ---------- */
 const SCS = [[111.8,17.5],[110.6,13],[108,9.5],[105.5,6],[104.8,2.4],[104.1,1.25]];                 // South China Sea, north to south
 const MAL = [[103.4,1.15],[102.3,1.9],[101.2,2.6],[100.2,3.6],[99,4.8],[97.5,6],[95,6.2]];           // Malacca Strait, east to west
@@ -195,81 +205,96 @@ for(const ring of (window.TRADE_LAND||[])){                // rings that cross t
 
 
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
-const W=1080, H=1080, MAPT=292, MAPH=540, S=W/W360, OX=W/2-10*KX*S, OY=MAPT+MAPH/2+10*S;
-const C={bg:'#0B1E3A', band:'#0F2648', sea:'#0C2142', land:'#1A3A66', coast:'#31598C', line:'#2B4A73', fg:'#F3F6FB', muted:'#93A8C4', seaR:'#5AABFF', landR:'#F5953A'};
+const W=1080, H=1080, MAPT=250, MAPH=640, BY=MAPT+MAPH;
+const C={bg:'#0B1E3A', sea:'#0C2142', land:'#1A3A66', coast:'#31598C', line:'#2B4A73', fg:'#F3F6FB', soft:'#D5DEEC', muted:'#93A8C4', seaR:'#5AABFF', landR:'#F5953A'};
 const col=r=>r.k==='sea'?C.seaR:C.landR;
 const OFFS=[-W360,0,W360];
+const VIEW_OLD={lon:57.5,lat:25,S:W/(155*KX)}, VIEW_ALL={lon:10,lat:10,S:W/W360};
 function trace(path,f){ const pt=path.pt,cum=path.cum,L=f*path.len; ctx.moveTo(pt[0][0],pt[0][1]);
   for(let i=1;i<pt.length;i++){ if(cum[i]<=L){ctx.lineTo(pt[i][0],pt[i][1]);continue;} const u=(L-cum[i-1])/((cum[i]-cum[i-1])||1); ctx.lineTo(lerp(pt[i-1][0],pt[i][0],u),lerp(pt[i-1][1],pt[i][1],u)); break; } }
 function along(path,f){ const L=f*path.len,cum=path.cum; let lo=0,hi=cum.length-1; while(hi-lo>1){const m=(lo+hi)>>1; if(cum[m]<=L) lo=m; else hi=m;}
   const u=(L-cum[lo])/((cum[hi]-cum[lo])||1); return [lerp(path.pt[lo][0],path.pt[hi][0],u),lerp(path.pt[lo][1],path.pt[hi][1],u)]; }
-function wrap(text,maxW){ const out=[]; let cur=''; for(const w of text.split(' ')){ const nx=cur?cur+' '+w:w; if(ctx.measureText(nx).width>maxW&&cur){out.push(cur);cur=w;} else cur=nx; } if(cur) out.push(cur); return out; }
 const ease=u=>u*u*(3-2*u);
 
 function render(f){
   f=clamp(f,0,TOTAL);
   let t, mode;
   if(f<HOOK){ t=TEND+3; mode='hook'; } else if(f<START){ t=TEND*(1-ease((f-HOOK)/REW)); mode='rewind'; }
-  else if(f<START+TEND){ t=f-START; mode='play'; } else { t=f-START; mode='end'; }
+  else { t=f-START; mode = t<ENDCARD ? 'play' : 'end'; }
+  const endA = mode==='end' ? clamp((t-ENDCARD)/0.5,0,1) : 0;
+  /* legacy: how strongly routes that have ended are drawn. Full on the opening frame and the closing card, a faint trace in between. */
+  const legacy = mode==='hook' ? 1 : mode==='rewind' ? 1-clamp((f-HOOK)/0.35,0,1) : endA;
+  const z = mode==='hook' ? 1 : ease(clamp((t-ZOOM0)/(ZOOM1-ZOOM0),0,1));
+  const S=Math.exp(lerp(Math.log(VIEW_OLD.S),Math.log(VIEW_ALL.S),z)), clon=lerp(VIEW_OLD.lon,VIEW_ALL.lon,z), clat=lerp(VIEW_OLD.lat,VIEW_ALL.lat,z);
+  const OX=W/2-clon*KX*S, OY=MAPT+MAPH/2+clat*S;
+
   ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
-  /* map */
   ctx.save(); ctx.beginPath(); ctx.rect(0,MAPT,W,MAPH); ctx.clip();
   ctx.fillStyle=C.sea; ctx.fillRect(0,MAPT,W,MAPH);
-  for(const o of OFFS){ ctx.setTransform(S,0,0,S,OX+o*S,OY); ctx.fillStyle=C.land; ctx.fill(landPath,'evenodd'); ctx.strokeStyle=C.coast; ctx.lineWidth=0.8/S; ctx.lineJoin='round'; ctx.stroke(landPath); }
-  const cap = mode==='play'||mode==='end' ? CAPS.find(c=>t>=c[1]&&t<c[2]) : null;
+  for(const o of OFFS){ ctx.setTransform(S,0,0,S,OX+o*S,OY); ctx.fillStyle=C.land; ctx.fill(landPath,'evenodd'); ctx.strokeStyle=C.coast; ctx.lineWidth=0.9/S; ctx.lineJoin='round'; ctx.stroke(landPath); }
+  const cap = mode==='play' ? CAPS.find(c=>t>=c[1]&&t<c[2]) : null;
   const live=[]; for(const r of ROUTES){ if(t<r.ts) continue; r.grow=clamp((t-r.ts)/1.2,0,1); r.on=1-clamp((t-r.te)/0.8,0,1); live.push(r); }
   ctx.lineCap='round'; ctx.lineJoin='round';
   for(const pass of ['ghost','glow','core']) for(const r of live){ if(pass!=='ghost'&&r.on<=0) continue;
     const hot = cap && cap.r===r;
     for(const o of OFFS){ ctx.setTransform(S,0,0,S,OX+o*S,OY); ctx.beginPath(); for(const p of r.paths) trace(p,r.grow); ctx.strokeStyle=col(r);
-      if(pass==='ghost'){ctx.globalAlpha=0.3;ctx.lineWidth=1.2/S;} else if(pass==='glow'){ctx.globalAlpha=(hot?0.42:0.2)*r.on;ctx.lineWidth=(hot?13:7.5)/S;} else {ctx.globalAlpha=0.96*r.on;ctx.lineWidth=(hot?3.6:2.4)/S;}
+      if(pass==='ghost'){ctx.globalAlpha=lerp(0.3,mode==='end'?0.7:0.92,legacy);ctx.lineWidth=lerp(1.3,2.2,legacy)/S;} else if(pass==='glow'){ctx.globalAlpha=(hot?0.42:0.2)*r.on;ctx.lineWidth=(hot?14:8)/S;} else {ctx.globalAlpha=0.96*r.on;ctx.lineWidth=(hot?4:2.6)/S;}
       ctx.stroke(); } }
   ctx.setTransform(1,0,0,1,0,0);
   for(const r of live){ if(r.on<=0||r.grow<1) continue;
     for(const p of r.paths){ const n=Math.max(1,Math.round(p.len/26));
       for(let k=0;k<n;k++){ const u=((f*7/p.len)+(k/n)+r.i*0.137)%1, q=along(p,u), edge=Math.min(1,u*12,(1-u)*12);
-        for(const o of OFFS){ const x=OX+(q[0]+o)*S, y=OY+q[1]*S; if(x<-5||x>W+5) continue; ctx.globalAlpha=r.on*edge; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,2.6,0,6.2832); ctx.fill(); } } } }
-  let capA=0, capX=0;
-  if(cap){ capA=clamp((t-cap[1])/0.25,0,1)*clamp((cap[2]-t)/0.25,0,1); const m=along(cap.r.paths[cap[4]||0],0.5); let px=OX+m[0]*S; const py=OY+m[1]*S; if(px<0) px+=W360*S; else if(px>W) px-=W360*S; capX=px;
-    ctx.globalAlpha=capA*0.8; ctx.strokeStyle=col(cap.r); ctx.lineWidth=2; ctx.setLineDash([6,6]); ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px,MAPT+MAPH); ctx.stroke(); ctx.setLineDash([]);
-    ctx.globalAlpha=capA; ctx.fillStyle=col(cap.r); ctx.beginPath(); ctx.arc(px,py,7,0,6.2832); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke(); }
+        for(const o of OFFS){ const x=OX+(q[0]+o)*S, y=OY+q[1]*S; if(x<-5||x>W+5) continue; ctx.globalAlpha=r.on*edge; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,2.8,0,6.2832); ctx.fill(); } } } }
+  let capA=0;
+  if(cap){ capA=clamp((t-cap[1])/0.2,0,1)*clamp((cap[2]-t)/0.2,0,1); const m=along(cap.r.paths[cap[4]||0],0.5); let px=OX+m[0]*S; const py=OY+m[1]*S; if(px<0) px+=W360*S; else if(px>W) px-=W360*S;
+    const pulse=clamp((t-cap[1])/0.5,0,1);
+    if(pulse<1){ ctx.globalAlpha=(1-pulse)*0.8; ctx.strokeStyle=col(cap.r); ctx.lineWidth=3; ctx.beginPath(); ctx.arc(px,py,10+pulse*34,0,6.2832); ctx.stroke(); }
+    ctx.globalAlpha=capA; ctx.fillStyle=col(cap.r); ctx.beginPath(); ctx.arc(px,py,10,0,6.2832); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.stroke(); }
   ctx.restore(); ctx.globalAlpha=1;
-  ctx.strokeStyle=C.line; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,MAPT); ctx.lineTo(W,MAPT); ctx.moveTo(0,MAPT+MAPH); ctx.lineTo(W,MAPT+MAPH); ctx.stroke();
+  ctx.strokeStyle=C.line; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(0,MAPT); ctx.lineTo(W,MAPT); ctx.moveTo(0,BY); ctx.lineTo(W,BY); ctx.stroke();
 
-  /* top band */
+  /* top band: the headline on the opening, then the year */
   ctx.textBaseline='alphabetic'; ctx.textAlign='left';
-  ctx.fillStyle=C.muted; ctx.font='500 22px "IBM Plex Mono", monospace'; try{ctx.letterSpacing='3px';}catch(e){}
-  ctx.fillText('TRADE ROUTES · 2000 BC → TODAY',56,62); try{ctx.letterSpacing='0px';}catch(e){}
-  const hookA = mode==='hook' ? 1-clamp((f-(HOOK-0.3))/0.3,0,1) : 0;
-  if(hookA>0){ ctx.globalAlpha=hookA; ctx.fillStyle=C.fg; ctx.font='800 70px Archivo, sans-serif'; ctx.fillText('Every line on this map',56,152);
-    ctx.fillStyle=C.landR; ctx.fillText('is a trade route.',56,232); }
-  if(mode!=='hook'){ const a=mode==='rewind'?clamp((f-HOOK)/0.25,0,1):1; ctx.globalAlpha=a;
+  const headA = f<START-0.3 ? 1 : 1-clamp((f-(START-0.3))/0.3,0,1);
+  if(headA>0){ ctx.globalAlpha=headA; ctx.fillStyle=C.fg; ctx.font='800 84px Archivo, sans-serif'; ctx.fillText('4,000 years',56,112); ctx.fillText('of trade routes',56,204); }
+  const yearA = clamp((f-START)/0.3,0,1);
+  if(yearA>0){ ctx.globalAlpha=yearA;
     const yv=Math.round(Y(Math.min(t,TEND))), num=yv<1?String(Math.max(1,-yv)):String(yv), suf=yv<1?'BC':(yv<1000?'AD':'');
-    ctx.fillStyle=C.fg; ctx.font='800 150px Archivo, sans-serif'; ctx.fillText(num,50,205); const nw=ctx.measureText(num).width;
-    if(suf){ ctx.fillStyle=C.muted; ctx.font='700 58px Archivo, sans-serif'; ctx.fillText(suf,50+nw+16,205); }
+    ctx.fillStyle=C.fg; ctx.font='800 124px Archivo, sans-serif'; ctx.fillText(num,50,150); const nw=ctx.measureText(num).width;
+    if(suf){ ctx.fillStyle=C.muted; ctx.font='700 50px Archivo, sans-serif'; ctx.fillText(suf,50+nw+14,150); }
     let era=ERAS[0][1]; for(const e of ERAS) if(yv>=e[0]) era=e[1];
-    ctx.fillStyle=mode==='rewind'?C.landR:C.muted; ctx.font='600 34px Archivo, sans-serif'; ctx.fillText(mode==='rewind'?'Rewind 4,000 years':era,56,262);
-    ctx.textAlign='right'; ctx.font='500 22px "IBM Plex Sans", sans-serif';
-    [['Sea and river',C.seaR,118],['Caravan, road, rail',C.landR,154]].forEach(l=>{ ctx.fillStyle=C.muted; ctx.fillText(l[0],W-56,l[2]); const w=ctx.measureText(l[0]).width; ctx.fillStyle=l[1]; ctx.fillRect(W-56-w-46,l[2]-10,32,5); });
+    if(endA<1){ ctx.globalAlpha=yearA*(1-endA); ctx.fillStyle=C.soft; ctx.font='600 36px Archivo, sans-serif'; ctx.fillText(era,56,212); }
+    /* cargo bar, top right */
+    ctx.globalAlpha=yearA; const BX=590, BW=W-56-BX, MAXV=13000, v=cargo(Y(Math.min(t,TEND)));
+    ctx.fillStyle=C.muted; ctx.font='500 21px "IBM Plex Mono", monospace'; try{ctx.letterSpacing='2px';}catch(e){} ctx.fillText('SEA CARGO PER YEAR',BX,58); try{ctx.letterSpacing='0px';}catch(e){}
+    ctx.fillStyle=v==null?C.soft:C.fg; ctx.font='800 46px Archivo, sans-serif';
+    ctx.fillText(v==null ? 'under 20 million t' : v<1000 ? (Math.round(v/10)*10)+' million t' : (v/1000).toFixed(1)+' billion t', BX, 112);
+    ctx.fillStyle='#16335C'; ctx.fillRect(BX,130,BW,26); ctx.fillStyle=C.landR; ctx.fillRect(BX,130,Math.max(3,BW*(v||0)/MAXV),26);
+    ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.fillStyle=C.muted;
+    [0,4,8,12].forEach(g=>{ const x=BX+BW*g*1000/MAXV; ctx.fillRect(x,156,1.5,8); ctx.textAlign=g?'center':'left'; ctx.fillText(g? g+' bn':'0',x,186); }); ctx.textAlign='left';
+    if(endA>0){ ctx.globalAlpha=endA; ctx.fillStyle=C.soft; ctx.font='600 30px Archivo, sans-serif'; ctx.fillText('Namık Akman',56,212);
+      ctx.fillStyle=C.muted; ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.textAlign='right'; ctx.fillText('Figures: UNCTAD, SlaveVoyages',W-56,226); ctx.textAlign='left'; }
+    /* colour key, inside the map */
+    ctx.globalAlpha=yearA*(1-endA); ctx.textAlign='right'; ctx.font='500 24px "IBM Plex Sans", sans-serif';
+    ctx.fillStyle='rgba(8,24,48,.72)'; ctx.beginPath(); ctx.roundRect(W-318,MAPT+14,304,84,10); ctx.fill();
+    [['Sea and river',C.seaR,MAPT+48],['Caravan, road, rail',C.landR,MAPT+82]].forEach(l=>{ ctx.fillStyle=C.soft; ctx.fillText(l[0],W-30,l[2]); const w=ctx.measureText(l[0]).width; ctx.fillStyle=l[1]; ctx.fillRect(W-30-w-48,l[2]-11,36,6); });
     ctx.textAlign='left'; }
   ctx.globalAlpha=1;
 
   /* bottom band */
-  const BY=MAPT+MAPH;
-  if(mode==='hook'){ ctx.globalAlpha=hookA; ctx.fillStyle=C.fg; ctx.font='700 50px Archivo, sans-serif'; ctx.fillText('Here is how they got there.',56,BY+96);
-    ctx.fillStyle=C.muted; ctx.font='500 34px "IBM Plex Sans", sans-serif'; ctx.fillText('4,000 years in 35 seconds',56,BY+152); }
-  const endA = mode==='end' ? clamp((t-29.4)/0.4,0,1) : 0;
-  if(cap && capA>0 && endA<1){ ctx.globalAlpha=capA*(1-endA); const r=cap.r;
-    ctx.fillStyle=col(r); ctx.fillRect(56,BY+40,8,150);
-    ctx.fillStyle=C.fg; ctx.font='800 50px Archivo, sans-serif'; ctx.fillText(r.n,88,BY+84);
-    const nw=ctx.measureText(r.n).width; ctx.fillStyle=col(r); ctx.font='500 26px "IBM Plex Mono", monospace';
-    if(88+nw+28+ctx.measureText(r.when).width<W-56) ctx.fillText(r.when,88+nw+28,BY+84); 
-    ctx.fillStyle=C.muted; ctx.font='400 34px "IBM Plex Sans", sans-serif'; wrap(cap[3],W-88-56).slice(0,2).forEach((l,i)=>ctx.fillText(l,88,BY+136+i*46)); }
-  if(endA>0){ ctx.globalAlpha=endA; ctx.fillStyle=C.fg; ctx.font='700 40px Archivo, sans-serif';
-    ctx.fillText('For 3,500 years trade hugged coasts',56,BY+72); ctx.fillText('and caravan trails.',56,BY+122);
-    ctx.fillStyle=C.landR; ctx.fillText('In the next 300 it wrapped the globe.',56,BY+180); }
-  ctx.globalAlpha=1; ctx.fillStyle=C.muted; ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.textAlign='right'; ctx.fillText('Namık Akman',W-56,H-28); ctx.textAlign='left';
-  ctx.fillStyle=C.line; ctx.fillRect(0,H-8,W,8); ctx.fillStyle=C.landR; ctx.fillRect(0,H-8,W*f/TOTAL,8);
+  if(headA>0){ ctx.globalAlpha=headA; ctx.fillStyle=C.landR; ctx.font='800 84px Archivo, sans-serif'; ctx.fillText('in 40 seconds.',56,BY+112); }
+  if(cap && capA>0){ ctx.globalAlpha=capA; const r=cap.r, title=cap[5]||r.n;
+    ctx.fillStyle=col(r); ctx.fillRect(56,BY+26,8,116);
+    ctx.fillStyle=C.fg; ctx.font='800 48px Archivo, sans-serif'; ctx.fillText(title,88,BY+70);
+    const nw=ctx.measureText(title).width; ctx.fillStyle=col(r); ctx.font='500 30px "IBM Plex Mono", monospace';
+    if(!cap[5] && 88+nw+26+ctx.measureText(r.when).width<W-56) ctx.fillText(r.when,88+nw+26,BY+70);
+    ctx.fillStyle=C.soft; let fs=38; ctx.font=`400 ${fs}px "IBM Plex Sans", sans-serif`; while(ctx.measureText(cap[3]).width>W-88-56 && fs>28){ fs--; ctx.font=`400 ${fs}px "IBM Plex Sans", sans-serif`; }
+    ctx.fillText(cap[3],88,BY+126); }
+  if(endA>0){ ctx.globalAlpha=endA; ctx.fillStyle=C.fg; ctx.font='700 42px Archivo, sans-serif';
+    ctx.fillText('For 3,500 years, no trade route',56,BY+54); ctx.fillText('crossed the Atlantic or the Pacific.',56,BY+104);
+    ctx.fillStyle=C.landR; ctx.fillText('Then, in 73 years, trade circled the globe.',56,BY+160); }
+  if(mode==='play'){ ctx.globalAlpha=yearA; ctx.fillStyle=C.muted; ctx.font='500 24px "IBM Plex Sans", sans-serif'; ctx.textAlign='right'; ctx.fillText('Namık Akman',W-56,H-22); ctx.textAlign='left'; }
+  ctx.globalAlpha=1; ctx.fillStyle=C.line; ctx.fillRect(0,H-8,W,8); ctx.fillStyle=C.landR; ctx.fillRect(0,H-8,W*f/TOTAL,8);
 }
 window.film={render,duration:TOTAL};
 render(0);
