@@ -273,7 +273,7 @@ function render(f){
     ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.fillStyle=C.muted;
     [0,4,8,12].forEach(g=>{ const x=BX+BW*g*1000/MAXV; ctx.fillRect(x,156,1.5,8); ctx.textAlign=g?'center':'left'; ctx.fillText(g? g+' bn':'0',x,186); }); ctx.textAlign='left';
     if(endA>0){ ctx.globalAlpha=endA; ctx.fillStyle=C.soft; ctx.font='600 30px Archivo, sans-serif'; ctx.fillText('Namık Akman',56,212);
-      ctx.fillStyle=C.muted; ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.textAlign='right'; ctx.fillText('Figures: UNCTAD, SlaveVoyages',W-56,226); ctx.textAlign='left'; }
+      ctx.fillStyle=C.muted; ctx.font='500 20px "IBM Plex Sans", sans-serif'; ctx.textAlign='right'; ctx.fillText('Ship \u2248 200,000 t \u00b7 camel load \u2248 200 kg \u00b7 cargo: UNCTAD',W-56,226); ctx.textAlign='left'; }
     /* colour key, inside the map */
     ctx.globalAlpha=yearA*(1-endA); ctx.textAlign='right'; ctx.font='500 24px "IBM Plex Sans", sans-serif';
     ctx.fillStyle='rgba(8,24,48,.72)'; ctx.beginPath(); ctx.roundRect(W-318,MAPT+14,304,84,10); ctx.fill();
@@ -291,8 +291,9 @@ function render(f){
     ctx.fillStyle=C.soft; let fs=38; ctx.font=`400 ${fs}px "IBM Plex Sans", sans-serif`; while(ctx.measureText(cap[3]).width>W-88-56 && fs>28){ fs--; ctx.font=`400 ${fs}px "IBM Plex Sans", sans-serif`; }
     ctx.fillText(cap[3],88,BY+126); }
   if(endA>0){ ctx.globalAlpha=endA; ctx.fillStyle=C.fg; ctx.font='700 42px Archivo, sans-serif';
-    ctx.fillText('For 3,500 years, no trade route',56,BY+54); ctx.fillText('crossed the Atlantic or the Pacific.',56,BY+104);
-    ctx.fillStyle=C.landR; ctx.fillText('Then, in 73 years, trade circled the globe.',56,BY+160); }
+    /* the punch line leans on the cargo bar: a large container ship is about 200,000 t deadweight, a camel load about 200 kg */
+    ctx.fillText('For 3,800 years, that bar barely moved.',56,BY+56);
+    ctx.fillStyle=C.landR; ctx.font='800 46px Archivo, sans-serif'; ctx.fillText('Today one container ship carries',56,BY+112); ctx.fillText('the load of a million camels.',56,BY+164); }
   if(mode==='play'){ ctx.globalAlpha=yearA; ctx.fillStyle=C.muted; ctx.font='500 24px "IBM Plex Sans", sans-serif'; ctx.textAlign='right'; ctx.fillText('Namık Akman',W-56,H-22); ctx.textAlign='left'; }
   ctx.globalAlpha=1; ctx.fillStyle=C.line; ctx.fillRect(0,H-8,W,8); ctx.fillStyle=C.landR; ctx.fillRect(0,H-8,W*f/TOTAL,8);
 }
