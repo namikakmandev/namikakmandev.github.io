@@ -67,6 +67,8 @@ table.yil{min-width:760px;font-size:.84rem}
 table.yil th,table.yil td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
 table.yil th{color:var(--muted);font-weight:600;font-size:.76rem}
 table.yil td:first-child,table.yil th:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+table.ay{min-width:980px}
+table.ay tr.ara td{font-weight:700;border-top:1px solid var(--muted)}
 .chartbox{position:relative;height:280px}
 .nochart{color:var(--muted);font-size:.85rem;padding:20px 0}
 .be{font-size:.92rem}
@@ -143,14 +145,16 @@ table.yil td:first-child,table.yil th:first-child{text-align:left;position:stick
         <div class="scroll"><table class="yil" id="tablo"></table></div>
 
         <div class="tabs" style="margin-top:18px">
-          <h2 style="margin:0" id="aylikBaslik">Aylık görünüm</h2>
+          <h2 style="margin:0" id="aylikBaslik">Aylık gelir-gider tablosu</h2>
           <span class="sp"></span>
           <select id="aylikYil" aria-label="Yıl" style="padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit"></select>
           <button id="csvAylik">Aylık CSV</button>
         </div>
-        <div class="hint">Tahakkuk: gelir ve gider ait olduğu aya, vergi her aya karşılık olarak yazılır.
-          Nakit: KDV ve vergi gerçek ödeme ayında düşer.</div>
-        <div class="scroll"><table class="yil" id="aylikTablo"></table></div>
+        <div class="hint">Tahakkuk esası: gelir ve gider ait olduğu aya, vergi her aya karşılık olarak yazılır.</div>
+        <div class="scroll"><table class="yil ay" id="ggTablo"></table></div>
+        <h2 style="margin:18px 0 4px">Aylık nakit akışı</h2>
+        <div class="hint">KDV, vergi, demirbaş ve ev alımları gerçek ödeme ayında düşer.</div>
+        <div class="scroll"><table class="yil ay" id="nakitTablo"></table></div>
       </div>
 
       <details class="sec how">
@@ -184,6 +188,12 @@ table.yil td:first-child,table.yil th:first-child{text-align:left;position:stick
           <p><strong>Yeniden yatırım.</strong>
             <code>adet = floor(kasa / (ev fiyatı × (1 + alım masrafı)))</code>.
             Eklenen servet = sonradan alınan evlerin değeri + kasa.</p>
+          <p><strong>Demirbaş ve taşıt.</strong> Mobilya ve araç, faydalı ömürlerine eşit taksitlerle
+            amortismana ayrılır; süre dolunca yenileme alımı modellenmez. Şirkette mobilyanın KDV'si
+            indirilecek KDV havuzuna eklenir ve izleyen ayların KDV ödemesini azaltır. Araçta KDV indirilmez;
+            yıllık araç giderinin indirilemeyen kısmı vergi matrahına geri eklenir. Şahısta mobilya KDV dahil
+            ödenir ve yalnızca "gerçek gider + amortisman" seçiliyse matrahtan düşer. Yeni ev alımında
+            birim maliyete mobilya da eklenir. Demirbaşlar portföy değerine ve çıkış hesabına girmez. Alımlar kasadan düşer; kasa eksiye inerse bu, ortakların koyması gereken parayı gösterir. Aylık tabloda havuzdan indirilen KDV yıla eşit yayılır; gerçekte havuz bitene kadar ilk aylarda hiç KDV ödenmez.</p>
           <p><strong>Aylık görünüm.</strong> Yıl içinde ev sayısı değişmediği için aylar eşittir
             (mevsimsellik yok). Tahakkuk tarafında vergi her aya 1/12 karşılık olarak yazılır.
             Nakit tarafında şirket, bir ayın KDV'sini izleyen ay öder; geçici vergiyi Mayıs, Ağustos ve
@@ -224,6 +234,9 @@ var VARSAYILAN = {
   // Şirket
   kdv: 0.20, yansitma: 0, kv: 0.25, stopaj: 0.15, amortAcik: false, binaDegeri: 0,
   binaPayi: 0.70, amortOrani: 0.02, kdvHavuzu: 0, sabitGider: 0, maasMaliyet: 0,
+  // Demirbaş ve taşıt
+  mobilyaEvBasi: 0, mobilyaKdv: 0.20, mobilyaOmur: 5,
+  aracBedeli: 0, aracOmur: 5, aracYillikGider: 0, aracIndirimOrani: 0.70,
   // Şahıs
   malik: 1, giderYontemi: 'goturu', goturuOrani: 0.15, sahisAmort: false,
   tarife: [
@@ -257,29 +270,57 @@ function simulateYapi(p, yapi) {
   var maliyet = h0 * p.evDegeri;                      // alış bedeli (çıkıştaki kâr için)
   var amortTaban = p.binaDegeri || 0, birikmisAmort = 0;
   var birimMaliyet = p.evFiyati * (1 + p.alimMasrafi);
+  // Demirbaşlar: mobilya (her iki yapı, ev başı) ve araç (yalnız şirket), doğrusal amortisman
+  var sirket = yapi === 'sirket';
+  var mobBrut = (p.mobilyaEvBasi || 0) * (1 + (p.mobilyaKdv || 0));   // ev başı nakit çıkışı
+  var mobDefter = sirket ? (p.mobilyaEvBasi || 0) : mobBrut;         // şirket KDV'yi indirir
+  var mobOmur = Math.max(1, p.mobilyaOmur || 1), lots = [], capexBas = 0;
+  if (mobBrut > 0 && h0 > 0) {
+    lots.push({ tip: 'mob', tutar: h0 * mobDefter, omur: mobOmur, bas: 1 });
+    capexBas += h0 * mobBrut;
+    if (sirket) havuz += h0 * p.mobilyaEvBasi * p.mobilyaKdv;
+  }
+  if (sirket && p.aracBedeli > 0) {
+    lots.push({ tip: 'arac', tutar: p.aracBedeli, omur: Math.max(1, p.aracOmur || 1), bas: 1 });
+    capexBas += p.aracBedeli;
+  }
+  birimMaliyet += mobBrut;
+  function lotAmort(tip, t) {
+    var a = 0;
+    lots.forEach(function (l) { if (l.tip === tip && t >= l.bas && t < l.bas + l.omur) a += l.tutar / l.omur; });
+    return a;
+  }
 
   for (var t = 1; t <= p.yil; t++) {
     var brut = ((t >= p.kiraBaslangic ? h0 * p.kira : 0) + yeniAktif * p.yeniKira) * 12 * p.doluluk;
     var kdv = 0, gider, vergi, net, amort = 0, hasilat = brut, kdvBorcu = 0;
+    var isletme, sabit = 0, maas = 0, aracGider = 0, amortBina = 0, amortArac = 0;
+    var amortMob = lotAmort('mob', t), capex = t === 1 ? capexBas : 0;
 
     if (yapi === 'sirket') {
       var kdvYuku = p.kdv * (1 - p.yansitma);
       hasilat = brut / (1 + kdvYuku);
-      gider = hasilat * p.giderOrani + p.sabitGider + (p.maasMaliyet || 0) * 12;
-      if (p.amortAcik) amort = amortTaban * p.amortOrani;
-      vergi = Math.max(0, hasilat - gider - amort) * p.kv;
+      isletme = hasilat * p.giderOrani;
+      sabit = p.sabitGider; maas = (p.maasMaliyet || 0) * 12; aracGider = p.aracYillikGider || 0;
+      gider = isletme + sabit + maas + aracGider;
+      if (p.amortAcik) amortBina = amortTaban * p.amortOrani;
+      amortArac = lotAmort('arac', t);
+      amort = amortBina + amortMob + amortArac;
+      // Araç giderinin indirilemeyen kısmı matraha geri eklenir (KKEG)
+      vergi = Math.max(0, hasilat - gider - amort + aracGider * (1 - p.aracIndirimOrani)) * p.kv;
       net = hasilat - gider - vergi;
       var kullanilan = Math.min(havuz, hasilat * p.kdv);
       havuz -= kullanilan;
       net += kullanilan;
       kdv = (brut - hasilat) - kullanilan;            // mal sahibinin net KDV yükü
       kdvBorcu = hasilat * p.kdv - kullanilan;        // vergi dairesine ödenecek KDV
-      if (p.amortAcik) birikmisAmort += amort;
+      birikmisAmort += amortBina;
     } else {
-      var isletme = brut * p.giderOrani;
-      var matrah;
+      isletme = brut * p.giderOrani;
+      var matrah, mobS = amortMob;
+      amortMob = 0;
       if (p.giderYontemi === 'gercek') {
-        if (p.sahisAmort) amort = amortTaban * p.amortOrani;
+        if (p.sahisAmort) { amortBina = amortTaban * p.amortOrani; amortMob = mobS; amort = amortBina + amortMob; }
         matrah = Math.max(0, brut - isletme - amort);
       } else {
         matrah = brut * (1 - p.goturuOrani);
@@ -290,7 +331,7 @@ function simulateYapi(p, yapi) {
       net = brut - isletme - vergi;
     }
 
-    kasa = kasa * (1 + p.nakitGetirisi) + net;
+    kasa = kasa * (1 + p.nakitGetirisi) + net - capex;
 
     // Değer artışı yıl sonunda, alımdan önce
     eskiDeger *= (1 + p.degerArtisi);
@@ -306,13 +347,19 @@ function simulateYapi(p, yapi) {
       yeniDeger += alinan * p.evFiyati;
       maliyet += alinan * p.evFiyati;
       amortTaban += alinan * p.evFiyati * p.binaPayi;
+      if (mobBrut > 0) {
+        lots.push({ tip: 'mob', tutar: alinan * mobDefter, omur: mobOmur, bas: t + 1 });
+        if (sirket) havuz += alinan * p.mobilyaEvBasi * p.mobilyaKdv;
+      }
     }
 
     var portfoy = eskiDeger + yeniDeger;
     rows.push({
       yil: t, ev: h0 + yeni, alinan: alinan, brut: brut, kdv: kdv, gider: gider, vergi: vergi,
       net: net, kasa: kasa, portfoy: portfoy, servet: portfoy + kasa, eklenen: yeniDeger + kasa,
-      maliyet: maliyet, birikmisAmort: birikmisAmort, hasilat: hasilat, amort: amort, kdvBorcu: kdvBorcu
+      maliyet: maliyet, birikmisAmort: birikmisAmort, hasilat: hasilat, amort: amort, kdvBorcu: kdvBorcu,
+      isletme: isletme, sabit: sabit, maas: maas, aracGider: aracGider, amortBina: amortBina,
+      amortMob: amortMob, amortArac: amortArac, capex: capex, evAlim: alinan * birimMaliyet
     });
   }
   return rows;
@@ -327,9 +374,14 @@ function simulateYapi(p, yapi) {
 function aylik(p, yapi, rows, yil) {
   var r = rows[yil - 1], q = yil > 1 ? rows[yil - 2] : null, out = [], kum = 0;
   for (var m = 1; m <= 12; m++) {
-    var a = { ay: m, gelir: r.hasilat / 12, gider: r.gider / 12, amort: r.amort / 12, vergi: r.vergi / 12 };
-    a.kar = a.gelir - a.gider - a.amort - a.vergi;
+    var a = { ay: m, gelir: r.hasilat / 12, isletme: r.isletme / 12, sabit: r.sabit / 12, maas: r.maas / 12,
+      aracGider: r.aracGider / 12, amortBina: r.amortBina / 12, amortMob: r.amortMob / 12,
+      amortArac: r.amortArac / 12, vergi: r.vergi / 12 };
+    a.vok = a.gelir - a.isletme - a.sabit - a.maas - a.aracGider - a.amortBina - a.amortMob - a.amortArac;
+    a.kar = a.vok - a.vergi;
     a.nGider = r.gider / 12; a.nKdv = 0; a.nVergi = 0;
+    a.nCapex = m === 1 ? r.capex : 0;              // demirbaş: yılın ilk ayı
+    a.nEv = m === 12 ? r.evAlim : 0;               // yeni ev (mobilyasıyla): yıl sonu
     if (yapi === 'sirket') {
       a.tahsilat = r.hasilat * (1 + p.kdv) / 12;
       a.nKdv = (m === 1 ? (q ? q.kdvBorcu : 0) : r.kdvBorcu) / 12;
@@ -339,7 +391,7 @@ function aylik(p, yapi, rows, yil) {
       a.tahsilat = r.brut / 12;
       if ((m === 3 || m === 7) && q) a.nVergi = q.vergi / 2;
     }
-    a.nNet = a.tahsilat - a.nGider - a.nKdv - a.nVergi;
+    a.nNet = a.tahsilat - a.nGider - a.nKdv - a.nVergi - a.nCapex - a.nEv;
     kum += a.nNet; a.kum = kum;
     out.push(a);
   }
@@ -524,6 +576,17 @@ function runTests() {
       ['maasMaliyet', 'Aylık maaş, işverene toplam maliyet', 'tl'],
       ['@', 'Brüt ücret + işveren SGK payı. Gider yazılır; ücrette KDV olmadığı için indirilecek KDV doğmaz.']
     ]},
+    { ad: 'Demirbaş ve taşıt', alan: [
+      ['mobilyaEvBasi', 'Ev başı mobilya (KDV hariç)', 'tl'],
+      ['mobilyaKdv', 'Mobilya KDV oranı', 'pct'],
+      ['mobilyaOmur', 'Mobilya faydalı ömrü (yıl)', 'int'],
+      ['@', 'Başlangıç evleri 1. yılın başında, yeni evler alındıklarında döşenir. Şirket KDV\'yi indirilecek KDV havuzuna alır; şahıs KDV dahil öder.'],
+      ['aracBedeli', 'Araç bedeli (vergiler dahil, şirket)', 'tl'],
+      ['aracOmur', 'Araç faydalı ömrü (yıl)', 'int'],
+      ['aracYillikGider', 'Aracın yıllık gideri (yakıt, sigorta, MTV)', 'tl'],
+      ['aracIndirimOrani', 'Araç giderinin vergiden düşülebilen kısmı', 'pct'],
+      ['@', 'Binek araçta KDV indirilemez, bedelin tamamı amortismana gider. Amortisman üst sınırını müşavirinizden alın.']
+    ]},
     { ad: 'Şahıs parametreleri', alan: [
       ['malik', 'Malik sayısı (gelir eşit bölünür)', 'int'],
       ['giderYontemi', 'Gider yöntemi', 'sel', [['goturu', 'Götürü'], ['gercek', 'Gerçek gider']]],
@@ -656,7 +719,7 @@ function runTests() {
     $('basabas').innerHTML = h;
   }
   var KOLON = [['yil', 'Yıl'], ['ev', 'Ev'], ['alinan', 'Alınan'], ['brut', 'Brüt tahsilat'], ['kdv', 'KDV'],
-    ['gider', 'Gider'], ['vergi', 'Vergi'], ['net', 'Net nakit'], ['kasa', 'Kasa'], ['portfoy', 'Portföy değeri'],
+    ['gider', 'Gider'], ['vergi', 'Vergi'], ['net', 'Net nakit'], ['capex', 'Demirbaş alımı'], ['kasa', 'Kasa'], ['portfoy', 'Portföy değeri'],
     ['servet', 'Toplam servet'], ['eklenen', 'Eklenen servet']];
   function tabloCiz(R) {
     var rows = R[aktifTab];
@@ -670,10 +733,30 @@ function runTests() {
     $('tabSahis').className = aktifTab === 'sahis' ? 'on' : '';
   }
   var AYLAR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-  var AKOLON = [['gelir', 'Gelir'], ['gider', 'Gider'], ['amort', 'Amortisman'], ['vergi', 'Vergi karşılığı'],
-    ['kar', 'Net kâr'], ['tahsilat', 'Tahsilat'], ['nGider', 'Gider ödemesi'], ['nKdv', 'KDV ödemesi'],
-    ['nVergi', 'Vergi ödemesi'], ['nNet', 'Net nakit'], ['kum', 'Kümülatif nakit']];
+  // [alan, etiket, işaret (+1 gelir, -1 gider, 0 ara toplam), sıfırsa gizle]
+  var GG = [['gelir', 'Kira geliri', 1], ['isletme', 'İşletme gideri', -1], ['sabit', 'Sabit gider', -1, 1],
+    ['maas', 'Maaş', -1, 1], ['aracGider', 'Araç gideri', -1, 1], ['amortBina', 'Amortisman: bina', -1, 1],
+    ['amortMob', 'Amortisman: mobilya', -1, 1], ['amortArac', 'Amortisman: araç', -1, 1],
+    ['vok', 'Vergi öncesi kâr', 0], ['vergi', 'Vergi karşılığı', -1], ['kar', 'Net kâr', 0]];
+  var NK = [['tahsilat', 'Tahsilat', 1], ['nGider', 'Gider ödemesi', -1], ['nKdv', 'KDV ödemesi', -1, 1],
+    ['nVergi', 'Vergi ödemesi', -1], ['nCapex', 'Demirbaş alımı', -1, 1], ['nEv', 'Ev alımı', -1, 1],
+    ['nNet', 'Net nakit', 0], ['kum', 'Yıl içi kümülatif', 0]];
   var aylikYil = 1;
+  function ayTablo(id, A, satirlar) {
+    var h = '<tr><th>Kalem</th>' + AYLAR.map(function (a) { return '<th>' + a + '</th>'; }).join('') + '<th>Toplam</th></tr>';
+    satirlar.forEach(function (s) {
+      var top = 0, bos = true;
+      var td = A.map(function (a) {
+        var v = a[s[0]]; top = s[0] === 'kum' ? v : top + v;
+        if (Math.abs(v) > 0.5) bos = false;
+        return '<td>' + (s[2] < 0 && Math.round(v) !== 0 ? '−' : '') + kisa(v) + '</td>';
+      }).join('');
+      if (s[3] && bos) return;
+      h += '<tr' + (s[2] === 0 ? ' class="ara"' : '') + '><td>' + s[1] + '</td>' + td + '<td>' +
+        (s[2] < 0 && Math.round(top) !== 0 ? '−' : '') + kisa(top) + '</td></tr>';
+    });
+    $(id).innerHTML = h;
+  }
   function aylikCiz(R) {
     var sel = $('aylikYil');
     if (sel.options.length !== P.yil) {
@@ -682,19 +765,10 @@ function runTests() {
     }
     if (aylikYil > P.yil) aylikYil = P.yil;
     sel.value = aylikYil;
-    $('aylikBaslik').textContent = 'Aylık görünüm — ' + (aktifTab === 'sirket' ? 'Şirket' : 'Şahıs');
+    $('aylikBaslik').textContent = 'Aylık gelir-gider tablosu — ' + (aktifTab === 'sirket' ? 'Şirket' : 'Şahıs');
     var A = aylik(P, aktifTab, R[aktifTab], aylikYil);
-    var h = '<tr><th></th><th colspan="5" style="text-align:center">Tahakkuk</th><th colspan="6" style="text-align:center">Nakit</th></tr>' +
-      '<tr><th>Ay</th>' + AKOLON.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr>';
-    var top = {};
-    A.forEach(function (a) {
-      h += '<tr><td>' + AYLAR[a.ay - 1] + '</td>' + AKOLON.map(function (c) {
-        top[c[0]] = c[0] === 'kum' ? a.kum : (top[c[0]] || 0) + a[c[0]];
-        return '<td>' + kisa(a[c[0]]) + '</td>'; }).join('') + '</tr>';
-    });
-    h += '<tr style="font-weight:700"><td>Toplam</td>' + AKOLON.map(function (c) {
-      return '<td>' + kisa(top[c[0]]) + '</td>'; }).join('') + '</tr>';
-    $('aylikTablo').innerHTML = h;
+    ayTablo('ggTablo', A, GG);
+    ayTablo('nakitTablo', A, NK);
   }
   function cikisCiz(R) {
     $('cikisCard').style.display = R.cikis ? '' : 'none';
@@ -807,6 +881,7 @@ function runTests() {
   }
   function csvSayi(x) { return String(Math.round(x * 100) / 100).replace('.', ','); }
   $('csvAylik').addEventListener('click', function () {
+    var AKOLON = GG.concat(NK);
     var R = simulate(P), out = ['Yapı;Yıl;Ay;' + AKOLON.map(function (c) { return c[1]; }).join(';')];
     [['sirket', 'Şirket'], ['sahis', 'Şahıs']].forEach(function (y) {
       for (var yil = 1; yil <= P.yil; yil++) aylik(P, y[0], R[y[0]], yil).forEach(function (a) {
