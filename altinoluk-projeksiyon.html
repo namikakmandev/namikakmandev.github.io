@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Kira Portföyü Projeksiyonu — Şirket vs Şahıs</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+:root{
+  --bg:#f6f4ef; --card:#ffffff; --ink:#1d2433; --muted:#667085; --line:#e2ddd3;
+  --sirket:#1f6feb; --sahis:#c2570c; --good:#157347; --bad:#b42318; --soft:#efece5;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#11151c; --card:#1a202b; --ink:#e8ecf3; --muted:#98a2b3; --line:#2c3545;
+    --sirket:#6ea8ff; --sahis:#ff9d57; --good:#4cc38a; --bad:#ff7b72; --soft:#222a37;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:76px}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+h1{font-size:1.35rem;margin:4px 0 4px;line-height:1.2}
+h2{font-size:1.05rem;margin:0 0 10px}
+p.lead{color:var(--muted);margin:0 0 14px}
+.grid{display:grid;gap:16px}
+@media(min-width:960px){.grid{grid-template-columns:360px 1fr;align-items:start}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.grid>*,.stack>*,.cards>*{min-width:0}
+.stack>*+*{margin-top:14px}
+details.sec{border:1px solid var(--line);border-radius:10px;background:var(--card)}
+details.sec+details.sec{margin-top:8px}
+details.sec>summary{cursor:pointer;padding:11px 12px;font-weight:600;list-style-position:inside}
+details.sec>.body{padding:2px 12px 12px}
+.f{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0}
+.f label{flex:1;min-width:0;font-size:.9rem}
+.f input[type=text],.f select{width:128px;flex:none;padding:7px 8px;border:1px solid var(--line);
+  border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;text-align:right;
+  font-variant-numeric:tabular-nums}
+.f select{text-align:left}
+.f input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--sirket)}
+.f .unit{width:22px;flex:none;color:var(--muted);font-size:.85rem}
+.hint{color:var(--muted);font-size:.8rem;margin:2px 0 6px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.tarife td{padding:3px 0}
+.tarife input{width:100% !important}
+.tarife td+td{padding-left:8px;width:90px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cards{display:grid;gap:10px;grid-template-columns:1fr}
+@media(min-width:620px){.cards{grid-template-columns:1fr 1fr}}
+.kpi h3{margin:0 0 8px;font-size:.95rem}
+.kpi table td,.kpi table th{padding:4px 0;text-align:right;font-size:.88rem}
+.kpi table th{font-weight:600;color:var(--muted);font-size:.78rem}
+.kpi table td:first-child,.kpi table th:first-child{text-align:left;color:var(--muted)}
+.c-sirket{color:var(--sirket)} .c-sahis{color:var(--sahis)}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.tabs .sp{flex:1}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.yil{min-width:760px;font-size:.84rem}
+table.yil th,table.yil td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+table.yil th{color:var(--muted);font-weight:600;font-size:.76rem}
+table.yil td:first-child,table.yil th:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+.chartbox{position:relative;height:280px}
+.nochart{color:var(--muted);font-size:.85rem;padding:20px 0}
+.be{font-size:.92rem}
+.be li{margin:4px 0}
+.exit td{padding:4px 0;text-align:right;font-size:.88rem}
+.exit td:first-child{text-align:left;color:var(--muted)}
+.exit tr.sum td{border-top:1px solid var(--line);font-weight:700;color:var(--ink)}
+.how p,.how li{font-size:.9rem}
+.how code{background:var(--soft);padding:1px 5px;border-radius:4px;font-size:.84rem}
+.warn{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--bg);
+  padding:9px 14px;font-size:.78rem;line-height:1.35;text-align:center;z-index:10}
+#testOut{white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Kira Portföyü Projeksiyonu</h1>
+  <p class="lead">Aynı evleri <strong class="c-sirket">şirket</strong> üzerinden ve
+    <strong class="c-sahis">şahıs</strong> olarak tutmanın 1–20 yıllık karşılaştırması.
+    Tüm tutarlar bugünün TL'siyle (reel).</p>
+
+  <div id="testCard" class="card" style="display:none;margin-bottom:16px">
+    <h2>Kabul testleri</h2><div id="testOut"></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="card" style="margin-bottom:10px">
+        <div class="btns" id="senaryo">
+          <button data-s="kotu">Kötü</button>
+          <button data-s="baz">Baz</button>
+          <button data-s="iyi">İyi</button>
+          <span style="flex:1"></span>
+          <button id="reset">Varsayılanlara dön</button>
+        </div>
+        <div class="hint" style="margin:8px 0 0">Kötü: kira 30.000, doluluk %75, gider %25 ·
+          İyi: kira 50.000, doluluk %92, gider %18</div>
+      </div>
+      <div id="form"></div>
+    </div>
+
+    <div class="stack">
+      <div class="cards" id="ozet"></div>
+
+      <div class="card">
+        <h2>Başabaş</h2>
+        <div class="be" id="basabas"></div>
+      </div>
+
+      <div class="card">
+        <h2>Toplam servet (portföy + kasa)</h2>
+        <div class="chartbox"><canvas id="g1"></canvas></div>
+        <div class="nochart" id="g1no" style="display:none"></div>
+      </div>
+
+      <div class="card">
+        <h2 id="g2baslik">Brüt kiradan nete</h2>
+        <div class="chartbox"><canvas id="g2"></canvas></div>
+        <div class="nochart" id="g2no" style="display:none"></div>
+      </div>
+
+      <div class="card" id="cikisCard" style="display:none">
+        <h2>Çıkış: dönem sonunda ele geçen net tutar</h2>
+        <div class="cards" id="cikis"></div>
+      </div>
+
+      <div class="card">
+        <div class="tabs">
+          <button id="tabSirket" class="on">Şirket</button>
+          <button id="tabSahis">Şahıs</button>
+          <span class="sp"></span>
+          <button id="csv">CSV indir</button>
+        </div>
+        <div class="scroll"><table class="yil" id="tablo"></table></div>
+      </div>
+
+      <details class="sec how">
+        <summary>Nasıl hesaplanıyor?</summary>
+        <div class="body">
+          <p><strong>Genel.</strong> Enflasyon modellenmez; kira, fiyat, getiri ve değer artışı
+            reel girilir. Her yıl için önce o yılın net nakdi hesaplanır, kasaya eklenir,
+            sonra (açıksa) kasadaki parayla ev alınır. Yeni evin kirası bir sonraki yıl başlar.</p>
+          <p><strong>Şirket.</strong></p>
+          <ul>
+            <li>Kiracının ödediği tutar sabit kabul edilir. KDV'nin mal sahibinde kalan kısmı:
+              <code>kdvYükü = KDV × (1 − yansıtma)</code>, <code>net kira = kira / (1 + kdvYükü)</code>.
+              Yansıtma %100 ise kiracı kiranın üstüne KDV öder, şirketin hasılatı kiranın tamamıdır.</li>
+            <li><code>hasılat = net kira × 12 × ev × doluluk</code></li>
+            <li><code>gider = hasılat × gider oranı + sabit gider</code></li>
+            <li><code>amortisman = amortismana tabi değer × oran</code> (açıksa; yeni alımlar bina payı kadar eklenir)</li>
+            <li><code>kurumlar vergisi = max(0, hasılat − gider − amortisman) × oran</code></li>
+            <li><code>net nakit = hasılat − gider − kurumlar vergisi</code></li>
+            <li>İndirilecek KDV havuzu varsa, o yıl hesaplanan KDV (<code>hasılat × KDV</code>) kadarı
+              havuzdan düşülür ve net nakde eklenir.</li>
+          </ul>
+          <p><strong>Şahıs.</strong></p>
+          <ul>
+            <li><code>tahsilat = kira × 12 × ev × doluluk</code> (KDV yok)</li>
+            <li>Götürü: <code>matrah = tahsilat × (1 − götürü oranı)</code>.
+              Gerçek: <code>matrah = tahsilat − işletme gideri − (seçiliyse) amortisman</code>.</li>
+            <li><code>vergi = malik sayısı × tarife(matrah / malik sayısı)</code>, dilim dilim artan oranlı.</li>
+            <li><code>net nakit = tahsilat − tahsilat × gider oranı − vergi</code>.
+              Götürüde de fiilî işletme gideri nakitten düşülür.</li>
+          </ul>
+          <p><strong>Yeniden yatırım.</strong>
+            <code>adet = floor(kasa / (ev fiyatı × (1 + alım masrafı)))</code>.
+            Eklenen servet = sonradan alınan evlerin değeri + kasa.</p>
+          <p><strong>Çıkış.</strong> Satış bedeli = dönem sonu portföy değeri.
+            Şirkette KDV fiyatın içinden ayrılır (<code>bedel × oran / (1 + oran)</code>);
+            satış kârı = KDV'siz bedel − (alış bedeli − birikmiş amortisman). Şahısta kazanç = bedel − alış bedeli.
+            İki tarafta da satıcı tapu harcı bedel üzerinden düşülür. Temettü seçilirse şirketten çekilen
+            tutarın tamamına stopaj uygulanır.</p>
+          <p><strong>Modelde olmayanlar.</strong> Kira geliri istisnası, zarar mahsubu, geçici vergi zamanlaması,
+            emlak vergisi, damga vergisi, yeni alımların KDV'sinin havuza eklenmesi, 5 yıldan kısa tutulan evlerde
+            şahsın değer artış kazancı, sermayenin temettüden ayrıştırılması. Satıştaki konut KDV oranı (%10)
+            doğrulanmış bir rakam değil, yer tutucudur.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="warn">Bu araç bir projeksiyondur, vergi danışmanlığı değildir. Oranlar değişebilir;
+  kararınızı mali müşavirinizle verin.</div>
+
+<script>
+/* ============================================================
+   HESAP ÇEKİRDEĞİ — saf fonksiyonlar, DOM'a dokunmaz.
+   Oranlar kesir olarak tutulur (0.20 = %20).
+   ============================================================ */
+var VARSAYILAN = {
+  // Portföy
+  evSayisi: 11, evDegeri: 7500000, kira: 40000, doluluk: 0.85, giderOrani: 0.20,
+  yil: 10, kiraBaslangic: 1,
+  // Yeniden yatırım
+  yatirimAcik: true, evFiyati: 7500000, alimMasrafi: 0.02, yeniKira: 40000,
+  nakitGetirisi: 0, degerArtisi: 0,
+  // Şirket
+  kdv: 0.20, yansitma: 0, kv: 0.25, stopaj: 0.15, amortAcik: false, binaDegeri: 0,
+  binaPayi: 0.70, amortOrani: 0.02, kdvHavuzu: 0, sabitGider: 0,
+  // Şahıs
+  malik: 1, giderYontemi: 'goturu', goturuOrani: 0.15, sahisAmort: false,
+  tarife: [
+    { ust: 190000, oran: 0.15 }, { ust: 400000, oran: 0.20 }, { ust: 1000000, oran: 0.27 },
+    { ust: 5300000, oran: 0.35 }, { ust: null, oran: 0.40 }
+  ],
+  // Çıkış
+  satisAcik: false, satisKdv: 0.10, satisKv: 0.25, temettuCek: false,
+  sahisKazancVergisi: 0, tapuHarci: 0.02
+};
+
+function kopya(o) { return JSON.parse(JSON.stringify(o)); }
+
+/** Artan oranlı gelir vergisi. dilimler: [{ust, oran}], son dilimde ust = null. */
+function tarife(matrah, dilimler) {
+  var vergi = 0, alt = 0;
+  for (var i = 0; i < dilimler.length; i++) {
+    var ust = dilimler[i].ust == null ? Infinity : dilimler[i].ust;
+    if (matrah > alt) vergi += (Math.min(matrah, ust) - alt) * dilimler[i].oran;
+    alt = ust;
+  }
+  return vergi;
+}
+
+/** Tek yapı için yıllık satırlar. yapi: 'sirket' | 'sahis' */
+function simulateYapi(p, yapi) {
+  var rows = [];
+  var h0 = p.evSayisi, yeni = 0, yeniAktif = 0;      // yeniAktif: kirası başlamış yeni evler
+  var kasa = 0, havuz = p.kdvHavuzu || 0;
+  var eskiDeger = h0 * p.evDegeri, yeniDeger = 0;     // piyasa değerleri
+  var maliyet = h0 * p.evDegeri;                      // alış bedeli (çıkıştaki kâr için)
+  var amortTaban = p.binaDegeri || 0, birikmisAmort = 0;
+  var birimMaliyet = p.evFiyati * (1 + p.alimMasrafi);
+
+  for (var t = 1; t <= p.yil; t++) {
+    var brut = ((t >= p.kiraBaslangic ? h0 * p.kira : 0) + yeniAktif * p.yeniKira) * 12 * p.doluluk;
+    var kdv = 0, gider, vergi, net, amort = 0;
+
+    if (yapi === 'sirket') {
+      var kdvYuku = p.kdv * (1 - p.yansitma);
+      var hasilat = brut / (1 + kdvYuku);
+      gider = hasilat * p.giderOrani + p.sabitGider;
+      if (p.amortAcik) amort = amortTaban * p.amortOrani;
+      vergi = Math.max(0, hasilat - gider - amort) * p.kv;
+      net = hasilat - gider - vergi;
+      var kullanilan = Math.min(havuz, hasilat * p.kdv);
+      havuz -= kullanilan;
+      net += kullanilan;
+      kdv = (brut - hasilat) - kullanilan;            // mal sahibinin net KDV yükü
+      if (p.amortAcik) birikmisAmort += amort;
+    } else {
+      var isletme = brut * p.giderOrani;
+      var matrah;
+      if (p.giderYontemi === 'gercek') {
+        if (p.sahisAmort) amort = amortTaban * p.amortOrani;
+        matrah = Math.max(0, brut - isletme - amort);
+      } else {
+        matrah = brut * (1 - p.goturuOrani);
+      }
+      var n = Math.max(1, p.malik);
+      vergi = n * tarife(matrah / n, p.tarife);
+      gider = isletme;
+      net = brut - isletme - vergi;
+    }
+
+    kasa = kasa * (1 + p.nakitGetirisi) + net;
+
+    // Değer artışı yıl sonunda, alımdan önce
+    eskiDeger *= (1 + p.degerArtisi);
+    yeniDeger *= (1 + p.degerArtisi);
+
+    var alinan = 0;
+    yeniAktif = yeni;                                  // geçen yıllarda alınanlar gelecek yıl kirada
+    if (p.yatirimAcik && birimMaliyet > 0 && kasa >= birimMaliyet) {
+      alinan = Math.floor(kasa / birimMaliyet);
+      kasa -= alinan * birimMaliyet;
+      yeni += alinan;
+      yeniAktif = yeni;
+      yeniDeger += alinan * p.evFiyati;
+      maliyet += alinan * p.evFiyati;
+      amortTaban += alinan * p.evFiyati * p.binaPayi;
+    }
+
+    var portfoy = eskiDeger + yeniDeger;
+    rows.push({
+      yil: t, ev: h0 + yeni, alinan: alinan, brut: brut, kdv: kdv, gider: gider, vergi: vergi,
+      net: net, kasa: kasa, portfoy: portfoy, servet: portfoy + kasa, eklenen: yeniDeger + kasa,
+      maliyet: maliyet, birikmisAmort: birikmisAmort
+    });
+  }
+  return rows;
+}
+
+/** Son yıl satırından çıkış hesabı. */
+function cikisHesapla(p, yapi, son) {
+  var bedel = son.portfoy, harc = bedel * p.tapuHarci, c;
+  if (yapi === 'sirket') {
+    var kdv = bedel * p.satisKdv / (1 + p.satisKdv);
+    var kar = Math.max(0, bedel - kdv - (son.maliyet - son.birikmisAmort));
+    var kv = kar * p.satisKv;
+    var kalan = bedel - kdv - kv - harc + son.kasa;
+    var stopaj = p.temettuCek ? Math.max(0, kalan) * p.stopaj : 0;
+    c = { bedel: bedel, kdv: kdv, vergi: kv, harc: harc, kasa: son.kasa, stopaj: stopaj, net: kalan - stopaj };
+  } else {
+    var v = Math.max(0, bedel - son.maliyet) * p.sahisKazancVergisi;
+    c = { bedel: bedel, kdv: 0, vergi: v, harc: harc, kasa: son.kasa, stopaj: 0, net: bedel - v - harc + son.kasa };
+  }
+  return c;
+}
+
+/** simulate(params) -> { sirket: rows[], sahis: rows[], cikis: {sirket, sahis} | null } */
+function simulate(p) {
+  var s = simulateYapi(p, 'sirket'), k = simulateYapi(p, 'sahis');
+  return {
+    sirket: s, sahis: k,
+    cikis: p.satisAcik ? {
+      sirket: cikisHesapla(p, 'sirket', s[s.length - 1]),
+      sahis: cikisHesapla(p, 'sahis', k[k.length - 1])
+    } : null
+  };
+}
+
+/** Başlangıç portföyünün kira veren ilk yılındaki yıllık net nakit (alım yok, havuz yok). */
+function duraganNet(p, yapi) {
+  var q = kopya(p);
+  q.yatirimAcik = false; q.kiraBaslangic = 1; q.yil = 1; q.kdvHavuzu = 0;
+  return simulateYapi(q, yapi)[0];
+}
+
+/** Şirketin şahsı yakalaması için gerekenler. */
+function basabas(p) {
+  var s = duraganNet(p, 'sirket'), k = duraganNet(p, 'sahis');
+  var fark = k.net - s.net;                           // > 0: şahıs önde
+  var r = { sirketNet: s.net, sahisNet: k.net, fark: fark, ekIndirim: null, yansitma: null };
+  if (fark <= 0) return r;
+  // Nakit çıkışı olmayan ek indirim (örn. amortisman): her 1 TL, kv kadar vergi kazandırır
+  if (p.kv > 0 && fark <= s.vergi + 1e-6) r.ekIndirim = fark / p.kv;
+  // Gereken KDV yansıtma oranı (ikiye bölme)
+  var q = kopya(p); q.yansitma = 1;
+  if (duraganNet(q, 'sirket').net >= k.net) {
+    var lo = p.yansitma, hi = 1;
+    for (var i = 0; i < 50; i++) {
+      q.yansitma = (lo + hi) / 2;
+      if (duraganNet(q, 'sirket').net >= k.net) hi = q.yansitma; else lo = q.yansitma;
+    }
+    r.yansitma = hi;
+  }
+  return r;
+}
+
+/* ---------------- Kabul testleri ---------------- */
+function runTests() {
+  var sonuc = [];
+  function esit(ad, bulunan, beklenen, tol) {
+    var ok = Math.abs(bulunan - beklenen) <= (tol || 0.5);
+    sonuc.push({ ad: ad, beklenen: beklenen, bulunan: bulunan, gecti: ok });
+  }
+  var T = VARSAYILAN.tarife;
+  esit('tarife(3.814.800)', tarife(3814800, T), 1217680);
+  esit('tarife(1.907.400)', tarife(1907400, T), 550090);
+
+  var p = kopya(VARSAYILAN); p.yatirimAcik = false;
+  esit('Şirket yıllık net nakit', simulateYapi(p, 'sirket')[0].net, 2244000);
+  esit('Şahıs 1 malik götürü net nakit', simulateYapi(p, 'sahis')[0].net, 2372720);
+  p.malik = 2;
+  esit('Şahıs 2 malik götürü net nakit', simulateYapi(p, 'sahis')[0].net, 2490220);
+
+  function yatirim(ad, yapi, malik, ev5, ev10, eklenenM) {
+    var q = kopya(VARSAYILAN); q.malik = malik;
+    var r = simulateYapi(q, yapi);
+    esit(ad + ' — 5. yıl ev', r[4].ev, ev5, 0);
+    esit(ad + ' — 10. yıl ev', r[9].ev, ev10, 0);
+    esit(ad + ' — 10. yıl eklenen servet (M TL)', Math.round(r[9].eklenen / 1e5) / 10, eklenenM, 0.0001);
+  }
+  yatirim('Şirket', 'sirket', 1, 12, 14, 23.8);
+  yatirim('Şahıs 1 malik', 'sahis', 1, 12, 14, 25.1);
+  yatirim('Şahıs 2 malik', 'sahis', 2, 12, 14, 26.7);
+
+  var gecen = sonuc.filter(function (s) { return s.gecti; }).length;
+  if (typeof console !== 'undefined') {
+    sonuc.forEach(function (s) {
+      console[s.gecti ? 'log' : 'error']((s.gecti ? 'GEÇTİ  ' : 'KALDI  ') + s.ad +
+        ' | beklenen ' + s.beklenen + ' | bulunan ' + s.bulunan);
+    });
+    console.log(gecen + ' / ' + sonuc.length + ' test geçti');
+  }
+  return sonuc;
+}
+
+/* ============================================================
+   ARAYÜZ
+   ============================================================ */
+(function () {
+  if (typeof document === 'undefined') return;
+  var ANAHTAR = 'altinoluk-projeksiyon-v1';
+  var $ = function (id) { return document.getElementById(id); };
+  var P = yukle();
+  var aktifTab = 'sirket';
+  var grafik = { g1: null, g2: null };
+
+  /* --- biçimlendirme --- */
+  var nf0 = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 });
+  function nf(x, d) {
+    return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(x);
+  }
+  function tl(x) {
+    if (Math.abs(x) >= 1e6) return nf(x / 1e6, 2) + ' M TL';
+    return nf0.format(Math.round(x)) + ' TL';
+  }
+  function kisa(x) { return Math.abs(x) >= 1e6 ? nf(x / 1e6, 2) + ' M' : nf0.format(Math.round(x)); }
+  function yuzde(x) { return '%' + nf(x * 100, 1); }
+  function sayiOku(s) {
+    var v = parseFloat(String(s).replace(/\s/g, '').replace(/\./g, '').replace(',', '.'));
+    return isFinite(v) ? v : 0;
+  }
+  function sayiYaz(v, tip) {
+    if (tip === 'pct') return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 2 }).format(Math.round(v * 1e6) / 1e4);
+    return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 2 }).format(v);
+  }
+
+  /* --- kayıt --- */
+  function yukle() {
+    var p = kopya(VARSAYILAN);
+    try {
+      var s = JSON.parse(localStorage.getItem(ANAHTAR) || 'null');
+      if (s && typeof s === 'object') {
+        Object.keys(p).forEach(function (k) {
+          if (k === 'tarife') {
+            if (Array.isArray(s.tarife) && s.tarife.length === p.tarife.length) p.tarife = s.tarife;
+          } else if (typeof s[k] === typeof p[k]) p[k] = s[k];
+        });
+      }
+    } catch (e) {}
+    return p;
+  }
+  function kaydet() { try { localStorage.setItem(ANAHTAR, JSON.stringify(P)); } catch (e) {} }
+
+  /* --- form tanımı --- */
+  var BOLUMLER = [
+    { ad: 'Portföy', acik: true, alan: [
+      ['evSayisi', 'Başlangıç kiralık ev sayısı', 'int'],
+      ['evDegeri', 'Ev başı değer', 'tl'],
+      ['kira', 'Aylık kira (kiracının ödediği toplam)', 'tl'],
+      ['doluluk', 'Doluluk oranı', 'pct'],
+      ['giderOrani', 'İşletme gideri (net kiranın yüzdesi)', 'pct'],
+      ['yil', 'Projeksiyon süresi (yıl, 1–20)', 'int'],
+      ['kiraBaslangic', 'Kira gelirinin başladığı yıl', 'int']
+    ]},
+    { ad: 'Yeniden yatırım', alan: [
+      ['yatirimAcik', 'Biriken nakitle ev al', 'bool'],
+      ['evFiyati', 'Yeni ev fiyatı', 'tl'],
+      ['alimMasrafi', 'Alım masrafı (tapu harcı vb.)', 'pct'],
+      ['yeniKira', 'Yeni evin aylık kirası', 'tl'],
+      ['nakitGetirisi', 'Bekleyen nakdin reel getirisi', 'pct'],
+      ['degerArtisi', 'Evlerin yıllık reel değer artışı', 'pct']
+    ]},
+    { ad: 'Şirket parametreleri', alan: [
+      ['kdv', 'Kira KDV oranı', 'pct'],
+      ['yansitma', 'KDV\'nin kiracıya yansıtılan kısmı', 'pct'],
+      ['@', '0 = KDV\'nin tamamı mal sahibinde, 100 = tamamı kiracıda.'],
+      ['kv', 'Kurumlar vergisi', 'pct'],
+      ['stopaj', 'Temettü stopajı', 'pct'],
+      ['amortAcik', 'Amortisman uygula', 'bool'],
+      ['binaDegeri', 'Amortismana tabi bina değeri (başlangıç)', 'tl'],
+      ['binaPayi', 'Yeni alımlarda bina payı', 'pct'],
+      ['amortOrani', 'Amortisman oranı', 'pct'],
+      ['kdvHavuzu', 'İndirilecek KDV havuzu (başlangıç)', 'tl'],
+      ['sabitGider', 'Yıllık sabit şirket gideri', 'tl']
+    ]},
+    { ad: 'Şahıs parametreleri', alan: [
+      ['malik', 'Malik sayısı (gelir eşit bölünür)', 'int'],
+      ['giderYontemi', 'Gider yöntemi', 'sel', [['goturu', 'Götürü'], ['gercek', 'Gerçek gider']]],
+      ['goturuOrani', 'Götürü gider oranı', 'pct'],
+      ['sahisAmort', 'Gerçek giderde amortisman düş', 'bool'],
+      ['@', 'Amortisman, şirket bölümündeki bina değeri ve oran üzerinden hesaplanır.'],
+      ['#tarife']
+    ]},
+    { ad: 'Çıkış (dönem sonu satış)', alan: [
+      ['satisAcik', 'Dönem sonunda tüm evleri sat', 'bool'],
+      ['satisKdv', 'Şirket: satışta KDV (fiyatın içinden)', 'pct'],
+      ['@', '%10 doğrulanmış bir oran değil, yer tutucudur. Müşavirinizden alıp girin.'],
+      ['satisKv', 'Şirket: satış kârına kurumlar vergisi', 'pct'],
+      ['temettuCek', 'Şirket: kalan nakdi temettü olarak çek', 'bool'],
+      ['sahisKazancVergisi', 'Şahıs: satış kazancı vergisi (5 yıl+)', 'pct'],
+      ['tapuHarci', 'Satıcı tapu harcı', 'pct']
+    ]}
+  ];
+
+  function formKur() {
+    var h = '';
+    BOLUMLER.forEach(function (b) {
+      h += '<details class="sec"' + (b.acik ? ' open' : '') + '><summary>' + b.ad + '</summary><div class="body">';
+      b.alan.forEach(function (a) {
+        if (a[0] === '@') { h += '<div class="hint">' + a[1] + '</div>'; return; }
+        if (a[0] === '#tarife') { h += tarifeHtml(); return; }
+        var id = 'i_' + a[0];
+        h += '<div class="f"><label for="' + id + '">' + a[1] + '</label>';
+        if (a[2] === 'bool') {
+          h += '<input type="checkbox" id="' + id + '" data-k="' + a[0] + '" data-t="bool"><span class="unit"></span>';
+        } else if (a[2] === 'sel') {
+          h += '<select id="' + id + '" data-k="' + a[0] + '" data-t="sel">' + a[3].map(function (o) {
+            return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join('') + '</select><span class="unit"></span>';
+        } else {
+          h += '<input type="text" inputmode="decimal" autocomplete="off" id="' + id + '" data-k="' + a[0] +
+            '" data-t="' + a[2] + '"><span class="unit">' + (a[2] === 'pct' ? '%' : a[2] === 'tl' ? 'TL' : '') + '</span>';
+        }
+        h += '</div>';
+      });
+      h += '</div></details>';
+    });
+    $('form').innerHTML = h;
+    $('form').addEventListener('change', degisti);
+  }
+  function tarifeHtml() {
+    var h = '<div class="hint" style="margin-top:8px">Gelir vergisi tarifesi (2026, ücret dışı)</div>' +
+      '<table class="tarife"><tr><td class="hint">Matrah üst sınırı (TL)</td><td class="hint">Oran %</td></tr>';
+    VARSAYILAN.tarife.forEach(function (d, i) {
+      h += '<tr><td class="f" style="padding:3px 0">' + (d.ust == null
+        ? '<span class="hint" style="margin:0">üstü</span>'
+        : '<input type="text" inputmode="decimal" aria-label="Dilim ' + (i + 1) + ' üst sınır" data-tr="' + i + '" data-tf="ust">') +
+        '</td><td><div class="f" style="padding:0"><input type="text" inputmode="decimal" aria-label="Dilim ' + (i + 1) +
+        ' oran" data-tr="' + i + '" data-tf="oran"></div></td></tr>';
+    });
+    return h + '</table>';
+  }
+  function formDoldur() {
+    Array.prototype.forEach.call($('form').querySelectorAll('[data-k]'), function (el) {
+      var k = el.getAttribute('data-k'), t = el.getAttribute('data-t');
+      if (t === 'bool') el.checked = !!P[k];
+      else if (t === 'sel') el.value = P[k];
+      else el.value = sayiYaz(P[k], t);
+    });
+    Array.prototype.forEach.call($('form').querySelectorAll('[data-tr]'), function (el) {
+      var d = P.tarife[+el.getAttribute('data-tr')], f = el.getAttribute('data-tf');
+      el.value = f === 'oran' ? sayiYaz(d.oran, 'pct') : sayiYaz(d.ust, 'tl');
+    });
+  }
+  function degisti(e) {
+    var el = e.target, k = el.getAttribute('data-k');
+    if (k) {
+      var t = el.getAttribute('data-t');
+      if (t === 'bool') P[k] = el.checked;
+      else if (t === 'sel') P[k] = el.value;
+      else {
+        var v = sayiOku(el.value);
+        if (t === 'pct') v = Math.max(0, v) / 100;
+        if (t === 'int') v = Math.max(k === 'evSayisi' ? 0 : 1, Math.round(v));
+        if (t === 'tl') v = Math.max(0, v);
+        if (k === 'yil') v = Math.min(20, v);
+        if (k === 'doluluk' || k === 'yansitma' || k === 'binaPayi') v = Math.min(1, v);
+        P[k] = v;
+      }
+    } else if (el.hasAttribute('data-tr')) {
+      var d = P.tarife[+el.getAttribute('data-tr')], f = el.getAttribute('data-tf');
+      d[f] = f === 'oran' ? Math.max(0, sayiOku(el.value)) / 100 : Math.max(0, sayiOku(el.value));
+    } else return;
+    formDoldur(); kaydet(); ciz();
+  }
+
+  /* --- çıktılar --- */
+  function farkHtml(a, b) {            // b − a (şahıs − şirket)
+    var f = b - a, cls = f > 0 ? 'c-sahis' : f < 0 ? 'c-sirket' : '';
+    var y = a !== 0 ? ' (' + (f > 0 ? '+' : '') + nf(f / Math.abs(a) * 100, 1) + '%)' : '';
+    return '<span class="' + cls + '">' + (f > 0 ? '+' : '') + kisa(f) + y + '</span>';
+  }
+  function ozetCiz(R) {
+    var yillar = [];
+    if (P.yil >= 5) yillar.push(5);
+    if (P.yil !== 5) yillar.push(P.yil);
+    $('ozet').innerHTML = yillar.map(function (y) {
+      var s = R.sirket[y - 1], k = R.sahis[y - 1];
+      function sat(ad, a, b, para) {
+        return '<tr><td>' + ad + '</td><td class="c-sirket">' + (para ? kisa(a) : a) + '</td><td class="c-sahis">' +
+          (para ? kisa(b) : b) + '</td><td>' + (para ? farkHtml(a, b) : (b - a === 0 ? '—' : (b - a > 0 ? '+' : '') + (b - a))) + '</td></tr>';
+      }
+      return '<div class="card kpi"><h3>' + y + '. yıl' + (y === P.yil ? ' (son yıl)' : '') + '</h3><table>' +
+        '<tr><th></th><th>Şirket</th><th>Şahıs</th><th>Fark (şahıs − şirket)</th></tr>' +
+        sat('Ev sayısı', s.ev, k.ev, false) +
+        sat('Yıllık net nakit', s.net, k.net, true) +
+        sat('Eklenen servet', s.eklenen, k.eklenen, true) + '</table></div>';
+    }).join('');
+  }
+  function basabasCiz() {
+    var b = basabas(P), h;
+    var bas = '<p style="margin:0 0 6px">Başlangıç portföyüyle yıllık net nakit: <strong class="c-sirket">şirket ' +
+      tl(b.sirketNet) + '</strong>, <strong class="c-sahis">şahıs ' + tl(b.sahisNet) + '</strong>.</p>';
+    if (b.fark <= 0) {
+      h = bas + '<p style="margin:0">Şirket zaten ' + (b.fark === 0 ? 'şahısla aynı düzeyde.' :
+        'yılda <strong>' + tl(-b.fark) + '</strong> önde; yakalaması gereken bir fark yok.') + '</p>';
+    } else {
+      h = bas + '<p style="margin:0 0 4px">Şahıs yılda <strong>' + tl(b.fark) + '</strong> önde. Şirketin yakalaması için ikisinden biri:</p><ul style="margin:0;padding-left:18px">';
+      h += '<li>' + (b.ekIndirim != null
+        ? 'Yılda <strong>' + tl(b.ekIndirim) + '</strong> nakit çıkışı olmayan ek gider (örn. amortisman) yazmak.'
+        : 'Ek gider yazmak tek başına yetmiyor: kurumlar vergisi sıfırlansa bile fark kapanmıyor.') + '</li>';
+      h += '<li>' + (b.yansitma != null
+        ? 'KDV\'nin <strong>' + yuzde(b.yansitma) + '</strong> kadarını kiracıya yansıtmak (şu an ' + yuzde(P.yansitma) + ').'
+        : 'KDV\'nin tamamı kiracıya yansıtılsa bile şirket şahsı yakalamıyor.') + '</li></ul>';
+    }
+    $('basabas').innerHTML = h;
+  }
+  var KOLON = [['yil', 'Yıl'], ['ev', 'Ev'], ['alinan', 'Alınan'], ['brut', 'Brüt tahsilat'], ['kdv', 'KDV'],
+    ['gider', 'Gider'], ['vergi', 'Vergi'], ['net', 'Net nakit'], ['kasa', 'Kasa'], ['portfoy', 'Portföy değeri'],
+    ['servet', 'Toplam servet'], ['eklenen', 'Eklenen servet']];
+  function tabloCiz(R) {
+    var rows = R[aktifTab];
+    var h = '<tr>' + KOLON.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr>';
+    rows.forEach(function (r) {
+      h += '<tr>' + KOLON.map(function (c, i) {
+        return '<td>' + (i < 3 ? r[c[0]] : kisa(r[c[0]])) + '</td>'; }).join('') + '</tr>';
+    });
+    $('tablo').innerHTML = h;
+    $('tabSirket').className = aktifTab === 'sirket' ? 'on' : '';
+    $('tabSahis').className = aktifTab === 'sahis' ? 'on' : '';
+  }
+  function cikisCiz(R) {
+    $('cikisCard').style.display = R.cikis ? '' : 'none';
+    if (!R.cikis) return;
+    function eksi(x) { return Math.round(x) === 0 ? '0' : '−' + kisa(x); }
+    function kart(ad, cls, c, sirket) {
+      var s = '<div class="kpi"><h3 class="' + cls + '">' + ad + '</h3><table class="exit">' +
+        '<tr><td>Satış bedeli</td><td>' + kisa(c.bedel) + '</td></tr>';
+      if (sirket) s += '<tr><td>KDV</td><td>' + eksi(c.kdv) + '</td></tr>';
+      s += '<tr><td>' + (sirket ? 'Satış kârı vergisi' : 'Satış kazancı vergisi') + '</td><td>' + eksi(c.vergi) + '</td></tr>' +
+        '<tr><td>Tapu harcı</td><td>' + eksi(c.harc) + '</td></tr>' +
+        '<tr><td>Kasa</td><td>+' + kisa(c.kasa) + '</td></tr>';
+      if (sirket && P.temettuCek) s += '<tr><td>Temettü stopajı</td><td>' + eksi(c.stopaj) + '</td></tr>';
+      return s + '<tr class="sum"><td>Ele geçen net tutar</td><td>' + tl(c.net) + '</td></tr></table></div>';
+    }
+    $('cikis').innerHTML = kart('Şirket', 'c-sirket', R.cikis.sirket, true) + kart('Şahıs', 'c-sahis', R.cikis.sahis, false) +
+      (P.temettuCek ? '' : '<div class="hint" style="grid-column:1/-1">Şirket tutarı şirketin kasasında kalır; ortağa geçmesi için temettü seçeneğini açın.</div>');
+  }
+
+  /* --- grafikler --- */
+  function renk(ad) { return getComputedStyle(document.documentElement).getPropertyValue(ad).trim(); }
+  function grafikCiz(R) {
+    $('g2baslik').textContent = 'Brüt kiradan nete, ' + P.yil + '. yıl';
+    if (typeof Chart === 'undefined') {
+      ['g1', 'g2'].forEach(function (g) {
+        $(g).parentNode.style.display = 'none';
+        $(g + 'no').style.display = '';
+        $(g + 'no').textContent = 'Grafik kitaplığı yüklenemedi; rakamlar aşağıdaki tabloda.';
+      });
+      return;
+    }
+    ['g1', 'g2'].forEach(function (g) { $(g).parentNode.style.display = ''; $(g + 'no').style.display = 'none'; });
+    var cS = renk('--sirket'), cK = renk('--sahis'), ink = renk('--muted'), line = renk('--line');
+    Chart.defaults.color = ink;
+    Chart.defaults.borderColor = line;
+    Chart.defaults.font.family = 'system-ui, sans-serif';
+    var eksenY = { ticks: { callback: function (v) { return nf(v / 1e6, 0) + ' M'; } } };
+    var ipucu = { callbacks: { label: function (c) {
+      var v = Array.isArray(c.raw) ? Math.abs(c.raw[1] - c.raw[0]) : c.raw;
+      return c.dataset.label + ': ' + tl(v); } } };
+
+    if (grafik.g1) grafik.g1.destroy();
+    grafik.g1 = new Chart($('g1'), {
+      type: 'line',
+      data: { labels: R.sirket.map(function (r) { return r.yil; }), datasets: [
+        { label: 'Şirket', data: R.sirket.map(function (r) { return r.servet; }), borderColor: cS, backgroundColor: cS, tension: 0.15, pointRadius: 3 },
+        { label: 'Şahıs', data: R.sahis.map(function (r) { return r.servet; }), borderColor: cK, backgroundColor: cK, tension: 0.15, pointRadius: 3 }
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: { y: eksenY, x: { title: { display: true, text: 'Yıl' }, grid: { display: false } } },
+        plugins: { tooltip: ipucu } }
+    });
+
+    function selale(r) {
+      var a = r.brut, b = a - r.kdv, c = b - r.gider, d = c - r.vergi;
+      return [[0, a], [b, a], [c, b], [d, c], [0, r.net]];
+    }
+    if (grafik.g2) grafik.g2.destroy();
+    grafik.g2 = new Chart($('g2'), {
+      type: 'bar',
+      data: { labels: ['Kira', 'KDV', 'Gider', 'Vergi', 'Net'], datasets: [
+        { label: 'Şirket', data: selale(R.sirket[P.yil - 1]), backgroundColor: cS, borderRadius: 3 },
+        { label: 'Şahıs', data: selale(R.sahis[P.yil - 1]), backgroundColor: cK, borderRadius: 3 }
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, animation: false,
+        scales: { y: eksenY, x: { grid: { display: false } } }, plugins: { tooltip: ipucu } }
+    });
+  }
+
+  function ciz() {
+    var R = simulate(P);
+    ozetCiz(R); basabasCiz(); tabloCiz(R); cikisCiz(R); grafikCiz(R);
+    senaryoIsaretle();
+  }
+
+  /* --- senaryolar, sıfırlama, CSV --- */
+  var SENARYO = {
+    kotu: { kira: 30000, doluluk: 0.75, giderOrani: 0.25 },
+    baz: { kira: 40000, doluluk: 0.85, giderOrani: 0.20 },
+    iyi: { kira: 50000, doluluk: 0.92, giderOrani: 0.18 }
+  };
+  function senaryoIsaretle() {
+    Array.prototype.forEach.call($('senaryo').querySelectorAll('[data-s]'), function (b) {
+      var s = SENARYO[b.getAttribute('data-s')];
+      b.className = (P.kira === s.kira && P.yeniKira === s.kira && P.doluluk === s.doluluk && P.giderOrani === s.giderOrani) ? 'on' : '';
+    });
+  }
+  $('senaryo').addEventListener('click', function (e) {
+    var s = SENARYO[e.target.getAttribute('data-s')];
+    if (!s) return;
+    P.kira = s.kira; P.yeniKira = s.kira; P.doluluk = s.doluluk; P.giderOrani = s.giderOrani;
+    formDoldur(); kaydet(); ciz();
+  });
+  $('reset').addEventListener('click', function () {
+    P = kopya(VARSAYILAN);
+    try { localStorage.removeItem(ANAHTAR); } catch (e) {}
+    formDoldur(); ciz();
+  });
+  $('tabSirket').addEventListener('click', function () { aktifTab = 'sirket'; tabloCiz(simulate(P)); });
+  $('tabSahis').addEventListener('click', function () { aktifTab = 'sahis'; tabloCiz(simulate(P)); });
+  $('csv').addEventListener('click', function () {
+    var R = simulate(P), out = ['Yapı;' + KOLON.map(function (c) { return c[1]; }).join(';')];
+    [['sirket', 'Şirket'], ['sahis', 'Şahıs']].forEach(function (y) {
+      R[y[0]].forEach(function (r) {
+        out.push(y[1] + ';' + KOLON.map(function (c, i) {
+          return i < 3 ? r[c[0]] : String(Math.round(r[c[0]] * 100) / 100).replace('.', ','); }).join(';'));
+      });
+    });
+    var blob = new Blob(['﻿' + out.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'kira-projeksiyon.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+
+  /* --- başlat --- */
+  formKur(); formDoldur(); ciz();
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', ciz);
+  }
+  function chartYukle() {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+    s.onload = ciz;
+    document.head.appendChild(s);
+  }
+  chartYukle();
+
+  if (/[?&]test=1/.test(location.search)) {
+    var t = runTests(), gecen = t.filter(function (x) { return x.gecti; }).length;
+    $('testCard').style.display = '';
+    $('testOut').textContent = t.map(function (x) {
+      return (x.gecti ? '✔ ' : '✘ ') + x.ad + '  beklenen ' + nf(x.beklenen, x.beklenen % 1 ? 1 : 0) +
+        '  bulunan ' + nf(x.bulunan, x.bulunan % 1 ? 1 : 0);
+    }).join('\n') + '\n\n' + gecen + ' / ' + t.length + ' test geçti';
+  }
+})();
+</script>
+</body>
+</html>
